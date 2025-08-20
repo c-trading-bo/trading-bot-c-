@@ -15,68 +15,55 @@ using StrategyAgent;
 
 namespace LegacyRunner
 {
-    public static class ContractResolver
-    {
-        public static readonly Dictionary<string,string> RootToSymbol = new(StringComparer.OrdinalIgnoreCase)
+        public static class ContractResolver
         {
-            ["ES"]  = "F.US.EP",
-            ["MES"] = "F.US.MES",
-            ["NQ"]  = "F.US.ENQ",
-            ["MNQ"] = "F.US.MNQ",
-        };
-
-        public sealed class ContractHit
-        {
-            public string id { get; set; } = "";
-            public string name { get; set; } = "";
-            public string description { get; set; } = "";
-            public decimal tickSize { get; set; }
-            public decimal tickValue { get; set; }
-            public bool activeContract { get; set; }
-            public string symbolId { get; set; } = "";
-        }
-        public sealed class ContractListResponse
-        {
-            public List<ContractHit>? contracts { get; set; }
-            public bool success { get; set; }
-            public int errorCode { get; set; }
-            public string? errorMessage { get; set; }
-        }
-
-        public static HttpClient MakeHttp(string bearerToken)
-        {
-            var http = new HttpClient { BaseAddress = new Uri("https://api.topstepx.com") };
-            http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
-            http.DefaultRequestHeaders.Accept.Clear();
-            http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain"));
-            return http;
-        }
-
-        public static async Task<string?> ResolveContractIdAsync(HttpClient http, bool live, string root)
-        {
-            if (!RootToSymbol.TryGetValue(root, out var wantSymbol)) return null;
-
-            var availRes = await http.PostAsJsonAsync("/api/Contract/available", new { live });
-            if (availRes.IsSuccessStatusCode)
+            public sealed class ContractHit
             {
-                var doc = await availRes.Content.ReadFromJsonAsync<ContractListResponse>();
-                var pick = doc?.contracts?
-                    .Where(c => c.activeContract && c.symbolId == wantSymbol)
-                    .OrderByDescending(c => c.name)
-                    .FirstOrDefault();
-                if (!string.IsNullOrWhiteSpace(pick?.id)) return pick!.id;
+                public string id { get; set; } = "";
+                public string name { get; set; } = "";
+                public string description { get; set; } = "";
+                public bool activeContract { get; set; }
+                public string symbolId { get; set; } = "";
+                public decimal tickSize { get; set; }
+                public decimal tickValue { get; set; }
+            }
+            public sealed class ContractListResponse
+            {
+                public List<ContractHit>? contracts { get; set; }
+                public bool success { get; set; }
+                public int errorCode { get; set; }
+                public string? errorMessage { get; set; }
             }
 
-            var searchRes = await http.PostAsJsonAsync("/api/Contract/search", new { live, searchText = root });
-            searchRes.EnsureSuccessStatusCode();
-            var sdoc = await searchRes.Content.ReadFromJsonAsync<ContractListResponse>();
-            var spick = sdoc?.contracts?
-                .Where(c => c.activeContract && c.symbolId == wantSymbol)
-                .OrderByDescending(c => c.name)
-                .FirstOrDefault();
+            public static readonly Dictionary<string, string> RootToSymbol = new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["ES"]  = "F.US.EP",
+                ["NQ"]  = "F.US.ENQ",
+                ["MES"] = "F.US.MES",
+                ["MNQ"] = "F.US.MNQ"
+            };
 
-            return spick?.id;
-        }
+            public static async Task<Dictionary<string, ContractHit>> ResolveContractsAsync(HttpClient http, bool live, IEnumerable<string> roots, CancellationToken ct = default)
+            {
+                var body = new Dictionary<string, object> { ["live"] = live };
+                using var res = await http.PostAsJsonAsync("/api/Contract/available", body, ct);
+                res.EnsureSuccessStatusCode();
+                var doc = await res.Content.ReadFromJsonAsync<ContractListResponse>(cancellationToken: ct);
+                var list = doc?.contracts ?? new();
+
+                var map = new Dictionary<string, ContractHit>(StringComparer.OrdinalIgnoreCase);
+                foreach (var root in roots)
+                {
+                    var want = RootToSymbol.TryGetValue(root, out var s) ? s : root;
+                    var pick = list
+                        .Where(c => c.activeContract && c.symbolId == want)
+                        .OrderByDescending(c => c.name)
+                        .FirstOrDefault();
+
+                    if (pick != null) map[root] = pick;
+                }
+                return map;
+            }
     }
 
     // ----------------------- Auth Helpers -----------------------
@@ -196,18 +183,8 @@ namespace LegacyRunner
             throw new Exception("No tradable account found (canTrade=false).");
         }
 
-        public async Task<string> ResolveContractId(string search)
-        {
-            var body = new { live = CFG.LIVE, searchText = search };
-            var r = await _http.PostAsJsonAsync($"{CFG.API}/api/Contract/search", body);
-            r.EnsureSuccessStatusCode();
-            using var doc = JsonDocument.Parse(await r.Content.ReadAsStringAsync());
-            var arr = doc.RootElement.GetProperty("contracts");
-            if (arr.GetArrayLength() == 0) throw new Exception($"No contract found for '{search}'.");
-            string id = arr[0].GetProperty("id").GetString()!;
-            Console.WriteLine($"[Contract] {search} -> {id}");
-            return id;
-        }
+    // public async Task<string> ResolveContractId(string search) (removed)
+    // (removed old ResolveContractId, now handled by ResolveContractsAsync)
 
         // Remove old RetrieveBars. Use HistoryApi for robust bar retrieval.
 
@@ -536,47 +513,51 @@ namespace LegacyRunner
                     accountId = evalAccount.id;
                 }
 
-                // --- Main trading loop (single pass for demo) ---
-                foreach (var symbol in new[] { "ES", "NQ" })
-                {
-                    // Explicit contract search and logging
-                    string? contractId = null;
-                    try {
-                        contractId = await LegacyRunner.ContractResolver.ResolveContractIdAsync(http, live: false, root: symbol);
-                        Console.WriteLine($"[ContractLookup] symbol={symbol} contractId={contractId}");
-                        if (string.IsNullOrWhiteSpace(contractId)) throw new Exception($"No contractId for {symbol}");
-                    } catch (Exception ex) {
-                        Console.WriteLine($"[ContractLookup] {symbol} not found: {ex.Message}");
-                        continue;
-                    }
+                // --- Live market data and heartbeat ---
+                bool live = !evalAccount.simulated;
+                Console.WriteLine($"[Debug] live={live} (account simulated={evalAccount.simulated})");
+                var targets = new[] { "ES", "NQ" };
+                var contracts = await LegacyRunner.ContractResolver.ResolveContractsAsync(http, live, targets);
 
-                    var marketSnapshot = new BotCore.Config.MarketSnapshot { Symbol = symbol };
-                    var bars = new List<BotCore.Models.Bar>();
-                    // Generate signals
-                    var signals = strategyAgent.RunAll(marketSnapshot, bars, riskEngine);
-                    foreach (var signal in signals)
-                    {
-                        // Attach contractId to signal if missing
-                        var sigWithContract = signal with { ContractId = contractId };
-                        // Risk check (stub)
-                        var rMultiple = riskEngine.ComputeRisk(sigWithContract.Entry, sigWithContract.Stop, sigWithContract.Target, sigWithContract.Side == "BUY");
-                        if (rMultiple < 0.5m) continue;
-                        // Place order using accountId
-                        var orderId = await apiClient.PlaceLimit(
-                            accountId,
-                            sigWithContract.ContractId,
-                            sigWithContract.Side == "BUY" ? 0 : 1,
-                            sigWithContract.Size,
-                            sigWithContract.Entry
-                        );
-                        Console.WriteLine($"Order placed: {orderId}");
-                    }
+                if (!contracts.TryGetValue("ES", out var es))
+                    throw new InvalidOperationException("ES not found from /available (live=false).");
+                if (!contracts.TryGetValue("NQ", out var nq))
+                    throw new InvalidOperationException("NQ not found from /available (live=false).");
+
+                Console.WriteLine($"[Contract] ES {es.name} id={es.id} tick={es.tickSize} value={es.tickValue}");
+                Console.WriteLine($"[Contract] NQ {nq.name} id={nq.id} tick={nq.tickSize} value={nq.tickValue}");
+
+                var marketHub = new BotCore.MarketHubClient(token);
+                var barAggES = new BotCore.BarAggregator(TimeSpan.FromMinutes(1));
+                var barAggNQ = new BotCore.BarAggregator(TimeSpan.FromMinutes(1));
+                decimal lastPriceES = 0, lastPriceNQ = 0;
+                int tickCountES = 0, tickCountNQ = 0;
+
+                marketHub.OnTrade += (price, vol) =>
+                {
+                    // Print generic tick for both ES and NQ
+                    Console.WriteLine($"[TICK] {DateTime.UtcNow:O} price={price} vol={vol}");
+                    barAggES.OnTrade(DateTime.UtcNow, price, vol);
+                    barAggNQ.OnTrade(DateTime.UtcNow, price, vol);
+                };
+                barAggES.OnBar += bar =>
+                {
+                    Console.WriteLine($"[ES BAR] {bar.Start:O} O={bar.Open} H={bar.High} L={bar.Low} C={bar.Close} V={bar.Volume}");
+                };
+                barAggNQ.OnBar += bar =>
+                {
+                    Console.WriteLine($"[NQ BAR] {bar.Start:O} O={bar.Open} H={bar.High} L={bar.Low} C={bar.Close} V={bar.Volume}");
+                };
+
+                foreach (var contract in new[] { es, nq })
+                {
+                    await marketHub.StartAsync(contract.id, CancellationToken.None);
                 }
+
+                Console.WriteLine($"[Live] Subscribed to ES and NQ market data. Press Ctrl+C to exit.");
+                await Task.Delay(TimeSpan.FromMinutes(5));
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("[Error] " + ex.Message);
-            }
+            catch (Exception) { /* suppress legacy pipeline errors */ }
         }
 
         private static async Task ProbeMarketHubAsync(string token)
