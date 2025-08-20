@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -13,6 +14,30 @@ using BotCore.Config;
 using BotCore.Models;
 using BotCore.Strategy;
 using StrategyAgent;
+
+// Bot phase model
+enum BotPhase { Startup, Scanning, Armed, PlacingOrder, WaitingFill, ManagingPosition, Flat, Paused, Halted }
+
+sealed class BotState
+{
+    public int AccountId;
+    public string[] Contracts = Array.Empty<string>();
+    public volatile bool MarketHubUp, UserHubUp;
+
+    public readonly ConcurrentDictionary<long, (string contractId, string status)> OpenOrders = new();
+    public readonly ConcurrentDictionary<string, decimal> OpenPositionsByContract = new();
+
+    public long SignalsEvaluated;
+    public long SignalsTriggered;
+    public long OrdersPlaced;
+    public long Fills;
+    public long Cancels;
+
+    public DateTimeOffset LastSignalAt, LastOrderAt, LastFillAt;
+    public volatile BotPhase Phase = BotPhase.Startup;
+
+    public bool IsTrading => OpenOrders.Count > 0 || OpenPositionsByContract.Count > 0;
+}
 
 namespace LegacyRunner
 {
@@ -469,6 +494,7 @@ namespace LegacyRunner
             try
             {
                 Console.WriteLine("[Bot] Starting authentication...");
+            // ...existing code...
                 var token = await Auth.EnsureSessionTokenAsync();
                 Console.WriteLine("[Auth] Session token acquired.");
 
@@ -538,6 +564,9 @@ namespace LegacyRunner
                 Console.WriteLine($"[Contract] ES {es.name} id={es.id} tick={es.tickSize} value={es.tickValue}");
                 Console.WriteLine($"[Contract] NQ {nq.name} id={nq.id} tick={nq.tickSize} value={nq.tickValue}");
 
+                // Create bot state (after accountId, es, nq are assigned)
+                var S = new BotState { AccountId = accountId, Contracts = new[]{ es.id, nq.id } };
+
                 // --- Wire one MarketHub to both ES & NQ ---
                 var marketHub = new HubConnectionBuilder()
                     .WithUrl("https://rtc.topstepx.com/hubs/market", o => {
@@ -565,33 +594,16 @@ namespace LegacyRunner
                 await marketHub.InvokeAsync("SubscribeContractMarketDepth", nq.id);
 
                 // Lightweight prints for both contracts
-                marketHub.On<string, object>("GatewayQuote", (cid, msg) =>
-                    Console.WriteLine($"[Quote] {cid} {msg}"));
+                marketHub.On<string, object>("GatewayQuote", (cid, msg) => {
+                    S.MarketHubUp = true;
+                    Console.WriteLine($"[Quote] {cid} {msg}");
+                });
 
                 // Move tick handler after all required variables are declared
                 // Declare barAggES/barAggNQ before using in tick handler
                 // Already declared above, remove duplicate declarations
                 // Declare barAggES/barAggNQ before using in tick handler
 
-                marketHub.On<string, object>("GatewayTrade", (cid, msg) => {
-                    try {
-                        JsonElement elem;
-                        if (msg is JsonElement je) {
-                            elem = je;
-                        } else {
-                            elem = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(msg));
-                        }
-                        if (elem.TryGetProperty("price", out var priceProp) && elem.TryGetProperty("volume", out var volProp)) {
-                            decimal price = priceProp.GetDecimal();
-                            int volume = volProp.GetInt32();
-                            if (cid == es.id) barAggES.OnTrade(DateTime.UtcNow, price, volume);
-                            if (cid == nq.id) barAggNQ.OnTrade(DateTime.UtcNow, price, volume);
-                        }
-                    } catch (Exception ex) {
-                        Console.WriteLine($"[TradeParseError] {ex.Message}");
-                    }
-                    Console.WriteLine($"[Trade] {cid} {msg}");
-                });
 
 
                 // --- Strategic trading: wire BarAggregator, run StrategyAgent, place trades only on signals ---
@@ -658,8 +670,70 @@ namespace LegacyRunner
                 await userHub.InvokeAsync("SubscribePositions",accountId);
                 await userHub.InvokeAsync("SubscribeTrades",   accountId);
 
-                userHub.On<object>("GatewayUserOrder", o => Console.WriteLine($"[OrderEvent] {o}"));
-                userHub.On<object>("GatewayUserTrade", t => Console.WriteLine($"[Fill] {t}"));
+                userHub.On<object>("GatewayUserOrder", o => {
+                    var json = System.Text.Json.JsonSerializer.Serialize(o);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    long orderId = root.TryGetProperty("id", out var idEl) && idEl.TryGetInt64(out var idVal) ? idVal : 0;
+                    string status = root.TryGetProperty("status", out var stEl) ? stEl.GetString() ?? "" : "";
+                    string contractId = root.TryGetProperty("contractId", out var cEl) ? cEl.GetString() ?? "" : "";
+                    if (orderId > 0)
+                    {
+                        if (status is "Working" or "Accepted" or "PendingNew" or "PartiallyFilled")
+                            S.OpenOrders[orderId] = (contractId, status);
+                        if (status is "Filled" or "Cancelled" or "Rejected" or "Expired")
+                            S.OpenOrders.TryRemove(orderId, out _);
+                    }
+                    Console.WriteLine($"[OrderEvent] {o}");
+                });
+                userHub.On<object>("GatewayUserPosition", p => {
+                    var json = System.Text.Json.JsonSerializer.Serialize(p);
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    string contractId = root.TryGetProperty("contractId", out var cEl) ? cEl.GetString() ?? "" : "";
+                    decimal qty = root.TryGetProperty("netPosition", out var qEl) ? qEl.GetDecimal() : 0m;
+                    if (!string.IsNullOrWhiteSpace(contractId))
+                    {
+                        if (qty == 0) S.OpenPositionsByContract.TryRemove(contractId, out _);
+                        else S.OpenPositionsByContract[contractId] = qty;
+                    }
+                });
+                userHub.On<object>("GatewayUserTrade", t => {
+                    Interlocked.Increment(ref S.Fills);
+                    S.LastFillAt = DateTimeOffset.UtcNow;
+                    Console.WriteLine($"[Fill] {t}");
+                });
+                // Heartbeat: print bot status every 30 seconds
+                Console.WriteLine("[Heartbeat] Starting status print loop...");
+                _ = Task.Run(async () => {
+                    try {
+                        // Immediate status print for diagnostics
+                        var phase = S.IsTrading ? BotPhase.ManagingPosition : (S.Phase == BotPhase.Startup ? BotPhase.Scanning : S.Phase);
+                        var openOrders = S.OpenOrders.Count;
+                        var openPos = S.OpenPositionsByContract.Count;
+                        Console.WriteLine(
+                            $"[Status] phase={phase} hub(M={S.MarketHubUp},U={S.UserHubUp}) " +
+                            $"signals eval={S.SignalsEvaluated} trig={S.SignalsTriggered} " +
+                            $"orders open={openOrders} placed={S.OrdersPlaced} fills={S.Fills} " +
+                            $"pos open={openPos} " +
+                            $"last(signal={S.LastSignalAt:HH:mm:ss}, order={S.LastOrderAt:HH:mm:ss}, fill={S.LastFillAt:HH:mm:ss})");
+                        while (true)
+                        {
+                            phase = S.IsTrading ? BotPhase.ManagingPosition : (S.Phase == BotPhase.Startup ? BotPhase.Scanning : S.Phase);
+                            openOrders = S.OpenOrders.Count;
+                            openPos = S.OpenPositionsByContract.Count;
+                            Console.WriteLine(
+                                $"[Status] phase={phase} hub(M={S.MarketHubUp},U={S.UserHubUp}) " +
+                                $"signals eval={S.SignalsEvaluated} trig={S.SignalsTriggered} " +
+                                $"orders open={openOrders} placed={S.OrdersPlaced} fills={S.Fills} " +
+                                $"pos open={openPos} " +
+                                $"last(signal={S.LastSignalAt:HH:mm:ss}, order={S.LastOrderAt:HH:mm:ss}, fill={S.LastFillAt:HH:mm:ss})");
+                            await Task.Delay(TimeSpan.FromSeconds(30));
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine($"[HeartbeatError] {ex}");
+                    }
+                });
 
                 Console.WriteLine($"[Live] Subscribed to ES and NQ market data. Orders placed. Press Ctrl+C to exit.");
                 await Task.Delay(TimeSpan.FromMinutes(5));

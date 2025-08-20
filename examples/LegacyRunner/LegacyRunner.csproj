@@ -15,4 +15,9 @@
   <ProjectReference Include="..\..\src\StrategyAgent\StrategyAgent.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Program.bak.cs" />
+    <Compile Remove="*.bak.cs" />
+  </ItemGroup>
+
 </Project>
