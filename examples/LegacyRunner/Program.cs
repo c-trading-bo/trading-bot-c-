@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -477,10 +478,10 @@ namespace LegacyRunner
                 var config = BotCore.Config.ConfigLoader.FromFile(profilePath);
 
                 // --- Instantiate agents ---
-             			var strategyAgent = new StrategyAgent.StrategyAgent(config);
-             			var riskEngine = new BotCore.Risk.RiskEngine();
-             			var apiClient = new ApiClient(token);
-             			var http = new System.Net.Http.HttpClient { BaseAddress = new Uri("https://api.topstepx.com") };
+                var strategyAgent = new StrategyAgent.StrategyAgent(config);
+                var riskEngine = new BotCore.Risk.RiskEngine();
+                var apiClient = new ApiClient(token);
+                var http = new System.Net.Http.HttpClient { BaseAddress = new Uri("https://api.topstepx.com") };
                 http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 // --- Find a tradable eval account ---
@@ -488,8 +489,20 @@ namespace LegacyRunner
                 accountResp.EnsureSuccessStatusCode();
                 var accountJson = await accountResp.Content.ReadAsStringAsync();
                 Console.WriteLine($"[AccountSearch] Response: {accountJson}");
-                var accountList = System.Text.Json.JsonSerializer.Deserialize<AccountListResponse>(accountJson);
-                var all = accountList?.accounts ?? new List<AccountDto>();
+                // Parse accounts from accountJson
+                var accountDoc = JsonDocument.Parse(accountJson);
+                var all = new List<AccountDto>();
+                foreach (var a in accountDoc.RootElement.GetProperty("accounts").EnumerateArray())
+                {
+                    all.Add(new AccountDto {
+                        id = a.GetProperty("id").GetInt32(),
+                        name = a.GetProperty("name").GetString() ?? "",
+                        balance = a.GetProperty("balance").GetDecimal(),
+                        canTrade = a.GetProperty("canTrade").GetBoolean(),
+                        isVisible = a.GetProperty("isVisible").GetBoolean(),
+                        simulated = a.GetProperty("simulated").GetBoolean()
+                    });
+                }
                 AccountDto? evalAccount = PickEvaluationAccount(all);
                 int accountId;
                 if (evalAccount == null)
@@ -512,10 +525,8 @@ namespace LegacyRunner
                     Console.WriteLine($"[Account] Using EVAL {evalAccount.name} ({evalAccount.id}) bal={evalAccount.balance}");
                     accountId = evalAccount.id;
                 }
-
                 // --- Live market data and heartbeat ---
-                bool live = !evalAccount.simulated;
-                Console.WriteLine($"[Debug] live={live} (account simulated={evalAccount.simulated})");
+                bool live = !evalAccount?.simulated ?? false;
                 var targets = new[] { "ES", "NQ" };
                 var contracts = await LegacyRunner.ContractResolver.ResolveContractsAsync(http, live, targets);
 
@@ -527,34 +538,130 @@ namespace LegacyRunner
                 Console.WriteLine($"[Contract] ES {es.name} id={es.id} tick={es.tickSize} value={es.tickValue}");
                 Console.WriteLine($"[Contract] NQ {nq.name} id={nq.id} tick={nq.tickSize} value={nq.tickValue}");
 
-                var marketHub = new BotCore.MarketHubClient(token);
+                // --- Wire one MarketHub to both ES & NQ ---
+                var marketHub = new HubConnectionBuilder()
+                    .WithUrl("https://rtc.topstepx.com/hubs/market", o => {
+                        o.AccessTokenProvider = () => Task.FromResult(token)!;
+                        o.SkipNegotiation = true;
+                        o.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                    })
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                await marketHub.StartAsync();
+
+                // Declare aggregators and bar lists immediately after MarketHub is started
                 var barAggES = new BotCore.BarAggregator(TimeSpan.FromMinutes(1));
                 var barAggNQ = new BotCore.BarAggregator(TimeSpan.FromMinutes(1));
-                decimal lastPriceES = 0, lastPriceNQ = 0;
-                int tickCountES = 0, tickCountNQ = 0;
+                var barsES = new List<BotCore.Models.Bar>();
+                var barsNQ = new List<BotCore.Models.Bar>();
 
-                marketHub.OnTrade += (price, vol) =>
-                {
-                    // Print generic tick for both ES and NQ
-                    Console.WriteLine($"[TICK] {DateTime.UtcNow:O} price={price} vol={vol}");
-                    barAggES.OnTrade(DateTime.UtcNow, price, vol);
-                    barAggNQ.OnTrade(DateTime.UtcNow, price, vol);
+                // Subscribe both contracts on the same hub
+                await marketHub.InvokeAsync("SubscribeContractQuotes",      es.id);
+                await marketHub.InvokeAsync("SubscribeContractTrades",      es.id);
+                await marketHub.InvokeAsync("SubscribeContractMarketDepth", es.id);
+                await marketHub.InvokeAsync("SubscribeContractQuotes",      nq.id);
+                await marketHub.InvokeAsync("SubscribeContractTrades",      nq.id);
+                await marketHub.InvokeAsync("SubscribeContractMarketDepth", nq.id);
+
+                // Lightweight prints for both contracts
+                marketHub.On<string, object>("GatewayQuote", (cid, msg) =>
+                    Console.WriteLine($"[Quote] {cid} {msg}"));
+
+                // Move tick handler after all required variables are declared
+                // Declare barAggES/barAggNQ before using in tick handler
+                // Already declared above, remove duplicate declarations
+                // Declare barAggES/barAggNQ before using in tick handler
+
+                marketHub.On<string, object>("GatewayTrade", (cid, msg) => {
+                    try {
+                        JsonElement elem;
+                        if (msg is JsonElement je) {
+                            elem = je;
+                        } else {
+                            elem = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(msg));
+                        }
+                        if (elem.TryGetProperty("price", out var priceProp) && elem.TryGetProperty("volume", out var volProp)) {
+                            decimal price = priceProp.GetDecimal();
+                            int volume = volProp.GetInt32();
+                            if (cid == es.id) barAggES.OnTrade(DateTime.UtcNow, price, volume);
+                            if (cid == nq.id) barAggNQ.OnTrade(DateTime.UtcNow, price, volume);
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine($"[TradeParseError] {ex.Message}");
+                    }
+                    Console.WriteLine($"[Trade] {cid} {msg}");
+                });
+
+
+                // --- Strategic trading: wire BarAggregator, run StrategyAgent, place trades only on signals ---
+                // ...existing code...
+                barAggES.OnBar += bar => {
+                    barsES.Add(bar);
+                    var snap = new BotCore.Config.MarketSnapshot { Symbol = "ES", UtcNow = DateTime.UtcNow };
+                    var signals = strategyAgent.RunAll(snap, barsES, riskEngine);
+                    foreach (var sig in signals) {
+                        if (sig.ExpR < 1.0m) continue;
+                        var side = sig.Side == "BUY" ? 0 : 1;
+                        Task.Run(async () => {
+                            var orderId = await apiClient.PlaceLimit(accountId, es.id, side, sig.Size, sig.Entry);
+                            Console.WriteLine($"[StrategyOrder] ES {sig.Side} id={orderId} entry={sig.Entry} R={sig.ExpR:0.00}");
+                        });
+                    }
                 };
-                barAggES.OnBar += bar =>
-                {
-                    Console.WriteLine($"[ES BAR] {bar.Start:O} O={bar.Open} H={bar.High} L={bar.Low} C={bar.Close} V={bar.Volume}");
-                };
-                barAggNQ.OnBar += bar =>
-                {
-                    Console.WriteLine($"[NQ BAR] {bar.Start:O} O={bar.Open} H={bar.High} L={bar.Low} C={bar.Close} V={bar.Volume}");
+                barAggNQ.OnBar += bar => {
+                    barsNQ.Add(bar);
+                    var snap = new BotCore.Config.MarketSnapshot { Symbol = "NQ", UtcNow = DateTime.UtcNow };
+                    var signals = strategyAgent.RunAll(snap, barsNQ, riskEngine);
+                    foreach (var sig in signals) {
+                        if (sig.ExpR < 1.0m) continue;
+                        var side = sig.Side == "BUY" ? 0 : 1;
+                        Task.Run(async () => {
+                            var orderId = await apiClient.PlaceLimit(accountId, nq.id, side, sig.Size, sig.Entry);
+                            Console.WriteLine($"[StrategyOrder] NQ {sig.Side} id={orderId} entry={sig.Entry} R={sig.ExpR:0.00}");
+                        });
+                    }
                 };
 
-                foreach (var contract in new[] { es, nq })
-                {
-                    await marketHub.StartAsync(contract.id, CancellationToken.None);
-                }
+                marketHub.On<string, object>("GatewayTrade", (cid, msg) => {
+                    try {
+                        // msg is already a JsonElement or can be cast as such
+                        var elem = msg as JsonElement? ?? default;
+                        if (elem.ValueKind == JsonValueKind.Undefined) {
+                            elem = JsonSerializer.Deserialize<JsonElement>(JsonSerializer.Serialize(msg));
+                        }
+                        if (elem.TryGetProperty("price", out var priceProp) && elem.TryGetProperty("volume", out var volProp)) {
+                            decimal price = priceProp.GetDecimal();
+                            int volume = volProp.GetInt32();
+                            if (cid == es.id) barAggES.OnTrade(DateTime.UtcNow, price, volume);
+                            if (cid == nq.id) barAggNQ.OnTrade(DateTime.UtcNow, price, volume);
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine($"[TradeParseError] {ex.Message}");
+                    }
+                    Console.WriteLine($"[Trade] {cid} {msg}");
+                });
 
-                Console.WriteLine($"[Live] Subscribed to ES and NQ market data. Press Ctrl+C to exit.");
+                // --- Wire UserHub for order/fill events ---
+                var userHub = new HubConnectionBuilder()
+                    .WithUrl("https://rtc.topstepx.com/hubs/user", o => {
+                        o.AccessTokenProvider = () => Task.FromResult(token)!;
+                        o.SkipNegotiation = true;
+                        o.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                    })
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                await userHub.StartAsync();
+                await userHub.InvokeAsync("SubscribeAccounts");
+                await userHub.InvokeAsync("SubscribeOrders",   accountId);
+                await userHub.InvokeAsync("SubscribePositions",accountId);
+                await userHub.InvokeAsync("SubscribeTrades",   accountId);
+
+                userHub.On<object>("GatewayUserOrder", o => Console.WriteLine($"[OrderEvent] {o}"));
+                userHub.On<object>("GatewayUserTrade", t => Console.WriteLine($"[Fill] {t}"));
+
+                Console.WriteLine($"[Live] Subscribed to ES and NQ market data. Orders placed. Press Ctrl+C to exit.");
                 await Task.Delay(TimeSpan.FromMinutes(5));
             }
             catch (Exception) { /* suppress legacy pipeline errors */ }
