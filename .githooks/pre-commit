@@ -1,0 +1,4 @@
+#!/usr/bin/env pwsh
+if (git diff --cached | Select-String -Pattern 'apiKey|TOPSTEPX_JWT') {
+  Write-Host "Blocked: possible secret in commit." -ForegroundColor Red; exit 1
+}

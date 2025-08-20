@@ -1,0 +1,11 @@
+/Program.cs            @you
+/Core/Execution/**     @you
+/Core/Strategy/**      @you
+/BotCore/AllStrategies.cs @kevin
+/BotCore/ModelsAndRisk.cs @kevin
+/BotCore/BarAggregator.cs @kevin
+/BotCore/ApiClient.cs @kevin
+/BotCore/HistoryApi.cs @kevin
+/BotCore/UserHubClient.cs @kevin
+/BotCore/MarketHubClient.cs @kevin
+/BotCore/ExampleWireUp.cs @kevin
