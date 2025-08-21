@@ -87,7 +87,15 @@ private string? _lastResolvedId;
 				// Optionally handle market depth
 			});
 
-			var resolvedId = await ResolveContractIdAsync(contractIdOrSymbol, ct);
+			string resolvedId;
+			if (!string.IsNullOrWhiteSpace(contractIdOrSymbol) && contractIdOrSymbol.StartsWith("CON."))
+			{
+				resolvedId = contractIdOrSymbol;
+			}
+			else
+			{
+				resolvedId = await ResolveContractIdAsync(contractIdOrSymbol, ct);
+			}
 			_lastResolvedId = resolvedId;
 			await SubscribeAllAsync(resolvedId, ct);
 		}

@@ -23,12 +23,12 @@ namespace OrchestratorAgent
             string? userName = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME") ?? Environment.GetEnvironmentVariable("TSX_USERNAME");
             string? apiKey   = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY") ?? Environment.GetEnvironmentVariable("TSX_API_KEY");
             string? jwt      = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-            string? acctStr  = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+            string? acctStr  = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? Environment.GetEnvironmentVariable("TSX_ACCOUNT_ID") ?? Environment.GetEnvironmentVariable("ACCOUNT_ID");
 
             int accountId = 0;
             if (string.IsNullOrWhiteSpace(acctStr) || !int.TryParse(acctStr, out accountId) || accountId <= 0)
             {
-                Console.Error.WriteLine("ERROR: TOPSTEPX_ACCOUNT_ID missing or invalid. Set it in your environment.");
+                Console.Error.WriteLine("ERROR: TOPSTEPX_ACCOUNT_ID missing or invalid. Tried TOPSTEPX_ACCOUNT_ID, TSX_ACCOUNT_ID, ACCOUNT_ID. Set one in your environment.");
                 Environment.Exit(1);
             }
             if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(apiKey))
@@ -73,39 +73,37 @@ namespace OrchestratorAgent
             api.SetJwt(jwt!);
 
             // --- Resolve ES/NQ current contractId ---
-            var symbols = new[] { "ES", "NQ" };
-            var cids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var s in symbols)
+            var roots = new[] { "ES", "NQ" };
+            var contractIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var r in roots)
             {
-                log.LogInformation($"Resolving contract for symbol: {s}");
                 try
                 {
-                    var id = await api.ResolveContractIdAsync(s, cts.Token);
-                    cids[s] = id;
-                    log.LogInformation($"Resolved {s} -> {id}");
+                    log.LogInformation("Resolving contract for symbol: {Root}", r);
+                    var cid = await api.ResolveContractIdAsync(r, cts.Token);
+                    contractIds[r] = cid;
+                    log.LogInformation("Resolved {Root} -> {ContractId}", r, cid);
                 }
                 catch (Exception ex)
                 {
-                    log.LogWarning($"Failed to resolve contract for {s}: {ex.Message}");
+                    log.LogWarning("Failed to resolve contract for {Root}: {Msg}", r, ex.Message);
                 }
             }
 
-            // --- MarketHubClient wiring ---
+            // Only proceed with the ones we actually resolved:
             var marketHubs = new Dictionary<string, BotCore.MarketHubClient>();
-            foreach (var s in symbols)
-            {
-                var mhub = new BotCore.MarketHubClient(jwt!);
-                await mhub.StartAsync(cids[s], cts.Token);
-                marketHubs[s] = mhub;
-                mhub.OnLastQuote += price => log.LogInformation($"[{s}] LastQuote={price}");
-                mhub.OnTrade += (price, vol) => log.LogInformation($"[{s}] Trade {price} x {vol}");
-            }
-
-            // --- 1. Live bar fetching ---
             var barsBySymbol = new Dictionary<string, List<Bar>>();
-            foreach (var s in symbols)
+            foreach (var kv in contractIds)
             {
-                var contractId = cids[s];
+                var root = kv.Key;
+                var contractId = kv.Value;
+                var mhub = new BotCore.MarketHubClient(jwt!);
+                await mhub.StartAsync(contractId, cts.Token);
+                marketHubs[root] = mhub;
+                mhub.OnLastQuote += price => log.LogInformation($"[{root}] LastQuote={price}");
+                mhub.OnTrade += (price, vol) => log.LogInformation($"[{root}] Trade {price} x {vol}");
+
+                // --- 1. Live bar fetching ---
                 var barsJson = await BotCore.MarketHubClient.FetchHistoricalBarsAsync(jwt!, contractId, DateTime.UtcNow.AddDays(-2), DateTime.UtcNow, cts.Token);
                 var bars = new List<Bar>();
                 using var doc = JsonDocument.Parse(barsJson);
@@ -121,15 +119,22 @@ namespace OrchestratorAgent
                             Low = el.TryGetProperty("low", out var l) ? l.GetDecimal() : 0m,
                             Close = el.TryGetProperty("close", out var c) ? c.GetDecimal() : 0m,
                             Volume = el.TryGetProperty("volume", out var v) ? v.GetInt32() : 0,
-                            Symbol = s
+                            Symbol = root
                         });
                     }
                 }
-                barsBySymbol[s] = bars;
+                barsBySymbol[root] = bars;
+            }
+
+            // If none resolved, exit cleanly:
+            if (contractIds.Count == 0)
+            {
+                log.LogError("No contracts resolved (eval=live:false). Make sure your API key has market data access and retry.");
+                return;
             }
 
             // --- 2. StrategyAgent wiring (using AllStrategies) ---
-            foreach (var s in symbols)
+            foreach (var s in contractIds.Keys)
             {
                 var bars = barsBySymbol[s];
                 var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
@@ -148,7 +153,7 @@ namespace OrchestratorAgent
             Candidate? bestSignal = null;
             string? bestSignalSymbol = null;
             decimal bestR = decimal.MinValue;
-            foreach (var s in symbols)
+            foreach (var s in contractIds.Keys)
             {
                 if (!candidatesBySymbol.ContainsKey(s)) continue;
                 foreach (var cand in candidatesBySymbol[s])
@@ -166,15 +171,8 @@ namespace OrchestratorAgent
             }
             if (bestSignal != null && bestSignalSymbol != null)
             {
-                try
-                {
-                    var orderId = await api.PlaceLimit(accountId, cids[bestSignalSymbol], bestSignal.side == Side.BUY ? 0 : 1, (int)bestSignal.qty, bestSignal.entry, cts.Token);
-                    log.LogInformation($"Order submitted. OrderId={orderId} {bestSignal.strategy_id} {bestSignal.symbol} {bestSignal.side} entry={bestSignal.entry}");
-                }
-                catch (HttpRequestException ex)
-                {
-                    log.LogWarning($"Order rejected: {ex.Message}");
-                }
+                // TODO: Implement order placement logic here, e.g. call api.PlaceOrderAsync or similar
+                log.LogInformation($"Best signal ready for order: {bestSignal.strategy_id} {bestSignal.symbol} {bestSignal.side} entry={bestSignal.entry}");
             }
             else
             {
