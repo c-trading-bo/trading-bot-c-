@@ -15,6 +15,7 @@ namespace OrchestratorAgent
     {
         public static async Task Main(string[] args)
         {
+            var candidatesBySymbol = new Dictionary<string, List<Candidate>>();
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
@@ -76,10 +77,17 @@ namespace OrchestratorAgent
             var cids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var s in symbols)
             {
-                log.LogInformation("Resolving contract for symbol: {S}", s);
-                var id = await api.ResolveContractIdAsync(s, cts.Token);
-                cids[s] = id;
-                log.LogInformation("Resolved {S} -> {Id}", s, id);
+                log.LogInformation($"Resolving contract for symbol: {s}");
+                try
+                {
+                    var id = await api.ResolveContractIdAsync(s, cts.Token);
+                    cids[s] = id;
+                    log.LogInformation($"Resolved {s} -> {id}");
+                }
+                catch (Exception ex)
+                {
+                    log.LogWarning($"Failed to resolve contract for {s}: {ex.Message}");
+                }
             }
 
             // --- MarketHubClient wiring ---
@@ -121,7 +129,6 @@ namespace OrchestratorAgent
             }
 
             // --- 2. StrategyAgent wiring (using AllStrategies) ---
-            var candidatesBySymbol = new Dictionary<string, List<Candidate>>();
             foreach (var s in symbols)
             {
                 var bars = barsBySymbol[s];
@@ -137,28 +144,41 @@ namespace OrchestratorAgent
             }
 
             // --- 3. Order flow connection ---
+            // --- Find the single best signal across all symbols ---
+            Candidate? bestSignal = null;
+            string? bestSignalSymbol = null;
+            decimal bestR = decimal.MinValue;
             foreach (var s in symbols)
             {
-                var candidates = candidatesBySymbol[s];
-                foreach (var cand in candidates)
+                if (!candidatesBySymbol.ContainsKey(s)) continue;
+                foreach (var cand in candidatesBySymbol[s])
                 {
                     if (guard.CanOpen(s, (int)cand.qty, out var reason))
                     {
-                        try
+                        if (cand.expR > bestR)
                         {
-                            var orderId = await api.PlaceLimit(accountId, cids[s], cand.side == Side.BUY ? 0 : 1, (int)cand.qty, cand.entry, cts.Token);
-                            log.LogInformation($"Order submitted. OrderId={orderId} {cand.strategy_id} {cand.symbol} {cand.side} entry={cand.entry}");
+                            bestR = cand.expR;
+                            bestSignal = cand;
+                            bestSignalSymbol = s;
                         }
-                        catch (HttpRequestException ex)
-                        {
-                            log.LogWarning($"Order rejected: {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        log.LogWarning($"EvalGuard blocked entry for {s}: {reason ?? "unknown"}");
                     }
                 }
+            }
+            if (bestSignal != null && bestSignalSymbol != null)
+            {
+                try
+                {
+                    var orderId = await api.PlaceLimit(accountId, cids[bestSignalSymbol], bestSignal.side == Side.BUY ? 0 : 1, (int)bestSignal.qty, bestSignal.entry, cts.Token);
+                    log.LogInformation($"Order submitted. OrderId={orderId} {bestSignal.strategy_id} {bestSignal.symbol} {bestSignal.side} entry={bestSignal.entry}");
+                }
+                catch (HttpRequestException ex)
+                {
+                    log.LogWarning($"Order rejected: {ex.Message}");
+                }
+            }
+            else
+            {
+                log.LogWarning("No suitable signal found for trading.");
             }
 
             // --- 4. Config file check ---
