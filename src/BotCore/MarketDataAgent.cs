@@ -1,0 +1,89 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Client;
+using BotCore.Models;
+
+namespace BotCore
+{
+    public class MarketDataAgent
+    {
+        private readonly HubConnection _hub;
+        public event Action<Bar>? OnBar;
+        public event Action<JsonElement>? OnQuote;
+        public event Action<JsonElement>? OnTrade;
+        public int BarsSeen { get; private set; }
+        public int QuotesSeen { get; private set; }
+        public int TradesSeen { get; private set; }
+
+        public MarketDataAgent(string jwt)
+        {
+            _hub = new HubConnectionBuilder()
+                .WithUrl("https://rtc.topstepx.com/hubs/market", o => o.AccessTokenProvider = () => Task.FromResult<string?>(jwt))
+                .WithAutomaticReconnect()
+                .Build();
+        }
+
+        public async Task StartAsync(string contractId, string barTf = "1m")
+        {
+            // Normalize to both plain and Gateway* event names, and support two-arg variants
+            _hub.On<JsonElement>("Bar", data =>
+            {
+                BarsSeen++;
+                OnBar?.Invoke(JsonSerializer.Deserialize<Bar>(data.GetRawText()));
+            });
+            _hub.On<JsonElement>("Quote", data =>
+            {
+                QuotesSeen++;
+                OnQuote?.Invoke(data);
+            });
+            _hub.On<string, JsonElement>("GatewayQuote", (cid, data) =>
+            {
+                QuotesSeen++;
+                OnQuote?.Invoke(data);
+            });
+            _hub.On<JsonElement>("Trade", data =>
+            {
+                TradesSeen++;
+                OnTrade?.Invoke(data);
+            });
+            _hub.On<string, JsonElement>("GatewayTrade", (cid, data) =>
+            {
+                TradesSeen++;
+                OnTrade?.Invoke(data);
+            });
+            await _hub.StartAsync();
+            if (_hub.State != HubConnectionState.Connected)
+            {
+                Console.WriteLine($"Market Hub connection state: {_hub.State}. Waiting for connection...");
+                int retries = 0;
+                while (_hub.State != HubConnectionState.Connected && retries < 10)
+                {
+                    await Task.Delay(500);
+                    retries++;
+                }
+                if (_hub.State != HubConnectionState.Connected)
+                {
+                    Console.WriteLine("Market Hub failed to connect after retries.");
+                    throw new InvalidOperationException("Market Hub not connected.");
+                }
+            }
+            Console.WriteLine("Market Hub connected. Subscribing...");
+            // Subscribe using both legacy and Contract* method names for compatibility
+            await _hub.SendAsync("SubscribeQuote", contractId);
+            await _hub.SendAsync("SubscribeContractQuotes", contractId);
+
+            await _hub.SendAsync("SubscribeTrade", contractId);
+            await _hub.SendAsync("SubscribeContractTrades", contractId);
+
+            await _hub.SendAsync("SubscribeBars", contractId, barTf);
+            await _hub.SendAsync("SubscribeContractBars", contractId, barTf);
+        }
+
+        public async Task StopAsync()
+        {
+            await _hub.DisposeAsync();
+        }
+    }
+}

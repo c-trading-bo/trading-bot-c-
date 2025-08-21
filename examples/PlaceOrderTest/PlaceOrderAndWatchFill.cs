@@ -1,7 +1,10 @@
-﻿using System;
-using System.Text.Json;
-using System.Threading.Tasks;
-using BotCore;
+﻿// ...existing using directives...
+
+// ...existing using directives...
+
+// Place this helper and call after all using directives
+
+// ...existing code...
 
 void LoadEnvFile(string path)
 {
@@ -16,10 +19,22 @@ void LoadEnvFile(string path)
     }
 }
 
-// Load environment variables from .env.local if present
 LoadEnvFile(".env.local");
 
-// Authenticate to get JWT
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Client;
+using BotCore;
+using BotCore.Models;
+using BotCore.Config;
+using BotCore.Risk;
+
 var username = Environment.GetEnvironmentVariable("TSX_USERNAME");
 var apiKey = Environment.GetEnvironmentVariable("TSX_API_KEY");
 if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(apiKey))
@@ -27,60 +42,29 @@ if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(apiKey))
     Console.WriteLine("Missing TSX_USERNAME or TSX_API_KEY in environment or .env.local");
     return;
 }
-
 var authAgent = new BotCore.TopstepAuthAgent(username, apiKey);
-var loginOk = await authAgent.LoginAsync();
-if (!loginOk || string.IsNullOrWhiteSpace(authAgent.Token))
+var success = await authAgent.LoginAsync();
+if (!success || string.IsNullOrWhiteSpace(authAgent.Token))
 {
     Console.WriteLine("Login failed. Cannot proceed.");
     return;
 }
-
 var token = authAgent.Token;
 
-// Stream market data briefly for a couple of contracts to verify connectivity
-var envAccountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
-if (string.IsNullOrWhiteSpace(envAccountId))
-{
-    Console.WriteLine("TOPSTEPX_ACCOUNT_ID not set in environment. Cannot attach account.");
-    return;
-}
-Console.WriteLine($"Using accountId from env: {envAccountId}");
+// Market data agent
+var contractId = "ESU5"; // TODO: fetch dynamically
+var marketAgent = new BotCore.ReliableMarketDataAgent(token);
+marketAgent.OnBar += bar => Console.WriteLine($"BAR: {bar?.Symbol} {bar?.Close:0.00}");
+marketAgent.OnQuote += quote => Console.WriteLine($"QUOTE: {quote}");
+marketAgent.OnTrade += trade => Console.WriteLine($"TRADE: {trade}");
 
-foreach (var contractId in new[] { "ESU5", "NQU5" })
-{
-    Console.WriteLine($"\n=== Testing contract: {contractId} ===");
-    await using var md = new BotCore.MarketData.ReliableMarketDataAgent();
+// Order router agent
+var orderAgent = new BotCore.OrderRouterAgent(token);
+// Example usage: await orderAgent.PlaceOrderAsync(orderRequest, CancellationToken.None);
 
-    try
-    {
-        using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await md.ConnectAsync(cts.Token);
-        Console.WriteLine("Connected to market hub.");
+// Start market data stream (replace with actual contractId)
+await marketAgent.StartAsync(contractId);
 
-        await md.AttachAccountAsync(envAccountId, cts.Token);
-        Console.WriteLine("Attached account group.");
+// ...existing code for strategy, risk, and order logic...
 
-        await md.SubscribeBarsAsync(contractId, "1m", cts.Token);
-        await md.SubscribeQuoteAsync(contractId, cts.Token);
-        Console.WriteLine("Subscribed to bars and quotes.");
-
-        var start = DateTime.UtcNow;
-        var lastBars = -1;
-        while ((DateTime.UtcNow - start).TotalSeconds < 20)
-        {
-            await Task.Delay(1000);
-            if (md.BarsSeen != lastBars)
-            {
-                Console.WriteLine($"heartbeat: bars={md.BarsSeen} last={md.LastPrice}");
-                lastBars = md.BarsSeen;
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error streaming market data for {contractId}: {ex.Message}");
-    }
-}
-
-Console.WriteLine("Done.");
+await Task.Delay(TimeSpan.FromMinutes(10));

@@ -1,5 +1,5 @@
+// PURPOSE: AllStrategies as strategy engine for candidate generation.
 using BotCore.Config;
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +18,6 @@ namespace BotCore.Strategy
             return Math.Abs(t1 - entry) / r;
         }
 
-        // Original method preserved
         public static List<Candidate> generate_candidates(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var cands = new List<Candidate>();
@@ -58,6 +57,31 @@ namespace BotCore.Strategy
                     AccountId = c.accountId,
                     ContractId = c.contractId,
                     Tag = $"{c.strategy_id}-{c.symbol}-{DateTime.UtcNow:yyyyMMdd-HHmmss}"
+                });
+            }
+            return signals;
+        }
+
+        // Config-aware method for StrategyAgent
+        public static List<Signal> generate_signals(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, long accountId, string contractId)
+        {
+            var candidates = S1(symbol, env, levels, bars, risk);
+            var signals = new List<Signal>();
+            foreach (var c in candidates)
+            {
+                signals.Add(new Signal
+                {
+                    StrategyId = c.strategy_id,
+                    Symbol = c.symbol,
+                    Side = c.side.ToString(),
+                    Entry = c.entry,
+                    Stop = c.stop,
+                    Target = c.t1,
+                    ExpR = c.expR,
+                    Size = (int)c.qty,
+                    AccountId = accountId,
+                    ContractId = contractId,
+                    Tag = c.Tag
                 });
             }
             return signals;

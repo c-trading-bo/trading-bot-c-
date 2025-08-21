@@ -1,195 +1,153 @@
-﻿// Remove stray closing brace at the top
-using System;
-using Microsoft.AspNetCore.SignalR.Client;
-using System.Collections.Concurrent;
-using System.Net;
+﻿using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
-using System.Net.Http;
+using BotCore.Models;
 
-namespace BotCore.MarketData
+namespace BotCore
 {
-    public class ReliableMarketDataAgent : IAsyncDisposable
+    /// <summary>
+    /// Resilient SignalR market data client:
+    ///  - awaits StartAsync before sending
+    ///  - gates sends on Connected state
+    ///  - resubscribes after automatic reconnect
+    ///  - wires both "Gateway*" and plain event names
+    /// </summary>
+    public sealed class ReliableMarketDataAgent : IAsyncDisposable
     {
-        public int BarsSeen { get; private set; }
-        public decimal LastPrice { get; private set; }
-        private HubConnection? _conn;
-        private readonly SemaphoreSlim _connectLock = new(1, 1);
-        private readonly ConcurrentQueue<Func<CancellationToken, Task>> _pendingSubs = new();
-        private readonly string _marketHubUrl;
-        private readonly Func<Task<string?>> _jwtProvider;
+        private HubConnection? _hub;
+        private readonly string _jwt;
+        private string? _contractId;
+        private string? _barTf;
 
-        public ReliableMarketDataAgent(string? marketHubUrl = null, Func<Task<string?>>? jwtProvider = null)
+        public event Action<Bar>? OnBar;
+        public event Action<JsonElement>? OnQuote;
+        public event Action<JsonElement>? OnTrade;
+
+        public ReliableMarketDataAgent(string jwt)
         {
-            _marketHubUrl = string.IsNullOrWhiteSpace(marketHubUrl)
-                ? (Environment.GetEnvironmentVariable("TOPSTEPX_MARKET_HUB")?.Trim()
-                    ?? "https://rtc.topstepx.com/hubs/market")
-                : marketHubUrl.Trim();
-
-            _jwtProvider = jwtProvider ?? (async () => {
-                await Task.Yield(); // Ensure truly async
-                var tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-                if (string.IsNullOrWhiteSpace(tok))
-                    throw new InvalidOperationException("TOPSTEPX_JWT is empty. Fetch JWT first.");
-                return tok.Trim();
-            });
+            _jwt = jwt ?? throw new ArgumentNullException(nameof(jwt));
         }
 
-        private HubConnection BuildConnection()
+        public async Task StartAsync(string contractId, string barTf, CancellationToken ct = default)
         {
-            return new HubConnectionBuilder()
-                .WithUrl(_marketHubUrl, options =>
+            _contractId = contractId ?? throw new ArgumentNullException(nameof(contractId));
+            _barTf = barTf ?? throw new ArgumentNullException(nameof(barTf));
+
+            _hub = new HubConnectionBuilder()
+                .WithUrl("https://rtc.topstepx.com/hubs/market", o =>
                 {
-                    options.AccessTokenProvider = async () => await _jwtProvider();
-                    options.SkipNegotiation = false;
-                    options.HttpMessageHandlerFactory = _ => new SocketsHttpHandler
-                    {
-                        AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
-                        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-                        ConnectTimeout = TimeSpan.FromSeconds(15),
-                    };
+                    o.AccessTokenProvider = () => Task.FromResult(_jwt);
                 })
-                .WithAutomaticReconnect(new[]
-                {
-                    TimeSpan.Zero, TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)
-                })
-                .ConfigureLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Information))
+                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
                 .Build();
+
+            WireHandlers(_hub);
+
+            _hub.Reconnected += async _ =>
+            {
+                try { await SubscribeAll(ct).ConfigureAwait(false); }
+                catch (Exception ex) { Console.WriteLine($"[ReliableMarketDataAgent] Resubscribe failed: {ex.Message}"); }
+            };
+
+            await _hub.StartAsync(ct).ConfigureAwait(false);
+            await WaitForConnectedAsync(ct).ConfigureAwait(false);
+            await SubscribeAll(ct).ConfigureAwait(false);
         }
 
-        public async Task ConnectAsync(CancellationToken ct = default)
+        private void WireHandlers(HubConnection hub)
         {
-            await _connectLock.WaitAsync(ct);
+            hub.On<JsonElement>("Bar", data =>
+            {
+                try
+                {
+                    var b = new Bar
+                    {
+                        Ts = data.TryGetProperty("ts", out var ts) ? ts.GetInt64() :
+                             data.TryGetProperty("timestamp", out var t2) ? t2.GetInt64() : 0,
+                        Open = data.TryGetProperty("open", out var o) ? o.GetDecimal() : 0m,
+                        High = data.TryGetProperty("high", out var h) ? h.GetDecimal() : 0m,
+                        Low = data.TryGetProperty("low", out var l) ? l.GetDecimal() : 0m,
+                        Close = data.TryGetProperty("close", out var c) ? c.GetDecimal() : 0m,
+                        Volume = data.TryGetProperty("volume", out var v) ? v.GetInt32() : 0,
+                        Symbol = data.TryGetProperty("symbol", out var s) ? s.GetString() ?? "" : ""
+                    };
+                    OnBar?.Invoke(b);
+                }
+                catch { }
+            });
+            hub.On<JsonElement>("GatewayBars", data => OnQuote?.Invoke(data)); // fallback
+
+            hub.On<JsonElement>("Quote", data => OnQuote?.Invoke(data));
+            hub.On<JsonElement>("GatewayQuote", data => OnQuote?.Invoke(data));
+
+            hub.On<JsonElement>("Trade", data => OnTrade?.Invoke(data));
+            hub.On<JsonElement>("GatewayTrade", data => OnTrade?.Invoke(data));
+        }
+
+        private async Task SubscribeAll(CancellationToken ct)
+        {
+            if (_hub is null) throw new InvalidOperationException("Hub is not built.");
+            if (_contractId is null || _barTf is null) throw new InvalidOperationException("Call StartAsync(contractId, barTf) first.");
+            await WaitForConnectedAsync(ct).ConfigureAwait(false);
+
+            await TrySendAsync("SubscribeQuote", new object?[] { _contractId }, ct);
+            await TrySendAsync("SubscribeContractQuotes", new object?[] { _contractId }, ct);
+
+            await TrySendAsync("SubscribeTrade", new object?[] { _contractId }, ct);
+            await TrySendAsync("SubscribeContractTrades", new object?[] { _contractId }, ct);
+
+            await TrySendAsync("SubscribeBars", new object?[] { _contractId, _barTf }, ct);
+            await TrySendAsync("SubscribeContractBars", new object?[] { _contractId, _barTf }, ct);
+
+            Console.WriteLine($"[ReliableMarketDataAgent] Subscribed to {_contractId} ({_barTf}).");
+        }
+
+        private async Task<bool> TrySendAsync(string method, object?[] args, CancellationToken ct)
+        {
             try
             {
-                if (_conn is { State: HubConnectionState.Connected }) return;
-                _conn ??= BuildConnection();
-                WireEvents(_conn!);
-                Console.WriteLine("[ReliableMarketDataAgent] Starting connection…");
-                await _conn!.StartAsync(ct);
-                await WaitForStateAsync(HubConnectionState.Connected, TimeSpan.FromSeconds(20), ct);
-                Console.WriteLine("[ReliableMarketDataAgent] Connected.");
+                if (_hub is null) return false;
+                if (_hub.State != HubConnectionState.Connected) await WaitForConnectedAsync(ct).ConfigureAwait(false);
+                await _hub.SendAsync(method, args, ct).ConfigureAwait(false);
+                return true;
             }
-            finally
+            catch (Exception ex)
             {
-                _connectLock.Release();
+                Console.WriteLine($"[ReliableMarketDataAgent] {method} failed: {ex.Message}");
+                return false;
             }
         }
-        // ...existing code...
 
-        private void WireEvents(HubConnection conn)
+        private async Task WaitForConnectedAsync(CancellationToken ct)
         {
-            conn.Reconnecting += ex => {
-                Console.WriteLine($"[ReliableMarketDataAgent] Reconnecting… {ex?.Message}");
-                return Task.CompletedTask;
-            };
-
-            conn.Reconnected += _ => Task.Run(async () => {
-                Console.WriteLine("[ReliableMarketDataAgent] Reconnected. Replaying subscriptions…");
-                while (_pendingSubs.TryDequeue(out var sub))
-                {
-                    try { await sub(CancellationToken.None); }
-                    catch (Exception ex) { Console.WriteLine($"[ReliableMarketDataAgent] Re-subscribe failed: {ex.Message}"); }
-                }
-            });
-
-            conn.Closed += ex => {
-                Console.WriteLine($"[ReliableMarketDataAgent] Closed: {ex?.Message}");
-                return Task.CompletedTask;
-            };
-
-            // Bar-ish events with different names
-            foreach (var evt in new[] { "Bar", "Bars", "OnBar", "OnBars", "RealtimeBar" })
+            if (_hub is null) throw new InvalidOperationException("Hub is null");
+            var start = DateTime.UtcNow;
+            while (_hub.State != HubConnectionState.Connected)
             {
-                conn.On<object>(evt, payload =>
-                {
-                    try
-                    {
-                        var close = TryGetDecimal(payload, "close", "Close", "c", "last", "Last", "price", "Price");
-                        if (close.HasValue) LastPrice = close.Value;
-                        BarsSeen++;
-                        Console.WriteLine($"[MD] {evt} -> BarsSeen={BarsSeen} Last={LastPrice}");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MD] {evt} parse fail: {ex.Message}");
-                    }
-                });
+                ct.ThrowIfCancellationRequested();
+                if ((DateTime.UtcNow - start) > TimeSpan.FromSeconds(30))
+                    throw new TimeoutException("SignalR connection did not reach Connected state within 30s.");
+                await Task.Delay(200, ct).ConfigureAwait(false);
             }
+        }
 
-                                // Quotes (helpful heartbeat even if market closed)
-                                foreach (var evt in new[] { "Quote", "Quotes", "OnQuote", "OnQuotes", "RealtimeQuote" })
-                                {
-                                    conn.On<object>(evt, payload =>
-                                    {
-                                        var last = TryGetDecimal(payload, "last", "Last", "price", "Price", "p", "c");
-                                        if (last.HasValue) LastPrice = last.Value;
-                                    });
-                                }
-                            }
+        public async ValueTask DisposeAsync()
+        {
+            if (_hub is not null)
+            {
+                try { await _hub.DisposeAsync(); } catch { }
+            }
+        }
 
-                            private static decimal? TryGetDecimal(object obj, params string[] keys)
-                            {
-                                if (obj == null) return null;
-
-                                // flat
-                                foreach (var k in keys)
-                                {
-                                    var p = obj.GetType().GetProperty(k);
-                                    if (p?.GetValue(obj) is { } v && decimal.TryParse(v.ToString(), out var d)) return d;
-                                }
-                                // nested { bar = { close = ... } }
-                                var bp = obj.GetType().GetProperty("bar");
-                                if (bp?.GetValue(obj) is { } inner)
-                                {
-                                    foreach (var k in keys)
-                                    {
-                                        var p2 = inner.GetType().GetProperty(k);
-                                        if (p2?.GetValue(inner) is { } v && decimal.TryParse(v.ToString(), out var d)) return d;
-                                    }
-                                }
-                                return null;
-                            }
-
-                            private async Task WaitForStateAsync(HubConnectionState desired, TimeSpan timeout, CancellationToken ct)
-                            {
-                                var start = DateTime.UtcNow;
-                                while (_conn!.State != desired)
-                                {
-                                    ct.ThrowIfCancellationRequested();
-                                    if (DateTime.UtcNow - start > timeout)
-                                        throw new TimeoutException($"SignalR did not reach {desired} within {timeout.TotalSeconds}s.");
-                                    await Task.Delay(150, ct);
-                                }
-                            }
-
-                            private void EnqueueOrInvoke(Func<CancellationToken, Task> invoker, CancellationToken ct)
-                            {
-                                if (_conn!.State == HubConnectionState.Connected)
-                                {
-                                    _ = Task.Run(async () =>
-                                    {
-                                        try { await invoker(ct); }
-                                        catch (Exception ex) { Console.WriteLine($"[MD] invoke failed: {ex.Message}"); }
-                                    }, ct);
-                                }
-                                else
-                                {
-                                    _pendingSubs.Enqueue(invoker);
-                                }
-                            }
-
-                            public async ValueTask DisposeAsync()
-                            {
-                                if (_conn is not null)
-                                {
-                                    await _conn.DisposeAsync();
-                                }
-                            }
-                        }
-                    }
-
-
+        public async Task StopAsync(CancellationToken ct = default)
+        {
+            if (_hub is not null)
+            {
+                try { await _hub.StopAsync(ct).ConfigureAwait(false); } catch { }
+                await DisposeAsync();
+            }
+        }
+    }
+}

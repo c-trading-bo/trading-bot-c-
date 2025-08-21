@@ -20,7 +20,7 @@
 
 
   <ItemGroup>
-  <ProjectReference Include="..\..\src\BotCore\BotCore.csproj" />
+    <ProjectReference Include="..\BotCore\BotCore.csproj" />
   </ItemGroup>
 
 </Project>

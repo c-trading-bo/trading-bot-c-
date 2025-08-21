@@ -17,5 +17,7 @@ namespace BotCore.Models
     public decimal? vol_z { get; set; }
     public long accountId { get; set; }
     public string contractId { get; set; } = "";
+    public string Tag => $"{strategy_id}-{symbol}-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
     }
+    public enum Side { BUY, SELL }
 }

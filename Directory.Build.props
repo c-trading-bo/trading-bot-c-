@@ -1,8 +1,5 @@
 <Project>
   <PropertyGroup>
-    <DefaultItemExcludes>$(DefaultItemExcludes);**\bin\**;**\obj\**</DefaultItemExcludes>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="**\bin\**\*.cs;**\obj\**\*.cs" />
-  </ItemGroup>
 </Project>

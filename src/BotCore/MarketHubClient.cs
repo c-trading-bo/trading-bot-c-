@@ -1,3 +1,4 @@
+// PURPOSE: MarketHubClient for live market data and contract resolution.
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
@@ -17,7 +18,8 @@ namespace BotCore
 		public event Action<decimal>? OnLastQuote;
 		public event Action<decimal, int>? OnTrade;
 		private readonly string _jwt;
-		private static readonly ConcurrentDictionary<string, string> _contractCache = new();
+private static readonly ConcurrentDictionary<string, string> _contractCache = new();
+private string? _lastResolvedId;
 
 		public MarketHubClient(string jwt)
 		{
@@ -26,8 +28,11 @@ namespace BotCore
 				.WithUrl("https://rtc.topstepx.com/hubs/market", o =>
 				{
 					o.AccessTokenProvider = () => Task.FromResult<string?>(jwt);
-					o.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-					o.SkipNegotiation = true;
+					// Allow negotiation and fallback to LongPolling if WebSockets is blocked
+					o.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets
+					              | Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+					// Do not skip negotiation; server may require it
+					// o.SkipNegotiation = true;
 				})
 				.WithAutomaticReconnect()
 				.Build();
@@ -36,7 +41,30 @@ namespace BotCore
 		public async Task StartAsync(string contractIdOrSymbol, CancellationToken ct)
 		{
 			await _hub.StartAsync(ct);
+			await WaitForConnectedAsync(_hub, TimeSpan.FromSeconds(15));
 			if (_wired) return; _wired = true;
+
+			_hub.Reconnecting += error =>
+			{
+				Console.WriteLine($"[MarketHub] reconnecting: {error?.GetType().Name} {error?.Message}");
+				return Task.CompletedTask;
+			};
+			_hub.Reconnected += async _ =>
+			{
+				Console.WriteLine("[MarketHub] reconnected — resubscribing");
+				var id = _lastResolvedId;
+				if (!string.IsNullOrWhiteSpace(id))
+				{
+					try { await SubscribeAllAsync(id!, CancellationToken.None); }
+					catch (Exception ex) { Console.WriteLine($"[MarketHub] resubscribe error: {ex.GetType().Name} {ex.Message}"); }
+				}
+			};
+			_hub.Closed += error =>
+			{
+				Console.WriteLine($"[MarketHub] closed: {error?.GetType().Name} {error?.Message}");
+				return Task.CompletedTask;
+			};
+
 			_hub.On<string, JsonElement>("GatewayQuote", (cid, data) =>
 			{
 				_quotes++;
@@ -60,9 +88,8 @@ namespace BotCore
 			});
 
 			var resolvedId = await ResolveContractIdAsync(contractIdOrSymbol, ct);
-			await _hub.InvokeAsync("SubscribeContractQuotes", resolvedId, ct);
-			await _hub.InvokeAsync("SubscribeContractTrades", resolvedId, ct);
-			await _hub.InvokeAsync("SubscribeContractMarketDepth", resolvedId, ct);
+			_lastResolvedId = resolvedId;
+			await SubscribeAllAsync(resolvedId, ct);
 		}
 
 		private async Task<string> ResolveContractIdAsync(string input, CancellationToken ct)
@@ -105,6 +132,38 @@ namespace BotCore
 			_contractCache[input] = id!;
 			Console.WriteLine($"Resolved '{input}' => contractId {id}");
 			return id!;
+		}
+
+		private static async Task WaitForConnectedAsync(HubConnection hub, TimeSpan timeout)
+		{
+			var start = DateTime.UtcNow;
+			while (hub.State != HubConnectionState.Connected)
+			{
+				if (DateTime.UtcNow - start > timeout)
+					throw new TimeoutException($"Hub did not reach Connected. Current={hub.State}");
+				await Task.Delay(100);
+			}
+		}
+
+		private static async Task<bool> RetryAsync(Func<Task> action, int attempts = 5, int delayMs = 800)
+		{
+			for (int i = 1; i <= attempts; i++)
+			{
+				try { await action(); return true; }
+				catch (Exception ex)
+				{
+					Console.WriteLine($"[MarketHub] Retry {i}/{attempts}: {ex.GetType().Name} {ex.Message}");
+					await Task.Delay(delayMs);
+				}
+			}
+			return false;
+		}
+
+		private async Task SubscribeAllAsync(string contractId, CancellationToken ct)
+		{
+			await RetryAsync(() => _hub.InvokeAsync("SubscribeContractQuotes", contractId, ct));
+			await RetryAsync(() => _hub.InvokeAsync("SubscribeContractTrades", contractId, ct));
+			await RetryAsync(() => _hub.InvokeAsync("SubscribeContractMarketDepth", contractId, ct));
 		}
 
 		public void PrintSmokeCounters()

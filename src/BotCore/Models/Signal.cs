@@ -14,6 +14,4 @@ namespace BotCore.Models
         public string ContractId { get; init; } = "";
         public string Tag { get; init; } = "";
     }
-
-    public enum Side { BUY, SELL }
 }
