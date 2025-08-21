@@ -37,6 +37,7 @@ namespace OrchestratorAgent
             }
 
             using var http = new HttpClient();
+            using var apiHttp = new HttpClient();
             using var loggerFactory = LoggerFactory.Create(b => b
                 .AddSimpleConsole(o => { o.TimestampFormat = "HH:mm:ss "; o.SingleLine = true; })
                 .SetMinimumLevel(LogLevel.Information));
@@ -67,7 +68,7 @@ namespace OrchestratorAgent
             var guard = new EvalGuard(policy, pnl);
 
             // --- API client ---
-            var api = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+            var api = new ApiClient(apiHttp, loggerFactory.CreateLogger<ApiClient>(), apiBase);
             api.SetJwt(jwt!);
 
             // --- Resolve ES/NQ current contractId ---
