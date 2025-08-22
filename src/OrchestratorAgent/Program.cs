@@ -119,7 +119,7 @@ namespace OrchestratorAgent
             void WireSymbol(string root, string contractId)
             {
                 var mc  = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), CurrentJwt);
-                var agg = new BarAggregator(60);
+                    var agg = new BotCore.FootprintBarAggregator();
 
                 var printedSchema = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 void Peek(string tag, JsonElement json)
@@ -138,16 +138,29 @@ namespace OrchestratorAgent
                     }
                 }
 
-                mc.OnTrade += (_, json) =>
+                mc.OnTrade += (contractId, json) =>
                 {
-                    Peek("Trade", json);
-                    agg.OnTrade(json);
+                    // Parse GatewayTrade payload
+                    if (json.ValueKind != System.Text.Json.JsonValueKind.Object) return;
+                    if (!json.TryGetProperty("symbolId", out var symbolProp) ||
+                        !json.TryGetProperty("price", out var priceProp) ||
+                        !json.TryGetProperty("volume", out var volumeProp) ||
+                        !json.TryGetProperty("type", out var typeProp) ||
+                        !json.TryGetProperty("timestamp", out var tsProp)) return;
+                    var symbolId = symbolProp.GetString();
+                    var price = priceProp.GetDecimal();
+                    var volume = volumeProp.GetDecimal();
+                    var sideFlag = typeProp.GetInt32(); // 0=Buy, 1=Sell
+                    var iso = tsProp.GetString();
+                    var ts = DateTimeOffset.Parse(iso!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal);
+                    if (BotCore.TradeDeduper.Seen(symbolId!, price, volume, ts)) return;
+                    Console.WriteLine($"[{symbolId}] {contractId} {ts:HH:mm:ss.fff} {price} x {volume} {(sideFlag==0 ? "B" : "S")}");
+                    agg.OnTrade(contractId, symbolId!, ts, price, volume, sideFlag);
                 };
-                agg.OnBar += bar =>
+                agg.BarClosed += (contractId, symbolId, bar) =>
                 {
-                    bars.Append(root, bar);
-                    Console.WriteLine($"[{root}] {bar.Start:HH:mm:ss} Open={bar.Open} High={bar.High} Low={bar.Low} Close={bar.Close} Volume={bar.Volume}");
-                    // TODO: run your strategy here (EMA, etc.) once you see bars flowing
+                    Console.WriteLine($"[{symbolId}] 1m {bar}");
+                    // TODO: push to your indicator, DB, or UI here.
                 };
 
                 marketClients.Add(mc);
