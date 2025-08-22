@@ -49,8 +49,8 @@ namespace BotCore
 					.Build();
 
 				WireHandlersOnce();
-
-				_hub.On<object>("GatewayUserOrder", data =>
+				// o.SkipNegotiation = true;
+				// o.Transports = HttpTransportType.WebSockets;
 				{
 					try
 					{
