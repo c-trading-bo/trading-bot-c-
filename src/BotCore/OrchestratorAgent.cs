@@ -1,3 +1,6 @@
+// Agent: OrchestratorAgent
+// Role: Main orchestration logic for strategy execution, agent coordination, and trading flow.
+// Integration: Coordinates all other agents and manages bot lifecycle.
 using System;
 
 namespace BotCore

@@ -1,3 +1,6 @@
+// Agent: PositionAgent
+// Role: Tracks and manages open positions, P&L, and position state.
+// Integration: Used by orchestrator and risk agents for portfolio management.
 using System;
 using System.Collections.Generic;
 using BotCore.Models;

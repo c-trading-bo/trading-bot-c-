@@ -1,3 +1,6 @@
+// Agent: StrategyAgent
+// Role: Implements trading strategies and signal generation.
+// Integration: Receives market data, sends signals to orchestrator and order agents.
 
 using System.Collections.Generic;
 using BotCore.Config;

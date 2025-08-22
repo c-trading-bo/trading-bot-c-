@@ -1,3 +1,6 @@
+// Agent: SupervisorAgent
+// Role: Monitors agent health, diagnostics, and system status.
+// Integration: Used by orchestrator for health checks and diagnostics.
 #nullable enable
 using System;
 using System.Collections.Generic;

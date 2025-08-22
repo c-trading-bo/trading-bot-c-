@@ -1,5 +1,3 @@
-
-
 #nullable enable
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -197,6 +195,8 @@ namespace BotCore
 			}
 			_log.LogError("[MarketHub] Could not restart after repeated attempts.");
 		}
+
+		public Microsoft.AspNetCore.SignalR.Client.HubConnection Connection => _conn!;
 
 		public async ValueTask DisposeAsync()
 		{

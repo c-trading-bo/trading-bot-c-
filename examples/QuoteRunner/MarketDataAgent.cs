@@ -1,3 +1,6 @@
+// Agent: MarketDataAgent (example)
+// Role: Example market data streaming and aggregation.
+// Integration: Used in QuoteRunner for demo and testing.
 using System;
 using System.Collections.Generic;
 using System.Text.Json;

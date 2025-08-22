@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Agent: ReliableMarketDataAgent
+// Role: Provides fault-tolerant market data streaming and recovery.
+// Integration: Used by orchestrator and strategies for robust data feeds.
+using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;

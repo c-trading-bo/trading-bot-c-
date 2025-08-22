@@ -1,3 +1,6 @@
+// Agent: PositionAgent (standalone)
+// Role: Standalone position tracking and management.
+// Integration: Used for portfolio state and P&L tracking.
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;

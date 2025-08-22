@@ -1,3 +1,6 @@
+// Agent: MarketDataAgent (standalone)
+// Role: Standalone market data streaming and aggregation.
+// Integration: Used by strategies and orchestrator for data feeds.
 using System;
 using System.Collections.Generic;
 using System.Text.Json;

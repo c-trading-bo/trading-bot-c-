@@ -1,3 +1,6 @@
+// Agent: UserHubAgent (standalone)
+// Role: Standalone SignalR user hub connection and event handling.
+// Integration: Used for user event streaming and logging.
 using System;
 using System.Text.Json;
 using System.Threading;

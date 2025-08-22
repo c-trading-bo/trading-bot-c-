@@ -1,3 +1,6 @@
+// Agent: OrderRouterAgent
+// Role: Handles order placement, routing, and execution logic.
+// Integration: Receives signals/orders from orchestrator and strategy agents.
 using System;
 using System.Threading;
 using System.Threading.Tasks;

@@ -1,3 +1,7 @@
+#nullable enable
+// Agent: OrchestratorAgent (standalone)
+// Role: Standalone orchestration logic for strategy and agent coordination.
+// Integration: Manages bot lifecycle and agent interactions.
 // PURPOSE: Evaluation-account policy configuration and simple session window helpers.
 #nullable enable
 using System.Globalization;
@@ -5,10 +9,15 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+
 using Microsoft.Extensions.Logging;
+using BotCore.Auth;
 
 namespace OrchestratorAgent
 {
+}
+// ...existing code...
+// ...existing code...
     public sealed class EvalPolicy
     {
         public bool Enabled { get; set; } = true;
@@ -69,7 +78,7 @@ namespace OrchestratorAgent
                 return new DateTimeOffset(d, TimeSpan.Zero);
             }
         }
-    }
+}
 
     public static class SymbolMeta
     {
@@ -101,7 +110,6 @@ namespace OrchestratorAgent
             return new string(s.TakeWhile(char.IsLetter).ToArray());
         }
     }
-
     // PURPOSE: Track positions and realized PnL per trading day from trade fills.
     public sealed class PnLTracker
     {
@@ -301,36 +309,125 @@ namespace OrchestratorAgent
             _pnl = pnl;
         }
 
-        public async Task ConnectAsync(string jwt, int accountId, CancellationToken ct = default)
+        public async Task ConnectAsync(ITopstepAuth auth, int accountId, CancellationToken ct = default)
         {
-            var url = $"https://rtc.topstepx.com/hubs/user?access_token={Uri.EscapeDataString(jwt)}";
+            async Task<string> TokenProvider()
+            {
+                var (jwt, expUtc) = await auth.GetFreshJwtAsync(ct);
+                var ttl = expUtc - DateTimeOffset.UtcNow;
+                if (ttl < TimeSpan.FromSeconds(30))
+                    throw new InvalidOperationException($"JWT TTL too low ({ttl.TotalSeconds:F0}s). Refresh logic failed.");
+                return jwt;
+            }
+
             _conn = new HubConnectionBuilder()
-                .WithUrl(url, o =>
+                .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
-                    o.AccessTokenProvider = () => Task.FromResult<string?>(jwt);
-                    o.Transports = HttpTransportType.WebSockets;
+                    options.AccessTokenProvider = TokenProvider;
+                    options.SkipNegotiation = false;
+                    options.Transports = HttpTransportType.WebSockets;
                 })
-                .WithAutomaticReconnect()
+                .WithAutomaticReconnect(new[]
+                {
+                    TimeSpan.Zero, TimeSpan.FromSeconds(2),
+                    TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                    logging.SetMinimumLevel(LogLevel.Debug);
+                })
                 .Build();
 
-            _conn.On<object>("GatewayUserTrade", data =>
+            _conn.ServerTimeout = TimeSpan.FromSeconds(45);
+            _conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
+
+            // Wire events ONCE BEFORE StartAsync
+            bool handlersWired = false;
+            void WireHandlers()
             {
-                try
+                if (handlersWired) return;
+                _conn.On<object>("GatewayUserOrder", data =>
                 {
-                    if (data is JsonElement je) _pnl.OnFill(je);
-                }
-                catch (Exception ex)
-                {
-                    _log.LogWarning(ex, "Trade parse failed.");
-                }
-            });
+                    try
+                    {
+                        if (data is JsonElement je) _log.LogInformation($"Order event: {je}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "Order parse failed.");
+                    }
+                });
+                _conn.On<object>("GatewayUserTrade", data => Console.WriteLine($"TRADE => {data}"));
+                handlersWired = true;
+            }
+            WireHandlers();
+
+            _conn.Reconnecting += error =>
+            {
+                _log.LogWarning(error, "UserHub reconnecting: {Message}", error?.Message);
+                return Task.CompletedTask;
+            };
+            _conn.Reconnected += connectionId =>
+            {
+                _log.LogInformation("UserHub reconnected: {ConnectionId}", connectionId);
+                // Re-subscribe after reconnect
+                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeAccounts", accountId, ct2), ct);
+                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeOrders", accountId, ct2), ct);
+                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribePositions", accountId, ct2), ct);
+                _ = ReliableInvokeAsync(_conn, (c, ct2) => c.InvokeAsync("SubscribeTrades", accountId, ct2), ct);
+                return Task.CompletedTask;
+            };
+            _conn.Closed += error =>
+            {
+                _log.LogWarning(error, "UserHub closed: {Message}", error?.Message);
+                return Task.CompletedTask;
+            };
 
             await _conn.StartAsync(ct);
-            await _conn.InvokeAsync("SubscribeAccounts");
-            await _conn.InvokeAsync("SubscribeOrders", accountId);
-            await _conn.InvokeAsync("SubscribePositions", accountId);
-            await _conn.InvokeAsync("SubscribeTrades", accountId);
-            _log.LogInformation("[UserHub] subscribed for account {AccountId}", accountId);
+            if (_conn.State != HubConnectionState.Connected)
+                throw new InvalidOperationException("UserHub failed to connect.");
+
+            // Log JWT TTL at connect time
+            {
+                var (_, expUtc) = await auth.GetFreshJwtAsync(ct);
+                var ttl = expUtc - DateTimeOffset.UtcNow;
+                _log.LogInformation($"UserHub connected. JWT TTL ≈ {(int)ttl.TotalSeconds}s");
+            }
+
+            // Only subscribe if connection is active
+            if (_conn.State == HubConnectionState.Connected)
+            {
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct);
+                _log.LogInformation("[UserHub] subscribed for account {AccountId}", accountId);
+            }
+        }
+        #nullable enable
+        private async Task ReliableInvokeAsync(HubConnection conn, Func<HubConnection, CancellationToken, Task> call, CancellationToken ct)
+        {
+            var delay = TimeSpan.FromMilliseconds(300);
+            for (int attempt = 1; attempt <= 5; attempt++)
+            {
+                ct.ThrowIfCancellationRequested();
+
+                if (conn.State == HubConnectionState.Connected)
+                {
+                    try { await call(conn, ct); return; }
+                    catch (Exception ex) { _log.LogWarning(ex, $"Invoke attempt {attempt} failed: {ex.Message}"); }
+                }
+                else
+                {
+                    _log.LogWarning($"Connection state is {conn.State}, waiting before retry...");
+                }
+
+                await Task.Delay(delay, ct);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
+            }
+            throw new InvalidOperationException("UserHub invoke could not complete after multiple retries.");
         }
 
         public async ValueTask DisposeAsync()
@@ -341,4 +438,4 @@ namespace OrchestratorAgent
             }
         }
     }
-}
+    

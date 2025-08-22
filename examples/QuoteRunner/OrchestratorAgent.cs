@@ -1,3 +1,6 @@
+// Agent: OrchestratorAgent (example)
+// Role: Example orchestration logic for strategy and agent coordination.
+// Integration: Used in QuoteRunner for demo and testing.
 using System;
 using System.Collections.Generic;
 

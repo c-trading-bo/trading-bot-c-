@@ -1,47 +1,52 @@
+
 using System;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
-namespace TopstepAuthAgent
+namespace BotCore.Auth
 {
-    public sealed class TopstepAuthAgent
-    {
-        private readonly HttpClient _http;
-        private readonly ILogger<TopstepAuthAgent> _log;
-        private readonly string _apiBase;
+	public interface ITopstepAuth
+	{
+		Task<(string jwt, DateTimeOffset expiresUtc)> GetFreshJwtAsync(CancellationToken ct);
+	}
 
-        public TopstepAuthAgent(HttpClient http, ILogger<TopstepAuthAgent> log, string apiBase)
-        {
-            _http = http;
-            _log = log;
-            _apiBase = apiBase;
-            _http.BaseAddress = new Uri(apiBase);
-        }
+	public sealed class CachedTopstepAuth : ITopstepAuth
+	{
+		private readonly Func<CancellationToken, Task<string>> _fetchJwt;
+	private string _jwt = string.Empty;
+		private DateTimeOffset _expUtc = DateTimeOffset.MinValue;
+		private readonly object _gate = new();
 
-        public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
-        {
-            var req = new { username, apiKey };
-            var resp = await _http.PostAsJsonAsync("/api/Auth/loginKey", req, ct);
-            resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            if (json.TryGetProperty("token", out var token))
-                return token.GetString() ?? throw new InvalidOperationException("No JWT returned");
-            throw new InvalidOperationException("No token field in loginKey response");
-        }
+		public CachedTopstepAuth(Func<CancellationToken, Task<string>> fetchJwt) => _fetchJwt = fetchJwt;
 
-        public async Task<string> ValidateAsync(string jwt, CancellationToken ct)
-        {
-            var req = new { token = jwt };
-            var resp = await _http.PostAsJsonAsync("/api/Auth/validate", req, ct);
-            resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            if (json.TryGetProperty("token", out var token))
-                return token.GetString() ?? throw new InvalidOperationException("No JWT returned");
-            throw new InvalidOperationException("No token field in validate response");
-        }
-    }
+		public async Task<(string jwt, DateTimeOffset expiresUtc)> GetFreshJwtAsync(CancellationToken ct)
+		{
+			if (DateTimeOffset.UtcNow >= _expUtc - TimeSpan.FromSeconds(120))
+			{
+				var newJwt = await _fetchJwt(ct);
+				var exp = GetJwtExpiryUtc(newJwt);
+				lock (_gate) { _jwt = newJwt; _expUtc = exp; }
+			}
+			return (_jwt, _expUtc);
+		}
+
+		private static DateTimeOffset GetJwtExpiryUtc(string jwt)
+		{
+			var parts = jwt.Split('.');
+			if (parts.Length < 2) throw new ArgumentException("Invalid JWT format");
+			string payloadJson = System.Text.Encoding.UTF8.GetString(Base64UrlDecode(parts[1]));
+			using var doc = JsonDocument.Parse(payloadJson);
+			long exp = doc.RootElement.GetProperty("exp").GetInt64();
+			return DateTimeOffset.FromUnixTimeSeconds(exp);
+		}
+
+		private static byte[] Base64UrlDecode(string s)
+		{
+			s = s.Replace('-', '+').Replace('_', '/');
+			switch (s.Length % 4) { case 2: s += "=="; break; case 3: s += "="; break; }
+			return Convert.FromBase64String(s);
+		}
+	}
 }
+

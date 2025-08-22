@@ -1,3 +1,6 @@
+// Agent: UserHubAgent (example)
+// Role: Example implementation of SignalR user hub connection and event handling.
+// Integration: Used in QuoteRunner for demo and testing.
 using System;
 using System.Text.Json;
 

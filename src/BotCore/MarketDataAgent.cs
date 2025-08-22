@@ -1,3 +1,6 @@
+// Agent: MarketDataAgent
+// Role: Handles market data streaming, aggregation, and event distribution.
+// Integration: Feeds data to strategies, orchestrator, and risk agents.
 using System;
 using System.Collections.Generic;
 using System.Text.Json;

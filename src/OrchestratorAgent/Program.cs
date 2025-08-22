@@ -1,4 +1,4 @@
-
+using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Net.Http;
 using System.Text.Json;
@@ -8,15 +8,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using BotCore;                   // ApiClient
+using BotCore; // Ensure BotCore.UserHubAgent is used
 using SupervisorAgent;           // Supervisor integration
 using BotCore.Strategy;          // AllStrategies
 using OrchestratorAgent;
 using TopstepAuthAgent;          // TopstepAuthAgent
 using BotCore.Models;
 using BotCore.Risk;
-
-
 
 namespace OrchestratorAgent
 {
@@ -122,10 +120,11 @@ namespace OrchestratorAgent
 
             var policy = EvalPolicy.FromEnv();
             var pnl = new PnLTracker(policy);
-            await using var userHub = new UserHubAgent(loggerFactory.CreateLogger<UserHubAgent>(), pnl);
+            await using var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>());
             await userHub.ConnectAsync(jwt!, accountId, cts.Token);
             var guard = new EvalGuard(policy, pnl);
 
+            // Create marketHub after contracts are resolved
             var api = new ApiClient(apiHttp, loggerFactory.CreateLogger<ApiClient>(), apiBase);
             api.SetJwt(jwt!);
 
@@ -152,10 +151,12 @@ namespace OrchestratorAgent
                 Contracts = new() { ["ES"] = contractIds.ContainsKey("ES") ? contractIds["ES"] : "", ["NQ"] = contractIds.ContainsKey("NQ") ? contractIds["NQ"] : "" },
             };
 
+            var marketHub = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), CurrentJwt);
+            WireHubState(userHub.Connection, marketHub.Connection, status, cts.Token);
             var supervisor = new SupervisorAgent.SupervisorAgent(
                 loggerFactory.CreateLogger<SupervisorAgent.SupervisorAgent>(),
                 http, apiBase, jwt!, accountId,
-                null, // marketHub placeholder
+                marketHub,
                 userHub,
                 status,
                 new SupervisorAgent.SupervisorAgent.Config
@@ -173,12 +174,11 @@ namespace OrchestratorAgent
                     }
                 }
             );
-
             await supervisor.RunAsync(cts.Token);
             var botSupervisor = new OrchestratorAgent.BotSupervisor(
                 loggerFactory.CreateLogger<OrchestratorAgent.BotSupervisor>(),
                 http, apiBase, jwt!, accountId,
-                null, // marketHub placeholder
+                marketHub,
                 userHub,
                 status,
                 new OrchestratorAgent.BotSupervisor.Config
@@ -197,116 +197,68 @@ namespace OrchestratorAgent
                 }
             );
             _ = botSupervisor.RunAsync(cts.Token);
-
             var bars = new BotCore.BarsRegistry(maxKeep: 1000);
 
-            void WireSymbol(string root, string contractId)
-            {
-                var mc  = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), CurrentJwt);
-                var agg = new BotCore.FootprintBarAggregator();
+            // All event wiring is now handled by WireHubState only
 
-                var printedSchema = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                void Peek(string tag, JsonElement json)
+        }
+
+        // WireHubState wires hub state and event subscriptions for orchestration
+        public static void WireHubState(
+            Microsoft.AspNetCore.SignalR.Client.HubConnection? userHubConn,
+            Microsoft.AspNetCore.SignalR.Client.HubConnection? marketHubConn,
+            SupervisorAgent.StatusService status,
+            CancellationToken ct)
+        {
+            if (userHubConn != null)
+            {
+                userHubConn.On("GatewayUserOrder", (object[] args) =>
                 {
-                    if (printedSchema.Contains(tag)) return;
-                    printedSchema.Add(tag);
-                    if (json.ValueKind == JsonValueKind.Object)
+                    if (args != null && args.Length > 0)
                     {
-                        var keys = string.Join(",", json.EnumerateObject().Select(p => p.Name));
-                        Console.WriteLine($"[{root}] {tag} keys: {keys}");
+                        var json = System.Text.Json.JsonSerializer.Serialize(args[0]);
+                        status.Set("order", json);
                     }
-                    else if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() > 0 && json[0].ValueKind == JsonValueKind.Object)
-                    {
-                        var keys = string.Join(",", json[0].EnumerateObject().Select(p => p.Name));
-                        Console.WriteLine($"[{root}] {tag}[0] keys: {keys}");
-                    }
-                }
-
-                mc.OnTrade += (contractId, json) =>
+                });
+                userHubConn.On("GatewayUserTrade", (object[] args) =>
                 {
-                    if (json.ValueKind != System.Text.Json.JsonValueKind.Object) return;
-                    if (!json.TryGetProperty("symbolId", out var symbolProp) ||
-                        !json.TryGetProperty("price", out var priceProp) ||
-                        !json.TryGetProperty("volume", out var volumeProp) ||
-                        !json.TryGetProperty("type", out var typeProp) ||
-                        !json.TryGetProperty("timestamp", out var tsProp)) return;
-                    var symbolId = symbolProp.GetString();
-                    var price = priceProp.GetDecimal();
-                    var volume = volumeProp.GetDecimal();
-                    var sideFlag = typeProp.GetInt32();
-                    var iso = tsProp.GetString();
-                    var ts = DateTimeOffset.Parse(iso!, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal);
-                    if (BotCore.TradeDeduper.Seen(symbolId!, price, volume, ts)) return;
-                    Console.WriteLine($"[{symbolId}] {contractId} {ts:HH:mm:ss.fff} {price} x {volume} {(sideFlag==0 ? "B" : "S")}");
-                    agg.OnTrade(contractId, symbolId!, ts, price, volume, sideFlag);
-                };
-                agg.BarClosed += (contractId, symbolId, bar) =>
-                {
-                    Console.WriteLine($"[{symbolId}] 1m {bar}");
-                    var barModel = new BotCore.Models.Bar {
-                        Start = bar.OpenTime.UtcDateTime,
-                        Ts = bar.OpenTime.ToUnixTimeMilliseconds(),
-                        Symbol = symbolId,
-                        Open = bar.O,
-                        High = bar.H,
-                        Low = bar.L,
-                        Close = bar.C,
-                        Volume = (int)bar.V
-                    };
-
-                    var strategyAgent = new StrategyAgent.StrategyAgent(new BotCore.Config.TradingProfileConfig());
-                    var risk = new BotCore.Risk.RiskEngine();
-                    var router = new OrchestratorAgent.OrderRouter(loggerFactory.CreateLogger<OrchestratorAgent.OrderRouter>(), apiHttp, apiBase, jwt!, accountId);
-
-                    var barsList = new List<BotCore.Models.Bar> { barModel };
-                    var snapshot = new BotCore.Config.MarketSnapshot { Symbol = symbolId, UtcNow = DateTime.UtcNow };
-                    var signals = strategyAgent.RunAll(snapshot, barsList, risk);
-                    foreach (var sig in signals)
+                    if (args != null && args.Length > 0)
                     {
-                        var side = sig.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
-                        var normalized = new BotCore.StrategySignal { Strategy = sig.StrategyId, Symbol = symbolId, Side = side, Size = Math.Max(1, sig.Size), LimitPrice = sig.Entry };
-                        _ = router.RouteAsync(normalized, contractId, cts.Token);
+                        var json = System.Text.Json.JsonSerializer.Serialize(args[0]);
+                        status.Set("trade", json);
                     }
-
-                    var diag = StrategyDiagnostics.Explain(new BotCore.Config.TradingProfileConfig(), new BotCore.Config.StrategyDef(), snapshot);
-                    status.Set("strategies", diag);
-                };
-
-                marketClients.Add(mc);
-                _ = mc.StartAsync(contractId, cts.Token);
+                });
             }
-
-            foreach (var kv in contractIds)
-                WireSymbol(kv.Key, kv.Value);
-
-            Console.WriteLine("Market hubs started. Waiting for bars… Press Ctrl+C to exit.");
-            await Task.Delay(Timeout.Infinite, cts.Token);
-
-            foreach (var mc in marketClients)
-                await mc.DisposeAsync();
-
-            var configPath = "src/BotCore/Config/high_win_rate_profile.json";
-            if (!System.IO.File.Exists(configPath))
+            if (marketHubConn != null)
             {
-                log.LogWarning($"Config file missing: {configPath}");
+                marketHubConn.On("GatewayQuote", (object[] args) =>
+                {
+                    if (args != null && args.Length > 1)
+                    {
+                        var cid = args[0]?.ToString();
+                        var json = System.Text.Json.JsonSerializer.Serialize(args[1]);
+                        status.Set($"quote:{cid}", json ?? "");
+                    }
+                });
+                marketHubConn.On("GatewayTrade", (object[] args) =>
+                {
+                    if (args != null && args.Length > 1)
+                    {
+                        var cid = args[0]?.ToString();
+                        var json = System.Text.Json.JsonSerializer.Serialize(args[1]);
+                        status.Set($"trade:{cid}", json ?? "");
+                    }
+                });
+                marketHubConn.On("GatewayDepth", (object[] args) =>
+                {
+                    if (args != null && args.Length > 1)
+                    {
+                        var cid = args[0]?.ToString();
+                        var json = System.Text.Json.JsonSerializer.Serialize(args[1]);
+                        status.Set($"depth:{cid}", json ?? "");
+                    }
+                });
             }
-            else
-            {
-                log.LogInformation($"Config file found: {configPath}");
-            }
-
-            var testPath = "tests/BotTests/AllStrategiesTests.cs";
-            if (!System.IO.File.Exists(testPath))
-            {
-                log.LogWarning($"Unit test file missing: {testPath}");
-            }
-            else
-            {
-                log.LogInformation($"Unit test file found: {testPath}");
-            }
-
-            log.LogInformation("Eval account orchestration online. Press Ctrl+C to exit.");
-            await Task.Delay(Timeout.Infinite, cts.Token);
         }
     }
 }

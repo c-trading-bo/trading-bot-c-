@@ -1,9 +1,13 @@
+// Agent: UserHubAgent
+// Role: Manages SignalR user hub connection, event wiring, and logging for TopstepX.
+// Integration: Used by orchestrator and other agents for user event streaming and order/trade logging.
 using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http.Connections;
 
 namespace BotCore
 {
@@ -13,57 +17,97 @@ namespace BotCore
 	public sealed class UserHubAgent : IAsyncDisposable
 	{
 		private readonly ILogger<UserHubAgent> _log;
-		private HubConnection? _hub;
+		private HubConnection _hub = default!;
+		private readonly SemaphoreSlim _gate = new(1,1);
 		private bool _wired;
+		private Func<Exception, Task>? _onClosed;
+		private Func<Exception, Task>? _onReconnecting;
+		private Func<string, Task>? _onReconnected;
 
 		public HubConnection? GetConnection() => _hub;
+		public HubConnection? Connection => _hub;
 
-		public UserHubAgent(ILogger<UserHubAgent> log)
+		public UserHubAgent(ILogger<UserHubAgent> log) => _log = log;
+
+		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken ct)
 		{
-			_log = log;
+			await _gate.WaitAsync(ct);
+			try
+			{
+				if (_hub is { State: HubConnectionState.Connected or HubConnectionState.Connecting or HubConnectionState.Reconnecting })
+				{
+					_log.LogInformation("UserHub already connecting/connected. State={State}", _hub.State);
+					return;
+				}
+				_hub = new HubConnectionBuilder()
+					.WithUrl("https://rtc.topstepx.com/hubs/user", o =>
+					{
+						o.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken);
+						o.Transports = HttpTransportType.WebSockets;
+					})
+					.WithAutomaticReconnect()
+					.Build();
+
+				WireHandlersOnce();
+
+				_hub.On<object>("GatewayUserOrder", data =>
+				{
+					try
+					{
+						var json = JsonSerializer.Serialize(data);
+						_log.LogInformation($"ORDER => {json}");
+					}
+					catch (Exception ex)
+					{
+						_log.LogWarning(ex, "Failed to log GatewayUserOrder event");
+					}
+				});
+
+				_hub.On<object>("GatewayUserTrade", data =>
+				{
+					try
+					{
+						var json = JsonSerializer.Serialize(data);
+						_log.LogInformation($"TRADE => {json}");
+					}
+					catch (Exception ex)
+					{
+						_log.LogWarning(ex, "Failed to log GatewayUserTrade event");
+					}
+				});
+
+				try
+				{
+					await _hub.StartAsync(ct);
+					_log.LogInformation("UserHub connected. State={State}", _hub.State);
+				}
+				catch (Exception startEx)
+				{
+					_log.LogError(startEx, "UserHub StartAsync FAILED. State={State}", _hub.State);
+					throw;
+				}
+
+				await HubSafe.InvokeAsync(_hub, () => _hub.InvokeAsync("JoinAccountRoom", accountId, ct), ct);
+				await HubSafe.InvokeAsync(_hub, () => _hub.InvokeAsync("SubscribeUserEvents", accountId, ct), ct);
+			}
+			finally
+			{
+				_gate.Release();
+			}
 		}
 
-		public async Task ConnectAsync(string jwt, long accountId, CancellationToken ct)
+		private void WireHandlersOnce()
 		{
-			_hub = new HubConnectionBuilder()
-				.WithUrl("https://rtc.topstepx.com/hubs/user", o =>
-				{
-					o.AccessTokenProvider = () => Task.FromResult<string?>(jwt);
-				})
-				.WithAutomaticReconnect()
-				.Build();
+			if (_wired) return;
+			_onClosed       = ex => { _log.LogWarning(ex, "UserHub CLOSED (reason above)"); return Task.CompletedTask; };
+			_onReconnecting = ex => { _log.LogWarning(ex, "UserHub RECONNECTING"); return Task.CompletedTask; };
+			_onReconnected  = id => { _log.LogInformation("UserHub RECONNECTED {Id}", id); return Task.CompletedTask; };
 
-			await _hub.StartAsync(ct);
-			if (_wired) return; _wired = true;
+			_hub.Closed       += _onClosed;
+			_hub.Reconnecting += _onReconnecting;
+			_hub.Reconnected  += _onReconnected;
 
-			_hub.On<object>("GatewayUserOrder", data =>
-			{
-				try
-				{
-					var json = JsonSerializer.Serialize(data);
-					_log.LogInformation($"ORDER => {json}");
-				}
-				catch (Exception ex)
-				{
-					_log.LogWarning(ex, "Failed to log GatewayUserOrder event");
-				}
-			});
-
-			_hub.On<object>("GatewayUserTrade", data =>
-			{
-				try
-				{
-					var json = JsonSerializer.Serialize(data);
-					_log.LogInformation($"TRADE => {json}");
-				}
-				catch (Exception ex)
-				{
-					_log.LogWarning(ex, "Failed to log GatewayUserTrade event");
-				}
-			});
-
-			await _hub.InvokeAsync("SubscribeOrders", accountId, ct);
-			await _hub.InvokeAsync("SubscribeTrades", accountId, ct);
+			_wired = true;
 		}
 
 		public async ValueTask DisposeAsync()

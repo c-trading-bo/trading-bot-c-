@@ -1,3 +1,6 @@
+// Agent: LogAgent
+// Role: Centralized logging and diagnostics for all bot components.
+// Integration: Used by all agents for structured logging and error reporting.
 using System;
 using System.IO;
 
