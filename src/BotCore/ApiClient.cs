@@ -117,5 +117,23 @@ namespace BotCore
 
             return pick?.id;
         }
+        // Place an order via REST
+        public async Task<string?> PlaceOrderAsync(object req, CancellationToken ct)
+        {
+            using var resp = await _http.PostAsJsonAsync(U("/api/Order/place"), req, ct);
+            resp.EnsureSuccessStatusCode();
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            // Extract orderId from json (field name per docs)
+            return json.TryGetProperty("orderId", out var id) ? id.GetString() : null;
+        }
+
+        // Search for orders via REST
+        public async Task<JsonElement> SearchOrdersAsync(object body, CancellationToken ct)
+        {
+            using var resp = await _http.PostAsJsonAsync(U("/api/Order/search"), body, ct);
+            resp.EnsureSuccessStatusCode();
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            return json;
+        }
     }
 }
