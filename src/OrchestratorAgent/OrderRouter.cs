@@ -22,14 +22,31 @@ namespace OrchestratorAgent
 
         public async Task RouteAsync(StrategySignal sig, string contractId, CancellationToken ct = default)
         {
-            // EVAL SAFE: log only. Uncomment when ready to send.
-            _log.LogInformation("[ROUTE] {Strat} {Sym} {Side} x{Size}@{Px} -> {Cid}",
-                sig.Strategy, sig.Symbol, sig.Side, sig.Size, sig.LimitPrice, contractId);
+            var sideBuy0Sell1 = sig.Side == SignalSide.Long ? 0 : 1;
+            var px = sig.LimitPrice ?? 0m;
+            var live = (Environment.GetEnvironmentVariable("LIVE_TRADING") ??
+                        Environment.GetEnvironmentVariable("TOPSTEPX_LIVE") ?? "false")
+                        .Equals("true", StringComparison.OrdinalIgnoreCase);
 
-            // If you want to place a protective far-away limit in eval, uncomment:
-            // var sideBuy0Sell1 = sig.Side == SignalSide.Long ? 0 : 1;
-            // var px = sig.LimitPrice ?? 0m;
-            // await _api.PlaceLimit(_accountId, contractId, sideBuy0Sell1, sig.Size, px, ct);
+            if (!live)
+            {
+                _log.LogInformation("[DRY-RUN] {Strat} {Sym} {Side} x{Size}@{Px} -> {Cid}",
+                    sig.Strategy, sig.Symbol, sig.Side, sig.Size, px, contractId);
+                return;
+            }
+
+            _log.LogInformation("[LIVE] placing {Strat} {Sym} {Side} x{Size}@{Px} -> {Cid}",
+                sig.Strategy, sig.Symbol, sig.Side, sig.Size, px, contractId);
+
+            var orderReq = new {
+                accountId = _accountId,
+                contractId = contractId,
+                side = sideBuy0Sell1,
+                qty = sig.Size,
+                price = px,
+                customTag = $"{sig.Strategy}-{sig.Symbol}-{DateTime.UtcNow:yyyyMMdd-HHmmss}"
+            };
+            await _api.PlaceOrderAsync(orderReq, ct);
         }
     }
 }

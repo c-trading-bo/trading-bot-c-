@@ -215,7 +215,36 @@ namespace OrchestratorAgent
                 agg.BarClosed += (contractId, symbolId, bar) =>
                 {
                     Console.WriteLine($"[{symbolId}] 1m {bar}");
-                    // TODO: push to your indicator, DB, or UI here.
+                    // Convert FootprintBar to Bar
+                    var barModel = new BotCore.Models.Bar {
+                        Start = bar.OpenTime.UtcDateTime,
+                        Ts = bar.OpenTime.ToUnixTimeMilliseconds(),
+                        Symbol = symbolId,
+                        Open = bar.O,
+                        High = bar.H,
+                        Low = bar.L,
+                        Close = bar.C,
+                        Volume = (int)bar.V
+                    };
+
+                    // Tick-aware strategy engine and smart order router
+                    var strategyAgent = new StrategyAgent.StrategyAgent(new BotCore.Config.TradingProfileConfig());
+                    var risk = new BotCore.Risk.RiskEngine();
+                    var router = new OrchestratorAgent.OrderRouter(loggerFactory.CreateLogger<OrchestratorAgent.OrderRouter>(), apiHttp, apiBase, jwt!, accountId);
+
+                    var barsList = new List<BotCore.Models.Bar> { barModel };
+                    var snapshot = new BotCore.Config.MarketSnapshot { Symbol = symbolId, UtcNow = DateTime.UtcNow };
+                    var signals = strategyAgent.RunAll(snapshot, barsList, risk);
+                    foreach (var sig in signals)
+                    {
+                        var side = sig.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
+                        var normalized = new BotCore.StrategySignal { Strategy = sig.StrategyId, Symbol = symbolId, Side = side, Size = Math.Max(1, sig.Size), LimitPrice = sig.Entry };
+                        _ = router.RouteAsync(normalized, contractId, cts.Token);
+                    }
+
+                    // Diagnostics per strategy
+                    var diag = StrategyDiagnostics.Explain(new BotCore.Config.TradingProfileConfig(), new BotCore.Config.StrategyDef(), snapshot);
+                    status.Set("strategies", diag);
                 };
 
                 marketClients.Add(mc);
