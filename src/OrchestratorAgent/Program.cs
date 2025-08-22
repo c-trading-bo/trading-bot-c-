@@ -1,4 +1,4 @@
-#nullable enable
+
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using BotCore;                   // ApiClient
@@ -8,6 +8,8 @@ using TopstepAuthAgent;           // TopstepAuthAgent
 using BotCore.Models;
 using BotCore.Risk;
 using System.Text.Json;
+#nullable enable
+
 
 namespace OrchestratorAgent
 {
@@ -15,7 +17,27 @@ namespace OrchestratorAgent
     {
         public static async Task Main(string[] args)
         {
-            var candidatesBySymbol = new Dictionary<string, List<Candidate>>();
+            // Helper for JWT
+            string CurrentJwt() => Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? string.Empty;
+
+            // Example handlers (log a few fields to prove flow)
+            void WireHandlers(MarketHubClient c, string root)
+            {
+                c.OnQuote += (cid, json) =>
+                {
+                    // Optional: inspect json for last/price fields and print
+                    if (json.ValueKind == JsonValueKind.Object)
+                    {
+                        if (json.TryGetProperty("last", out var p) && p.ValueKind == JsonValueKind.Number)
+                            Console.WriteLine($"[{root}] Quote last={p}");
+                    }
+                };
+                c.OnTrade += (cid, json) => { /* feed your bar aggregator here */ };
+                c.OnDepth += (cid, json) => { /* optional */ };
+            }
+
+            var marketClients = new List<MarketHubClient>();
+            // Removed legacy candidatesBySymbol logic
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
 
@@ -91,93 +113,59 @@ namespace OrchestratorAgent
             }
 
             // Only proceed with the ones we actually resolved:
-            var marketHubs = new Dictionary<string, BotCore.MarketHubClient>();
-            var barsBySymbol = new Dictionary<string, List<Bar>>();
-            foreach (var kv in contractIds)
-            {
-                var root = kv.Key;
-                var contractId = kv.Value;
-                var mhub = new BotCore.MarketHubClient(jwt!);
-                await mhub.StartAsync(contractId, cts.Token);
-                marketHubs[root] = mhub;
-                mhub.OnLastQuote += price => log.LogInformation($"[{root}] LastQuote={price}");
-                mhub.OnTrade += (price, vol) => log.LogInformation($"[{root}] Trade {price} x {vol}");
 
-                // --- 1. Live bar fetching ---
-                var barsJson = await BotCore.MarketHubClient.FetchHistoricalBarsAsync(jwt!, contractId, DateTime.UtcNow.AddDays(-2), DateTime.UtcNow, cts.Token);
-                var bars = new List<Bar>();
-                using var doc = JsonDocument.Parse(barsJson);
-                if (doc.RootElement.TryGetProperty("bars", out var arr))
+            var bars = new BotCore.BarsRegistry(maxKeep: 1000);
+
+            void WireSymbol(string root, string contractId)
+            {
+                var mc  = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), CurrentJwt);
+                var agg = new BarAggregator(60);
+
+                var printedSchema = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                void Peek(string tag, JsonElement json)
                 {
-                    foreach (var el in arr.EnumerateArray())
+                    if (printedSchema.Contains(tag)) return;
+                    printedSchema.Add(tag);
+                    if (json.ValueKind == JsonValueKind.Object)
                     {
-                        bars.Add(new Bar
-                        {
-                            Ts = el.TryGetProperty("ts", out var ts) ? ts.GetInt64() : 0,
-                            Open = el.TryGetProperty("open", out var o) ? o.GetDecimal() : 0m,
-                            High = el.TryGetProperty("high", out var h) ? h.GetDecimal() : 0m,
-                            Low = el.TryGetProperty("low", out var l) ? l.GetDecimal() : 0m,
-                            Close = el.TryGetProperty("close", out var c) ? c.GetDecimal() : 0m,
-                            Volume = el.TryGetProperty("volume", out var v) ? v.GetInt32() : 0,
-                            Symbol = root
-                        });
+                        var keys = string.Join(",", json.EnumerateObject().Select(p => p.Name));
+                        Console.WriteLine($"[{root}] {tag} keys: {keys}");
+                    }
+                    else if (json.ValueKind == JsonValueKind.Array && json.GetArrayLength() > 0 && json[0].ValueKind == JsonValueKind.Object)
+                    {
+                        var keys = string.Join(",", json[0].EnumerateObject().Select(p => p.Name));
+                        Console.WriteLine($"[{root}] {tag}[0] keys: {keys}");
                     }
                 }
-                barsBySymbol[root] = bars;
+
+                mc.OnTrade += (_, json) =>
+                {
+                    Peek("Trade", json);
+                    agg.OnTrade(json);
+                };
+                agg.OnBar += bar =>
+                {
+                    bars.Append(root, bar);
+                    Console.WriteLine($"[{root}] {bar.Start:HH:mm:ss} Open={bar.Open} High={bar.High} Low={bar.Low} Close={bar.Close} Volume={bar.Volume}");
+                    // TODO: run your strategy here (EMA, etc.) once you see bars flowing
+                };
+
+                marketClients.Add(mc);
+                _ = mc.StartAsync(contractId, cts.Token);
             }
+
+            foreach (var kv in contractIds)
+                WireSymbol(kv.Key, kv.Value);
+
+            Console.WriteLine("Market hubs started. Waiting for bars… Press Ctrl+C to exit.");
+            await Task.Delay(Timeout.Infinite, cts.Token);
+
+            // (optional) dispose on shutdown
+            foreach (var mc in marketClients)
+                await mc.DisposeAsync();
 
             // If none resolved, exit cleanly:
-            if (contractIds.Count == 0)
-            {
-                log.LogError("No contracts resolved (eval=live:false). Make sure your API key has market data access and retry.");
-                return;
-            }
-
-            // --- 2. StrategyAgent wiring (using AllStrategies) ---
-            foreach (var s in contractIds.Keys)
-            {
-                var bars = barsBySymbol[s];
-                var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
-                var levels = new Levels();
-                var risk = new RiskEngine();
-                var candidates = AllStrategies.generate_candidates(s, env, levels, bars, risk);
-                candidatesBySymbol[s] = candidates;
-                foreach (var cand in candidates)
-                {
-                    log.LogInformation($"Strategy {cand.strategy_id} {cand.symbol} {cand.side} entry={cand.entry} stop={cand.stop} t1={cand.t1} R~{cand.expR}");
-                }
-            }
-
-            // --- 3. Order flow connection ---
-            // --- Find the single best signal across all symbols ---
-            Candidate? bestSignal = null;
-            string? bestSignalSymbol = null;
-            decimal bestR = decimal.MinValue;
-            foreach (var s in contractIds.Keys)
-            {
-                if (!candidatesBySymbol.ContainsKey(s)) continue;
-                foreach (var cand in candidatesBySymbol[s])
-                {
-                    if (guard.CanOpen(s, (int)cand.qty, out var reason))
-                    {
-                        if (cand.expR > bestR)
-                        {
-                            bestR = cand.expR;
-                            bestSignal = cand;
-                            bestSignalSymbol = s;
-                        }
-                    }
-                }
-            }
-            if (bestSignal != null && bestSignalSymbol != null)
-            {
-                // TODO: Implement order placement logic here, e.g. call api.PlaceOrderAsync or similar
-                log.LogInformation($"Best signal ready for order: {bestSignal.strategy_id} {bestSignal.symbol} {bestSignal.side} entry={bestSignal.entry}");
-            }
-            else
-            {
-                log.LogWarning("No suitable signal found for trading.");
-            }
+            // Removed legacy strategy and order flow logic. All strategy is now event-driven via BarsRegistry and EmaCrossStrategy.
 
             // --- 4. Config file check ---
             var configPath = "src/BotCore/Config/high_win_rate_profile.json";
