@@ -2,6 +2,7 @@
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using BotCore;                   // ApiClient
+using SupervisorAgent;           // Supervisor integration
 using BotCore.Strategy;           // AllStrategies
 using OrchestratorAgent;
 using TopstepAuthAgent;           // TopstepAuthAgent
@@ -113,6 +114,60 @@ namespace OrchestratorAgent
             }
 
             // Only proceed with the ones we actually resolved:
+            // Build status board and supervisor
+            var status = new SupervisorAgent.StatusService(loggerFactory.CreateLogger<SupervisorAgent.StatusService>())
+            {
+                AccountId = accountId,
+                Contracts = new() { ["ES"] = contractIds.ContainsKey("ES") ? contractIds["ES"] : "", ["NQ"] = contractIds.ContainsKey("NQ") ? contractIds["NQ"] : "" },
+            };
+
+            var supervisor = new SupervisorAgent.SupervisorAgent(
+                loggerFactory.CreateLogger<SupervisorAgent.SupervisorAgent>(),
+                http, apiBase, jwt!, accountId,
+                null, // marketHub placeholder
+                userHub,
+                status,
+                new SupervisorAgent.SupervisorAgent.Config
+                {
+                    LiveTrading = true,                 // set false to dry-run
+                    BarSeconds = 60,                    // 1-minute bars
+                    Symbols = new[] { "ES", "NQ" },   // extend as needed
+                    UseQuotes = true,                   // subscribe to bid/ask
+                    DefaultBracket = new SupervisorAgent.SupervisorAgent.BracketConfig
+                    {
+                        StopTicks = 12,                 // protective stop (ticks)
+                        TargetTicks = 18,               // take-profit (ticks)
+                        BreakevenAfterTicks = 8,        // move stop to BE after this
+                        TrailTicks = 6                  // trailing after BE
+                    }
+                }
+            );
+
+            await supervisor.RunAsync(cts.Token);
+            // Integrate BotSupervisor (runs in parallel, does not block login/auth or SignalR)
+            var botSupervisor = new OrchestratorAgent.BotSupervisor(
+                loggerFactory.CreateLogger<OrchestratorAgent.BotSupervisor>(),
+                http, apiBase, jwt!, accountId,
+                null, // marketHub placeholder
+                userHub,
+                status,
+                new OrchestratorAgent.BotSupervisor.Config
+                {
+                    LiveTrading = true,
+                    BarSeconds = 60,
+                    Symbols = new[] { "ES", "NQ" },
+                    UseQuotes = true,
+                    DefaultBracket = new OrchestratorAgent.BotSupervisor.BracketConfig
+                    {
+                        StopTicks = 12,
+                        TargetTicks = 18,
+                        BreakevenAfterTicks = 8,
+                        TrailTicks = 6
+                    }
+                }
+            );
+            _ = botSupervisor.RunAsync(cts.Token); // fire-and-forget, does not block
+            // ——— END UPGRADE ———
 
             var bars = new BotCore.BarsRegistry(maxKeep: 1000);
 
