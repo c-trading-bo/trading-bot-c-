@@ -21,24 +21,6 @@ namespace BotCore
             => $"{OpenTime:HH:mm} O:{O} H:{H} L:{L} C:{C} V:{V}  Buy:{BuyVol} Sell:{SellVol} Δ:{Delta}";
     }
 
-    public static class TradeDeduper
-    {
-        private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(5);
-        private static readonly Dictionary<string, DateTimeOffset> SeenMap = new();
-        public static bool Seen(string symbolId, decimal price, decimal volume, DateTimeOffset tsUtc)
-        {
-            var key = $"{symbolId}|{price}|{volume}|{tsUtc:O}";
-            var now = DateTimeOffset.UtcNow;
-            if (SeenMap.Count > 5000)
-            {
-                foreach (var k in SeenMap.Where(kv => now - kv.Value > Ttl).Select(kv => kv.Key).ToList())
-                    SeenMap.Remove(k);
-            }
-            if (SeenMap.TryGetValue(key, out var when) && now - when < Ttl) return true;
-            SeenMap[key] = now;
-            return false;
-        }
-    }
 
     public sealed class FootprintBarAggregator
     {
