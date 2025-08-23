@@ -49,32 +49,6 @@ namespace BotCore
 					.Build();
 
 				WireHandlersOnce();
-				// o.SkipNegotiation = true;
-				// o.Transports = HttpTransportType.WebSockets;
-				{
-					try
-					{
-						var json = JsonSerializer.Serialize(data);
-						_log.LogInformation($"ORDER => {json}");
-					}
-					catch (Exception ex)
-					{
-						_log.LogWarning(ex, "Failed to log GatewayUserOrder event");
-					}
-				});
-
-				_hub.On<object>("GatewayUserTrade", data =>
-				{
-					try
-					{
-						var json = JsonSerializer.Serialize(data);
-						_log.LogInformation($"TRADE => {json}");
-					}
-					catch (Exception ex)
-					{
-						_log.LogWarning(ex, "Failed to log GatewayUserTrade event");
-					}
-				});
 
 				try
 				{
