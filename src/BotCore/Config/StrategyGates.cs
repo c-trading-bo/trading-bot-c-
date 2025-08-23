@@ -2,7 +2,7 @@ namespace BotCore.Config;
 
 public static class StrategyGates
 {
-    public static bool PassesRSGate(TradingProfileConfig cfg, MarketSnapshot snap)
+    public static bool PassesRSGate(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
         var z = snap.Z5mReturnDiff;
         var mid = cfg.RsGate.ThresholdMid;
@@ -10,7 +10,7 @@ public static class StrategyGates
         return Math.Abs(z) >= mid || Math.Abs(z) < mid;
     }
 
-    public static bool PassesGlobalFilters(TradingProfileConfig cfg, StrategyDef s, MarketSnapshot snap)
+    public static bool PassesGlobalFilters(TradingProfileConfig cfg, StrategyDef s, BotCore.Models.MarketSnapshot snap)
     {
         var gf = cfg.GlobalFilters;
         var name = s.Name.ToLowerInvariant();

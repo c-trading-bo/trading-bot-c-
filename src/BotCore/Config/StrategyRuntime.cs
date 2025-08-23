@@ -3,18 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace BotCore.Config;
 
-public sealed class MarketSnapshot
-{
-    public string Symbol { get; init; } = "ES";
-    public int SpreadTicks { get; init; }
-    public int VolumePct5m { get; init; }
-    public decimal AggIAbs { get; init; }
-    public decimal SignalBarAtrMult { get; init; }
-    public int Adx5m { get; init; }
-    public bool Ema9Over21_5m { get; init; }
-    public decimal Z5mReturnDiff { get; init; }
-    public DateTime UtcNow { get; init; }
-}
+// Deprecated: Use BotCore.Models.MarketSnapshot instead
+// public sealed class MarketSnapshot { /* removed */ }
 
 public static class TimeWindows
 {

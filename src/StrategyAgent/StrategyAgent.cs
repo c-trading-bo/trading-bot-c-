@@ -16,7 +16,7 @@ namespace StrategyAgent
 
         public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
 
-        public List<Signal> RunAll(MarketSnapshot snap, IReadOnlyList<Bar> bars, RiskEngine risk)
+    public List<Signal> RunAll(BotCore.Models.MarketSnapshot snap, IReadOnlyList<Bar> bars, RiskEngine risk)
         {
             var outSignals = new List<Signal>();
 
