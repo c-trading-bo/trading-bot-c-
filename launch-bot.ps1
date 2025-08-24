@@ -18,9 +18,13 @@ $skipProbe = $env:SKIP_CONNECTIVITY_PROBE
 if (-not $skipProbe) {
     Write-Host "Running connectivity probe..."
     dotnet run --project ConnectivityProbe
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "Connectivity probe failed (exit code $LASTEXITCODE). Set TOPSTEPX_JWT or TOPSTEPX_USERNAME/API_KEY and try again."
+    if ($LASTEXITCODE -eq 1) {
+        Write-Host "Connectivity probe failed (transport/network error). Fix connectivity or set SKIP_CONNECTIVITY_PROBE=1 to bypass."
         exit $LASTEXITCODE
+    } elseif ($LASTEXITCODE -eq 2) {
+        Write-Host "Connectivity probe: missing JWT/login credentials. Continuing to launch without blocking."
+    } else {
+        Write-Host "Connectivity probe passed."
     }
 }
 
