@@ -19,7 +19,7 @@ namespace BotCore
             Func<Task> call,
             ILogger log,
             CancellationToken ct,
-            int tries = 3)
+            int tries = 5)
         {
             for (int i = 1; i <= tries; i++)
             {

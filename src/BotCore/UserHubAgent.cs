@@ -43,15 +43,22 @@ namespace BotCore
 			}
 
 			_accountId = accountId;
-			var url = $"https://rtc.topstepx.com/hubs/user?access_token={Uri.EscapeDataString(jwtToken)}";
+			var baseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
+			var url = $"{baseUrl.TrimEnd('/')}/hubs/user";
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // match delegate type
-					opt.Transports = HttpTransportType.WebSockets;
+					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // bearer token via header
+					// Do not force WebSockets; allow negotiate to choose best transport for the environment
+					// opt.Transports = HttpTransportType.WebSockets;
 					// opt.SkipNegotiation = true; // enable later only if confirmed working
 				})
-				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
+				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+				.ConfigureLogging(lb =>
+				{
+					lb.AddConsole();
+					lb.SetMinimumLevel(LogLevel.Debug);
+				})
 				.Build();
 
 			WireEvents(_hub);
