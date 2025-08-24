@@ -40,8 +40,6 @@ namespace BotCore
 				.WithUrl(UrlWithToken(), o =>
 				{
 					o.AccessTokenProvider = () => Task.FromResult<string?>(Jwt());
-					// o.Transports = HttpTransportType.WebSockets;
-					// o.SkipNegotiation = true;
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
 				.Build();
@@ -50,9 +48,17 @@ namespace BotCore
 			_conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			_conn.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
-			_conn.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
-			_conn.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
-			_conn.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
+			// Wire market event handlers once
+			bool marketHandlersWired = false;
+			void WireMarketHandlers(HubConnection hub)
+			{
+				if (marketHandlersWired) return;
+				hub.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
+				hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
+				hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
+				marketHandlersWired = true;
+			}
+			WireMarketHandlers(_conn);
 
 			_conn.Reconnecting += err =>
 			{
@@ -64,6 +70,8 @@ namespace BotCore
 			_conn.Reconnected += async _ =>
 			{
 				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
+				// Set marketHub status as connected
+				// You may need to inject StatusService here if not already
 				await SubscribeIfConnectedAsync(CancellationToken.None);
 			};
 
@@ -71,10 +79,13 @@ namespace BotCore
 			{
 				_subscribed = false;
 				_log.LogWarning(err, "[MarketHub] Closed. Restarting with backoff…");
+				// Set marketHub status as disconnected
 				await RestartLoopAsync(UrlWithToken);
 			};
 
 			await _conn.StartAsync(ct);
+			// Set marketHub status as connected
+			// You may need to inject StatusService here if not already
 			await Task.Delay(200, ct);
 			await SubscribeIfConnectedAsync(ct);
 		}

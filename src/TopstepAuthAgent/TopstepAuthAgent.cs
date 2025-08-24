@@ -1,62 +1,72 @@
-using Microsoft.Extensions.Logging;
-// Agent: TopstepAuthAgent
-// Role: Manages authentication and token lifecycle for TopstepX API access.
-// Integration: Used by orchestrator and other agents for secure API calls.
+using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
-using System;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-
-namespace TopstepAuthAgent
+public sealed class TopstepAuthAgent
 {
-	/// <summary>
-	/// Handles JWT authentication and validation for TopstepX.
-	/// </summary>
-	public sealed class TopstepAuthAgent
+	private readonly HttpClient _http;
+	private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
+
+	public TopstepAuthAgent(HttpClient http)
 	{
-		private readonly HttpClient _http;
-		private readonly ILogger<TopstepAuthAgent> _log;
-		private readonly string _apiBase;
+		_http = http;
+		_http.BaseAddress ??= new Uri("https://api.topstepx.com");
+		_http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+	}
 
-		public TopstepAuthAgent(HttpClient http, ILogger<TopstepAuthAgent> log, string apiBase)
+	public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
+	{
+		// IMPORTANT: /api/Auth/loginKey (exact path)
+		var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
 		{
-			_http = http;
-			_log = log;
-			_apiBase = apiBase;
+			// Use property names exactly as docs show: userName, apiKey
+			Content = new StringContent(
+				JsonSerializer.Serialize(new { userName = username, apiKey }),
+				Encoding.UTF8, "application/json")
+		};
+
+		using var resp = await _http.SendAsync(req, ct);
+		if (!resp.IsSuccessStatusCode)
+		{
+			var body = await resp.Content.ReadAsStringAsync(ct);
+			throw new HttpRequestException($"Auth { (int)resp.StatusCode } {resp.StatusCode}: {body}", null, resp.StatusCode);
 		}
 
-		public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
-		{
-			// POST to /api/Auth/loginKey with userName/apiKey
-			var req = new { userName = username, apiKey };
-			var resp = await _http.PostAsJsonAsync(_apiBase + "/api/Auth/loginKey", req, ct);
-			resp.EnsureSuccessStatusCode();
-			var json = await resp.Content.ReadAsStringAsync(ct);
-			_log.LogInformation($"JWT received: {json}");
-			// Parse JWT from response
-			using var doc = JsonDocument.Parse(json);
-			if (doc.RootElement.TryGetProperty("token", out var tokenProp))
-				return tokenProp.GetString() ?? string.Empty;
-			return string.Empty;
-		}
+		using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+		return doc.RootElement.GetProperty("token").GetString()!;
+	}
 
-		public async Task<string> ValidateAsync(string jwt, CancellationToken ct)
+	public async Task<string?> ValidateAsync(CancellationToken ct)
+	{
+		var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
+		using var resp = await _http.SendAsync(req, ct);
+		if (!resp.IsSuccessStatusCode) return null;
+
+		using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+		if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
+		return null;
+	}
+	}
+
+	// Simple HttpRequestMessage.Clone() so we can resend the content on retries:
+	public static class HttpRequestMessageExtensions
+	{
+		public static HttpRequestMessage Clone(this HttpRequestMessage req)
 		{
-			// Example: POST to /api/Auth/validate with JWT
-			var req = new { jwt };
-			var resp = await _http.PostAsJsonAsync(_apiBase + "/api/Auth/validate", req, ct);
-			resp.EnsureSuccessStatusCode();
-			var json = await resp.Content.ReadAsStringAsync(ct);
-			_log.LogInformation($"JWT validated: {json}");
-			// Parse validation result
-			using var doc = JsonDocument.Parse(json);
-			if (doc.RootElement.TryGetProperty("success", out var successProp) && successProp.GetBoolean())
-				return jwt;
-			return string.Empty;
+			var clone = new HttpRequestMessage(req.Method, req.RequestUri);
+			// Copy headers
+			foreach (var h in req.Headers)
+				clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
+			// Copy content
+			if (req.Content != null)
+			{
+				var contentBytesTask = req.Content.ReadAsByteArrayAsync();
+				contentBytesTask.Wait();
+				var newContent = new ByteArrayContent(contentBytesTask.Result);
+				foreach (var h in req.Content.Headers)
+					newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
+				clone.Content = newContent;
+			}
+			return clone;
 		}
 	}
-}

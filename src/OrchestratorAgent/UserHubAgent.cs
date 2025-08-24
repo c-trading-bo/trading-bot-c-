@@ -2,12 +2,14 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using SupervisorAgent;
 
 namespace YourNamespace
 {
     public sealed class UserHubAgent
     {
         private readonly ILogger<UserHubAgent> _log;
+        private readonly StatusService _statusService;
         private HubConnection _hub = default!;   // fixes CS0649
         private bool _wired;                     // ensure handlers wired once
         private readonly SemaphoreSlim _gate = new(1,1);
@@ -34,7 +36,11 @@ namespace YourNamespace
                 static string PadB64(string s) => s.PadRight(s.Length + (4 - s.Length % 4) % 4, '=').Replace('-', '+').Replace('_', '/');
             }
 
-        public UserHubAgent(ILogger<UserHubAgent> log) => _log = log;
+        public UserHubAgent(ILogger<UserHubAgent> log, StatusService statusService)
+        {
+            _log = log;
+            _statusService = statusService;
+        }
 
     public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken ct)
         {
@@ -51,7 +57,7 @@ namespace YourNamespace
                 _hub = new HubConnectionBuilder()
                     .WithUrl("https://rtc.topstepx.com/hubs/user", o =>
                     {
-                        o.AccessTokenProvider = () => Task.FromResult(jwtToken);
+                        o.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken);
                         // DIAGNOSTIC MODE: allow negotiate/fallback while we learn WHY it closes.
                         // o.SkipNegotiation = true;
                         // o.Transports = HttpTransportType.WebSockets;
@@ -73,6 +79,7 @@ namespace YourNamespace
                 {
                     await _hub.StartAsync(ct);
                     Console.WriteLine($"UserHub connected. State={ _hub.State }");
+                    _statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
                 }
                 catch (Exception startEx)
                 {

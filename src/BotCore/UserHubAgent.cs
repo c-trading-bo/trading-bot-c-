@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http.Connections;
 
 namespace BotCore
@@ -16,72 +17,95 @@ namespace BotCore
 	/// </summary>
 	public sealed class UserHubAgent : IAsyncDisposable
 	{
-		private readonly ILogger<UserHubAgent> _log;
-		private HubConnection _hub = default!;
-		private readonly SemaphoreSlim _gate = new(1,1);
-		private bool _wired;
-		private Func<Exception, Task>? _onClosed;
-		private Func<Exception, Task>? _onReconnecting;
-		private Func<string, Task>? _onReconnected;
+	private readonly ILogger<UserHubAgent> _log;
+	private readonly SupervisorAgent.StatusService _statusService;
+	private HubConnection _hub = default!;
+	private bool _handlersWired;
+	private long _accountId;
 
 		public HubConnection? GetConnection() => _hub;
 		public HubConnection? Connection => _hub;
 
-		public UserHubAgent(ILogger<UserHubAgent> log) => _log = log;
+		private const string CloseStatusKey = "CloseStatus";
+
+		public UserHubAgent(ILogger<UserHubAgent> log, SupervisorAgent.StatusService statusService)
+		{
+			_log = log;
+			_statusService = statusService;
+		}
 
 		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken ct)
 		{
-			await _gate.WaitAsync(ct);
-			try
+			if (_hub is not null && _hub.State == HubConnectionState.Connected)
 			{
-				if (_hub is { State: HubConnectionState.Connected or HubConnectionState.Connecting or HubConnectionState.Reconnecting })
-				{
-					_log.LogInformation("UserHub already connecting/connected. State={State}", _hub.State);
-					return;
-				}
-				_hub = new HubConnectionBuilder()
-					.WithUrl("https://rtc.topstepx.com/hubs/user", o =>
-					{
-						o.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken);
-						o.Transports = HttpTransportType.WebSockets;
-					})
-					.WithAutomaticReconnect()
-					.Build();
-
-				WireHandlersOnce();
-
-				try
-				{
-					await _hub.StartAsync(ct);
-					_log.LogInformation("UserHub connected. State={State}", _hub.State);
-				}
-				catch (Exception startEx)
-				{
-					_log.LogError(startEx, "UserHub StartAsync FAILED. State={State}", _hub.State);
-					throw;
-				}
-
-				await HubSafe.InvokeAsync(_hub, () => _hub.InvokeAsync("JoinAccountRoom", accountId, ct), ct);
-				await HubSafe.InvokeAsync(_hub, () => _hub.InvokeAsync("SubscribeUserEvents", accountId, ct), ct);
+				_log.LogInformation("UserHub already connected.");
+				return;
 			}
-			finally
-			{
-				_gate.Release();
-			}
+
+			_accountId = accountId;
+			var url = $"https://rtc.topstepx.com/hubs/user?access_token={Uri.EscapeDataString(jwtToken)}";
+			_hub = new HubConnectionBuilder()
+				.WithUrl(url, opt =>
+				{
+					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // match delegate type
+					opt.Transports = HttpTransportType.WebSockets;
+					// opt.SkipNegotiation = true; // enable later only if confirmed working
+				})
+				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
+				.Build();
+
+			WireEvents(_hub);
+
+			_hub.ServerTimeout     = TimeSpan.FromSeconds(60);
+			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			_hub.HandshakeTimeout  = TimeSpan.FromSeconds(15);
+
+			await _hub.StartAsync(ct);
+			_log.LogInformation("UserHub connected. State={State}", _hub.State);
+			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
+			await Task.Delay(250, ct); // ensure server is ready before subscribing
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    accountId), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", accountId), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    accountId), _log, ct);
 		}
 
-		private void WireHandlersOnce()
+		private void WireEvents(HubConnection hub)
 		{
-			if (_wired) return;
-			_onClosed       = ex => { _log.LogWarning(ex, "UserHub CLOSED (reason above)"); return Task.CompletedTask; };
-			_onReconnecting = ex => { _log.LogWarning(ex, "UserHub RECONNECTING"); return Task.CompletedTask; };
-			_onReconnected  = id => { _log.LogInformation("UserHub RECONNECTED {Id}", id); return Task.CompletedTask; };
+			if (_handlersWired) return;
+			hub.On<object>("GatewayUserAccount", data => _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserOrder",   data => _log.LogInformation("Order evt: {Json}",   System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserPosition",data => _log.LogInformation("Position evt: {Json}",System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserTrade",   data => _log.LogInformation("Trade evt: {Json}",   System.Text.Json.JsonSerializer.Serialize(data)));
+			_handlersWired = true;
 
-			_hub.Closed       += _onClosed;
-			_hub.Reconnecting += _onReconnecting;
-			_hub.Reconnected  += _onReconnected;
-
-			_wired = true;
+			hub.Closed += ex =>
+			{
+				_statusService.Set("user.state", string.Empty);
+				if (ex is System.Net.Http.HttpRequestException hre)
+					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
+				else if (ex is System.Net.WebSockets.WebSocketException wse)
+					_log.LogWarning(wse, "UserHub CLOSED. WebSocket error: {Err} / CloseStatus: {Close}", wse.WebSocketErrorCode, wse.Data != null && wse.Data.Contains(CloseStatusKey) ? wse.Data[CloseStatusKey] : null);
+				else
+					_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
+				return Task.CompletedTask;
+			};
+			hub.Reconnecting += ex =>
+			{
+				_statusService.Set("user.state", string.Empty);
+				_log.LogWarning(ex, "UserHub RECONNECTING: {Message}", ex?.Message);
+				return Task.CompletedTask;
+			};
+			hub.Reconnected += id =>
+			{
+				_statusService.Set("user.state", id ?? string.Empty);
+				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
+				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None);
+				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    _accountId), _log, CancellationToken.None);
+				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None);
+				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    _accountId), _log, CancellationToken.None);
+				return Task.CompletedTask;
+			};
 		}
 
 		public async ValueTask DisposeAsync()
@@ -91,5 +115,5 @@ namespace BotCore
 				await _hub.DisposeAsync();
 			}
 		}
+		}
 	}
-}
