@@ -16,7 +16,7 @@ namespace SimulationAgent
             var hub = new HubConnectionBuilder()
                 .WithUrl(url, options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult(jwt);
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(jwt);
                     options.Transports = HttpTransportType.WebSockets;
                     options.SkipNegotiation = true;
                 })

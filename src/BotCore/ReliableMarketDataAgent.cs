@@ -41,7 +41,7 @@ namespace BotCore
             _hub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/market", o =>
                 {
-                    o.AccessTokenProvider = () => Task.FromResult(_jwt);
+                    o.AccessTokenProvider = () => Task.FromResult<string?>(_jwt);
                 })
                 .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
                 .Build();

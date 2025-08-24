@@ -51,7 +51,7 @@ internal static class Program
         var resp = await http.SendAsync(req);
         Console.WriteLine($"HTTP {(int)resp.StatusCode} {resp.StatusCode}");
         var body = await resp.Content.ReadAsStringAsync();
-        Console.WriteLine($"Body: {body}");
+        Console.WriteLine("Body: [REDACTED SENSITIVE]");
         try
         {
             using var doc = JsonDocument.Parse(body);

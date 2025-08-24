@@ -17,13 +17,19 @@ if ($env:BOT_QUICK_EXIT -eq "1") {
     Write-Host "Quick-exit mode enabled (BOT_QUICK_EXIT=1). Orchestrator will start and exit after a short delay."
 }
 
-# Optional: skip probe
-$skipProbe = $env:SKIP_CONNECTIVITY_PROBE
-if (-not $skipProbe) {
+# Optional: skip probe (accept 1|true|yes case-insensitive)
+$skipProbeRaw = $env:SKIP_CONNECTIVITY_PROBE
+$skipProbe = $false
+if ($skipProbeRaw) {
+    $skipProbe = $skipProbeRaw.Trim().ToLowerInvariant() -in @("1","true","yes")
+}
+if ($skipProbe) {
+    Write-Host "Skipping connectivity probe (SKIP_CONNECTIVITY_PROBE=$skipProbeRaw)."
+} else {
     Write-Host "Running connectivity probe..."
     dotnet run --project ConnectivityProbe
     if ($LASTEXITCODE -eq 1) {
-        Write-Host "Connectivity probe failed (transport/network error). Fix connectivity or set SKIP_CONNECTIVITY_PROBE=1 to bypass."
+        Write-Host "Connectivity probe failed (transport/network error). Fix connectivity or set SKIP_CONNECTIVITY_PROBE=true to bypass."
         exit $LASTEXITCODE
     } elseif ($LASTEXITCODE -eq 2) {
         Write-Host "Connectivity probe: missing JWT/login credentials. Continuing to launch without blocking."
