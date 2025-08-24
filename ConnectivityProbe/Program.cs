@@ -2,8 +2,14 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Net.Http;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using BotCore;
 
-static async Task<int> Main(string[] args)
+namespace ConnectivityProbeApp
+{
+internal static class Program
+{
+    public static async Task<int> Main(string[] args)
 {
     string rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
     string hubUser = $"{rtcBase.TrimEnd('/')}/hubs/user";
@@ -69,8 +75,32 @@ static async Task<int> Main(string[] args)
     Console.WriteLine("\n== CONNECT WebSockets ==");
     var okWS = await ConnectTest(hubUser, jwt!, HttpTransportType.WebSockets);
 
-    Console.WriteLine($"\nSummary: LongPolling={(okLP ? "OK" : "FAIL")}  WebSockets={(okWS ? "OK" : "FAIL")}");
-    return (okLP || okWS) ? 0 : 1;
+    Console.WriteLine("\n== CONTRACT RESOLUTION ==");
+    bool okContract = false;
+    try
+    {
+        string apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+        using var httpApi = new HttpClient { BaseAddress = new Uri(apiBase) };
+        using var loggerFactory = LoggerFactory.Create(b => { b.AddConsole(); b.SetMinimumLevel(LogLevel.Information); });
+        var apiLogger = loggerFactory.CreateLogger<ApiClient>();
+        var api = new ApiClient(httpApi, apiLogger, apiBase);
+        api.SetJwt(jwt!);
+        var root = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES";
+        Console.WriteLine($"Resolving contract for root '{root}' (apiBase={apiBase})...");
+        var cid = await api.ResolveContractIdAsync(root, CancellationToken.None);
+        Console.WriteLine($"ContractId: {cid}");
+        okContract = !string.IsNullOrWhiteSpace(cid);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Contract resolution EX: " + ex);
+    }
+
+    var lp = okLP ? "OK" : "FAIL";
+    var ws = okWS ? "OK" : "FAIL";
+    var ct = okContract ? "OK" : "FAIL";
+    Console.WriteLine($"\nSummary: LongPolling={lp}  WebSockets={ws}  Contract={ct}");
+    return (okLP || okWS) && okContract ? 0 : 1;
 }
 
 static async Task<bool> ConnectTest(string url, string jwt, HttpTransportType transport)
@@ -105,4 +135,7 @@ static async Task<bool> ConnectTest(string url, string jwt, HttpTransportType tr
         try { await hub.DisposeAsync(); } catch { }
         return false;
     }
+}
+
+}
 }

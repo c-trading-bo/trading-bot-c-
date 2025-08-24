@@ -62,35 +62,42 @@ namespace BotCore
         private async Task<string?> TryResolveViaAvailableAsync(string root, bool live, CancellationToken ct)
         {
             SymbolRootToSymbolId.TryGetValue(root, out var wantedSymbolId);
-
-            using var resp = await _http.PostAsJsonAsync(U("/api/Contract/available"), new AvailableReq(live), ct);
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            if (!resp.IsSuccessStatusCode)
+            try
             {
-                _log.LogWarning("Contract available {Status} (live={Live}): {Body}", (int)resp.StatusCode, live, body);
+                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/available"), new AvailableReq(live), ct);
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    _log.LogWarning("Contract available {Status} (live={Live}): {Body}", (int)resp.StatusCode, live, body);
+                    return null;
+                }
+
+                var data = JsonSerializer.Deserialize<AvailableResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var list = data?.contracts ?? new();
+
+                // Filter by symbolId if we know it; prefer active front-month (name like ES?U5 / NQ?U5)
+                IEnumerable<ContractDto> pool = string.IsNullOrWhiteSpace(wantedSymbolId)
+                    ? list
+                    : list.Where(c => string.Equals(c.symbolId, wantedSymbolId, StringComparison.OrdinalIgnoreCase));
+
+                var pick = pool
+                    .Where(c => c.activeContract)
+                    .OrderByDescending(c => c.name) // front month tends to sort later
+                    .FirstOrDefault() ?? pool.FirstOrDefault();
+
+                if (pick is not null)
+                {
+                    _log.LogInformation("Available pick (root={Root}, live={Live}) -> {Id} ({Name}) [{SymId}]",
+                        root, live, pick.id, pick.name, pick.symbolId);
+                    return pick.id;
+                }
                 return null;
             }
-
-            var data = JsonSerializer.Deserialize<AvailableResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            var list = data?.contracts ?? new();
-
-            // Filter by symbolId if we know it; prefer active front-month (name like ES?U5 / NQ?U5)
-            IEnumerable<ContractDto> pool = string.IsNullOrWhiteSpace(wantedSymbolId)
-                ? list
-                : list.Where(c => string.Equals(c.symbolId, wantedSymbolId, StringComparison.OrdinalIgnoreCase));
-
-            var pick = pool
-                .Where(c => c.activeContract)
-                .OrderByDescending(c => c.name) // front month tends to sort later
-                .FirstOrDefault() ?? pool.FirstOrDefault();
-
-            if (pick is not null)
+            catch (Exception ex)
             {
-                _log.LogInformation("Available pick (root={Root}, live={Live}) -> {Id} ({Name}) [{SymId}]",
-                    root, live, pick.id, pick.name, pick.symbolId);
-                return pick.id;
+                _log.LogWarning(ex, "Contract available EX (live={Live}) for root={Root}", live, root);
+                return null;
             }
-            return null;
         }
 
         private sealed record SearchReq(string searchText, bool live);
@@ -98,24 +105,32 @@ namespace BotCore
 
         private async Task<string?> TryResolveViaSearchAsync(string searchText, bool live, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U("/api/Contract/search"), new SearchReq(searchText, live), ct);
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            if (!resp.IsSuccessStatusCode)
+            try
             {
-                _log.LogWarning("Contract search {Status} (q='{Q}', live={Live}): {Body}", (int)resp.StatusCode, searchText, live, body);
+                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/search"), new SearchReq(searchText, live), ct);
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                if (!resp.IsSuccessStatusCode)
+                {
+                    _log.LogWarning("Contract search {Status} (q='{Q}', live={Live}): {Body}", (int)resp.StatusCode, searchText, live, body);
+                    return null;
+                }
+
+                var data = JsonSerializer.Deserialize<SearchResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var list = data?.contracts ?? new();
+
+                // Prefer ES*/NQ* exact/starts-with, active first
+                var pick = list
+                    .OrderByDescending(c => c.activeContract)
+                    .ThenBy(c => c.name)
+                    .FirstOrDefault();
+
+                return pick?.id;
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "Contract search EX (q='{Q}', live={Live})", searchText, live);
                 return null;
             }
-
-            var data = JsonSerializer.Deserialize<SearchResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            var list = data?.contracts ?? new();
-
-            // Prefer ES*/NQ* exact/starts-with, active first
-            var pick = list
-                .OrderByDescending(c => c.activeContract)
-                .ThenBy(c => c.name)
-                .FirstOrDefault();
-
-            return pick?.id;
         }
         // Place an order via REST
         public async Task<string?> PlaceOrderAsync(object req, CancellationToken ct)

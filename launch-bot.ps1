@@ -13,6 +13,10 @@ if (Test-Path $envFile) {
     Write-Host "$envFile not found. Skipping env load."
 }
 
+if ($env:BOT_QUICK_EXIT -eq "1") {
+    Write-Host "Quick-exit mode enabled (BOT_QUICK_EXIT=1). Orchestrator will start and exit after a short delay."
+}
+
 # Optional: skip probe
 $skipProbe = $env:SKIP_CONNECTIVITY_PROBE
 if (-not $skipProbe) {

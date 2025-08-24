@@ -48,7 +48,37 @@ namespace BotCore
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // bearer token via header
+					// Bearer token provider with refresh support: reads latest env or validates/renews when needed
+					opt.AccessTokenProvider = async () =>
+					{
+						// Prefer latest value from env to allow external refresh
+						var tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+						if (!string.IsNullOrWhiteSpace(tok)) return tok;
+
+						// Fallback to initial token if provided
+						if (!string.IsNullOrWhiteSpace(jwtToken)) return jwtToken;
+
+						// Last resort: try to obtain via login key if present in env
+						try
+						{
+							var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
+							var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
+							if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
+							{
+								using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
+								var auth = new TopstepAuthAgent(http);
+								var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
+								Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
+								_log.LogInformation("UserHub AccessTokenProvider: obtained fresh JWT via loginKey for {User}.", user);
+								return newTok;
+							}
+						}
+						catch (Exception ex)
+						{
+							_log.LogWarning(ex, "UserHub AccessTokenProvider: failed to obtain JWT via loginKey");
+						}
+						return null;
+					};
 					// Do not force WebSockets; allow negotiate to choose best transport for the environment
 					// opt.Transports = HttpTransportType.WebSockets;
 					// opt.SkipNegotiation = true; // enable later only if confirmed working
