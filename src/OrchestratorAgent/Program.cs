@@ -63,6 +63,25 @@ namespace OrchestratorAgent
                 {
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
                     await userHub.ConnectAsync(jwt!, accountId, cts.Token);
+
+                    // Wire Market hub for real-time quotes/trades (two contracts)
+                    Func<string> getJwt = () => Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? jwt!;
+                    var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), getJwt);
+                    var market2 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), getJwt);
+                    using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+                    using (var m2Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+                    {
+                        m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
+                        await market1.StartAsync("CON.F.US.EP.U25", m1Cts.Token);
+                        m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
+                        await market2.StartAsync("CON.F.US.ENQ.U25", m2Cts.Token);
+                    }
+                    status.Set("market.state", $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}");
+                    market1.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
+                    market2.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
+                    market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
+                    market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
+
                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
                     // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)

@@ -40,6 +40,7 @@ namespace BotCore
 				.WithUrl(UrlWithToken(), o =>
 				{
 					o.AccessTokenProvider = () => Task.FromResult<string?>(Jwt());
+					o.Transports = HttpTransportType.WebSockets;
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
 				.Build();

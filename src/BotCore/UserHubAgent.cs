@@ -34,11 +34,11 @@ namespace BotCore
 			_statusService = statusService;
 		}
 
-		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken ct)
+		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken appCt)
 		{
-			if (_hub is not null && _hub.State == HubConnectionState.Connected)
+			if (_hub is { State: HubConnectionState.Connected or HubConnectionState.Connecting })
 			{
-				_log.LogInformation("UserHub already connected.");
+				_log.LogInformation("UserHub already connected or connecting.");
 				return;
 			}
 
@@ -79,9 +79,8 @@ namespace BotCore
 						}
 						return null;
 					};
-					// Do not force WebSockets; allow negotiate to choose best transport for the environment
-					// opt.Transports = HttpTransportType.WebSockets;
-					// opt.SkipNegotiation = true; // enable later only if confirmed working
+					// Force WebSockets for production reliability
+					opt.Transports = HttpTransportType.WebSockets;
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
 				.ConfigureLogging(lb =>
@@ -97,14 +96,20 @@ namespace BotCore
 			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			_hub.HandshakeTimeout  = TimeSpan.FromSeconds(15);
 
-			await _hub.StartAsync(ct);
+			// Use a short, connect-only CTS for StartAsync
+			using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
+			connectCts.CancelAfter(TimeSpan.FromSeconds(15));
+			await _hub.StartAsync(connectCts.Token);
+
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
-			await Task.Delay(250, ct); // ensure server is ready before subscribing
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    accountId), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", accountId), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    accountId), _log, ct);
+
+			// After connect, DO NOT reuse connectCts
+			await Task.Delay(250, appCt); // ensure server is ready before subscribing
+			await _hub.InvokeAsync("SubscribeAccounts");
+			await _hub.InvokeAsync("SubscribeOrders",    accountId);
+			await _hub.InvokeAsync("SubscribePositions", accountId);
+			await _hub.InvokeAsync("SubscribeTrades",    accountId);
 		}
 
 		private void WireEvents(HubConnection hub)
