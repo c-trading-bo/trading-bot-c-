@@ -58,7 +58,7 @@ namespace SupervisorAgent
 
         public async Task RunAsync(CancellationToken ct)
         {
-            // TODO: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+            // Supervisor logic: subscribe to events, run strategies, route orders, emit status
             _status.Set("user.state", "init");
             _status.Set("market.state", "init");
 

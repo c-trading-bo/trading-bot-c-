@@ -55,7 +55,7 @@ namespace OrchestratorAgent
 
         public async Task RunAsync(CancellationToken ct)
         {
-            // TODO: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+            // Supervisor logic: subscribe to events, run strategies, route orders, emit status
             _status.Set("user.state", "init");
             _status.Set("market.state", "init");
 
@@ -110,14 +110,60 @@ namespace OrchestratorAgent
                 orderLog ?? (ILogger<OrchestratorAgent.OrderRouter>)_log,
                 _http, _apiBase, _jwt, (int)_accountId);
 
+            var history = new Dictionary<string, List<BotCore.Models.Bar>>(StringComparer.OrdinalIgnoreCase);
+            var risk = new BotCore.Risk.RiskEngine();
+            var levels = new BotCore.Models.Levels();
+
             void HandleBar(BotCore.Models.Bar bar)
             {
-                // If you want to actually run strategies here, call your StrategyAgent and route:
-                // var cfg = BotCore.Config.ConfigLoader.FromFile("src/BotCore/Config/high_win_rate_profile.json");
-                // var strat = new StrategyAgent.StrategyAgent(cfg);
-                // var risk  = new BotCore.Risk.RiskEngine(cfg); // if you have one
-                // var signals = strat.GenerateSignals(bar.Symbol, new List<BotCore.Models.Bar> { bar }, risk);
-                // foreach (var sig in signals) _ = router.PlaceAsync(sig, ct);
+                try
+                {
+                    var symbol = bar.Symbol;
+                    if (!history.TryGetValue(symbol, out var list))
+                    {
+                        list = new List<BotCore.Models.Bar>(512);
+                        history[symbol] = list;
+                    }
+                    list.Add(bar);
+                    if (list.Count > 1000) list.RemoveRange(0, list.Count - 1000);
+
+                    var env = new BotCore.Models.Env
+                    {
+                        Symbol = symbol,
+                        atr = list.Count > 0 ? Math.Abs(list[^1].High - list[^1].Low) : (decimal?)null,
+                        volz = 1.0m
+                    };
+
+                    // Contract mapping from status snapshot (fallback to symbol)
+                    _status.Contracts.TryGetValue(symbol, out var contractId);
+                    contractId ??= symbol;
+
+                    var signals = BotCore.Strategy.AllStrategies.generate_signals(
+                        symbol, env, levels, list, risk, _accountId, contractId);
+
+                    int routed = 0;
+                    foreach (var s in signals)
+                    {
+                        var side = string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
+                        var sig = new BotCore.StrategySignal
+                        {
+                            Strategy = s.StrategyId,
+                            Symbol = s.Symbol,
+                            Side = side,
+                            Size = s.Size,
+                            LimitPrice = s.Entry,
+                            Note = s.Tag
+                        };
+                        _ = router.RouteAsync(sig, s.ContractId, ct);
+                        routed++;
+                    }
+                    _status.Set($"last.strategy.{symbol}", DateTimeOffset.UtcNow);
+                    _status.Set($"last.routed.{symbol}", routed);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogWarning(ex, "[Supervisor] HandleBar error for {Sym}", bar.Symbol);
+                }
             }
 
             _status.Set("market.state", "running");

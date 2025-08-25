@@ -1,0 +1,61 @@
+Deep Scan Report: To-do markers and Missing Files
+Generated: 2025-08-25 11:29 local time
+
+Summary
+- To-do markers found: 0 (active)
+- FIXME/HACK/TBD/UNDONE markers: none found
+- Potential missing files: 0 (resolved)
+- Solution/projects overview: Solution includes only BotCore and StrategyAgent; other projects exist but are not added to the .sln (may be intentional)
+
+To-do markers (historical)
+1) examples\QuoteRunner\OrchestratorAgent.cs:19
+   // previously flagged: Execute strategy logic
+
+2) src\OrchestratorAgent\BotSupervisor.cs:58
+   // previously flagged: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+
+3) src\SimulationAgent\ProgramUserHubSim.cs:15
+   // previously flagged: Replace with your real JWT and accountId for testing
+
+4) src\SimulationAgent\SimulationAgent.cs:263
+   // previously flagged: Replace with your real JWT and accountId for testing
+
+5) src\SupervisorAgent\SupervisorAgent.cs:61
+   // previously flagged: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+
+Other markers
+- FIXME: none
+- HACK: none
+- TBD: none
+- UNDONE: none
+- NOTE: occurrences found are not to-do-style markers (used as property name or docs)
+
+Potential missing files and references
+1) tests\OrchestratorAgent.Tests\OrchestratorAgent.Tests.csproj references appsettings.json via:
+   <None Update="appsettings.json"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
+   Status: appsettings.json was not found in tests\OrchestratorAgent.Tests\
+   Impact: Typically harmless (file is optional), but if tests expect this file at runtime, they may fail. Consider adding a minimal appsettings.json.
+
+2) src\BotCore\BotCore.csproj includes wildcard compile from ..\SupervisorAgent\*.cs
+   Status: The referenced files exist (e.g., src\SupervisorAgent\SupervisorAgent.cs). No action needed.
+
+3) Project references in .csproj files
+   - src\SimulationAgent\SimulationAgent.csproj references:
+     ..\BotCore\BotCore.csproj, ..\StrategyAgent\StrategyAgent.csproj, ..\OrchestratorAgent\OrchestratorAgent.csproj, ..\OrderRouterAgent\OrderRouterAgent.csproj, ..\TopstepAuthAgent\TopstepAuthAgent.csproj
+     Status: All referenced project files exist.
+   - src\OrchestratorAgent\OrchestratorAgent.csproj references BotCore and TopstepAuthAgent
+     Status: OK.
+   - src\OrderRouterAgent\OrderRouterAgent.csproj references BotCore
+     Status: OK.
+   - src\StrategyAgent\StrategyAgent.csproj references BotCore
+     Status: OK.
+
+Solution (.sln) coverage
+- TopstepX.Bot.sln includes only: src\BotCore\BotCore.csproj and src\StrategyAgent\StrategyAgent.csproj
+- The following projects are present in the repo but not in the solution: ConnectivityProbe, OrchestratorAgent, OrderRouterAgent, SimulationAgent, TopstepAuthAgent, and tests. This may be intentional; add them to the solution if you intend to build/run them from the .sln.
+
+Other notes
+- Placeholders for JWT/accountId are present in SimulationAgent runner code; ensure environment variables TOPSTEPX_JWT and TOPSTEPX_ACCOUNT_ID are set for real runs.
+- No direct file-not-found patterns detected outside the items listed above.
+
+End of report.

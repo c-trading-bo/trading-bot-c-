@@ -260,7 +260,7 @@ namespace SimulationAgent
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             var logger = loggerFactory.CreateLogger("UserHubSim");
 
-            // TODO: Replace with your real JWT and accountId for testing
+            // Credentials must be provided via env vars TOPSTEPX_JWT and TOPSTEPX_ACCOUNT_ID
             var jwtEnv = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
             var acctEnv = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
 

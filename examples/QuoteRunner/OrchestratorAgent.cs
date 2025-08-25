@@ -16,7 +16,7 @@ namespace QuoteRunner
 				foreach (var strategy in strategies)
 				{
 					Console.WriteLine($"Running strategy: {strategy}");
-					// TODO: Execute strategy logic
+					// Execute strategy logic (implemented below)
 					try
 					{
 						// Prefer the BotCore.IStrategy contract if present
