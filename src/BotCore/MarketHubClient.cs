@@ -88,6 +88,54 @@ namespace BotCore
 		}
 
 
+		private async Task<HubConnection> BuildMarketHubAsync()
+		{
+			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
+			var hub = new HubConnectionBuilder()
+				.WithUrl($"{rtcBase}/hubs/market", o =>
+				{
+					o.AccessTokenProvider = () => _getJwtAsync();
+					o.Transports = HttpTransportType.WebSockets;
+				})
+				.WithAutomaticReconnect(new ExpoRetry())
+				.Build();
+
+			hub.ServerTimeout = TimeSpan.FromSeconds(30);
+			hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
+
+			hub.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
+			hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
+			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
+
+			return hub;
+		}
+
+		private void AttachLifecycleHandlers(string contractId, CancellationToken ct)
+		{
+			if (_conn is null) return;
+
+			_conn.Reconnecting += ex =>
+			{
+				_subscribed = false;
+				_log.LogWarning(ex, "[MarketHub] Reconnecting…");
+				return Task.CompletedTask;
+			};
+
+			_conn.Reconnected += async _ =>
+			{
+				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
+				await SubscribeIfConnectedAsync(CancellationToken.None);
+			};
+
+			_conn.Closed += ex =>
+			{
+				_subscribed = false;
+				_log.LogWarning(ex, "[MarketHub] Closed.");
+				return Task.CompletedTask; // AutomaticReconnect handles restart
+			};
+		}
+
 		public Microsoft.AspNetCore.SignalR.Client.HubConnection Connection => _conn!;
 
 		public async ValueTask DisposeAsync()
