@@ -237,14 +237,180 @@ namespace OrchestratorAgent
 
         public async Task UpsertBracketsAsync(string orderId, int filledQty, CancellationToken ct = default)
         {
-            _log.LogInformation("[ROUTER] UpsertBrackets for parent {OrderId} -> filledQty={Qty}", orderId, filledQty);
-            await Task.CompletedTask;
+            // Upsert TP/SL brackets sized to the filled quantity for a partially-filled parent order.
+            // Uses best-effort endpoints. Replace with your exact API routes if different.
+            try
+            {
+                // Defaults with env overrides
+                int tpTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20);
+                int slTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12);
+                int beTicks = ResolveIntEnv("BRACKET_BE_TICKS", 8);
+                int trailTicks = ResolveIntEnv("BRACKET_TRAIL_TICKS", 6);
+
+                // Try to fetch symbol to allow per-symbol overrides like BRACKET_TP_ES_TICKS
+                string? symbol = null;
+                try
+                {
+                    var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct);
+                    if (parent.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        if (parent.TryGetProperty("symbol", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.String) symbol = s.GetString();
+                        else if (parent.TryGetProperty("Symbol", out var S) && S.ValueKind == System.Text.Json.JsonValueKind.String) symbol = S.GetString();
+                    }
+                }
+                catch { /* optional */ }
+                if (!string.IsNullOrWhiteSpace(symbol))
+                {
+                    var sym = symbol!.ToUpperInvariant();
+                    tpTicks = ResolveIntEnv($"BRACKET_TP_{sym}_TICKS", tpTicks);
+                    slTicks = ResolveIntEnv($"BRACKET_SL_{sym}_TICKS", slTicks);
+                }
+
+                var body = new { parentId = (object?)orderId, qty = filledQty, takeProfitTicks = tpTicks, stopLossTicks = slTicks, breakevenAfterTicks = beTicks, trailTicks };
+
+                // Try primary route
+                await _api.PostAsync("/orders/brackets/upsert", body, ct);
+                _log.LogInformation("[ROUTER] Upserted brackets for parent {OrderId} (qty={Qty}, tp={Tp}t, sl={Sl}t)", orderId, filledQty, tpTicks, slTicks);
+            }
+            catch (Exception ex1)
+            {
+                try
+                {
+                    // Fallback to generic brackets endpoint
+                    var body2 = new { parentId = (object?)orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
+                    await _api.PostAsync("/orders/brackets", body2, ct);
+                    _log.LogInformation("[ROUTER] Upsert fallback: posted brackets for parent {OrderId}", orderId);
+                }
+                catch (Exception ex2)
+                {
+                    try
+                    {
+                        // Legacy API route fallback
+                        var body3 = new { orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
+                        await _api.PostAsync("/api/Order/brackets/upsert", body3, ct);
+                        _log.LogInformation("[ROUTER] Upsert legacy fallback OK for parent {OrderId}", orderId);
+                    }
+                    catch (Exception ex3)
+                    {
+                        _log.LogWarning(ex1, "[ROUTER] UpsertBrackets primary failed");
+                        _log.LogWarning(ex2, "[ROUTER] UpsertBrackets fallback failed");
+                        _log.LogWarning(ex3, "[ROUTER] UpsertBrackets legacy failed for parent {OrderId}", orderId);
+                    }
+                }
+            }
         }
 
         public async Task ConvertRemainderToLimitOrCancelAsync(dynamic orderUpdate, CancellationToken ct = default)
         {
-            _log.LogWarning("[ROUTER] Convert remainder-to-limit or cancel for order update {Update}", orderUpdate);
-            await Task.CompletedTask;
+            // Convert stale partial parent remainder to a LIMIT (IOC) at an offset, or cancel after timeout.
+            try
+            {
+                var t = orderUpdate.GetType();
+                string orderId = t.GetProperty("OrderId")?.GetValue(orderUpdate)?.ToString() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(orderId)) { _log.LogWarning("[ROUTER] Convert skipped: missing OrderId"); return; }
+
+                int remaining = SafeToInt(t.GetProperty("RemainingQty")?.GetValue(orderUpdate));
+                if (remaining <= 0) return;
+
+                // Age thresholds
+                var age = (TimeSpan?)(t.GetProperty("Age")?.GetValue(orderUpdate)) ?? TimeSpan.Zero;
+                int convertAtSec = ResolveIntEnv("PARTIAL_CONVERT_AT_SEC", 8);
+                int cancelAtSec = ResolveIntEnv("PARTIAL_CANCEL_AT_SEC", 20);
+                if (age.TotalSeconds < convertAtSec) return;
+
+                // Basics for price calc
+                string sideStr = t.GetProperty("Side")?.GetValue(orderUpdate)?.ToString() ?? string.Empty;
+                bool isSell = sideStr.Equals("SELL", StringComparison.OrdinalIgnoreCase) || sideStr == "1";
+                string symbol = t.GetProperty("Symbol")?.GetValue(orderUpdate)?.ToString() ?? string.Empty;
+                decimal tick = !string.IsNullOrWhiteSpace(symbol) ? BotCore.InstrumentMeta.Tick(symbol) : 0.25m;
+                int offsetTicks = ResolveIntEnv("PARTIAL_CONVERT_OFFSET_TICKS", 1);
+
+                // Derive a reference price from update, prefer limit then avg fill then last
+                decimal refPx = 0m;
+                refPx = PickPrice(t, orderUpdate, new[] { "LimitPrice", "limitPrice", "Price", "price" }, refPx);
+                refPx = PickPrice(t, orderUpdate, new[] { "AvgFillPrice", "avgFillPrice", "AverageFillPrice" }, refPx);
+                refPx = PickPrice(t, orderUpdate, new[] { "LastPrice", "lastPrice" }, refPx);
+
+                bool converted = false;
+                if (refPx > 0m)
+                {
+                    var px = isSell ? refPx - offsetTicks * tick : refPx + offsetTicks * tick;
+                    var body = new { orderId, toType = "LIMIT", price = px, timeInForce = "IOC" };
+                    try
+                    {
+                        await _api.PostAsync("/orders/convert", body, ct);
+                        _log.LogInformation("[ROUTER] Converted partial parent to LIMIT IOC at {Px} (order {OrderId})", px, orderId);
+                        converted = true;
+                    }
+                    catch (Exception ex1)
+                    {
+                        try
+                        {
+                            await _api.PostAsync("/api/Order/convert", body, ct);
+                            _log.LogInformation("[ROUTER] Converted (legacy) partial parent to LIMIT IOC at {Px} (order {OrderId})", px, orderId);
+                            converted = true;
+                        }
+                        catch (Exception ex2)
+                        {
+                            _log.LogWarning(ex1, "[ROUTER] Convert remainder primary failed for {OrderId}", orderId);
+                            _log.LogWarning(ex2, "[ROUTER] Convert remainder legacy failed for {OrderId}", orderId);
+                        }
+                    }
+                }
+
+                // If still stale past cancel threshold, cancel parent to avoid dangling partials
+                if (!converted && age.TotalSeconds >= cancelAtSec)
+                {
+                    var body = new { orderId };
+                    try { await _api.PostAsync("/orders/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled stale partial parent {OrderId}", orderId); }
+                    catch (Exception ex1)
+                    {
+                        try { await _api.PostAsync("/api/Order/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled (legacy) stale partial parent {OrderId}", orderId); }
+                        catch (Exception ex2)
+                        {
+                            _log.LogWarning(ex1, "[ROUTER] Cancel remainder primary failed for {OrderId}", orderId);
+                            _log.LogWarning(ex2, "[ROUTER] Cancel remainder legacy failed for {OrderId}", orderId);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] ConvertRemainderToLimitOrCancelAsync unexpected error");
+            }
+
+            static int ResolveIntEnv(string key, int defVal)
+            {
+                var raw = Environment.GetEnvironmentVariable(key);
+                return int.TryParse(raw, out var v) ? v : defVal;
+            }
+            static int SafeToInt(object? o)
+            {
+                try { return Convert.ToInt32(o ?? 0); } catch { return 0; }
+            }
+            static decimal PickPrice(System.Reflection.PropertyInfo?[]? dummy, object _obj, string[] names, decimal current)
+            {
+                // overload shim to keep one signature below
+                return current;
+            }
+            static decimal PickPrice(Type t, object obj, string[] names, decimal current)
+            {
+                if (current > 0m) return current;
+                foreach (var n in names)
+                {
+                    var p = t.GetProperty(n);
+                    if (p == null) continue;
+                    try
+                    {
+                        var v = p.GetValue(obj);
+                        if (v == null) continue;
+                        var d = Convert.ToDecimal(v, System.Globalization.CultureInfo.InvariantCulture);
+                        if (d > 0m) return d;
+                    }
+                    catch { }
+                }
+                return current;
+            }
         }
 
         public async Task CancelAllOpenAsync(long accountId, CancellationToken ct = default)
