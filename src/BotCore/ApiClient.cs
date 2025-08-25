@@ -17,7 +17,8 @@ namespace BotCore
             _http = http;
             _log = log;
             _apiBase = apiBase;
-            _http.BaseAddress = new Uri(apiBase);
+            // Do not modify HttpClient.BaseAddress here because it may have already sent requests.
+            // We compose absolute URLs via the _apiBase field in U(path).
         }
 
         public void SetJwt(string jwt)
