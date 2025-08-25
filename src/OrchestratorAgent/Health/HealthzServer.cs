@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Health
 {
     public static class HealthzServer
     {
-        public static void Start(Preflight pf, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
+        public static void Start(Preflight pf, DstGuard dst, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
         {
             try
             {
@@ -27,7 +27,8 @@ namespace OrchestratorAgent.Health
                             if (ctx.Request.Url != null && ctx.Request.Url.AbsolutePath.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
                             {
                                 var (ok, msg) = await pf.RunAsync(symbol, ct);
-                                var json = JsonSerializer.Serialize(new { ok, msg });
+                                var (_, warn) = dst.Check();
+                                var json = JsonSerializer.Serialize(new { ok, msg, warn_dst = warn });
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;

@@ -198,7 +198,8 @@ namespace OrchestratorAgent
                         }
                     };
                     var pfService = new OrchestratorAgent.Health.Preflight(apiClient, status, pfCfg, accountId);
-                    OrchestratorAgent.Health.HealthzServer.Start(pfService, symbol, "http://127.0.0.1:18080/", cts.Token);
+                    var dst = new OrchestratorAgent.Health.DstGuard("America/Chicago", 7);
+                    OrchestratorAgent.Health.HealthzServer.Start(pfService, dst, symbol, "http://127.0.0.1:18080/", cts.Token);
                     var pfResult = await pfService.RunAsync(symbol, cts.Token);
                     bool pfOk = pfResult.ok;
                     log.LogInformation("Preflight: ok={Ok} msg={Msg}", pfResult.ok, pfResult.msg);
@@ -223,6 +224,47 @@ namespace OrchestratorAgent
                             catch { }
                         }
                     }, cts.Token);
+
+                    // EOD reconcile & reset (idempotent)
+                    try
+                    {
+                        var eod = new OrchestratorAgent.Ops.EodReconciler(apiClient, accountId,
+                            Environment.GetEnvironmentVariable("EOD_TZ") ?? "America/Chicago",
+                            Environment.GetEnvironmentVariable("EOD_SETTLE_LOCAL") ?? "15:00");
+                        _ = eod.RunLoopAsync(async () => {
+                            BotCore.Infra.Persistence.Save("daily_reset", new { utc = DateTime.UtcNow });
+                            await Task.CompletedTask;
+                        }, cts.Token);
+                    }
+                    catch { }
+
+                    // Resource watchdog (RSS/threads)
+                    try
+                    {
+                        int maxMb = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_MAX_RSS_MB"), out var v1) ? v1 : 900;
+                        int maxThreads = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_MAX_THREADS"), out var v2) ? v2 : 600;
+                        int periodSec = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_PERIOD_SEC"), out var v3) ? v3 : 30;
+                        var wd = new OrchestratorAgent.Ops.Watchdog(maxMb, maxThreads, periodSec, async () => {
+                            BotCore.Infra.Persistence.Save("watchdog_last", new { utc = DateTime.UtcNow });
+                            await Task.CompletedTask;
+                        });
+                        _ = wd.RunLoopAsync(cts.Token);
+                    }
+                    catch { }
+
+                    // Optional: run replays before deploy
+                    try
+                    {
+                        var runReplays = (Environment.GetEnvironmentVariable("REPLAY_RUN_BEFORE_DEPLOY") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase);
+                        var replayDir = Environment.GetEnvironmentVariable("REPLAY_DIR") ?? "replays";
+                        if (runReplays && System.IO.Directory.Exists(replayDir))
+                        {
+                            var rr = new ReplayRunner(_ => { /* no-op target */ });
+                            foreach (var f in System.IO.Directory.GetFiles(replayDir, "*.json"))
+                                await rr.RunAsync(f, TimeSpan.FromSeconds(30), CancellationToken.None);
+                        }
+                    }
+                    catch { }
 
                     // Determine arming conditions
                     bool shouldArmLive = pfOk && (autoLive || auto) && !dryRun && !killSwitch;
