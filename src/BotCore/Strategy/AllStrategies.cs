@@ -40,7 +40,8 @@ namespace BotCore.Strategy
             // For now, map Candidates to Signals using S1 logic as example
             var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
             var levels = new Levels();
-            var candidates = S1(symbol, env, levels, bars, risk as RiskEngine);
+            var riskEngine = risk as RiskEngine ?? new RiskEngine();
+            var candidates = S1(symbol, env, levels, bars, riskEngine);
             var signals = new List<Signal>();
             foreach (var c in candidates)
             {

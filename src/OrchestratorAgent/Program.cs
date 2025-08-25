@@ -81,6 +81,8 @@ namespace OrchestratorAgent
                     market2.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
+                    market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
+                    market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
