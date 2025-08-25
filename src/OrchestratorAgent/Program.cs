@@ -199,10 +199,33 @@ namespace OrchestratorAgent
                     };
                     var pfService = new OrchestratorAgent.Health.Preflight(apiClient, status, pfCfg, accountId);
                     var dst = new OrchestratorAgent.Health.DstGuard("America/Chicago", 7);
-                    OrchestratorAgent.Health.HealthzServer.Start(pfService, dst, symbol, "http://127.0.0.1:18080/", cts.Token);
-                    var pfResult = await pfService.RunAsync(symbol, cts.Token);
-                    bool pfOk = pfResult.ok;
-                    log.LogInformation("Preflight: ok={Ok} msg={Msg}", pfResult.ok, pfResult.msg);
+
+                    // Mode + AutoPilot wiring
+                    bool autoGoLive = (Environment.GetEnvironmentVariable("AUTO_GO_LIVE") ?? "true").Equals("true", StringComparison.OrdinalIgnoreCase)
+                                   || (Environment.GetEnvironmentVariable("AUTO_GO_LIVE") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase);
+                    int dryMin = int.TryParse(Environment.GetEnvironmentVariable("AUTO_DRYRUN_MINUTES"), out var dm) ? Math.Max(0, dm) : 5;
+                    int minHealthy = int.TryParse(Environment.GetEnvironmentVariable("AUTO_MIN_HEALTHY_PASSES"), out var mh) ? Math.Max(1, mh) : 3;
+                    int demoteOnBad = int.TryParse(Environment.GetEnvironmentVariable("AUTO_DEMOTE_ON_UNHEALTHY"), out var db) ? Math.Max(1, db) : 3;
+                    bool stickyLive = (Environment.GetEnvironmentVariable("AUTO_STICKY_LIVE") ?? "true").Equals("true", StringComparison.OrdinalIgnoreCase)
+                                   || (Environment.GetEnvironmentVariable("AUTO_STICKY_LIVE") ?? "1").Equals("1", StringComparison.OrdinalIgnoreCase);
+
+                    var mode = new OrchestratorAgent.Ops.ModeController(stickyLive);
+                    // Sync env LIVE_ORDERS with mode
+                    void SyncLiveEnv()
+                    {
+                        Environment.SetEnvironmentVariable("LIVE_ORDERS", mode.IsLive ? "1" : "0");
+                        log.LogInformation("MODE => {Mode}", mode.IsLive ? "LIVE" : "SHADOW");
+                    }
+                    SyncLiveEnv();
+                    mode.OnChange += _ => SyncLiveEnv();
+
+                    // Expose health with mode and manual overrides
+                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, "http://127.0.0.1:18080/", cts.Token);
+
+                    // Simple stats provider
+                    var startedUtc = DateTime.UtcNow;
+                    var stats = new SimpleStats(startedUtc);
+
                     // periodic check
                     _ = Task.Run(async () =>
                     {
@@ -224,6 +247,15 @@ namespace OrchestratorAgent
                             catch { }
                         }
                     }, cts.Token);
+
+                    // Start autopilot loop
+                    if (autoGoLive)
+                    {
+                        var notifier = new OrchestratorAgent.Infra.Notifier();
+                        var nwrap = new NotifierAdapter(notifier);
+                        var pilot = new OrchestratorAgent.Ops.AutoPilot(pfService, mode, stats, nwrap, symbol, minHealthy, demoteOnBad, TimeSpan.FromMinutes(dryMin));
+                        _ = pilot.RunAsync(cts.Token);
+                    }
 
                     // EOD reconcile & reset (idempotent)
                     try
@@ -266,25 +298,10 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Determine arming conditions
-                    bool shouldArmLive = pfOk && (autoLive || auto) && !dryRun && !killSwitch;
-                    if (killSwitch)
+                    // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. No manual flip here.
+                    if (!pfOk)
                     {
-                        log.LogWarning("AUTOPILOT: KILL_SWITCH active — remaining DRY-RUN regardless of precheck.");
-                    }
-                    if (pfOk && !shouldArmLive)
-                    {
-                        log.LogInformation("AUTOPILOT: Precheck PASS but remaining DRY-RUN (AUTO={Auto} AUTO_LIVE={AutoLive} DRYRUN={Dry} KILL_SWITCH={Kill}).", auto, autoLive, dryRun, killSwitch);
-                    }
-                    if (shouldArmLive)
-                    {
-                        AppEnv.Set("LIVE_ORDERS", "1");
-                        log.LogInformation("AUTOPILOT: LIVE enabled — trading active.");
-                        router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, true); // flip router to LIVE
-                    }
-                    else if (!pfOk)
-                    {
-                        log.LogError("AUTOPILOT: Preflight FAIL — hold in DRY-RUN. Fix and relaunch.");
+                        log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy.");
                     }
 
                     // On new bar, run strategies and (optionally) route orders

@@ -10,6 +10,9 @@ namespace OrchestratorAgent.Health
     public static class HealthzServer
     {
         public static void Start(Preflight pf, DstGuard dst, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
+            => StartWithMode(pf, dst, null, symbol, prefix, ct);
+
+        public static void StartWithMode(Preflight pf, DstGuard dst, OrchestratorAgent.Ops.ModeController? mode, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
         {
             try
             {
@@ -24,14 +27,44 @@ namespace OrchestratorAgent.Health
                         try
                         {
                             var ctx = await listener.GetContextAsync();
-                            if (ctx.Request.Url != null && ctx.Request.Url.AbsolutePath.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
+                            var path = ctx.Request.Url?.AbsolutePath ?? string.Empty;
+                            if (path.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
                             {
                                 var (ok, msg) = await pf.RunAsync(symbol, ct);
                                 var (_, warn) = dst.Check();
-                                var json = JsonSerializer.Serialize(new { ok, msg, warn_dst = warn });
+                                var json = JsonSerializer.Serialize(new { ok, msg, warn_dst = warn, mode = mode == null ? null : (mode.IsLive ? "LIVE" : "SHADOW") });
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/healthz/mode", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var m = mode == null ? "unknown" : (mode.IsLive ? "LIVE" : "SHADOW");
+                                var json = JsonSerializer.Serialize(new { mode = m });
+                                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/promote", StringComparison.OrdinalIgnoreCase) && mode != null)
+                            {
+                                mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
+                                var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/demote", StringComparison.OrdinalIgnoreCase) && mode != null)
+                            {
+                                mode.Set(OrchestratorAgent.Ops.TradeMode.Shadow);
+                                var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
+                                ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
                                 await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
                                 ctx.Response.Close();
