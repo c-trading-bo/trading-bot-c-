@@ -10,6 +10,7 @@ using System.Text.Json;
 using BotCore.Models;
 using BotCore.Risk;
 using BotCore.Strategy;
+using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent
 {
@@ -157,6 +158,38 @@ namespace OrchestratorAgent
                     market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
                     market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
+
+                    // ===== Positions wiring =====
+                    var posTracker = new PositionTracker(log, accountId);
+                    // Subscribe to user hub events
+                    userHub.OnPosition += posTracker.OnPosition;
+                    userHub.OnTrade += posTracker.OnTrade;
+                    // Feed market trades for last price updates
+                    market1.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
+                    market2.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
+                    // Seed from REST
+                    await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
+                    // Publish snapshot periodically to status
+                    _ = Task.Run(async () =>
+                    {
+                        while (!cts.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                foreach (var kv in posTracker.Snapshot())
+                                {
+                                    var sym = kv.Key;
+                                    var st = kv.Value;
+                                    status.Set($"pos.{sym}.qty", st.Qty);
+                                    status.Set($"pos.{sym}.avg", st.AvgPrice);
+                                    status.Set($"pos.{sym}.upnl", st.UnrealizedUsd);
+                                    status.Set($"pos.{sym}.rpnl", st.RealizedUsd);
+                                }
+                            }
+                            catch { }
+                            try { await Task.Delay(TimeSpan.FromSeconds(5), cts.Token); } catch { }
+                        }
+                    }, cts.Token);
 
                     // ===== Strategy wiring (per-bar) =====
                     // Map symbols to contract IDs

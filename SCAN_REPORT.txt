@@ -1,61 +1,88 @@
-Deep Scan Report: To-do markers and Missing Files
-Generated: 2025-08-25 11:29 local time
+Deep Scan Report: Bot wiring, runtime guards, and missing features
+Generated: 2025-08-25 15:25 local time
 
 Summary
-- To-do markers found: 0 (active)
-- FIXME/HACK/TBD/UNDONE markers: none found
-- Potential missing files: 0 (resolved)
-- Solution/projects overview: Solution includes only BotCore and StrategyAgent; other projects exist but are not added to the .sln (may be intentional)
+- Build: OK (compiled all projects)
+- Health: /healthz exposes OK/msg/DST warn + /healthz/mode, manual /promote and /demote
+- Mode: AutoPilot promotes to LIVE after healthy streak and demotes on unhealthy streak; sticky across restarts
+- Market flow: Quotes/Trades → BarAggregator (Program.cs) and direct Bar handler (BotSupervisor) → AllStrategies
+- Routing: Rate-limited, idempotent CIDs, dry-run vs LIVE via ModeController → LIVE_ORDERS
+- Gaps/PnL: Minute bar backfill added, first-bar-after-gap suppression, daily PnL breaker gates routing
+- Brackets/controls: EnsureBrackets/CancelAll/FlattenAll are wired to REST
+- Tests: Added Determinism and Router idempotency tests (xUnit); minimal tests/appsettings.json added
 
-To-do markers (historical)
-1) examples\QuoteRunner\OrchestratorAgent.cs:19
-   // previously flagged: Execute strategy logic
+Feature-by-feature scan
+1) Strategy generation
+   - Source: src\BotCore\Strategy\AllStrategies.cs (S1..S14 with helpers)
+   - Usage: Program.cs uses AllStrategies.generate_signals on 60s bars for ES/NQ. BotSupervisor also generates on incoming bars.
+   - Determinism: Covered by tests/OrchestratorAgent.Tests/DeterminismTests.cs
+   - Status: OK
 
-2) src\OrchestratorAgent\BotSupervisor.cs:58
-   // previously flagged: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+2) Market data → bars
+   - Program.cs wires MarketHub.OnTrade/OnQuote to BarAggregator(60) per symbol; OnBar triggers strategy run.
+   - BotSupervisor wires a direct OnBar handler and updates last.bar status.
+   - Status: OK
 
-3) src\SimulationAgent\ProgramUserHubSim.cs:15
-   // previously flagged: Replace with your real JWT and accountId for testing
+3) Routing safety
+   - OrderRouter: idempotent CID cache (10m), rate limiter (20/10s), slippage cap, buffer ticks per symbol, reject burst auto-pause with Notifier.
+   - SimpleOrderRouter: respects LIVE_ORDERS and KILL_SWITCH; journals to ./journal/orders.jsonl.
+   - Idempotency test: tests/OrchestratorAgent.Tests/RouterIdempotencyTests.cs
+   - Status: OK
 
-4) src\SimulationAgent\SimulationAgent.cs:263
-   // previously flagged: Replace with your real JWT and accountId for testing
+4) Brackets / Cancel / Flatten
+   - EnsureBracketsAsync: queries open parents and posts missing brackets (wired).
+   - CancelAllOpenAsync: posts /orders/cancel_all (wired).
+   - FlattenAllAsync: posts /positions/flatten_all (wired).
+   - Remaining stubs: UpsertBracketsAsync, ConvertRemainderToLimitOrCancelAsync log only (not fully implemented).
+   - Status: Partial (see Missing Features).
 
-5) src\SupervisorAgent\SupervisorAgent.cs:61
-   // previously flagged: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+5) Backfill & gap handling
+   - BotSupervisor backfills via GET /marketdata/bars?symbol=...&tf=1m&since=&until=, merges chronologically.
+   - Suppresses first bar after a detected gap (>15s).
+   - Status: OK
 
-Other markers
-- FIXME: none
-- HACK: none
-- TBD: none
-- UNDONE: none
-- NOTE: occurrences found are not to-do-style markers (used as property name or docs)
+6) Daily breaker / trade cap
+   - Daily PnL breaker: checks net PnL (fees included) each ~60s, sets gate and notifies when exceeded.
+   - Trade cap: MAX_TRADES_PER_DAY env respected; resets on UTC day change.
+   - Status: OK
 
-Potential missing files and references
-1) tests\OrchestratorAgent.Tests\OrchestratorAgent.Tests.csproj references appsettings.json via:
-   <None Update="appsettings.json"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None>
-   Status: appsettings.json was not found in tests\OrchestratorAgent.Tests\
-   Impact: Typically harmless (file is optional), but if tests expect this file at runtime, they may fail. Consider adding a minimal appsettings.json.
+7) Health & operations
+   - Preflight: checks JWT age, hub connections (via StatusService), quote/bar freshness, daily PnL, trade count, rollover.
+   - HealthzServer: /healthz and /healthz/mode; DST guard warns near DST boundaries.
+   - EOD reconcile writes state/eod_journal.jsonl and calls a reset hook.
+   - Watchdog exits on resource thresholds (persist hook); service manager should restart.
+   - Notifier: Discord-style webhook supported via BOT_ALERT_WEBHOOK.
+   - Status: OK
 
-2) src\BotCore\BotCore.csproj includes wildcard compile from ..\SupervisorAgent\*.cs
-   Status: The referenced files exist (e.g., src\SupervisorAgent\SupervisorAgent.cs). No action needed.
+8) Persistence & restart safety
+   - Persistence helpers save recent CIDs and last signals periodically.
+   - BotSupervisor seeds duplicate-suppression/cache on boot from positions and saved state.
+   - Status: OK
 
-3) Project references in .csproj files
-   - src\SimulationAgent\SimulationAgent.csproj references:
-     ..\BotCore\BotCore.csproj, ..\StrategyAgent\StrategyAgent.csproj, ..\OrchestratorAgent\OrchestratorAgent.csproj, ..\OrderRouterAgent\OrderRouterAgent.csproj, ..\TopstepAuthAgent\TopstepAuthAgent.csproj
-     Status: All referenced project files exist.
-   - src\OrchestratorAgent\OrchestratorAgent.csproj references BotCore and TopstepAuthAgent
-     Status: OK.
-   - src\OrderRouterAgent\OrderRouterAgent.csproj references BotCore
-     Status: OK.
-   - src\StrategyAgent\StrategyAgent.csproj references BotCore
-     Status: OK.
+9) Tests and solution coverage
+   - New tests added under tests/OrchestratorAgent.Tests (xUnit).
+   - tests/.csproj already references BotCore and OrchestratorAgent.
+   - Minimal appsettings.json added to satisfy csproj Include.
+   - Note: The .sln currently includes BotCore and StrategyAgent only; running `dotnet test` on the test project path should still work.
 
-Solution (.sln) coverage
-- TopstepX.Bot.sln includes only: src\BotCore\BotCore.csproj and src\StrategyAgent\StrategyAgent.csproj
-- The following projects are present in the repo but not in the solution: ConnectivityProbe, OrchestratorAgent, OrderRouterAgent, SimulationAgent, TopstepAuthAgent, and tests. This may be intentional; add them to the solution if you intend to build/run them from the .sln.
+Missing features / follow-ups
+- UpsertBracketsAsync (OrderRouter): currently logs only. Implement API call to upsert TP/SL for a partially filled parent (needs your endpoint/shape).
+- ConvertRemainderToLimitOrCancelAsync (OrderRouter): currently logs. Implement conversion/cancel policy for stale partials (needs your endpoint/shape).
+- Optional: Add remaining projects to TopstepX.Bot.sln if you want IDE-wide build of all agents and tests.
+- Optional: Populate real news flags (IsMajorNewsNow/Soon/Holiday) if you want explicit boosts instead of vol-z fallback.
 
-Other notes
-- Placeholders for JWT/accountId are present in SimulationAgent runner code; ensure environment variables TOPSTEPX_JWT and TOPSTEPX_ACCOUNT_ID are set for real runs.
-- No direct file-not-found patterns detected outside the items listed above.
+Operational checks to verify in your environment
+- Set TOPSTEPX_JWT and TOPSTEPX_ACCOUNT_ID (or TOPSTEPX_USERNAME/API_KEY) then run OrchestratorAgent. Visit http://127.0.0.1:18080/healthz.
+- Confirm /healthz shows ok=true and mode shows SHADOW then LIVE after AutoPilot promotes.
+- Check ./state for eod_journal.jsonl, mode.json, recent caches, and ./journal/orders.jsonl in dry-run.
 
 End of report.
+
+
+Cleanup Summary (2025-08-25 15:51 local)
+- Removed legacy duplicate: src\BotCore\AllStrategies.cs (kept src\BotCore\Strategy\AllStrategies.cs)
+- Removed stub duplicate: src\OrderRouterAgent\ApiClient.cs (real client is src\BotCore\ApiClient.cs)
+- Removed empty scripts: cleanup_repo.ps1, fix_project_refs.ps1, upgrade-enterprise.ps1
+- Removed empty script stubs under scripts\: rebuild_sln.ps1, reorg.ps1, verify.ps1
+- Removed empty placeholder file: strategy.high_win_rate.json
+- Verified full build OK after cleanup
