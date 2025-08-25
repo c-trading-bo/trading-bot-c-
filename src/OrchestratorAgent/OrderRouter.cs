@@ -249,27 +249,56 @@ namespace OrchestratorAgent
 
         public async Task CancelAllOpenAsync(long accountId, CancellationToken ct = default)
         {
-            _log.LogWarning("[ROUTER] CancelAllOpen requested for account {Acc}", accountId);
-            await Task.CompletedTask;
+            try
+            {
+                await _api.PostAsync($"/orders/cancel_all", new { accountId }, ct);
+                _log.LogWarning("[ROUTER] CancelAllOpen posted for account {Acc}", accountId);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] CancelAllOpen failed for account {Acc}", accountId);
+            }
         }
 
         public async Task FlattenAllAsync(long accountId, CancellationToken ct = default)
         {
             _log.LogError("[ROUTER] PANIC_FLATTEN: flattening all positions for account {Acc}", accountId);
-            // Implement via API: close positions and cancel all brackets
-            await Task.CompletedTask;
+            try
+            {
+                await _api.PostAsync($"/positions/flatten_all", new { accountId }, ct);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] FlattenAll failed for account {Acc}", accountId);
+            }
         }
 
         public async Task<List<dynamic>> QueryOpenPositionsAsync(long accountId, CancellationToken ct = default)
         {
-            _log.LogInformation("[ROUTER] QueryOpenPositions for account {Acc}", accountId);
-            return await Task.FromResult(new List<dynamic>());
+            try
+            {
+                var list = await _api.GetAsync<List<dynamic>>($"/positions?accountId={accountId}&status=OPEN", ct);
+                return list ?? new List<dynamic>();
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] QueryOpenPositions failed for account {Acc}", accountId);
+                return new List<dynamic>();
+            }
         }
 
         public async Task<List<dynamic>> QueryOpenOrdersAsync(long accountId, CancellationToken ct = default)
         {
-            _log.LogInformation("[ROUTER] QueryOpenOrders for account {Acc}", accountId);
-            return await Task.FromResult(new List<dynamic>());
+            try
+            {
+                var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct);
+                return list ?? new List<dynamic>();
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] QueryOpenOrders failed for account {Acc}", accountId);
+                return new List<dynamic>();
+            }
         }
 
         private static int ResolveBufferTicks(string symbol)
