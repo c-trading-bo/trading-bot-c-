@@ -113,6 +113,24 @@ namespace OrchestratorAgent
             var history = new Dictionary<string, List<BotCore.Models.Bar>>(StringComparer.OrdinalIgnoreCase);
             var risk = new BotCore.Risk.RiskEngine();
             var levels = new BotCore.Models.Levels();
+            var journal = new BotCore.Supervisor.SignalJournal();
+
+            // Optional: attach to Reconnected to rebuild OCOs on recover
+            try
+            {
+                var rebuildOnReconnect = (Environment.GetEnvironmentVariable("OCO_REBUILD_ON_RECONNECT") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase);
+                if (rebuildOnReconnect)
+                {
+                    var evt = _marketHub.GetType().GetEvent("Reconnected");
+                    if (evt != null)
+                    {
+                        var handler = new Func<string?, Task>(async _ => { _status.Set("market.state", "reconnected"); await router.EnsureBracketsAsync(_accountId, ct); });
+                        var del = Delegate.CreateDelegate(evt.EventHandlerType!, handler.Target!, handler.Method);
+                        evt.AddEventHandler(_marketHub, del);
+                    }
+                }
+            }
+            catch { }
 
             void HandleBar(BotCore.Models.Bar bar)
             {
@@ -142,9 +160,25 @@ namespace OrchestratorAgent
                         symbol, env, levels, list, risk, _accountId, contractId);
 
                     int routed = 0;
+
+                    // Pause sends if market data stale
+                    var lastQ = _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
+                    var lastT = _status.Get<DateTimeOffset?>("last.trade") ?? DateTimeOffset.MinValue;
+                    var age = DateTimeOffset.UtcNow - new[] { lastQ, lastT }.Max();
+                    bool tradable = age < TimeSpan.FromSeconds(30);
+
                     foreach (var s in signals)
                     {
                         var side = string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
+                        var cid = $"{s.StrategyId}|{s.Symbol}|{DateTime.UtcNow:yyyyMMddTHHmmssfff}|{Guid.NewGuid():N}".ToUpperInvariant();
+                        journal.Append(s, "emitted", cid);
+
+                        if (!tradable)
+                        {
+                            _log.LogWarning("[Supervisor] Market data stale ({Age}s). Skipping route for {Sym} {Strat}.", (int)age.TotalSeconds, s.Symbol, s.StrategyId);
+                            continue;
+                        }
+
                         var sig = new BotCore.StrategySignal
                         {
                             Strategy = s.StrategyId,
@@ -152,9 +186,11 @@ namespace OrchestratorAgent
                             Side = side,
                             Size = s.Size,
                             LimitPrice = s.Entry,
-                            Note = s.Tag
+                            Note = s.Tag,
+                            ClientOrderId = cid
                         };
                         _ = router.RouteAsync(sig, s.ContractId, ct);
+                        journal.Append(s, "routed", cid);
                         routed++;
                     }
                     _status.Set($"last.strategy.{symbol}", DateTimeOffset.UtcNow);

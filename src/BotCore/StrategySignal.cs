@@ -12,5 +12,6 @@ namespace BotCore
         public int Size        { get; init; } = 1;
         public decimal? LimitPrice { get; init; } // optional; null means use market/last
         public string? Note    { get; init; }
+        public string? ClientOrderId { get; init; }
     }
 }
