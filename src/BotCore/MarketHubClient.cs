@@ -81,19 +81,19 @@ namespace BotCore
 				await SubscribeIfConnectedAsync(CancellationToken.None);
 			};
 
-			_conn.Closed += async err =>
+			_conn.Closed += err =>
 			{
 				_subscribed = false;
-				_log.LogWarning(err, "[MarketHub] Closed. Restarting with backoff…");
-				// Set marketHub status as disconnected
-				await RestartLoopAsync(Url);
+				_log.LogWarning(err, "[MarketHub] Closed.");
+				// Set marketHub status as disconnected; AutomaticReconnect will handle reconnects.
+				return Task.CompletedTask;
 			};
 
 			await _conn.StartAsync(ct);
 			// Set marketHub status as connected
 			// You may need to inject StatusService here if not already
-			await Task.Delay(200, ct);
-			await SubscribeIfConnectedAsync(ct);
+			await Task.Delay(200);
+			await SubscribeIfConnectedAsync(CancellationToken.None);
 		}
 
 		private async Task SubscribeIfConnectedAsync(CancellationToken ct)
@@ -142,84 +142,6 @@ namespace BotCore
 			}
 		}
 
-		private async Task RestartLoopAsync(Func<string> urlFactory)
-		{
-			if (_conn is null) return;
-
-			var delay = TimeSpan.FromMilliseconds(500);
-			for (int attempt = 1; attempt <= 8 && !_disposed; attempt++)
-			{
-				try
-				{
-					var newUrl = urlFactory();
-					// Dispose old connection
-					if (_conn != null)
-					{
-						try { await _conn.DisposeAsync(); } catch { }
-					}
-					// Rebuild connection with fresh token in query
-					_conn = new HubConnectionBuilder()
-						.WithUrl(newUrl, o =>
-						{
- 						o.AccessTokenProvider = async () =>
- 						{
- 							var t = await _getJwtAsync();
- 							var ok = !string.IsNullOrWhiteSpace(t);
- 							_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
- 							return t;
- 						};
-							o.Transports = HttpTransportType.WebSockets;
-							o.SkipNegotiation = true;
-						})
-  				.WithAutomaticReconnect(new ExpoRetry())
-						.Build();
-
-					_conn.ServerTimeout = TimeSpan.FromSeconds(30);
-					_conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
-					_conn.HandshakeTimeout = TimeSpan.FromSeconds(15);
-
-					_conn.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
-					_conn.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
-					_conn.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
-
-					_conn.Reconnecting += err =>
-					{
-						_subscribed = false;
-						_log.LogWarning(err, "[MarketHub] Reconnecting…");
-						return Task.CompletedTask;
-					};
-
-					_conn.Reconnected += async _ =>
-					{
-						_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
-						await SubscribeIfConnectedAsync(CancellationToken.None);
-					};
-
-					_conn.Closed += async err =>
-					{
-						_subscribed = false;
-						_log.LogWarning(err, "[MarketHub] Closed. Restarting with backoff…");
-						await RestartLoopAsync(urlFactory);
-					};
-
-					await _conn.StartAsync();
-					if (_conn.State == HubConnectionState.Connected)
-					{
-						_log.LogInformation("[MarketHub] Restarted (attempt {Attempt}).", attempt);
-						await Task.Delay(200);
-						await SubscribeIfConnectedAsync(CancellationToken.None);
-						return;
-					}
-				}
-				catch (Exception ex)
-				{
-					_log.LogWarning(ex, "[MarketHub] Restart attempt {Attempt} failed; retry in {Delay}…", attempt, delay);
-				}
-				await Task.Delay(delay);
-				delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
-			}
-			_log.LogError("[MarketHub] Could not restart after repeated attempts.");
-		}
 
 		public Microsoft.AspNetCore.SignalR.Client.HubConnection Connection => _conn!;
 
