@@ -87,13 +87,29 @@ namespace OrchestratorAgent
             _log.LogInformation("[LIVE] placing {Strat} {Sym} {Side} x{Size}@{Px} (+{Buf}t) CID={Cid} -> {Contract}",
                 sig.Strategy, sig.Symbol, sig.Side, sig.Size, px, bufTicks, cid, contractId);
 
+            // News-burst routing preferences (IOC + stop-through) via env switches
+            var explosive = (Environment.GetEnvironmentVariable("IS_MAJOR_NEWS_NOW") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase)
+                         || (Environment.GetEnvironmentVariable("TOPSTEPX_NEWS_EXPLOSIVE") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase);
+            string orderType = "LIMIT";
+            string tif = "DAY";
+            if (explosive)
+            {
+                orderType = "STOP"; // flip to stop-through
+                tif = "IOC";        // aggressive during news
+                // add one more tick for momentum through price if needed
+                var extra = tick;
+                px = sig.Side == SignalSide.Long ? px + extra : px - extra;
+            }
+
             var orderReq = new {
                 accountId = _accountId,
                 contractId = contractId,
                 side = sideBuy0Sell1,
                 qty = sig.Size,
                 price = px,
-                customTag = cid
+                customTag = cid,
+                orderType,
+                timeInForce = tif
             };
 
             var sw = Stopwatch.StartNew();

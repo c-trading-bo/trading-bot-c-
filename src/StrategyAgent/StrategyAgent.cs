@@ -69,7 +69,8 @@ namespace StrategyAgent
 
             outSignals = outSignals
                 .OrderByDescending(x => x.Score)
-                .DistinctBy(x => (x.Side, x.StrategyId, RoundToTick(x.Symbol, x.Entry), RoundToTick(x.Symbol, x.Target), RoundToTick(x.Symbol, x.Stop)))
+                // Cross-strategy de-dupe: drop StrategyId from the hash so identical trades from different Sx collapse
+                .DistinctBy(x => (x.Side, RoundToTick(x.Symbol, x.Entry), RoundToTick(x.Symbol, x.Target), RoundToTick(x.Symbol, x.Stop)))
                 .ToList();
 
             // Simple ES/NQ correlation guard: avoid doubling exposure in same direction
