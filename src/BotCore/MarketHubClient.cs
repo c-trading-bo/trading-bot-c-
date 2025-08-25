@@ -35,7 +35,7 @@ namespace BotCore
 			if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
 			_conn = await BuildMarketHubAsync();
-			AttachLifecycleHandlers();
+			AttachLifecycleHandlers(ct);
 
 			await _conn.StartAsync(ct);
 			await Task.Delay(200, ct);
@@ -89,14 +89,16 @@ namespace BotCore
 		}
 
 
-		private Task<HubConnection> BuildMarketHubAsync()
+		private async Task<HubConnection> BuildMarketHubAsync()
 		{
+			var tok = await _getJwtAsync() ?? string.Empty;
 			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
+			var url = $"{rtcBase}/hubs/market?access_token={Uri.EscapeDataString(tok)}";
 			var hub = new HubConnectionBuilder()
-				.WithUrl($"{rtcBase}/hubs/market", o =>
+				.WithUrl(url, o =>
 				{
-					o.AccessTokenProvider = () => _getJwtAsync();
 					o.Transports = HttpTransportType.WebSockets;
+					o.SkipNegotiation = true;
 				})
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
@@ -109,10 +111,10 @@ namespace BotCore
 			hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
 
-			return Task.FromResult(hub);
+			return hub;
 		}
 
-		private void AttachLifecycleHandlers()
+		private void AttachLifecycleHandlers(CancellationToken appCt)
 		{
 			if (_conn is null) return;
 
@@ -122,18 +124,40 @@ namespace BotCore
 				_log.LogWarning(ex, "[MarketHub] Reconnecting…");
 				return Task.CompletedTask;
 			};
-
+			
 			_conn.Reconnected += async _ =>
 			{
 				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
 				await SubscribeIfConnectedAsync(CancellationToken.None);
 			};
-
-			_conn.Closed += ex =>
+			
+			_conn.Closed += async ex =>
 			{
 				_subscribed = false;
-				_log.LogWarning(ex, "[MarketHub] Closed.");
-				return Task.CompletedTask; // AutomaticReconnect handles restart
+				_log.LogWarning(ex, "[MarketHub] Closed. Rebuilding with fresh token…");
+				var delay = TimeSpan.FromSeconds(1);
+				for (int attempt = 1; attempt <= 5 && !appCt.IsCancellationRequested; attempt++)
+				{
+					try
+					{
+						await Task.Delay(delay, appCt);
+						try { if (_conn is not null) await _conn.DisposeAsync(); } catch { }
+						_conn = await BuildMarketHubAsync();
+						AttachLifecycleHandlers(appCt);
+						using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
+						connectCts.CancelAfter(TimeSpan.FromSeconds(15));
+						await _conn.StartAsync(connectCts.Token);
+						await Task.Delay(200, appCt);
+						await SubscribeIfConnectedAsync(CancellationToken.None);
+						_log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
+						return; // success
+					}
+					catch (Exception rex)
+					{
+						_log.LogWarning(rex, "[MarketHub] Rebuild attempt {Attempt} failed.", attempt);
+						delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
+					}
+				}
 			};
 		}
 
