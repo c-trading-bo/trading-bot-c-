@@ -438,7 +438,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var list = await _api.GetAsync<List<dynamic>>($"/positions?accountId={accountId}&status=OPEN", ct);
+                var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct);
                 return list ?? new List<dynamic>();
             }
             catch (Exception ex)

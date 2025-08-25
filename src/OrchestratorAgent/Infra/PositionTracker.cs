@@ -86,7 +86,7 @@ namespace OrchestratorAgent.Infra
         {
             try
             {
-                var list = await api.GetAsync<List<JsonElement>>($"/positions?accountId={accountId}&status=OPEN", ct) ?? new();
+                var list = await api.PostAsync<List<JsonElement>>("/api/Position/searchOpen", new { accountId }, ct) ?? new();
                 foreach (var p in list)
                 {
                     var symbol = ReadString(p, "symbol") ?? ReadString(p, "Symbol") ?? "";

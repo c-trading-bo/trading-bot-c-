@@ -50,8 +50,9 @@ namespace OrchestratorAgent.Health
             // 3) Quotes & bars fresh (StatusService keys)
             var lastQ = _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
             var lastB = _status.Get<DateTimeOffset?>("last.bar") ?? DateTimeOffset.MinValue;
-            if (DateTimeOffset.UtcNow - lastQ > TimeSpan.FromSeconds(5)) return (false, "Quotes stale");
-            if (DateTimeOffset.UtcNow - lastB > TimeSpan.FromSeconds(15)) return (false, "Bars stale");
+            // Use arrival timestamps; allow realistic windows (overnight/news)
+            if (DateTimeOffset.UtcNow - lastQ > TimeSpan.FromSeconds(30)) return (false, "Quotes stale");
+            if (DateTimeOffset.UtcNow - lastB > TimeSpan.FromSeconds(90)) return (false, "Bars stale");
 
             // 4) Risk counters (PnL & trades) – best-effort against two possible endpoints
             decimal? netPnl = null;

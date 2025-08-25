@@ -344,11 +344,13 @@ namespace OrchestratorAgent
                     // On new bar, run strategies and (optionally) route orders
                     aggES.OnBar += async bar =>
                     {
+                        status.Set("last.bar", DateTimeOffset.UtcNow);
                         bars["ES"].Add(bar);
                         await RunStrategiesFor("ES", bar, bars["ES"], accountId, contractIds["ES"], risk, levels, router, log, cts.Token);
                     };
                     aggNQ.OnBar += async bar =>
                     {
+                        status.Set("last.bar", DateTimeOffset.UtcNow);
                         bars["NQ"].Add(bar);
                         await RunStrategiesFor("NQ", bar, bars["NQ"], accountId, contractIds["NQ"], risk, levels, router, log, cts.Token);
                     };
