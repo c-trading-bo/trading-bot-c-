@@ -14,5 +14,9 @@ namespace BotCore.Models
         public long AccountId { get; init; }
         public string ContractId { get; init; } = "";
         public string Tag { get; init; } = "";
+        // Audit / provenance
+        public string StrategyVersion { get; init; } = "1.0.0";
+        public string ProfileName { get; init; } = "";
+        public DateTime EmittedUtc { get; init; } = DateTime.UtcNow;
     }
 }

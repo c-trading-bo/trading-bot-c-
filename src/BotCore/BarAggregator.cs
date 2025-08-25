@@ -58,8 +58,8 @@ namespace BotCore
         {
             if (!TryGetDecimal(trade, out var price, "price", "last", "px", "p", "lastPrice")) return;
             TryGetLong(trade, out var size, "size", "qty", "quantity", "volume", "v", "tradeSize");
-
-            Upsert(price, size);
+            var ts = TryGetExchangeTime(trade) ?? DateTimeOffset.UtcNow;
+            Upsert(price, size, ts);
         }
 
         private void ApplyQuote(JsonElement quote)
@@ -73,12 +73,12 @@ namespace BotCore
                 price = (bid + ask) / 2m;
             }
 
-            Upsert(price, addVolume: 0);
+            var ts = TryGetExchangeTime(quote) ?? DateTimeOffset.UtcNow;
+            Upsert(price, addVolume: 0, ts);
         }
 
-        private void Upsert(decimal price, long addVolume)
+        private void Upsert(decimal price, long addVolume, DateTimeOffset ts)
         {
-            var ts = DateTimeOffset.UtcNow; // If exchange ts exists in payload, prefer it.
             var bucketStart = Align(ts);
 
             lock (_lock)
@@ -127,6 +127,23 @@ namespace BotCore
         }
 
         // ---- JSON helpers ----
+
+        private static DateTimeOffset? TryGetExchangeTime(JsonElement e)
+        {
+            // Try several common fields for exchange timestamps
+            if (e.ValueKind != JsonValueKind.Object) return null;
+            foreach (var name in new[] { "exchangeTimeUtc", "exchangeTime", "ts", "timestamp", "time" })
+            {
+                if (e.TryGetProperty(name, out var p))
+                {
+                    if (p.ValueKind == JsonValueKind.Number && p.TryGetInt64(out var ms))
+                        return DateTimeOffset.FromUnixTimeMilliseconds(ms);
+                    if (p.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(p.GetString(), out var dto))
+                        return dto.ToUniversalTime();
+                }
+            }
+            return null;
+        }
 
         private static bool TryGetDecimal(JsonElement e, out decimal val, params string[] names)
         {

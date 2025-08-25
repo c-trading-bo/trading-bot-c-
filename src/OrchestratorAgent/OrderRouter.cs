@@ -58,13 +58,21 @@ namespace OrchestratorAgent
             // Apply configurable tick buffers to price
             decimal tick = InstrumentMeta.Tick(sig.Symbol);
             int bufTicks = ResolveBufferTicks(sig.Symbol);
-            var basePx = sig.LimitPrice ?? 0m;
+            var basePx = InstrumentMeta.RoundToTick(sig.Symbol, sig.LimitPrice ?? 0m);
+                        // Ensure qty respects lot step
+                        var step = InstrumentMeta.LotStep(sig.Symbol);
+                        var qtyAdj = Math.Max(step, sig.Size - (sig.Size % step));
             var px = sig.Side == SignalSide.Long ? basePx + bufTicks * tick : basePx - bufTicks * tick;
 
-            // Slippage guard
+            // Slippage guard (per-symbol override)
             var maxSlipTicks = 4;
-            var msEnv = Environment.GetEnvironmentVariable("MAX_SLIPPAGE_TICKS");
-            if (int.TryParse(msEnv, out var maxEnv) && maxEnv > 0) maxSlipTicks = maxEnv;
+            var sym = sig.Symbol.ToUpperInvariant();
+            var symEnv = Environment.GetEnvironmentVariable($"TOPSTEPX_SLIP_{sym}");
+            if (int.TryParse(symEnv, out var symTicks) && symTicks > 0) maxSlipTicks = symTicks;
+            else {
+                var msEnv = Environment.GetEnvironmentVariable("MAX_SLIPPAGE_TICKS");
+                if (int.TryParse(msEnv, out var maxEnv) && maxEnv > 0) maxSlipTicks = maxEnv;
+            }
             var adverse = Math.Abs(px - basePx) / (tick == 0 ? 0.25m : tick);
             if (adverse > maxSlipTicks)
             {
@@ -105,7 +113,7 @@ namespace OrchestratorAgent
                 accountId = _accountId,
                 contractId = contractId,
                 side = sideBuy0Sell1,
-                qty = sig.Size,
+                qty = qtyAdj,
                 price = px,
                 customTag = cid,
                 orderType,
@@ -133,10 +141,38 @@ namespace OrchestratorAgent
 
         public async Task EnsureBracketsAsync(long accountId, CancellationToken ct = default)
         {
-            // Placeholder for OCO reconstruction: query open orders and ensure TP/SL exist
-            // Minimal safe log until server-side endpoints wired
             _log.LogInformation("[ROUTER] EnsureBrackets requested for account {Acc}. (Implement API sync here)", accountId);
             await Task.CompletedTask;
+        }
+
+        public async Task UpsertBracketsAsync(string orderId, int filledQty, CancellationToken ct = default)
+        {
+            _log.LogInformation("[ROUTER] UpsertBrackets for parent {OrderId} -> filledQty={Qty}", orderId, filledQty);
+            await Task.CompletedTask;
+        }
+
+        public async Task ConvertRemainderToLimitOrCancelAsync(dynamic orderUpdate, CancellationToken ct = default)
+        {
+            _log.LogWarning("[ROUTER] Convert remainder-to-limit or cancel for order update {Update}", orderUpdate);
+            await Task.CompletedTask;
+        }
+
+        public async Task CancelAllOpenAsync(long accountId, CancellationToken ct = default)
+        {
+            _log.LogWarning("[ROUTER] CancelAllOpen requested for account {Acc}", accountId);
+            await Task.CompletedTask;
+        }
+
+        public async Task<List<dynamic>> QueryOpenPositionsAsync(long accountId, CancellationToken ct = default)
+        {
+            _log.LogInformation("[ROUTER] QueryOpenPositions for account {Acc}", accountId);
+            return await Task.FromResult(new List<dynamic>());
+        }
+
+        public async Task<List<dynamic>> QueryOpenOrdersAsync(long accountId, CancellationToken ct = default)
+        {
+            _log.LogInformation("[ROUTER] QueryOpenOrders for account {Acc}", accountId);
+            return await Task.FromResult(new List<dynamic>());
         }
 
         private static int ResolveBufferTicks(string symbol)
