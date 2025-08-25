@@ -17,11 +17,10 @@ namespace BotCore
 	/// </summary>
 	public sealed class UserHubAgent : IAsyncDisposable
 	{
-	private readonly ILogger<UserHubAgent> _log;
-	private readonly SupervisorAgent.StatusService _statusService;
-	private HubConnection _hub = default!;
-	private bool _handlersWired;
-	private long _accountId;
+		private readonly ILogger<UserHubAgent> _log;
+		private readonly SupervisorAgent.StatusService _statusService;
+		private HubConnection _hub = default!;
+		private bool _handlersWired;
 
 		public HubConnection? GetConnection() => _hub;
 		public HubConnection? Connection => _hub;
@@ -34,140 +33,75 @@ namespace BotCore
 			_statusService = statusService;
 		}
 
-		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken appCt)
+		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken ct)
 		{
-			// Backwards-compatible overload: wrap into async provider that uses env or fallback jwtToken
-			Func<Task<string?>> provider = async () =>
+			if (_hub is not null && _hub.State == HubConnectionState.Connected)
 			{
-				var tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-				if (!string.IsNullOrWhiteSpace(tok)) return tok;
-				if (!string.IsNullOrWhiteSpace(jwtToken)) return jwtToken;
-				// As a last resort, try loginKey if present
-				try
-				{
-					var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-					var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
-					if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
-					{
-						using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
-						var auth = new TopstepAuthAgent(http);
-						var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
-						Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
-						return newTok;
-					}
-				}
-				catch { }
-				return tok; // may be null here; the async overload ensures logging and reconnect policy
-			};
-			await ConnectAsync(provider, accountId, appCt);
-		}
-
-		public async Task ConnectAsync(Func<Task<string?>> tokenProvider, long accountId, CancellationToken appCt)
-		{
-			if (_hub is { State: HubConnectionState.Connected or HubConnectionState.Connecting })
-			{
-				_log.LogInformation("UserHub already connected or connecting.");
+				_log.LogInformation("UserHub already connected.");
 				return;
 			}
 
-			_accountId = accountId;
-			_hub = await BuildUserHubAsync(tokenProvider);
-
-			using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
-			connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-			await _hub.StartAsync(connectCts.Token);
-
-			_log.LogInformation("UserHub connected. State={State}", _hub.State);
-			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
-
-			await Task.Delay(250, appCt);
-			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
-			if (accountId > 0)
-			{
-				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
-				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
-				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
-			}
-
-			// Attach Closed rebuilder to ensure fresh token and resubscribe on server-initiated close
-			AttachClosedRebuilder(tokenProvider, accountId, appCt);
-		}
-
-		private static string RtcBase() => (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-
-		private async Task<HubConnection> BuildUserHubAsync(Func<Task<string?>> tokenProvider)
-		{
-			var tok = await tokenProvider() ?? string.Empty;
-			var url = $"{RtcBase()}/hubs/user?access_token={Uri.EscapeDataString(tok)}";
-
-			var hub = new HubConnectionBuilder()
-				.WithUrl(url, o =>
+			var url = $"https://rtc.topstepx.com/hubs/user?access_token={Uri.EscapeDataString(jwtToken)}";
+			_hub = new HubConnectionBuilder()
+				.WithUrl(url, opt =>
 				{
-					o.Transports = HttpTransportType.WebSockets;
-					o.SkipNegotiation = true;
+					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // match delegate type
+					opt.Transports = HttpTransportType.WebSockets;
+					// opt.SkipNegotiation = true; // enable later only if confirmed working
 				})
-				.WithAutomaticReconnect(new ExpoRetry())
-				.ConfigureLogging(lb =>
-				{
-					lb.AddConsole();
-					lb.SetMinimumLevel(LogLevel.Information);
-				})
+				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
 				.Build();
 
-			hub.ServerTimeout = TimeSpan.FromSeconds(45);
-			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
-			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
+			WireEvents(_hub);
 
-			WireEvents(hub);
-			return hub;
-		}
+			_hub.ServerTimeout = TimeSpan.FromSeconds(60);
+			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
-		private void AttachClosedRebuilder(Func<Task<string?>> tokenProvider, long accountId, CancellationToken appCt)
-		{
-			_hub.Closed += async ex =>
+			// Wire up robust event logging
+			_hub.Closed += ex =>
 			{
-				_statusService.Set("user.state", string.Empty);
-				_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
-				var delay = TimeSpan.FromSeconds(1);
-				for (int attempt = 1; attempt <= 5 && !appCt.IsCancellationRequested; attempt++)
-				{
-					try
-					{
-						await Task.Delay(delay, appCt);
-						try { await _hub.DisposeAsync(); } catch { }
-						_hub = await BuildUserHubAsync(tokenProvider);
-						using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
-						connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-						await _hub.StartAsync(connectCts.Token);
-						_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
-						await Task.Delay(250, appCt);
-						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
-						if (accountId > 0)
-						{
-							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
-							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
-							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
-						}
-						// re-attach for future closes
-						AttachClosedRebuilder(tokenProvider, accountId, appCt);
-						return; // rebuilt successfully
-					}
-					catch (Exception retryEx)
-					{
-						_log.LogWarning(retryEx, "UserHub restart attempt {Attempt} failed.", attempt);
-						delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
-					}
-				}
+				if (ex is HttpRequestException hre)
+					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
+				else if (ex is WebSocketException wse)
+					_log.LogWarning(wse, "UserHub CLOSED. WebSocket error: {Err} / CloseStatus: {Close}", wse.WebSocketErrorCode, wse.Data != null && wse.Data.Contains(CloseStatusKey) ? wse.Data[CloseStatusKey] : null);
+				else
+					_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
+				return Task.CompletedTask;
 			};
+			// _hub.Reconnecting += ex =>
+			// ...existing code...
+			//     _log.LogWarning(ex, "UserHub RECONNECTING: {Message}", ex?.Message);
+			//     return Task.CompletedTask;
+			// };
+			// _hub.Reconnected += id =>
+			// {
+			//     _log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
+			//     // Resubscribe after reconnect
+			//     _ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None);
+			//     _ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    accountId), _log, CancellationToken.None);
+			//     _ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", accountId), _log, CancellationToken.None);
+			//     _ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    accountId), _log, CancellationToken.None);
+			//     return Task.CompletedTask;
+			// };
+
+			await _hub.StartAsync(ct);
+			_log.LogInformation("UserHub connected. State={State}", _hub.State);
+			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
+			await Task.Delay(250, ct); // ensure server is ready before subscribing
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders", accountId), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", accountId), _log, ct);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades", accountId), _log, ct);
 		}
 
 		private void WireEvents(HubConnection hub)
 		{
 			if (_handlersWired) return;
-			hub.On<JsonElement>("GatewayUserAccount",  o => _log.LogInformation("[User] Account evt {Evt}",  o));
-			hub.On<JsonElement>("GatewayUserOrder",    o => _log.LogInformation("[User] Order evt {Evt}",    o));
-			hub.On<JsonElement>("GatewayUserPosition", o => _log.LogInformation("[User] Position evt {Evt}", o));
-			hub.On<JsonElement>("GatewayUserTrade",    o => _log.LogInformation("[User] Trade evt {Evt}",    o));
+			hub.On<object>("GatewayUserAccount", data => _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserOrder", data => _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserPosition", data => _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<object>("GatewayUserTrade", data => _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
 			_handlersWired = true;
 
 			hub.Closed += ex =>
@@ -183,21 +117,13 @@ namespace BotCore
 			};
 			hub.Reconnecting += ex =>
 			{
-				_statusService.Set("user.state", string.Empty);
 				_log.LogWarning(ex, "UserHub RECONNECTING: {Message}", ex?.Message);
 				return Task.CompletedTask;
 			};
 			hub.Reconnected += id =>
 			{
-				_statusService.Set("user.state", id ?? string.Empty);
 				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
-				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None);
-				if (_accountId > 0)
-				{
-					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    _accountId), _log, CancellationToken.None);
-					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None);
-					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    _accountId), _log, CancellationToken.None);
-				}
+				// re-subscribe here if needed
 				return Task.CompletedTask;
 			};
 		}
@@ -209,5 +135,5 @@ namespace BotCore
 				await _hub.DisposeAsync();
 			}
 		}
-		}
 	}
+}

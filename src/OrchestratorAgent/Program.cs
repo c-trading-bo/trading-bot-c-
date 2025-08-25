@@ -31,7 +31,7 @@ namespace OrchestratorAgent
             // Load configuration from environment
             string apiBase = http.BaseAddress!.ToString().TrimEnd('/');
             string rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-            string symbol  = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES";
+            string symbol = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES";
 
             // Load credentials
             string? jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");

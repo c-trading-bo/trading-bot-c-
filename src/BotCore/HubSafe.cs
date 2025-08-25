@@ -7,72 +7,52 @@ using Microsoft.AspNetCore.SignalR.Client;
 namespace BotCore
 {
     /// <summary>
-    /// Utility for safe SignalR hub invocation with retries that does not throw when hub is null/closed.
+    /// Utility for safe SignalR hub invocation with automatic reconnect and retry logic.
     /// </summary>
     public static class HubSafe
     {
-        /// <summary>
-        /// Preferred safe invoker. Tries a few times only when hub is connected; returns false on failure.
-        /// </summary>
-        public static async Task<bool> InvokeIfConnected(
-            HubConnection? hub,
-            Func<Task> call,
-            ILogger log,
-            CancellationToken ct,
-            int tries = 5)
-        {
-            for (int i = 1; i <= tries; i++)
-            {
-                ct.ThrowIfCancellationRequested();
-                if (hub is null || hub.State != HubConnectionState.Connected)
-                {
-                    await Task.Delay(150 * i, ct);
-                    continue;
-                }
-                try
-                {
-                    await call();
-                    return true;
-                }
-                catch (InvalidOperationException)
-                {
-                    // transient: hub not active
-                    await Task.Delay(200 * i, ct);
-                }
-                catch (Exception ex)
-                {
-                    log.LogWarning(ex, "HubSafe.InvokeIfConnected: invoke failed (attempt {Attempt})", i);
-                    await Task.Delay(300 * i, ct);
-                }
-            }
-            return false;
-        }
-
-        /// <summary>
-        /// Backwards-compatible wrapper used by existing call sites. Now safe and non-throwing.
-        /// </summary>
-        public static Task<bool> InvokeWhenConnected(
+        public static async Task InvokeWhenConnected(
             HubConnection hub,
             Func<Task> call,
             ILogger log,
             CancellationToken ct,
             int maxAttempts = 3,
             int waitMs = 10000)
-            => InvokeIfConnected(hub, call, log, ct, maxAttempts);
+        {
+            await WaitForConnected(hub, TimeSpan.FromMilliseconds(waitMs), ct, log);
+            try
+            {
+                await call();
+            }
+            catch (InvalidOperationException ioe)
+            {
+                log.LogWarning(ioe, "Invoke failed: hub not active.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "Invoke failed.");
+                throw;
+            }
+        }
 
-        // Kept for compatibility; no longer throws or blocks aggressively.
-        public static Task WaitForConnected(
+        public static async Task WaitForConnected(
             HubConnection hub,
             TimeSpan timeout,
             CancellationToken ct,
             ILogger log)
         {
-            // No-op lightweight wait that resolves quickly if not connected; callers use InvokeIfConnected loop.
-            if (hub.State == HubConnectionState.Connected)
+            if (hub.State == HubConnectionState.Connected) return;
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (hub.State != HubConnectionState.Connected)
             {
-                log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);
+                ct.ThrowIfCancellationRequested();
+                if (sw.Elapsed > timeout)
+                    throw new TimeoutException($"Hub stayed {hub.State} for {timeout.TotalSeconds:N0}s.");
+                await Task.Delay(100, ct);
             }
-            return Task.CompletedTask;
+            log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);
         }
     }
 }

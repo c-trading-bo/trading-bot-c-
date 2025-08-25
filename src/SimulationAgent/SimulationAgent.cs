@@ -155,7 +155,7 @@ namespace SimulationAgent
         {
             // Simulate MarketHubClient quote subscription logic
             var log = new DummyLogger();
-            var client = new BotCore.MarketHubClient(log, () => Task.FromResult<string?>("dummy-jwt-token"));
+            var client = new BotCore.MarketHubClient(log, () => "dummy-jwt-token");
             client.OnQuote += (cid, json) =>
             {
                 Console.WriteLine($"[QuoteSubscription] Quote received for contract {cid}: {json}");
@@ -253,48 +253,22 @@ namespace SimulationAgent
             agent.Run();
         }
     }
-        public class ProgramUserHubSim
+    public class ProgramUserHubSim
+    {
+        public static async Task Main(string[] args)
         {
-            public static async Task Main(string[] args)
-            {
-                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-                var logger = loggerFactory.CreateLogger("UserHubSim");
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var logger = loggerFactory.CreateLogger("UserHubSim");
 
-                // Load credentials from environment; optionally fetch JWT using login key
-                using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
-                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-                var ct = cts.Token;
+            // TODO: Replace with your real JWT and accountId for testing
+            string jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "your-jwt-token-here";
+            long accountId = long.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID"), out var id) ? id : 123456;
+            var ct = new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token;
 
-                string? jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-                string? userName = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-                string? apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
-                long accountId = long.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID"), out var id) ? id : 0L;
+            var agent = new UserHubAgentSim(logger);
+            await agent.ConnectAsync(jwt, accountId, ct);
 
-                if (string.IsNullOrWhiteSpace(jwt) && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
-                {
-                    try
-                    {
-                        var auth = new TopstepAuthAgent(http);
-                        logger.LogInformation("Fetching JWT using login key for {User}…", userName);
-                        jwt = await auth.GetJwtAsync(userName!, apiKey!, ct);
-                        Environment.SetEnvironmentVariable("TOPSTEPX_JWT", jwt);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to obtain JWT using TOPSTEPX_USERNAME/TOPSTEPX_API_KEY");
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(jwt) || accountId <= 0)
-                {
-                    logger.LogWarning("Missing TOPSTEPX_JWT and/or TOPSTEPX_ACCOUNT_ID. Set them in .env.local or environment. Exiting simulation.");
-                    return;
-                }
-
-                var agent = new UserHubAgentSim(logger);
-                await agent.ConnectAsync(jwt!, accountId, ct);
-
-                Console.WriteLine("UserHub simulation complete.");
-            }
+            Console.WriteLine("UserHub simulation complete.");
         }
+    }
 }
