@@ -17,6 +17,7 @@ namespace BotCore
         private long _v;
 
         public event Action<Bar>? OnBar;
+        public string Symbol { get; set; } = string.Empty;
 
         public BarAggregator(int seconds)
         {
@@ -31,7 +32,15 @@ namespace BotCore
             {
                 foreach (var item in payload.EnumerateArray())
                     ApplyTrade(item);
+            }
+            else if (payload.ValueKind == JsonValueKind.Object)
+            {
+                ApplyTrade(payload);
+            }
+        }
 
+        public void OnQuote(JsonElement payload)
+        {
             if (payload.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in payload.EnumerateArray())
@@ -41,7 +50,6 @@ namespace BotCore
             {
                 ApplyQuote(payload);
             }
-        }
         }
 
         // ---- Internals ----
@@ -100,7 +108,7 @@ namespace BotCore
             var bar = new Bar {
                 Start = _bucket.UtcDateTime,
                 Ts = new DateTimeOffset(_bucket.UtcDateTime).ToUnixTimeMilliseconds(),
-                Symbol = "", // Set symbol if available in aggregator context
+                Symbol = this.Symbol,
                 Open = _o,
                 High = _h,
                 Low = _l,

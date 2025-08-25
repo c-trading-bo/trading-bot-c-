@@ -7,6 +7,9 @@ using BotCore;
 using SupervisorAgent;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
+using BotCore.Models;
+using BotCore.Risk;
+using BotCore.Strategy;
 
 namespace OrchestratorAgent
 {
@@ -133,6 +136,48 @@ namespace OrchestratorAgent
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
                     market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
+                    // ===== Strategy wiring (per-bar) =====
+                    // Map symbols to contract IDs
+                    var contractIds = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        ["ES"] = "CON.F.US.EP.U25",
+                        ["NQ"] = "CON.F.US.ENQ.U25"
+                    };
+
+                    // Aggregators and recent bars per symbol
+                    var bars = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>
+                    {
+                        ["ES"] = new System.Collections.Generic.List<BotCore.Models.Bar>(),
+                        ["NQ"] = new System.Collections.Generic.List<BotCore.Models.Bar>()
+                    };
+                    var aggES = new BotCore.BarAggregator(60) { Symbol = "ES" };
+                    var aggNQ = new BotCore.BarAggregator(60) { Symbol = "NQ" };
+
+                    // Strategy prerequisites
+                    var risk = new BotCore.Risk.RiskEngine();
+                    var levels = new BotCore.Models.Levels();
+                    bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
+                                .Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live);
+
+                    // On new bar, run strategies and (optionally) route orders
+                    aggES.OnBar += async bar =>
+                    {
+                        bars["ES"].Add(bar);
+                        await RunStrategiesFor("ES", bar, bars["ES"], accountId, contractIds["ES"], risk, levels, router, log, cts.Token);
+                    };
+                    aggNQ.OnBar += async bar =>
+                    {
+                        bars["NQ"].Add(bar);
+                        await RunStrategiesFor("NQ", bar, bars["NQ"], accountId, contractIds["NQ"], risk, levels, router, log, cts.Token);
+                    };
+
+                    // Feed market data → aggregators
+                    market1.OnTrade += (_, json) => aggES.OnTrade(json);
+                    market1.OnQuote += (_, json) => aggES.OnQuote(json);
+                    market2.OnTrade += (_, json) => aggNQ.OnTrade(json);
+                    market2.OnQuote += (_, json) => aggNQ.OnQuote(json);
+
                     // Optional: safe order place/cancel smoke test
                     var smokeRaw = Environment.GetEnvironmentVariable("TOPSTEPX_ORDER_SMOKE_TEST");
                     var smoke = !string.IsNullOrWhiteSpace(smokeRaw) &&
@@ -182,6 +227,54 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning("Missing TOPSTEPX_JWT. Set it or TOPSTEPX_USERNAME/TOPSTEPX_API_KEY in .env.local. Process will stay alive for 60 seconds to verify launch.");
                     try { await Task.Delay(TimeSpan.FromSeconds(60), cts.Token); } catch (OperationCanceledException) { }
+                }
+            }
+
+            // Local helper runs strategies for a new bar of a symbol
+            static async Task RunStrategiesFor(
+                string symbol,
+                Bar bar,
+                System.Collections.Generic.List<Bar> history,
+                long accountId,
+                string contractId,
+                RiskEngine risk,
+                Levels levels,
+                SimpleOrderRouter router,
+                ILogger log,
+                CancellationToken ct)
+            {
+                try
+                {
+                    // Keep a reasonable history window
+                    if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
+
+                    // Build a minimal env
+                    var env = new Env
+                    {
+                        Symbol = symbol,
+                        atr = history.Count > 0 ? Math.Abs(history[^1].High - history[^1].Low) : (decimal?)null,
+                        volz = 1.0m
+                    };
+
+                    // Generate signals from strategies
+                    var signals = AllStrategies.generate_signals(symbol, env, levels, history, risk, accountId, contractId);
+                    if (signals.Count == 0)
+                    {
+                        log.LogDebug("[Strategy] {Sym} no signals on bar {Ts}", symbol, bar.Ts);
+                        return;
+                    }
+
+                    foreach (var sig in signals)
+                    {
+                        log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
+                            symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
+                        await router.RouteAsync(sig, ct);
+                    }
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception ex)
+                {
+                    log.LogWarning(ex, "[Strategy] Error running strategies for {Sym}", symbol);
                 }
             }
         }
