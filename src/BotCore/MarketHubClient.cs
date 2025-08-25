@@ -39,7 +39,13 @@ namespace BotCore
 			_conn = new HubConnectionBuilder()
 				.WithUrl(Url(), o =>
 				{
-					o.AccessTokenProvider = () => Task.FromResult<string?>(Jwt());
+					o.AccessTokenProvider = () =>
+					{
+						var t = Jwt();
+						var ok = !string.IsNullOrWhiteSpace(t);
+						_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
+						return Task.FromResult<string?>(t);
+					};
 					o.Transports = HttpTransportType.WebSockets;
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
@@ -156,7 +162,13 @@ namespace BotCore
 					_conn = new HubConnectionBuilder()
 						.WithUrl(newUrl, o =>
 						{
-							o.AccessTokenProvider = () => Task.FromResult<string?>(_getJwt());
+							o.AccessTokenProvider = () =>
+							{
+								var t = _getJwt();
+								var ok = !string.IsNullOrWhiteSpace(t);
+								_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
+								return Task.FromResult<string?>(t);
+							};
 							o.Transports = HttpTransportType.WebSockets;
 							o.SkipNegotiation = true;
 						})

@@ -52,32 +52,39 @@ namespace BotCore
 					opt.AccessTokenProvider = async () =>
 					{
 						// Prefer latest value from env to allow external refresh
-						var tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-						if (!string.IsNullOrWhiteSpace(tok)) return tok;
-
-						// Fallback to initial token if provided
-						if (!string.IsNullOrWhiteSpace(jwtToken)) return jwtToken;
-
-						// Last resort: try to obtain via login key if present in env
-						try
+						string? tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+						if (string.IsNullOrWhiteSpace(tok) && !string.IsNullOrWhiteSpace(jwtToken))
 						{
-							var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-							var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
-							if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
+							// Fallback to initial token if provided
+							tok = jwtToken;
+						}
+
+						if (string.IsNullOrWhiteSpace(tok))
+						{
+							// Last resort: try to obtain via login key if present in env
+							try
 							{
-								using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
-								var auth = new TopstepAuthAgent(http);
-								var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
-								Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
-								_log.LogInformation("UserHub AccessTokenProvider: obtained fresh JWT via loginKey for {User}.", user);
-								return newTok;
+								var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
+								var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
+								if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
+								{
+									using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
+									var auth = new TopstepAuthAgent(http);
+									var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
+									Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
+									_log.LogInformation("UserHub AccessTokenProvider: obtained fresh JWT via loginKey for {User}.", user);
+									tok = newTok;
+								}
+							}
+							catch (Exception ex)
+							{
+								_log.LogWarning(ex, "UserHub AccessTokenProvider: failed to obtain JWT via loginKey");
 							}
 						}
-						catch (Exception ex)
-						{
-							_log.LogWarning(ex, "UserHub AccessTokenProvider: failed to obtain JWT via loginKey");
-						}
-						return null;
+
+						var ok = !string.IsNullOrWhiteSpace(tok);
+						_log.LogInformation("AccessTokenProvider token present? {ok}", ok);
+						return tok;
 					};
 					// Force WebSockets for production reliability
 					opt.Transports = HttpTransportType.WebSockets;
