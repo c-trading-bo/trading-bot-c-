@@ -110,7 +110,7 @@ namespace BotCore
 				.ConfigureLogging(lb =>
 				{
 					lb.AddConsole();
-					lb.SetMinimumLevel(LogLevel.Debug);
+					lb.SetMinimumLevel(LogLevel.Information);
 				})
 				.Build();
 
@@ -164,10 +164,10 @@ namespace BotCore
 		private void WireEvents(HubConnection hub)
 		{
 			if (_handlersWired) return;
-			hub.On<object>("GatewayUserAccount", data => _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserOrder",   data => _log.LogInformation("Order evt: {Json}",   System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserPosition",data => _log.LogInformation("Position evt: {Json}",System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserTrade",   data => _log.LogInformation("Trade evt: {Json}",   System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<JsonElement>("GatewayUserAccount",  o => _log.LogInformation("[User] Account evt {Evt}",  o));
+			hub.On<JsonElement>("GatewayUserOrder",    o => _log.LogInformation("[User] Order evt {Evt}",    o));
+			hub.On<JsonElement>("GatewayUserPosition", o => _log.LogInformation("[User] Position evt {Evt}", o));
+			hub.On<JsonElement>("GatewayUserTrade",    o => _log.LogInformation("[User] Trade evt {Evt}",    o));
 			_handlersWired = true;
 
 			hub.Closed += ex =>

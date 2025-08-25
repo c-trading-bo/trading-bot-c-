@@ -133,6 +133,25 @@ namespace OrchestratorAgent
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
                     market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
+                    // Optional: safe order place/cancel smoke test
+                    var smokeRaw = Environment.GetEnvironmentVariable("TOPSTEPX_ORDER_SMOKE_TEST");
+                    var smoke = !string.IsNullOrWhiteSpace(smokeRaw) &&
+                                (smokeRaw.Equals("1", StringComparison.OrdinalIgnoreCase) ||
+                                 smokeRaw.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                                 smokeRaw.Equals("yes", StringComparison.OrdinalIgnoreCase));
+                    if (smoke)
+                    {
+                        if (accountId > 0)
+                        {
+                            var smokeContract = Environment.GetEnvironmentVariable("TOPSTEPX_SMOKE_CONTRACT") ?? "CON.F.US.EP.U25";
+                            await OrderSmokeTester.RunAsync(http, jwtCache.GetAsync, accountId, smokeContract, log, cts.Token);
+                        }
+                        else
+                        {
+                            log.LogWarning("[SmokeTest] Skipped: TOPSTEPX_ACCOUNT_ID not set.");
+                        }
+                    }
+
                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
                     // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)

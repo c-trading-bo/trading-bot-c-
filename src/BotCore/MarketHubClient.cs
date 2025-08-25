@@ -18,6 +18,8 @@ namespace BotCore
 
 		private readonly SemaphoreSlim _subLock = new(1, 1);
 		private volatile bool _subscribed;
+		private volatile bool _firstQuoteLogged;
+		private volatile bool _firstTradeLogged;
 
 		public event Action<string, JsonElement>? OnQuote;
 		public event Action<string, JsonElement>? OnTrade;
@@ -107,8 +109,30 @@ namespace BotCore
 			hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
-			hub.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
-			hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
+			hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
+			{
+				if (cid == _contractId)
+				{
+					if (!_firstQuoteLogged)
+					{
+						_firstQuoteLogged = true;
+						_log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
+					}
+					OnQuote?.Invoke(cid, json);
+				}
+			});
+			hub.On<string, JsonElement>("GatewayTrade", (cid, json) =>
+			{
+				if (cid == _contractId)
+				{
+					if (!_firstTradeLogged)
+					{
+						_firstTradeLogged = true;
+						_log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json);
+					}
+					OnTrade?.Invoke(cid, json);
+				}
+			});
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
 
 			return hub;
