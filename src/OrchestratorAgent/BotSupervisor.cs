@@ -123,6 +123,7 @@ namespace OrchestratorAgent
             TryWireSignalROn<System.Text.Json.JsonElement>(_marketHub, "Trade", _ => { lastTrade = DateTimeOffset.UtcNow; _status.Set("last.trade", lastTrade); });
 
             // 2) User hub events (orders/trades confirmations)
+            OrchestratorAgent.OrderRouter router = null!;
             SafeAttachEvent<object>(_userHub, "OnOrder", _ => _status.Set("orders.open", "changed"));
             SafeAttachEvent<object>(_userHub, "OnTrade", _ => _status.Set("last.trade", DateTimeOffset.UtcNow));
             // Partial fill management via reflection-friendly OnOrderUpdate
@@ -155,7 +156,7 @@ namespace OrchestratorAgent
             }
             catch { /* best-effort */ }
 
-            var router = new OrchestratorAgent.OrderRouter(
+            router = new OrchestratorAgent.OrderRouter(
                 orderLog ?? (ILogger<OrchestratorAgent.OrderRouter>)_log,
                 _http, _apiBase, _jwt, (int)_accountId);
 
@@ -214,24 +215,6 @@ namespace OrchestratorAgent
                     BotCore.RecentSignalCache.ShouldEmit(s.Strategy, s.Symbol, s.Side, s.Sp, s.Tp, s.Sl, 0);
             }
             catch { }
-
-            var history = new Dictionary<string, List<BotCore.Models.Bar>>(StringComparer.OrdinalIgnoreCase);
-            var lastBarUnix = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-            var skipFirstAfterGap = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var risk = new BotCore.Risk.RiskEngine();
-            var levels = new BotCore.Models.Levels();
-            var journal = new BotCore.Supervisor.SignalJournal();
-            var _recentRoutes = new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
-            var _recentCidBuffer = new System.Collections.Concurrent.ConcurrentQueue<string>();
-            var maxTradesEnv = Environment.GetEnvironmentVariable("MAX_TRADES_PER_DAY");
-            int maxTradesPerDay = int.TryParse(maxTradesEnv, out var mt) && mt > 0 ? mt : int.MaxValue;
-            int tradesToday = 0;
-            var tradeDay = DateTime.UtcNow.Date;
-            // Daily PnL breaker setup
-            var mdlEnv = Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("MAX_DAILY_LOSS");
-            decimal maxDailyLoss = decimal.TryParse(mdlEnv, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var mdlVal) ? mdlVal : 1000m;
-            DateTime lastPnlFetch = DateTime.MinValue;
-            decimal netPnlCache = 0m;
 
             // Load persisted state (best-effort)
             try
@@ -319,7 +302,7 @@ namespace OrchestratorAgent
                 finally { _routeLock.Release(); }
             }
 
-            void HandleBar(BotCore.Models.Bar bar)
+            async void HandleBar(BotCore.Models.Bar bar)
             {
                 try
                 {
