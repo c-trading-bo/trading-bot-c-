@@ -311,13 +311,6 @@ namespace OrchestratorAgent
                     // Keep a reasonable history window
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
 
-                    // Require warm-up bars before evaluating strategies
-                    var warmup = AppEnv.Int("MIN_WARMUP_BARS", 40);
-                    if (history.Count < warmup)
-                    {
-                        log.LogDebug("[Strategy] {Sym} warming up ({Have}/{Need} bars); skipping.", symbol, history.Count, warmup);
-                        return;
-                    }
 
                     // Build a minimal env
                     var env = new Env
