@@ -15,7 +15,7 @@ namespace StrategyAgent
     public class StrategyAgent
     {
         private readonly TradingProfileConfig _cfg;
-        private static readonly Dictionary<(string Strat,string Sym,string Side), long> _lastBarEnteredTs = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new(StringComparer.OrdinalIgnoreCase);
 
         public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
 
@@ -91,8 +91,8 @@ namespace StrategyAgent
             var hasEsShort = outSignals.Any(s => s.Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase));
             outSignals = outSignals.Where(s =>
                 !s.Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ||
-                !( (s.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase) && hasEsLong) ||
-                   (s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase) && hasEsShort) )
+                !((s.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase) && hasEsLong) ||
+                   (s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase) && hasEsShort))
             ).ToList();
 
             // Concurrency: enforce one fresh entry per symbol and total cap

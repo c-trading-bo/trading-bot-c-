@@ -315,7 +315,8 @@ namespace OrchestratorAgent
                         var eod = new OrchestratorAgent.Ops.EodReconciler(apiClient, accountId,
                             Environment.GetEnvironmentVariable("EOD_TZ") ?? "America/Chicago",
                             Environment.GetEnvironmentVariable("EOD_SETTLE_LOCAL") ?? "15:00");
-                        _ = eod.RunLoopAsync(async () => {
+                        _ = eod.RunLoopAsync(async () =>
+                        {
                             BotCore.Infra.Persistence.Save("daily_reset", new { utc = DateTime.UtcNow });
                             await Task.CompletedTask;
                         }, cts.Token);
@@ -328,7 +329,8 @@ namespace OrchestratorAgent
                         int maxMb = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_MAX_RSS_MB"), out var v1) ? v1 : 900;
                         int maxThreads = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_MAX_THREADS"), out var v2) ? v2 : 600;
                         int periodSec = int.TryParse(Environment.GetEnvironmentVariable("WATCHDOG_PERIOD_SEC"), out var v3) ? v3 : 30;
-                        var wd = new OrchestratorAgent.Ops.Watchdog(maxMb, maxThreads, periodSec, async () => {
+                        var wd = new OrchestratorAgent.Ops.Watchdog(maxMb, maxThreads, periodSec, async () =>
+                        {
                             BotCore.Infra.Persistence.Save("watchdog_last", new { utc = DateTime.UtcNow });
                             await Task.CompletedTask;
                         });

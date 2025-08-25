@@ -29,7 +29,7 @@ public sealed class TopstepAuthAgent
 		if (!resp.IsSuccessStatusCode)
 		{
 			var body = await resp.Content.ReadAsStringAsync(ct);
-			throw new HttpRequestException($"Auth { (int)resp.StatusCode } {resp.StatusCode}: {body}", null, resp.StatusCode);
+			throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
 		}
 
 		using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
@@ -46,27 +46,27 @@ public sealed class TopstepAuthAgent
 		if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
 		return null;
 	}
-	}
+}
 
-	// Simple HttpRequestMessage.Clone() so we can resend the content on retries:
-	public static class HttpRequestMessageExtensions
+// Simple HttpRequestMessage.Clone() so we can resend the content on retries:
+public static class HttpRequestMessageExtensions
+{
+	public static HttpRequestMessage Clone(this HttpRequestMessage req)
 	{
-		public static HttpRequestMessage Clone(this HttpRequestMessage req)
+		var clone = new HttpRequestMessage(req.Method, req.RequestUri);
+		// Copy headers
+		foreach (var h in req.Headers)
+			clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
+		// Copy content
+		if (req.Content != null)
 		{
-			var clone = new HttpRequestMessage(req.Method, req.RequestUri);
-			// Copy headers
-			foreach (var h in req.Headers)
-				clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
-			// Copy content
-			if (req.Content != null)
-			{
-				var contentBytesTask = req.Content.ReadAsByteArrayAsync();
-				contentBytesTask.Wait();
-				var newContent = new ByteArrayContent(contentBytesTask.Result);
-				foreach (var h in req.Content.Headers)
-					newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
-				clone.Content = newContent;
-			}
-			return clone;
+			var contentBytesTask = req.Content.ReadAsByteArrayAsync();
+			contentBytesTask.Wait();
+			var newContent = new ByteArrayContent(contentBytesTask.Result);
+			foreach (var h in req.Content.Headers)
+				newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
+			clone.Content = newContent;
 		}
+		return clone;
 	}
+}

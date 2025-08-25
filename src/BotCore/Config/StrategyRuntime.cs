@@ -17,7 +17,7 @@ public static class TimeWindows
         var m = Range.Match(windowEt);
         if (!m.Success) return true;
         var start = TimeSpan.ParseExact(m.Groups["s"].Value, @"hh\:mm", CultureInfo.InvariantCulture);
-        var end   = TimeSpan.ParseExact(m.Groups["e"].Value, @"hh\:mm", CultureInfo.InvariantCulture);
+        var end = TimeSpan.ParseExact(m.Groups["e"].Value, @"hh\:mm", CultureInfo.InvariantCulture);
         var local = TimeZoneInfo.ConvertTimeFromUtc(utcNow, Et).TimeOfDay;
         return start <= end ? (local >= start && local <= end)
                             : (local >= start || local <= end);

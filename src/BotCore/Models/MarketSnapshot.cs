@@ -23,6 +23,6 @@ namespace BotCore.Models
 		public bool IsMajorNewsNow { get; set; } // news window currently active
 		public bool IsHoliday { get; set; } // holiday schedule
 		public int IsMajorNewsSoonWithinSec { get; set; } // <= N seconds until news
-		// Extend with additional fields for diagnostics, risk, etc.
+														  // Extend with additional fields for diagnostics, risk, etc.
 	}
 }

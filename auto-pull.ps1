@@ -15,7 +15,8 @@ while ($true) {
         Write-Host "[auto-pull] New commits detected. Pulling..."
         git pull origin main
         Write-Host "[auto-pull] Repo updated!"
-    } else {
+    }
+    else {
         Write-Host "[auto-pull] No new commits."
     }
     Start-Sleep -Seconds $intervalSeconds

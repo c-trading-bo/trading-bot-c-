@@ -14,9 +14,9 @@ namespace MarketDataAgent
 	/// </summary>
 	public sealed class MarketDataAgent
 	{
-	private readonly ILogger<MarketDataAgent> _log;
-	private readonly Dictionary<string, List<Bar>> _barsBySymbol = new();
-	private readonly Dictionary<string, BarAggregator> _aggregators = new();
+		private readonly ILogger<MarketDataAgent> _log;
+		private readonly Dictionary<string, List<Bar>> _barsBySymbol = new();
+		private readonly Dictionary<string, BarAggregator> _aggregators = new();
 
 		public MarketDataAgent(ILogger<MarketDataAgent> log)
 		{

@@ -53,8 +53,14 @@ namespace BotCore
         private static FootprintBar NewBar(DateTimeOffset bucket, decimal px, decimal vol, int side)
             => new()
             {
-                OpenTime = bucket, O = px, H = px, L = px, C = px, V = vol,
-                BuyVol = side == 0 ? vol : 0m, SellVol = side == 1 ? vol : 0m
+                OpenTime = bucket,
+                O = px,
+                H = px,
+                L = px,
+                C = px,
+                V = vol,
+                BuyVol = side == 0 ? vol : 0m,
+                SellVol = side == 1 ? vol : 0m
             };
     }
 }

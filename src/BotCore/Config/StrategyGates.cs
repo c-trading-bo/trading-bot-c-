@@ -18,7 +18,7 @@ public static class StrategyGates
         var z = snap.Z5mReturnDiff;
         var abs = Math.Abs(z);
         var mid = cfg.RsGate.ThresholdMid;
-        var hi  = cfg.RsGate.ThresholdHigh;
+        var hi = cfg.RsGate.ThresholdHigh;
         // trade only when regime is active but not chaotic
         var ok = abs >= mid && abs < hi;
         if (ok && cfg.RsGate.AlignWithBias)

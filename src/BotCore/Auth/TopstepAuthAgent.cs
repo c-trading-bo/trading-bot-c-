@@ -14,7 +14,7 @@ namespace BotCore.Auth
 	public sealed class CachedTopstepAuth : ITopstepAuth
 	{
 		private readonly Func<CancellationToken, Task<string>> _fetchJwt;
-	private string _jwt = string.Empty;
+		private string _jwt = string.Empty;
 		private DateTimeOffset _expUtc = DateTimeOffset.MinValue;
 		private readonly object _gate = new();
 

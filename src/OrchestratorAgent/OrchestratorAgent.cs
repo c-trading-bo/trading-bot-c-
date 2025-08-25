@@ -75,7 +75,7 @@ namespace OrchestratorAgent
                 return new DateTimeOffset(d, TimeSpan.Zero);
             }
         }
-}
+    }
 
     public static class SymbolMeta
     {
@@ -147,8 +147,8 @@ namespace OrchestratorAgent
             // Tries common fields: symbol/name, side/direction, qty/quantity, price/fillPrice
             var name = TryStr(tradePayload, "symbol", "sym", "contractName", "name") ?? "?";
             var side = TryStr(tradePayload, "side", "direction") ?? "Buy";
-            var qty  = TryInt(tradePayload, "qty", "quantity", "filledQty", "fillQty") ?? 0;
-            var px   = TryDec(tradePayload, "price", "fillPrice", "avgPrice") ?? 0m;
+            var qty = TryInt(tradePayload, "qty", "quantity", "filledQty", "fillQty") ?? 0;
+            var px = TryDec(tradePayload, "price", "fillPrice", "avgPrice") ?? 0m;
 
             if (qty == 0 || px <= 0m) return;
 
@@ -407,7 +407,7 @@ namespace OrchestratorAgent
                 _log.LogInformation("[UserHub] subscribed for account {AccountId}", accountId);
             }
         }
-        #nullable enable
+#nullable enable
         private async Task ReliableInvokeAsync(HubConnection conn, Func<HubConnection, CancellationToken, Task> call, CancellationToken ct)
         {
             var delay = TimeSpan.FromMilliseconds(300);

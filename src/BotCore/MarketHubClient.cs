@@ -5,8 +5,8 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace BotCore
-	// Ensure BuildMarketHubAsync and AttachLifecycleHandlers are inside the class
-	// (No structural changes needed, but add explicit region markers for clarity)
+// Ensure BuildMarketHubAsync and AttachLifecycleHandlers are inside the class
+// (No structural changes needed, but add explicit region markers for clarity)
 {
 	public sealed class MarketHubClient : IAsyncDisposable
 	{
@@ -148,13 +148,13 @@ namespace BotCore
 				_log.LogWarning(ex, "[MarketHub] Reconnecting…");
 				return Task.CompletedTask;
 			};
-			
+
 			_conn.Reconnected += async _ =>
 			{
 				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
 				await SubscribeIfConnectedAsync(CancellationToken.None);
 			};
-			
+
 			_conn.Closed += async ex =>
 			{
 				_subscribed = false;
@@ -201,4 +201,4 @@ namespace BotCore
 		}
 	}
 }
-			// If we go >10s without any tick while we believe we're subscribed, nudge a restart.
+// If we go >10s without any tick while we believe we're subscribed, nudge a restart.
