@@ -82,9 +82,12 @@ namespace BotCore
 
 			await Task.Delay(250, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
-			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
-			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
-			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+			if (accountId > 0)
+			{
+				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
+				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
+				await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+			}
 
 			// Attach Closed rebuilder to ensure fresh token and resubscribe on server-initiated close
 			AttachClosedRebuilder(tokenProvider, accountId, appCt);
@@ -139,9 +142,12 @@ namespace BotCore
 						_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
 						await Task.Delay(250, appCt);
 						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
-						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
-						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
-						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+						if (accountId > 0)
+						{
+							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
+							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
+							await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+						}
 						// re-attach for future closes
 						AttachClosedRebuilder(tokenProvider, accountId, appCt);
 						return; // rebuilt successfully
@@ -186,9 +192,12 @@ namespace BotCore
 				_statusService.Set("user.state", id ?? string.Empty);
 				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
 				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None);
-				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    _accountId), _log, CancellationToken.None);
-				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None);
-				_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    _accountId), _log, CancellationToken.None);
+				if (_accountId > 0)
+				{
+					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders",    _accountId), _log, CancellationToken.None);
+					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None);
+					_ = HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades",    _accountId), _log, CancellationToken.None);
+				}
 				return Task.CompletedTask;
 			};
 		}

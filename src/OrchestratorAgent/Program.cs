@@ -57,8 +57,12 @@ namespace OrchestratorAgent
 
             var status = new StatusService(loggerFactory.CreateLogger<StatusService>()) { AccountId = accountId };
 
-            if (!string.IsNullOrWhiteSpace(jwt) && accountId > 0)
+            if (!string.IsNullOrWhiteSpace(jwt))
             {
+                if (accountId <= 0)
+                {
+                    log.LogWarning("TOPSTEPX_ACCOUNT_ID not set. Launching in account-discovery mode (SubscribeAccounts only). You can set the account ID later.");
+                }
                 try
                 {
                     // Start background JWT refresh loop (auth hygiene)
@@ -152,12 +156,12 @@ namespace OrchestratorAgent
                 var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                 if (quickExit)
                 {
-                    log.LogWarning("Missing TOPSTEPX_JWT and/or TOPSTEPX_ACCOUNT_ID. Quick-exit mode: waiting 2s to verify launch then exiting.");
+                    log.LogWarning("Missing TOPSTEPX_JWT. Quick-exit mode: waiting 2s to verify launch then exiting.");
                     try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch (OperationCanceledException) { }
                 }
                 else
                 {
-                    log.LogWarning("Missing TOPSTEPX_JWT and/or TOPSTEPX_ACCOUNT_ID. Set them in .env.local or environment. Process will stay alive for 60 seconds to verify launch.");
+                    log.LogWarning("Missing TOPSTEPX_JWT. Set it or TOPSTEPX_USERNAME/TOPSTEPX_API_KEY in .env.local. Process will stay alive for 60 seconds to verify launch.");
                     try { await Task.Delay(TimeSpan.FromSeconds(60), cts.Token); } catch (OperationCanceledException) { }
                 }
             }
