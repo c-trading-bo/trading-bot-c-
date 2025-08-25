@@ -14,9 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\SupervisorAgent\*.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\\TopstepAuthAgent\\TopstepAuthAgent.csproj" />
   </ItemGroup>
 
