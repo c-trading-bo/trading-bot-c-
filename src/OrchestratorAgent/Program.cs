@@ -61,6 +61,37 @@ namespace OrchestratorAgent
             {
                 try
                 {
+                    // Start background JWT refresh loop (auth hygiene)
+                    var refreshCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+                    _ = Task.Run(async () =>
+                    {
+                        var auth = new TopstepAuthAgent(http);
+                        while (!refreshCts.Token.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                await Task.Delay(TimeSpan.FromMinutes(20), refreshCts.Token);
+                                var newToken = await auth.ValidateAsync(refreshCts.Token);
+                                if (!string.IsNullOrWhiteSpace(newToken))
+                                {
+                                    Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newToken);
+                                    log.LogInformation("JWT refreshed via validate.");
+                                }
+                                else if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
+                                {
+                                    var refreshed = await auth.GetJwtAsync(userName!, apiKey!, refreshCts.Token);
+                                    Environment.SetEnvironmentVariable("TOPSTEPX_JWT", refreshed);
+                                    log.LogInformation("JWT refreshed via loginKey.");
+                                }
+                            }
+                            catch (OperationCanceledException) { }
+                            catch (Exception ex)
+                            {
+                                log.LogWarning(ex, "JWT refresh failed; will retry.");
+                            }
+                        }
+                    }, refreshCts.Token);
+
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
                     await userHub.ConnectAsync(jwt!, accountId, cts.Token);
 

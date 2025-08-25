@@ -34,10 +34,10 @@ namespace BotCore
 			if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
 			string Jwt() => _getJwt();
-			string UrlWithToken() => $"https://rtc.topstepx.com/hubs/market?access_token={Uri.EscapeDataString(Jwt())}";
+			string Url() => "https://rtc.topstepx.com/hubs/market";
 
 			_conn = new HubConnectionBuilder()
-				.WithUrl(UrlWithToken(), o =>
+				.WithUrl(Url(), o =>
 				{
 					o.AccessTokenProvider = () => Task.FromResult<string?>(Jwt());
 					o.Transports = HttpTransportType.WebSockets;
@@ -81,7 +81,7 @@ namespace BotCore
 				_subscribed = false;
 				_log.LogWarning(err, "[MarketHub] Closed. Restarting with backoff…");
 				// Set marketHub status as disconnected
-				await RestartLoopAsync(UrlWithToken);
+				await RestartLoopAsync(Url);
 			};
 
 			await _conn.StartAsync(ct);
