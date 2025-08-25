@@ -160,6 +160,27 @@ namespace OrchestratorAgent
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live);
 
+                    // ===== Preflight gating (hub health + market data + optional order stream) =====
+                    var pfSecs = AppEnv.Int("PRECHECK_TIMEOUT_SECS", 20);
+                    var autoLive = AppEnv.Flag("AUTO_LIVE", true);
+                    var doOrderTest = AppEnv.Flag("PRECHECK_TEST_ORDER", false);
+                    var pf = new PreflightRunner(log, userHub.Connection!, market1.Connection, "CON.F.US.EP.U25");
+                    if (doOrderTest && accountId > 0)
+                    {
+                        pf = pf.WithOptionalOrderTest(http, jwtCache.GetAsync, accountId);
+                    }
+                    var pfOk = await pf.RunAsync(TimeSpan.FromSeconds(pfSecs), cts.Token);
+                    if (pfOk && autoLive)
+                    {
+                        AppEnv.Set("LIVE_ORDERS", "1");
+                        log.LogInformation("AUTOPILOT: LIVE enabled — trading active.");
+                        router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, true); // flip router to LIVE
+                    }
+                    else if (!pfOk)
+                    {
+                        log.LogError("AUTOPILOT: Preflight FAIL — hold in DRY-RUN. Fix and relaunch.");
+                    }
+
                     // On new bar, run strategies and (optionally) route orders
                     aggES.OnBar += async bar =>
                     {
