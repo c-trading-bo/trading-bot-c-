@@ -5,6 +5,14 @@ public static class StrategyGates
     // per-symbol throttle store (UTC seconds)
     private static readonly Dictionary<string, DateTime> _lastEntryUtc = new(StringComparer.OrdinalIgnoreCase);
 
+    // Always returns true in AlwaysOn mode; otherwise fall back to legacy blocking
+    public static bool PassesGlobal(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
+    {
+        if (cfg.AlwaysOn.Enabled) return true;
+        // Legacy: rs + basic global checks still apply when not AlwaysOn
+        return PassesRSGate(cfg, snap);
+    }
+
     public static bool PassesRSGate(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
         var z = snap.Z5mReturnDiff;
@@ -12,11 +20,43 @@ public static class StrategyGates
         var mid = cfg.RsGate.ThresholdMid;
         var hi  = cfg.RsGate.ThresholdHigh;
         // trade only when regime is active but not chaotic
-        return abs >= mid && abs < hi;
+        var ok = abs >= mid && abs < hi;
+        if (ok && cfg.RsGate.AlignWithBias)
+        {
+            var dir = Math.Sign(z);
+            var bias = Math.Sign((double)snap.Bias);
+            if (dir != 0 && bias != 0 && dir != bias) ok = false;
+        }
+        return ok;
     }
 
+    // Convert environment into a size multiplier (never zero)
+    public static decimal SizeScale(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
+    {
+        decimal scale = 1.0m;
+        if (cfg.News.BoostOnMajorNews && (snap.IsMajorNewsNow || snap.IsHoliday))
+            scale *= cfg.News.SizeBoostOnNews;
+        return Math.Clamp(scale, cfg.AlwaysOn.SizeFloor, cfg.AlwaysOn.SizeCap);
+    }
+
+    // News/holiday score weight, biased by family
+    public static decimal ScoreWeight(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap, string family)
+    {
+        decimal w = 1.0m;
+        if (cfg.News.BoostOnMajorNews && (snap.IsMajorNewsNow || snap.IsHoliday))
+        {
+            if (family.Equals("breakout", StringComparison.OrdinalIgnoreCase))
+                w *= cfg.News.BreakoutScoreBoost;
+            else if (family.Equals("meanrev", StringComparison.OrdinalIgnoreCase))
+                w *= cfg.News.MeanRevScoreBias; // < 1 soft bias
+        }
+        return w;
+    }
+
+    // Legacy blocking filters preserved for non-always-on scenarios
     public static bool PassesGlobalFilters(TradingProfileConfig cfg, StrategyDef s, BotCore.Models.MarketSnapshot snap)
     {
+        if (cfg.AlwaysOn.Enabled) return true; // never block in AlwaysOn
         var gf = cfg.GlobalFilters;
         var name = s.Name.ToLowerInvariant();
         var breakout = name.Contains("breakout") || name.Contains("trend") || name.Contains("squeeze") || name.Contains("drive");
@@ -44,6 +84,12 @@ public static class StrategyGates
         }
         if (!string.IsNullOrWhiteSpace(s.SessionWindowEt) && !TimeWindows.IsNowWithinEt(s.SessionWindowEt!, snap.UtcNow))
             return false;
+        if (!string.IsNullOrWhiteSpace(s.FlatByEt))
+        {
+            // Allow only before flat-by time in ET (use existing IsNowWithinEt helper)
+            var window = $"00:00-{s.FlatByEt}";
+            if (!TimeWindows.IsNowWithinEt(window, snap.UtcNow)) return false;
+        }
 
         // Optional news lockout via env switch
         var newsLock = Environment.GetEnvironmentVariable("NEWS_LOCKOUT_ACTIVE");

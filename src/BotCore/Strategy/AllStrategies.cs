@@ -37,6 +37,13 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk)
         {
+            // Warm-up: require N bars before computing indicators (configurable via Extra["warmup_n"], default 20)
+            int warmup = 20;
+            if (def.Extra.TryGetValue("warmup_n", out var wEl) && wEl.TryGetInt32(out var w) && w > 0)
+                warmup = w;
+            if (bars is null || bars.Count < warmup)
+                return new List<Signal>();
+
             // Dispatch to the specific strategy function based on def.Name (S1..S14)
             var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
             var levels = new Levels();
@@ -65,6 +72,7 @@ namespace BotCore.Strategy
                     Stop = c.stop,
                     Target = c.t1,
                     ExpR = c.expR,
+                    Score = c.Score,
                     Size = (int)c.qty,
                     AccountId = c.accountId,
                     ContractId = c.contractId,
@@ -91,6 +99,7 @@ namespace BotCore.Strategy
                     Stop = c.stop,
                     Target = c.t1,
                     ExpR = c.expR,
+                    Score = c.Score,
                     Size = (int)c.qty,
                     AccountId = accountId,
                     ContractId = contractId,
@@ -352,6 +361,11 @@ namespace BotCore.Strategy
             var qty  = risk.size_for(risk.cfg.risk_per_trade, dist, pv);
             if (qty <= 0) return;
 
+            var expR = rr_quality(entry, stop, t1);
+            // Minimal, deterministic score: baseline from ExpR plus modest boost when volatility proxy is supportive
+            var volBoost = env.volz.HasValue ? Math.Clamp(Math.Abs(env.volz.Value), 0m, 2m) * 0.25m : 0m;
+            var score = expR + volBoost;
+
             var c = new Candidate
             {
                 strategy_id = sid,
@@ -360,10 +374,11 @@ namespace BotCore.Strategy
                 entry = entry,
                 stop  = stop,
                 t1    = t1,
-                expR  = rr_quality(entry, stop, t1),
+                expR  = expR,
                 qty   = qty,
                 atr_ok = (env.atr ?? tick) >= tick,
-                vol_z  = env.volz
+                vol_z  = env.volz,
+                Score  = score
             };
             lst.Add(c);
         }

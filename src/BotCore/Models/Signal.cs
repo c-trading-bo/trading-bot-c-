@@ -9,6 +9,7 @@ namespace BotCore.Models
         public decimal Stop { get; init; }
         public decimal Target { get; init; }
         public decimal ExpR { get; init; }
+        public decimal Score { get; init; } // computed ranking score
         public int Size { get; init; } = 1;
         public long AccountId { get; init; }
         public string ContractId { get; init; } = "";

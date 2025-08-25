@@ -14,6 +14,10 @@ public sealed class TradingProfileConfig
     [JsonPropertyName("attempt_caps")] public Dictionary<string,int> AttemptCaps { get; set; } = new();
     [JsonPropertyName("buffers")] public Buffers Buffers { get; set; } = new();
     [JsonPropertyName("strategies")] public List<StrategyDef> Strategies { get; set; } = new();
+
+    // NEW: Always-on bias and News tuning
+    [JsonPropertyName("AlwaysOn")] public AlwaysOnConfig AlwaysOn { get; set; } = new();
+    [JsonPropertyName("News")] public NewsTuning News { get; set; } = new();
 }
 
 public sealed class Timeframes
@@ -30,6 +34,7 @@ public sealed class RsGate
     [JsonPropertyName("z5m_threshold_high")] public decimal ThresholdHigh { get; set; }
     [JsonPropertyName("z5m_threshold_low_mr_only")] public decimal ThresholdLowMrOnly { get; set; }
     [JsonPropertyName("capital_bias")] public List<int> CapitalBias { get; set; } = new();
+    [JsonPropertyName("align_with_bias")] public bool AlignWithBias { get; set; }
 }
 
 public sealed class GlobalFilters
@@ -65,11 +70,32 @@ public sealed class Buffers
     [JsonPropertyName("NQ_ticks")] public int NQ_Ticks { get; set; }
 }
 
+public sealed class AlwaysOnConfig
+{
+    // Never block a trade because of filters; use scoring/sizing instead
+    [JsonPropertyName("Enabled")] public bool Enabled { get; set; } = true;
+    // Keep position size within [SizeFloor, SizeCap] of baseline sizing
+    [JsonPropertyName("SizeFloor")] public decimal SizeFloor { get; set; } = 1.00m;
+    [JsonPropertyName("SizeCap")]   public decimal SizeCap   { get; set; } = 1.25m;
+    // If true, indicators seed immediately (no warmup bars)
+    [JsonPropertyName("ZeroWarmupIndicators")] public bool ZeroWarmupIndicators { get; set; } = true;
+}
+
+public sealed class NewsTuning
+{
+    // Don’t block on news/holidays; optionally boost breakouts
+    [JsonPropertyName("BoostOnMajorNews")] public bool BoostOnMajorNews { get; set; } = true;
+    [JsonPropertyName("BreakoutScoreBoost")] public decimal BreakoutScoreBoost { get; set; } = 1.5m;
+    [JsonPropertyName("MeanRevScoreBias")]   public decimal MeanRevScoreBias   { get; set; } = 0.9m;
+    [JsonPropertyName("SizeBoostOnNews")]    public decimal SizeBoostOnNews    { get; set; } = 1.10m;
+}
+
 public sealed class StrategyDef
 {
     [JsonPropertyName("id")] public string Id { get; set; } = "";
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("enabled")] public bool Enabled { get; set; }
+    [JsonPropertyName("family")] public string? Family { get; set; } // e.g. "breakout" | "meanrev"
     [JsonPropertyName("session")] public string? Session { get; set; }
     [JsonPropertyName("session_window_et")] public string? SessionWindowEt { get; set; }
     [JsonPropertyName("on_range_window_et")] public string? OnRangeWindowEt { get; set; }
