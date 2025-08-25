@@ -39,5 +39,6 @@ if ($skipProbe) {
 }
 
 # Launch the bot
-Write-Host "Launching bot..."
+if (-not $env:ASPNETCORE_URLS) { $env:ASPNETCORE_URLS = "http://localhost:5000" }
+Write-Host "Launching bot on $env:ASPNETCORE_URLS ..."
 dotnet run --project src\OrchestratorAgent\OrchestratorAgent.csproj

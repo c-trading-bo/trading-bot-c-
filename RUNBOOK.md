@@ -46,3 +46,50 @@ TOPSTEPX_JWT, TOPSTEPX_ACCOUNT_ID, TOPSTEPX_SYMBOLS, LIVE_ORDERS, KILL_SWITCH, P
 - Router safety: rate-limited, idempotent CIDs, and auto-pause after reject bursts.
 - EOD: Writes `state/eod_journal.jsonl` and triggers a reset hook.
 - Watchdog: Exits if RSS/thread thresholds are exceeded (service manager should restart).
+
+
+## Launch and Zero-Downtime Upgrades
+
+Launch (once)
+- Ensure .env.local contains real creds (examples):
+  - TOPSTEPX_JWT=... (or TOPSTEPX_USERNAME + TOPSTEPX_API_KEY)
+  - TOPSTEPX_ACCOUNT_ID=123456
+  - TOPSTEPX_SYMBOLS=ES,NQ
+  - BOT_ALERT_WEBHOOK=https://...
+- Start the bot (port 5000; starts SHADOW → auto-promotes to LIVE when healthy + lease):
+  - powershell -ExecutionPolicy Bypass -File .\launch-bot.ps1
+- Start the auto-upgrader sidecar (builds/tests, runs vNext on 5001):
+  - powershell -ExecutionPolicy Bypass -File .\launch-updater.ps1
+
+Quick smoke check
+- Invoke-RestMethod http://localhost:5000/healthz        | ConvertTo-Json -Depth 5  # ok:true
+- Invoke-RestMethod http://localhost:5000/healthz/mode   # "SHADOW" → flips to "LIVE"
+
+How upgrades happen (no clicks, no downtime)
+- Commit/paste new code into the repo.
+- UpdaterAgent automatically:
+  - builds (and tests/replays if enabled),
+  - launches the new build (vNext) on port 5001 in SHADOW,
+  - waits for /healthz to pass (dry-run window + healthy streak),
+  - calls /demote on the current bot (5000) → old enters DRAIN and releases state/live.lock,
+  - vNext acquires the lease, auto-promotes to LIVE, and starts routing,
+  - old keeps managing any open positions until flat, then exits.
+- If anything fails, Updater does not switch (you stay on the current live build).
+
+What guarantees no double orders
+- Router hard-gate: places only when Mode == LIVE and the process holds the lease (state/live.lock).
+- DRAIN mode: old build stops opening new parents during handoff but still manages exits.
+
+Handy checks & controls
+- Status:
+  - Invoke-RestMethod http://localhost:5000/healthz/mode  # current live
+  - Invoke-RestMethod http://localhost:5001/healthz/mode  # new build in shadow/live
+- Manual override (rarely needed):
+  - Invoke-RestMethod -Method POST http://localhost:5000/demote   # put current into DRAIN/SHADOW
+  - Invoke-RestMethod -Method POST http://localhost:5001/promote  # force new build LIVE (only if it holds lease)
+
+Reminders
+- Run on your local device (Topstep rule). No VPN/VPS/remote desktop for live routing.
+- Keep BOT_QUICK_EXIT=0.
+- Ports: live bot on 5000, vNext on 5001 (configurable via ASPNETCORE_URLS or appsettings Updater:ShadowPort/LivePort).
+- /metrics exposes quotes age, hubs, order latency when enabled.

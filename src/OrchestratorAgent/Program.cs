@@ -12,6 +12,7 @@ using BotCore.Risk;
 using BotCore.Strategy;
 using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
+using System.Linq;
 
 namespace OrchestratorAgent
 {
@@ -295,7 +296,22 @@ namespace OrchestratorAgent
                     mode.OnChange += _ => SyncLiveEnv();
 
                     // Expose health with mode and manual overrides (+drain/lease)
-                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, "http://127.0.0.1:18080/", cts.Token, appState, liveLease);
+                    string healthPrefix =
+                        (() => {
+                            var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? string.Empty;
+                            try
+                            {
+                                var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+                                if (!string.IsNullOrWhiteSpace(first))
+                                {
+                                    var u = new Uri(first);
+                                    return $"http://127.0.0.1:{u.Port}/";
+                                }
+                            }
+                            catch { }
+                            return "http://127.0.0.1:18080/";
+                        })();
+                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, healthPrefix, cts.Token, appState, liveLease);
 
                     // Simple stats provider
                     var startedUtc = DateTime.UtcNow;
