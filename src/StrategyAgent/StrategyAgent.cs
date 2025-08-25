@@ -40,7 +40,16 @@ namespace StrategyAgent
                 if (!s.Enabled) continue;
                 if (!StrategyGates.PassesGlobal(_cfg, snap)) continue; // AlwaysOn => always true
 
-                var candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk, snap);
+                List<Signal> candidates;
+                try
+                {
+                    candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk, snap);
+                }
+                catch (Exception ex)
+                {
+                    // Exception policy: skip this strategy for this bar
+                    continue;
+                }
 
                 // Per-strategy cooldown and duplicate suppression
                 var cooldownSec = 0;
