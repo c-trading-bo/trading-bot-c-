@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace BotCore
+	// Ensure BuildMarketHubAsync and AttachLifecycleHandlers are inside the class
+	// (No structural changes needed, but add explicit region markers for clarity)
 {
 	public sealed class MarketHubClient : IAsyncDisposable
 	{
@@ -15,7 +17,6 @@ namespace BotCore
 		private string _contractId = string.Empty;
 
 		private readonly SemaphoreSlim _subLock = new(1, 1);
-		private volatile bool _disposed;
 		private volatile bool _subscribed;
 
 		public event Action<string, JsonElement>? OnQuote;
@@ -34,7 +35,7 @@ namespace BotCore
 			if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
 			_conn = await BuildMarketHubAsync();
-			AttachLifecycleHandlers(contractId, ct);
+			AttachLifecycleHandlers();
 
 			await _conn.StartAsync(ct);
 			await Task.Delay(200, ct);
@@ -52,7 +53,7 @@ namespace BotCore
 				if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId} (post-lock)", _contractId); return; }
 				if (_conn.State != HubConnectionState.Connected)
 				{
-					_log.LogDebug("Skip subscribe: state = {state}", _conn.State);
+					_log.LogDebug("Skip subscribe: State = {State}", _conn.State);
 					return;
 				}
 
@@ -88,7 +89,7 @@ namespace BotCore
 		}
 
 
-		private async Task<HubConnection> BuildMarketHubAsync()
+		private Task<HubConnection> BuildMarketHubAsync()
 		{
 			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
 			var hub = new HubConnectionBuilder()
@@ -108,10 +109,10 @@ namespace BotCore
 			hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
 
-			return hub;
+			return Task.FromResult(hub);
 		}
 
-		private void AttachLifecycleHandlers(string contractId, CancellationToken ct)
+		private void AttachLifecycleHandlers()
 		{
 			if (_conn is null) return;
 
@@ -140,10 +141,13 @@ namespace BotCore
 
 		public async ValueTask DisposeAsync()
 		{
-			_disposed = true;
 			if (_conn is not null)
 			{
-				try { await _conn.DisposeAsync(); } catch { }
+				try { await _conn.DisposeAsync(); }
+				catch (Exception ex)
+				{
+					_log.LogDebug(ex, "[MarketHub] DisposeAsync swallowed exception.");
+				}
 			}
 			_subLock.Dispose();
 		}
