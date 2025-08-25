@@ -200,6 +200,24 @@ namespace OrchestratorAgent
                         ["ES"] = "CON.F.US.EP.U25",
                         ["NQ"] = "CON.F.US.ENQ.U25"
                     };
+                    // Expose root->contract mapping to status for health checks
+                    try
+                    {
+                        foreach (var kv in contractIds)
+                            status.Contracts[kv.Key] = kv.Value;
+                    }
+                    catch { }
+
+                    // Also record per-contract last quote/trade timestamps for /preflight
+                    try
+                    {
+                        var esId = contractIds["ES"]; var nqId = contractIds["NQ"];
+                        market1.OnQuote += (_, __) => status.Set($"last.quote.{esId}", DateTimeOffset.UtcNow);
+                        market1.OnTrade += (_, __) => status.Set($"last.trade.{esId}", DateTimeOffset.UtcNow);
+                        market2.OnQuote += (_, __) => status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow);
+                        market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
+                    }
+                    catch { }
 
                     // Aggregators and recent bars per symbol
                     var bars = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>

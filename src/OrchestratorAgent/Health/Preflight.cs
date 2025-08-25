@@ -48,7 +48,9 @@ namespace OrchestratorAgent.Health
             if (string.IsNullOrWhiteSpace(u)) return (false, "UserHub disconnected");
 
             // 3) Quotes & bars fresh (StatusService keys)
-            var lastQ = _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
+            string? contractId = null;
+            try { if (_status.Contracts != null && _status.Contracts.TryGetValue(symbol, out var id)) contractId = id; } catch { }
+            var lastQ = (contractId != null ? _status.Get<DateTimeOffset?>($"last.quote.{contractId}") : null) ?? _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
             var lastB = _status.Get<DateTimeOffset?>("last.bar") ?? DateTimeOffset.MinValue;
             // Use arrival timestamps; allow realistic windows (overnight/news)
             if (DateTimeOffset.UtcNow - lastQ > TimeSpan.FromSeconds(30)) return (false, "Quotes stale");
