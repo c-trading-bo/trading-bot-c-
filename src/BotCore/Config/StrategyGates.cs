@@ -39,16 +39,25 @@ public static class StrategyGates
         return Math.Clamp(scale, cfg.AlwaysOn.SizeFloor, cfg.AlwaysOn.SizeCap);
     }
 
-    // News/holiday score weight, biased by family
+    // News/holiday score weight, biased by family (deterministic; no RNG)
     public static decimal ScoreWeight(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap, string family)
     {
         decimal w = 1.0m;
-        if (cfg.News.BoostOnMajorNews && (snap.IsMajorNewsNow || snap.IsHoliday))
+
+        // Deterministic "explosive" detection: explicit flags or Z-based fallback
+        bool explosive = snap.IsMajorNewsNow || snap.IsHoliday || (snap.IsMajorNewsSoonWithinSec > 0 && snap.IsMajorNewsSoonWithinSec <= 60);
+        if (!explosive)
+        {
+            var zAbs = Math.Abs(snap.Z5mReturnDiff);
+            explosive = zAbs >= cfg.RsGate.ThresholdHigh; // fallback: strong short-term regime
+        }
+
+        if (cfg.News.BoostOnMajorNews && explosive)
         {
             if (family.Equals("breakout", StringComparison.OrdinalIgnoreCase))
-                w *= cfg.News.BreakoutScoreBoost;
+                w *= cfg.News.BreakoutScoreBoost; // > 1
             else if (family.Equals("meanrev", StringComparison.OrdinalIgnoreCase))
-                w *= cfg.News.MeanRevScoreBias; // < 1 soft bias
+                w *= cfg.News.MeanRevScoreBias;   // typically <= 1 (soft bias)
         }
         return w;
     }

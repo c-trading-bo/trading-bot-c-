@@ -93,6 +93,49 @@ namespace BotCore.Strategy
             return signals;
         }
 
+        // Deterministic combined candidate flow (no forced trade); config-aware with defs list
+        public static List<Signal> generate_candidates(
+            string symbol, Env env, Levels levels, IList<Bar> bars,
+            IList<StrategyDef> defs, RiskEngine risk, TradingProfileConfig profile, BotCore.Models.MarketSnapshot snap, int max = 10)
+        {
+            var map = new Dictionary<string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["S1"]=S1,["S2"]=S2,["S3"]=S3,["S4"]=S4,["S5"]=S5,["S6"]=S6,["S7"]=S7,
+                ["S8"]=S8,["S9"]=S9,["S10"]=S10,["S11"]=S11,["S12"]=S12,["S13"]=S13,["S14"]=S14,
+            };
+            var signals = new List<Signal>();
+            foreach (var def in defs.Where(d => d.Enabled))
+            {
+                if (!map.TryGetValue(def.Name, out var fn)) continue;
+                if (!StrategyGates.PassesGlobal(profile, snap)) continue; // AlwaysOn => true
+                var raw = fn(symbol, env, levels, bars, risk);
+                var family = def.Family ?? "breakout";
+                var w = StrategyGates.ScoreWeight(profile, snap, family);
+                foreach (var c in raw)
+                {
+                    var s = new Signal
+                    {
+                        StrategyId = def.Name,
+                        Symbol = symbol,
+                        Side = c.side.ToString(),
+                        Entry = c.entry,
+                        Stop = c.stop,
+                        Target = c.t1,
+                        ExpR = c.expR,
+                        Score = c.Score * w,
+                        Size = (int)c.qty,
+                        Tag = c.Tag
+                    };
+                    signals.Add(s);
+                }
+            }
+            return signals
+                .OrderByDescending(x => x.Score)
+                .DistinctBy(x => (x.Side, x.StrategyId, Math.Round(x.Entry, 2), Math.Round(x.Target, 2), Math.Round(x.Stop, 2)))
+                .Take(max)
+                .ToList();
+        }
+
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_signals(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, long accountId, string contractId)
         {
@@ -124,16 +167,16 @@ namespace BotCore.Strategy
         public static List<Candidate> S1(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            // Require enough history for EMAs and ATR
+            // Zero-warmup versions allow immediate use; need at least 2 bars for cross checks
             const int fastLen = 9;
             const int slowLen = 21;
             const int atrLen  = 14;
-            if (bars is null || bars.Count < Math.Max(slowLen, atrLen) + 1) return lst;
+            if (bars is null || bars.Count < 2) return lst;
 
-            // Compute EMAs and ATR
-            var emaFast = Ema(bars, fastLen);
-            var emaSlow = Ema(bars, slowLen);
-            var atr = Atr(bars, atrLen);
+            // Compute EMAs and ATR (no warmup seed)
+            var emaFast = EmaNoWarmup(bars, fastLen);
+            var emaSlow = EmaNoWarmup(bars, slowLen);
+            var atr = AtrNoWarmup(bars, atrLen);
             int n = bars.Count - 1;
             var last = bars[n].Close;
 
@@ -171,27 +214,28 @@ namespace BotCore.Strategy
         }
 
         // --- helpers ---
-        private static List<decimal> Ema(IList<Bar> bars, int len)
+        private static List<decimal> EmaNoWarmup(IList<Bar> bars, int len)
         {
-            var k = 2m / (len + 1);
             var ema = new List<decimal>(new decimal[bars.Count]);
+            if (bars.Count == 0) return ema;
+            var k = 2m / (len + 1m);
             ema[0] = bars[0].Close;
             for (int i = 1; i < bars.Count; i++)
-                ema[i] = bars[i].Close * k + ema[i - 1] * (1 - k);
+                ema[i] = ema[i - 1] + k * (bars[i].Close - ema[i - 1]);
             return ema;
         }
 
-        private static decimal Atr(IList<Bar> bars, int len)
+        private static decimal AtrNoWarmup(IList<Bar> bars, int len)
         {
-            if (bars.Count < len + 1) return 0m;
-            decimal sumTr = 0m;
-            for (int i = bars.Count - len; i < bars.Count; i++)
+            if (bars.Count == 0) return 0m;
+            decimal atr = bars[0].High - bars[0].Low;
+            for (int i = 1; i < bars.Count; i++)
             {
                 var h = bars[i].High; var l = bars[i].Low; var pc = bars[i - 1].Close;
                 var tr = Math.Max(h - l, Math.Max(Math.Abs(h - pc), Math.Abs(l - pc)));
-                sumTr += tr;
+                atr = atr + (tr - atr) / len; // Wilder smoothing seeded by first TR
             }
-            return sumTr / len;
+            return atr;
         }
 
         public static List<Candidate> S2(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
