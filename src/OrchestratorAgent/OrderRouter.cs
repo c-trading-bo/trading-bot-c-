@@ -176,15 +176,32 @@ namespace OrchestratorAgent
 
         public async Task EnsureBracketsAsync(long accountId, CancellationToken ct = default)
         {
-            _log.LogInformation("[ROUTER] EnsureBrackets requested for account {Acc}. (Implement API sync here)", accountId);
-            _ocoRebuilds.Enqueue(DateTime.UtcNow);
-            TrimQueueWindow(_ocoRebuilds, TimeSpan.FromMinutes(10));
-            var cnt10m = _ocoRebuilds.Count;
-            if (cnt10m == 1)
-                _log.LogInformation("[INFO] OCO rebuild performed: count={Count} in last 10m", cnt10m);
-            else if (cnt10m > 3)
-                _log.LogWarning("[WARN] OCO rebuilds high: count={Count} in last 10m", cnt10m);
-            await Task.CompletedTask;
+            try
+            {
+                var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct)
+                               ?? new List<dynamic>();
+                foreach (var p in parents)
+                {
+                    bool hasBr = false;
+                    try { hasBr = (bool)(p.hasBrackets ?? false); } catch { }
+                    if (!hasBr)
+                    {
+                        var body = new { parentId = (object?)p.id, takeProfitTicks = 20, stopLossTicks = 12 };
+                        await _api.PostAsync("/orders/brackets", body, ct);
+                        _ocoRebuilds.Enqueue(DateTime.UtcNow);
+                    }
+                }
+                TrimQueueWindow(_ocoRebuilds, TimeSpan.FromMinutes(10));
+                var cnt10m = _ocoRebuilds.Count;
+                if (cnt10m == 1)
+                    _log.LogInformation("[INFO] OCO rebuild performed: count={Count} in last 10m", cnt10m);
+                else if (cnt10m > 3)
+                    _log.LogWarning("[WARN] OCO rebuilds high: count={Count} in last 10m", cnt10m);
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[ROUTER] EnsureBrackets failed for account {Acc}", accountId);
+            }
         }
 
         public async Task UpsertBracketsAsync(string orderId, int filledQty, CancellationToken ct = default)

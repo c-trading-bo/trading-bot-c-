@@ -150,5 +150,28 @@ namespace BotCore
             var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
             return json;
         }
+
+        // Generic GET helper
+        public async Task<T?> GetAsync<T>(string relativePath, CancellationToken ct)
+        {
+            using var resp = await _http.GetAsync(U(relativePath), ct);
+            resp.EnsureSuccessStatusCode();
+            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        }
+
+        // Generic POST helper without response body
+        public async Task PostAsync(string relativePath, object body, CancellationToken ct)
+        {
+            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct);
+            resp.EnsureSuccessStatusCode();
+        }
+
+        // Generic POST helper with typed response
+        public async Task<T?> PostAsync<T>(string relativePath, object body, CancellationToken ct)
+        {
+            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct);
+            resp.EnsureSuccessStatusCode();
+            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+        }
     }
 }
