@@ -37,11 +37,22 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk)
         {
-            // For now, map Candidates to Signals using S1 logic as example
+            // Dispatch to the specific strategy function based on def.Name (S1..S14)
             var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
             var levels = new Levels();
             var riskEngine = risk as RiskEngine ?? new RiskEngine();
-            var candidates = S1(symbol, env, levels, bars, riskEngine);
+
+            var map = new Dictionary<string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["S1"] = S1,  ["S2"] = S2,  ["S3"] = S3,  ["S4"] = S4,  ["S5"] = S5,
+                ["S6"] = S6,  ["S7"] = S7,  ["S8"] = S8,  ["S9"] = S9,  ["S10"] = S10,
+                ["S11"] = S11,["S12"] = S12,["S13"] = S13,["S14"] = S14,
+            };
+
+            if (!def.Enabled) return new List<Signal>();
+            if (!map.TryGetValue(def.Name, out var fn)) return new List<Signal>();
+
+            var candidates = fn(symbol, env, levels, bars, riskEngine);
             var signals = new List<Signal>();
             foreach (var c in candidates)
             {
@@ -57,7 +68,7 @@ namespace BotCore.Strategy
                     Size = (int)c.qty,
                     AccountId = c.accountId,
                     ContractId = c.contractId,
-                    Tag = $"{c.strategy_id}-{c.symbol}-{DateTime.UtcNow:yyyyMMdd-HHmmss}"
+                    Tag = c.Tag
                 });
             }
             return signals;
@@ -66,7 +77,8 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_signals(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, long accountId, string contractId)
         {
-            var candidates = S1(symbol, env, levels, bars, risk);
+            // Use the enumerating candidate method to include S1..S14
+            var candidates = generate_candidates(symbol, env, levels, bars, risk);
             var signals = new List<Signal>();
             foreach (var c in candidates)
             {
