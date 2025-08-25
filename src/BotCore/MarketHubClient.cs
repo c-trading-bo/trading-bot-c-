@@ -8,22 +8,32 @@ namespace BotCore
 // Ensure BuildMarketHubAsync and AttachLifecycleHandlers are inside the class
 // (No structural changes needed, but add explicit region markers for clarity)
 {
-	public sealed class MarketHubClient : IAsyncDisposable
-	{
-		private readonly ILogger<MarketHubClient> _log;
-		private readonly Func<Task<string?>> _getJwtAsync;
+		public sealed class MarketHubClient : IAsyncDisposable
+		{
+			private readonly ILogger<MarketHubClient> _log;
+			private readonly Func<Task<string?>> _getJwtAsync;
 
-		private HubConnection? _conn;
-		private string _contractId = string.Empty;
+			private HubConnection? _conn;
+			private string _contractId = string.Empty;
 
-		private readonly SemaphoreSlim _subLock = new(1, 1);
-		private volatile bool _subscribed;
-		private volatile bool _firstQuoteLogged;
-		private volatile bool _firstTradeLogged;
+			private readonly SemaphoreSlim _subLock = new(1, 1);
+			private volatile bool _subscribed;
+			private volatile bool _firstQuoteLogged;
+			private volatile bool _firstTradeLogged;
 
-		public event Action<string, JsonElement>? OnQuote;
-		public event Action<string, JsonElement>? OnTrade;
-		public event Action<string, JsonElement>? OnDepth;
+			private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastQuoteSeen = new();
+			private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastBarSeen = new();
+
+			public event Action<string, JsonElement>? OnQuote;
+			public event Action<string, JsonElement>? OnTrade;
+			public event Action<string, JsonElement>? OnDepth;
+
+			public TimeSpan LastQuoteSeenAge(string contractId)
+				=> DateTime.UtcNow - (_lastQuoteSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
+			public TimeSpan LastBarSeenAge(string contractId)
+				=> DateTime.UtcNow - (_lastBarSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
+			public void RecordBarSeen(string contractId)
+				=> _lastBarSeen[contractId] = DateTime.UtcNow;
 
 		public MarketHubClient(ILogger<MarketHubClient> log, Func<Task<string?>> getJwtAsync)
 		{
@@ -113,6 +123,7 @@ namespace BotCore
 			{
 				if (cid == _contractId)
 				{
+					_lastQuoteSeen[cid] = DateTime.UtcNow;
 					if (!_firstQuoteLogged)
 					{
 						_firstQuoteLogged = true;

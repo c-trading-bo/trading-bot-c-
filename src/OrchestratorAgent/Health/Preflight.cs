@@ -30,31 +30,50 @@ namespace OrchestratorAgent.Health
         public Preflight(ApiClient api, StatusService status, TradingProfileConfig cfg, long accountId)
         { _api = api; _status = status; _cfg = cfg; _accountId = accountId; }
 
-        public async Task<(bool ok, string msg)> RunAsync(string symbol, CancellationToken ct)
-        {
-            // 1) Auth fresh (T-120s)
-            var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(jwt)) return (false, "JWT missing");
-            try
-            {
-                if (IsJwtExpiring(jwt, TimeSpan.FromSeconds(120))) return (false, "JWT expiring");
-            }
-            catch { /* if decode fails, continue best-effort */ }
+		public async Task<(bool ok, string msg)> RunAsync(string rootSymbol, CancellationToken ct)
+		{
+			// 1) Auth fresh (T-120s)
+			var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? string.Empty;
+			if (string.IsNullOrWhiteSpace(jwt)) return (false, "JWT missing");
+			try
+			{
+				if (IsJwtExpiring(jwt, TimeSpan.FromSeconds(120))) return (false, "JWT expiring");
+			}
+			catch { /* if decode fails, continue best-effort */ }
 
-            // 2) Hubs connected (via StatusService snapshot)
-            var u = _status.Get<string>("user.state");
-            var m = _status.Get<string>("market.state");
-            if (string.IsNullOrWhiteSpace(m)) return (false, "MarketHub disconnected");
-            if (string.IsNullOrWhiteSpace(u)) return (false, "UserHub disconnected");
+			// 2) Hubs connected (via StatusService snapshot)
+			var u = _status.Get<string>("user.state");
+			var m = _status.Get<string>("market.state");
+			if (string.IsNullOrWhiteSpace(m)) return (false, "MarketHub disconnected");
+			if (string.IsNullOrWhiteSpace(u)) return (false, "UserHub disconnected");
 
-            // 3) Quotes & bars fresh (StatusService keys)
-            string? contractId = null;
-            try { if (_status.Contracts != null && _status.Contracts.TryGetValue(symbol, out var id)) contractId = id; } catch { }
-            var lastQ = (contractId != null ? _status.Get<DateTimeOffset?>($"last.quote.{contractId}") : null) ?? _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
-            var lastB = _status.Get<DateTimeOffset?>("last.bar") ?? DateTimeOffset.MinValue;
-            // Use arrival timestamps; allow realistic windows (overnight/news)
-            if (DateTimeOffset.UtcNow - lastQ > TimeSpan.FromSeconds(30)) return (false, "Quotes stale");
-            if (DateTimeOffset.UtcNow - lastB > TimeSpan.FromSeconds(90)) return (false, "Bars stale");
+			// 2.5) Resolve active contractId for the root (e.g., "ES" -> "CON.F.US.EP.U25")
+			string contractId;
+			try
+			{
+				if (_status.Contracts != null && _status.Contracts.TryGetValue(rootSymbol, out var id) && !string.IsNullOrWhiteSpace(id))
+				{
+					contractId = id;
+				}
+				else
+				{
+					contractId = await _api.ResolveContractIdAsync(rootSymbol, ct);
+					try { _status.Contracts[rootSymbol] = contractId; } catch { }
+				}
+			}
+			catch
+			{
+				return (false, "Contract resolve failed");
+			}
+
+			// 3) Quotes & bars freshness: use ingest times (arrival, not vendor timestamps)
+			var now = DateTimeOffset.UtcNow;
+			var lastQ = _status.Get<DateTimeOffset?>($"last.quote.{contractId}") ?? _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
+			var lastB = _status.Get<DateTimeOffset?>($"last.bar.{contractId}") ?? _status.Get<DateTimeOffset?>("last.bar") ?? DateTimeOffset.MinValue;
+			var quoteAge = now - lastQ;
+			var barAge = now - lastB;
+			if (quoteAge > TimeSpan.FromSeconds(10)) return (false, $"Quotes stale ({quoteAge.TotalSeconds:F0}s)");
+			if (barAge > TimeSpan.FromSeconds(30)) return (false, $"Bars stale ({barAge.TotalSeconds:F0}s)");
 
             // 4) Risk counters (PnL & trades) – best-effort against two possible endpoints
             decimal? netPnl = null;
@@ -108,18 +127,18 @@ namespace OrchestratorAgent.Health
             if (tradesCount.HasValue && tradesCount.Value >= _cfg.Risk.MaxTradesPerDay)
                 return (false, "Max trades reached");
 
-            // 5) Rollover sanity – best-effort endpoint
-            try
-            {
-                var fm = await _api.GetAsync<JsonElement>($"/contracts/resolve_front?symbol={symbol}", ct);
-                if (fm.ValueKind == JsonValueKind.Object)
-                {
-                    bool expSoon = fm.TryGetProperty("isExpiringSoon", out var e) && e.GetBoolean();
-                    bool rolled = fm.TryGetProperty("rolled", out var r) && r.GetBoolean();
-                    if (expSoon && !rolled) return (false, "Rollover pending");
-                }
-            }
-            catch { }
+			// 5) Rollover sanity – best-effort endpoint
+			try
+			{
+				var fm = await _api.GetAsync<JsonElement>($"/contracts/resolve_front?symbol={rootSymbol}", ct);
+				if (fm.ValueKind == JsonValueKind.Object)
+				{
+					bool expSoon = fm.TryGetProperty("isExpiringSoon", out var e) && e.GetBoolean();
+					bool rolled = fm.TryGetProperty("rolled", out var r) && r.GetBoolean();
+					if (expSoon && !rolled) return (false, "Rollover pending");
+				}
+			}
+			catch { }
 
             return (true, "OK");
         }

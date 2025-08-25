@@ -208,7 +208,7 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Also record per-contract last quote/trade timestamps for /preflight
+                    // Also record per-contract last quote/trade/bar timestamps for /preflight
                     try
                     {
                         var esId = contractIds["ES"]; var nqId = contractIds["NQ"];
@@ -216,6 +216,7 @@ namespace OrchestratorAgent
                         market1.OnTrade += (_, __) => status.Set($"last.trade.{esId}", DateTimeOffset.UtcNow);
                         market2.OnQuote += (_, __) => status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow);
                         market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
+                        // bars will be recorded in OnBar handlers below
                     }
                     catch { }
 
@@ -365,12 +366,26 @@ namespace OrchestratorAgent
                     aggES.OnBar += async bar =>
                     {
                         status.Set("last.bar", DateTimeOffset.UtcNow);
+                        // per-contract bar stamp for preflight ingest age
+                        try
+                        {
+                            var esId = contractIds["ES"]; status.Set($"last.bar.{esId}", DateTimeOffset.UtcNow);
+                            market1.RecordBarSeen(esId);
+                        }
+                        catch { }
                         bars["ES"].Add(bar);
                         await RunStrategiesFor("ES", bar, bars["ES"], accountId, contractIds["ES"], risk, levels, router, log, cts.Token);
                     };
                     aggNQ.OnBar += async bar =>
                     {
                         status.Set("last.bar", DateTimeOffset.UtcNow);
+                        // per-contract bar stamp for preflight ingest age
+                        try
+                        {
+                            var nqId = contractIds["NQ"]; status.Set($"last.bar.{nqId}", DateTimeOffset.UtcNow);
+                            market2.RecordBarSeen(nqId);
+                        }
+                        catch { }
                         bars["NQ"].Add(bar);
                         await RunStrategiesFor("NQ", bar, bars["NQ"], accountId, contractIds["NQ"], risk, levels, router, log, cts.Token);
                     };
@@ -472,6 +487,12 @@ namespace OrchestratorAgent
                     {
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
+                        var liveEnv = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (!liveEnv)
+                        {
+                            log.LogDebug("SHADOW: {Strat} {Sym} {Side} @{Px}", sig.StrategyId, symbol, sig.Side, sig.Entry);
+                            continue;
+                        }
                         await router.RouteAsync(sig, ct);
                     }
                 }

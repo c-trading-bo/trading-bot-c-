@@ -174,5 +174,15 @@ namespace BotCore
             resp.EnsureSuccessStatusCode();
             return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
         }
+
+        // Positions helpers (correct POST endpoints)
+        public Task<List<System.Text.Json.JsonElement>?> GetOpenPositionsAsync(long accountId, CancellationToken ct)
+            => PostAsync<List<System.Text.Json.JsonElement>>("/api/Position/searchOpen", new { accountId }, ct);
+
+        public Task CloseContractAsync(long accountId, string contractId, CancellationToken ct)
+            => PostAsync<object>("/api/Position/closeContract", new { accountId, contractId }, ct)!;
+
+        public Task PartialCloseAsync(long accountId, string contractId, int size, CancellationToken ct)
+            => PostAsync<object>("/api/Position/partialCloseContract", new { accountId, contractId, size }, ct)!;
     }
 }
