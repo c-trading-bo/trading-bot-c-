@@ -35,14 +35,17 @@ namespace BotCore.Strategy
         }
 
         // Config-aware method for StrategyAgent
-        public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk)
+        public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk, BotCore.Models.MarketSnapshot snap)
         {
-            // Warm-up: require N bars before computing indicators (configurable via Extra["warmup_n"], default 20)
+            // Warm-up: allow immediate indicators if AlwaysOn.ZeroWarmupIndicators
             int warmup = 20;
             if (def.Extra.TryGetValue("warmup_n", out var wEl) && wEl.TryGetInt32(out var w) && w > 0)
                 warmup = w;
-            if (bars is null || bars.Count < warmup)
-                return new List<Signal>();
+            if (!(cfg.AlwaysOn?.ZeroWarmupIndicators ?? false))
+            {
+                if (bars is null || bars.Count < warmup)
+                    return new List<Signal>();
+            }
 
             // Dispatch to the specific strategy function based on def.Name (S1..S14)
             var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
@@ -60,9 +63,17 @@ namespace BotCore.Strategy
             if (!map.TryGetValue(def.Name, out var fn)) return new List<Signal>();
 
             var candidates = fn(symbol, env, levels, bars, riskEngine);
+
+            // Family weighting
+            var family = def.Family ?? "breakout";
+            var famW = StrategyGates.ScoreWeight(cfg, snap, family);
+
             var signals = new List<Signal>();
             foreach (var c in candidates)
             {
+                var baseQty = (int)c.qty;
+                var scaledQty = (int)Math.Floor((double)(baseQty * StrategyGates.SizeScale(cfg, snap)));
+                if (scaledQty < 1) scaledQty = 1;
                 signals.Add(new Signal
                 {
                     StrategyId = c.strategy_id,
@@ -72,8 +83,8 @@ namespace BotCore.Strategy
                     Stop = c.stop,
                     Target = c.t1,
                     ExpR = c.expR,
-                    Score = c.Score,
-                    Size = (int)c.qty,
+                    Score = c.Score * famW,
+                    Size = scaledQty,
                     AccountId = c.accountId,
                     ContractId = c.contractId,
                     Tag = c.Tag

@@ -34,10 +34,9 @@ namespace StrategyAgent
             foreach (var s in _cfg.Strategies)
             {
                 if (!s.Enabled) continue;
-                if (!StrategyGates.PassesRSGate(_cfg, snap)) continue;
-                if (!StrategyGates.PassesGlobalFilters(_cfg, s, snap)) continue;
+                if (!StrategyGates.PassesGlobal(_cfg, snap)) continue; // AlwaysOn => always true
 
-                var candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk);
+                var candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk, snap);
 
                 // Per-strategy cooldown and duplicate suppression
                 var cooldownSec = 0;
