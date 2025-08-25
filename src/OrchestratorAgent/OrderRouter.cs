@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using BotCore;
 using BotCore.Config;
 using BotCore.Models;
+using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent
 {
@@ -20,6 +21,22 @@ namespace OrchestratorAgent
         private static readonly ConcurrentQueue<DateTime> _rejects = new();
         private static readonly ConcurrentQueue<DateTime> _ocoRebuilds = new();
         private static readonly object _latLock = new();
+        private readonly OrderLimiter _limiter = new(20, TimeSpan.FromSeconds(10));
+        private readonly Notifier _notifier = new();
+
+        private sealed class OrderLimiter
+        {
+            private readonly Queue<DateTime> _ts = new();
+            private readonly int _max; private readonly TimeSpan _window;
+            public OrderLimiter(int max, TimeSpan window) { _max = max; _window = window; }
+            public bool Allow()
+            {
+                var now = DateTime.UtcNow;
+                while (_ts.Count > 0 && (now - _ts.Peek()) > _window) _ts.Dequeue();
+                if (_ts.Count >= _max) return false;
+                _ts.Enqueue(now); return true;
+            }
+        }
 
         public OrderRouter(ILogger<OrderRouter> log, HttpClient http, string apiBase, string jwt, int accountId)
         {
@@ -61,6 +78,13 @@ namespace OrchestratorAgent
                 return false;
             }
             _sent[cid!] = now;
+
+            // Order burst guard (rate limiter)
+            if (!_limiter.Allow())
+            {
+                _log.LogWarning("[ROUTER] Rate limit exceeded; blocking route CID={Cid}", cid);
+                return false;
+            }
 
             var sideBuy0Sell1 = sig.Side == SignalSide.Long ? 0 : 1;
 
@@ -144,6 +168,7 @@ namespace OrchestratorAgent
                 if (_rejects.Count >= 3)
                 {
                     _log.LogError(ex, "[ALERT] 3+ order rejects in 60s. Auto-pausing routing.");
+                    _ = _notifier.Error("3+ order rejects in 60s — routing paused");
                     Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
                 }
                 throw;
@@ -194,9 +219,15 @@ namespace OrchestratorAgent
                 TrimQueueWindow(_ocoRebuilds, TimeSpan.FromMinutes(10));
                 var cnt10m = _ocoRebuilds.Count;
                 if (cnt10m == 1)
+                {
                     _log.LogInformation("[INFO] OCO rebuild performed: count={Count} in last 10m", cnt10m);
+                    _ = _notifier.Info($"OCO rebuilt x{cnt10m} after reconnect");
+                }
                 else if (cnt10m > 3)
+                {
                     _log.LogWarning("[WARN] OCO rebuilds high: count={Count} in last 10m", cnt10m);
+                    _ = _notifier.Warn($"OCO rebuilds high: {cnt10m} in last 10m");
+                }
             }
             catch (Exception ex)
             {

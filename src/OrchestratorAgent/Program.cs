@@ -187,27 +187,42 @@ namespace OrchestratorAgent
                     var dryRun = AppEnv.Flag("DRYRUN", false);
                     var killSwitch = AppEnv.Flag("KILL_SWITCH", false);
 
-                    // ===== Preflight gating (hub health + market data + optional order stream) =====
-                    var pfSecs = AppEnv.Int("PRECHECK_TIMEOUT_SECS", 20);
-                    var autoLive = AppEnv.Flag("AUTO_LIVE", true);
-                    var doOrderTest = AppEnv.Flag("PRECHECK_TEST_ORDER", false);
-                    var pf = new PreflightRunner(log, userHub.Connection!, market1.Connection, "CON.F.US.EP.U25");
-                    if (doOrderTest && accountId > 0)
+                    // ===== Preflight gating (/healthz + periodic) =====
+                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+                    var pfCfg = new OrchestratorAgent.Health.Preflight.TradingProfileConfig
                     {
-                        pf = pf.WithOptionalOrderTest(http, jwtCache.GetAsync, accountId);
-                    }
-                    var pfOk = await pf.RunAsync(TimeSpan.FromSeconds(pfSecs), cts.Token);
-
-                    // Print a concise checklist summary for the operator
-                    log.LogInformation("=== Precheck Summary ===");
-                    foreach (var s in pf.Steps)
-                        log.LogInformation(" - {Step}", s);
-                    if (!pfOk && pf.FailReasons.Count > 0)
+                        Risk = new OrchestratorAgent.Health.Preflight.TradingProfileConfig.RiskConfig
+                        {
+                            DailyLossLimit = decimal.TryParse(Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS"), out var mdl) ? mdl : 1000m,
+                            MaxTradesPerDay = int.TryParse(Environment.GetEnvironmentVariable("MAX_TRADES_PER_DAY"), out var mtpd) ? mtpd : 1000
+                        }
+                    };
+                    var pfService = new OrchestratorAgent.Health.Preflight(apiClient, status, pfCfg, accountId);
+                    OrchestratorAgent.Health.HealthzServer.Start(pfService, symbol, "http://127.0.0.1:18080/", cts.Token);
+                    var pfResult = await pfService.RunAsync(symbol, cts.Token);
+                    bool pfOk = pfResult.ok;
+                    log.LogInformation("Preflight: ok={Ok} msg={Msg}", pfResult.ok, pfResult.msg);
+                    // periodic check
+                    _ = Task.Run(async () =>
                     {
-                        log.LogError("--- Precheck Fail Reasons ---");
-                        foreach (var r in pf.FailReasons)
-                            log.LogError(" - {Reason}", r);
-                    }
+                        while (!cts.IsCancellationRequested)
+                        {
+                            try
+                            {
+                                var r = await pfService.RunAsync(symbol, cts.Token);
+                                status.Set("preflight.ok", r.ok);
+                                status.Set("preflight.msg", r.msg);
+                                if (!r.ok)
+                                {
+                                    status.Set("route.paused", true);
+                                    Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                }
+                                await Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
+                            }
+                            catch (OperationCanceledException) { }
+                            catch { }
+                        }
+                    }, cts.Token);
 
                     // Determine arming conditions
                     bool shouldArmLive = pfOk && (autoLive || auto) && !dryRun && !killSwitch;
