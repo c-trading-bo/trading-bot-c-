@@ -12,7 +12,7 @@ namespace OrchestratorAgent.Health
         public static void Start(Preflight pf, DstGuard dst, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
             => StartWithMode(pf, dst, null, symbol, prefix, ct);
 
-        public static void StartWithMode(Preflight pf, DstGuard dst, OrchestratorAgent.Ops.ModeController? mode, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default)
+        public static void StartWithMode(Preflight pf, DstGuard dst, OrchestratorAgent.Ops.ModeController? mode, string symbol, string prefix = "http://127.0.0.1:18080/", CancellationToken ct = default, OrchestratorAgent.Ops.AppState? state = null, OrchestratorAgent.Ops.LiveLease? lease = null)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace OrchestratorAgent.Health
                             else if (path.Equals("/healthz/mode", StringComparison.OrdinalIgnoreCase))
                             {
                                 var m = mode == null ? "unknown" : (mode.IsLive ? "LIVE" : "SHADOW");
-                                var json = JsonSerializer.Serialize(new { mode = m });
+                                var json = JsonSerializer.Serialize(new { mode = m, lease = lease?.HasLease ?? (bool?)null, drain = state?.DrainMode ?? (bool?)null });
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
@@ -54,6 +54,7 @@ namespace OrchestratorAgent.Health
                             else if (path.Equals("/promote", StringComparison.OrdinalIgnoreCase) && mode != null)
                             {
                                 mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
+                                if (state != null) state.DrainMode = false;
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
@@ -63,6 +64,16 @@ namespace OrchestratorAgent.Health
                             else if (path.Equals("/demote", StringComparison.OrdinalIgnoreCase) && mode != null)
                             {
                                 mode.Set(OrchestratorAgent.Ops.TradeMode.Shadow);
+                                if (state != null) state.DrainMode = true;
+                                var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/drain", StringComparison.OrdinalIgnoreCase) && state != null)
+                            {
+                                state.DrainMode = true;
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;

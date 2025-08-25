@@ -282,6 +282,9 @@ namespace OrchestratorAgent
                                    || (Environment.GetEnvironmentVariable("AUTO_STICKY_LIVE") ?? "1").Equals("1", StringComparison.OrdinalIgnoreCase);
 
                     var mode = new OrchestratorAgent.Ops.ModeController(stickyLive);
+                    var appState = new OrchestratorAgent.Ops.AppState();
+                    var leasePath = Environment.GetEnvironmentVariable("OPS_LEASE_PATH") ?? "state/live.lock";
+                    var liveLease = new OrchestratorAgent.Ops.LiveLease(leasePath);
                     // Sync env LIVE_ORDERS with mode
                     void SyncLiveEnv()
                     {
@@ -291,8 +294,8 @@ namespace OrchestratorAgent
                     SyncLiveEnv();
                     mode.OnChange += _ => SyncLiveEnv();
 
-                    // Expose health with mode and manual overrides
-                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, "http://127.0.0.1:18080/", cts.Token);
+                    // Expose health with mode and manual overrides (+drain/lease)
+                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, "http://127.0.0.1:18080/", cts.Token, appState, liveLease);
 
                     // Simple stats provider
                     var startedUtc = DateTime.UtcNow;
@@ -320,13 +323,48 @@ namespace OrchestratorAgent
                         }
                     }, cts.Token);
 
-                    // Start autopilot loop
+                    // Start autopilot loop (with lease requirement)
                     if (autoGoLive)
                     {
                         var notifier = new OrchestratorAgent.Infra.Notifier();
-                        var nwrap = new NotifierAdapter(notifier);
-                        var pilot = new OrchestratorAgent.Ops.AutoPilot(pfService, mode, stats, nwrap, symbol, minHealthy, demoteOnBad, TimeSpan.FromMinutes(dryMin));
-                        _ = pilot.RunAsync(cts.Token);
+                        _ = Task.Run(async () =>
+                        {
+                            int okStreak = 0, badStreak = 0;
+                            var startDry = DateTime.UtcNow;
+                            while (!cts.IsCancellationRequested)
+                            {
+                                try
+                                {
+                                    var (ok, msg) = await pfService.RunAsync(symbol, cts.Token);
+                                    if (ok) { okStreak++; badStreak = 0; } else { badStreak++; okStreak = 0; }
+
+                                    if (!liveLease.HasLease)
+                                        await liveLease.TryAcquireAsync();
+
+                                    // Promote only when healthy AND lease is held AND dry-run elapsed
+                                    if (!mode.IsLive && ok && liveLease.HasLease && DateTime.UtcNow - startDry >= TimeSpan.FromMinutes(dryMin) && okStreak >= minHealthy)
+                                    {
+                                        appState.DrainMode = false; // accept new entries
+                                        mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
+                                        log.LogInformation("PROMOTE → LIVE (okStreak={okStreak}) lease={holder}", okStreak, liveLease.HolderId);
+                                        await notifier.Info($"PROMOTE → LIVE (lease={liveLease.HolderId})");
+                                    }
+
+                                    // Demote when unhealthy for consecutive checks OR lease lost
+                                    if (mode.IsLive && ((!ok && badStreak >= demoteOnBad) || !liveLease.HasLease))
+                                    {
+                                        mode.Set(OrchestratorAgent.Ops.TradeMode.Shadow);
+                                        appState.DrainMode = true; // stop new entries, keep managing exits
+                                        log.LogWarning("DEMOTE → SHADOW (badStreak={badStreak} ok={ok} lease={lease})", badStreak, ok, liveLease.HasLease);
+                                        await notifier.Warn($"DEMOTE → SHADOW (reason={(ok ? "lease lost" : "health")})");
+                                        startDry = DateTime.UtcNow; okStreak = 0; badStreak = 0;
+                                    }
+                                }
+                                catch (OperationCanceledException) { }
+                                catch { }
+                                try { await Task.Delay(1000, cts.Token); } catch { }
+                            }
+                        }, cts.Token);
                     }
 
                     // EOD reconcile & reset (idempotent)
@@ -442,14 +480,21 @@ namespace OrchestratorAgent
 
                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
-                    // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)
-                    if (quickExit)
+                    try
                     {
-                        try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch (OperationCanceledException) { }
+                        // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)
+                        if (quickExit)
+                        {
+                            try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch (OperationCanceledException) { }
+                        }
+                        else
+                        {
+                            try { await Task.Delay(Timeout.Infinite, cts.Token); } catch (OperationCanceledException) { }
+                        }
                     }
-                    else
+                    finally
                     {
-                        try { await Task.Delay(Timeout.Infinite, cts.Token); } catch (OperationCanceledException) { }
+                        try { await liveLease.ReleaseAsync(); } catch { }
                     }
                 }
                 catch (OperationCanceledException) { }
@@ -512,12 +557,23 @@ namespace OrchestratorAgent
                     {
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
-                        var liveEnv = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                        if (!liveEnv)
+
+                        // Drain gate: block new parent entries when draining
+                        if (appState.DrainMode)
                         {
-                            log.LogDebug("SHADOW: {Strat} {Sym} {Side} @{Px}", sig.StrategyId, symbol, sig.Side, sig.Entry);
+                            log.LogInformation("DRAIN: skip new parent {sym} {side} @{px}", symbol, sig.Side, sig.Entry);
                             continue;
                         }
+
+                        var liveEnv = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        // Lease + mode gate: only LIVE and lease holder can place
+                        if (!(liveEnv && liveLease.HasLease))
+                        {
+                            log.LogDebug("SHADOW/LEASE: {Strat} {Sym} {Side} @{Px} (live={Live} lease={Lease})",
+                                sig.StrategyId, symbol, sig.Side, sig.Entry, liveEnv, liveLease.HasLease);
+                            continue;
+                        }
+
                         await router.RouteAsync(sig, ct);
                     }
                 }
