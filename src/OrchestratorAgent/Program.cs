@@ -296,21 +296,25 @@ namespace OrchestratorAgent
                     mode.OnChange += _ => SyncLiveEnv();
 
                     // Expose health with mode and manual overrides (+drain/lease)
-                    string healthPrefix =
-                        (() => {
-                            var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? string.Empty;
-                            try
-                            {
-                                var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-                                if (!string.IsNullOrWhiteSpace(first))
-                                {
-                                    var u = new Uri(first);
-                                    return $"http://127.0.0.1:{u.Port}/";
-                                }
-                            }
-                            catch { }
-                            return "http://127.0.0.1:18080/";
-                        })();
+                    string healthPrefix;
+                    try
+                    {
+                        var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? string.Empty;
+                        var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(first))
+                        {
+                            var u = new Uri(first);
+                            healthPrefix = $"http://127.0.0.1:{u.Port}/";
+                        }
+                        else
+                        {
+                            healthPrefix = "http://127.0.0.1:18080/";
+                        }
+                    }
+                    catch
+                    {
+                        healthPrefix = "http://127.0.0.1:18080/";
+                    }
                     OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, healthPrefix, cts.Token, appState, liveLease);
 
                     // Simple stats provider
@@ -447,7 +451,7 @@ namespace OrchestratorAgent
                         }
                         catch { }
                         bars[esRoot].Add(bar);
-                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, log, cts.Token);
+                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, log, appState, liveLease, cts.Token);
                     };
                     if (enableNq && aggNQ != null && market2 != null)
                     {
@@ -462,7 +466,7 @@ namespace OrchestratorAgent
                             }
                             catch { }
                             bars[nqRoot].Add(bar);
-                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, log, cts.Token);
+                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, log, appState, liveLease, cts.Token);
                         };
                     }
 
@@ -545,6 +549,8 @@ namespace OrchestratorAgent
                 Levels levels,
                 SimpleOrderRouter router,
                 ILogger log,
+                OrchestratorAgent.Ops.AppState appState,
+                OrchestratorAgent.Ops.LiveLease liveLease,
                 CancellationToken ct)
             {
                 try
