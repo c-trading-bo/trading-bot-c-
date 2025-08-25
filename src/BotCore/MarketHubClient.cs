@@ -9,7 +9,7 @@ namespace BotCore
 	public sealed class MarketHubClient : IAsyncDisposable
 	{
 		private readonly ILogger<MarketHubClient> _log;
-		private readonly Func<string> _getJwt;
+		private readonly Func<Task<string?>> _getJwtAsync;
 
 		private HubConnection? _conn;
 		private string _contractId = string.Empty;
@@ -22,10 +22,10 @@ namespace BotCore
 		public event Action<string, JsonElement>? OnTrade;
 		public event Action<string, JsonElement>? OnDepth;
 
-		public MarketHubClient(ILogger<MarketHubClient> log, Func<string> getJwt)
+		public MarketHubClient(ILogger<MarketHubClient> log, Func<Task<string?>> getJwtAsync)
 		{
 			_log = log;
-			_getJwt = getJwt;
+			_getJwtAsync = getJwtAsync;
 		}
 
 		public async Task StartAsync(string contractId, CancellationToken ct = default)
@@ -33,22 +33,21 @@ namespace BotCore
 			_contractId = contractId ?? throw new ArgumentNullException(nameof(contractId));
 			if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
-			string Jwt() => _getJwt();
 			string Url() => "https://rtc.topstepx.com/hubs/market";
 
 			_conn = new HubConnectionBuilder()
 				.WithUrl(Url(), o =>
 				{
-					o.AccessTokenProvider = () =>
+					o.AccessTokenProvider = async () =>
 					{
-						var t = Jwt();
+						var t = await _getJwtAsync();
 						var ok = !string.IsNullOrWhiteSpace(t);
 						_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
-						return Task.FromResult<string?>(t);
+						return t;
 					};
 					o.Transports = HttpTransportType.WebSockets;
 				})
-				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
 
 			_conn.ServerTimeout = TimeSpan.FromSeconds(30);
@@ -162,17 +161,17 @@ namespace BotCore
 					_conn = new HubConnectionBuilder()
 						.WithUrl(newUrl, o =>
 						{
-							o.AccessTokenProvider = () =>
-							{
-								var t = _getJwt();
-								var ok = !string.IsNullOrWhiteSpace(t);
-								_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
-								return Task.FromResult<string?>(t);
-							};
+ 						o.AccessTokenProvider = async () =>
+ 						{
+ 							var t = await _getJwtAsync();
+ 							var ok = !string.IsNullOrWhiteSpace(t);
+ 							_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
+ 							return t;
+ 						};
 							o.Transports = HttpTransportType.WebSockets;
 							o.SkipNegotiation = true;
 						})
-						.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+  				.WithAutomaticReconnect(new ExpoRetry())
 						.Build();
 
 					_conn.ServerTimeout = TimeSpan.FromSeconds(30);

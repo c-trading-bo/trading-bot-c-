@@ -92,13 +92,27 @@ namespace OrchestratorAgent
                         }
                     }, refreshCts.Token);
 
+                    // Shared JWT cache so both hubs always get a valid token
+                    var jwtCache = new JwtCache(async () =>
+                    {
+                        var t = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                        if (!string.IsNullOrWhiteSpace(t)) return t!;
+                        if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
+                        {
+                            var authLocal = new TopstepAuthAgent(http);
+                            var fresh = await authLocal.GetJwtAsync(userName!, apiKey!, CancellationToken.None);
+                            Environment.SetEnvironmentVariable("TOPSTEPX_JWT", fresh);
+                            return fresh;
+                        }
+                        return jwt!; // fallback: initial token (we only enter this branch when jwt is non-empty)
+                    });
+
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
-                    await userHub.ConnectAsync(jwt!, accountId, cts.Token);
+                    await userHub.ConnectAsync(jwtCache.GetAsync, accountId, cts.Token);
 
                     // Wire Market hub for real-time quotes/trades (two contracts)
-                    Func<string> getJwt = () => Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? jwt!;
-                    var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), getJwt);
-                    var market2 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), getJwt);
+                    var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
+                    var market2 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
                     using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
                     using (var m2Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
                     {

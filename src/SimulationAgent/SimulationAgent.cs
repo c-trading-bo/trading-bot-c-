@@ -155,7 +155,7 @@ namespace SimulationAgent
         {
             // Simulate MarketHubClient quote subscription logic
             var log = new DummyLogger();
-            var client = new BotCore.MarketHubClient(log, () => "dummy-jwt-token");
+            var client = new BotCore.MarketHubClient(log, () => Task.FromResult<string?>("dummy-jwt-token"));
             client.OnQuote += (cid, json) =>
             {
                 Console.WriteLine($"[QuoteSubscription] Quote received for contract {cid}: {json}");

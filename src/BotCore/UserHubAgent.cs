@@ -36,6 +36,34 @@ namespace BotCore
 
 		public async Task ConnectAsync(string jwtToken, long accountId, CancellationToken appCt)
 		{
+			// Backwards-compatible overload: wrap into async provider that uses env or fallback jwtToken
+			Func<Task<string?>> provider = async () =>
+			{
+				var tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+				if (!string.IsNullOrWhiteSpace(tok)) return tok;
+				if (!string.IsNullOrWhiteSpace(jwtToken)) return jwtToken;
+				// As a last resort, try loginKey if present
+				try
+				{
+					var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
+					var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
+					if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
+					{
+						using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
+						var auth = new TopstepAuthAgent(http);
+						var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
+						Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
+						return newTok;
+					}
+				}
+				catch { }
+				return tok; // may be null here; the async overload ensures logging and reconnect policy
+			};
+			await ConnectAsync(provider, accountId, appCt);
+		}
+
+		public async Task ConnectAsync(Func<Task<string?>> tokenProvider, long accountId, CancellationToken appCt)
+		{
 			if (_hub is { State: HubConnectionState.Connected or HubConnectionState.Connecting })
 			{
 				_log.LogInformation("UserHub already connected or connecting.");
@@ -48,48 +76,16 @@ namespace BotCore
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					// Bearer token provider with refresh support: reads latest env or validates/renews when needed
 					opt.AccessTokenProvider = async () =>
 					{
-						// Prefer latest value from env to allow external refresh
-						string? tok = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-						if (string.IsNullOrWhiteSpace(tok) && !string.IsNullOrWhiteSpace(jwtToken))
-						{
-							// Fallback to initial token if provided
-							tok = jwtToken;
-						}
-
-						if (string.IsNullOrWhiteSpace(tok))
-						{
-							// Last resort: try to obtain via login key if present in env
-							try
-							{
-								var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-								var key  = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
-								if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
-								{
-									using var http = new System.Net.Http.HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
-									var auth = new TopstepAuthAgent(http);
-									var newTok = await auth.GetJwtAsync(user!, key!, CancellationToken.None);
-									Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newTok);
-									_log.LogInformation("UserHub AccessTokenProvider: obtained fresh JWT via loginKey for {User}.", user);
-									tok = newTok;
-								}
-							}
-							catch (Exception ex)
-							{
-								_log.LogWarning(ex, "UserHub AccessTokenProvider: failed to obtain JWT via loginKey");
-							}
-						}
-
+						var tok = await tokenProvider();
 						var ok = !string.IsNullOrWhiteSpace(tok);
 						_log.LogInformation("AccessTokenProvider token present? {ok}", ok);
 						return tok;
 					};
-					// Force WebSockets for production reliability
 					opt.Transports = HttpTransportType.WebSockets;
 				})
-				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+				.WithAutomaticReconnect(new ExpoRetry())
 				.ConfigureLogging(lb =>
 				{
 					lb.AddConsole();
@@ -103,7 +99,6 @@ namespace BotCore
 			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			_hub.HandshakeTimeout  = TimeSpan.FromSeconds(15);
 
-			// Use a short, connect-only CTS for StartAsync
 			using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
 			connectCts.CancelAfter(TimeSpan.FromSeconds(15));
 			await _hub.StartAsync(connectCts.Token);
@@ -111,8 +106,7 @@ namespace BotCore
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
 
-			// After connect, DO NOT reuse connectCts
-			await Task.Delay(250, appCt); // ensure server is ready before subscribing
+			await Task.Delay(250, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
