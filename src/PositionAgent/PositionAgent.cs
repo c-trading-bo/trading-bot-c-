@@ -3,6 +3,7 @@
 // Integration: Used for portfolio state and P&L tracking.
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace PositionAgent
@@ -35,8 +36,15 @@ namespace PositionAgent
 		public IEnumerable<object> GetOpenPositions() => _positions;
 		public void OnOrder(JsonElement je)
 		{
-			// Order tracking logic can be implemented here if needed
-			// For now, this is a stub to resolve build errors
+			try
+			{
+				var symbol = je.TryGetProperty("symbol", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : "?";
+				var sideStr = je.TryGetProperty("side", out var sd) && sd.ValueKind == JsonValueKind.String ? sd.GetString() : "";
+				var qty = je.TryGetProperty("qty", out var q) && q.ValueKind == JsonValueKind.Number && q.TryGetInt32(out var qi) ? qi : 0;
+				var status = je.TryGetProperty("status", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() : "";
+				_log.LogInformation("[PositionAgent] Order evt: {Symbol} {Side} qty={Qty} status={Status}", symbol, sideStr, qty, status);
+			}
+			catch { }
 		}
 	}
 }

@@ -16,8 +16,6 @@ using BotCore.Auth;
 namespace OrchestratorAgent
 {
 }
-// ...existing code...
-// ...existing code...
     public sealed class EvalPolicy
     {
         public bool Enabled { get; set; } = true;
@@ -442,4 +440,4 @@ namespace OrchestratorAgent
             }
         }
     }
-    
+
