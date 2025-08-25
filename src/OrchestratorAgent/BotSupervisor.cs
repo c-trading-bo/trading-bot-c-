@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SupervisorAgent;
 using BotCore;
+using BotCore.Models;
 using OrchestratorAgent.Infra;
 using BotCore.Infra;
 
@@ -88,6 +89,25 @@ namespace OrchestratorAgent
                 g.Invoke(hub, new object[] { method, handler });
                 return true;
             }
+
+            // Predeclare state before wiring any lambdas to avoid definite-assignment issues
+            var history = new Dictionary<string, List<BotCore.Models.Bar>>(StringComparer.OrdinalIgnoreCase);
+            var lastBarUnix = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            var skipFirstAfterGap = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var risk = new BotCore.Risk.RiskEngine();
+            var levels = new BotCore.Models.Levels();
+            var journal = new BotCore.Supervisor.SignalJournal();
+            var _recentRoutes = new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
+            var _recentCidBuffer = new System.Collections.Concurrent.ConcurrentQueue<string>();
+            var maxTradesEnv = Environment.GetEnvironmentVariable("MAX_TRADES_PER_DAY");
+            int maxTradesPerDay = int.TryParse(maxTradesEnv, out var mt) && mt > 0 ? mt : int.MaxValue;
+            int tradesToday = 0;
+            var tradeDay = DateTime.UtcNow.Date;
+            // Daily PnL breaker setup
+            var mdlEnv = Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("MAX_DAILY_LOSS");
+            decimal maxDailyLoss = decimal.TryParse(mdlEnv, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var mdlVal) ? mdlVal : 1000m;
+            DateTime lastPnlFetch = DateTime.MinValue;
+            decimal netPnlCache = 0m;
 
             // track a heartbeat-able snapshot
             DateTimeOffset lastQuote = default, lastTrade = default, lastBar = default;

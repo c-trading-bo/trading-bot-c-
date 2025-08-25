@@ -62,7 +62,7 @@ namespace OrchestratorAgent
             {
                 await JournalAsync(true, "dry_run", 0, null, modeStr);
                 return true;
-            }\r
+            }
 
             try
             {

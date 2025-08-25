@@ -13,6 +13,34 @@ namespace OrchestratorAgent
     /// <summary>Tiny wrapper around ApiClient for placing orders.</summary>
     public sealed class OrderRouter
     {
+        // Helpers (class-scope) for env and parsing
+        private static int ResolveIntEnv(string key, int defVal)
+        {
+            var raw = Environment.GetEnvironmentVariable(key);
+            return int.TryParse(raw, out var v) ? v : defVal;
+        }
+        private static int SafeToInt(object? o)
+        {
+            try { return Convert.ToInt32(o ?? 0); } catch { return 0; }
+        }
+        private static decimal PickPrice(Type t, object obj, string[] names, decimal current)
+        {
+            if (current > 0m) return current;
+            foreach (var n in names)
+            {
+                var p = t.GetProperty(n);
+                if (p == null) continue;
+                try
+                {
+                    var v = p.GetValue(obj);
+                    if (v == null) continue;
+                    var d = Convert.ToDecimal(v, System.Globalization.CultureInfo.InvariantCulture);
+                    if (d > 0m) return d;
+                }
+                catch { }
+            }
+            return current;
+        }
         private readonly ILogger<OrderRouter> _log;
         private readonly ApiClient _api;
         private readonly int _accountId;
@@ -322,7 +350,7 @@ namespace OrchestratorAgent
                 string sideStr = t.GetProperty("Side")?.GetValue(orderUpdate)?.ToString() ?? string.Empty;
                 bool isSell = sideStr.Equals("SELL", StringComparison.OrdinalIgnoreCase) || sideStr == "1";
                 string symbol = t.GetProperty("Symbol")?.GetValue(orderUpdate)?.ToString() ?? string.Empty;
-                decimal tick = !string.IsNullOrWhiteSpace(symbol) ? BotCore.InstrumentMeta.Tick(symbol) : 0.25m;
+                decimal tick = !string.IsNullOrWhiteSpace(symbol) ? InstrumentMeta.Tick(symbol) : 0.25m;
                 int offsetTicks = ResolveIntEnv("PARTIAL_CONVERT_OFFSET_TICKS", 1);
 
                 // Derive a reference price from update, prefer limit then avg fill then last
@@ -377,39 +405,6 @@ namespace OrchestratorAgent
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "[ROUTER] ConvertRemainderToLimitOrCancelAsync unexpected error");
-            }
-
-            static int ResolveIntEnv(string key, int defVal)
-            {
-                var raw = Environment.GetEnvironmentVariable(key);
-                return int.TryParse(raw, out var v) ? v : defVal;
-            }
-            static int SafeToInt(object? o)
-            {
-                try { return Convert.ToInt32(o ?? 0); } catch { return 0; }
-            }
-            static decimal PickPrice(System.Reflection.PropertyInfo?[]? dummy, object _obj, string[] names, decimal current)
-            {
-                // overload shim to keep one signature below
-                return current;
-            }
-            static decimal PickPrice(Type t, object obj, string[] names, decimal current)
-            {
-                if (current > 0m) return current;
-                foreach (var n in names)
-                {
-                    var p = t.GetProperty(n);
-                    if (p == null) continue;
-                    try
-                    {
-                        var v = p.GetValue(obj);
-                        if (v == null) continue;
-                        var d = Convert.ToDecimal(v, System.Globalization.CultureInfo.InvariantCulture);
-                        if (d > 0m) return d;
-                    }
-                    catch { }
-                }
-                return current;
             }
         }
 

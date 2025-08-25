@@ -11,6 +11,7 @@ using BotCore.Models;
 using BotCore.Risk;
 using BotCore.Strategy;
 using OrchestratorAgent.Infra;
+using OrchestratorAgent.Ops;
 
 namespace OrchestratorAgent
 {
@@ -138,7 +139,7 @@ namespace OrchestratorAgent
                     });
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
-                    await userHub.ConnectAsync(jwtCache.GetAsync, accountId, cts.Token);
+                    await userHub.ConnectAsync(jwt!, accountId, cts.Token);
 
                     // Wire Market hub for real-time quotes/trades (two contracts)
                     var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
@@ -160,6 +161,7 @@ namespace OrchestratorAgent
                     market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
                     // ===== Positions wiring =====
+                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
                     var posTracker = new PositionTracker(log, accountId);
                     // Subscribe to user hub events
                     userHub.OnPosition += posTracker.OnPosition;
@@ -221,7 +223,6 @@ namespace OrchestratorAgent
                     var killSwitch = AppEnv.Flag("KILL_SWITCH", false);
 
                     // ===== Preflight gating (/healthz + periodic) =====
-                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
                     var pfCfg = new OrchestratorAgent.Health.Preflight.TradingProfileConfig
                     {
                         Risk = new OrchestratorAgent.Health.Preflight.TradingProfileConfig.RiskConfig
@@ -331,11 +332,14 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. No manual flip here.
-                    if (!pfOk)
+                    // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check for logging.
+                    try
                     {
-                        log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy.");
+                        var initial = await pfService.RunAsync(symbol, cts.Token);
+                        if (!initial.ok)
+                            log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy. Reason: {Msg}", initial.msg);
                     }
+                    catch { }
 
                     // On new bar, run strategies and (optionally) route orders
                     aggES.OnBar += async bar =>

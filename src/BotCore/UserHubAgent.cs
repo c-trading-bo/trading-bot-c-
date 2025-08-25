@@ -14,6 +14,7 @@ namespace BotCore
 {
 	/// <summary>
 	/// Shared user hub logic for TopstepX events and logging.
+	/// Also exposes typed JSON events for consumers (positions/trades/orders/accounts).
 	/// </summary>
 	public sealed class UserHubAgent : IAsyncDisposable
 	{
@@ -21,6 +22,11 @@ namespace BotCore
 		private readonly SupervisorAgent.StatusService _statusService;
 		private HubConnection _hub = default!;
 		private bool _handlersWired;
+
+		public event Action<JsonElement>? OnOrder;
+		public event Action<JsonElement>? OnTrade;
+		public event Action<JsonElement>? OnPosition;
+		public event Action<JsonElement>? OnAccount;
 
 		public HubConnection? GetConnection() => _hub;
 		public HubConnection? Connection => _hub;
@@ -98,10 +104,10 @@ namespace BotCore
 		private void WireEvents(HubConnection hub)
 		{
 			if (_handlersWired) return;
-			hub.On<object>("GatewayUserAccount", data => _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserOrder", data => _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserPosition", data => _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
-			hub.On<object>("GatewayUserTrade", data => _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)));
+			hub.On<JsonElement>("GatewayUserAccount", data => { try { _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserOrder", data => { try { _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserPosition", data => { try { _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnPosition?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserTrade", data => { try { _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnTrade?.Invoke(data); } catch { } });
 			_handlersWired = true;
 
 			hub.Closed += ex =>
