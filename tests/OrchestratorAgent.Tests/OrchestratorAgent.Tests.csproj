@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\OrchestratorAgent\OrchestratorAgent.csproj" />
+    <ProjectReference Include="..\..\src\BotCore\BotCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

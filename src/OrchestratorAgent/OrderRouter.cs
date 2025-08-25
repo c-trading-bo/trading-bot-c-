@@ -163,6 +163,13 @@ namespace OrchestratorAgent
             await Task.CompletedTask;
         }
 
+        public async Task FlattenAllAsync(long accountId, CancellationToken ct = default)
+        {
+            _log.LogError("[ROUTER] PANIC_FLATTEN: flattening all positions for account {Acc}", accountId);
+            // Implement via API: close positions and cancel all brackets
+            await Task.CompletedTask;
+        }
+
         public async Task<List<dynamic>> QueryOpenPositionsAsync(long accountId, CancellationToken ct = default)
         {
             _log.LogInformation("[ROUTER] QueryOpenPositions for account {Acc}", accountId);

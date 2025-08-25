@@ -87,7 +87,10 @@ namespace BotCore.Strategy
                     Size = Math.Max(InstrumentMeta.LotStep(c.symbol), scaledQty - (scaledQty % InstrumentMeta.LotStep(c.symbol))),
                     AccountId = c.accountId,
                     ContractId = c.contractId,
-                    Tag = c.Tag
+                    Tag = c.Tag,
+                    StrategyVersion = def.Version ?? "1.0.0",
+                    ProfileName = string.IsNullOrWhiteSpace(cfg.Profile) ? "default" : cfg.Profile,
+                    EmittedUtc = DateTime.UtcNow
                 });
             }
             return signals;
@@ -157,7 +160,10 @@ namespace BotCore.Strategy
                     Size = Math.Max(InstrumentMeta.LotStep(c.symbol), ((int)c.qty) - (((int)c.qty) % InstrumentMeta.LotStep(c.symbol))),
                     AccountId = accountId,
                     ContractId = contractId,
-                    Tag = c.Tag
+                    Tag = c.Tag,
+                    StrategyVersion = "1.0.0",
+                    ProfileName = new HighWinRateProfile().Profile,
+                    EmittedUtc = DateTime.UtcNow
                 });
             }
             return signals;

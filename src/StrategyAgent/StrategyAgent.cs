@@ -21,6 +21,10 @@ namespace StrategyAgent
 
         public List<Signal> RunAll(BotCore.Models.MarketSnapshot snap, IReadOnlyList<Bar> bars, RiskEngine risk)
         {
+            // Schema pinning to avoid silent profile shape regressions
+            if (_cfg.SchemaVersion != 1)
+                throw new InvalidOperationException($"Unsupported profile schema: v{_cfg.SchemaVersion}");
+
             // Early circuit breakers (simple env toggles); if hit, emit nothing
             var dailyLock = Environment.GetEnvironmentVariable("DAILY_LOCKOUT");
             var tradeLock = Environment.GetEnvironmentVariable("TRADE_LOCKOUT");

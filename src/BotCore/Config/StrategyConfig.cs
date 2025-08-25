@@ -6,6 +6,7 @@ namespace BotCore.Config;
 public sealed class TradingProfileConfig
 {
     [JsonPropertyName("profile")] public string Profile { get; set; } = "";
+    [JsonPropertyName("schema_version")] public int SchemaVersion { get; set; } = 1;
     [JsonPropertyName("timeframes")] public Timeframes Timeframes { get; set; } = new();
     [JsonPropertyName("rs_gate")] public RsGate RsGate { get; set; } = new();
     [JsonPropertyName("global_filters")] public GlobalFilters GlobalFilters { get; set; } = new();
@@ -96,6 +97,7 @@ public sealed class StrategyDef
     [JsonPropertyName("name")] public string Name { get; set; } = "";
     [JsonPropertyName("enabled")] public bool Enabled { get; set; }
     [JsonPropertyName("family")] public string? Family { get; set; } // e.g. "breakout" | "meanrev"
+    [JsonPropertyName("version")] public string? Version { get; set; }
     [JsonPropertyName("session")] public string? Session { get; set; }
     [JsonPropertyName("session_window_et")] public string? SessionWindowEt { get; set; }
     [JsonPropertyName("on_range_window_et")] public string? OnRangeWindowEt { get; set; }
