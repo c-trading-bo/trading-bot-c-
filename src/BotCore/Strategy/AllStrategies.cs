@@ -92,14 +92,74 @@ namespace BotCore.Strategy
         public static List<Candidate> S1(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.5m && env.volz.HasValue && env.volz.Value > 0.5m)
+            // Require enough history for EMAs and ATR
+            const int fastLen = 9;
+            const int slowLen = 21;
+            const int atrLen  = 14;
+            if (bars is null || bars.Count < Math.Max(slowLen, atrLen) + 1) return lst;
+
+            // Compute EMAs and ATR
+            var emaFast = Ema(bars, fastLen);
+            var emaSlow = Ema(bars, slowLen);
+            var atr = Atr(bars, atrLen);
+            int n = bars.Count - 1;
+            var last = bars[n].Close;
+
+            bool bullCross = emaFast[n - 1] <= emaSlow[n - 1] && emaFast[n] > emaSlow[n];
+            bool bearCross = emaFast[n - 1] >= emaSlow[n - 1] && emaFast[n] < emaSlow[n];
+            bool fastUp    = emaFast[n] > emaFast[n - 1];
+            bool fastDown  = emaFast[n] < emaFast[n - 1];
+
+            // Simple RS gate proxy using env.volz if present (usable band: [0.5, 2.0))
+            var rsOk = !env.volz.HasValue || (Math.Abs(env.volz.Value) >= 0.5m && Math.Abs(env.volz.Value) < 2.0m);
+            // Basic ATR floor
+            var atrOk = atr > 0m;
+
+            if (rsOk && atrOk && bullCross && fastUp)
             {
-                var entry = bars[^1].Close;
-                var stop = entry - env.atr.Value * 1.2m;
-                var t1 = entry + env.atr.Value * 2.5m;
-                add_cand(lst, "S1", symbol, "BUY", entry, stop, t1, env, risk);
+                var stop = last - 1.5m * atr;
+                var t1   = last + 2.0m * atr;
+                if (t1 > last && stop < last)
+            {
+                var e = new Env { Symbol = symbol, atr = atr, volz = env.volz };
+                add_cand(lst, "S1", symbol, "BUY", last, stop, t1, e, risk);
+            }
+            }
+            if (rsOk && atrOk && bearCross && fastDown)
+            {
+                var stop = last + 1.5m * atr;
+                var t1   = last - 2.0m * atr;
+                if (t1 < last && stop > last)
+            {
+                var e = new Env { Symbol = symbol, atr = atr, volz = env.volz };
+                add_cand(lst, "S1", symbol, "SELL", last, stop, t1, e, risk);
+            }
             }
             return lst;
+        }
+
+        // --- helpers ---
+        private static List<decimal> Ema(IList<Bar> bars, int len)
+        {
+            var k = 2m / (len + 1);
+            var ema = new List<decimal>(new decimal[bars.Count]);
+            ema[0] = bars[0].Close;
+            for (int i = 1; i < bars.Count; i++)
+                ema[i] = bars[i].Close * k + ema[i - 1] * (1 - k);
+            return ema;
+        }
+
+        private static decimal Atr(IList<Bar> bars, int len)
+        {
+            if (bars.Count < len + 1) return 0m;
+            decimal sumTr = 0m;
+            for (int i = bars.Count - len; i < bars.Count; i++)
+            {
+                var h = bars[i].High; var l = bars[i].Low; var pc = bars[i - 1].Close;
+                var tr = Math.Max(h - l, Math.Max(Math.Abs(h - pc), Math.Abs(l - pc)));
+                sumTr += tr;
+            }
+            return sumTr / len;
         }
 
         public static List<Candidate> S2(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)

@@ -105,9 +105,9 @@ namespace BotCore
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
 
-			hub.ServerTimeout = TimeSpan.FromSeconds(30);
-			hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
-			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
+			hub.ServerTimeout = TimeSpan.FromSeconds(35);
+			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
+			hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
 
 			hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
 			{

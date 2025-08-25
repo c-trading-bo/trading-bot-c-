@@ -44,6 +44,7 @@ public sealed class GlobalFilters
     [JsonPropertyName("spread_ticks_max")] public int SpreadTicksMax { get; set; }
     [JsonPropertyName("spread_ticks_max_bo")] public int SpreadTicksMaxBo { get; set; }
     [JsonPropertyName("three_stop_rule")] public bool ThreeStopRule { get; set; }
+    [JsonPropertyName("min_seconds_between_entries")] public int MinSecondsBetweenEntries { get; set; }
 }
 
 public sealed class Concurrency

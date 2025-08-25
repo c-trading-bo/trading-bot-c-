@@ -41,6 +41,21 @@ namespace OrchestratorAgent
 
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
+            // Clock sanity: local, UTC, CME (America/Chicago)
+            try
+            {
+                var nowLocal = DateTimeOffset.Now;
+                var nowUtc = DateTimeOffset.UtcNow;
+                var cmeTzId = "Central Standard Time"; // Windows TZ for America/Chicago
+                var cmeTz = TimeZoneInfo.FindSystemTimeZoneById(cmeTzId);
+                var nowCme = TimeZoneInfo.ConvertTime(nowUtc, cmeTz);
+                log.LogInformation("Clock: Local={Local} UTC={Utc} CME={CME}", nowLocal, nowUtc, nowCme);
+            }
+            catch (Exception ex)
+            {
+                log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
+            }
+
             // Try to obtain JWT if not provided
             if (string.IsNullOrWhiteSpace(jwt) && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
             {
@@ -160,6 +175,11 @@ namespace OrchestratorAgent
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live);
 
+                    // Autopilot flags
+                    var auto = AppEnv.Flag("AUTO", false);
+                    var dryRun = AppEnv.Flag("DRYRUN", false);
+                    var killSwitch = AppEnv.Flag("KILL_SWITCH", false);
+
                     // ===== Preflight gating (hub health + market data + optional order stream) =====
                     var pfSecs = AppEnv.Int("PRECHECK_TIMEOUT_SECS", 20);
                     var autoLive = AppEnv.Flag("AUTO_LIVE", true);
@@ -170,7 +190,29 @@ namespace OrchestratorAgent
                         pf = pf.WithOptionalOrderTest(http, jwtCache.GetAsync, accountId);
                     }
                     var pfOk = await pf.RunAsync(TimeSpan.FromSeconds(pfSecs), cts.Token);
-                    if (pfOk && autoLive)
+
+                    // Print a concise checklist summary for the operator
+                    log.LogInformation("=== Precheck Summary ===");
+                    foreach (var s in pf.Steps)
+                        log.LogInformation(" - {Step}", s);
+                    if (!pfOk && pf.FailReasons.Count > 0)
+                    {
+                        log.LogError("--- Precheck Fail Reasons ---");
+                        foreach (var r in pf.FailReasons)
+                            log.LogError(" - {Reason}", r);
+                    }
+
+                    // Determine arming conditions
+                    bool shouldArmLive = pfOk && (autoLive || auto) && !dryRun && !killSwitch;
+                    if (killSwitch)
+                    {
+                        log.LogWarning("AUTOPILOT: KILL_SWITCH active — remaining DRY-RUN regardless of precheck.");
+                    }
+                    if (pfOk && !shouldArmLive)
+                    {
+                        log.LogInformation("AUTOPILOT: Precheck PASS but remaining DRY-RUN (AUTO={Auto} AUTO_LIVE={AutoLive} DRYRUN={Dry} KILL_SWITCH={Kill}).", auto, autoLive, dryRun, killSwitch);
+                    }
+                    if (shouldArmLive)
                     {
                         AppEnv.Set("LIVE_ORDERS", "1");
                         log.LogInformation("AUTOPILOT: LIVE enabled — trading active.");
@@ -268,6 +310,14 @@ namespace OrchestratorAgent
                 {
                     // Keep a reasonable history window
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
+
+                    // Require warm-up bars before evaluating strategies
+                    var warmup = AppEnv.Int("MIN_WARMUP_BARS", 40);
+                    if (history.Count < warmup)
+                    {
+                        log.LogDebug("[Strategy] {Sym} warming up ({Have}/{Need} bars); skipping.", symbol, history.Count, warmup);
+                        return;
+                    }
 
                     // Build a minimal env
                     var env = new Env

@@ -114,8 +114,8 @@ namespace BotCore
 				})
 				.Build();
 
-			hub.ServerTimeout = TimeSpan.FromSeconds(60);
-			hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			hub.ServerTimeout = TimeSpan.FromSeconds(45);
+			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
 			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
 			WireEvents(hub);

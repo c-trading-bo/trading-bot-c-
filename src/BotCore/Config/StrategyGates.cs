@@ -2,12 +2,17 @@ namespace BotCore.Config;
 
 public static class StrategyGates
 {
+    // per-symbol throttle store (UTC seconds)
+    private static readonly Dictionary<string, DateTime> _lastEntryUtc = new(StringComparer.OrdinalIgnoreCase);
+
     public static bool PassesRSGate(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
         var z = snap.Z5mReturnDiff;
+        var abs = Math.Abs(z);
         var mid = cfg.RsGate.ThresholdMid;
         var hi  = cfg.RsGate.ThresholdHigh;
-        return Math.Abs(z) >= mid || Math.Abs(z) < mid;
+        // trade only when regime is active but not chaotic
+        return abs >= mid && abs < hi;
     }
 
     public static bool PassesGlobalFilters(TradingProfileConfig cfg, StrategyDef s, BotCore.Models.MarketSnapshot snap)
@@ -39,6 +44,24 @@ public static class StrategyGates
         }
         if (!string.IsNullOrWhiteSpace(s.SessionWindowEt) && !TimeWindows.IsNowWithinEt(s.SessionWindowEt!, snap.UtcNow))
             return false;
+
+        // Optional news lockout via env switch
+        var newsLock = Environment.GetEnvironmentVariable("NEWS_LOCKOUT_ACTIVE");
+        if (!string.IsNullOrWhiteSpace(newsLock) && (newsLock.Equals("1", StringComparison.OrdinalIgnoreCase) || newsLock.Equals("true", StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        // Optional throttle per symbol
+        if (gf.MinSecondsBetweenEntries > 0 && !string.IsNullOrWhiteSpace(snap.Symbol))
+        {
+            var now = DateTime.UtcNow;
+            if (_lastEntryUtc.TryGetValue(snap.Symbol, out var lastUtc))
+            {
+                if ((now - lastUtc).TotalSeconds < gf.MinSecondsBetweenEntries)
+                    return false;
+            }
+            _lastEntryUtc[snap.Symbol] = now; // record attempt time
+        }
+
         return true;
     }
 }

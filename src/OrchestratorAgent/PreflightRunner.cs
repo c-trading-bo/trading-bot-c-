@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 
@@ -16,12 +17,36 @@ namespace OrchestratorAgent
         private readonly string _primaryCid;
         private Func<Task<bool>>? _orderTest;
 
+        private readonly List<string> _steps = new();
+        private readonly List<string> _fails = new();
+        public IReadOnlyList<string> Steps => _steps;
+        public IReadOnlyList<string> FailReasons => _fails;
+
         public PreflightRunner(ILogger log, HubConnection userHub, HubConnection marketHub, string primaryCid)
         {
             _log = log;
             _userHub = userHub;
             _marketHub = marketHub;
             _primaryCid = primaryCid;
+        }
+
+        private void Step(string msg)
+        {
+            _steps.Add(msg);
+            _log.LogInformation("[Precheck] {Msg}", msg);
+        }
+
+        private void StepOk(string msg)
+        {
+            _steps.Add($"OK: {msg}");
+            _log.LogInformation("[Precheck] ✅ {Msg}", msg);
+        }
+
+        private void StepFail(string msg)
+        {
+            _fails.Add(msg);
+            _steps.Add($"FAIL: {msg}");
+            _log.LogError("[Precheck] ❌ {Msg}", msg);
         }
 
         public PreflightRunner WithOptionalOrderTest(HttpClient http, Func<Task<string?>> tokenProvider, long accountId)
@@ -48,6 +73,7 @@ namespace OrchestratorAgent
                 _userHub.On<JsonElement>("GatewayUserOrder", onOrder);
                 try
                 {
+                    Step("Order test: placing far-away limit then canceling (expect Canceled event)…");
                     await OrderSmokeTester.RunAsync(http, tokenProvider, accountId, _primaryCid, _log, CancellationToken.None);
                     // Wait up to 3s for canceled event
                     using var waitCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -65,15 +91,21 @@ namespace OrchestratorAgent
 
         public async Task<bool> RunAsync(TimeSpan timeout, CancellationToken ct)
         {
-            if (_userHub.State != HubConnectionState.Connected || _marketHub.State != HubConnectionState.Connected)
+            Step("Checklist start (DRY-RUN): validating hubs and data flow…");
+
+            // Step 1: Hubs connected
+            var userConnected = _userHub.State == HubConnectionState.Connected;
+            var marketConnected = _marketHub.State == HubConnectionState.Connected;
+            if (!userConnected || !marketConnected)
             {
-                _log.LogError("PRECHECK FAIL: hub(s) not connected");
+                StepFail($"Hubs not connected. UserHub={_userHub.State}, MarketHub={_marketHub.State}");
                 return false;
             }
+            StepOk($"Hubs connected. UserHubId={_userHub.ConnectionId ?? ""}, MarketHubId={_marketHub.ConnectionId ?? ""}");
 
-            _log.LogInformation("PRECHECK: waiting for first quote/trade on {Cid} (<= {Sec}s)…", _primaryCid, (int)timeout.TotalSeconds);
+            // Step 2: Market data first tick
+            Step($"Waiting for first quote/trade on {_primaryCid} (<= {(int)timeout.TotalSeconds}s)…");
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
             void qh(string cid, JsonElement _) { if (cid == _primaryCid) tcs.TrySetResult(true); }
             void th(string cid, JsonElement _) { if (cid == _primaryCid) tcs.TrySetResult(true); }
 
@@ -89,17 +121,25 @@ namespace OrchestratorAgent
 
             if (!tcs.Task.IsCompleted)
             {
-                _log.LogError("PRECHECK FAIL: no market data");
+                StepFail($"No market data received for {_primaryCid} within {(int)timeout.TotalSeconds}s");
                 return false;
             }
-            _log.LogInformation("PRECHECK PASS: market data OK.");
+            StepOk("Market data OK (tick received)");
 
+            // Step 3: Optional order stream test
             if (_orderTest != null)
             {
+                Step("Running order stream test (place + cancel)…");
                 var ok = await _orderTest();
-                if (!ok) { _log.LogError("PRECHECK FAIL: order test failed"); return false; }
-                _log.LogInformation("PRECHECK PASS: order stream OK.");
+                if (!ok)
+                {
+                    StepFail("Order stream did not emit expected Canceled event");
+                    return false;
+                }
+                StepOk("Order stream OK (Canceled event observed)");
             }
+
+            StepOk("Precheck PASS");
             return true;
         }
     }
