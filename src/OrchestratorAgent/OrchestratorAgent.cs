@@ -311,7 +311,7 @@ namespace OrchestratorAgent
 
         public async Task ConnectAsync(ITopstepAuth auth, int accountId, CancellationToken ct = default)
         {
-            async Task<string> TokenProvider()
+            async Task<string?> TokenProvider()
             {
                 var (jwt, expUtc) = await auth.GetFreshJwtAsync(ct);
                 var ttl = expUtc - DateTimeOffset.UtcNow;
@@ -385,7 +385,11 @@ namespace OrchestratorAgent
                 return Task.CompletedTask;
             };
 
-            await _conn.StartAsync(ct);
+            using (var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                connectCts.CancelAfter(TimeSpan.FromSeconds(15));
+                await _conn.StartAsync(connectCts.Token);
+            }
             if (_conn.State != HubConnectionState.Connected)
                 throw new InvalidOperationException("UserHub failed to connect.");
 

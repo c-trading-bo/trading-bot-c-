@@ -34,7 +34,9 @@ namespace BotCore
             _hub.On<JsonElement>("Bar", data =>
             {
                 BarsSeen++;
-                OnBar?.Invoke(JsonSerializer.Deserialize<Bar>(data.GetRawText()));
+                var bar = JsonSerializer.Deserialize<Bar>(data.GetRawText());
+                if (bar is not null)
+                    OnBar?.Invoke(bar);
             });
             _hub.On<JsonElement>("Quote", data =>
             {

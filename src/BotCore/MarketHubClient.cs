@@ -94,10 +94,12 @@ namespace BotCore
 		private async Task SubscribeIfConnectedAsync(CancellationToken ct)
 		{
 			if (_conn is null || string.IsNullOrWhiteSpace(_contractId)) return;
+			if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId}", _contractId); return; }
 
 			await _subLock.WaitAsync(ct);
 			try
 			{
+				if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId} (post-lock)", _contractId); return; }
 				if (_conn.State != HubConnectionState.Connected)
 				{
 					_log.LogDebug("Skip subscribe: state = {state}", _conn.State);

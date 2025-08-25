@@ -106,10 +106,10 @@ namespace BotCore
 
 			// After connect, DO NOT reuse connectCts
 			await Task.Delay(250, appCt); // ensure server is ready before subscribing
-			await _hub.InvokeAsync("SubscribeAccounts");
-			await _hub.InvokeAsync("SubscribeOrders",    accountId);
-			await _hub.InvokeAsync("SubscribePositions", accountId);
-			await _hub.InvokeAsync("SubscribeTrades",    accountId);
+			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
+			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
+			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
+			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
 		}
 
 		private void WireEvents(HubConnection hub)
