@@ -13,8 +13,13 @@ namespace SimulationAgent
             var logger = loggerFactory.CreateLogger("UserHubSim");
 
             // TODO: Replace with your real JWT and accountId for testing
-            string jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "your-jwt-token-here";
-            long accountId = long.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID"), out var id) ? id : 123456;
+            var jwtEnv = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            var acctEnv = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+
+            if (string.IsNullOrWhiteSpace(jwtEnv) || !long.TryParse(acctEnv, out var accountId))
+                throw new InvalidOperationException("Set TOPSTEPX_JWT and TOPSTEPX_ACCOUNT_ID before running the sim.");
+
+            string jwt = jwtEnv!;
             var ct = new CancellationTokenSource(TimeSpan.FromSeconds(60)).Token;
 
             var agent = new UserHubAgentSim(logger);

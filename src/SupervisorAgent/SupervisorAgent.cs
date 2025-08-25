@@ -59,6 +59,37 @@ namespace SupervisorAgent
         public async Task RunAsync(CancellationToken ct)
         {
             // TODO: Implement supervisor logic: subscribe to events, run strategies, route orders, emit status
+            _status.Set("user.state", "init");
+            _status.Set("market.state", "init");
+
+            void SafeAttach<T>(object target, string evt, Action<T> handler)
+            {
+                var e = target.GetType().GetEvent(evt);
+                if (e == null) return;
+                var del = Delegate.CreateDelegate(e.EventHandlerType!, handler.Target!, handler.Method);
+                e.AddEventHandler(target, del);
+            }
+
+            bool TryOn<T>(object hub, string method, Action<T> handler)
+            {
+                var mi = hub.GetType()
+                    .GetMethods()
+                    .FirstOrDefault(m => m.Name == "On" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
+                if (mi == null) return false;
+                mi.MakeGenericMethod(typeof(T)).Invoke(hub, new object[] { method, handler });
+                return true;
+            }
+
+            SafeAttach<object>(_marketHub, "OnQuote", _ => _status.Set("last.quote", DateTimeOffset.UtcNow));
+            SafeAttach<BotCore.Models.Bar>(_marketHub, "OnBar", _ => _status.Set("last.quote", DateTimeOffset.UtcNow));
+            SafeAttach<object>(_userHub, "OnTrade", _ => _status.Set("last.trade", DateTimeOffset.UtcNow));
+
+            TryOn<System.Text.Json.JsonElement>(_marketHub, "Quote", _ => _status.Set("last.quote", DateTimeOffset.UtcNow));
+            TryOn<System.Text.Json.JsonElement>(_marketHub, "Trade", _ => _status.Set("last.trade", DateTimeOffset.UtcNow));
+
+            _status.Set("market.state", "running");
+            _status.Set("user.state", "running");
+
             while (!ct.IsCancellationRequested)
             {
                 _status.Heartbeat();
