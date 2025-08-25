@@ -17,6 +17,10 @@ namespace OrchestratorAgent
     {
         public static async Task Main(string[] args)
         {
+            // Ensure invariant culture for all parsing/logging regardless of OS locale
+            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
             var loggerFactory = LoggerFactory.Create(b =>
             {
                 b.AddConsole();
@@ -97,12 +101,14 @@ namespace OrchestratorAgent
                                 if (!string.IsNullOrWhiteSpace(newToken))
                                 {
                                     Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newToken);
+                                    http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newToken);
                                     log.LogInformation("JWT refreshed via validate.");
                                 }
                                 else if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
                                 {
                                     var refreshed = await auth.GetJwtAsync(userName!, apiKey!, refreshCts.Token);
                                     Environment.SetEnvironmentVariable("TOPSTEPX_JWT", refreshed);
+                                    http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", refreshed);
                                     log.LogInformation("JWT refreshed via loginKey.");
                                 }
                             }
@@ -124,6 +130,7 @@ namespace OrchestratorAgent
                             var authLocal = new TopstepAuthAgent(http);
                             var fresh = await authLocal.GetJwtAsync(userName!, apiKey!, CancellationToken.None);
                             Environment.SetEnvironmentVariable("TOPSTEPX_JWT", fresh);
+                            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fresh);
                             return fresh;
                         }
                         return jwt!; // fallback: initial token (we only enter this branch when jwt is non-empty)

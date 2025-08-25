@@ -16,6 +16,10 @@ namespace OrchestratorAgent
         private readonly ApiClient _api;
         private readonly int _accountId;
         private static readonly ConcurrentDictionary<string, DateTime> _sent = new();
+        private static readonly ConcurrentQueue<long> _latencyMs = new();
+        private static readonly ConcurrentQueue<DateTime> _rejects = new();
+        private static readonly ConcurrentQueue<DateTime> _ocoRebuilds = new();
+        private static readonly object _latLock = new();
 
         public OrderRouter(ILogger<OrderRouter> log, HttpClient http, string apiBase, string jwt, int accountId)
         {
@@ -23,6 +27,11 @@ namespace OrchestratorAgent
             _api = new ApiClient(http, log as ILogger<ApiClient> ?? LoggerFactory.Create(b=>{}).CreateLogger<ApiClient>(), apiBase);
             _api.SetJwt(jwt);
             _accountId = accountId;
+        }
+
+        public void UpdateJwt(string jwt)
+        {
+            try { _api.SetJwt(jwt); } catch { }
         }
 
         public async Task<bool> RouteAsync(StrategySignal sig, string contractId, CancellationToken ct = default)
@@ -81,9 +90,8 @@ namespace OrchestratorAgent
                 _log.LogWarning("[ROUTER] Slippage capped to {Ticks} ticks for {Cid}", maxSlipTicks, cid);
             }
 
-            var live = (Environment.GetEnvironmentVariable("LIVE_TRADING") ??
-                        Environment.GetEnvironmentVariable("TOPSTEPX_LIVE") ?? "false")
-                        .Equals("true", StringComparison.OrdinalIgnoreCase);
+            var live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase)
+                        || (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty).Equals("true", StringComparison.OrdinalIgnoreCase);
 
             if (!live)
             {
@@ -126,22 +134,56 @@ namespace OrchestratorAgent
                 await _api.PlaceOrderAsync(orderReq, ct);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
                 // remove CID on failure to allow retry
                 _sent.TryRemove(cid!, out _);
+                // track reject for alerting
+                _rejects.Enqueue(DateTime.UtcNow);
+                TrimQueueWindow(_rejects, TimeSpan.FromSeconds(60));
+                if (_rejects.Count >= 3)
+                {
+                    _log.LogError(ex, "[ALERT] 3+ order rejects in 60s. Auto-pausing routing.");
+                    Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                }
                 throw;
             }
             finally
             {
                 sw.Stop();
-                _log.LogInformation("[ROUTER] Order latency: {Ms} ms (CID {Cid})", sw.ElapsedMilliseconds, cid);
+                var ms = sw.ElapsedMilliseconds;
+                _log.LogInformation("[ROUTER] Order latency: {Ms} ms (CID {Cid})", ms, cid);
+                // track latency, keep last 20
+                _latencyMs.Enqueue(ms);
+                while (_latencyMs.Count > 20 && _latencyMs.TryDequeue(out _)) { }
+                // compute median
+                try
+                {
+                    var arr = _latencyMs.ToArray();
+                    if (arr.Length >= 10)
+                    {
+                        Array.Sort(arr);
+                        var median = arr[arr.Length / 2];
+                        if (median > 800)
+                        {
+                            _log.LogWarning("[WARN] Median order latency over last {N} orders is {Med} ms (>800)", arr.Length, median);
+                        }
+                    }
+                }
+                catch { }
             }
         }
 
         public async Task EnsureBracketsAsync(long accountId, CancellationToken ct = default)
         {
             _log.LogInformation("[ROUTER] EnsureBrackets requested for account {Acc}. (Implement API sync here)", accountId);
+            _ocoRebuilds.Enqueue(DateTime.UtcNow);
+            TrimQueueWindow(_ocoRebuilds, TimeSpan.FromMinutes(10));
+            var cnt10m = _ocoRebuilds.Count;
+            if (cnt10m == 1)
+                _log.LogInformation("[INFO] OCO rebuild performed: count={Count} in last 10m", cnt10m);
+            else if (cnt10m > 3)
+                _log.LogWarning("[WARN] OCO rebuilds high: count={Count} in last 10m", cnt10m);
             await Task.CompletedTask;
         }
 
@@ -207,6 +249,12 @@ namespace OrchestratorAgent
 
             // Safe default
             return symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
+        }
+        private static void TrimQueueWindow(ConcurrentQueue<DateTime> q, TimeSpan window)
+        {
+            var cutoff = DateTime.UtcNow - window;
+            while (q.TryPeek(out var t) && t < cutoff)
+                q.TryDequeue(out _);
         }
     }
 }
