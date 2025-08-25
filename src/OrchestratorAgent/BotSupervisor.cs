@@ -256,7 +256,7 @@ namespace OrchestratorAgent
                 var evt = _marketHub.GetType().GetEvent("Reconnected");
                 if (evt != null)
                 {
-                    var handler = new Func<string?, Task>(async _ => {
+                    var handler = new Func<string?, Task>(async id => {
                         _status.Set("market.state", "reconnected");
                         _reconnects.Enqueue(DateTime.UtcNow);
                         TrimWindow(_reconnects, TimeSpan.FromMinutes(5));

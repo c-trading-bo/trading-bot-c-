@@ -19,7 +19,7 @@ namespace BotCore
 	public sealed class UserHubAgent : IAsyncDisposable
 	{
 		private readonly ILogger<UserHubAgent> _log;
-		private readonly SupervisorAgent.StatusService _statusService;
+		private readonly object? _statusService;
 		private HubConnection _hub = default!;
 		private bool _handlersWired;
 
@@ -33,7 +33,7 @@ namespace BotCore
 
 		private const string CloseStatusKey = "CloseStatus";
 
-		public UserHubAgent(ILogger<UserHubAgent> log, SupervisorAgent.StatusService statusService)
+		public UserHubAgent(ILogger<UserHubAgent> log, object? statusService)
 		{
 			_log = log;
 			_statusService = statusService;
@@ -93,7 +93,7 @@ namespace BotCore
 
 			await _hub.StartAsync(ct);
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
-			_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
+			StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
 			await Task.Delay(250, ct); // ensure server is ready before subscribing
 			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, ct);
 			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders", accountId), _log, ct);
@@ -103,6 +103,7 @@ namespace BotCore
 
 		private void WireEvents(HubConnection hub)
 		{
+			void StatusSetLocal(string key, object value) => StatusSet(key, value);
 			if (_handlersWired) return;
 			hub.On<JsonElement>("GatewayUserAccount", data => { try { _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
 			hub.On<JsonElement>("GatewayUserOrder", data => { try { _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
@@ -112,7 +113,7 @@ namespace BotCore
 
 			hub.Closed += ex =>
 			{
-				_statusService.Set("user.state", string.Empty);
+				StatusSet("user.state", string.Empty);
 				if (ex is System.Net.Http.HttpRequestException hre)
 					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
 				else if (ex is System.Net.WebSockets.WebSocketException wse)
@@ -132,6 +133,20 @@ namespace BotCore
 				// re-subscribe here if needed
 				return Task.CompletedTask;
 			};
+		}
+
+		private void StatusSet(string key, object value)
+		{
+			try
+			{
+				var t = _statusService?.GetType();
+				var m = t?.GetMethod("Set", new[] { typeof(string), typeof(object) });
+				if (m != null)
+				{
+					m.Invoke(_statusService, new object?[] { key, value });
+				}
+			}
+			catch { }
 		}
 
 		public async ValueTask DisposeAsync()

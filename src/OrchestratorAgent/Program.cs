@@ -141,27 +141,41 @@ namespace OrchestratorAgent
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
                     await userHub.ConnectAsync(jwt!, accountId, cts.Token);
 
-                    // Wire Market hub for real-time quotes/trades (two contracts)
+                    // Resolve roots and contracts from env (with REST fallback)
+                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+                    var esRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_ES") ?? "ES";
+                    var nqRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_NQ") ?? "NQ";
+                    bool enableNq = (Environment.GetEnvironmentVariable("TOPSTEPX_ENABLE_NQ") ?? Environment.GetEnvironmentVariable("ENABLE_NQ") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    var esContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_ES");
+                    var nqContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_NQ");
+                    try { if (string.IsNullOrWhiteSpace(esContract)) esContract = await apiClient.ResolveContractIdAsync(esRoot, cts.Token); } catch { }
+                    try { if (enableNq && string.IsNullOrWhiteSpace(nqContract)) nqContract = await apiClient.ResolveContractIdAsync(nqRoot, cts.Token); } catch { }
+                    if (string.IsNullOrWhiteSpace(esContract)) { esContract = esRoot; }
+                    if (enableNq && string.IsNullOrWhiteSpace(nqContract)) { nqContract = nqRoot; }
+
+                    // Wire Market hub for real-time quotes/trades (per enabled symbol)
                     var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
-                    var market2 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
+                    MarketHubClient? market2 = enableNq ? new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync) : null;
                     using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
-                    using (var m2Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+                    using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
                     {
                         m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                        await market1.StartAsync("CON.F.US.EP.U25", m1Cts.Token);
-                        m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                        await market2.StartAsync("CON.F.US.ENQ.U25", m2Cts.Token);
+                        await market1.StartAsync(esContract!, m1Cts.Token);
+                        if (enableNq && market2 != null && m2Cts != null)
+                        {
+                            m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
+                            await market2.StartAsync(nqContract!, m2Cts.Token);
+                        }
                     }
-                    status.Set("market.state", $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}");
+                    status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
                     market1.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
-                    market2.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
+                    if (enableNq && market2 != null) market2.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
-                    market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
+                    if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
-                    market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
+                    if (enableNq && market2 != null) market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
                     // ===== Positions wiring =====
-                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
                     var posTracker = new PositionTracker(log, accountId);
                     // Subscribe to user hub events
                     userHub.OnPosition += posTracker.OnPosition;
@@ -194,12 +208,12 @@ namespace OrchestratorAgent
                     }, cts.Token);
 
                     // ===== Strategy wiring (per-bar) =====
-                    // Map symbols to contract IDs
-                    var contractIds = new System.Collections.Generic.Dictionary<string, string>
+                    // Map symbols to contract IDs resolved from env/REST
+                    var contractIds = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
-                        ["ES"] = "CON.F.US.EP.U25",
-                        ["NQ"] = "CON.F.US.ENQ.U25"
+                        [esRoot] = esContract!
                     };
+                    if (enableNq && !string.IsNullOrWhiteSpace(nqContract)) contractIds[nqRoot] = nqContract!;
                     // Expose root->contract mapping to status for health checks
                     try
                     {
@@ -211,23 +225,28 @@ namespace OrchestratorAgent
                     // Also record per-contract last quote/trade/bar timestamps for /preflight
                     try
                     {
-                        var esId = contractIds["ES"]; var nqId = contractIds["NQ"];
+                        var esId = contractIds[esRoot];
                         market1.OnQuote += (_, __) => status.Set($"last.quote.{esId}", DateTimeOffset.UtcNow);
                         market1.OnTrade += (_, __) => status.Set($"last.trade.{esId}", DateTimeOffset.UtcNow);
-                        market2.OnQuote += (_, __) => status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow);
-                        market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
+                        if (enableNq && market2 != null)
+                        {
+                            var nqId = contractIds[nqRoot];
+                            market2.OnQuote += (_, __) => status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow);
+                            market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
+                        }
                         // bars will be recorded in OnBar handlers below
                     }
                     catch { }
 
                     // Aggregators and recent bars per symbol
+                    int barSeconds = int.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_BAR_SECONDS") ?? Environment.GetEnvironmentVariable("BAR_SECONDS"), out var bs) ? Math.Max(5, bs) : 60;
                     var bars = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>
                     {
-                        ["ES"] = new System.Collections.Generic.List<BotCore.Models.Bar>(),
-                        ["NQ"] = new System.Collections.Generic.List<BotCore.Models.Bar>()
+                        [esRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>()
                     };
-                    var aggES = new BotCore.BarAggregator(60) { Symbol = "ES" };
-                    var aggNQ = new BotCore.BarAggregator(60) { Symbol = "NQ" };
+                    if (enableNq) bars[nqRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>();
+                    var aggES = new BotCore.BarAggregator(barSeconds) { Symbol = esRoot };
+                    BotCore.BarAggregator? aggNQ = enableNq ? new BotCore.BarAggregator(barSeconds) { Symbol = nqRoot } : null;
 
                     // Strategy prerequisites
                     var risk = new BotCore.Risk.RiskEngine();
@@ -369,32 +388,38 @@ namespace OrchestratorAgent
                         // per-contract bar stamp for preflight ingest age
                         try
                         {
-                            var esId = contractIds["ES"]; status.Set($"last.bar.{esId}", DateTimeOffset.UtcNow);
+                            var esId = contractIds[esRoot]; status.Set($"last.bar.{esId}", DateTimeOffset.UtcNow);
                             market1.RecordBarSeen(esId);
                         }
                         catch { }
-                        bars["ES"].Add(bar);
-                        await RunStrategiesFor("ES", bar, bars["ES"], accountId, contractIds["ES"], risk, levels, router, log, cts.Token);
+                        bars[esRoot].Add(bar);
+                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, log, cts.Token);
                     };
-                    aggNQ.OnBar += async bar =>
+                    if (enableNq && aggNQ != null && market2 != null)
                     {
-                        status.Set("last.bar", DateTimeOffset.UtcNow);
-                        // per-contract bar stamp for preflight ingest age
-                        try
+                        aggNQ.OnBar += async bar =>
                         {
-                            var nqId = contractIds["NQ"]; status.Set($"last.bar.{nqId}", DateTimeOffset.UtcNow);
-                            market2.RecordBarSeen(nqId);
-                        }
-                        catch { }
-                        bars["NQ"].Add(bar);
-                        await RunStrategiesFor("NQ", bar, bars["NQ"], accountId, contractIds["NQ"], risk, levels, router, log, cts.Token);
-                    };
+                            status.Set("last.bar", DateTimeOffset.UtcNow);
+                            // per-contract bar stamp for preflight ingest age
+                            try
+                            {
+                                var nqId = contractIds[nqRoot]; status.Set($"last.bar.{nqId}", DateTimeOffset.UtcNow);
+                                market2.RecordBarSeen(nqId);
+                            }
+                            catch { }
+                            bars[nqRoot].Add(bar);
+                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, log, cts.Token);
+                        };
+                    }
 
                     // Feed market data → aggregators
                     market1.OnTrade += (_, json) => aggES.OnTrade(json);
                     market1.OnQuote += (_, json) => aggES.OnQuote(json);
-                    market2.OnTrade += (_, json) => aggNQ.OnTrade(json);
-                    market2.OnQuote += (_, json) => aggNQ.OnQuote(json);
+                    if (enableNq && market2 != null && aggNQ != null)
+                    {
+                        market2.OnTrade += (_, json) => aggNQ.OnTrade(json);
+                        market2.OnQuote += (_, json) => aggNQ.OnQuote(json);
+                    }
 
                     // Optional: safe order place/cancel smoke test
                     var smokeRaw = Environment.GetEnvironmentVariable("TOPSTEPX_ORDER_SMOKE_TEST");
