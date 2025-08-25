@@ -33,66 +33,11 @@ namespace BotCore
 			_contractId = contractId ?? throw new ArgumentNullException(nameof(contractId));
 			if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
-			string Url() => "https://rtc.topstepx.com/hubs/market";
-
-			_conn = new HubConnectionBuilder()
-				.WithUrl(Url(), o =>
-				{
-					o.AccessTokenProvider = async () =>
-					{
-						var t = await _getJwtAsync();
-						var ok = !string.IsNullOrWhiteSpace(t);
-						_log.LogInformation("[MarketHub] AccessTokenProvider token present? {ok}", ok);
-						return t;
-					};
-					o.Transports = HttpTransportType.WebSockets;
-				})
-				.WithAutomaticReconnect(new ExpoRetry())
-				.Build();
-
-			_conn.ServerTimeout = TimeSpan.FromSeconds(30);
-			_conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
-			_conn.HandshakeTimeout = TimeSpan.FromSeconds(15);
-
-			// Wire market event handlers once
-			bool marketHandlersWired = false;
-			void WireMarketHandlers(HubConnection hub)
-			{
-				if (marketHandlersWired) return;
-				hub.On<string, JsonElement>("GatewayQuote", (cid, json) => { if (cid == _contractId) OnQuote?.Invoke(cid, json); });
-				hub.On<string, JsonElement>("GatewayTrade", (cid, json) => { if (cid == _contractId) OnTrade?.Invoke(cid, json); });
-				hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
-				marketHandlersWired = true;
-			}
-			WireMarketHandlers(_conn);
-
-			_conn.Reconnecting += err =>
-			{
-				_subscribed = false;
-				_log.LogWarning(err, "[MarketHub] Reconnecting…");
-				return Task.CompletedTask;
-			};
-
-			_conn.Reconnected += async _ =>
-			{
-				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
-				// Set marketHub status as connected
-				// You may need to inject StatusService here if not already
-				await SubscribeIfConnectedAsync(CancellationToken.None);
-			};
-
-			_conn.Closed += err =>
-			{
-				_subscribed = false;
-				_log.LogWarning(err, "[MarketHub] Closed.");
-				// Set marketHub status as disconnected; AutomaticReconnect will handle reconnects.
-				return Task.CompletedTask;
-			};
+			_conn = await BuildMarketHubAsync();
+			AttachLifecycleHandlers(contractId, ct);
 
 			await _conn.StartAsync(ct);
-			// Set marketHub status as connected
-			// You may need to inject StatusService here if not already
-			await Task.Delay(200);
+			await Task.Delay(200, ct);
 			await SubscribeIfConnectedAsync(CancellationToken.None);
 		}
 

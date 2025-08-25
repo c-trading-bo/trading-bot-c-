@@ -71,33 +71,7 @@ namespace BotCore
 			}
 
 			_accountId = accountId;
-			var baseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
-			var url = $"{baseUrl.TrimEnd('/')}/hubs/user";
-			_hub = new HubConnectionBuilder()
-				.WithUrl(url, opt =>
-				{
-					opt.AccessTokenProvider = async () =>
-					{
-						var tok = await tokenProvider();
-						var ok = !string.IsNullOrWhiteSpace(tok);
-						_log.LogInformation("AccessTokenProvider token present? {ok}", ok);
-						return tok;
-					};
-					opt.Transports = HttpTransportType.WebSockets;
-				})
-				.WithAutomaticReconnect(new ExpoRetry())
-				.ConfigureLogging(lb =>
-				{
-					lb.AddConsole();
-					lb.SetMinimumLevel(LogLevel.Debug);
-				})
-				.Build();
-
-			WireEvents(_hub);
-
-			_hub.ServerTimeout     = TimeSpan.FromSeconds(60);
-			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
-			_hub.HandshakeTimeout  = TimeSpan.FromSeconds(15);
+			_hub = await BuildUserHubAsync(tokenProvider);
 
 			using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
 			connectCts.CancelAfter(TimeSpan.FromSeconds(15));
@@ -111,6 +85,74 @@ namespace BotCore
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
 			await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+
+			// Attach Closed rebuilder to ensure fresh token and resubscribe on server-initiated close
+			AttachClosedRebuilder(tokenProvider, accountId, appCt);
+		}
+
+		private static string RtcBase() => (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
+
+		private async Task<HubConnection> BuildUserHubAsync(Func<Task<string?>> tokenProvider)
+		{
+			var tok = await tokenProvider() ?? string.Empty;
+			var url = $"{RtcBase()}/hubs/user?access_token={Uri.EscapeDataString(tok)}";
+
+			var hub = new HubConnectionBuilder()
+				.WithUrl(url, o =>
+				{
+					o.Transports = HttpTransportType.WebSockets;
+					o.SkipNegotiation = true;
+				})
+				.WithAutomaticReconnect(new ExpoRetry())
+				.ConfigureLogging(lb =>
+				{
+					lb.AddConsole();
+					lb.SetMinimumLevel(LogLevel.Debug);
+				})
+				.Build();
+
+			hub.ServerTimeout = TimeSpan.FromSeconds(60);
+			hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
+
+			WireEvents(hub);
+			return hub;
+		}
+
+		private void AttachClosedRebuilder(Func<Task<string?>> tokenProvider, long accountId, CancellationToken appCt)
+		{
+			_hub.Closed += async ex =>
+			{
+				_statusService.Set("user.state", string.Empty);
+				_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
+				var delay = TimeSpan.FromSeconds(1);
+				for (int attempt = 1; attempt <= 5 && !appCt.IsCancellationRequested; attempt++)
+				{
+					try
+					{
+						await Task.Delay(delay, appCt);
+						try { await _hub.DisposeAsync(); } catch { }
+						_hub = await BuildUserHubAsync(tokenProvider);
+						using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
+						connectCts.CancelAfter(TimeSpan.FromSeconds(15));
+						await _hub.StartAsync(connectCts.Token);
+						_statusService.Set("user.state", _hub.ConnectionId ?? string.Empty);
+						await Task.Delay(250, appCt);
+						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeAccounts"), _log, appCt);
+						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeOrders",    accountId), _log, appCt);
+						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribePositions", accountId), _log, appCt);
+						await HubSafe.InvokeIfConnected(_hub, () => _hub!.InvokeAsync("SubscribeTrades",    accountId), _log, appCt);
+						// re-attach for future closes
+						AttachClosedRebuilder(tokenProvider, accountId, appCt);
+						return; // rebuilt successfully
+					}
+					catch (Exception retryEx)
+					{
+						_log.LogWarning(retryEx, "UserHub restart attempt {Attempt} failed.", attempt);
+						delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
+					}
+				}
+			};
 		}
 
 		private void WireEvents(HubConnection hub)
