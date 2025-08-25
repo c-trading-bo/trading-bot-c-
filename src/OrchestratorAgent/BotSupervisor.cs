@@ -261,7 +261,10 @@ namespace OrchestratorAgent
                         _reconnects.Enqueue(DateTime.UtcNow);
                         TrimWindow(_reconnects, TimeSpan.FromMinutes(5));
                         if (_reconnects.Count > 5)
+                        {
                             _log.LogWarning("[WARN] Reconnect loop: {Count} in last 5m", _reconnects.Count);
+                            try { _ = _notifier.Warn($"Reconnect storm: {_reconnects.Count} in last 5m"); } catch { }
+                        }
                         if (rebuildOnReconnect)
                             await router.EnsureBracketsAsync(_accountId, ct);
                     });
