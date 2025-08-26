@@ -103,9 +103,21 @@ namespace BotCore
 			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), ct);
 		}
 
+		private async Task TrySubscribeAsync(Func<Task> call, CancellationToken ct)
+		{
+			try
+			{
+				if (_hub is null) return;
+				await HubSafe.InvokeWhenConnected(_hub, call, _log, ct);
+			}
+			catch (Exception ex)
+			{
+				_log.LogWarning(ex, "UserHub initial subscription invoke failed; will retry after reconnect.");
+			}
+		}
+
 		private void WireEvents(HubConnection hub)
 		{
-			void StatusSetLocal(string key, object value) => StatusSet(key, value);
 			if (_handlersWired) return;
 			hub.On<JsonElement>("GatewayUserAccount", data => { try { _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
 			hub.On<JsonElement>("GatewayUserOrder", data => { try { _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
