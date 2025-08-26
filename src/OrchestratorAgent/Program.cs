@@ -434,31 +434,47 @@ namespace OrchestratorAgent
                         {
                             using var httpSeed = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("API_BASE") ?? apiBase) };
                             httpSeed.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await jwtCache.GetAsync());
+                            httpSeed.DefaultRequestHeaders.Accept.Clear();
+                            httpSeed.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+                            var endUtc = DateTime.UtcNow;
+                            var startUtc = endUtc.AddMinutes(-600);
+
                             var payload = new {
                                 contractId = contractId,
                                 live = false,
+                                startTime = startUtc.ToString("o"),
+                                endTime = endUtc.ToString("o"),
                                 unit = 2,        // Minute
                                 unitNumber = 1,
-                                limit = 500,
+                                limit = 2000,
                                 includePartialBar = true
                             };
                             var resp = await httpSeed.PostAsJsonAsync("/api/History/retrieveBars", payload, cts.Token);
-                            resp.EnsureSuccessStatusCode();
-                            using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
-                            var arr = doc.RootElement;
-                            var seeded = new System.Collections.Generic.List<BotCore.Market.Bar>();
-                            foreach (var x in arr.EnumerateArray())
+                            var text = await resp.Content.ReadAsStringAsync(cts.Token);
+                            if (!resp.IsSuccessStatusCode)
                             {
-                                var start = ParseUtc(x.GetProperty("startTime").GetString()!);
-                                var end   = ParseUtc(x.GetProperty("endTime").GetString()!);
-                                var o = x.GetProperty("open").GetDecimal();
-                                var h = x.GetProperty("high").GetDecimal();
-                                var l = x.GetProperty("low").GetDecimal();
-                                var c = x.GetProperty("close").GetDecimal();
-                                var v = x.TryGetProperty("volume", out var ve) ? ve.GetInt64() : 0L;
-                                seeded.Add(new BotCore.Market.Bar(start, end, o, h, l, c, v));
+                                dataLog.LogWarning("[DataFeed] retrieveBars {cid} failed {code}: {msg}", contractId, (int)resp.StatusCode, text);
+                                resp.EnsureSuccessStatusCode();
+                            }
+
+                            using var doc = System.Text.Json.JsonDocument.Parse(text);
+                            var barsJson = doc.RootElement.GetProperty("bars");
+
+                            var seeded = new System.Collections.Generic.List<BotCore.Market.Bar>();
+                            foreach (var x in barsJson.EnumerateArray())
+                            {
+                                var t = x.GetProperty("t").GetDateTime();
+                                var o = x.GetProperty("o").GetDecimal();
+                                var h = x.GetProperty("h").GetDecimal();
+                                var l = x.GetProperty("l").GetDecimal();
+                                var c = x.GetProperty("c").GetDecimal();
+                                var v = x.GetProperty("v").GetInt64();
+                                var end = t.AddMinutes(1);
+                                seeded.Add(new BotCore.Market.Bar(t, end, o, h, l, c, v));
                             }
                             barPyramid.M1.Seed(contractId, seeded);
+                            dataLog.LogInformation("Bars seeded: {cid}={n}", contractId, seeded.Count);
                         }
                         catch (Exception ex)
                         {
