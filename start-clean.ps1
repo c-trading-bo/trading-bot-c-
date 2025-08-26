@@ -1,5 +1,8 @@
 param([switch]$ChecklistOnly)
 
+# Ensure we are at repository root (script's directory)
+Set-Location -Path $PSScriptRoot
+
 # --- make console output compact & single-line ---
 $env:Logging__Console__FormatterName = 'simple'
 $env:Logging__Console__FormatterOptions__SingleLine = 'true'

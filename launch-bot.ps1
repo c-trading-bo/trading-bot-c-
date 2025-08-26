@@ -1,3 +1,6 @@
+# Ensure we are at repository root (script's directory)
+Set-Location -Path $PSScriptRoot
+
 # Load .env.local variables and launch the bot
 $envFile = ".env.local"
 if (Test-Path $envFile) {
