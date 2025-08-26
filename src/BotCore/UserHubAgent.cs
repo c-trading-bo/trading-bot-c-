@@ -65,6 +65,17 @@ namespace BotCore
 			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
+			// Re-subscribe automatically after reconnects (use lax token)
+			_hub.Reconnected += id =>
+			{
+				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
+				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), CancellationToken.None);
+				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), CancellationToken.None);
+				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), CancellationToken.None);
+				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), CancellationToken.None);
+				return Task.CompletedTask;
+			};
+
 			// Wire up robust event logging
 			_hub.Closed += ex =>
 			{
@@ -97,10 +108,10 @@ namespace BotCore
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
 			await Task.Delay(250, ct); // ensure server is ready before subscribing
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), ct);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), ct);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), ct);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), ct);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), CancellationToken.None);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), CancellationToken.None);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), CancellationToken.None);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), CancellationToken.None);
 		}
 
 		private async Task TrySubscribeAsync(Func<Task> call, CancellationToken ct)

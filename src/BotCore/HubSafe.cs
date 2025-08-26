@@ -16,24 +16,65 @@ namespace BotCore
             Func<Task> call,
             ILogger log,
             CancellationToken ct,
-            int maxAttempts = 3,
+            int maxAttempts = 12,
             int waitMs = 30000)
         {
             await WaitForConnected(hub, TimeSpan.FromMilliseconds(waitMs), ct, log);
-            try
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
-                await call();
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    await call();
+                    if (attempt > 1)
+                        log.LogDebug("Invoke succeeded after {Attempts} attempt(s).", attempt);
+                    return;
+                }
+                catch (InvalidOperationException ioe)
+                {
+                    var msg = ioe.Message ?? string.Empty;
+                    if (msg.Contains("not active", StringComparison.OrdinalIgnoreCase)
+                        || msg.Contains("cannot be called", StringComparison.OrdinalIgnoreCase)
+                        || msg.Contains("The 'InvokeCoreAsync' method cannot be called", StringComparison.OrdinalIgnoreCase))
+                    {
+                        log.LogDebug(ioe, "Invoke attempt {Attempt} while hub state={State}; retrying.", attempt, hub.State);
+                    }
+                    else
+                    {
+                        // non-transient InvalidOperation
+                        log.LogWarning(ioe, "Invoke failed (non-transient). Rethrowing.");
+                        throw;
+                    }
+                }
+                catch (OperationCanceledException oce)
+                {
+                    // During reconnects, transient cancels can bubble up from transport/handshake
+                    log.LogDebug(oce, "Invoke canceled on attempt {Attempt}; will retry.", attempt);
+                }
+                catch (TaskCanceledException tce)
+                {
+                    log.LogDebug(tce, "Invoke task canceled on attempt {Attempt}; will retry.", attempt);
+                }
+                catch (Exception ex)
+                {
+                    // Other exceptions: try a few times as well, but warn
+                    log.LogWarning(ex, "Invoke attempt {Attempt} failed; will retry (state={State}).", attempt, hub.State);
+                }
+
+                // Backoff before next attempt, nudge Start if we’re disconnected
+                try
+                {
+                    if (hub.State == HubConnectionState.Disconnected)
+                    {
+                        try { await hub.StartAsync(ct); } catch { /* swallow and retry */ }
+                    }
+                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                }
+                catch { /* ignore delay/start errors and continue */ }
             }
-            catch (InvalidOperationException ioe)
-            {
-                log.LogWarning(ioe, "Invoke failed: hub not active.");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                log.LogWarning(ex, "Invoke failed.");
-                throw;
-            }
+
+            throw new TimeoutException($"Invoke failed after {maxAttempts} attempts while state={hub.State}.");
         }
 
         public static async Task WaitForConnected(
