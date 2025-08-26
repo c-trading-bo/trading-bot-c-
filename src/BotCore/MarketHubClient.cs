@@ -101,7 +101,7 @@ namespace BotCore
 		}
 
 
-		private async Task<HubConnection> BuildMarketHubAsync()
+		private Task<HubConnection> BuildMarketHubAsync()
 		{
 			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
 			var url = $"{rtcBase}/hubs/market";
@@ -146,7 +146,7 @@ namespace BotCore
 			});
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
 
-			return hub;
+			return Task.FromResult(hub);
 		}
 
 		private void AttachLifecycleHandlers(CancellationToken appCt)

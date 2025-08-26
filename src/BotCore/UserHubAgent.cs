@@ -22,6 +22,7 @@ namespace BotCore
 		private readonly object? _statusService;
 		private HubConnection _hub = default!;
 		private bool _handlersWired;
+		private long _accountId;
 
 		public event Action<JsonElement>? OnOrder;
 		public event Action<JsonElement>? OnTrade;
@@ -47,6 +48,7 @@ namespace BotCore
 				return;
 			}
 
+			_accountId = accountId;
 			var url = "https://rtc.topstepx.com/hubs/user";
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
@@ -61,23 +63,20 @@ namespace BotCore
 
 			WireEvents(_hub);
 
-			_hub.ServerTimeout = TimeSpan.FromSeconds(60);
-			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+			_hub.ServerTimeout = TimeSpan.FromSeconds(45);
+			_hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
 			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
 			// Re-subscribe automatically after reconnects (use lax token)
-			_hub.Reconnected += id =>
+			_hub.Reconnected += async id =>
 			{
 				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
-				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), CancellationToken.None);
-				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), CancellationToken.None);
-				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), CancellationToken.None);
-				_ = TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), CancellationToken.None);
-				return Task.CompletedTask;
+				try { await ResubscribeAsync(CancellationToken.None); }
+				catch (Exception ex) { _log.LogWarning(ex, "UserHub resubscribe failed after Reconnected"); }
 			};
 
 			// Wire up robust event logging
-			_hub.Closed += ex =>
+			_hub.Closed += async ex =>
 			{
 				if (ex is HttpRequestException hre)
 					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
@@ -85,8 +84,19 @@ namespace BotCore
 					_log.LogWarning(wse, "UserHub CLOSED. WebSocket error: {Err} / CloseStatus: {Close}", wse.WebSocketErrorCode, wse.Data != null && wse.Data.Contains(CloseStatusKey) ? wse.Data[CloseStatusKey] : null);
 				else
 					_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
-				// Let WithAutomaticReconnect handle recovery; avoid manual StartAsync noise
-				return Task.CompletedTask;
+
+				// Backoff briefly, then try to self-recover and resubscribe
+				try { await Task.Delay(TimeSpan.FromSeconds(2), CancellationToken.None); } catch { }
+				try
+				{
+					await _hub.StartAsync();
+					_log.LogInformation("UserHub reconnected. State={State}", _hub.State);
+					await ResubscribeAsync(CancellationToken.None);
+				}
+				catch (Exception rex)
+				{
+					_log.LogWarning(rex, "UserHub restart/resubscribe failed; will rely on auto-reconnect and retry loops.");
+				}
 			};
 			// _hub.Reconnecting += ex =>
 			// ...existing code...
@@ -108,10 +118,7 @@ namespace BotCore
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
 			await Task.Delay(250, ct); // ensure server is ready before subscribing
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), CancellationToken.None);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), CancellationToken.None);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), CancellationToken.None);
-			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), CancellationToken.None);
+			await ResubscribeAsync(CancellationToken.None);
 		}
 
 		private async Task TrySubscribeAsync(Func<Task> call, CancellationToken ct)
@@ -125,6 +132,16 @@ namespace BotCore
 			{
 				_log.LogWarning(ex, "UserHub initial subscription invoke failed; will retry after reconnect.");
 			}
+		}
+
+		private async Task ResubscribeAsync(CancellationToken ct)
+		{
+			if (_hub is null) return;
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None, maxAttempts: 12, waitMs: 1000);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders", _accountId), _log, CancellationToken.None, maxAttempts: 12, waitMs: 1000);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None, maxAttempts: 12, waitMs: 1000);
+			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades", _accountId), _log, CancellationToken.None, maxAttempts: 12, waitMs: 1000);
+			_log.LogInformation("UserHub subscriptions confirmed for AccountId={Acc}", _accountId);
 		}
 
 		private void WireEvents(HubConnection hub)
