@@ -23,6 +23,7 @@ namespace BotCore
 		private HubConnection _hub = default!;
 		private bool _handlersWired;
 		private long _accountId;
+		private string? _jwt;
 
 		public event Action<JsonElement>? OnOrder;
 		public event Action<JsonElement>? OnTrade;
@@ -57,6 +58,9 @@ namespace BotCore
 				throw new ArgumentException("jwtToken must be non-empty", nameof(jwtToken));
 			}
 
+			// Persist token for SignalR AccessTokenProvider and reconnects
+			_jwt = jwtToken;
+
 			// Allow overriding RTC base from env
 			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE")
 				?? Environment.GetEnvironmentVariable("RTC_BASE")
@@ -67,9 +71,9 @@ namespace BotCore
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					opt.AccessTokenProvider = () => Task.FromResult(jwtToken); // token via AccessTokenProvider only
+					opt.AccessTokenProvider = () => Task.FromResult(_jwt);
 					opt.Transports = HttpTransportType.WebSockets;
-					opt.SkipNegotiation = true;
+					// DO NOT force SkipNegotiation unless required; default is fine
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
 				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
