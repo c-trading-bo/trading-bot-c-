@@ -95,7 +95,7 @@ namespace BotCore
 				{
 					try
 					{
-						await _conn!.InvokeAsync(method, args.Append(ct).ToArray());
+						await _conn!.InvokeAsync(method, args, ct);
 						_log.LogInformation("[MarketHub] {Method}({Args}) ok", method, string.Join(",", args));
 						return true;
 					}
@@ -133,7 +133,7 @@ namespace BotCore
 				else
 				{
 					_subscribed = false;
-					_log.LogDebug("[MarketHub] No subscription methods were accepted by the hub (will retry on reconnect)");
+					_log.LogWarning("[MarketHub] No subscription methods were accepted by the hub (will retry on reconnect)");
 				}
 			}
 			finally
