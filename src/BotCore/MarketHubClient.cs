@@ -25,10 +25,10 @@ namespace BotCore
 			private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastBarSeen = new();
 
 			// Throttling/backoff fields to reduce log spam during unstable connectivity bursts
-			private DateTime _lastClosedWarnUtc = DateTime.MinValue;
-			private DateTime _lastRebuiltInfoUtc = DateTime.MinValue;
-			private readonly TimeSpan _closedWarnInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_CLOSED_WARN_INTERVAL_SECONDS", 10));
-			private readonly TimeSpan _rebuiltInfoInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_REBUILT_INFO_INTERVAL_SECONDS", 10));
+			private static DateTime _lastClosedWarnUtc = DateTime.MinValue;
+			private static DateTime _lastRebuiltInfoUtc = DateTime.MinValue;
+			private static readonly TimeSpan _closedWarnInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_CLOSED_WARN_INTERVAL_SECONDS", 10));
+			private static readonly TimeSpan _rebuiltInfoInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_REBUILT_INFO_INTERVAL_SECONDS", 10));
 
 			private static int GetEnvInt(string name, int def)
 			{

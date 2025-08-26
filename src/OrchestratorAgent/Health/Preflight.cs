@@ -60,7 +60,7 @@ namespace OrchestratorAgent.Health
 				else
 				{
 					contractId = await _api.ResolveContractIdAsync(rootSymbol, ct);
-					try { _status.Contracts[rootSymbol] = contractId; } catch { }
+					try { (_status.Contracts ??= new())[rootSymbol] = contractId; } catch { }
 				}
 			}
 			catch

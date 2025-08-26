@@ -12,6 +12,7 @@ namespace SupervisorAgent
         private DateTimeOffset _lastBeat = DateTimeOffset.MinValue;
         private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
         private string _lastJson = string.Empty;
+        private string _lastSig = string.Empty;
 
         public long AccountId { get; set; }
         public Dictionary<string,string> Contracts { get; set; } = new();
@@ -48,11 +49,27 @@ namespace SupervisorAgent
             };
             var json = JsonSerializer.Serialize(snapshot);
 
+            // Stable signature excludes whenUtc so we don't emit just because time advanced
+            var sigObj = new
+            {
+                accountId = AccountId,
+                contracts = Contracts,
+                userHub = Get<string>("user.state"),
+                marketHub = Get<string>("market.state"),
+                lastTrade = Get<DateTimeOffset?>("last.trade"),
+                lastQuote = Get<DateTimeOffset?>("last.quote"),
+                strategies = Get<object?>("strategies"),
+                openOrders = Get<object?>("orders.open"),
+                risk = Get<object?>("risk.state")
+            };
+            var sig = JsonSerializer.Serialize(sigObj);
+
             if (Concise())
             {
-                // Emit only when changed or every 60s
-                if (json != _lastJson || (now - _lastEmit) >= TimeSpan.FromSeconds(60))
+                // Emit only when state signature changed or every 60s
+                if (sig != _lastSig || (now - _lastEmit) >= TimeSpan.FromSeconds(60))
                 {
+                    _lastSig = sig;
                     _lastJson = json;
                     _lastEmit = now;
                     _log.LogInformation("BOT STATUS => {Json}", json);

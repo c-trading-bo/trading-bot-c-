@@ -292,18 +292,6 @@ namespace OrchestratorAgent
                     q.TryDequeue(out _);
             }
 
-            async Task RouteSerialAsync(List<(BotCore.StrategySignal Sig, string ContractId)> batch, CancellationToken ct)
-            {
-                await _routeLock.WaitAsync(ct);
-                try
-                {
-                    foreach (var (Sig, ContractId) in batch)
-                    {
-                        await Retry(() => router.RouteAsync(Sig, ContractId, ct), ct);
-                    }
-                }
-                finally { _routeLock.Release(); }
-            }
 
             async void HandleBar(BotCore.Models.Bar bar)
             {
