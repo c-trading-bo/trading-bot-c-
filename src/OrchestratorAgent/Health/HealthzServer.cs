@@ -1,9 +1,13 @@
 #nullable enable
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Text.Json;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent.Health
 {
@@ -20,6 +24,7 @@ namespace OrchestratorAgent.Health
                 if (!prefix.EndsWith("/")) prefix += "/";
                 listener.Prefixes.Add(prefix);
                 listener.Start();
+                var startedUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
                 _ = Task.Run(async () =>
                 {
                     while (!ct.IsCancellationRequested)
@@ -47,6 +52,55 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/build", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var infoVer = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                                               ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+                                               ?? "dev";
+                                var payload = new
+                                {
+                                    version = infoVer,
+                                    pid = Environment.ProcessId,
+                                    mode = mode?.IsLive == true ? "LIVE" : "SHADOW",
+                                    lease = lease?.HasLease ?? (bool?)null,
+                                    startedUtc
+                                };
+                                var json = JsonSerializer.Serialize(payload);
+                                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/capabilities", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var arr = Capabilities.All;
+                                var json = JsonSerializer.Serialize(arr);
+                                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.StatusCode = 200;
+                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                ctx.Response.Close();
+                            }
+                            else if (path.Equals("/deploy/status", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string stateDir = Path.Combine(AppContext.BaseDirectory, "state");
+                                string lastPath = Path.Combine(stateDir, "last_deployed.txt");
+                                string logPath = Path.Combine(stateDir, "deployments.jsonl");
+                                string pending = Path.Combine(stateDir, "pending_commits.json");
+                                string readOrEmpty(string p) => File.Exists(p) ? File.ReadAllText(p) : "";
+                                var json = JsonSerializer.Serialize(new
+                                {
+                                    lastDeployed = readOrEmpty(lastPath),
+                                    historyJsonl = readOrEmpty(logPath),
+                                    pendingCommits = readOrEmpty(pending)
+                                });
+                                var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+                                ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
                                 await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
                                 ctx.Response.Close();

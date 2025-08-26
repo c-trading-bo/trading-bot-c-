@@ -326,6 +326,19 @@ namespace OrchestratorAgent
                     }
                     OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, healthPrefix, cts.Token, appState, liveLease);
 
+                    // Capabilities registry (active features)
+                    OrchestratorAgent.Infra.Capabilities.Add("Lease.SingleWriter");
+                    OrchestratorAgent.Infra.Capabilities.Add("Mode.AutoPilot");
+                    OrchestratorAgent.Infra.Capabilities.Add("Drain.NoNewParents");
+                    OrchestratorAgent.Infra.Capabilities.Add("Preflight.IngestFreshness");
+                    OrchestratorAgent.Infra.Capabilities.Add("Positions.SearchOpen.POST");
+                    OrchestratorAgent.Infra.Capabilities.Add("EOD.Journal");
+                    OrchestratorAgent.Infra.Capabilities.Add("DST.Guard");
+                    OrchestratorAgent.Infra.Capabilities.Add("JWT.Refresh.401SingleFlight");
+                    OrchestratorAgent.Infra.Capabilities.Add("OCO.Rebuild");
+                    OrchestratorAgent.Infra.Capabilities.Add("Logs.Rotate");
+                    OrchestratorAgent.Infra.Capabilities.Add("Metrics.Prometheus");
+
                     // Simple stats provider
                     var startedUtc = DateTime.UtcNow;
                     var stats = new SimpleStats(startedUtc);
