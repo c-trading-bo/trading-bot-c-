@@ -14,16 +14,17 @@ namespace ConnectivityProbeApp
             string rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
             string hubUser = $"{rtcBase.TrimEnd('/')}/hubs/user";
 
-            string? jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            static string? Env(string name) => Environment.GetEnvironmentVariable(name);
+            string? jwt = Env("TOPSTEPX_JWT") ?? Env("JWT");
             if (string.IsNullOrWhiteSpace(jwt))
             {
-                var user = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-                var key = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
+                var user = Env("TOPSTEPX_USERNAME") ?? Env("LOGIN_USERNAME") ?? Env("LOGIN_EMAIL") ?? Env("USERNAME") ?? Env("EMAIL");
+                var key = Env("TOPSTEPX_API_KEY") ?? Env("LOGIN_KEY") ?? Env("API_KEY");
                 if (!string.IsNullOrWhiteSpace(user) && !string.IsNullOrWhiteSpace(key))
                 {
                     try
                     {
-                        using var http = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
+                        using var http = new HttpClient { BaseAddress = new Uri(Env("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
                         var auth = new TopstepAuthAgent(http);
                         Console.WriteLine($"Fetching JWT using login key for {user}…");
                         jwt = await auth.GetJwtAsync(user!, key!, CancellationToken.None);

@@ -34,7 +34,8 @@ namespace OrchestratorAgent.Health
 		public async Task<(bool ok, string msg)> RunAsync(string rootSymbol, CancellationToken ct)
 		{
 			// 1) Auth fresh (T-120s)
-			var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? string.Empty;
+			static string? Env(string name) => Environment.GetEnvironmentVariable(name);
+			var jwt = Env("TOPSTEPX_JWT") ?? Env("JWT") ?? string.Empty;
 			if (string.IsNullOrWhiteSpace(jwt)) return (false, "JWT missing");
 			try
 			{

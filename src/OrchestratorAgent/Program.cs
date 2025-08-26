@@ -79,11 +79,12 @@ namespace OrchestratorAgent
                 .ToArray();
             string symbol = roots.Length > 0 ? roots[0] : "ES";
 
-            // Load credentials
-            string? jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-            string? userName = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
-            string? apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
-            long accountId = long.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID"), out var id) ? id : 0L;
+            // Load credentials (with fallbacks for common env names)
+            static string? Env(string name) => Environment.GetEnvironmentVariable(name);
+            string? jwt = Env("TOPSTEPX_JWT") ?? Env("JWT");
+            string? userName = Env("TOPSTEPX_USERNAME") ?? Env("LOGIN_USERNAME") ?? Env("LOGIN_EMAIL") ?? Env("USERNAME") ?? Env("EMAIL");
+            string? apiKey = Env("TOPSTEPX_API_KEY") ?? Env("LOGIN_KEY") ?? Env("API_KEY");
+            long accountId = long.TryParse(Env("TOPSTEPX_ACCOUNT_ID") ?? Env("ACCOUNT_ID"), out var id) ? id : 0L;
 
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
