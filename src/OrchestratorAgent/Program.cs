@@ -446,7 +446,7 @@ namespace OrchestratorAgent
                     // Paper mode wiring
                     bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     bool shadowMode = (Environment.GetEnvironmentVariable("SHADOW_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                    var simulateMode = paperMode;
+                    var simulateMode = paperMode || shadowMode;
                                         PaperBroker? paperBroker = simulateMode ? new PaperBroker(status, log) : null;
 
                     // Autopilot flags
