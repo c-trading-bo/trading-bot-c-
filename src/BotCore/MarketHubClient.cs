@@ -97,44 +97,35 @@ namespace BotCore
 					return;
 				}
 
-				// Loud per-method attempts to discover the accepted method/signature
+				// Invoke only the documented ProjectX methods with a single string contractId
 				bool anySucceeded = false;
-				async Task Try(string method, params object[] args)
+
+				async Task Call(string method, string cid)
 				{
 					try
 					{
-						await _conn!.InvokeAsync(method, args, ct);
-						_log.LogInformation("[MarketHub] {m}({a}) OK", method, string.Join(',', args.Select(a => a?.ToString())));
+						await _conn!.InvokeAsync(method, cid, ct);
+						_log.LogInformation("[MarketHub] {Method}({Cid}) OK", method, cid);
 						anySucceeded = true;
 					}
 					catch (Exception ex)
 					{
-						_log.LogWarning("[MarketHub] {m}({a}) FAILED: {e}", method, string.Join(',', args.Select(a => a?.ToString())), ex.Message);
+						_log.LogWarning("[MarketHub] {Method}({Cid}) FAILED: {Error}", method, cid, ex.Message);
 					}
 				}
 
-				// Canonical ProjectX names first
-				await Try("SubscribeContractQuotes", _contractId);
-				await Try("SubscribeContractTrades", _contractId);
-				await Try("SubscribeContractMarketDepth", _contractId);
-
-				// Common alternates
-				await Try("SubscribeQuotes", _contractId);
-				await Try("SubscribeTrades", _contractId);
-				await Try("SubscribeDepth", _contractId);
-
-				// Object payload variant
-				var objPayload = new { contractId = _contractId, channels = new[] { "quotes", "trades", "depth" } };
-				await Try("SubscribeContract", objPayload);
+				await Call("SubscribeContractQuotes", _contractId);
+				await Call("SubscribeContractTrades", _contractId);
+				await Call("SubscribeContractMarketDepth", _contractId);
 
 				_subscribed = anySucceeded;
 				if (!anySucceeded)
 				{
-					_log.LogError("[MarketHub] No known subscribe method worked for {cid}", _contractId);
+					_log.LogError("[MarketHub] Subscribe failed for {cid} using documented methods.", _contractId);
 				}
 				else
 				{
-					_log.LogInformation("[MarketHub] Subscribed (at least one method OK) {ContractId}", _contractId);
+					_log.LogInformation("[MarketHub] Subscribed (quotes/trades/depth) {ContractId}", _contractId);
 				}
 			}
 			finally
