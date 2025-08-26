@@ -78,4 +78,17 @@ Implement rolling performance analytics for your trading bot, including win rate
 
 ## References
 
-This roadmap is designed for incremental implementation. Tackle each step, validate with tests, and iterate for best results. For code samples or integration help, just ask!
+
+## Upgrade List: Missing or Partial Features
+
+- UpsertBracketsAsync (OrderRouter): Implement API call to upsert take-profit/stop-loss for partially filled parent orders (currently logs only).
+- ConvertRemainderToLimitOrCancelAsync (OrderRouter): Implement conversion/cancel policy for stale partial fills (currently logs only).
+- Performance Export: Add export to PDF for daily/weekly performance reports (CSV is present).
+- News/Holiday Flags: Populate real news/holiday flags for risk boosts (currently stubbed).
+- Full Project Solution Build: Add remaining agent projects to `TopstepX.Bot.sln` for IDE-wide build/test.
+- Dashboard UI: Add a simple web/local dashboard for live status, risk, and manual controls.
+- Trade Execution Quality: Track and log slippage, fill rates, and order rejections for every trade.
+- Health Monitoring: Add more granular uptime/connectivity tracking and alerting.
+
+---
+Keep adding to this list as you identify new gaps or opportunities!

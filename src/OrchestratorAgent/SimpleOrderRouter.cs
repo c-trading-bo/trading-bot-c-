@@ -59,6 +59,14 @@ namespace OrchestratorAgent
             var liveMode = (_live || liveEnv) && !kill;
             var modeStr = liveMode ? "LIVE" : "DRY-RUN";
 
+            // Ensure a deterministic order_group_id tag for idempotency if none provided
+            if (string.IsNullOrWhiteSpace(sig.Tag))
+            {
+                // Use strategy|symbol|entry|stop rounded to tick as the idempotent tag basis
+                var tag = $"{sig.StrategyId}|{sig.Symbol}|{sig.Entry:F2}|{sig.Stop:F2}".ToUpperInvariant();
+                sig = sig with { Tag = tag };
+            }
+
             _log.LogInformation("[Router] {Mode} Route: {Side} {Size} {Contract} @ {Entry} (stop {Stop}, target {Target}) tag={Tag}",
                 modeStr, sig.Side, sig.Size, sig.ContractId, sig.Entry, sig.Stop, sig.Target, sig.Tag);
 
@@ -84,6 +92,24 @@ namespace OrchestratorAgent
                     await JournalAsync(false, "missing_jwt", 0, null, modeStr);
                     return false;
                 }
+
+                // Idempotent routing: search for an existing open parent with same customTag first
+                try
+                {
+                    using var searchReq = new HttpRequestMessage(HttpMethod.Post, "/api/Order/search");
+                    searchReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    var body = new { accountId = sig.AccountId, contractId = sig.ContractId, status = "OPEN", customTag = sig.Tag };
+                    searchReq.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+                    using var searchResp = await _http.SendAsync(searchReq, ct);
+                    var sBody = await searchResp.Content.ReadAsStringAsync(ct);
+                    if (searchResp.IsSuccessStatusCode && !string.IsNullOrWhiteSpace(sBody) && sBody.Contains(sig.Tag ?? string.Empty, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _log.LogInformation("[Router] Idempotent: found existing open order for tag={Tag}; skip new place.", sig.Tag);
+                        await JournalAsync(true, "idempotent_skip", (int)searchResp.StatusCode, null, modeStr);
+                        return true;
+                    }
+                }
+                catch { }
 
                 // Enforce max contracts cap (default 2; override via MAX_CONTRACTS env)
                 int maxContracts = 2;
@@ -230,6 +256,78 @@ namespace OrchestratorAgent
                         }
                     }
                     catch { }
+
+                    // Entry TTL with single smart reprice then cancel
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var t0 = DateTime.UtcNow; var ttl = TimeSpan.FromSeconds(int.TryParse(Environment.GetEnvironmentVariable("ENTRY_TTL_SEC"), out var tsec) && tsec > 0 ? tsec : 45);
+                            var repriceAt = TimeSpan.FromSeconds(int.TryParse(Environment.GetEnvironmentVariable("ENTRY_REPRICE_AT_SEC"), out var rp) && rp > 0 ? rp : 25);
+                            var didReprice = false;
+                            while (DateTime.UtcNow - t0 < ttl && !ct.IsCancellationRequested)
+                            {
+                                try { await Task.Delay(1000, ct); } catch { break; }
+                                try
+                                {
+                                    using var getReq = new HttpRequestMessage(HttpMethod.Get, $"/orders/{parentId}");
+                                    getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                                    using var getResp = await _http.SendAsync(getReq, ct);
+                                    var body = await getResp.Content.ReadAsStringAsync(ct);
+                                    if (!getResp.IsSuccessStatusCode) continue;
+                                    using var jdoc = JsonDocument.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body);
+                                    var root = jdoc.RootElement;
+                                    int qty = 0, filled = 0; decimal price = sig.Entry;
+                                    try { if (root.TryGetProperty("qty", out var q)) qty = q.GetInt32(); } catch { }
+                                    try { if (root.TryGetProperty("filledQty", out var f)) filled = f.GetInt32(); } catch { }
+                                    try { if (root.TryGetProperty("price", out var p)) price = p.GetDecimal(); else if (root.TryGetProperty("limitPrice", out var lp)) price = lp.GetDecimal(); } catch { }
+                                    if (filled >= qty && qty > 0) break; // fully filled
+                                    if (!didReprice && DateTime.UtcNow - t0 > repriceAt)
+                                    {
+                                        var newPx = (string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase)) ? price - tick : price + tick;
+                                        try
+                                        {
+                                            using var modReq = new HttpRequestMessage(HttpMethod.Post, "/orders/modify");
+                                            modReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                                            modReq.Content = new StringContent(JsonSerializer.Serialize(new { orderId = parentId, price = newPx }), Encoding.UTF8, "application/json");
+                                            using var modResp = await _http.SendAsync(modReq, ct);
+                                            if (!modResp.IsSuccessStatusCode)
+                                            {
+                                                using var modReq2 = new HttpRequestMessage(HttpMethod.Post, "/api/Order/modify");
+                                                modReq2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                                                modReq2.Content = new StringContent(JsonSerializer.Serialize(new { orderId = parentId, price = newPx }), Encoding.UTF8, "application/json");
+                                                await _http.SendAsync(modReq2, ct);
+                                            }
+                                            _log.LogInformation("[TTL] Repriced parent {ParentId} -> {Px}", parentId, newPx);
+                                            didReprice = true;
+                                        }
+                                        catch { }
+                                    }
+                                }
+                                catch { }
+                            }
+                            if (DateTime.UtcNow - t0 >= ttl)
+                            {
+                                try
+                                {
+                                    using var cancelReq = new HttpRequestMessage(HttpMethod.Post, "/orders/cancel");
+                                    cancelReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                                    cancelReq.Content = new StringContent(JsonSerializer.Serialize(new { orderId = parentId }), Encoding.UTF8, "application/json");
+                                    using var canResp = await _http.SendAsync(cancelReq, ct);
+                                    if (!canResp.IsSuccessStatusCode)
+                                    {
+                                        using var cancelReq2 = new HttpRequestMessage(HttpMethod.Post, "/api/Order/cancel");
+                                        cancelReq2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                                        cancelReq2.Content = new StringContent(JsonSerializer.Serialize(new { orderId = parentId }), Encoding.UTF8, "application/json");
+                                        await _http.SendAsync(cancelReq2, ct);
+                                    }
+                                    _log.LogWarning("[TTL] Canceled unfilled parent {ParentId} after TTL", parentId);
+                                }
+                                catch { }
+                            }
+                        }
+                        catch { }
+                    }, ct);
                 }
                 return true;
             }

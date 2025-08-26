@@ -18,6 +18,10 @@ namespace OrchestratorAgent
 {
     public static class Program
     {
+        // Session & ops guards (process-wide)
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object _entriesLock = new();
         private static DateTimeOffset? TryGetQuoteLastUpdated(System.Text.Json.JsonElement e)
         {
             if (e.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
@@ -253,8 +257,54 @@ namespace OrchestratorAgent
                         }
                     }
                     status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
-                    market1.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set("last.quote", DateTimeOffset.UtcNow); status.Set("last.quote.updated", ts); };
-                    if (enableNq && market2 != null) market2.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set("last.quote", DateTimeOffset.UtcNow); status.Set("last.quote.updated", ts); };
+                    market1.OnQuote += (_, json) => {
+                        var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow;
+                        status.Set("last.quote", DateTimeOffset.UtcNow);
+                        status.Set("last.quote.updated", ts);
+                        try
+                        {
+                            decimal bid = 0m, ask = 0m;
+                            if (json.ValueKind == JsonValueKind.Object)
+                            {
+                                if (json.TryGetProperty("bestBid", out var bb) && bb.TryGetDecimal(out var b1)) bid = b1;
+                                if (json.TryGetProperty("bestAsk", out var ba) && ba.TryGetDecimal(out var a1)) ask = a1;
+                                if (bid == 0m && json.TryGetProperty("bid", out var b) && b.TryGetDecimal(out var b2)) bid = b2;
+                                if (ask == 0m && json.TryGetProperty("ask", out var a) && a.TryGetDecimal(out var a2)) ask = a2;
+                            }
+                            if (bid > 0m && ask > 0m)
+                            {
+                                var tick = BotCore.Models.InstrumentMeta.Tick("ES");
+                                if (tick <= 0) tick = 0.25m;
+                                var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
+                                status.Set($"spread.ticks.ES", st);
+                            }
+                        }
+                        catch { }
+                    };
+                    if (enableNq && market2 != null) market2.OnQuote += (_, json) => {
+                        var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow;
+                        status.Set("last.quote", DateTimeOffset.UtcNow);
+                        status.Set("last.quote.updated", ts);
+                        try
+                        {
+                            decimal bid = 0m, ask = 0m;
+                            if (json.ValueKind == JsonValueKind.Object)
+                            {
+                                if (json.TryGetProperty("bestBid", out var bb) && bb.TryGetDecimal(out var b1)) bid = b1;
+                                if (json.TryGetProperty("bestAsk", out var ba) && ba.TryGetDecimal(out var a1)) ask = a1;
+                                if (bid == 0m && json.TryGetProperty("bid", out var b) && b.TryGetDecimal(out var b2)) bid = b2;
+                                if (ask == 0m && json.TryGetProperty("ask", out var a) && a.TryGetDecimal(out var a2)) ask = a2;
+                            }
+                            if (bid > 0m && ask > 0m)
+                            {
+                                var tick = BotCore.Models.InstrumentMeta.Tick("NQ");
+                                if (tick <= 0) tick = 0.25m;
+                                var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
+                                status.Set($"spread.ticks.NQ", st);
+                            }
+                        }
+                        catch { }
+                    };
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
@@ -860,7 +910,7 @@ namespace OrchestratorAgent
                         catch { }
                         bars[esRoot].Add(bar);
                         if (paperBroker != null) { try { paperBroker.OnBar(esRoot, bar); } catch { } }
-                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, cts.Token);
+                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, status, cts.Token);
                     };
                     if (enableNq && aggNQ != null && market2 != null)
                     {
@@ -1041,6 +1091,7 @@ namespace OrchestratorAgent
                 ILogger log,
                 OrchestratorAgent.Ops.AppState appState,
                 OrchestratorAgent.Ops.LiveLease liveLease,
+                SupervisorAgent.StatusService status,
                 CancellationToken ct)
             {
                 try
@@ -1064,6 +1115,68 @@ namespace OrchestratorAgent
                         log.LogDebug("[Strategy] {Sym} no signals on bar {Ts}", symbol, bar.Ts);
                         return;
                     }
+
+                    // Session filters & freeze guard
+                    try
+                    {
+                        var cmeTz = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
+                        var nowCt = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, cmeTz).TimeOfDay;
+                        var open = new TimeSpan(8, 30, 0);
+                        var close = new TimeSpan(15, 0, 0);
+                        bool inRth = nowCt >= open && nowCt <= close;
+                        if (!inRth)
+                        {
+                            log.LogInformation("[SKIP reason=session] {Sym} outside RTH", symbol);
+                            return;
+                        }
+                        if (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5)))
+                        {
+                            log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
+                            return;
+                        }
+                        // Econ blocks (ET), format: HH:mm-HH:mm;HH:mm-HH:mm
+                        var econ = Environment.GetEnvironmentVariable("ECON_BLOCKS_ET");
+                        if (!string.IsNullOrWhiteSpace(econ))
+                        {
+                            try
+                            {
+                                var etTz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                                var nowEt = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, etTz).TimeOfDay;
+                                foreach (var blk in econ.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                {
+                                    var parts = blk.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                    if (parts.Length == 2 && TimeSpan.TryParse(parts[0], out var b) && TimeSpan.TryParse(parts[1], out var e))
+                                    {
+                                        if (nowEt >= b && nowEt <= e) { log.LogInformation("[SKIP reason=econ] {Sym} in econ block {Blk}", symbol, blk); return; }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                        // Freeze: no fresh quotes for this contract in RTH
+                        var qUpd = status.Get<DateTimeOffset?>($"last.quote.updated.{contractId}") ?? status.Get<DateTimeOffset?>($"last.quote.{contractId}");
+                        if (qUpd.HasValue && (DateTimeOffset.UtcNow - qUpd.Value) > TimeSpan.FromSeconds(5))
+                        {
+                            log.LogInformation("[SKIP reason=freeze] {Sym} lastQuoteAge={Age}s", symbol, (int)(DateTimeOffset.UtcNow - qUpd.Value).TotalSeconds);
+                            return;
+                        }
+                        // Spread guard (per-symbol defaults ES=1, NQ=2)
+                        int spreadTicks = status.Get<int>($"spread.ticks.{symbol}");
+                        int defAllow = symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
+                        int allow = defAllow;
+                        try
+                        {
+                            var o = Environment.GetEnvironmentVariable($"ALLOWED_SPREAD_{symbol.ToUpperInvariant()}_TICKS") ?? Environment.GetEnvironmentVariable("ALLOWED_SPREAD_TICKS");
+                            if (!string.IsNullOrWhiteSpace(o) && int.TryParse(o, out var v) && v > 0) allow = v;
+                        }
+                        catch { }
+                        if (spreadTicks > allow)
+                        {
+                            log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, allow);
+                            return;
+                        }
+                    }
+                    catch { }
 
                     foreach (var sig in signals)
                     {
@@ -1092,7 +1205,82 @@ namespace OrchestratorAgent
                             continue;
                         }
 
-                        await router.RouteAsync(sig, ct);
+                        // Daily DD proximity throttle
+                        try
+                        {
+                            var pnlDay = status.Get<decimal?>("pnl.net") ?? 0m;
+                            var mdlEnv2 = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
+                            decimal cap = 0m; if (!string.IsNullOrWhiteSpace(mdlEnv2) && decimal.TryParse(mdlEnv2, out var capV)) cap = capV;
+                            decimal lossAbs = Math.Max(0m, -pnlDay);
+                            if (cap > 0m)
+                            {
+                                var remaining = cap - lossAbs;
+                                var pct = (remaining <= 0) ? 0m : remaining / cap;
+                                var thresh = 0.20m; try { var t = Environment.GetEnvironmentVariable("DAILY_DD_THROTTLE_PCT"); if (!string.IsNullOrWhiteSpace(t) && decimal.TryParse(t, out var tv)) thresh = tv; } catch { }
+                                var minExpr = 1.5m; try { var t = Environment.GetEnvironmentVariable("THROTTLE_MIN_EXPR"); if (!string.IsNullOrWhiteSpace(t) && decimal.TryParse(t, out var tv)) minExpr = tv; } catch { }
+                                if (pct <= thresh)
+                                {
+                                    var half = Math.Max(1, (int)Math.Floor(sig.Size * 0.5));
+                                    if (sig.ExpR < minExpr)
+                                    {
+                                        log.LogInformation("[SKIP reason=dd_proximity] {Sym} expR={R} min={Min}", symbol, sig.ExpR, minExpr);
+                                        continue;
+                                    }
+                                    sig = sig with { Size = half };
+                                    log.LogInformation("[Throttle] {Sym} size halved to {Size} due to DD proximity (remaining {Rem:P0})", symbol, half, (double)pct);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        // Per-symbol entries/hour cap
+                        try
+                        {
+                            int capPerHr = 2;
+                            var envKey = $"ENTRIES_PER_HOUR_{symbol.ToUpperInvariant()}";
+                            var raw = Environment.GetEnvironmentVariable(envKey) ?? Environment.GetEnvironmentVariable("ENTRIES_PER_HOUR");
+                            if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out var v) && v > 0) capPerHr = v;
+                            var now = DateTime.UtcNow;
+                            var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
+                            lock (_entriesLock)
+                            {
+                                list.RemoveAll(t => (now - t) > TimeSpan.FromHours(1));
+                                if (list.Count >= capPerHr)
+                                {
+                                    log.LogInformation("[SKIP reason=entries_per_hour] {Sym} cap={Cap}", symbol, capPerHr);
+                                    continue;
+                                }
+                            }
+                        }
+                        catch { }
+
+                        // Same-direction ES/NQ guard (downsize second)
+                        try
+                        {
+                            var dir = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                            var other = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? "NQ" : "ES";
+                            if (_lastEntryIntent.TryGetValue(other, out var last) && last.Dir == dir && (DateTime.UtcNow - last.When) <= TimeSpan.FromSeconds(5))
+                            {
+                                var half = Math.Max(1, (int)Math.Floor(sig.Size * 0.5));
+                                sig = sig with { Size = half };
+                                log.LogInformation("[Correlation] {Sym} downsize to {Size} due to same-dir with {Other}", symbol, half, other);
+                            }
+                        }
+                        catch { }
+
+                        var routed = await router.RouteAsync(sig, ct);
+                        if (routed)
+                        {
+                            // Record intent and entries/hour stamp
+                            try
+                            {
+                                var dir = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                                _lastEntryIntent[symbol] = (dir, DateTime.UtcNow);
+                                var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
+                                lock (_entriesLock) list.Add(DateTime.UtcNow);
+                            }
+                            catch { }
+                        }
                     }
                 }
                 catch (OperationCanceledException) { }
