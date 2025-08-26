@@ -66,7 +66,7 @@ namespace BotCore
 			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
 			// Wire up robust event logging
-			_hub.Closed += ex =>
+			_hub.Closed += async ex =>
 			{
 				if (ex is HttpRequestException hre)
 					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
@@ -74,7 +74,18 @@ namespace BotCore
 					_log.LogWarning(wse, "UserHub CLOSED. WebSocket error: {Err} / CloseStatus: {Close}", wse.WebSocketErrorCode, wse.Data != null && wse.Data.Contains(CloseStatusKey) ? wse.Data[CloseStatusKey] : null);
 				else
 					_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
-				return Task.CompletedTask;
+
+				// Backoff a bit, then try to restart to avoid extended Disconnected periods.
+				try { await Task.Delay(TimeSpan.FromSeconds(2), CancellationToken.None); } catch { }
+				try
+				{
+					await _hub.StartAsync(); // AccessTokenProvider supplies fresh JWT if needed
+					_log.LogInformation("UserHub reconnected. State={State}", _hub.State);
+				}
+				catch (Exception rex)
+				{
+					_log.LogWarning(rex, "UserHub restart failed; will allow auto-reconnect/HubSafe to retry.");
+				}
 			};
 			// _hub.Reconnecting += ex =>
 			// ...existing code...

@@ -228,7 +228,7 @@ namespace OrchestratorAgent
                     userHub.OnTrade += posTracker.OnTrade;
                     // Feed market trades for last price updates
                     market1.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
-                    market2.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
+                    if (enableNq && market2 != null) market2.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
                     // Seed from REST
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
                     // Publish snapshot periodically to status

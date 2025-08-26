@@ -17,7 +17,7 @@ namespace BotCore
             ILogger log,
             CancellationToken ct,
             int maxAttempts = 3,
-            int waitMs = 10000)
+            int waitMs = 30000)
         {
             await WaitForConnected(hub, TimeSpan.FromMilliseconds(waitMs), ct, log);
             try
@@ -44,12 +44,24 @@ namespace BotCore
         {
             if (hub.State == HubConnectionState.Connected) return;
 
+            // Fast-path: if we're Disconnected, try starting immediately (no throw if it fails).
+            if (hub.State == HubConnectionState.Disconnected)
+            {
+                try { await hub.StartAsync(ct); } catch { /* allow retry loop below */ }
+            }
+
             var sw = System.Diagnostics.Stopwatch.StartNew();
             while (hub.State != HubConnectionState.Connected)
             {
                 ct.ThrowIfCancellationRequested();
                 if (sw.Elapsed > timeout)
                     throw new TimeoutException($"Hub stayed {hub.State} for {timeout.TotalSeconds:N0}s.");
+
+                if (hub.State == HubConnectionState.Disconnected)
+                {
+                    try { await hub.StartAsync(ct); } catch { /* swallow; next loop will re-check */ }
+                }
+
                 await Task.Delay(100, ct);
             }
             log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);
