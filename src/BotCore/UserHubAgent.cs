@@ -53,8 +53,9 @@ namespace BotCore
 				{
 					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // token via AccessTokenProvider only
 					opt.Transports = HttpTransportType.WebSockets;
-					// opt.SkipNegotiation = true; // enable later only if confirmed working
+					opt.SkipNegotiation = true;
 				})
+				.WithAutomaticReconnect(new ExpoRetry())
 				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
 				.Build();
 

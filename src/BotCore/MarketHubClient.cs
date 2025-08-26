@@ -103,12 +103,12 @@ namespace BotCore
 
 		private async Task<HubConnection> BuildMarketHubAsync()
 		{
-			var tok = await _getJwtAsync() ?? string.Empty;
 			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-			var url = $"{rtcBase}/hubs/market?access_token={Uri.EscapeDataString(tok)}";
+			var url = $"{rtcBase}/hubs/market";
 			var hub = new HubConnectionBuilder()
 				.WithUrl(url, o =>
 				{
+					o.AccessTokenProvider = _getJwtAsync;
 					o.Transports = HttpTransportType.WebSockets;
 					o.SkipNegotiation = true;
 				})

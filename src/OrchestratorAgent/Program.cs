@@ -211,6 +211,16 @@ namespace OrchestratorAgent
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
 
+                    // Heartbeat loop (throttled inside StatusService)
+                    _ = Task.Run(async () =>
+                    {
+                        while (!cts.IsCancellationRequested)
+                        {
+                            try { status.Heartbeat(); } catch { }
+                            try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch { }
+                        }
+                    }, cts.Token);
+
                     // ===== Positions wiring =====
                     var posTracker = new PositionTracker(log, accountId);
                     // Subscribe to user hub events
