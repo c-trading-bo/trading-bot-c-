@@ -433,7 +433,7 @@ namespace OrchestratorAgent
                         try
                         {
                             using var httpSeed = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("API_BASE") ?? apiBase) };
-                            httpSeed.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await jwtCache.GetAsync(CancellationToken.None));
+                            httpSeed.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await jwtCache.GetAsync());
                             var payload = new {
                                 contractId = contractId,
                                 live = false,
