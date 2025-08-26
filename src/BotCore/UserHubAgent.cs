@@ -47,11 +47,11 @@ namespace BotCore
 				return;
 			}
 
-			var url = $"https://rtc.topstepx.com/hubs/user?access_token={Uri.EscapeDataString(jwtToken)}";
+			var url = "https://rtc.topstepx.com/hubs/user";
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // match delegate type
+					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // token via AccessTokenProvider only
 					opt.Transports = HttpTransportType.WebSockets;
 					// opt.SkipNegotiation = true; // enable later only if confirmed working
 				})

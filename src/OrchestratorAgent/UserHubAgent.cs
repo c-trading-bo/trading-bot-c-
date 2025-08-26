@@ -4,8 +4,9 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using SupervisorAgent;
 
-namespace YourNamespace
+namespace OrchestratorAgent.Legacy
 {
+    [Obsolete("Use BotCore.UserHubAgent instead")]
     public sealed class UserHubAgent
     {
         private readonly ILogger<UserHubAgent> _log;

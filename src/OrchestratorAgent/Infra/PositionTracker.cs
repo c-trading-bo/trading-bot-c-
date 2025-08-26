@@ -105,6 +105,12 @@ namespace OrchestratorAgent.Infra
             }
         }
 
+        // DRY simulation helper: in-memory fill application
+        public void ApplySimFill(string contractId, int signedQty, decimal price)
+        {
+            ApplyFill(contractId, signedQty, price);
+        }
+
         private void ApplySnapshot(string symbol, int qtySigned, decimal avgPrice)
         {
             var st = _bySymbol.GetOrAdd(symbol, s => new PositionState { Symbol = s });

@@ -16,6 +16,7 @@ namespace OrchestratorAgent.Health
         private readonly StatusService _status;
         private readonly long _accountId;
         private readonly TradingProfileConfig _cfg;
+        private readonly DateTimeOffset _startUtc = DateTimeOffset.UtcNow;
 
         public sealed class TradingProfileConfig
         {
@@ -71,9 +72,18 @@ namespace OrchestratorAgent.Health
 			var lastQuoteUpdated = _status.Get<DateTimeOffset?>($"last.quote.updated.{contractId}")
 								 ?? _status.Get<DateTimeOffset?>("last.quote.updated");
 			var lastQuoteIngest = _status.Get<DateTimeOffset?>($"last.quote.{contractId}")
-							   ?? _status.Get<DateTimeOffset?>("last.quote");
+						   ?? _status.Get<DateTimeOffset?>("last.quote");
 			var lastBarIngest = _status.Get<DateTimeOffset?>($"last.bar.{contractId}")
-							 ?? _status.Get<DateTimeOffset?>("last.bar");
+						 ?? _status.Get<DateTimeOffset?>("last.bar");
+
+            // Warm-up: allow up to 30s on cold start before requiring quotes
+            var uptime = now - _startUtc;
+            if (!lastQuoteUpdated.HasValue && !lastQuoteIngest.HasValue)
+            {
+                if (uptime < TimeSpan.FromSeconds(30))
+                    return (false, $"Warming up quotes ({(int)uptime.TotalSeconds}s)");
+                return (false, "No quotes yet");
+            }
 
 			var quoteAge = lastQuoteUpdated.HasValue ? now - lastQuoteUpdated.Value
 						 : lastQuoteIngest.HasValue ? now - lastQuoteIngest.Value

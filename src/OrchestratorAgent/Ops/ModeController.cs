@@ -3,26 +3,37 @@ using System.Text.Json;
 
 namespace OrchestratorAgent.Ops
 {
-    public enum TradeMode { Shadow = 0, Live = 1 }
+    public enum TradeMode { Dry = 0, Shadow = 1, Live = 2 }
 
     public sealed class ModeController
     {
         private readonly string _statePath = System.IO.Path.Combine(AppContext.BaseDirectory, "state", "mode.json");
         public TradeMode Mode { get; private set; } = TradeMode.Shadow;
         public event Action<TradeMode>? OnChange;
+        public bool Autopilot { get; }
 
-        public ModeController(bool stickyLive)
+        public ModeController(bool stickyLive, bool autopilot = false)
         {
-            if (!stickyLive) return;
-            try
+            Autopilot = autopilot;
+            if (stickyLive)
             {
-                if (System.IO.File.Exists(_statePath))
+                try
                 {
-                    var m = JsonSerializer.Deserialize<TradeMode>(System.IO.File.ReadAllText(_statePath));
-                    if (Enum.IsDefined(typeof(TradeMode), m)) Mode = m;
+                    if (System.IO.File.Exists(_statePath))
+                    {
+                        var m = JsonSerializer.Deserialize<TradeMode>(System.IO.File.ReadAllText(_statePath));
+                        if (Enum.IsDefined(typeof(TradeMode), m)) Mode = m;
+                    }
                 }
+                catch { /* ignore */ }
             }
-            catch { /* ignore */ }
+            SyncLegacyEnv();
+        }
+
+        private void SyncLegacyEnv()
+        {
+            // Mirror for any legacy code looking at LIVE_ORDERS
+            Environment.SetEnvironmentVariable("LIVE_ORDERS", IsLive ? "1" : "0");
         }
 
         public void Set(TradeMode m)
@@ -35,9 +46,12 @@ namespace OrchestratorAgent.Ops
                 System.IO.File.WriteAllText(_statePath, JsonSerializer.Serialize(m));
             }
             catch { /* ignore */ }
+            SyncLegacyEnv();
             OnChange?.Invoke(m);
         }
 
         public bool IsLive => Mode == TradeMode.Live;
+        public bool IsShadow => Mode == TradeMode.Shadow;
+        public bool IsDry => Mode == TradeMode.Dry;
     }
 }

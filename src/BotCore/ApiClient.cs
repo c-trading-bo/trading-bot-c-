@@ -176,7 +176,18 @@ namespace BotCore
         }
 
         // Positions helpers (correct POST endpoints)
-        public Task<List<System.Text.Json.JsonElement>?> GetOpenPositionsAsync(long accountId, CancellationToken ct)
+        public sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);
+        public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
+
+        // New wrapper-aware method (preferred)
+        public async Task<List<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)
+        {
+            var resp = await PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
+            return resp?.positions ?? new();
+        }
+
+        // Legacy one kept for backward-compat if any call sites still expect bare arrays
+        public Task<List<System.Text.Json.JsonElement>?> GetOpenPositionsLegacyAsync(long accountId, CancellationToken ct)
             => PostAsync<List<System.Text.Json.JsonElement>>("/api/Position/searchOpen", new { accountId }, ct);
 
         public Task CloseContractAsync(long accountId, string contractId, CancellationToken ct)
