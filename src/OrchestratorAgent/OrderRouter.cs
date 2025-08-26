@@ -8,6 +8,8 @@ using BotCore.Config;
 using BotCore.Models;
 using OrchestratorAgent.Infra;
 
+// NOTE: Not referenced by OrchestratorAgent.Program. The runtime uses SimpleOrderRouter.
+// This richer router remains for future expansion and tooling, but is not on the hot path.
 namespace OrchestratorAgent
 {
     /// <summary>Tiny wrapper around ApiClient for placing orders.</summary>

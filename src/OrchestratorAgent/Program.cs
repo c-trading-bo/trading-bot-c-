@@ -332,13 +332,12 @@ namespace OrchestratorAgent
                     var leasePath = Environment.GetEnvironmentVariable("OPS_LEASE_PATH") ?? "state/live.lock";
                     var liveLease = new OrchestratorAgent.Ops.LiveLease(leasePath);
                     // Sync env LIVE_ORDERS with mode
-                    void SyncLiveEnv()
+                    void LogMode()
                     {
-                        Environment.SetEnvironmentVariable("LIVE_ORDERS", mode.IsLive ? "1" : "0");
                         log.LogInformation("MODE => {Mode}", mode.IsLive ? "LIVE" : "SHADOW");
                     }
-                    SyncLiveEnv();
-                    mode.OnChange += _ => SyncLiveEnv();
+                    LogMode();
+                    mode.OnChange += _ => LogMode();
 
                     // Expose health with mode and manual overrides (+drain/lease)
                     string healthPrefix;

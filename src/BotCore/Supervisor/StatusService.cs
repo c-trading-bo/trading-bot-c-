@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
+// NOTE: Not used by Orchestrator; OrchestratorAgent injects SupervisorAgent.StatusService.
+// This BotCore.Supervisor.StatusService is for other agents or legacy paths.
 namespace BotCore.Supervisor
 {
     public sealed class StatusService
