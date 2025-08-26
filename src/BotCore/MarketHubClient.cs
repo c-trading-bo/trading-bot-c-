@@ -90,50 +90,19 @@ namespace BotCore
 					return;
 				}
 
-				// Try a variety of known subscription methods for compatibility across hub versions
-				async Task<bool> TryInvoke(string method, params object[] args)
+				// ProjectX Gateway: exact subscription methods
+				try
 				{
-					try
-					{
-						await _conn!.InvokeAsync(method, args, ct);
-						_log.LogInformation("[MarketHub] {Method}({Args}) ok", method, string.Join(",", args));
-						return true;
-					}
-					catch (Exception ex)
-					{
-						_log.LogDebug("[MarketHub] {Method} unsupported: {Msg}", method, ex.Message);
-						return false;
-					}
-				}
-
-				bool any = false;
-				// Quotes / trades / depth
-				any |= await TryInvoke("SubscribeContractQuotes", _contractId);
-				any |= await TryInvoke("SubscribeQuotes", _contractId);
-				any |= await TryInvoke("subscribe", "quote", _contractId);
-				any |= await TryInvoke("SubscribeContractTrades", _contractId);
-				any |= await TryInvoke("SubscribeTrades", _contractId);
-				any |= await TryInvoke("subscribe", "trade", _contractId);
-				any |= await TryInvoke("SubscribeContractMarketDepth", _contractId);
-				any |= await TryInvoke("SubscribeDepth", _contractId);
-				any |= await TryInvoke("subscribe", "depth", _contractId);
-
-				// Bars @ common timeframes (some hubs support these)
-				foreach (var tf in new[] { "1m", "5m", "30m" })
-				{
-					any |= await TryInvoke("SubscribeBars", _contractId, tf);
-					any |= await TryInvoke("subscribeBars", _contractId, tf);
-				}
-
-				if (any)
-				{
+					await _conn!.InvokeAsync("SubscribeContractQuotes", _contractId, ct);
+					await _conn!.InvokeAsync("SubscribeContractTrades", _contractId, ct);
+					await _conn!.InvokeAsync("SubscribeContractMarketDepth", _contractId, ct);
 					_subscribed = true;
-					_log.LogInformation("[MarketHub] Subscribed to {ContractId}", _contractId);
+					_log.LogInformation("[MarketHub] Subscribed (quotes/trades/depth) {ContractId}", _contractId);
 				}
-				else
+				catch (Exception ex)
 				{
 					_subscribed = false;
-					_log.LogWarning("[MarketHub] No subscription methods were accepted by the hub (will retry on reconnect)");
+					_log.LogWarning(ex, "[MarketHub] Subscribe failed for {ContractId}", _contractId);
 				}
 			}
 			finally
