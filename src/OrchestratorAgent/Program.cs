@@ -13,6 +13,7 @@ using BotCore.Strategy;
 using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
 using System.Linq;
+using System.Net.Http.Json;
 
 namespace OrchestratorAgent
 {
@@ -416,15 +417,62 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Aggregators and recent bars per symbol
-                    int barSeconds = int.TryParse(Environment.GetEnvironmentVariable("TOPSTEPX_BAR_SECONDS") ?? Environment.GetEnvironmentVariable("BAR_SECONDS"), out var bs) ? Math.Max(5, bs) : 60;
-                    var bars = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>
+                    // Aggregators and recent bars per symbol (seed 1m from REST, roll 1m->5m->30m)
+                    var barsHist = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>
                     {
                         [esRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>()
                     };
-                    if (enableNq) bars[nqRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>();
-                    var aggES = new BotCore.BarAggregator(barSeconds) { Symbol = esRoot };
-                    BotCore.BarAggregator? aggNQ = enableNq ? new BotCore.BarAggregator(barSeconds) { Symbol = nqRoot } : null;
+                    if (enableNq) barsHist[nqRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>();
+
+                    var barPyramid = new BotCore.Market.BarPyramid();
+
+                    // Seed from REST: Retrieve Bars (1m, last 500, include partial)
+                    static DateTime ParseUtc(string s) => DateTime.Parse(s).ToUniversalTime();
+                    async Task SeedBarsAsync(string contractId)
+                    {
+                        try
+                        {
+                            using var httpSeed = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("API_BASE") ?? apiBase) };
+                            httpSeed.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await jwtCache.GetAsync(CancellationToken.None));
+                            var payload = new {
+                                contractId = contractId,
+                                live = false,
+                                unit = 2,        // Minute
+                                unitNumber = 1,
+                                limit = 500,
+                                includePartialBar = true
+                            };
+                            var resp = await httpSeed.PostAsJsonAsync("/api/History/retrieveBars", payload, cts.Token);
+                            resp.EnsureSuccessStatusCode();
+                            using var doc = System.Text.Json.JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
+                            var arr = doc.RootElement;
+                            var seeded = new System.Collections.Generic.List<BotCore.Market.Bar>();
+                            foreach (var x in arr.EnumerateArray())
+                            {
+                                var start = ParseUtc(x.GetProperty("startTime").GetString()!);
+                                var end   = ParseUtc(x.GetProperty("endTime").GetString()!);
+                                var o = x.GetProperty("open").GetDecimal();
+                                var h = x.GetProperty("high").GetDecimal();
+                                var l = x.GetProperty("low").GetDecimal();
+                                var c = x.GetProperty("close").GetDecimal();
+                                var v = x.TryGetProperty("volume", out var ve) ? ve.GetInt64() : 0L;
+                                seeded.Add(new BotCore.Market.Bar(start, end, o, h, l, c, v));
+                            }
+                            barPyramid.M1.Seed(contractId, seeded);
+                        }
+                        catch (Exception ex)
+                        {
+                            dataLog.LogWarning(ex, "[DataFeed] Seeding bars failed for {Cid}", contractId);
+                        }
+                    }
+
+                    var esIdForSeed = esContract!;
+                    var nqIdForSeed = enableNq && !string.IsNullOrWhiteSpace(nqContract) ? nqContract! : null;
+                    await SeedBarsAsync(esIdForSeed);
+                    if (nqIdForSeed != null) await SeedBarsAsync(nqIdForSeed);
+                    dataLog.LogInformation("Bars seeded: ES={EsCnt}{NqPart}",
+                        barPyramid.M1.GetHistory(esIdForSeed).Count,
+                        nqIdForSeed != null ? $", NQ={barPyramid.M1.GetHistory(nqIdForSeed).Count}" : string.Empty);
 
                     // Strategy prerequisites
                     var risk = new BotCore.Risk.RiskEngine();
@@ -928,47 +976,62 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // On new bar, run strategies and (optionally) route orders
-                    aggES.OnBar += async bar =>
+                    // On new bar close (1m), run strategies and notify status; also roll-ups happen inside BarPyramid
+                    barPyramid.M1.OnBarClosed += async (cid, b) =>
                     {
+                        // Map contractId -> root symbol
+                        string root = cid == contractIds.GetValueOrDefault(esRoot) ? esRoot : (contractIds.ContainsKey(nqRoot) && cid == contractIds[nqRoot] ? nqRoot : esRoot);
                         status.Set("last.bar", DateTimeOffset.UtcNow);
-                        // per-contract bar stamp for preflight ingest age
+                        try { status.Set($"last.bar.{cid}", DateTimeOffset.UtcNow); if (cid == contractIds[esRoot]) market1.RecordBarSeen(cid); else market2?.RecordBarSeen(cid); } catch { }
+                        // Convert to unified model bar for strategies
+                        var bar = new BotCore.Models.Bar
+                        {
+                            Start = b.Start,
+                            Ts = new DateTimeOffset(b.Start).ToUnixTimeMilliseconds(),
+                            Symbol = root,
+                            Open = b.Open,
+                            High = b.High,
+                            Low = b.Low,
+                            Close = b.Close,
+                            Volume = (int)b.Volume
+                        };
+                        barsHist[root].Add(bar);
+                        if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
+                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
+                        dataLog.LogInformation("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
+                    };
+                    barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogInformation("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
+                    barPyramid.M30.OnBarClosed += (cid, b) => { dataLog.LogInformation("[Bars] 30m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
+
+                    // Feed live trades into the 1m aggregator (quotes not required for bars)
+                    static bool TryExtractTrade(JsonElement json, out DateTime tsUtc, out decimal price, out long qty)
+                    {
+                        tsUtc = DateTime.UtcNow; price = 0m; qty = 0L;
                         try
                         {
-                            var esId = contractIds[esRoot]; status.Set($"last.bar.{esId}", DateTimeOffset.UtcNow);
-                            market1.RecordBarSeen(esId);
+                            // timestamp fields
+                            if (json.ValueKind == JsonValueKind.Object)
+                            {
+                                if (json.TryGetProperty("exchangeTimeUtc", out var ex) && ex.ValueKind == JsonValueKind.String && DateTime.TryParse(ex.GetString(), out var dt)) tsUtc = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                                else if (json.TryGetProperty("timestamp", out var ts) && ts.ValueKind == JsonValueKind.Number && ts.TryGetInt64(out var ms)) tsUtc = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
+                                else if (json.TryGetProperty("time", out var t) && t.ValueKind == JsonValueKind.Number && t.TryGetInt64(out var ms2)) tsUtc = DateTimeOffset.FromUnixTimeMilliseconds(ms2).UtcDateTime;
+                                // price
+                                if (json.TryGetProperty("price", out var p) && p.TryGetDecimal(out var pd)) price = pd;
+                                else if (json.TryGetProperty("last", out var lp) && lp.TryGetDecimal(out var lpd)) price = lpd;
+                                else if (json.TryGetProperty("lastPrice", out var lpp) && lpp.TryGetDecimal(out var lppd)) price = lppd;
+                                // size/qty
+                                if (json.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var q)) qty = q;
+                                else if (json.TryGetProperty("qty", out var qy) && qy.TryGetInt64(out var q2)) qty = q2;
+                                else if (json.TryGetProperty("volume", out var vv) && vv.TryGetInt64(out var q3)) qty = q3;
+                            }
                         }
                         catch { }
-                        bars[esRoot].Add(bar);
-                        if (paperBroker != null) { try { paperBroker.OnBar(esRoot, bar); } catch { } }
-                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
-                    };
-                    if (enableNq && aggNQ != null && market2 != null)
-                    {
-                        aggNQ.OnBar += async bar =>
-                        {
-                            status.Set("last.bar", DateTimeOffset.UtcNow);
-                            // per-contract bar stamp for preflight ingest age
-                            try
-                            {
-                                var nqId = contractIds[nqRoot]; status.Set($"last.bar.{nqId}", DateTimeOffset.UtcNow);
-                                market2.RecordBarSeen(nqId);
-                            }
-                            catch { }
-                            bars[nqRoot].Add(bar);
-                            if (paperBroker != null) { try { paperBroker.OnBar(nqRoot, bar); } catch { } }
-                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
-                        };
+                        return price > 0m;
                     }
 
-                    // Feed market data → aggregators
-                    market1.OnTrade += (_, json) => aggES.OnTrade(json);
-                    market1.OnQuote += (_, json) => aggES.OnQuote(json);
-                    if (enableNq && market2 != null && aggNQ != null)
-                    {
-                        market2.OnTrade += (_, json) => aggNQ.OnTrade(json);
-                        market2.OnQuote += (_, json) => aggNQ.OnQuote(json);
-                    }
+                    market1.OnTrade += (cid, json) => { if (TryExtractTrade(json, out var ts, out var px, out var q)) barPyramid.M1.OnTrade(cid, ts, px, q); };
+                    if (enableNq && market2 != null)
+                        market2.OnTrade += (cid, json) => { if (TryExtractTrade(json, out var ts, out var px, out var q)) barPyramid.M1.OnTrade(cid, ts, px, q); };
 
                     // Optional: safe order place/cancel smoke test
                     var smokeRaw = Environment.GetEnvironmentVariable("TOPSTEPX_ORDER_SMOKE_TEST");
