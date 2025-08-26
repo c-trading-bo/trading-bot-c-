@@ -38,7 +38,12 @@ namespace OrchestratorAgent
             // Load configuration from environment
             string apiBase = http.BaseAddress!.ToString().TrimEnd('/');
             string rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-            string symbol = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES";
+            var symbolListRaw = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOLS");
+            var roots = (symbolListRaw ?? Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES")
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => s.Trim().ToUpperInvariant())
+                .ToArray();
+            string symbol = roots.Length > 0 ? roots[0] : "ES";
 
             // Load credentials
             string? jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
@@ -72,6 +77,7 @@ namespace OrchestratorAgent
                     log.LogInformation("Fetching JWT using login key for {User}…", userName);
                     jwt = await auth.GetJwtAsync(userName!, apiKey!, cts.Token);
                     Environment.SetEnvironmentVariable("TOPSTEPX_JWT", jwt);
+                    try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
                     log.LogInformation("Obtained JWT via loginKey for {User}.", userName);
                 }
                 catch (Exception ex)
@@ -144,9 +150,12 @@ namespace OrchestratorAgent
 
                     // Resolve roots and contracts from env (with REST fallback)
                     var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+                    try { if (!string.IsNullOrWhiteSpace(jwt)) apiClient.SetJwt(jwt!); } catch { }
                     var esRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_ES") ?? "ES";
                     var nqRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_NQ") ?? "NQ";
-                    bool enableNq = (Environment.GetEnvironmentVariable("TOPSTEPX_ENABLE_NQ") ?? Environment.GetEnvironmentVariable("ENABLE_NQ") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    bool enableNq =
+                        (roots.Any(r => string.Equals(r, "NQ", StringComparison.OrdinalIgnoreCase))) ||
+                        ((Environment.GetEnvironmentVariable("TOPSTEPX_ENABLE_NQ") ?? Environment.GetEnvironmentVariable("ENABLE_NQ") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes");
                     var esContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_ES");
                     var nqContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_NQ");
                     try { if (string.IsNullOrWhiteSpace(esContract)) esContract = await apiClient.ResolveContractIdAsync(esRoot, cts.Token); } catch { }
