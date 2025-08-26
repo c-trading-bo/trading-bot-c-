@@ -424,6 +424,8 @@ namespace OrchestratorAgent
 
                     foreach (var s in signals)
                     {
+                        // concise one-liner for the strategy signal
+                        try { _log.LogInformation("[SIG] {Sym} {Side} x{Size} @ {Entry} [{Strat}] (tp {Tp}, sl {Sl})", s.Symbol, s.Side, s.Size, s.Entry, s.StrategyId, s.Target, s.Stop); } catch { }
                         var side = string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
                         var cid = $"{s.StrategyId}|{s.Symbol}|{DateTime.UtcNow:yyyyMMddTHHmmssfff}|{Guid.NewGuid():N}".ToUpperInvariant();
                         journal.Append(s, "emitted", cid);

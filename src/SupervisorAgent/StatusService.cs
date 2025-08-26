@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Linq;
 
 namespace SupervisorAgent
 {
@@ -50,10 +51,14 @@ namespace SupervisorAgent
             var json = JsonSerializer.Serialize(snapshot);
 
             // Stable signature excludes whenUtc so we don't emit just because time advanced
+            // Deterministic ordering for contracts in signature to avoid spurious emits
+            var contractsSig = Contracts is null
+                ? new Dictionary<string, string>()
+                : Contracts.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(kv => kv.Key, kv => kv.Value);
             var sigObj = new
             {
                 accountId = AccountId,
-                contracts = Contracts,
+                contracts = contractsSig,
                 userHub = Get<string>("user.state"),
                 marketHub = Get<string>("market.state"),
                 lastTrade = Get<DateTimeOffset?>("last.trade"),

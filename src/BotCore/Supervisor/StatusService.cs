@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Linq;
 
 // NOTE: Not used by Orchestrator; OrchestratorAgent injects SupervisorAgent.StatusService.
 // This BotCore.Supervisor.StatusService is for other agents or legacy paths.

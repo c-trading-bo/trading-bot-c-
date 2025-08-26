@@ -160,10 +160,49 @@ namespace BotCore
 		private void WireEvents(HubConnection hub)
 		{
 			if (_handlersWired) return;
-			hub.On<JsonElement>("GatewayUserAccount", data => { try { _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
-			hub.On<JsonElement>("GatewayUserOrder", data => { try { _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
-			hub.On<JsonElement>("GatewayUserPosition", data => { try { _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnPosition?.Invoke(data); } catch { } });
-			hub.On<JsonElement>("GatewayUserTrade", data => { try { _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnTrade?.Invoke(data); } catch { } });
+			var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+
+			string? TryGet(JsonElement d, string name)
+			{
+				if (d.ValueKind != JsonValueKind.Object) return null;
+				foreach (var p in d.EnumerateObject())
+				{
+					if (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+					{
+						var v = p.Value;
+						switch (v.ValueKind)
+						{
+							case JsonValueKind.String: return v.GetString();
+							case JsonValueKind.Number:
+								if (v.TryGetDecimal(out var dec)) return dec.ToString(System.Globalization.CultureInfo.InvariantCulture);
+								break;
+							case JsonValueKind.True: return "true";
+							case JsonValueKind.False: return "false";
+						}
+					}
+				}
+				return null;
+			}
+
+			string OneLine(JsonElement d, string kind)
+			{
+				try
+				{
+					string sym = TryGet(d, "symbol") ?? TryGet(d, "contractName") ?? TryGet(d, "contractId") ?? "?";
+					string side = TryGet(d, "side") ?? TryGet(d, "action") ?? string.Empty;
+					string qty  = TryGet(d, "qty") ?? TryGet(d, "size") ?? string.Empty;
+					string px   = TryGet(d, "price") ?? TryGet(d, "limitPrice") ?? TryGet(d, "fillPrice") ?? string.Empty;
+					string st   = TryGet(d, "status") ?? string.Empty;
+					var line = $"[{kind}] {sym} {side} {qty} @ {px} {st}".Replace("  ", " ").Trim();
+					return line;
+				}
+				catch { return $"[{kind}]"; }
+			}
+
+			hub.On<JsonElement>("GatewayUserAccount", data => { try { if (concise) _log.LogInformation("[ACCOUNT] update"); else _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserOrder", data => { try { if (concise) _log.LogInformation(OneLine(data, "ORDER")); else _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserPosition", data => { try { if (concise) _log.LogInformation(OneLine(data, "POSITION")); else _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnPosition?.Invoke(data); } catch { } });
+			hub.On<JsonElement>("GatewayUserTrade", data => { try { if (concise) _log.LogInformation(OneLine(data, "TRADE")); else _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnTrade?.Invoke(data); } catch { } });
 			_handlersWired = true;
 
 			hub.Closed += ex =>

@@ -521,10 +521,88 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check for logging.
+                    // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check and render concise checklist.
                     try
                     {
                         var initial = await pfService.RunAsync(symbol, cts.Token);
+
+                        // Build concise startup checklist (mod-menu style)
+                        var nowC = DateTimeOffset.UtcNow;
+                        bool hasJwt = !string.IsNullOrWhiteSpace(jwt);
+                        bool jwtOk = true;
+                        try
+                        {
+                            if (hasJwt)
+                            {
+                                var parts = jwt!.Split('.');
+                                if (parts.Length >= 2)
+                                {
+                                    var payload = parts[1];
+                                    var pad = 4 - (payload.Length % 4);
+                                    if (pad > 0 && pad < 4) payload += new string('=', pad);
+                                    payload = payload.Replace('-', '+').Replace('_', '/');
+                                    var bytes = Convert.FromBase64String(payload);
+                                    using var doc = System.Text.Json.JsonDocument.Parse(bytes);
+                                    if (doc.RootElement.TryGetProperty("exp", out var expEl))
+                                    {
+                                        var exp = DateTimeOffset.FromUnixTimeSeconds(expEl.GetInt64());
+                                        jwtOk = nowC < exp - TimeSpan.FromSeconds(120);
+                                    }
+                                }
+                            }
+                        }
+                        catch { jwtOk = true; }
+
+                        string chk(bool ok) => ok ? "[✓]" : "[x]";
+                        string warm() => "[~]";
+
+                        var userState = status.Get<string>("user.state");
+                        var marketState = status.Get<string>("market.state");
+                        bool userOk = !string.IsNullOrWhiteSpace(userState);
+                        bool marketOk = !string.IsNullOrWhiteSpace(marketState);
+
+                        // Contracts
+                        var contractsView = string.Join(", ", (status.Contracts ?? new System.Collections.Generic.Dictionary<string,string>()).Select(kv => $"{kv.Key}={kv.Value}"));
+                        bool contractsOk = !string.IsNullOrWhiteSpace(contractsView);
+
+                        // Freshness
+                        var lastQ = status.Get<DateTimeOffset?>("last.quote");
+                        var lastB = status.Get<DateTimeOffset?>("last.bar");
+                        string quotesLine;
+                        if (lastQ.HasValue)
+                        {
+                            var age = (int)(nowC - lastQ.Value).TotalSeconds;
+                            quotesLine = $"{chk(age <= 5)} Quotes: age={age}s";
+                        }
+                        else
+                        {
+                            quotesLine = $"{warm()} Quotes: warming";
+                        }
+                        string barsLine;
+                        if (lastB.HasValue)
+                        {
+                            var age = (int)(nowC - lastB.Value).TotalSeconds;
+                            barsLine = $"{chk(age <= 30)} Bars: age={age}s";
+                        }
+                        else
+                        {
+                            barsLine = $"{warm()} Bars: warming";
+                        }
+
+                        var preflightLine = initial.ok ? "[✓] Preflight: OK" : $"[x] Preflight: {initial.msg}";
+
+                        var sb = new System.Text.StringBuilder();
+                        sb.AppendLine("Startup Checklist:");
+                        sb.AppendLine($"  {chk(hasJwt)} JWT present");
+                        sb.AppendLine($"  {chk(jwtOk)} JWT not expiring soon");
+                        sb.AppendLine($"  {chk(userOk)} UserHub: {(userOk ? userState : "disconnected")}");
+                        sb.AppendLine($"  {chk(marketOk)} MarketHub: {(marketOk ? marketState : "disconnected")}");
+                        sb.AppendLine($"  {chk(contractsOk)} Contracts: [{contractsView}]");
+                        sb.AppendLine($"  {quotesLine}");
+                        sb.AppendLine($"  {barsLine}");
+                        sb.AppendLine($"  {preflightLine}");
+                        log.LogInformation(sb.ToString().TrimEnd());
+
                         if (!initial.ok)
                             log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy. Reason: {Msg}", initial.msg);
                     }
