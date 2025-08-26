@@ -316,6 +316,18 @@ namespace OrchestratorAgent
 
                     // Strategy prerequisites
                     var risk = new BotCore.Risk.RiskEngine();
+                    // Apply risk-per-trade from environment so sizing matches your budget
+                    try
+                    {
+                        var r1 = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE");
+                        if (!string.IsNullOrWhiteSpace(r1) && decimal.TryParse(r1, out var rpt) && rpt > 0)
+                        {
+                            risk.cfg.risk_per_trade = rpt;
+                            log.LogInformation("Risk: using risk_per_trade=${RPT}", rpt);
+                        }
+                    }
+                    catch { }
+
                     var levels = new BotCore.Models.Levels();
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -825,8 +837,22 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
-                    log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
+                    // Periodic brackets ensure loop (repair missing OCO on reconnect)
+                    try
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            while (!cts.IsCancellationRequested)
+                            {
+                                try { await router.EnsureBracketsAsync(accountId, cts.Token); } catch { }
+                                try { await Task.Delay(TimeSpan.FromSeconds(15), cts.Token); } catch { }
+                            }
+                        }, cts.Token);
+                    }
+                    catch { }
+
+                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
+                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
                     try
                     {
                         // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)

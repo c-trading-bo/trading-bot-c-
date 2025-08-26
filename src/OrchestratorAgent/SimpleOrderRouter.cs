@@ -108,6 +108,104 @@ namespace OrchestratorAgent
 
                 _log.LogInformation("[Router] Place OK: {Body}", Trunc(text));
                 await JournalAsync(true, "ok", (int)resp.StatusCode, text, modeStr);
+
+                // Parse parent orderId
+                string? parentId = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "{}" : text);
+                    var root = doc.RootElement;
+                    if (root.ValueKind == JsonValueKind.Object)
+                    {
+                        if (root.TryGetProperty("orderId", out var oid)) parentId = oid.ToString();
+                        else if (root.TryGetProperty("id", out var idEl)) parentId = idEl.ToString();
+                    }
+                }
+                catch { }
+
+                if (!string.IsNullOrWhiteSpace(parentId))
+                {
+                    // Compute ticks from provided prices or fall back to env defaults
+                    decimal tick = BotCore.Models.InstrumentMeta.Tick(sig.Symbol);
+                    int AbsTicks(decimal a) => (int)Math.Max(1, Math.Round(Math.Abs(a) / (tick <= 0 ? 0.25m : tick)));
+                    bool isSell = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase);
+                    int tpTicks = 0;
+                    int slTicks = 0;
+                    if (sig.Target != 0 && sig.Entry != 0)
+                    {
+                        tpTicks = AbsTicks(sig.Target - sig.Entry);
+                    }
+                    if (sig.Stop != 0 && sig.Entry != 0)
+                    {
+                        slTicks = AbsTicks(sig.Entry - sig.Stop); // long: entry-stop; short will still be positive distance
+                    }
+                    // Environment overrides (global and per symbol)
+                    int EnvInt(string key, int defVal)
+                    {
+                        try { var raw = Environment.GetEnvironmentVariable(key); return int.TryParse(raw, out var v) && v > 0 ? v : defVal; } catch { return defVal; }
+                    }
+                    int beTicks = EnvInt("BRACKET_BE_TICKS", 8);
+                    int trailTicks = EnvInt("BRACKET_TRAIL_TICKS", 6);
+                    if (tpTicks <= 0) tpTicks = EnvInt($"BRACKET_TP_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_TP_TICKS", 20));
+                    if (slTicks <= 0) slTicks = EnvInt($"BRACKET_SL_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_SL_TICKS", 12));
+
+                    // Try primary upsert endpoint first
+                    var upsertBody = new { parentId = (object?)parentId, qty = clampedSize, takeProfitTicks = tpTicks, stopLossTicks = slTicks, breakevenAfterTicks = beTicks, trailTicks };
+                    bool bracketsOk = false;
+                    try
+                    {
+                        using var upReq = new HttpRequestMessage(HttpMethod.Post, "/orders/brackets/upsert");
+                        upReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        upReq.Content = new StringContent(JsonSerializer.Serialize(upsertBody), Encoding.UTF8, "application/json");
+                        using var upResp = await _http.SendAsync(upReq, ct);
+                        if (upResp.IsSuccessStatusCode) bracketsOk = true;
+                    }
+                    catch { }
+
+                    if (!bracketsOk)
+                    {
+                        try
+                        {
+                            var body2 = new { parentId = (object?)parentId, takeProfitTicks = tpTicks, stopLossTicks = slTicks };
+                            using var req2 = new HttpRequestMessage(HttpMethod.Post, "/orders/brackets");
+                            req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                            req2.Content = new StringContent(JsonSerializer.Serialize(body2), Encoding.UTF8, "application/json");
+                            using var resp2 = await _http.SendAsync(req2, ct);
+                            bracketsOk = resp2.IsSuccessStatusCode;
+                        }
+                        catch { }
+                    }
+                    if (!bracketsOk)
+                    {
+                        try
+                        {
+                            var body3 = new { orderId = (object?)parentId, takeProfitTicks = tpTicks, stopLossTicks = slTicks };
+                            using var req3 = new HttpRequestMessage(HttpMethod.Post, "/api/Order/brackets/upsert");
+                            req3.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                            req3.Content = new StringContent(JsonSerializer.Serialize(body3), Encoding.UTF8, "application/json");
+                            using var resp3 = await _http.SendAsync(req3, ct);
+                            bracketsOk = resp3.IsSuccessStatusCode;
+                        }
+                        catch { }
+                    }
+
+                    if (bracketsOk)
+                    {
+                        // Narrative logs per your diagram
+                        var stopPx = isSell
+                            ? sig.Entry + slTicks * (tick <= 0 ? 0.25m : tick)
+                            : sig.Entry - slTicks * (tick <= 0 ? 0.25m : tick);
+                        var tgtPx = isSell
+                            ? sig.Entry - tpTicks * (tick <= 0 ? 0.25m : tick)
+                            : sig.Entry + tpTicks * (tick <= 0 ? 0.25m : tick);
+                        _log.LogInformation("STOP NEW   {Stop}  ({Sl} ticks)", stopPx, slTicks);
+                        _log.LogInformation("TARGET NEW {Tgt}  ({Tp} ticks)", tgtPx, tpTicks);
+                    }
+                    else
+                    {
+                        _log.LogWarning("[Router] Bracket attach failed for parent {ParentId}", parentId);
+                    }
+                }
                 return true;
             }
             catch (OperationCanceledException)
@@ -154,6 +252,55 @@ namespace OrchestratorAgent
                     await System.IO.File.AppendAllTextAsync(path, line + Environment.NewLine, ct);
                 }
                 catch { }
+            }
+        }
+
+        public async Task EnsureBracketsAsync(long accountId, CancellationToken ct)
+        {
+            try
+            {
+                var token = await _getJwtAsync();
+                if (string.IsNullOrWhiteSpace(token)) return;
+                using var req = new HttpRequestMessage(HttpMethod.Get, $"/orders?accountId={accountId}&status=OPEN&parent=true");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                using var resp = await _http.SendAsync(req, ct);
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                if (!resp.IsSuccessStatusCode) return;
+                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(body) ? "[]" : body);
+                if (doc.RootElement.ValueKind != JsonValueKind.Array) return;
+                int attached = 0;
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    bool hasBr = false;
+                    string? id = null;
+                    try
+                    {
+                        if (el.ValueKind == JsonValueKind.Object)
+                        {
+                            if (el.TryGetProperty("hasBrackets", out var hb) && hb.ValueKind == JsonValueKind.True) hasBr = true;
+                            if (el.TryGetProperty("id", out var idEl)) id = idEl.ToString();
+                        }
+                    }
+                    catch { }
+                    if (hasBr || string.IsNullOrWhiteSpace(id)) continue;
+                    try
+                    {
+                        int tp = 20, sl = 12;
+                        var body2 = new { parentId = (object?)id, takeProfitTicks = tp, stopLossTicks = sl };
+                        using var req2 = new HttpRequestMessage(HttpMethod.Post, "/orders/brackets");
+                        req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        req2.Content = new StringContent(JsonSerializer.Serialize(body2), Encoding.UTF8, "application/json");
+                        using var resp2 = await _http.SendAsync(req2, ct);
+                        if (resp2.IsSuccessStatusCode) attached++;
+                    }
+                    catch { }
+                }
+                if (attached > 0) _log.LogInformation("[Router] EnsureBrackets attached for {Count} parent(s)", attached);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[Router] EnsureBracketsAsync error");
             }
         }
 
