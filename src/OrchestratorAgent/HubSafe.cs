@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace YourNamespace
+namespace OrchestratorAgent.Legacy
 {
     public static class HubSafe
     {
