@@ -36,6 +36,8 @@ namespace BotCore
 				return int.TryParse(s, out var v) && v > 0 ? v : def;
 			}
 
+			private static bool Concise() => (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+
 			public event Action<string, JsonElement>? OnQuote;
 			public event Action<string, JsonElement>? OnTrade;
 			public event Action<string, JsonElement>? OnDepth;
@@ -88,7 +90,7 @@ namespace BotCore
 					await _conn.InvokeAsync("SubscribeContractMarketDepth", _contractId, ct);
 
 					_subscribed = true;
-					_log.LogInformation("[MarketHub] Subscribed to {ContractId}", _contractId);
+					if (!Concise()) _log.LogInformation("[MarketHub] Subscribed to {ContractId}", _contractId);
 				}
 				catch (InvalidOperationException ioe)
 				{
@@ -97,12 +99,14 @@ namespace BotCore
 				}
 				catch (TaskCanceledException tce)
 				{
-					_log.LogWarning(tce, "Subscribe canceled (likely connection transition). Will retry on Reconnected.");
+					if (!Concise()) _log.LogWarning(tce, "Subscribe canceled (likely connection transition). Will retry on Reconnected.");
+					else _log.LogDebug(tce, "Subscribe canceled; will retry (concise mode)");
 					_subscribed = false;
 				}
 				catch (Exception ex)
 				{
-					_log.LogWarning(ex, "Subscribe failed; will re-subscribe on Reconnected.");
+					if (!Concise()) _log.LogWarning(ex, "Subscribe failed; will re-subscribe on Reconnected.");
+					else _log.LogDebug(ex, "Subscribe failed; will retry (concise mode)");
 					_subscribed = false;
 				}
 			}
@@ -131,19 +135,19 @@ namespace BotCore
 			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
 			hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
 
-			hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
-			{
-				if (cid == _contractId)
+				hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
 				{
-					_lastQuoteSeen[cid] = DateTime.UtcNow;
-					if (!_firstQuoteLogged)
+					if (cid == _contractId)
 					{
-						_firstQuoteLogged = true;
-						_log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
+						_lastQuoteSeen[cid] = DateTime.UtcNow;
+						if (!_firstQuoteLogged)
+						{
+							_firstQuoteLogged = true;
+							if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
+						}
+						OnQuote?.Invoke(cid, json);
 					}
-					OnQuote?.Invoke(cid, json);
-				}
-			});
+				});
 			hub.On<string, JsonElement>("GatewayTrade", (cid, json) =>
 			{
 				if (cid == _contractId)
@@ -151,7 +155,7 @@ namespace BotCore
 					if (!_firstTradeLogged)
 					{
 						_firstTradeLogged = true;
-						_log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json);
+						if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json);
 					}
 					OnTrade?.Invoke(cid, json);
 				}
@@ -165,16 +169,16 @@ namespace BotCore
 		{
 			if (_conn is null) return;
 
-			_conn.Reconnecting += ex =>
-			{
-				_subscribed = false;
-				_log.LogWarning(ex, "[MarketHub] Reconnecting…");
-				return Task.CompletedTask;
-			};
+				_conn.Reconnecting += ex =>
+				{
+					_subscribed = false;
+					if (!Concise()) _log.LogWarning(ex, "[MarketHub] Reconnecting…");
+					return Task.CompletedTask;
+				};
 
 			_conn.Reconnected += async _ =>
 			{
-				_log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
+				if (!Concise()) _log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
 				await SubscribeIfConnectedAsync(CancellationToken.None);
 			};
 
@@ -182,14 +186,17 @@ namespace BotCore
 			{
 				_subscribed = false;
 				var now = DateTime.UtcNow;
-				if (now - _lastClosedWarnUtc >= _closedWarnInterval)
+				if (!Concise())
 				{
-					_lastClosedWarnUtc = now;
-					_log.LogWarning(ex, "[MarketHub] Closed. Rebuilding with fresh token…");
-				}
-				else
-				{
-					_log.LogDebug(ex, "[MarketHub] Closed. Rebuilding with fresh token… (suppressed)");
+					if (now - _lastClosedWarnUtc >= _closedWarnInterval)
+					{
+						_lastClosedWarnUtc = now;
+						_log.LogWarning(ex, "[MarketHub] Closed. Rebuilding with fresh token…");
+					}
+					else
+					{
+						_log.LogDebug(ex, "[MarketHub] Closed. Rebuilding with fresh token… (suppressed)");
+					}
 				}
 				var delay = TimeSpan.FromSeconds(1);
 				for (int attempt = 1; attempt <= 5 && !appCt.IsCancellationRequested; attempt++)
@@ -205,25 +212,28 @@ namespace BotCore
 						await _conn.StartAsync(connectCts.Token);
 						await Task.Delay(200, appCt);
 						await SubscribeIfConnectedAsync(CancellationToken.None);
-						var now2 = DateTime.UtcNow;
-						if (now2 - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
-						{
-							_lastRebuiltInfoUtc = now2;
-							_log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
-						}
-						else
-						{
-							_log.LogDebug("[MarketHub] Rebuilt and reconnected (attempt {Attempt}). (suppressed)", attempt);
-						}
-						return; // success
-					}
-					catch (Exception rex)
-					{
-						_log.LogWarning(rex, "[MarketHub] Rebuild attempt {Attempt} failed.", attempt);
-						delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
-					}
-				}
-			};
+ 					if (!Concise())
+ 					{
+ 						var now2 = DateTime.UtcNow;
+ 						if (now2 - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
+ 						{
+ 							_lastRebuiltInfoUtc = now2;
+ 							_log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
+ 						}
+ 						else
+ 						{
+ 							_log.LogDebug("[MarketHub] Rebuilt and reconnected (attempt {Attempt}). (suppressed)", attempt);
+  					}
+  				}
+  				return; // success
+  				}
+  				catch (Exception rex)
+  				{
+  					if (!Concise()) _log.LogWarning(rex, "[MarketHub] Rebuild attempt {Attempt} failed.", attempt);
+  					delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
+  				}
+  			}
+  		};
 		}
 
 		public Microsoft.AspNetCore.SignalR.Client.HubConnection Connection => _conn!;

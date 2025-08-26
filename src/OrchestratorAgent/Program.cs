@@ -667,6 +667,41 @@ namespace OrchestratorAgent
                         }
                     }
 
+                    // Start concise "mod menu" ticker (single-line per symbol, slow interval)
+                    try
+                    {
+                        int tickSec = int.TryParse(Environment.GetEnvironmentVariable("APP_TICKER_INTERVAL_SEC"), out var tsec) ? Math.Max(2, tsec) : 5;
+                        _ = Task.Run(async () =>
+                        {
+                            while (!cts.IsCancellationRequested)
+                            {
+                                try
+                                {
+                                    var now = DateTimeOffset.UtcNow;
+                                    var lastQ = status.Get<DateTimeOffset?>("last.quote");
+                                    var lastB = status.Get<DateTimeOffset?>("last.bar");
+                                    int qAge = lastQ.HasValue ? (int)(now - lastQ.Value).TotalSeconds : -1;
+                                    int bAge = lastB.HasValue ? (int)(now - lastB.Value).TotalSeconds : -1;
+                                    bool paused = status.Get<bool>("route.paused");
+                                    foreach (var sym in roots)
+                                    {
+                                        var qty = status.Get<int>($"pos.{sym}.qty");
+                                        var avg = status.Get<decimal?>($"pos.{sym}.avg") ?? 0m;
+                                        var upnl = status.Get<decimal?>($"pos.{sym}.upnl") ?? 0m;
+                                        var rpnl = status.Get<decimal?>($"pos.{sym}.rpnl") ?? 0m;
+                                        string state = qty != 0
+                                            ? $"IN TRADE {(qty > 0 ? "LONG" : "SHORT")} x{Math.Abs(qty)} @ {avg:F2} uPnL {upnl:F2} rPnL {rpnl:F2}"
+                                            : "Looking…";
+                                        log.LogInformation($"[{sym}] Signals=14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
+                                    }
+                                }
+                                catch { }
+                                try { await Task.Delay(TimeSpan.FromSeconds(tickSec), cts.Token); } catch { }
+                            }
+                        }, cts.Token);
+                    }
+                    catch { }
+
                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
                     try
