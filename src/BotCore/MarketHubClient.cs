@@ -182,9 +182,9 @@ namespace BotCore
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
 
-			hub.ServerTimeout = TimeSpan.FromSeconds(35);
-			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
-			hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
+  	hub.ServerTimeout = TimeSpan.FromSeconds(30);
+  	hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
+  	hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
 
 			// Helper to forward various payload shapes as JsonElement
 			static JsonElement AsJsonElement(object payload)
@@ -225,7 +225,7 @@ namespace BotCore
 					OnTrade?.Invoke(cid, json);
 				}
 			});
-			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
+  	hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) { _lastBarSeen[cid] = DateTime.UtcNow; OnDepth?.Invoke(cid, json); } });
 
 			// Common alt method names seen on some hubs: lowercase simple names and bars
 			hub.On<string, object>("quote", (cid, payload) =>
