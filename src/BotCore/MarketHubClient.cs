@@ -159,7 +159,17 @@ namespace BotCore
 			}
 			string? jwt;
 			try { jwt = await _getJwtAsync(); } catch { jwt = null; }
-			_log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+			// Suppress noisy repeats of the same URL/JWT log
+			var nowLog = DateTime.UtcNow;
+			if (nowLog - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
+			{
+				_lastRebuiltInfoUtc = nowLog;
+				_log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+			}
+			else
+			{
+				_log.LogDebug("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+			}
 			var hub = new HubConnectionBuilder()
 				.WithUrl(url, o =>
 				{
