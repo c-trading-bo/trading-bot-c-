@@ -114,6 +114,35 @@ namespace OrchestratorAgent
                 log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
             }
 
+            // ===== Launch mode selection: Live vs Paper (before any auth) =====
+            bool paperModeSelected = false;
+            try
+            {
+                string? botMode = Environment.GetEnvironmentVariable("BOT_MODE");
+                bool skipPrompt = (Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                if (!string.IsNullOrWhiteSpace(botMode))
+                {
+                    paperModeSelected = botMode.Trim().Equals("paper", StringComparison.OrdinalIgnoreCase);
+                }
+                else if (!skipPrompt && !Console.IsInputRedirected)
+                {
+                    Console.Write("Select mode: Live (y) or Paper (n) [y/N]: ");
+                    var key = Console.ReadKey(intercept: true);
+                    Console.WriteLine();
+                    paperModeSelected = !(key.KeyChar == 'y' || key.KeyChar == 'Y');
+                }
+                else
+                {
+                    // Default to Paper when not specified to be safer by default
+                    paperModeSelected = true;
+                }
+                // Set env flags so downstream services pick it up
+                Environment.SetEnvironmentVariable("PAPER_MODE", paperModeSelected ? "1" : "0");
+                Environment.SetEnvironmentVariable("LIVE_ORDERS", paperModeSelected ? "0" : "1");
+                log.LogInformation("Launch mode selected: {Mode}", paperModeSelected ? "PAPER" : "LIVE");
+            }
+            catch { }
+
             // Try to obtain JWT if not provided
             if (string.IsNullOrWhiteSpace(jwt) && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
             {
@@ -332,6 +361,10 @@ namespace OrchestratorAgent
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live);
+
+                    // Paper mode wiring
+                    bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    PaperBroker? paperBroker = paperMode ? new PaperBroker(status, log) : null;
 
                     // Autopilot flags
                     var auto = AppEnv.Flag("AUTO", false);
@@ -726,7 +759,8 @@ namespace OrchestratorAgent
                         }
                         catch { }
                         bars[esRoot].Add(bar);
-                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, log, appState, liveLease, cts.Token);
+                        if (paperBroker != null) { try { paperBroker.OnBar(esRoot, bar); } catch { } }
+                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, cts.Token);
                     };
                     if (enableNq && aggNQ != null && market2 != null)
                     {
@@ -741,7 +775,8 @@ namespace OrchestratorAgent
                             }
                             catch { }
                             bars[nqRoot].Add(bar);
-                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, log, appState, liveLease, cts.Token);
+                            if (paperBroker != null) { try { paperBroker.OnBar(nqRoot, bar); } catch { } }
+                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, cts.Token);
                         };
                     }
 
@@ -901,6 +936,8 @@ namespace OrchestratorAgent
                 RiskEngine risk,
                 Levels levels,
                 SimpleOrderRouter router,
+                PaperBroker? paperBroker,
+                bool paperMode,
                 ILogger log,
                 OrchestratorAgent.Ops.AppState appState,
                 OrchestratorAgent.Ops.LiveLease liveLease,
@@ -937,6 +974,12 @@ namespace OrchestratorAgent
                         if (appState.DrainMode)
                         {
                             log.LogInformation("DRAIN: skip new parent {sym} {side} @{px}", symbol, sig.Side, sig.Entry);
+                            continue;
+                        }
+
+                        if (paperMode && paperBroker != null)
+                        {
+                            try { await paperBroker.RouteAsync(sig, ct); } catch { }
                             continue;
                         }
 
