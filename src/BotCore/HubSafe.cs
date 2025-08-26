@@ -47,14 +47,14 @@ namespace BotCore
                         throw;
                     }
                 }
+                catch (TaskCanceledException tce)
+                {
+                    log.LogDebug(tce, "Invoke task canceled on attempt {Attempt}; will retry.", attempt);
+                }
                 catch (OperationCanceledException oce)
                 {
                     // During reconnects, transient cancels can bubble up from transport/handshake
                     log.LogDebug(oce, "Invoke canceled on attempt {Attempt}; will retry.", attempt);
-                }
-                catch (TaskCanceledException tce)
-                {
-                    log.LogDebug(tce, "Invoke task canceled on attempt {Attempt}; will retry.", attempt);
                 }
                 catch (Exception ex)
                 {
