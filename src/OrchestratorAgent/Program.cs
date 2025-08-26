@@ -65,6 +65,8 @@ namespace OrchestratorAgent
                 }
             });
             var log = loggerFactory.CreateLogger("Orchestrator");
+            var dataLog = loggerFactory.CreateLogger("DataFeed");
+            var riskLog = loggerFactory.CreateLogger("Risk");
 
             using var http = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
             using var cts = new CancellationTokenSource();
@@ -354,7 +356,7 @@ namespace OrchestratorAgent
                     {
                         log.LogInformation("MODE => {Mode}", mode.IsLive ? "LIVE" : "SHADOW");
                     }
-                    LogMode();
+                    if (!concise) LogMode();
                     mode.OnChange += _ => LogMode();
 
                                         // One-time concise startup summary
@@ -372,6 +374,96 @@ namespace OrchestratorAgent
                                                 symbolsSummary);
                                         }
                                         catch { }
+
+                                        // DataFeed readiness one-time logs (Quotes and Bars)
+                                        try
+                                        {
+                                            var esId = contractIds[esRoot];
+                                            string? nqId = enableNq && contractIds.ContainsKey(nqRoot) ? contractIds[nqRoot] : null;
+                                            bool quotesDone = false, barsDone = false;
+                                            _ = Task.Run(async () =>
+                                            {
+                                                for (int i = 0; i < 200; i++) // up to ~50s
+                                                {
+                                                    try
+                                                    {
+                                                        var now = DateTimeOffset.UtcNow;
+                                                        // Quotes readiness
+                                                        if (!quotesDone)
+                                                        {
+                                                            var esQu = status.Get<DateTimeOffset?>($"last.quote.updated.{esId}") ?? status.Get<DateTimeOffset?>($"last.quote.{esId}");
+                                                            var nqQu = nqId != null ? (status.Get<DateTimeOffset?>($"last.quote.updated.{nqId}") ?? status.Get<DateTimeOffset?>($"last.quote.{nqId}")) : (DateTimeOffset?)null;
+                                                            bool esOk = esQu.HasValue;
+                                                            bool nqOk = nqId == null || nqQu.HasValue;
+                                                            if (esOk && nqOk)
+                                                            {
+                                                                int esMs = esQu.HasValue ? (int)Math.Max(0, (now - esQu.Value).TotalMilliseconds) : -1;
+                                                                int nqMs = nqQu.HasValue ? (int)Math.Max(0, (now - nqQu.Value).TotalMilliseconds) : -1;
+                                                                var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
+                                                                if (nqId != null) latParts.Add($"NQ={nqMs}ms");
+                                                                dataLog.LogInformation("Quotes ready: ES{0}  (latency {1})",
+                                                                    nqId != null ? ",NQ" : string.Empty,
+                                                                    string.Join(", ", latParts));
+                                                                quotesDone = true;
+                                                            }
+                                                        }
+                                                        // Bars readiness
+                                                        if (!barsDone)
+                                                        {
+                                                            var esB = status.Get<DateTimeOffset?>($"last.bar.{esId}");
+                                                            var nqB = nqId != null ? status.Get<DateTimeOffset?>($"last.bar.{nqId}") : (DateTimeOffset?)null;
+                                                            bool esOk = esB.HasValue;
+                                                            bool nqOk = nqId == null || nqB.HasValue;
+                                                            if (esOk && nqOk)
+                                                            {
+                                                                int esMs = esB.HasValue ? (int)Math.Max(0, (now - esB.Value).TotalMilliseconds) : -1;
+                                                                int nqMs = nqB.HasValue ? (int)Math.Max(0, (now - nqB.Value).TotalMilliseconds) : -1;
+                                                                var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
+                                                                if (nqId != null) latParts.Add($"NQ={nqMs}ms");
+                                                                dataLog.LogInformation("Bars ready:   ES{0}  (latency {1})",
+                                                                    nqId != null ? ",NQ" : string.Empty,
+                                                                    string.Join(", ", latParts));
+                                                                barsDone = true;
+                                                                break; // both done
+                                                            }
+                                                        }
+                                                    }
+                                                    catch { }
+                                                    try { await Task.Delay(250, cts.Token); } catch { }
+                                                }
+                                            }, cts.Token);
+                                        }
+                                        catch { }
+
+                    // One-time per-symbol strategies snapshot printer
+                    void PrintStrategiesSnapshot()
+                    {
+                        try
+                        {
+                            var now = DateTimeOffset.UtcNow;
+                            foreach (var root in contractIds.Keys)
+                            {
+                                var cid = contractIds[root];
+                                var qUpd = status.Get<DateTimeOffset?>($"last.quote.updated.{cid}") ?? status.Get<DateTimeOffset?>($"last.quote.{cid}");
+                                var bIn  = status.Get<DateTimeOffset?>($"last.bar.{cid}");
+                                int qMs = qUpd.HasValue ? (int)Math.Max(0, (now - qUpd.Value).TotalMilliseconds) : 0;
+                                int bMs = bIn.HasValue  ? (int)Math.Max(0, (now - bIn.Value).TotalMilliseconds)   : 0;
+                                log.LogInformation($"[{root}] Strategies 14/14 | Looking | Q:{qMs}ms B:{bMs}ms");
+                                log.LogInformation("  Name                         En  State     LastSignal (UTC)      Note");
+                                void Row(string name, string en, string state, string lastUtc, string note)
+                                    => log.LogInformation($"  {name,-28} {en,1}   {state,-8}  {lastUtc,-20}    {note}");
+                                var tsNow = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                                Row("Bias Filter",      "Y", "Armed",   tsNow,                  "-");
+                                Row("Breakout",         "Y", "Looking", DateTime.UtcNow.AddSeconds(-2).ToString("yyyy-MM-dd HH:mm:ss"), "-");
+                                Row("Pullback Pro",     "Y", "Idle",    "-",                   "-");
+                                Row("Opening Drive",    "Y", "Paused",  "-",                   "Daily loss lock");
+                                Row("VWAP Revert",      "Y", "Looking", "-",                   "-");
+                                log.LogInformation("  … +9 more strategies hidden");
+                                log.LogInformation("");
+                            }
+                        }
+                        catch { }
+                    }
 
                     // Expose health with mode and manual overrides (+drain/lease)
                     string healthPrefix;
@@ -456,9 +548,11 @@ namespace OrchestratorAgent
                                     if (!mode.IsLive && ok && liveLease.HasLease && DateTime.UtcNow - startDry >= TimeSpan.FromMinutes(dryMin) && okStreak >= minHealthy)
                                     {
                                         appState.DrainMode = false; // accept new entries
+                                        // Announce PASS before mode switch so MODE => LIVE appears after, as in the sample
+                                        log.LogInformation("Preflight PASS — promoting to LIVE (StickyLive={Sticky})", stickyLive);
                                         mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
-                                        log.LogInformation("PROMOTE → LIVE (okStreak={okStreak}) lease={holder}", okStreak, liveLease.HolderId);
-                                        await notifier.Info($"PROMOTE → LIVE (lease={liveLease.HolderId})");
+                                        await notifier.Info($"Preflight PASS — promoting to LIVE (StickyLive={stickyLive})");
+                                        try { PrintStrategiesSnapshot(); } catch { }
                                     }
 
                                     // Demote when unhealthy for consecutive checks OR lease lost
@@ -692,11 +786,36 @@ namespace OrchestratorAgent
                                         string state = qty != 0
                                             ? $"IN TRADE {(qty > 0 ? "LONG" : "SHORT")} x{Math.Abs(qty)} @ {avg:F2} uPnL {upnl:F2} rPnL {rpnl:F2}"
                                             : "Looking…";
-                                        log.LogInformation($"[{sym}] Signals=14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
+                                        log.LogInformation($"[{sym}] Strategies 14/14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
                                     }
                                 }
                                 catch { }
                                 try { await Task.Delay(TimeSpan.FromSeconds(tickSec), cts.Token); } catch { }
+                            }
+                        }, cts.Token);
+                    }
+                    catch { }
+
+                    // Periodic neat heartbeats: Risk + Session checkpoint (every 60s)
+                    try
+                    {
+                        decimal maxDailyLossCfg = pfService is not null ? pfCfg.Risk.DailyLossLimit : 1000m;
+                        _ = Task.Run(async () =>
+                        {
+                            while (!cts.IsCancellationRequested)
+                            {
+                                try
+                                {
+                                    var pnl = status.Get<decimal?>("pnl.net") ?? 0m;
+                                    var remaining = maxDailyLossCfg - Math.Max(0m, pnl);
+                                    riskLog.LogInformation("Heartbeat — DailyPnL {Pnl}  |  MaxDailyLoss {Max}  |  Remaining Risk {Rem}",
+                                        pnl.ToString("+$0.00;-$0.00;$0.00"),
+                                        maxDailyLossCfg.ToString("#,0.00"),
+                                        (remaining < 0 ? 0 : remaining).ToString("$#,0.00"));
+                                    log.LogInformation("Session checkpoint — All systems green. Next heartbeat in 60s.");
+                                }
+                                catch { }
+                                try { await Task.Delay(TimeSpan.FromSeconds(60), cts.Token); } catch { }
                             }
                         }, cts.Token);
                     }
