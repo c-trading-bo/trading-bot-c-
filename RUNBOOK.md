@@ -56,8 +56,15 @@ Launch (once)
   - TOPSTEPX_ACCOUNT_ID=123456
   - TOPSTEPX_SYMBOLS=ES,NQ
   - BOT_ALERT_WEBHOOK=https://...
-- Start the bot (port 5000; starts SHADOW → auto-promotes to LIVE when healthy + lease):
+- Launch in terminal (clean view recommended; bot on port 5000, starts in SHADOW and auto-promotes to LIVE when healthy + lease):
+  - PowerShell (compact checklist then quotes/trades only):
+    - .\start-clean.ps1
+    - .\start-clean.ps1 -ChecklistOnly   # quick health check that exits
+  - CMD / double-click:
+    - start-clean.cmd
+- Verbose launch (original scripts, if you prefer full logs):
   - powershell -ExecutionPolicy Bypass -File .\launch-bot.ps1
+  - launch-bot.cmd
 - Start the auto-upgrader sidecar (builds/tests, runs vNext on 5001):
   - powershell -ExecutionPolicy Bypass -File .\launch-updater.ps1
 
