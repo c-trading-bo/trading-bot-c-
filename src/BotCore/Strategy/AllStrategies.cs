@@ -419,7 +419,9 @@ namespace BotCore.Strategy
             var pv   = InstrumentMeta.PointValue(symbol);
             var tick = InstrumentMeta.Tick(symbol);
             var dist = Math.Max(Math.Abs(entry - stop), tick); // ≥ 1 tick
-            var qty  = risk.size_for(risk.cfg.risk_per_trade, dist, pv);
+            // Prefer equity-% aware sizing if configured; pass 0 equity to fallback to fixed RPT when not provided
+            var sz = risk.ComputeSize(symbol, entry, stop, 0m);
+            var qty = sz.Qty > 0 ? sz.Qty : (int)risk.size_for(risk.cfg.risk_per_trade, dist, pv);
             if (qty <= 0) return;
 
             var expR = rr_quality(entry, stop, t1);

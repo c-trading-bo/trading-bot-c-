@@ -287,6 +287,7 @@ namespace OrchestratorAgent
                         {
                             try
                             {
+                                decimal sumRpnl = 0m;
                                 foreach (var kv in posTracker.Snapshot())
                                 {
                                     var sym = kv.Key;
@@ -295,7 +296,11 @@ namespace OrchestratorAgent
                                     status.Set($"pos.{sym}.avg", st.AvgPrice);
                                     status.Set($"pos.{sym}.upnl", st.UnrealizedUsd);
                                     status.Set($"pos.{sym}.rpnl", st.RealizedUsd);
+                                    sumRpnl += st.RealizedUsd;
                                 }
+                                // Expose day/net PnL for risk halts and heartbeat
+                                status.Set("pnl.day", sumRpnl);
+                                status.Set("pnl.net", sumRpnl);
                             }
                             catch { }
                             try { await Task.Delay(TimeSpan.FromSeconds(5), cts.Token); } catch { }
@@ -354,13 +359,30 @@ namespace OrchestratorAgent
                             risk.cfg.risk_per_trade = rpt;
                             log.LogInformation("Risk: using risk_per_trade=${RPT}", rpt);
                         }
+                        var rPct = Environment.GetEnvironmentVariable("RISK_PCT_OF_EQUITY") ?? Environment.GetEnvironmentVariable("RISK_EQUITY_PCT");
+                        if (!string.IsNullOrWhiteSpace(rPct) && decimal.TryParse(rPct, out var pct) && pct > 0)
+                        {
+                            risk.cfg.risk_pct_of_equity = pct;
+                            log.LogInformation("Risk: using equity% per trade = {Pct}", pct);
+                        }
+                        var mdl = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
+                        if (!string.IsNullOrWhiteSpace(mdl) && decimal.TryParse(mdl, out var mdlv) && mdlv > 0) risk.cfg.max_daily_drawdown = mdlv;
+                        var mwl = Environment.GetEnvironmentVariable("MAX_WEEKLY_LOSS");
+                        if (!string.IsNullOrWhiteSpace(mwl) && decimal.TryParse(mwl, out var mwlv) && mwlv > 0) risk.cfg.max_weekly_drawdown = mwlv;
+                        var mcl = Environment.GetEnvironmentVariable("MAX_CONSECUTIVE_LOSSES");
+                        if (!string.IsNullOrWhiteSpace(mcl) && int.TryParse(mcl, out var mclv) && mclv > 0) risk.cfg.max_consecutive_losses = mclv;
+                        var cool = Environment.GetEnvironmentVariable("COOLDOWN_MINUTES_AFTER_STREAK");
+                        if (!string.IsNullOrWhiteSpace(cool) && int.TryParse(cool, out var coolv) && coolv > 0) risk.cfg.cooldown_minutes_after_streak = coolv;
+                        var mop = Environment.GetEnvironmentVariable("MAX_OPEN_POSITIONS");
+                        if (!string.IsNullOrWhiteSpace(mop) && int.TryParse(mop, out var mopv) && mopv > 0) risk.cfg.max_open_positions = mopv;
                     }
                     catch { }
 
                     var levels = new BotCore.Models.Levels();
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                    var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live);
+                    var partialExit = new OrchestratorAgent.Ops.PartialExitService(http, jwtCache.GetAsync, log);
+                    var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
 
                     // Paper mode wiring
                     bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -572,6 +594,75 @@ namespace OrchestratorAgent
                                     status.Set("route.paused", true);
                                     Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
                                 }
+                                // Daily drawdown halt (simple gate from env and status pnl)
+                                try
+                                {
+                                    var pnlDay = status.Get<decimal?>("pnl.net") ?? 0m;
+                                    var mdlEnv2 = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
+                                    if (!string.IsNullOrWhiteSpace(mdlEnv2) && decimal.TryParse(mdlEnv2, out var mdlVal2) && mdlVal2 > 0m)
+                                    {
+                                        if (-pnlDay >= mdlVal2)
+                                        {
+                                            status.Set("route.paused", true);
+                                            status.Set("halt.reason", "DAILY_DD");
+                                            Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                // Loss-streak cooldown gate
+                                try
+                                {
+                                    var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
+                                    var last = status.Get<decimal?>("last.rpnl") ?? rpnl;
+                                    int streak = status.Get<int>("loss.streak");
+                                    if (rpnl < last - 0.01m) streak++; else if (rpnl > last + 0.01m) streak = 0;
+                                    status.Set("last.rpnl", rpnl);
+                                    status.Set("loss.streak", streak);
+                                    int maxStreak = risk.cfg.max_consecutive_losses;
+                                    if (maxStreak > 0 && streak >= maxStreak)
+                                    {
+                                        var until = DateTimeOffset.UtcNow.AddMinutes(Math.Max(0, risk.cfg.cooldown_minutes_after_streak));
+                                        status.Set("route.paused", true);
+                                        status.Set("halt.reason", "LOSS_STREAK");
+                                        status.Set("halt.until", until);
+                                        Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                    }
+                                    var haltUntil = status.Get<DateTimeOffset?>("halt.until");
+                                    if (haltUntil.HasValue && DateTimeOffset.UtcNow < haltUntil.Value)
+                                    {
+                                        status.Set("route.paused", true);
+                                    }
+                                }
+                                catch { }
+
+                                // Weekly drawdown gate (process-scoped baseline)
+                                try
+                                {
+                                    var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
+                                    var weekStart = status.Get<DateTimeOffset?>("week.start");
+                                    if (!weekStart.HasValue)
+                                    {
+                                        // compute Monday 00:00 UTC-ish baseline
+                                        var now = DateTimeOffset.UtcNow;
+                                        int delta = ((int)now.DayOfWeek + 6) % 7; // Monday=0
+                                        var monday = new DateTimeOffset(now.Date.AddDays(-delta), TimeSpan.Zero);
+                                        status.Set("week.start", monday);
+                                        status.Set("week.start.pnl", rpnl);
+                                    }
+                                    var startPnl = status.Get<decimal?>("week.start.pnl") ?? rpnl;
+                                    var pnlWeek = rpnl - startPnl;
+                                    var mw = risk.cfg.max_weekly_drawdown;
+                                    if (mw > 0m && -pnlWeek >= mw)
+                                    {
+                                        status.Set("route.paused", true);
+                                        status.Set("halt.reason", "WEEKLY_DD");
+                                        Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                    }
+                                }
+                                catch { }
+
                                 await Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
                             }
                             catch (OperationCanceledException) { }

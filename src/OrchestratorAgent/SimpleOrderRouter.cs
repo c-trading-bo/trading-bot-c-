@@ -16,6 +16,7 @@ namespace OrchestratorAgent
         private readonly Func<Task<string?>> _getJwtAsync;
         private readonly ILogger _log;
         private readonly bool _live;
+        private readonly OrchestratorAgent.Ops.PartialExitService? _partialExit;
 
         public SimpleOrderRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live)
         {
@@ -23,6 +24,16 @@ namespace OrchestratorAgent
             _getJwtAsync = getJwtAsync;
             _log = log;
             _live = live;
+            _partialExit = null;
+        }
+
+        public SimpleOrderRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live, OrchestratorAgent.Ops.PartialExitService? partialExit)
+        {
+            _http = http;
+            _getJwtAsync = getJwtAsync;
+            _log = log;
+            _live = live;
+            _partialExit = partialExit;
         }
 
         public async Task<bool> RouteAsync(Signal sig, CancellationToken ct)
@@ -125,31 +136,33 @@ namespace OrchestratorAgent
 
                 if (!string.IsNullOrWhiteSpace(parentId))
                 {
-                    // Compute ticks from provided prices or fall back to env defaults
+                    // R-driven bracket math with env fallbacks
                     decimal tick = BotCore.Models.InstrumentMeta.Tick(sig.Symbol);
-                    int AbsTicks(decimal a) => (int)Math.Max(1, Math.Round(Math.Abs(a) / (tick <= 0 ? 0.25m : tick)));
+                    if (tick <= 0) tick = 0.25m;
+                    int AbsTicks(decimal a) => (int)Math.Max(1, Math.Round(Math.Abs(a) / tick));
                     bool isSell = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase);
-                    int tpTicks = 0;
-                    int slTicks = 0;
-                    if (sig.Target != 0 && sig.Entry != 0)
-                    {
-                        tpTicks = AbsTicks(sig.Target - sig.Entry);
-                    }
-                    if (sig.Stop != 0 && sig.Entry != 0)
-                    {
-                        slTicks = AbsTicks(sig.Entry - sig.Stop); // long: entry-stop; short will still be positive distance
-                    }
-                    // Environment overrides (global and per symbol)
-                    int EnvInt(string key, int defVal)
-                    {
-                        try { var raw = Environment.GetEnvironmentVariable(key); return int.TryParse(raw, out var v) && v > 0 ? v : defVal; } catch { return defVal; }
-                    }
-                    int beTicks = EnvInt("BRACKET_BE_TICKS", 8);
-                    int trailTicks = EnvInt("BRACKET_TRAIL_TICKS", 6);
-                    if (tpTicks <= 0) tpTicks = EnvInt($"BRACKET_TP_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_TP_TICKS", 20));
-                    if (slTicks <= 0) slTicks = EnvInt($"BRACKET_SL_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_SL_TICKS", 12));
 
-                    // Try primary upsert endpoint first
+                    int slTicks = 0;
+                    if (sig.Stop != 0 && sig.Entry != 0)
+                        slTicks = AbsTicks(sig.Entry - sig.Stop); // long: entry-stop; short distance still positive
+
+                    int EnvInt(string key, int defVal) { try { var raw = Environment.GetEnvironmentVariable(key); return int.TryParse(raw, out var v) && v > 0 ? v : defVal; } catch { return defVal; } }
+                    decimal EnvDec(string key, decimal defVal) { try { var raw = Environment.GetEnvironmentVariable(key); return decimal.TryParse(raw, out var v) ? v : defVal; } catch { return defVal; } }
+
+                    var rTp1   = EnvDec("R_MULT_TP1", 1.0m);
+                    var rTp2   = EnvDec("R_MULT_TP2", 2.0m);
+                    var beR    = EnvDec("BE_AFTER_R", 1.0m);
+                    var tp1Pct = EnvDec("TP1_PCT_CLOSE", 0.50m);
+                    int trailTicks = EnvInt("BRACKET_TRAIL_TICKS", 6);
+
+                    // Fallbacks if stop not provided
+                    if (slTicks <= 0) slTicks = EnvInt($"BRACKET_SL_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_SL_TICKS", 12));
+                    int tpTicks = slTicks > 0 ? (int)Math.Round(slTicks * rTp2) : EnvInt($"BRACKET_TP_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_TP_TICKS", 20));
+                    int beTicks = slTicks > 0 ? (int)Math.Round(slTicks * beR) : EnvInt("BRACKET_BE_TICKS", 8);
+                    if (tpTicks <= 0) tpTicks = EnvInt($"BRACKET_TP_{sig.Symbol.ToUpperInvariant()}_TICKS", EnvInt("BRACKET_TP_TICKS", 20));
+                    if (beTicks <= 0) beTicks = EnvInt("BRACKET_BE_TICKS", 8);
+
+                    // Upsert platform bracket (acts as TP2)
                     var upsertBody = new { parentId = (object?)parentId, qty = clampedSize, takeProfitTicks = tpTicks, stopLossTicks = slTicks, breakevenAfterTicks = beTicks, trailTicks };
                     bool bracketsOk = false;
                     try
@@ -161,7 +174,6 @@ namespace OrchestratorAgent
                         if (upResp.IsSuccessStatusCode) bracketsOk = true;
                     }
                     catch { }
-
                     if (!bracketsOk)
                     {
                         try
@@ -191,13 +203,8 @@ namespace OrchestratorAgent
 
                     if (bracketsOk)
                     {
-                        // Narrative logs per your diagram
-                        var stopPx = isSell
-                            ? sig.Entry + slTicks * (tick <= 0 ? 0.25m : tick)
-                            : sig.Entry - slTicks * (tick <= 0 ? 0.25m : tick);
-                        var tgtPx = isSell
-                            ? sig.Entry - tpTicks * (tick <= 0 ? 0.25m : tick)
-                            : sig.Entry + tpTicks * (tick <= 0 ? 0.25m : tick);
+                        var stopPx = isSell ? sig.Entry + slTicks * tick : sig.Entry - slTicks * tick;
+                        var tgtPx  = isSell ? sig.Entry - tpTicks * tick : sig.Entry + tpTicks * tick;
                         _log.LogInformation("STOP NEW   {Stop}  ({Sl} ticks)", stopPx, slTicks);
                         _log.LogInformation("TARGET NEW {Tgt}  ({Tp} ticks)", tgtPx, tpTicks);
                     }
@@ -205,6 +212,24 @@ namespace OrchestratorAgent
                     {
                         _log.LogWarning("[Router] Bracket attach failed for parent {ParentId}", parentId);
                     }
+
+                    // Schedule TP1 partial (reduce-only IOC) at 1R
+                    try
+                    {
+                        int tp1Ticks = slTicks > 0 ? (int)Math.Round(slTicks * rTp1) : 0;
+                        if (tp1Ticks > 0 && _partialExit != null)
+                        {
+                            var lot = BotCore.Models.InstrumentMeta.LotStep(sig.Symbol);
+                            int tp1Qty = (int)Math.Max(0, Math.Floor(clampedSize * (double)tp1Pct));
+                            if (lot > 1) tp1Qty = tp1Qty - (tp1Qty % lot);
+                            if (tp1Qty > 0)
+                            {
+                                _ = Task.Run(() => _partialExit!.TryScaleOutAsync(sig.Symbol, parentId!, clampedSize, sig.Entry, !isSell, tp1Ticks, tp1Qty, ct));
+                                _log.LogInformation("[TP1] scheduled reduce-only partial qty={Qty} at {Ticks} ticks ({R}R)", tp1Qty, tp1Ticks, rTp1);
+                            }
+                        }
+                    }
+                    catch { }
                 }
                 return true;
             }
