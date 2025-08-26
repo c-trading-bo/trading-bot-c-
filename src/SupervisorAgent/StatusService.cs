@@ -25,10 +25,12 @@ namespace SupervisorAgent
 
         private static bool Concise() => (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
         private static bool ShowStatusTick() => (Environment.GetEnvironmentVariable("APP_SHOW_STATUS_TICK") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+        private static bool QuietJson() => (Environment.GetEnvironmentVariable("QUIET_JSON_STATUS") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
 
         public void Heartbeat()
         {
             var now = DateTimeOffset.UtcNow;
+            if (QuietJson()) return;
             // In concise mode, status tick is opt-in
             if (Concise() && !ShowStatusTick()) return;
             // Base throttle to avoid hot loops
