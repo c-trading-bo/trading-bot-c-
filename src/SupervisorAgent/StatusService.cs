@@ -10,6 +10,8 @@ namespace SupervisorAgent
         private readonly ILogger<StatusService> _log;
         private readonly ConcurrentDictionary<string, object> _vals = new();
         private DateTimeOffset _lastBeat = DateTimeOffset.MinValue;
+        private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
+        private string _lastJson = string.Empty;
 
         public long AccountId { get; set; }
         public Dictionary<string,string> Contracts { get; set; } = new();
@@ -19,10 +21,16 @@ namespace SupervisorAgent
         public void Set(string key, object value) => _vals[key] = value;
         public T? Get<T>(string key) => _vals.TryGetValue(key, out var v) ? (T?)v : default;
 
+        private static bool Concise() => (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+
         public void Heartbeat()
         {
             var now = DateTimeOffset.UtcNow;
-            if (now - _lastBeat < TimeSpan.FromSeconds(5)) return; // throttle
+            // Base throttle to avoid hot loops
+            if (!Concise())
+            {
+                if (now - _lastBeat < TimeSpan.FromSeconds(5)) return; // throttle
+            }
             _lastBeat = now;
 
             var snapshot = new
@@ -38,8 +46,21 @@ namespace SupervisorAgent
                 openOrders = Get<object?>("orders.open"),
                 risk = Get<object?>("risk.state")
             };
+            var json = JsonSerializer.Serialize(snapshot);
 
-            _log.LogInformation("BOT STATUS => {Json}", JsonSerializer.Serialize(snapshot));
+            if (Concise())
+            {
+                // Emit only when changed or every 60s
+                if (json != _lastJson || (now - _lastEmit) >= TimeSpan.FromSeconds(60))
+                {
+                    _lastJson = json;
+                    _lastEmit = now;
+                    _log.LogInformation("BOT STATUS => {Json}", json);
+                }
+                return;
+            }
+
+            _log.LogInformation("BOT STATUS => {Json}", json);
         }
     }
 }

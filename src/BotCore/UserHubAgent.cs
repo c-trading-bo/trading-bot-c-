@@ -80,7 +80,20 @@ namespace BotCore
 					// DO NOT force SkipNegotiation unless required; default is fine
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
-				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
+    .ConfigureLogging(lb =>
+    				{
+    					lb.ClearProviders();
+    					lb.AddConsole();
+    					lb.SetMinimumLevel(LogLevel.Information);
+    					var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+    					if (concise)
+    					{
+    						lb.AddFilter("Microsoft", LogLevel.Warning);
+    						lb.AddFilter("System", LogLevel.Warning);
+    						lb.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
+    						lb.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+    					}
+    				})
 				.Build();
 
 			WireEvents(_hub);

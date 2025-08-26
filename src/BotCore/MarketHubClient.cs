@@ -24,6 +24,18 @@ namespace BotCore
 			private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastQuoteSeen = new();
 			private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastBarSeen = new();
 
+			// Throttling/backoff fields to reduce log spam during unstable connectivity bursts
+			private DateTime _lastClosedWarnUtc = DateTime.MinValue;
+			private DateTime _lastRebuiltInfoUtc = DateTime.MinValue;
+			private readonly TimeSpan _closedWarnInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_CLOSED_WARN_INTERVAL_SECONDS", 10));
+			private readonly TimeSpan _rebuiltInfoInterval = TimeSpan.FromSeconds(GetEnvInt("MARKET_HUB_REBUILT_INFO_INTERVAL_SECONDS", 10));
+
+			private static int GetEnvInt(string name, int def)
+			{
+				var s = Environment.GetEnvironmentVariable(name);
+				return int.TryParse(s, out var v) && v > 0 ? v : def;
+			}
+
 			public event Action<string, JsonElement>? OnQuote;
 			public event Action<string, JsonElement>? OnTrade;
 			public event Action<string, JsonElement>? OnDepth;
@@ -169,7 +181,16 @@ namespace BotCore
 			_conn.Closed += async ex =>
 			{
 				_subscribed = false;
-				_log.LogWarning(ex, "[MarketHub] Closed. Rebuilding with fresh token…");
+				var now = DateTime.UtcNow;
+				if (now - _lastClosedWarnUtc >= _closedWarnInterval)
+				{
+					_lastClosedWarnUtc = now;
+					_log.LogWarning(ex, "[MarketHub] Closed. Rebuilding with fresh token…");
+				}
+				else
+				{
+					_log.LogDebug(ex, "[MarketHub] Closed. Rebuilding with fresh token… (suppressed)");
+				}
 				var delay = TimeSpan.FromSeconds(1);
 				for (int attempt = 1; attempt <= 5 && !appCt.IsCancellationRequested; attempt++)
 				{
@@ -184,7 +205,16 @@ namespace BotCore
 						await _conn.StartAsync(connectCts.Token);
 						await Task.Delay(200, appCt);
 						await SubscribeIfConnectedAsync(CancellationToken.None);
-						_log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
+						var now2 = DateTime.UtcNow;
+						if (now2 - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
+						{
+							_lastRebuiltInfoUtc = now2;
+							_log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
+						}
+						else
+						{
+							_log.LogDebug("[MarketHub] Rebuilt and reconnected (attempt {Attempt}). (suppressed)", attempt);
+						}
 						return; // success
 					}
 					catch (Exception rex)

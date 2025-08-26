@@ -333,7 +333,15 @@ namespace OrchestratorAgent
                 {
                     logging.ClearProviders();
                     logging.AddConsole();
-                    logging.SetMinimumLevel(LogLevel.Debug);
+                    logging.SetMinimumLevel(LogLevel.Information);
+                    var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    if (concise)
+                    {
+                        logging.AddFilter("Microsoft", LogLevel.Warning);
+                        logging.AddFilter("System", LogLevel.Warning);
+                        logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
+                        logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+                    }
                 })
                 .Build();
 

@@ -50,10 +50,19 @@ namespace OrchestratorAgent
             System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
 
+            var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             var loggerFactory = LoggerFactory.Create(b =>
             {
+                b.ClearProviders();
                 b.AddConsole();
                 b.SetMinimumLevel(LogLevel.Information);
+                if (concise)
+                {
+                    b.AddFilter("Microsoft", LogLevel.Warning);
+                    b.AddFilter("System", LogLevel.Warning);
+                    b.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
+                    b.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+                }
             });
             var log = loggerFactory.CreateLogger("Orchestrator");
 
@@ -347,6 +356,22 @@ namespace OrchestratorAgent
                     }
                     LogMode();
                     mode.OnChange += _ => LogMode();
+
+                                        // One-time concise startup summary
+                                        try
+                                        {
+                                            var symbolsSummary = string.Join(", ", contractIds.Select(kv => $"{kv.Key}:{kv.Value}"));
+                                            log.LogInformation("Startup Summary => Account={AccountId} Mode={Mode} LiveOrders={Live} AutoGoLive={AutoGoLive} DryRunMin={DryMin} MinHealthy={MinHealthy} StickyLive={Sticky} Symbols=[{Symbols}]",
+                                                accountId,
+                                                mode.IsLive ? "LIVE" : "SHADOW",
+                                                live,
+                                                autoGoLive,
+                                                dryMin,
+                                                minHealthy,
+                                                stickyLive,
+                                                symbolsSummary);
+                                        }
+                                        catch { }
 
                     // Expose health with mode and manual overrides (+drain/lease)
                     string healthPrefix;
