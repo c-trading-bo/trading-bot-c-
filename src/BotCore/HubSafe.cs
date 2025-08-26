@@ -62,16 +62,12 @@ namespace BotCore
                     log.LogWarning(ex, "Invoke attempt {Attempt} failed; will retry (state={State}).", attempt, hub.State);
                 }
 
-                // Backoff before next attempt, nudge Start if we’re disconnected
+                // Backoff before next attempt; let automatic reconnect handle restarts
                 try
                 {
-                    if (hub.State == HubConnectionState.Disconnected)
-                    {
-                        try { await hub.StartAsync(ct); } catch { /* swallow and retry */ }
-                    }
                     await Task.Delay(TimeSpan.FromSeconds(1), ct);
                 }
-                catch { /* ignore delay/start errors and continue */ }
+                catch { /* ignore delay errors and continue */ }
             }
 
             throw new TimeoutException($"Invoke failed after {maxAttempts} attempts while state={hub.State}.");
@@ -86,10 +82,7 @@ namespace BotCore
             if (hub.State == HubConnectionState.Connected) return;
 
             // Fast-path: if we're Disconnected, try starting immediately (no throw if it fails).
-            if (hub.State == HubConnectionState.Disconnected)
-            {
-                try { await hub.StartAsync(ct); } catch { /* allow retry loop below */ }
-            }
+            // Do not call StartAsync here; rely on automatic reconnect to handle restarts
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
             while (hub.State != HubConnectionState.Connected)
@@ -98,11 +91,7 @@ namespace BotCore
                 if (sw.Elapsed > timeout)
                     throw new TimeoutException($"Hub stayed {hub.State} for {timeout.TotalSeconds:N0}s.");
 
-                if (hub.State == HubConnectionState.Disconnected)
-                {
-                    try { await hub.StartAsync(ct); } catch { /* swallow; next loop will re-check */ }
-                }
-
+                // Do not force StartAsync during reconnect; rely on automatic reconnect policy
                 await Task.Delay(100, ct);
             }
             log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);

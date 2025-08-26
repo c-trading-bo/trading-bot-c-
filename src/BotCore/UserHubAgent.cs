@@ -57,7 +57,7 @@ namespace BotCore
 					opt.Transports = HttpTransportType.WebSockets;
 					opt.SkipNegotiation = true;
 				})
-				.WithAutomaticReconnect(new ExpoRetry())
+				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
 				.ConfigureLogging(lb => lb.AddConsole().SetMinimumLevel(LogLevel.Debug))
 				.Build();
 
