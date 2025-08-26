@@ -424,8 +424,8 @@ namespace OrchestratorAgent
                             risk.cfg.risk_pct_of_equity = pct;
                             log.LogInformation("Risk: using equity% per trade = {Pct}", pct);
                         }
-                        var mdl = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
-                        if (!string.IsNullOrWhiteSpace(mdl) && decimal.TryParse(mdl, out var mdlv) && mdlv > 0) risk.cfg.max_daily_drawdown = mdlv;
+                        var mdlEnv2 = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
+                        if (!string.IsNullOrWhiteSpace(mdlEnv2) && decimal.TryParse(mdlEnv2, out var mdlv) && mdlv > 0) risk.cfg.max_daily_drawdown = mdlv;
                         var mwl = Environment.GetEnvironmentVariable("MAX_WEEKLY_LOSS");
                         if (!string.IsNullOrWhiteSpace(mwl) && decimal.TryParse(mwl, out var mwlv) && mwlv > 0) risk.cfg.max_weekly_drawdown = mwlv;
                         var mcl = Environment.GetEnvironmentVariable("MAX_CONSECUTIVE_LOSSES");
@@ -1193,6 +1193,7 @@ namespace OrchestratorAgent
                     {
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
+                        var toRoute = sig;
 
                         // Drain gate: block new parent entries when draining
                         if (appState.DrainMode)
@@ -1237,7 +1238,7 @@ namespace OrchestratorAgent
                                         log.LogInformation("[SKIP reason=dd_proximity] {Sym} expR={R} min={Min}", symbol, sig.ExpR, minExpr);
                                         continue;
                                     }
-                                    sig = sig with { Size = half };
+                                    toRoute = toRoute with { Size = half };
                                     log.LogInformation("[Throttle] {Sym} size halved to {Size} due to DD proximity (remaining {Rem:P0})", symbol, half, (double)pct);
                                 }
                             }
@@ -1273,13 +1274,13 @@ namespace OrchestratorAgent
                             if (_lastEntryIntent.TryGetValue(other, out var last) && last.Dir == dir && (DateTime.UtcNow - last.When) <= TimeSpan.FromSeconds(5))
                             {
                                 var half = Math.Max(1, (int)Math.Floor(sig.Size * 0.5));
-                                sig = sig with { Size = half };
+                                toRoute = toRoute with { Size = half };
                                 log.LogInformation("[Correlation] {Sym} downsize to {Size} due to same-dir with {Other}", symbol, half, other);
                             }
                         }
                         catch { }
 
-                        var routed = await router.RouteAsync(sig, ct);
+                        var routed = await router.RouteAsync(toRoute, ct);
                         if (routed)
                         {
                             // Record intent and entries/hour stamp
