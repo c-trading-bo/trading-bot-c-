@@ -82,16 +82,20 @@ namespace OrchestratorAgent.Infra
             catch { }
         }
 
+        public sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);
+        public sealed record Position(long id, long accountId, string contractId, DateTimeOffset creationTimestamp, int type, int size, decimal averagePrice);
+
         public async Task SeedFromRestAsync(BotCore.ApiClient api, long accountId, CancellationToken ct)
         {
             try
             {
-                var list = await api.PostAsync<List<JsonElement>>("/api/Position/searchOpen", new { accountId }, ct) ?? new();
+                var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
+                var list = resp?.positions ?? new List<Position>();
                 foreach (var p in list)
                 {
-                    var symbol = ReadString(p, "symbol") ?? ReadString(p, "Symbol") ?? "";
-                    var qty = ReadInt(p, new[] { "qty", "quantity", "Qty", "Quantity" });
-                    var avg = ReadDecimal(p, new[] { "avgPrice", "averagePrice", "AvgPrice", "AveragePrice" });
+                    var symbol = p.contractId ?? string.Empty; // use contractId as key
+                    var qty = p.size;
+                    var avg = p.averagePrice;
                     if (!string.IsNullOrWhiteSpace(symbol)) ApplySnapshot(symbol, qty, avg);
                 }
             }

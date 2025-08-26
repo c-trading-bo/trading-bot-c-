@@ -66,14 +66,22 @@ namespace OrchestratorAgent.Health
 				return (false, "Contract resolve failed");
 			}
 
-			// 3) Quotes & bars freshness: use ingest times (arrival, not vendor timestamps)
+			// 3) Quotes & bars freshness: prefer vendor UTC timestamp (lastUpdated) with safe fallbacks
 			var now = DateTimeOffset.UtcNow;
-			var lastQ = _status.Get<DateTimeOffset?>($"last.quote.{contractId}") ?? _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
-			var lastB = _status.Get<DateTimeOffset?>($"last.bar.{contractId}") ?? _status.Get<DateTimeOffset?>("last.bar") ?? DateTimeOffset.MinValue;
-			var quoteAge = now - lastQ;
-			var barAge = now - lastB;
-			if (quoteAge > TimeSpan.FromSeconds(10)) return (false, $"Quotes stale ({quoteAge.TotalSeconds:F0}s)");
-			if (barAge > TimeSpan.FromSeconds(30)) return (false, $"Bars stale ({barAge.TotalSeconds:F0}s)");
+			var lastQuoteUpdated = _status.Get<DateTimeOffset?>($"last.quote.updated.{contractId}")
+								 ?? _status.Get<DateTimeOffset?>("last.quote.updated");
+			var lastQuoteIngest = _status.Get<DateTimeOffset?>($"last.quote.{contractId}")
+							   ?? _status.Get<DateTimeOffset?>("last.quote");
+			var lastBarIngest = _status.Get<DateTimeOffset?>($"last.bar.{contractId}")
+							 ?? _status.Get<DateTimeOffset?>("last.bar");
+
+			var quoteAge = lastQuoteUpdated.HasValue ? now - lastQuoteUpdated.Value
+						 : lastQuoteIngest.HasValue ? now - lastQuoteIngest.Value
+						 : TimeSpan.MaxValue;
+			var barAge = lastBarIngest.HasValue ? now - lastBarIngest.Value : TimeSpan.MaxValue;
+
+			if (quoteAge > TimeSpan.FromSeconds(5)) return (false, $"Quotes stale ({(int)quoteAge.TotalSeconds}s)");
+			if (barAge > TimeSpan.FromSeconds(30)) return (false, $"Bars stale ({(int)barAge.TotalSeconds}s)");
 
             // 4) Risk counters (PnL & trades) – best-effort against two possible endpoints
             decimal? netPnl = null;

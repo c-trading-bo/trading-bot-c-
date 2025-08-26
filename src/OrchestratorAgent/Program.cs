@@ -18,6 +18,32 @@ namespace OrchestratorAgent
 {
     public static class Program
     {
+        private static DateTimeOffset? TryGetQuoteLastUpdated(System.Text.Json.JsonElement e)
+        {
+            if (e.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
+            // Prefer explicit lastUpdated if present
+            if (e.TryGetProperty("lastUpdated", out var lu))
+            {
+                if (lu.ValueKind == System.Text.Json.JsonValueKind.String && DateTimeOffset.TryParse(lu.GetString(), out var dto))
+                    return dto.ToUniversalTime();
+                if (lu.ValueKind == System.Text.Json.JsonValueKind.Number && lu.TryGetInt64(out var ms1))
+                {
+                    // Assume milliseconds if large, otherwise seconds
+                    return ms1 > 10_000_000_000 ? DateTimeOffset.FromUnixTimeMilliseconds(ms1) : DateTimeOffset.FromUnixTimeSeconds(ms1);
+                }
+            }
+            foreach (var name in new[] { "exchangeTimeUtc", "exchangeTime", "ts", "timestamp", "time" })
+            {
+                if (e.TryGetProperty(name, out var p))
+                {
+                    if (p.ValueKind == System.Text.Json.JsonValueKind.Number && p.TryGetInt64(out var num))
+                        return num > 10_000_000_000 ? DateTimeOffset.FromUnixTimeMilliseconds(num) : DateTimeOffset.FromUnixTimeSeconds(num);
+                    if (p.ValueKind == System.Text.Json.JsonValueKind.String && DateTimeOffset.TryParse(p.GetString(), out var dto2))
+                        return dto2.ToUniversalTime();
+                }
+            }
+            return null;
+        }
         public static async Task Main(string[] args)
         {
             // Ensure invariant culture for all parsing/logging regardless of OS locale
@@ -178,8 +204,8 @@ namespace OrchestratorAgent
                         }
                     }
                     status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
-                    market1.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
-                    if (enableNq && market2 != null) market2.OnQuote += (_, __) => status.Set("last.quote", DateTimeOffset.UtcNow);
+                    market1.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set("last.quote", DateTimeOffset.UtcNow); status.Set("last.quote.updated", ts); };
+                    if (enableNq && market2 != null) market2.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set("last.quote", DateTimeOffset.UtcNow); status.Set("last.quote.updated", ts); };
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
@@ -236,12 +262,12 @@ namespace OrchestratorAgent
                     try
                     {
                         var esId = contractIds[esRoot];
-                        market1.OnQuote += (_, __) => status.Set($"last.quote.{esId}", DateTimeOffset.UtcNow);
+                        market1.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set($"last.quote.{esId}", DateTimeOffset.UtcNow); status.Set($"last.quote.updated.{esId}", ts); };
                         market1.OnTrade += (_, __) => status.Set($"last.trade.{esId}", DateTimeOffset.UtcNow);
                         if (enableNq && market2 != null)
                         {
                             var nqId = contractIds[nqRoot];
-                            market2.OnQuote += (_, __) => status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow);
+                            market2.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow); status.Set($"last.quote.updated.{nqId}", ts); };
                             market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
                         }
                         // bars will be recorded in OnBar handlers below
