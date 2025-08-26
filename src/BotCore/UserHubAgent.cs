@@ -70,9 +70,9 @@ namespace BotCore
 			// Re-subscribe automatically after reconnects (use lax token)
 			_hub.Reconnected += async id =>
 			{
-				_log.LogInformation("UserHub RECONNECTED: ConnectionId={Id}", id);
-				try { await ResubscribeAsync(CancellationToken.None); }
-				catch (Exception ex) { _log.LogWarning(ex, "UserHub resubscribe failed after Reconnected"); }
+				_log.LogInformation("UserHub RE reconnected. State={State} | ConnectionId={Id}", _hub.State, id);
+				try { await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log); }
+				catch (Exception ex) { _log.LogWarning(ex, "UserHub SubscribeAllAsync failed after Reconnected"); }
 			};
 
 			// Wire up robust event logging
@@ -107,30 +107,19 @@ namespace BotCore
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
 			await Task.Delay(250, ct); // ensure server is ready before subscribing
-			await ResubscribeAsync(CancellationToken.None);
+			await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log);
 		}
 
-		private async Task TrySubscribeAsync(Func<Task> call, CancellationToken ct)
+		private Task SubscribeAllAsync(HubConnection hub, long accountId, CancellationToken ct, ILogger log)
 		{
-			try
+			return HubSafe.InvokeWhenConnected(hub, async () =>
 			{
-				if (_hub is null) return;
-				await HubSafe.InvokeWhenConnected(_hub, call, _log, ct);
-			}
-			catch (Exception ex)
-			{
-				_log.LogWarning(ex, "UserHub initial subscription invoke failed; will retry after reconnect.");
-			}
-		}
-
-		private async Task ResubscribeAsync(CancellationToken ct)
-		{
-			if (_hub is null) return;
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, CancellationToken.None, maxAttempts: 60, waitMs: 60000);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders", _accountId), _log, CancellationToken.None, maxAttempts: 60, waitMs: 60000);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", _accountId), _log, CancellationToken.None, maxAttempts: 60, waitMs: 60000);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades", _accountId), _log, CancellationToken.None, maxAttempts: 60, waitMs: 60000);
-			_log.LogInformation("UserHub subscriptions confirmed for AccountId={Acc}", _accountId);
+				log?.LogInformation("[UserHub] subscribing …");
+				await hub.InvokeAsync("SubscribeAccounts", cancellationToken: ct);
+				await hub.InvokeAsync("SubscribeOrders", accountId, cancellationToken: ct);
+				await hub.InvokeAsync("SubscribePositions", accountId, cancellationToken: ct);
+				await hub.InvokeAsync("SubscribeTrades", accountId, cancellationToken: ct);
+			}, log, ct, maxAttempts: 10, waitMs: 500);
 		}
 
 		private void WireEvents(HubConnection hub)

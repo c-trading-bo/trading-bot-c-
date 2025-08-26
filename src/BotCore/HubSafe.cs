@@ -19,7 +19,7 @@ namespace BotCore
             int maxAttempts = 12,
             int waitMs = 30000)
         {
-            await WaitForConnected(hub, TimeSpan.FromMilliseconds(waitMs), ct, log);
+            await WaitForConnected(hub, TimeSpan.FromSeconds(30), ct, log);
 
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
@@ -47,6 +47,10 @@ namespace BotCore
                         throw;
                     }
                 }
+                catch (Microsoft.AspNetCore.SignalR.HubException hex)
+                {
+                    log.LogDebug(hex, "HubException on attempt {Attempt}; will retry.", attempt);
+                }
                 catch (TaskCanceledException tce)
                 {
                     log.LogDebug(tce, "Invoke task canceled on attempt {Attempt}; will retry.", attempt);
@@ -65,11 +69,32 @@ namespace BotCore
                 // Backoff before next attempt; let automatic reconnect handle restarts
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
+                    await Task.Delay(TimeSpan.FromMilliseconds(waitMs), ct);
                 }
                 catch { /* ignore delay errors and continue */ }
             }
 
+            throw new TimeoutException($"Invoke failed after {maxAttempts} attempts while state={hub.State}.");
+        }
+
+        public static async Task<T> InvokeWhenConnected<T>(
+            HubConnection hub,
+            Func<Task<T>> call,
+            ILogger log,
+            CancellationToken ct,
+            int maxAttempts = 8,
+            int waitMs = 500)
+        {
+            for (var i = 1; i <= maxAttempts; i++)
+            {
+                await WaitForConnected(hub, TimeSpan.FromSeconds(30), ct, log);
+                try { return await call(); }
+                catch (InvalidOperationException) { /* state may have flipped mid-invoke */ }
+                catch (Microsoft.AspNetCore.SignalR.HubException) { /* transient */ }
+                catch (TaskCanceledException) { /* transient */ }
+                catch (OperationCanceledException) { /* transient */ }
+                await Task.Delay(waitMs, ct);
+            }
             throw new TimeoutException($"Invoke failed after {maxAttempts} attempts while state={hub.State}.");
         }
 
@@ -92,7 +117,7 @@ namespace BotCore
                     throw new TimeoutException($"Hub stayed {hub.State} for {timeout.TotalSeconds:N0}s.");
 
                 // Do not force StartAsync during reconnect; rely on automatic reconnect policy
-                await Task.Delay(100, ct);
+                await Task.Delay(300, ct);
             }
             log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);
         }
