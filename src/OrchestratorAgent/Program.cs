@@ -396,6 +396,13 @@ namespace OrchestratorAgent
                     var appState = new OrchestratorAgent.Ops.AppState();
                     var leasePath = Environment.GetEnvironmentVariable("OPS_LEASE_PATH") ?? "state/live.lock";
                     var liveLease = new OrchestratorAgent.Ops.LiveLease(leasePath);
+                    // In Paper mode, ensure no gating delays entries
+                    if (paperMode)
+                    {
+                        try { appState.DrainMode = false; } catch { }
+                        try { status.Set("route.paused", false); } catch { }
+                        try { Environment.SetEnvironmentVariable("ROUTE_PAUSE", "0"); } catch { }
+                    }
                     // Sync env LIVE_ORDERS with mode
                     void LogMode()
                     {
@@ -550,6 +557,7 @@ namespace OrchestratorAgent
                     var stats = new SimpleStats(startedUtc);
 
                     // periodic check
+                    if (!paperMode)
                     _ = Task.Run(async () =>
                     {
                         while (!cts.IsCancellationRequested)
@@ -572,7 +580,7 @@ namespace OrchestratorAgent
                     }, cts.Token);
 
                     // Start autopilot loop (with lease requirement)
-                    if (autoGoLive)
+                    if (autoGoLive && !paperMode)
                     {
                         var notifier = new OrchestratorAgent.Infra.Notifier();
                         _ = Task.Run(async () =>
@@ -661,6 +669,7 @@ namespace OrchestratorAgent
                     catch { }
 
                     // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check and render concise checklist.
+                    if (!paperMode)
                     try
                     {
                         var initial = await pfService.RunAsync(symbol, cts.Token);
