@@ -74,13 +74,21 @@ namespace OrchestratorAgent
                     return false;
                 }
 
+                // Enforce max contracts cap (default 2; override via MAX_CONTRACTS env)
+                int maxContracts = 2;
+                try { var raw = Environment.GetEnvironmentVariable("MAX_CONTRACTS"); if (int.TryParse(raw, out var mc) && mc > 0) maxContracts = mc; } catch { }
+                var requested = sig.Size > 0 ? sig.Size : 1;
+                var clampedSize = Math.Min(requested, maxContracts);
+                if (clampedSize != requested)
+                    _log.LogInformation("[Router] Clamped size from {Req} to {Clamp} (MAX_CONTRACTS={Max})", requested, clampedSize, maxContracts);
+
                 var placeBody = new
                 {
                     accountId = sig.AccountId,
                     contractId = sig.ContractId,
                     type = 1, // 1 = Limit
                     side = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
-                    size = sig.Size > 0 ? sig.Size : 1,
+                    size = clampedSize,
                     limitPrice = sig.Entry,
                     customTag = sig.Tag
                 };
