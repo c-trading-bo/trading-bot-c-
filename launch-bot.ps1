@@ -5,7 +5,11 @@ if (Test-Path $envFile) {
         if ($_ -match "^([A-Za-z0-9_]+)=(.*)$") {
             $name = $matches[1]
             $value = $matches[2]
-            Set-Item -Path "Env:$name" -Value $value
+            # Respect variables already set in the current shell
+            $existing = [Environment]::GetEnvironmentVariable($name)
+            if ([string]::IsNullOrWhiteSpace($existing)) {
+                Set-Item -Path "Env:$name" -Value $value
+            }
         }
     }
     Write-Host "Loaded environment variables from $envFile."
