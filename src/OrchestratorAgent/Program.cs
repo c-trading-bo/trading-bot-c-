@@ -133,12 +133,12 @@ namespace OrchestratorAgent
                 else if (!skipPrompt && !Console.IsInputRedirected)
                 {
                     Console.Write("Select mode: [L]ive, [P]aper, [S]hadow  [default: Shadow]: ");
-                    var key = Console.ReadKey(intercept: true);
-                    Console.WriteLine();
-                    var ch = char.ToLowerInvariant(key.KeyChar);
-                    if (ch == 'l' || ch == 'y') { paperModeSelected = false; shadowModeSelected = false; }
-                    else if (ch == 'p' || ch == 'n') { paperModeSelected = true; shadowModeSelected = false; }
-                    else if (ch == 's') { shadowModeSelected = true; paperModeSelected = false; }
+                    var line = Console.ReadLine();
+                    line = (line ?? string.Empty).Trim();
+                    var lower = line.ToLowerInvariant();
+                    if (lower == "l" || lower == "live" || lower == "y" || lower == "yes") { paperModeSelected = false; shadowModeSelected = false; }
+                    else if (lower == "p" || lower == "paper" || lower == "n" || lower == "no") { paperModeSelected = true; shadowModeSelected = false; }
+                    else if (lower == "s" || lower == "shadow") { shadowModeSelected = true; paperModeSelected = false; }
                     else { paperModeSelected = false; shadowModeSelected = true; } // default Shadow
                 }
                 else
@@ -255,18 +255,36 @@ namespace OrchestratorAgent
                     // Wire Market hub for real-time quotes/trades (per enabled symbol)
                     var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
                     MarketHubClient? market2 = enableNq ? new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync) : null;
-                    using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
-                    using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
-                    {
-                        m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                        await market1.StartAsync(esContract!, m1Cts.Token);
-                        if (enableNq && market2 != null && m2Cts != null)
-                        {
-                            m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                            await market2.StartAsync(nqContract!, m2Cts.Token);
-                        }
-                    }
-                    status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
+               					using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+               					using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
+               					{
+               						m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
+               						await market1.StartAsync(esContract!, m1Cts.Token);
+               						if (enableNq && market2 != null && m2Cts != null)
+               						{
+               							m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
+               							await market2.StartAsync(nqContract!, m2Cts.Token);
+               						}
+               					}
+               					status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
+
+               					// Optional warm-up: wait up to 10s for first ES/NQ tick/bar
+               					try
+               					{
+               						var t0 = DateTime.UtcNow;
+               						while (DateTime.UtcNow - t0 < TimeSpan.FromSeconds(10))
+               						{
+               							bool esOk = market1.HasRecentQuote(esContract!) || market1.HasRecentBar(esContract!, "1m");
+               							bool nqOk = !enableNq || (market2 != null && (market2.HasRecentQuote(nqContract!) || market2.HasRecentBar(nqContract!, "1m")));
+               							if (esOk && nqOk) break;
+               							await Task.Delay(250, cts.Token);
+               						}
+               						log.LogInformation("[MarketHub] Warmup: ES(Q:{Qes} B:{Bes}) NQ(Q:{Qnq} B:{Bnq})",
+               							market1.HasRecentQuote(esContract!), market1.HasRecentBar(esContract!, "1m"),
+               							enableNq && market2 != null ? market2.HasRecentQuote(nqContract!) : false,
+               							enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
+               					}
+               					catch { }
                     market1.OnQuote += (_, json) => {
                         var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow;
                         status.Set("last.quote", DateTimeOffset.UtcNow);

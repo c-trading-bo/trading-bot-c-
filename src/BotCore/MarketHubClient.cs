@@ -42,12 +42,18 @@ namespace BotCore
 			public event Action<string, JsonElement>? OnTrade;
 			public event Action<string, JsonElement>? OnDepth;
 
-			public TimeSpan LastQuoteSeenAge(string contractId)
-				=> DateTime.UtcNow - (_lastQuoteSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
-			public TimeSpan LastBarSeenAge(string contractId)
-				=> DateTime.UtcNow - (_lastBarSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
-			public void RecordBarSeen(string contractId)
-				=> _lastBarSeen[contractId] = DateTime.UtcNow;
+ 		public TimeSpan LastQuoteSeenAge(string contractId)
+ 			=> DateTime.UtcNow - (_lastQuoteSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
+ 		public TimeSpan LastBarSeenAge(string contractId)
+ 			=> DateTime.UtcNow - (_lastBarSeen.TryGetValue(contractId, out var t) ? t : DateTime.MinValue);
+ 		public void RecordBarSeen(string contractId)
+ 			=> _lastBarSeen[contractId] = DateTime.UtcNow;
+
+ 		// Helpers for startup warmup checks
+ 		public bool HasRecentQuote(string contractId, int maxAgeSeconds = 10)
+ 			=> LastQuoteSeenAge(contractId) <= TimeSpan.FromSeconds(maxAgeSeconds);
+ 		public bool HasRecentBar(string contractId, string timeframe = "1m", int maxAgeSeconds = 90)
+ 			=> LastBarSeenAge(contractId) <= TimeSpan.FromSeconds(maxAgeSeconds);
 
 		public MarketHubClient(ILogger<MarketHubClient> log, Func<Task<string?>> getJwtAsync)
 		{
@@ -64,6 +70,7 @@ namespace BotCore
 			AttachLifecycleHandlers(ct);
 
 			await _conn.StartAsync(ct);
+			if (!Concise()) _log.LogInformation("MarketHub connected. State={State}", _conn.State);
 			await Task.Delay(200, ct);
 			await SubscribeIfConnectedAsync(CancellationToken.None);
 		}
@@ -117,10 +124,23 @@ namespace BotCore
 		}
 
 
-		private Task<HubConnection> BuildMarketHubAsync()
+		private async Task<HubConnection> BuildMarketHubAsync()
 		{
-			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-			var url = $"{rtcBase}/hubs/market";
+			// Prefer explicit RTC_MARKET_HUB, otherwise fall back to TOPSTEPX_RTC_BASE/hubs/market
+			var explicitUrl = Environment.GetEnvironmentVariable("RTC_MARKET_HUB");
+			string url;
+			if (!string.IsNullOrWhiteSpace(explicitUrl))
+			{
+				url = explicitUrl!.TrimEnd('/');
+			}
+			else
+			{
+				var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
+				url = $"{rtcBase}/hubs/market";
+			}
+			string? jwt;
+			try { jwt = await _getJwtAsync(); } catch { jwt = null; }
+			if (!Concise()) _log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
 			var hub = new HubConnectionBuilder()
 				.WithUrl(url, o =>
 				{
@@ -162,7 +182,7 @@ namespace BotCore
 			});
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
 
-			return Task.FromResult(hub);
+			return hub;
 		}
 
 		private void AttachLifecycleHandlers(CancellationToken appCt)

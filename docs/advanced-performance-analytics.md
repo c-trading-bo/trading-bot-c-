@@ -23,6 +23,7 @@
 - Broker Outage Detection: Alert and auto-disable trading during broker outages.
 - Prop Firm Document Archiving: Store and organize prop firm communications, rulebooks, and feedback for reference.
 - Prop Firm Audit Mode: Generate and export full audit logs for prop firm review on demand.
+
 ## More Upgrade Ideas
 
 - Trade Error Recovery: Auto-retry or alert on failed/cancelled orders.
@@ -42,7 +43,9 @@
 - Trade Journal Enrichment: Add notes, screenshots, and context to each trade for review.
 - Scheduled Maintenance Mode: Auto-disable trading during broker maintenance windows.
 - Prop Firm Feedback Integration: Ingest feedback or rule changes from prop firm API or portal.
+
 ---
+
 Keep adding to this list as you identify new gaps or opportunities!
 
 ## More Upgrade Ideas
@@ -57,34 +60,40 @@ Keep adding to this list as you identify new gaps or opportunities!
 - Backup/Restore Bot State: Periodic backup and restore of bot state for disaster recovery.
 - Version Tracking: Log bot version and config for every trading session.
 - Prop Firm API Integration: Direct integration for uploading performance reports or trade logs if supported.
+
 # Advanced Performance Analytics Roadmap
 
 ## Goal
+
 Implement rolling performance analytics for your trading bot, including win rate, drawdown, Sharpe ratio, trade-by-trade P&L, and visualizations (charts, dashboards).
 
 ## Step-by-Step Plan
 
 ### 1. Extend Journaling Logic
-  - Record every trade's entry, exit, side, size, P&L, and timestamp in the journal (e.g., `state/eod_journal.jsonl`).
-  - Include additional fields for realized/unrealized P&L, fees, and trade status (open/closed).
-  - Calculate rolling win rate, average P&L, max drawdown, and Sharpe ratio from journal data.
-  - Store summary stats in a separate file (e.g., `state/performance_summary.json`).
+
+- Record every trade's entry, exit, side, size, P&L, and timestamp in the journal (e.g., `state/eod_journal.jsonl`).
+- Include additional fields for realized/unrealized P&L, fees, and trade status (open/closed).
+- Calculate rolling win rate, average P&L, max drawdown, and Sharpe ratio from journal data.
+- Store summary stats in a separate file (e.g., `state/performance_summary.json`).
 
 ### 2. Implement Analytics Engine
-  - Win rate: Number of winning trades / total trades (rolling window).
-  - Drawdown: Track equity curve and calculate max drawdown.
-  - Sharpe ratio: Use rolling returns and standard deviation.
-  - Output a table or chart of each trade’s P&L, entry/exit, and duration.
+
+- Win rate: Number of winning trades / total trades (rolling window).
+- Drawdown: Track equity curve and calculate max drawdown.
+- Sharpe ratio: Use rolling returns and standard deviation.
+- Output a table or chart of each trade’s P&L, entry/exit, and duration.
 
 ### 3. Visualization & Reporting
-  - Generate simple charts (e.g., equity curve, drawdown, win rate) using a C# charting library or export to CSV for external tools.
-  - Optionally, add a web endpoint (e.g., `/performance`) to serve dashboard data.
-  - Write summary stats and trade logs to files for review and analysis.
+
+- Generate simple charts (e.g., equity curve, drawdown, win rate) using a C# charting library or export to CSV for external tools.
+- Optionally, add a web endpoint (e.g., `/performance`) to serve dashboard data.
+- Write summary stats and trade logs to files for review and analysis.
 
 ### 4. Integration & Testing
-  - Ensure analytics update on every trade and at EOD.
-  - Add health checks for analytics engine.
-  - Validate analytics with simulated trades before going live.
+
+- Ensure analytics update on every trade and at EOD.
+- Add health checks for analytics engine.
+- Validate analytics with simulated trades before going live.
 
 - Real-time Alerts: Notify on new highs/lows, large drawdowns, or streaks (via email/SMS/webhook).
 - **Automated Backtest Reports:** Generate full reports after each backtest run, including charts and stats.
@@ -92,7 +101,9 @@ Implement rolling performance analytics for your trading bot, including win rate
 - **Voice/Chatbot Interface:** Query analytics and get reports via voice or chat.
 - **Automated Strategy Tuning:** Use reinforcement learning or genetic algorithms to optimize strategy parameters.
 - **Plug-in Marketplace:** Allow third-party analytics modules and custom visualizations.
+
 ## Niche, Compliance & Enterprise Features
+
 - **Regulatory Compliance Analytics:** Track and report on compliance with trading rules, risk limits, and audit requirements.
 - **Audit Trail & Data Provenance:** Maintain a tamper-proof log of all analytics, trades, and data sources for auditability.
 - **Customizable Risk Models:** Support user-defined risk models and scenario analysis.
@@ -132,11 +143,11 @@ Implement rolling performance analytics for your trading bot, including win rate
 - User Configurable Windows: Let users set rolling window sizes for stats.
 
 ## Recommendations
+
 - Start by updating the journal format and trade logging.
 - Build aggregation and analytics logic as a separate module/class.
 
 ## References
-
 
 ## Upgrade List: Missing or Partial Features
 
@@ -150,4 +161,5 @@ Implement rolling performance analytics for your trading bot, including win rate
 - Health Monitoring: Add more granular uptime/connectivity tracking and alerting.
 
 ---
+
 Keep adding to this list as you identify new gaps or opportunities!
