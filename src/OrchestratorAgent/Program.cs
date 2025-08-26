@@ -137,6 +137,7 @@ namespace OrchestratorAgent
                     Console.WriteLine();
                     var ch = char.ToLowerInvariant(key.KeyChar);
                     if (ch == 'l' || ch == 'y') { paperModeSelected = false; shadowModeSelected = false; }
+                    else if (ch == 'p' || ch == 'n') { paperModeSelected = true; shadowModeSelected = false; }
                     else if (ch == 's') { shadowModeSelected = true; paperModeSelected = false; }
                     else { paperModeSelected = false; shadowModeSelected = true; } // default Shadow
                 }
@@ -489,7 +490,8 @@ namespace OrchestratorAgent
                     // Sync env LIVE_ORDERS with mode
                     void LogMode()
                     {
-                        log.LogInformation("MODE => {Mode}", mode.IsLive ? "LIVE" : "SHADOW");
+                        var modeStr = paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW");
+                        log.LogInformation("MODE => {Mode}", modeStr);
                     }
                     if (!concise) LogMode();
                     mode.OnChange += _ => LogMode();
@@ -500,7 +502,7 @@ namespace OrchestratorAgent
                                             var symbolsSummary = string.Join(", ", contractIds.Select(kv => $"{kv.Key}:{kv.Value}"));
                                             log.LogInformation("Startup Summary => Account={AccountId} Mode={Mode} LiveOrders={Live} AutoGoLive={AutoGoLive} DryRunMin={DryMin} MinHealthy={MinHealthy} StickyLive={Sticky} Symbols=[{Symbols}]",
                                                 accountId,
-                                                mode.IsLive ? "LIVE" : "SHADOW",
+                                                (paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW")),
                                                 live,
                                                 autoGoLive,
                                                 dryMin,
