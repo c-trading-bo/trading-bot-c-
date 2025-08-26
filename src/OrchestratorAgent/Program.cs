@@ -61,6 +61,14 @@ namespace OrchestratorAgent
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (s, e) => { e.Cancel = true; cts.Cancel(); };
 
+            // Optional quick-exit for CI/smoke: cancel after 5s if BOT_QUICK_EXIT is enabled
+            var qe = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
+            if (!string.IsNullOrWhiteSpace(qe) && (qe.Trim().Equals("1", StringComparison.OrdinalIgnoreCase) || qe.Trim().Equals("true", StringComparison.OrdinalIgnoreCase) || qe.Trim().Equals("yes", StringComparison.OrdinalIgnoreCase)))
+            {
+                log.LogWarning("Quick-exit mode enabled (BOT_QUICK_EXIT). Will cancel after 5 seconds.");
+                try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
+            }
+
             // Load configuration from environment
             string apiBase = http.BaseAddress!.ToString().TrimEnd('/');
             string rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');

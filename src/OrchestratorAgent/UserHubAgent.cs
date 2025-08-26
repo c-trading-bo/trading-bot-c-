@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using SupervisorAgent;
-using YourNamespace;
 
 namespace OrchestratorAgent.Legacy
 {

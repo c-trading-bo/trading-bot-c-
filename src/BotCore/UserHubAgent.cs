@@ -66,7 +66,7 @@ namespace BotCore
 			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
 			// Wire up robust event logging
-			_hub.Closed += async ex =>
+			_hub.Closed += ex =>
 			{
 				if (ex is HttpRequestException hre)
 					_log.LogWarning(hre, "UserHub CLOSED. HTTP status: {Status}", hre.StatusCode);
@@ -74,18 +74,8 @@ namespace BotCore
 					_log.LogWarning(wse, "UserHub CLOSED. WebSocket error: {Err} / CloseStatus: {Close}", wse.WebSocketErrorCode, wse.Data != null && wse.Data.Contains(CloseStatusKey) ? wse.Data[CloseStatusKey] : null);
 				else
 					_log.LogWarning(ex, "UserHub CLOSED: {Message}", ex?.Message);
-
-				// Backoff a bit, then try to restart to avoid extended Disconnected periods.
-				try { await Task.Delay(TimeSpan.FromSeconds(2), CancellationToken.None); } catch { }
-				try
-				{
-					await _hub.StartAsync(); // AccessTokenProvider supplies fresh JWT if needed
-					_log.LogInformation("UserHub reconnected. State={State}", _hub.State);
-				}
-				catch (Exception rex)
-				{
-					_log.LogWarning(rex, "UserHub restart failed; will allow auto-reconnect/HubSafe to retry.");
-				}
+				// Let WithAutomaticReconnect handle recovery; avoid manual StartAsync noise
+				return Task.CompletedTask;
 			};
 			// _hub.Reconnecting += ex =>
 			// ...existing code...
@@ -107,10 +97,10 @@ namespace BotCore
 			_log.LogInformation("UserHub connected. State={State}", _hub.State);
 			StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
 			await Task.Delay(250, ct); // ensure server is ready before subscribing
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeAccounts"), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeOrders", accountId), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribePositions", accountId), _log, ct);
-			await HubSafe.InvokeWhenConnected(_hub, () => _hub.InvokeAsync("SubscribeTrades", accountId), _log, ct);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeAccounts"), ct);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeOrders", accountId), ct);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribePositions", accountId), ct);
+			await TrySubscribeAsync(() => _hub.InvokeAsync("SubscribeTrades", accountId), ct);
 		}
 
 		private void WireEvents(HubConnection hub)
