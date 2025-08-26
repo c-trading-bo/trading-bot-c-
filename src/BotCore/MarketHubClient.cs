@@ -90,19 +90,44 @@ namespace BotCore
 					return;
 				}
 
-				// ProjectX Gateway: exact subscription methods
-				try
+				// Loud per-method attempts to discover the accepted method/signature
+				bool anySucceeded = false;
+				async Task Try(string method, params object[] args)
 				{
-					await _conn!.InvokeAsync("SubscribeContractQuotes", _contractId, ct);
-					await _conn!.InvokeAsync("SubscribeContractTrades", _contractId, ct);
-					await _conn!.InvokeAsync("SubscribeContractMarketDepth", _contractId, ct);
-					_subscribed = true;
-					_log.LogInformation("[MarketHub] Subscribed (quotes/trades/depth) {ContractId}", _contractId);
+					try
+					{
+						await _conn!.InvokeAsync(method, args, ct);
+						_log.LogInformation("[MarketHub] {m}({a}) OK", method, string.Join(',', args.Select(a => a?.ToString())));
+						anySucceeded = true;
+					}
+					catch (Exception ex)
+					{
+						_log.LogWarning("[MarketHub] {m}({a}) FAILED: {e}", method, string.Join(',', args.Select(a => a?.ToString())), ex.Message);
+					}
 				}
-				catch (Exception ex)
+
+				// Canonical ProjectX names first
+				await Try("SubscribeContractQuotes", _contractId);
+				await Try("SubscribeContractTrades", _contractId);
+				await Try("SubscribeContractMarketDepth", _contractId);
+
+				// Common alternates
+				await Try("SubscribeQuotes", _contractId);
+				await Try("SubscribeTrades", _contractId);
+				await Try("SubscribeDepth", _contractId);
+
+				// Object payload variant
+				var objPayload = new { contractId = _contractId, channels = new[] { "quotes", "trades", "depth" } };
+				await Try("SubscribeContract", objPayload);
+
+				_subscribed = anySucceeded;
+				if (!anySucceeded)
 				{
-					_subscribed = false;
-					_log.LogWarning(ex, "[MarketHub] Subscribe failed for {ContractId}", _contractId);
+					_log.LogError("[MarketHub] No known subscribe method worked for {cid}", _contractId);
+				}
+				else
+				{
+					_log.LogInformation("[MarketHub] Subscribed (at least one method OK) {ContractId}", _contractId);
 				}
 			}
 			finally
