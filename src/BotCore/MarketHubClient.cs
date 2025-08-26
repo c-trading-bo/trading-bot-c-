@@ -84,9 +84,16 @@ namespace BotCore
 			try
 			{
 				if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId} (post-lock)", _contractId); return; }
+
+				// Wait until active (fixes “connection is not active”)
+				var t0 = DateTime.UtcNow;
+				while (_conn!.State != HubConnectionState.Connected && DateTime.UtcNow - t0 < TimeSpan.FromSeconds(10))
+				{
+					await Task.Delay(100, ct);
+				}
 				if (_conn.State != HubConnectionState.Connected)
 				{
-					_log.LogDebug("Skip subscribe: State = {State}", _conn.State);
+					_log.LogWarning("[MarketHub] Subscribe skipped: connection not active (State={State})", _conn.State);
 					return;
 				}
 
@@ -164,21 +171,21 @@ namespace BotCore
 			{
 				_log.LogDebug("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
 			}
+			// Per ProjectX docs: pass token in query string, WebSockets only, skip negotiation
+			var urlWithToken = string.IsNullOrWhiteSpace(jwt) ? url : $"{url}?access_token={jwt}";
 			var hub = new HubConnectionBuilder()
-				.WithUrl(url, o =>
+				.WithUrl(urlWithToken, o =>
 				{
-					o.AccessTokenProvider = _getJwtAsync;
-					// Allow negotiation and all common transports for compatibility
-					o.Transports = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
-					// Do not skip negotiation; some servers require it
-					// o.SkipNegotiation = true;
+					o.AccessTokenProvider = _getJwtAsync; // also provide via header for safety
+					o.SkipNegotiation = true;
+					o.Transports = HttpTransportType.WebSockets;
 				})
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
 
-  	hub.ServerTimeout = TimeSpan.FromSeconds(30);
-  	hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
-  	hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
+			hub.ServerTimeout = TimeSpan.FromSeconds(30);
+			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
+			hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
 
 			// Helper to forward various payload shapes as JsonElement
 			static JsonElement AsJsonElement(object payload)
