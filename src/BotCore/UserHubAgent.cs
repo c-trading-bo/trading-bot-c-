@@ -49,11 +49,25 @@ namespace BotCore
 			}
 
 			_accountId = accountId;
-			var url = "https://rtc.topstepx.com/hubs/user";
+
+			// Guard: require a non-empty JWT; otherwise the hub will handshake then immediately close.
+			if (string.IsNullOrWhiteSpace(jwtToken))
+			{
+				_log.LogError("UserHub ConnectAsync called with empty JWT token. Aborting connect.");
+				throw new ArgumentException("jwtToken must be non-empty", nameof(jwtToken));
+			}
+
+			// Allow overriding RTC base from env
+			var rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE")
+				?? Environment.GetEnvironmentVariable("RTC_BASE")
+				?? "https://rtc.topstepx.com").TrimEnd('/');
+			var url = $"{rtcBase}/hubs/user";
+			_log.LogInformation("[UserHub] Using URL={Url} | JWT length={Len}", url, jwtToken?.Length ?? 0);
+
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-					opt.AccessTokenProvider = () => Task.FromResult<string?>(jwtToken); // token via AccessTokenProvider only
+					opt.AccessTokenProvider = () => Task.FromResult(jwtToken); // token via AccessTokenProvider only
 					opt.Transports = HttpTransportType.WebSockets;
 					opt.SkipNegotiation = true;
 				})
@@ -63,8 +77,8 @@ namespace BotCore
 
 			WireEvents(_hub);
 
-			_hub.ServerTimeout = TimeSpan.FromSeconds(45);
-			_hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
+			_hub.ServerTimeout = TimeSpan.FromSeconds(60);
+			_hub.KeepAliveInterval = TimeSpan.FromSeconds(15);
 			_hub.HandshakeTimeout = TimeSpan.FromSeconds(15);
 
 			// Re-subscribe automatically after reconnects (use lax token)
