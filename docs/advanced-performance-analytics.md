@@ -1,3 +1,62 @@
+- Prop Firm Audit Mode: Generate and export full audit logs for prop firm review on demand.
+
+- Prop Firm API Rate Limit Handling: Detect and respect API rate limits to avoid bans.
+- Automated Prop Firm Account Switching: Seamlessly switch between multiple prop firm accounts if allowed.
+- Prop Firm Challenge Auto-Reset: Auto-reset bot state after failed challenge or at evaluation end.
+- Prop Firm Rule Simulation: Simulate new or changed rules in dry-run mode before going live.
+- Prop Firm Communication Integration: Auto-ingest emails/messages from prop firm for alerts and documentation.
+- Prop Firm Account Funding Tracker: Track and alert on account funding, withdrawals, and balance changes.
+- Prop Firm Rule Violation Analytics: Analyze and visualize historical rule violations for improvement.
+- Prop Firm Support Ticket Integration: Auto-log and track support tickets with prop firm.
+- Prop Firm API Change Detection: Alert and auto-adapt to API changes or outages.
+- Prop Firm Leaderboard Integration: If supported, track and display leaderboard position and stats.
+- Prop Firm Evaluation Feedback Tracker: Store and analyze feedback from prop firm evaluations.
+- Prop Firm Risk Parameter Sync: Auto-sync bot risk parameters with prop firm portal if supported.
+- Prop Firm Session Replay: Replay entire trading sessions for compliance or review.
+- Prop Firm Challenge Milestone Alerts: Notify on approaching or missed challenge milestones.
+- Prop Firm Feedback Integration: Ingest feedback or rule changes from prop firm API or portal.
+
+- Automated Account Health Check: Periodically verify account eligibility and trading permissions.
+- Prop Firm Rule Change Alerts: Notify on new or updated prop firm rules.
+- Trade Lockout Timer: Display and enforce lockout periods after rule breach or daily loss limit.
+- Prop Firm Challenge Progress Tracker: Visualize progress toward evaluation milestones/goals.
+- Broker Outage Detection: Alert and auto-disable trading during broker outages.
+- Prop Firm Document Archiving: Store and organize prop firm communications, rulebooks, and feedback for reference.
+- Prop Firm Audit Mode: Generate and export full audit logs for prop firm review on demand.
+## More Upgrade Ideas
+
+- Trade Error Recovery: Auto-retry or alert on failed/cancelled orders.
+- Broker API Health Check: Periodically verify broker API status and credentials.
+- Prop Firm Rule Audit: Automated audit of all trades against prop firm rules (e.g., max position size, forbidden times).
+- End-of-Day Reconciliation: Auto-reconcile bot state with broker account at EOD.
+- Manual Intervention Logging: Log all manual overrides, pauses, or interventions for audit.
+- Strategy Performance Attribution: Attribute P&L and risk to each strategy for prop firm review.
+- Account Status Alerts: Notify if account status changes (e.g., margin call, disabled).
+- Backup/Restore Bot State: Periodic backup and restore of bot state for disaster recovery.
+- Version Tracking: Log bot version and config for every trading session.
+- Prop Firm API Integration: Direct integration for uploading performance reports or trade logs if supported.
+
+- Trade Compliance Dashboard: Visualize compliance status for all trades and sessions.
+- Real-Time Risk Visualization: Show current risk, exposure, and limits in dashboard.
+- Automated Prop Firm Challenge Mode: Special logic for evaluation accounts (e.g., lockout on rule breach, auto-reporting).
+- Trade Journal Enrichment: Add notes, screenshots, and context to each trade for review.
+- Scheduled Maintenance Mode: Auto-disable trading during broker maintenance windows.
+- Prop Firm Feedback Integration: Ingest feedback or rule changes from prop firm API or portal.
+---
+Keep adding to this list as you identify new gaps or opportunities!
+
+## More Upgrade Ideas
+
+- Trade Error Recovery: Auto-retry or alert on failed/cancelled orders.
+- Broker API Health Check: Periodically verify broker API status and credentials.
+- Prop Firm Rule Audit: Automated audit of all trades against prop firm rules (e.g., max position size, forbidden times).
+- End-of-Day Reconciliation: Auto-reconcile bot state with broker account at EOD.
+- Manual Intervention Logging: Log all manual overrides, pauses, or interventions for audit.
+- Strategy Performance Attribution: Attribute P&L and risk to each strategy for prop firm review.
+- Account Status Alerts: Notify if account status changes (e.g., margin call, disabled).
+- Backup/Restore Bot State: Periodic backup and restore of bot state for disaster recovery.
+- Version Tracking: Log bot version and config for every trading session.
+- Prop Firm API Integration: Direct integration for uploading performance reports or trade logs if supported.
 # Advanced Performance Analytics Roadmap
 
 ## Goal

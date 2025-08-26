@@ -118,8 +118,9 @@ namespace OrchestratorAgent
                 log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
             }
 
-            // ===== Launch mode selection: Live vs Paper (before any auth) =====
+            // ===== Launch mode selection: Live vs Paper vs Shadow (before any auth) =====
             bool paperModeSelected = false;
+            bool shadowModeSelected = false;
             try
             {
                 string? botMode = Environment.GetEnvironmentVariable("BOT_MODE");
@@ -127,23 +128,31 @@ namespace OrchestratorAgent
                 if (!string.IsNullOrWhiteSpace(botMode))
                 {
                     paperModeSelected = botMode.Trim().Equals("paper", StringComparison.OrdinalIgnoreCase);
+                    shadowModeSelected = botMode.Trim().Equals("shadow", StringComparison.OrdinalIgnoreCase);
                 }
                 else if (!skipPrompt && !Console.IsInputRedirected)
                 {
-                    Console.Write("Select mode: Live (y) or Paper (n) [y/N]: ");
+                    Console.Write("Select mode: [L]ive, [P]aper, [S]hadow  [default: Shadow]: ");
                     var key = Console.ReadKey(intercept: true);
                     Console.WriteLine();
-                    paperModeSelected = !(key.KeyChar == 'y' || key.KeyChar == 'Y');
+                    var ch = char.ToLowerInvariant(key.KeyChar);
+                    if (ch == 'l' || ch == 'y') { paperModeSelected = false; shadowModeSelected = false; }
+                    else if (ch == 's') { shadowModeSelected = true; paperModeSelected = false; }
+                    else { paperModeSelected = false; shadowModeSelected = true; } // default Shadow
                 }
                 else
                 {
-                    // Default to Paper when not specified to be safer by default
-                    paperModeSelected = true;
+                    // Default to Shadow when not specified to be safer by default
+                    paperModeSelected = false;
+                    shadowModeSelected = true;
                 }
                 // Set env flags so downstream services pick it up
                 Environment.SetEnvironmentVariable("PAPER_MODE", paperModeSelected ? "1" : "0");
-                Environment.SetEnvironmentVariable("LIVE_ORDERS", paperModeSelected ? "0" : "1");
-                log.LogInformation("Launch mode selected: {Mode}", paperModeSelected ? "PAPER" : "LIVE");
+                Environment.SetEnvironmentVariable("SHADOW_MODE", shadowModeSelected ? "1" : "0");
+                // LIVE_ORDERS only when Live
+                Environment.SetEnvironmentVariable("LIVE_ORDERS", (!paperModeSelected && !shadowModeSelected) ? "1" : "0");
+                var modeName = paperModeSelected ? "PAPER" : shadowModeSelected ? "SHADOW" : "LIVE";
+                log.LogInformation("Launch mode selected: {Mode}", modeName);
             }
             catch { }
 
@@ -436,7 +445,9 @@ namespace OrchestratorAgent
 
                     // Paper mode wiring
                     bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                    PaperBroker? paperBroker = paperMode ? new PaperBroker(status, log) : null;
+                    bool shadowMode = (Environment.GetEnvironmentVariable("SHADOW_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    var simulateMode = paperMode || shadowMode;
+                                        PaperBroker? paperBroker = simulateMode ? new PaperBroker(status, log) : null;
 
                     // Autopilot flags
                     var auto = AppEnv.Flag("AUTO", false);
@@ -468,8 +479,8 @@ namespace OrchestratorAgent
                     var appState = new OrchestratorAgent.Ops.AppState();
                     var leasePath = Environment.GetEnvironmentVariable("OPS_LEASE_PATH") ?? "state/live.lock";
                     var liveLease = new OrchestratorAgent.Ops.LiveLease(leasePath);
-                    // In Paper mode, ensure no gating delays entries
-                    if (paperMode)
+                    // In Paper/Shadow mode, ensure no gating delays entries
+                    if (paperMode || shadowMode)
                     {
                         try { appState.DrainMode = false; } catch { }
                         try { status.Set("route.paused", false); } catch { }
@@ -629,7 +640,7 @@ namespace OrchestratorAgent
                     var stats = new SimpleStats(startedUtc);
 
                     // periodic check
-                    if (!paperMode)
+                    if (!(paperMode || shadowMode))
                     _ = Task.Run(async () =>
                     {
                         while (!cts.IsCancellationRequested)
@@ -721,7 +732,7 @@ namespace OrchestratorAgent
                     }, cts.Token);
 
                     // Start autopilot loop (with lease requirement)
-                    if (autoGoLive && !paperMode)
+                    if (autoGoLive && !(paperMode || shadowMode))
                     {
                         var notifier = new OrchestratorAgent.Infra.Notifier();
                         _ = Task.Run(async () =>
@@ -810,7 +821,7 @@ namespace OrchestratorAgent
                     catch { }
 
                     // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check and render concise checklist.
-                    if (!paperMode)
+                    if (!(paperMode || shadowMode))
                     try
                     {
                         var initial = await pfService.RunAsync(symbol, cts.Token);
@@ -910,7 +921,7 @@ namespace OrchestratorAgent
                         catch { }
                         bars[esRoot].Add(bar);
                         if (paperBroker != null) { try { paperBroker.OnBar(esRoot, bar); } catch { } }
-                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, status, cts.Token);
+                        await RunStrategiesFor(esRoot, bar, bars[esRoot], accountId, contractIds[esRoot], risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
                     };
                     if (enableNq && aggNQ != null && market2 != null)
                     {
@@ -926,7 +937,7 @@ namespace OrchestratorAgent
                             catch { }
                             bars[nqRoot].Add(bar);
                             if (paperBroker != null) { try { paperBroker.OnBar(nqRoot, bar); } catch { } }
-                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, paperBroker, paperMode, log, appState, liveLease, cts.Token);
+                            await RunStrategiesFor(nqRoot, bar, bars[nqRoot], accountId, contractIds[nqRoot], risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
                         };
                     }
 
