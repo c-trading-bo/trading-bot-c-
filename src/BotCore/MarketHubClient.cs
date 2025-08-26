@@ -70,7 +70,7 @@ namespace BotCore
 			AttachLifecycleHandlers(ct);
 
 			await _conn.StartAsync(ct);
-			if (!Concise()) _log.LogInformation("MarketHub connected. State={State}", _conn.State);
+			_log.LogInformation("MarketHub connected. State={State}", _conn.State);
 			await Task.Delay(200, ct);
 			await SubscribeIfConnectedAsync(CancellationToken.None);
 		}
@@ -90,31 +90,50 @@ namespace BotCore
 					return;
 				}
 
-				try
+				// Try a variety of known subscription methods for compatibility across hub versions
+				async Task<bool> TryInvoke(string method, params object[] args)
 				{
-					await _conn.InvokeAsync("SubscribeContractQuotes", _contractId, ct);
-					await _conn.InvokeAsync("SubscribeContractTrades", _contractId, ct);
-					await _conn.InvokeAsync("SubscribeContractMarketDepth", _contractId, ct);
+					try
+					{
+						await _conn!.InvokeAsync(method, args.Append(ct).ToArray());
+						_log.LogInformation("[MarketHub] {Method}({Args}) ok", method, string.Join(",", args));
+						return true;
+					}
+					catch (Exception ex)
+					{
+						_log.LogDebug("[MarketHub] {Method} unsupported: {Msg}", method, ex.Message);
+						return false;
+					}
+				}
 
+				bool any = false;
+				// Quotes / trades / depth
+				any |= await TryInvoke("SubscribeContractQuotes", _contractId);
+				any |= await TryInvoke("SubscribeQuotes", _contractId);
+				any |= await TryInvoke("subscribe", "quote", _contractId);
+				any |= await TryInvoke("SubscribeContractTrades", _contractId);
+				any |= await TryInvoke("SubscribeTrades", _contractId);
+				any |= await TryInvoke("subscribe", "trade", _contractId);
+				any |= await TryInvoke("SubscribeContractMarketDepth", _contractId);
+				any |= await TryInvoke("SubscribeDepth", _contractId);
+				any |= await TryInvoke("subscribe", "depth", _contractId);
+
+				// Bars @ common timeframes (some hubs support these)
+				foreach (var tf in new[] { "1m", "5m", "30m" })
+				{
+					any |= await TryInvoke("SubscribeBars", _contractId, tf);
+					any |= await TryInvoke("subscribeBars", _contractId, tf);
+				}
+
+				if (any)
+				{
 					_subscribed = true;
-					if (!Concise()) _log.LogInformation("[MarketHub] Subscribed to {ContractId}", _contractId);
+					_log.LogInformation("[MarketHub] Subscribed to {ContractId}", _contractId);
 				}
-				catch (InvalidOperationException ioe)
+				else
 				{
-					_log.LogDebug(ioe, "Subscribe raced with disconnect; will re-subscribe on Reconnected.");
 					_subscribed = false;
-				}
-				catch (TaskCanceledException tce)
-				{
-					if (!Concise()) _log.LogWarning(tce, "Subscribe canceled (likely connection transition). Will retry on Reconnected.");
-					else _log.LogDebug(tce, "Subscribe canceled; will retry (concise mode)");
-					_subscribed = false;
-				}
-				catch (Exception ex)
-				{
-					if (!Concise()) _log.LogWarning(ex, "Subscribe failed; will re-subscribe on Reconnected.");
-					else _log.LogDebug(ex, "Subscribe failed; will retry (concise mode)");
-					_subscribed = false;
+					_log.LogDebug("[MarketHub] No subscription methods were accepted by the hub (will retry on reconnect)");
 				}
 			}
 			finally
@@ -140,13 +159,15 @@ namespace BotCore
 			}
 			string? jwt;
 			try { jwt = await _getJwtAsync(); } catch { jwt = null; }
-			if (!Concise()) _log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+			_log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
 			var hub = new HubConnectionBuilder()
 				.WithUrl(url, o =>
 				{
 					o.AccessTokenProvider = _getJwtAsync;
-					o.Transports = HttpTransportType.WebSockets;
-					o.SkipNegotiation = true;
+					// Allow negotiation and all common transports for compatibility
+					o.Transports = HttpTransportType.WebSockets | HttpTransportType.ServerSentEvents | HttpTransportType.LongPolling;
+					// Do not skip negotiation; some servers require it
+					// o.SkipNegotiation = true;
 				})
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();
@@ -155,19 +176,33 @@ namespace BotCore
 			hub.KeepAliveInterval = TimeSpan.FromSeconds(10);
 			hub.HandshakeTimeout = TimeSpan.FromSeconds(12);
 
-				hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
+			// Helper to forward various payload shapes as JsonElement
+			static JsonElement AsJsonElement(object payload)
+			{
+				if (payload is JsonElement je) return je;
+				if (payload is string s)
 				{
-					if (cid == _contractId)
+					try { using var doc = JsonDocument.Parse(s); return doc.RootElement.Clone(); } catch { }
+				}
+				try { var json = System.Text.Json.JsonSerializer.Serialize(payload); using var doc = JsonDocument.Parse(json); return doc.RootElement.Clone(); } catch { }
+				using var empty = JsonDocument.Parse("{}");
+				return empty.RootElement.Clone();
+			}
+
+			// Known TopstepX gateway-style methods
+			hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
+			{
+				if (cid == _contractId)
+				{
+					_lastQuoteSeen[cid] = DateTime.UtcNow;
+					if (!_firstQuoteLogged)
 					{
-						_lastQuoteSeen[cid] = DateTime.UtcNow;
-						if (!_firstQuoteLogged)
-						{
-							_firstQuoteLogged = true;
-							if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
-						}
-						OnQuote?.Invoke(cid, json);
+						_firstQuoteLogged = true;
+						if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
 					}
-				});
+					OnQuote?.Invoke(cid, json);
+				}
+			});
 			hub.On<string, JsonElement>("GatewayTrade", (cid, json) =>
 			{
 				if (cid == _contractId)
@@ -181,6 +216,25 @@ namespace BotCore
 				}
 			});
 			hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) OnDepth?.Invoke(cid, json); });
+
+			// Common alt method names seen on some hubs: lowercase simple names and bars
+			hub.On<string, object>("quote", (cid, payload) =>
+			{
+				if (cid == _contractId)
+				{
+					_lastQuoteSeen[cid] = DateTime.UtcNow;
+					var json = AsJsonElement(payload);
+					if (!_firstQuoteLogged)
+					{
+						_firstQuoteLogged = true;
+						if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
+					}
+					OnQuote?.Invoke(cid, json);
+				}
+			});
+			hub.On<string, object>("trade", (cid, payload) => { if (cid == _contractId) { var json = AsJsonElement(payload); if (!_firstTradeLogged) { _firstTradeLogged = true; if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json); } OnTrade?.Invoke(cid, json); } });
+			hub.On<string, object>("depth", (cid, payload) => { if (cid == _contractId) { var json = AsJsonElement(payload); OnDepth?.Invoke(cid, json); } });
+			hub.On<string, object>("bar", (cid, payload) => { if (cid == _contractId) { _lastBarSeen[cid] = DateTime.UtcNow; } });
 
 			return hub;
 		}
