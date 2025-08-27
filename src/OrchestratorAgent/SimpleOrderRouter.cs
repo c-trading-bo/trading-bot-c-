@@ -122,7 +122,7 @@ namespace OrchestratorAgent
                 if (clampedSize != requested)
                     _log.LogInformation("[Router] Clamped size from {Req} to {Clamp} (MAX_CONTRACTS={Max})", requested, clampedSize, maxContracts);
 
-                // Net position guard: ensure resulting net does not exceed ±2
+                // Net position guard: ensure resulting net does not exceed ±1
                 async Task<int> GetOpenNetQtyAsync()
                 {
                     try
@@ -160,11 +160,15 @@ namespace OrchestratorAgent
 
                 var currentNet = await GetOpenNetQtyAsync();
                 var sgn = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
-                int maxAdd = (currentNet == 0 || Math.Sign(currentNet) == sgn) ? Math.Max(0, 2 - Math.Abs(currentNet)) : clampedSize;
+                int netCap = 1;
+                int absCur = Math.Abs(currentNet);
+                int maxAdd = (currentNet == 0 || Math.Sign(currentNet) == sgn)
+                    ? Math.Max(0, netCap - absCur) // same direction: top up to cap
+                    : Math.Min(clampedSize, netCap + absCur); // opposite: allow flatten and flip up to cap
                 var finalSize = Math.Min(clampedSize, maxAdd);
                 if (finalSize <= 0)
                 {
-                    _log.LogInformation("[Router] Net cap: blocking order — current={Cur} side={Side} req={Req} would exceed ±2", currentNet, sig.Side, requested);
+                    _log.LogInformation("[Router] Net cap: blocking order — current={Cur} side={Side} req={Req} would exceed ±1", currentNet, sig.Side, requested);
                     await JournalAsync(false, "net_cap", 0, null, modeStr);
                     return false;
                 }

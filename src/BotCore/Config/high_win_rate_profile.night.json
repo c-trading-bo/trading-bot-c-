@@ -1,0 +1,72 @@
+{
+  "profile": "high_win_rate_night",
+  "schema_version": 1,
+
+  "timeframes": { "signal": "1m", "filter": "5m", "regime": "30m", "daily": true },
+
+  "rs_gate": {
+    "z5m_threshold_mid": 0.7,
+    "z5m_threshold_high": 1.1,
+    "z5m_threshold_low_mr_only": 0.5,
+    "capital_bias": [50, 50],
+    "align_with_bias": true
+  },
+
+  "global_filters": {
+    "volume_pct_min_mr": 10,
+    "volume_pct_min_bo": 25,
+    "volume_pct_strong": 60,
+    "spike_volume_pct": 85,
+    "aggI_min_bo": 0.15,
+    "aggI_max_mr_abs": 0.12,
+    "signal_bar_max_atr_mult": 2.0,
+    "spread_ticks_max": 1,
+    "spread_ticks_max_bo": 2,
+    "three_stop_rule": true,
+    "min_seconds_between_entries": 120
+  },
+
+  "concurrency": { "max_positions_total": 1, "one_fresh_entry_per_symbol": true },
+  "hysteresis":  { "bars": 3, "min_dwell_minutes": 20 },
+
+  "attempt_caps": {
+    "S2": 1, "S3": 1,
+    "S1": 0, "S4": 0, "S5": 0, "S6": 0, "S7": 0, "S8": 0, "S9": 0, "S10": 0, "S11": 0, "S12": 0, "S13": 0
+  },
+
+  "buffers": { "ES_ticks": 2, "NQ_ticks": 3 },
+
+  "AlwaysOn": { "Enabled": true, "SizeFloor": 0.75, "SizeCap": 1.10, "ZeroWarmupIndicators": true },
+
+  "News": { "BoostOnMajorNews": true, "BreakoutScoreBoost": 1.2, "MeanRevScoreBias": 0.95, "SizeBoostOnNews": 1.05 },
+
+  "strategies": [
+    { "id": "S2",  "name": "Session VWAP Mean-Reversion",
+      "enabled": true, "family": "meanrev",
+      "session_window_et": "20:00-02:00",
+      "flat_by_et": "09:15",
+      "regimes": ["range","low_vol"],
+      "filters": { "zscore_vwap_min": 1.0, "zscore_vwap_max": 1.5, "adx_max": 16 }
+    },
+
+    { "id": "S3",  "name": "Compression → Expansion (Squeeze Breakout)",
+      "enabled": true, "family": "breakout",
+      "session_window_et": "02:55-04:10",
+      "flat_by_et": "09:15",
+      "regimes": ["trend","mid_vol"],
+      "filters": { "adx_min": 18, "rvol_min": 1.1, "spread_ticks_max": 2 }
+    },
+
+    { "id": "S1",  "name": "Intraday Trend / IB Continuation", "enabled": false, "family": "trend" },
+    { "id": "S4",  "name": "Overnight Range Fade", "enabled": false, "family": "meanrev" },
+    { "id": "S5",  "name": "Liquidity Sweep Revert", "enabled": false, "family": "meanrev" },
+    { "id": "S6",  "name": "Opening Drive vs Reversal", "enabled": false, "family": "breakout" },
+    { "id": "S7",  "name": "ES↔NQ Relative-Strength Gate (Filter)", "enabled": true, "family": "filter" },
+    { "id": "S8",  "name": "Keltner Pullback in Trend", "enabled": false, "family": "pullback" },
+    { "id": "S9",  "name": "Fair Value Gap Reaction", "enabled": false, "family": "meanrev" },
+    { "id": "S10", "name": "Gap & Go vs Gap Fade", "enabled": false, "family": "gap" },
+    { "id": "S11", "name": "ADR/IB Exhaustion Fade", "enabled": false, "family": "meanrev" },
+    { "id": "S12", "name": "Micro Pullback Breakout", "enabled": false, "family": "breakout" },
+    { "id": "S13", "name": "Failed Breakout Flip", "enabled": false, "family": "breakout" }
+  ]
+}

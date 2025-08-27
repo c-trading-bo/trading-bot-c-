@@ -10,6 +10,7 @@ using System.Text.Json;
 using BotCore.Models;
 using BotCore.Risk;
 using BotCore.Strategy;
+using BotCore.Config;
 using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
 using System.Linq;
@@ -27,6 +28,17 @@ namespace OrchestratorAgent
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object _entriesLock = new();
+
+        // ET helpers for time-window checks
+        private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
+        private static readonly TimeZoneInfo ET = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+        private static TimeSpan Et(string hhmm) => TimeSpan.ParseExact(hhmm, @"hh\:mm", _inv);
+        private static bool In(string a, string b)
+        {
+            var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ET).TimeOfDay;
+            var s = Et(a); var e = Et(b);
+            return s <= e ? (now >= s && now <= e) : (now >= s || now <= e);
+        }
         private static DateTimeOffset? TryGetQuoteLastUpdated(System.Text.Json.JsonElement e)
         {
             if (e.ValueKind != System.Text.Json.JsonValueKind.Object) return null;
@@ -693,6 +705,22 @@ namespace OrchestratorAgent
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var partialExit = new OrchestratorAgent.Ops.PartialExitService(http, jwtCache.GetAsync, log);
                     var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
+
+                    // Auto-switch profile by ET clock (18:05–09:15 -> night; else day)
+                    try
+                    {
+                        var dayPath = "src\\BotCore\\Config\\high_win_rate_profile.json";
+                        var nightPath = "src\\BotCore\\Config\\high_win_rate_profile.night.json";
+                        bool isNight = In("18:05", "09:15");
+                        var cfgPath = isNight ? nightPath : dayPath;
+                        var activeProfile = BotCore.Config.ConfigLoader.FromFile(cfgPath);
+                        try { status.Set("profile.active", activeProfile.Profile); } catch { }
+                        log.LogInformation("Profile loaded: {Profile} from {Path}", activeProfile.Profile, cfgPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "Profile load failed");
+                    }
 
                     // Paper mode wiring
                     bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -1436,6 +1464,16 @@ namespace OrchestratorAgent
                             log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
                             return;
                         }
+                        // Curfew: block new entries into U.S. open (ET 09:15–09:23)
+                        try
+                        {
+                            if (In("09:15", "09:23"))
+                            {
+                                log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23 curfew active", symbol);
+                                return;
+                            }
+                        }
+                        catch { }
                         // Econ blocks (ET), format: HH:mm-HH:mm;HH:mm-HH:mm
                         var econ = Environment.GetEnvironmentVariable("ECON_BLOCKS_ET");
                         if (!string.IsNullOrWhiteSpace(econ))
