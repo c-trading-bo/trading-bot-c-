@@ -502,8 +502,88 @@ namespace OrchestratorAgent
                     };
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
-                    market1.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
-                    if (enableNq && market2 != null) market2.OnDepth += (_, __) => status.Set("last.depth", DateTimeOffset.UtcNow);
+                    market1.OnDepth += (cid, json) => {
+                        status.Set("last.depth", DateTimeOffset.UtcNow);
+                        try
+                        {
+                            int bidQty = 0, askQty = 0;
+                            try
+                            {
+                                if (json.ValueKind == System.Text.Json.JsonValueKind.Object)
+                                {
+                                    if (json.TryGetProperty("bids", out var bids) && bids.ValueKind == System.Text.Json.JsonValueKind.Array && bids.GetArrayLength() > 0)
+                                    {
+                                        var lvl = bids[0];
+                                        if (lvl.TryGetProperty("size", out var s) && s.TryGetInt32(out var sv)) bidQty = sv;
+                                        else if (lvl.TryGetProperty("qty", out var q) && q.TryGetInt32(out var qv)) bidQty = qv;
+                                        else if (lvl.TryGetProperty("quantity", out var q2) && q2.TryGetInt32(out var q2v)) bidQty = q2v;
+                                    }
+                                    else if (json.TryGetProperty("bestBidSize", out var bbs) && bbs.TryGetInt32(out var bbv)) bidQty = bbv;
+                                    else if (json.TryGetProperty("bestBidQty", out var bbq) && bbq.TryGetInt32(out var bbqv)) bidQty = bbqv;
+
+                                    if (json.TryGetProperty("asks", out var asks) && asks.ValueKind == System.Text.Json.JsonValueKind.Array && asks.GetArrayLength() > 0)
+                                    {
+                                        var lvl = asks[0];
+                                        if (lvl.TryGetProperty("size", out var s2) && s2.TryGetInt32(out var sv2)) askQty = sv2;
+                                        else if (lvl.TryGetProperty("qty", out var q3) && q3.TryGetInt32(out var qv3)) askQty = qv3;
+                                        else if (lvl.TryGetProperty("quantity", out var q4) && q4.TryGetInt32(out var qv4)) askQty = qv4;
+                                    }
+                                    else if (json.TryGetProperty("bestAskSize", out var bas) && bas.TryGetInt32(out var bav)) askQty = bav;
+                                    else if (json.TryGetProperty("bestAskQty", out var baq) && baq.TryGetInt32(out var baqv)) askQty = baqv;
+                                }
+                            }
+                            catch { }
+                            var sum = System.Math.Max(0, bidQty) + System.Math.Max(0, askQty);
+                            try
+                            {
+                                if (!string.IsNullOrWhiteSpace(esContract) && cid == esContract) status.Set("depth.top.ES", sum);
+                                else if (!string.IsNullOrWhiteSpace(nqContract) && cid == nqContract) status.Set("depth.top.NQ", sum);
+                            }
+                            catch { }
+                        }
+                        catch { }
+                    };
+                    if (enableNq && market2 != null) market2.OnDepth += (cid, json) => {
+                        status.Set("last.depth", DateTimeOffset.UtcNow);
+                        try
+                        {
+                            int bidQty = 0, askQty = 0;
+                            try
+                            {
+                                if (json.ValueKind == System.Text.Json.JsonValueKind.Object)
+                                {
+                                    if (json.TryGetProperty("bids", out var bids) && bids.ValueKind == System.Text.Json.JsonValueKind.Array && bids.GetArrayLength() > 0)
+                                    {
+                                        var lvl = bids[0];
+                                        if (lvl.TryGetProperty("size", out var s) && s.TryGetInt32(out var sv)) bidQty = sv;
+                                        else if (lvl.TryGetProperty("qty", out var q) && q.TryGetInt32(out var qv)) bidQty = qv;
+                                        else if (lvl.TryGetProperty("quantity", out var q2) && q2.TryGetInt32(out var q2v)) bidQty = q2v;
+                                    }
+                                    else if (json.TryGetProperty("bestBidSize", out var bbs) && bbs.TryGetInt32(out var bbv)) bidQty = bbv;
+                                    else if (json.TryGetProperty("bestBidQty", out var bbq) && bbq.TryGetInt32(out var bbqv)) bidQty = bbqv;
+
+                                    if (json.TryGetProperty("asks", out var asks) && asks.ValueKind == System.Text.Json.JsonValueKind.Array && asks.GetArrayLength() > 0)
+                                    {
+                                        var lvl = asks[0];
+                                        if (lvl.TryGetProperty("size", out var s2) && s2.TryGetInt32(out var sv2)) askQty = sv2;
+                                        else if (lvl.TryGetProperty("qty", out var q3) && q3.TryGetInt32(out var qv3)) askQty = qv3;
+                                        else if (lvl.TryGetProperty("quantity", out var q4) && q4.TryGetInt32(out var qv4)) askQty = qv4;
+                                    }
+                                    else if (json.TryGetProperty("bestAskSize", out var bas) && bas.TryGetInt32(out var bav)) askQty = bav;
+                                    else if (json.TryGetProperty("bestAskQty", out var baq) && baq.TryGetInt32(out var baqv)) askQty = baqv;
+                                }
+                            }
+                            catch { }
+                            var sum = System.Math.Max(0, bidQty) + System.Math.Max(0, askQty);
+                            try
+                            {
+                                if (!string.IsNullOrWhiteSpace(esContract) && cid == esContract) status.Set("depth.top.ES", sum);
+                                else if (!string.IsNullOrWhiteSpace(nqContract) && cid == nqContract) status.Set("depth.top.NQ", sum);
+                            }
+                            catch { }
+                        }
+                        catch { }
+                    };
 
                     // Heartbeat loop (throttled inside StatusService)
                     _ = Task.Run(async () =>
@@ -675,6 +755,45 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
+                    // Seed dashboard history once (540 1m bars)
+                    try
+                    {
+                        if (dashboardHub is not null)
+                        {
+                            var esBars = barPyramid.M1.GetHistory(esIdForSeed);
+                            if (esBars.Count > 0)
+                            {
+                                var list = new System.Collections.Generic.List<Dashboard.Bar>();
+                                int start = Math.Max(0, esBars.Count - 540);
+                                for (int i = start; i < esBars.Count; i++)
+                                {
+                                    var b = esBars[i];
+                                    long tUnix = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeSeconds();
+                                    list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
+                                }
+                                dashboardHub.SeedHistory(esRoot, "1", list);
+                            }
+                            if (enableNq && nqIdForSeed is not null)
+                            {
+                                var nqBars = barPyramid.M1.GetHistory(nqIdForSeed);
+                                if (nqBars.Count > 0)
+                                {
+                                    var list = new System.Collections.Generic.List<Dashboard.Bar>();
+                                    int start = Math.Max(0, nqBars.Count - 540);
+                                    for (int i = start; i < nqBars.Count; i++)
+                                    {
+                                        var b = nqBars[i];
+                                        long tUnix = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeSeconds();
+                                        list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
+                                    }
+                                    dashboardHub.SeedHistory(nqRoot, "1", list);
+                                }
+                            }
+                            log.LogInformation("[Dashboard] History seeded.");
+                        }
+                    }
+                    catch { }
+
                     // Strategy prerequisites
                     var risk = new BotCore.Risk.RiskEngine();
                     // Apply risk-per-trade from environment so sizing matches your budget
@@ -705,6 +824,14 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
+                    // Publish MDL to status for UI and logic
+                    try
+                    {
+                        var mdlCap = risk.cfg.max_daily_drawdown > 0 ? risk.cfg.max_daily_drawdown : (decimal?)null;
+                        if (mdlCap.HasValue) status.Set("risk.daily.max", mdlCap.Value);
+                    }
+                    catch { }
+
                     var levels = new BotCore.Models.Levels();
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -725,6 +852,8 @@ namespace OrchestratorAgent
                         var activeProfile = ConfigLoader.FromFile(cfgPath);
                         try { status.Set("profile.active", activeProfile.Profile); } catch { }
                         log.LogInformation("Profile loaded: {Profile} from {Path}", activeProfile.Profile, cfgPath);
+                        try { status.Set("profile.buffers.ES", activeProfile.Buffers?.ES_Ticks ?? 0); } catch { }
+                        try { status.Set("profile.buffers.NQ", activeProfile.Buffers?.NQ_Ticks ?? 0); } catch { }
 
                         // optional: if curfew, disable entries & flatten
                         if (InRange(et, "09:15", "09:23:30"))
