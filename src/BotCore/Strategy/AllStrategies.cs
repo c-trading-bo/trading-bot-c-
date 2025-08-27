@@ -365,6 +365,8 @@ namespace BotCore.Strategy
         {
             var lst = new List<Candidate>();
             if (bars is null || bars.Count < 60) return lst;
+            // Hard microstructure: require minimum 1m volume per config
+            if (bars[^1].Volume < S2RuntimeConfig.MinVolume) return lst;
 
             // Compute session VWAP/σ anchored to 09:30 local (same as ET for Santo Domingo)
             var nowLocal = DateTime.Now; var localDate = nowLocal.Date; // wall-time

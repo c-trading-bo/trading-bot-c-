@@ -25,7 +25,7 @@ namespace BotCore.Strategy
         public static decimal TrailAtrMult { get; private set; } = 1.0m;
         public static int IbEndMinute { get; private set; } = 10 * 60 + 30; // 630
         public static decimal EsSigma { get; private set; } = 2.0m;
-        public static decimal NqSigma { get; private set; } = 2.4m;
+        public static decimal NqSigma { get; private set; } = 2.6m;
         public static decimal OvernightScale { get; private set; } = 0.5m;
         public static int MinVolume { get; private set; } = 3000;
         public static int MaxSpreadTicks { get; private set; } = 2;
