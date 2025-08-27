@@ -15,5 +15,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SupervisorAgent\*.cs" />
+    <Compile Include="..\Dashboard\DashboardModule.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="wwwroot\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

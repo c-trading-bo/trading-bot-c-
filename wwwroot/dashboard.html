@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>TopstepX Bot — Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    :root { --bg:#0f1217; --fg:#cbd5e1; --muted:#93a3b8; --good:#16a34a; --bad:#dc2626; --chip:#1f2733; }
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter}
+    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
+    .topbar{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid #1c2330}
+    .chip{background:var(--chip);border-radius:12px;padding:6px 10px}
+    .sp{opacity:.85}
+    .pane{display:grid;grid-template-columns:1fr 280px;gap:8px;padding:8px;height:calc(100vh - 100px)}
+    #chart{height:100%;border:1px solid #1c2330;border-radius:12px}
+    .side{display:flex;flex-direction:column;gap:8px}
+    .card{background:#0c1016;border:1px solid #1c2330;border-radius:12px;padding:10px}
+    .k{color:var(--muted);min-width:120px;display:inline-block}
+    .u{color:var(--muted)}
+    .ok{color:var(--good)} .bad{color:var(--bad)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+    .stream{height:220px;overflow:auto;font-size:12px;background:#0b0f14;border:1px solid #1c2330;border-radius:12px;padding:8px}
+    .row{display:flex;justify-content:space-between}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar mono" id="topbar">
+    <span class="chip">acc <span id="acc">-</span></span>
+    <span class="chip">mode <span id="mode">-</span></span>
+    <span class="chip">r:<span id="r">0.00</span> u:<span id="u">0.00</span> d:<span id="d">0.00</span></span>
+    <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
+    <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
+    <span class="chip sp" id="clock">--:--:--</span>
+  </div>
+
+  <div class="pane">
+    <div id="chart"></div>
+    <div class="side">
+      <div class="card mono">
+        <div class="row"><span class="k">Symbol</span><span id="sym">ES</span></div>
+        <div class="row"><span class="k">Pos</span><span id="pos">FLAT</span></div>
+        <div class="row"><span class="k">Avg</span><span id="avg">-</span></div>
+        <div class="row"><span class="k">Mark</span><span id="mark">-</span></div>
+        <div class="row"><span class="k">uPnL</span><span id="upnl">0.00</span></div>
+        <div class="row"><span class="k">rPnL</span><span id="rpnl">0.00</span></div>
+      </div>
+      <div class="card">
+        <div class="u">Events</div>
+        <div class="stream mono" id="events"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="topbar sp mono">Tip: open another tab at <span class="u">/dashboard</span> for NQ (after you point the query to symbol=NQ).</div>
+</div>
+
+<script type="module">
+  import { createChart } from "https://unpkg.com/lightweight-charts/dist/lightweight-charts.esm.production.js";
+
+  const symbol = new URLSearchParams(location.search).get("symbol") || "ES";
+  const res = "1";
+
+  const fmt2 = (n)=> (n==null? "-" : Number(n).toFixed(2));
+  const set = (id, html)=> document.getElementById(id).innerHTML = html;
+  const setPnL = (id, v)=> set(id, v>0? `<span class="ok">+${fmt2(v)}</span>` : v<0? `<span class="bad">${fmt2(v)}</span>` : fmt2(v));
+
+  const chart = createChart(document.getElementById("chart"), {
+    layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
+    grid: { vertLines: { color: "#1c2330" }, horzLines: { color: "#1c2330" } },
+    timeScale: { timeVisible: true, secondsVisible: false },
+    rightPriceScale: { borderVisible: false },
+  });
+  const candles = chart.addCandlestickSeries();
+  const volume  = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
+
+  async function loadHistory() {
+    const now = Math.floor(Date.now()/1000), from = now - 3*24*60*60;
+    const url = `/data/history?symbol=${symbol}&res=${res}&from=${from}&to=${now}`;
+    const bars = await fetch(url).then(r=>r.json());
+    candles.setData(bars.map(b=>({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c })));
+    volume.setData(bars.map(b=>({ time:b.t, value:b.v })));
+  }
+
+  function connectStream() {
+    const es = new EventSource(`/stream/realtime?symbol=${symbol}&res=${res}`);
+
+    es.addEventListener("hello", e => {
+      // console.log("hello", e.data);
+    });
+
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "bar") {
+        const b = msg.bar;
+        candles.update({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c });
+        volume.update({ time:b.t, value:b.v });
+        set("mark", b.c);
+      }
+      if (msg.type === "metrics") {
+        const m = msg.data;
+        set("acc", m.accountId); set("mode", m.mode);
+        setPnL("r", m.realized); setPnL("u", m.unrealized); setPnL("d", m.day);
+        set("mdl", fmt2(m.maxDailyLoss)); setPnL("rem", m.remaining);
+        set("uh", m.userHub); set("mh", m.marketHub);
+        set("clock", new Date(m.localTime).toLocaleTimeString());
+
+        const ps = (m.positions||[]).find(p => p.sym === symbol);
+        set("sym", symbol);
+        if (!ps || ps.qty === 0) {
+          set("pos", "FLAT"); set("avg","-"); set("mark","-");
+          setPnL("upnl", 0); setPnL("rpnl", m.realized);
+        } else {
+          set("pos", (ps.qty > 0 ? "LONG " : "SHORT ") + Math.abs(ps.qty));
+          set("avg", fmt2(ps.avg));
+          set("mark", fmt2(ps.mark));
+          setPnL("upnl", ps.uPnL);
+          setPnL("rpnl", ps.rPnL);
+        }
+      }
+    };
+
+    es.onerror = () => {
+      addEvent("stream error — reconnecting…");
+      es.close();
+      setTimeout(connectStream, 1500);
+    };
+  }
+
+  function addEvent(line) {
+    const box = document.getElementById("events");
+    const at = new Date().toLocaleTimeString();
+    box.insertAdjacentHTML("afterbegin", `<div>${at} — ${line}</div>`);
+    const max = 200; while (box.childElementCount > max) box.removeChild(box.lastChild);
+  }
+
+  await loadHistory();
+  connectStream();
+</script>
+</body>
+</html>

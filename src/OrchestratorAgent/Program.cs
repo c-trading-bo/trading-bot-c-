@@ -14,6 +14,9 @@ using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
 using System.Linq;
 using System.Net.Http.Json;
+using Dashboard;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Builder;
 
 namespace OrchestratorAgent
 {
@@ -332,6 +335,62 @@ namespace OrchestratorAgent
                     if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
                     // Seed from REST
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
+
+                                        // ===== Dashboard: start minimal web host + RealtimeHub =====
+                                        Dashboard.RealtimeHub? dashboardHub = null;
+                                        try
+                                        {
+                                            var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+                                            // Register RealtimeHub with metrics provider capturing current pos/status
+                                            webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
+                                            {
+                                                var logger = sp.GetRequiredService<ILogger<Dashboard.RealtimeHub>>();
+                                                Dashboard.MetricsSnapshot MetricsProvider()
+                                                {
+                                                    // Build metrics from PositionTracker snapshot
+                                                    var snap = posTracker.Snapshot();
+                                                    decimal realized = 0m, unreal = 0m;
+                                                    var chips = new List<Dashboard.PositionChip>();
+                                                    foreach (var kv in snap)
+                                                    {
+                                                        var ps = kv.Value;
+                                                        realized += ps.RealizedUsd;
+                                                        unreal += ps.UnrealizedUsd;
+                                                        chips.Add(new Dashboard.PositionChip(kv.Key, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
+                                                    }
+                                                    var mode = (Environment.GetEnvironmentVariable("PAPER_MODE") == "1") ? "PAPER" : (Environment.GetEnvironmentVariable("SHADOW_MODE") == "1") ? "SHADOW" : "LIVE";
+                                                    var day = realized + unreal;
+                                                    decimal mdl = 1000m;
+                                                    try { mdl = status.Get<decimal?>("risk.daily.max") ?? mdl; } catch { }
+                                                    var remaining = mdl + Math.Min(0m, realized);
+                                                    var userHubState = "Connected"; // simplify; refine from actual hub state if desired
+                                                    var marketHubState = "Connected";
+                                                    return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips);
+                                                }
+                                                return new Dashboard.RealtimeHub(logger, MetricsProvider);
+                                            });
+                                            webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
+                                            var web = webBuilder.Build();
+                                            web.UseDefaultFiles();
+                                            web.UseStaticFiles();
+                                            dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
+                                            web.MapDashboard(dashboardHub);
+                                            _ = web.RunAsync("http://localhost:5000", cts.Token);
+                                            log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            log.LogWarning(ex, "Dashboard failed to start; continuing without UI.");
+                                        }
+
+                    // Wire ticks/marks into dashboard stream
+                    if (dashboardHub is not null)
+                    {
+                        market1.OnTrade += (cid, tick) => { try { if (cid == esContract) dashboardHub.OnTick(esRoot, tick.TimestampUtc, tick.Price, tick.Volume); } catch { } };
+                        if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { if (cid == nqContract) dashboardHub.OnTick(nqRoot, tick.TimestampUtc, tick.Price, tick.Volume); } catch { } };
+                        market1.OnQuote += (cid, last, bid, ask) => { try { if (cid == esContract && last > 0) dashboardHub.OnMark(esRoot, last); } catch { } };
+                        if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) => { try { if (cid == nqContract && last > 0) dashboardHub.OnMark(nqRoot, last); } catch { } };
+                    }
 
                     market1.OnQuote += (cid, last, bid, ask) => {
                         var nowTs = DateTimeOffset.UtcNow;
