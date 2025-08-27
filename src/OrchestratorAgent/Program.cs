@@ -33,7 +33,10 @@ namespace OrchestratorAgent
         // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
         private static readonly TimeZoneInfo ET = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+        private static readonly TimeZoneInfo SD = TryFindTz("SA Western Standard Time") ?? TryFindTz("Atlantic Standard Time") ?? ET; // America/Santo_Domingo fallback
+        private static TimeZoneInfo? TryFindTz(string id) { try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch { return null; } }
         private static DateTime NowET() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ET);
+        private static DateTime NowSD() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, SD);
         private static TimeSpan TS(string s)
         {
             // Support both HH:mm and HH:mm:ss
@@ -862,12 +865,17 @@ namespace OrchestratorAgent
                         try { status.Set("profile.buffers.NQ", activeProfile.Buffers?.NQ_Ticks ?? 0); } catch { }
                         try { status.Set("profile.min_spacing_sec", activeProfile.GlobalFilters?.MinSecondsBetweenEntries ?? (isNight ? 120 : 45)); } catch { }
 
-                        // optional: if curfew, disable entries & flatten
+                        // optional: if curfew, disable entries & flatten; auto-clear at 09:28
                         if (InRange(et, "09:15", "09:23:30"))
                         {
                             try { router.DisableAllEntries(); } catch { }
                             try { await router.CloseAll("CurfewIntoRTH", CancellationToken.None); } catch { }
                             log.LogInformation("[Curfew] ET 09:15–09:23:30 — entries disabled and flatten requested.");
+                        }
+                        else if (et >= TS("09:28"))
+                        {
+                            try { router.EnableAllEntries(); } catch { }
+                            log.LogInformation("[Curfew] Cleared at 09:28 ET — entries re-enabled.");
                         }
                     }
                     catch (Exception ex)
@@ -1668,6 +1676,22 @@ namespace OrchestratorAgent
                             log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, allow);
                             return;
                         }
+
+                        // News-minute gate (America/Santo_Domingo wall-time): block −2m..+3m around :00 and :30
+                        try
+                        {
+                            var nowLocal = NowSD();
+                            int m = nowLocal.Minute;
+                            int s = nowLocal.Second;
+                            bool aroundTop = m >= 58 || m <= 3;   // 58,59,0,1,2,3
+                            bool aroundHalf = (m >= 28 && m <= 33); // 28..33
+                            if (aroundTop || aroundHalf)
+                            {
+                                log.LogInformation("[SKIP reason=news_minute_gate] {Sym} local={H}:{M:D2}:{S:D2}", symbol, nowLocal.Hour, m, s);
+                                return;
+                            }
+                        }
+                        catch { }
                     }
                     catch { }
 
@@ -1773,12 +1797,78 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // Same-bar arbiter: choose one side (best ExpR) and cap by exposure
-                    var bestLong = signals.Where(s => string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
-                    var bestShort = signals.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                    // Priority arbiter: S6 > S3 > S2 > S11. Pick best ExpR within highest available.
+                    var ranked = new[] { "S6", "S3", "S2", "S11" };
+                    var pickPool = new System.Collections.Generic.List<Signal>();
+                    foreach (var sid in ranked)
+                    {
+                        var pool = signals.Where(s => string.Equals(s.StrategyId, sid, StringComparison.OrdinalIgnoreCase)).ToList();
+                        if (pool.Count > 0) { pickPool = pool; break; }
+                    }
+                    if (pickPool.Count == 0) return;
+                    var bestLong = pickPool.Where(s => string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                    var bestShort = pickPool.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
                     var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
                     if (chosen is null) return;
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
+
+                    // Per-symbol single-position rule with flip eligibility (S6 only, opposite side, ExpR ≥ 1.25)
+                    try
+                    {
+                        var netQty = status.Get<int>($"pos.{symbol}.qty");
+                        if (netQty != 0)
+                        {
+                            bool opposite = (netQty > 0 && string.Equals(chosen.Side, "SELL", StringComparison.OrdinalIgnoreCase)) || (netQty < 0 && string.Equals(chosen.Side, "BUY", StringComparison.OrdinalIgnoreCase));
+                            bool flipOk = string.Equals(chosen.StrategyId, "S6", StringComparison.OrdinalIgnoreCase) && opposite && chosen.ExpR >= 1.25m;
+                            if (!flipOk)
+                            {
+                                log.LogInformation("[SKIP reason=per_symbol_cap] {Sym} already has position {Qty}; only S6 flip allowed with ≥1.25R.", symbol, netQty);
+                                return;
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // Risk scaling by window/conditions: S2 overnight 0.5x; S3 0.75x if spread>2 or volz>2.0
+                    decimal riskScale = 1.0m;
+                    try
+                    {
+                        var etNow4 = NowET().TimeOfDay;
+                        bool isBlackout4 = InRange(etNow4, "16:58", "18:05") || InRange(etNow4, "09:15", "09:23:30");
+                        bool isNight4 = !isBlackout4 && (etNow4 >= TS("18:05") || etNow4 < TS("09:15"));
+                        if (string.Equals(chosen.StrategyId, "S2", StringComparison.OrdinalIgnoreCase) && isNight4)
+                            riskScale *= 0.5m;
+                        if (string.Equals(chosen.StrategyId, "S3", StringComparison.OrdinalIgnoreCase))
+                        {
+                            int sp = 0; try { sp = status.Get<int>($"spread.ticks.{symbol}"); } catch { }
+                            // compute simple volz from recent bars
+                            decimal volz = 0m;
+                            try
+                            {
+                                int lookback = 50;
+                                if (history != null && history.Count >= lookback + 1)
+                                {
+                                    var rets = new System.Collections.Generic.List<decimal>(lookback);
+                                    for (int i = history.Count - lookback; i < history.Count; i++)
+                                    {
+                                        var p0 = history[i - 1].Close; var p1 = history[i].Close;
+                                        if (p0 != 0) rets.Add((p1 - p0) / p0);
+                                    }
+                                    if (rets.Count > 0)
+                                    {
+                                        var mean = rets.Average();
+                                        var varv = rets.Select(r => (r - mean) * (r - mean)).Average();
+                                        var std = (decimal)Math.Sqrt((double)Math.Max(1e-12m, varv));
+                                        var last = rets[^1];
+                                        volz = std == 0m ? 0m : (last - mean) / std;
+                                    }
+                                }
+                            }
+                            catch { }
+                            if (sp > 2 || volz > 2.0m) riskScale *= 0.75m;
+                        }
+                    }
+                    catch { }
 
                     foreach (var sig in signals)
                     {
@@ -1786,6 +1876,14 @@ namespace OrchestratorAgent
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
                         var toRoute = sig;
+
+                        // Apply riskScale computed above
+                        try
+                        {
+                            var scaled = (int)Math.Max(1, Math.Floor(sig.Size * riskScale));
+                            if (scaled != sig.Size) toRoute = toRoute with { Size = scaled };
+                        }
+                        catch { }
 
                         // Per-strategy cap (default 2)
                         try
