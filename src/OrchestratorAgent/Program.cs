@@ -188,6 +188,20 @@ namespace OrchestratorAgent
                 Environment.SetEnvironmentVariable("LIVE_ORDERS", (!paperModeSelected && !shadowModeSelected) ? "1" : "0");
                 var modeName = paperModeSelected ? "PAPER" : shadowModeSelected ? "SHADOW" : "LIVE";
                 log.LogInformation("Launch mode selected: {Mode}", modeName);
+
+                // Integrity lock: protect auth/JWT and SignalR connection code from accidental changes
+                try
+                {
+                    var protectedPaths = new[]
+                    {
+                        "src\\BotCore\\UserHubAgent.cs",
+                        "src\\BotCore\\MarketHubClient.cs",
+                        "src\\TopstepAuthAgent"
+                    };
+                    var liveMode = (!paperModeSelected && !shadowModeSelected);
+                    OrchestratorAgent.Infra.IntegrityGuard.EnsureLocked(protectedPaths, liveMode, log);
+                }
+                catch { }
             }
             catch { }
 
