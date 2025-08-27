@@ -299,16 +299,23 @@ namespace OrchestratorAgent
                                 var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
                                 status.Set($"spread.ticks.ES", st);
                             }
-                            // Live mark-to-market for ES
+                            // Live mark-to-market for ES using same-contract quotes
                             var mark = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m);
                             if (mark > 0m)
                             {
-                                var qty = status.Get<int>("pos.ES.qty");
-                                var avg = status.Get<decimal?>("pos.ES.avg") ?? 0m;
+                                // Prefer PositionTracker snapshot (root mirror) for qty/avg
+                                var snap = posTracker.Snapshot();
+                                int qty = 0; decimal avg = 0m;
+                                if (snap.TryGetValue(contractIds[esRoot], out var esByCid)) { qty = esByCid.Qty; avg = esByCid.AvgPrice; }
+                                else if (snap.TryGetValue(esRoot, out var esByRoot)) { qty = esByRoot.Qty; avg = esByRoot.AvgPrice; }
+                                else { qty = status.Get<int>("pos.ES.qty"); avg = status.Get<decimal?>("pos.ES.avg") ?? 0m; }
                                 var bpv = BotCore.Models.InstrumentMeta.BigPointValue("ES"); if (bpv <= 0) bpv = 50m;
-                                var upnl = (qty >= 0 ? (mark - avg) : (avg - mark)) * bpv * Math.Abs(qty);
-                                status.Set("pos.ES.upnl", upnl);
+                                var side = Math.Sign(qty);
+                                var upnl = (mark - avg) * side * bpv * Math.Abs(qty);
+                                // Update both root and contractId keys
+                                status.Set("pos.ES.upnl", Math.Round(upnl, 2));
                                 status.Set("pos.ES.mark", mark);
+                                try { status.Set($"pos.{cid}.mark", mark); status.Set($"pos.{cid}.upnl", Math.Round(upnl, 2)); } catch { }
                             }
                         }
                         catch { }
@@ -326,16 +333,21 @@ namespace OrchestratorAgent
                                 var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
                                 status.Set($"spread.ticks.NQ", st);
                             }
-                            // Live mark-to-market for NQ
+                            // Live mark-to-market for NQ using same-contract quotes
                             var mark = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m);
                             if (mark > 0m)
                             {
-                                var qty = status.Get<int>("pos.NQ.qty");
-                                var avg = status.Get<decimal?>("pos.NQ.avg") ?? 0m;
+                                var snap = posTracker.Snapshot();
+                                int qty = 0; decimal avg = 0m;
+                                if (contractIds.ContainsKey(nqRoot) && snap.TryGetValue(contractIds[nqRoot], out var nqByCid)) { qty = nqByCid.Qty; avg = nqByCid.AvgPrice; }
+                                else if (snap.TryGetValue(nqRoot, out var nqByRoot)) { qty = nqByRoot.Qty; avg = nqByRoot.AvgPrice; }
+                                else { qty = status.Get<int>("pos.NQ.qty"); avg = status.Get<decimal?>("pos.NQ.avg") ?? 0m; }
                                 var bpv = BotCore.Models.InstrumentMeta.BigPointValue("NQ"); if (bpv <= 0) bpv = 20m;
-                                var upnl = (qty >= 0 ? (mark - avg) : (avg - mark)) * bpv * Math.Abs(qty);
-                                status.Set("pos.NQ.upnl", upnl);
+                                var side = Math.Sign(qty);
+                                var upnl = (mark - avg) * side * bpv * Math.Abs(qty);
+                                status.Set("pos.NQ.upnl", Math.Round(upnl, 2));
                                 status.Set("pos.NQ.mark", mark);
+                                try { status.Set($"pos.{cid}.mark", mark); status.Set($"pos.{cid}.upnl", Math.Round(upnl, 2)); } catch { }
                             }
                         }
                         catch { }
