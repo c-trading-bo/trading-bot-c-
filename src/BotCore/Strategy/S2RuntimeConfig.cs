@@ -5,7 +5,7 @@ using BotCore.Config;
 namespace BotCore.Strategy
 {
     // Lightweight runtime configuration holder for S2 (VWAP Mean-Reversion)
-    internal static class S2RuntimeConfig
+    public static class S2RuntimeConfig
     {
         // Defaults match the provided JSON requirements
         public static string Tf1 { get; private set; } = "M1";
