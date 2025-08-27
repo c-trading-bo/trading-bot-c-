@@ -100,3 +100,27 @@ Reminders
 - Keep BOT_QUICK_EXIT=0.
 - Ports: live bot on 5000, vNext on 5001 (configurable via ASPNETCORE_URLS or appsettings Updater:ShadowPort/LivePort).
 - /metrics exposes quotes age, hubs, order latency when enabled.
+
+Git push helpers
+- One-shot: powershell -ExecutionPolicy Bypass -File .\push-now.ps1 -Message "note"
+- Auto: powershell -ExecutionPolicy Bypass -File .\auto-push.ps1
+- Mirror to another remote (optional): set in .env.local
+  - GIT_EXTRA_REMOTE=backup
+  - GIT_EXTRA_URL=https://github.com/you/your-mirror.git
+  The scripts will push to origin and also mirror to the configured extra remote.
+
+Everything on main (recommended)
+- Normalize your repo to use main for all work and pushes:
+  - powershell -ExecutionPolicy Bypass -File .\ensure-main.ps1 -PullRebase
+  - Then push normally: powershell -ExecutionPolicy Bypass -File .\push-now.ps1 -Message "note"
+- push-now.ps1 routes to main by default (set PREFER_MAIN=false to keep current branch).
+- auto-push.ps1 also auto-switches to main before pushing.
+
+Fix detached HEAD
+- Symptom: git status shows `HEAD (no branch)` or `HEAD detached at <commit>`.
+- Safe fix (keeps current work): create a branch at the current commit and set upstream.
+  - powershell -ExecutionPolicy Bypass -File .\fix-detached-head.ps1
+  - or choose a name: powershell -ExecutionPolicy Bypass -File .\fix-detached-head.ps1 -Branch my-work
+- If you just want to go back to an existing branch (and you don’t need to keep detached commits):
+  - powershell -ExecutionPolicy Bypass -File .\fix-detached-head.ps1 -Checkout main
+- After fixing, you can push as usual with push-now.ps1 or auto-push.ps1.
