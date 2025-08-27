@@ -1,5 +1,34 @@
 # Junie Bot Runbook
 
+## What do I actually need?
+
+Essentials to run the bot (keep these):
+- src/ (all projects in the solution)
+- TopstepX.Bot.sln
+- appsettings.json (and your .env.local alongside the repo root)
+- start-clean.ps1 / start-clean.cmd (or launch-bot.ps1 / .cmd)
+- state/ (runtime lease/state files will be created here)
+
+Optional/helpers (nice to have, not required to trade):
+- RUNBOOK.md (this file), docs/
+- scripts/* (push helpers, git utilities), ensure-main.ps1, auto-pull.ps1, push-now.ps1
+- examples/* (demo runners)
+- SCAN_REPORT.txt and SCAN_STUBS.txt (generated repo scan; safe to ignore)
+- TopstepAI.system.md (AI assistant meta notes)
+- ConnectivityProbe (dev tool) 
+- src/SimulationAgent (standalone simulation scaffolding; not part of the solution by default)
+
+Safe to clean when space-constrained (recreated by builds):
+- any **/bin and **/obj directories
+- SCAN_REPORT.txt and SCAN_STUBS.txt (generated)
+
+Automated cleanup
+- Safe default:   powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1
+- Aggressive:     powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1 -Aggressive
+  - Aggressive also removes examples/, ConnectivityProbe, TopstepAI.system.md, and src/SimulationAgent (not required to run the bot).
+
+The solution builds and runs without the optional items above. If you only want to trade, you don’t need to keep the optional docs/tools or the scan artifacts.
+
 ## Env
 
 TOPSTEPX_JWT, TOPSTEPX_ACCOUNT_ID, TOPSTEPX_SYMBOLS, LIVE_ORDERS, KILL_SWITCH, PANIC_FLATTEN, BOT_ALERT_WEBHOOK
