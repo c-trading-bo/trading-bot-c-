@@ -306,6 +306,18 @@ namespace BotCore.Strategy
             return (vwap, wvar, vol);
         }
 
+        // Smart ON/RTH anchor: if before 09:30 local, anchor to 20:00 (prev/today) else 09:30 today
+        private static readonly TimeSpan NightStart = new(20, 0, 0);
+        private static readonly TimeSpan NightEnd   = new(2, 0, 0);
+        private static readonly TimeSpan RthOpen    = new(9, 30, 0);
+        private static DateTime SmartAnchor(DateTime nowLocal)
+        {
+            var rthStart = nowLocal.Date + RthOpen;
+            var onStartDate = (nowLocal.TimeOfDay >= NightStart ? nowLocal.Date : nowLocal.Date.AddDays(-1));
+            var onStart = onStartDate + NightStart;
+            return nowLocal < rthStart ? onStart : rthStart;
+        }
+
         private static (decimal high, decimal low) InitialBalance(IList<Bar> bars, DateTime startLocal, DateTime endLocal)
         {
             decimal hi = 0m, lo = 0m; bool init = false;
@@ -355,48 +367,50 @@ namespace BotCore.Strategy
             if (bars is null || bars.Count < 60) return lst;
 
             // Compute session VWAP/σ anchored to 09:30 local (same as ET for Santo Domingo)
-            var localDate = DateTime.Now.Date; // wall-time
-            var rthOpen = new TimeSpan(9, 30, 0);
-            var anchor = AnchorToday(localDate, rthOpen);
+            var nowLocal = DateTime.Now; var localDate = nowLocal.Date; // wall-time
+            var anchor = SmartAnchor(nowLocal);
             var (vwap, wvar, wvol) = SessionVwapAndVar(bars, anchor);
             if (wvol <= 0 || vwap <= 0) return lst;
             var sigma = (decimal)Math.Sqrt((double)Math.Max(1e-12m, wvar));
 
-            var atr = (env.atr.HasValue && env.atr.Value > 0m) ? env.atr.Value : AtrNoWarmup(bars, 14);
+            var atr = (env.atr.HasValue && env.atr.Value > 0m) ? env.atr.Value : AtrNoWarmup(bars, S2RuntimeConfig.AtrLen);
             if (atr <= 0) return lst;
             var volz = VolZ(bars, 50);
-            if (!(volz >= -0.3m && volz <= 2.2m)) return lst; // regime band
+            if (!(volz >= S2RuntimeConfig.VolZMin && volz <= S2RuntimeConfig.VolZMax)) return lst; // regime band
 
             var px = bars[^1].Close;
             var d = px - vwap;
             var z = sigma > 0 ? d / sigma : 0m;
             var a = atr > 0 ? d / atr : 0m;
+            try { S2Quantiles.Observe(symbol, nowLocal, Math.Abs(z)); } catch { }
 
             // Instrument-specific σ triggers
             bool isNq = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase);
-            decimal esSigma = 2.0m, nqSigma = 2.4m;
+            decimal esSigma = S2RuntimeConfig.EsSigma, nqSigma = S2RuntimeConfig.NqSigma;
             decimal needSigma = isNq ? nqSigma : esSigma;
-            decimal baseSigma = Math.Max(needSigma, 2.0m);
-            decimal baseAtr = 1.0m;
+            decimal baseSigma = Math.Max(needSigma, S2RuntimeConfig.SigmaEnter);
+            decimal baseAtr = S2RuntimeConfig.AtrEnter;
 
             // Trend day detection proxy: EMA20 slope over last 5 bars + VWAP streak
             var ema20 = EmaNoWarmup(bars, 20).ToArray();
             decimal slope = ema20.Length > 5 ? (ema20[^1] - ema20[^6]) / 5m : 0m;
-            var strongUp = slope > 0.18m * 0.01m && AboveVWAPCount(bars, vwap, 12) >= 9; // scaled proxy
-            var strongDn = slope < -0.18m * 0.01m && BelowVWAPCount(bars, vwap, 12) >= 9;
-            if (strongUp && z < 0) needSigma = Math.Max(needSigma, 2.8m);
-            if (strongDn && z > 0) needSigma = Math.Max(needSigma, 2.8m);
+            var tickSz = InstrumentMeta.Tick(symbol);
+            var slopeTicks = tickSz > 0 ? slope / tickSz : slope; // ticks per bar
+            var strongUp = slopeTicks > S2RuntimeConfig.MinSlopeTf2 && AboveVWAPCount(bars, vwap, 12) >= 9; // 75% bars above
+            var strongDn = slopeTicks < -S2RuntimeConfig.MinSlopeTf2 && BelowVWAPCount(bars, vwap, 12) >= 9;
+            if (strongUp && z < 0) needSigma = Math.Max(needSigma, S2RuntimeConfig.SigmaForceTrend);
+            if (strongDn && z > 0) needSigma = Math.Max(needSigma, S2RuntimeConfig.SigmaForceTrend);
 
             // IB continuation filter after 10:30: avoid small fades unless extreme
             var now = DateTime.Now; var nowMin = now.Hour * 60 + now.Minute;
-            if (nowMin >= (10 * 60 + 30))
+            if (nowMin >= S2RuntimeConfig.IbEndMinute)
             {
                 var (ibh, ibl) = InitialBalance(bars, AnchorToday(localDate, new TimeSpan(9, 30, 0)), AnchorToday(localDate, new TimeSpan(10, 30, 0)));
                 if (ibh > 0 && ibl > 0)
                 {
                     bool brokeUp = bars[^1].Close > ibh && bars.Skip(Math.Max(0, bars.Count - 6)).Min(b => b.Low) > ibh - 0.25m * atr;
                     bool brokeDn = bars[^1].Close < ibl && bars.Skip(Math.Max(0, bars.Count - 6)).Max(b => b.High) < ibl + 0.25m * atr;
-                    if ((brokeUp && z < 0 && Math.Abs(z) < 2.8m) || (brokeDn && z > 0 && Math.Abs(z) < 2.8m))
+                    if ((brokeUp && z < 0 && Math.Abs(z) < S2RuntimeConfig.SigmaForceTrend) || (brokeDn && z > 0 && Math.Abs(z) < S2RuntimeConfig.SigmaForceTrend))
                         return lst;
                 }
             }
@@ -407,7 +421,8 @@ namespace BotCore.Strategy
             bool rejectUp    = bars.Count >= 2 && bars[^2].High >= up2 && bars[^1].Close < up2;
 
             // Dynamic sigma threshold + microstructure safety
-            decimal dynSigma = S2Upg.DynamicSigmaThreshold(baseSigma, volz, slope, DateTime.Now, symbol);
+            var qAdj = S2Quantiles.GetSigmaFor(symbol, nowLocal, needSigma);
+            decimal dynSigma = S2Upg.DynamicSigmaThreshold(Math.Max(needSigma, qAdj), volz, slopeTicks, nowLocal, symbol);
             var imb = S2Upg.UpDownImbalance(bars, 10);
             var tickSize = InstrumentMeta.Tick(symbol);
             bool pivotOKLong  = S2Upg.PivotDistanceOK(bars, px, atr, tickSize, true);
@@ -420,7 +435,7 @@ namespace BotCore.Strategy
                 {
                     var entry = px;
                     var dn3 = vwap - 3m * sigma;
-                    var swing = bars.Skip(Math.Max(0, bars.Count - 3)).Min(b => b.Low);
+                    var swing = bars.Skip(Math.Max(0, bars.Count - S2RuntimeConfig.ConfirmLookback)).Min(b => b.Low);
                     var stop = Math.Min(swing, dn3);
                     if (stop >= entry) stop = entry - 0.25m * atr;
                     var r = entry - stop;
@@ -436,7 +451,7 @@ namespace BotCore.Strategy
                 {
                     var entry = px;
                     var up3 = vwap + 3m * sigma;
-                    var swing = bars.Skip(Math.Max(0, bars.Count - 3)).Max(b => b.High);
+                    var swing = bars.Skip(Math.Max(0, bars.Count - S2RuntimeConfig.ConfirmLookback)).Max(b => b.High);
                     var stop = Math.Max(swing, up3);
                     if (stop <= entry) stop = entry + 0.25m * atr;
                     var r = stop - entry;
