@@ -1,0 +1,57 @@
+{
+  "Strategies": [
+    {
+      "id": "S3", "enabled": true, "mode": "live",
+      "windows": [
+        {"dow":"Mon-Fri","start":"09:40","end":"10:30"},
+        {"dow":"Mon-Fri","start":"02:55","end":"04:10"}
+      ],
+      "attempt_cap": { "RTH": 2, "overnight": 1 },
+      "risk_scale_rules": [{"when":"spread_ticks>2 || volz>2.0","scale":0.75}],
+      "tf1": "M1", "tf2": "M5",
+      "bb_len": 20, "bb_mult": 2.0,
+      "kc_ema": 20, "kc_atr_len": 20, "kc_mult": 1.5,
+      "atr_len": 14,
+      "volz": {"min": -0.5, "max": 2.5},
+      "min_slope_tf2": 0.15,
+      "width_rank_enter": 0.15,
+      "hourly_rank_adapt": true,
+      "min_squeeze_bars": 6,
+      "pre_squeeze_lookback": 60,
+      "nr_cluster_ratio": 0.60,
+      "nr_cluster_min_bars": 5,
+      "confirm_break_mult": 0.15,
+      "contra_buffer_mult": 1.5,
+      "overnight_buffer_add": 0.05,
+      "entry_mode": "retest",
+      "retest_bars": 5,
+      "retest_backoff_ticks": 1,
+      "impulse_score_min": 1.0,
+      "box_method": "dynamic",
+      "targets_mode": "expansion",
+      "expansion_quantile": 0.60,
+      "giveback_after_t1_R": 0.20,
+      "misfire_disarm_bars": 10,
+      "misfire_R": 0.30,
+      "early_invalidate_bars": 6,
+      "one_per_segment": true,
+      "segment_cooldown_minutes": 15,
+      "fbt_enabled": true,
+      "fbt_window_bars": 8,
+      "ib_guard": {"enabled": true, "end_minute": 630, "avoid_break_into": "opposite"},
+      "validity_bars": 3,
+      "cooldown_bars": 5,
+      "max_bars_in_trade": 45,
+      "stop_atr_mult": 1.1,
+      "trail_atr_mult": 1.0,
+      "target_r1": 1.2,
+      "target_r2": 2.2,
+      "min_volume": 3000,
+      "max_spread_ticks": 2,
+      "news_block": {"minutes_before": 2, "minutes_after": 3, "on_minutes": [0,30]},
+      "instrument_overrides": {
+        "NQ": {"max_spread_ticks": 3, "width_rank_enter": 0.12, "nr_cluster_min_bars": 6}
+      }
+    }
+  ]
+}
