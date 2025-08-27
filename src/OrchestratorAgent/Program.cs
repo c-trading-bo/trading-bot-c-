@@ -286,20 +286,12 @@ namespace OrchestratorAgent
                							enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
                					}
                					catch { }
-                    market1.OnQuote += (_, json) => {
-                        var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow;
-                        status.Set("last.quote", DateTimeOffset.UtcNow);
-                        status.Set("last.quote.updated", ts);
+                    market1.OnQuote += (cid, last, bid, ask) => {
+                        var nowTs = DateTimeOffset.UtcNow;
+                        status.Set("last.quote", nowTs);
+                        status.Set("last.quote.updated", nowTs);
                         try
                         {
-                            decimal bid = 0m, ask = 0m;
-                            if (json.ValueKind == JsonValueKind.Object)
-                            {
-                                if (json.TryGetProperty("bestBid", out var bb) && bb.TryGetDecimal(out var b1)) bid = b1;
-                                if (json.TryGetProperty("bestAsk", out var ba) && ba.TryGetDecimal(out var a1)) ask = a1;
-                                if (bid == 0m && json.TryGetProperty("bid", out var b) && b.TryGetDecimal(out var b2)) bid = b2;
-                                if (ask == 0m && json.TryGetProperty("ask", out var a) && a.TryGetDecimal(out var a2)) ask = a2;
-                            }
                             if (bid > 0m && ask > 0m)
                             {
                                 var tick = BotCore.Models.InstrumentMeta.Tick("ES");
@@ -310,20 +302,12 @@ namespace OrchestratorAgent
                         }
                         catch { }
                     };
-                    if (enableNq && market2 != null) market2.OnQuote += (_, json) => {
-                        var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow;
-                        status.Set("last.quote", DateTimeOffset.UtcNow);
-                        status.Set("last.quote.updated", ts);
+                    if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) => {
+                        var nowTs = DateTimeOffset.UtcNow;
+                        status.Set("last.quote", nowTs);
+                        status.Set("last.quote.updated", nowTs);
                         try
                         {
-                            decimal bid = 0m, ask = 0m;
-                            if (json.ValueKind == JsonValueKind.Object)
-                            {
-                                if (json.TryGetProperty("bestBid", out var bb) && bb.TryGetDecimal(out var b1)) bid = b1;
-                                if (json.TryGetProperty("bestAsk", out var ba) && ba.TryGetDecimal(out var a1)) ask = a1;
-                                if (bid == 0m && json.TryGetProperty("bid", out var b) && b.TryGetDecimal(out var b2)) bid = b2;
-                                if (ask == 0m && json.TryGetProperty("ask", out var a) && a.TryGetDecimal(out var a2)) ask = a2;
-                            }
                             if (bid > 0m && ask > 0m)
                             {
                                 var tick = BotCore.Models.InstrumentMeta.Tick("NQ");
@@ -355,8 +339,8 @@ namespace OrchestratorAgent
                     userHub.OnPosition += posTracker.OnPosition;
                     userHub.OnTrade += posTracker.OnTrade;
                     // Feed market trades for last price updates
-                    market1.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
-                    if (enableNq && market2 != null) market2.OnTrade += (_, json) => posTracker.OnMarketTrade(json);
+                    market1.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
+                    if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
                     // Seed from REST
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
                     // Publish snapshot periodically to status
@@ -405,12 +389,12 @@ namespace OrchestratorAgent
                     try
                     {
                         var esId = contractIds[esRoot];
-                        market1.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set($"last.quote.{esId}", DateTimeOffset.UtcNow); status.Set($"last.quote.updated.{esId}", ts); };
+                        market1.OnQuote += (_, last, bid, ask) => { var nowTs = DateTimeOffset.UtcNow; status.Set($"last.quote.{esId}", nowTs); status.Set($"last.quote.updated.{esId}", nowTs); };
                         market1.OnTrade += (_, __) => status.Set($"last.trade.{esId}", DateTimeOffset.UtcNow);
                         if (enableNq && market2 != null)
                         {
                             var nqId = contractIds[nqRoot];
-                            market2.OnQuote += (_, json) => { var ts = TryGetQuoteLastUpdated(json) ?? DateTimeOffset.UtcNow; status.Set($"last.quote.{nqId}", DateTimeOffset.UtcNow); status.Set($"last.quote.updated.{nqId}", ts); };
+                            market2.OnQuote += (_, last, bid, ask) => { var nowTs = DateTimeOffset.UtcNow; status.Set($"last.quote.{nqId}", nowTs); status.Set($"last.quote.updated.{nqId}", nowTs); };
                             market2.OnTrade += (_, __) => status.Set($"last.trade.{nqId}", DateTimeOffset.UtcNow);
                         }
                         // bars will be recorded in OnBar handlers below
@@ -489,6 +473,15 @@ namespace OrchestratorAgent
                     dataLog.LogInformation("Bars seeded: ES={EsCnt}{NqPart}",
                         barPyramid.M1.GetHistory(esIdForSeed).Count,
                         nqIdForSeed != null ? $", NQ={barPyramid.M1.GetHistory(nqIdForSeed).Count}" : string.Empty);
+
+                    status.Set("bars.ready", true);
+                    try
+                    {
+                        dataLog.LogInformation("Bars ready: ES={esCnt} NQ={nqCnt}",
+                            barPyramid.M1.GetHistory(esIdForSeed).Count,
+                            nqIdForSeed != null ? barPyramid.M1.GetHistory(nqIdForSeed).Count : 0);
+                    }
+                    catch { }
 
                     // Strategy prerequisites
                     var risk = new BotCore.Risk.RiskEngine();
@@ -1045,9 +1038,23 @@ namespace OrchestratorAgent
                         return price > 0m;
                     }
 
-                    market1.OnTrade += (cid, json) => { if (TryExtractTrade(json, out var ts, out var px, out var q)) barPyramid.M1.OnTrade(cid, ts, px, q); };
+                    market1.OnTrade += (cid, tick) => { barPyramid.M1.OnTrade(cid, tick.TimestampUtc, tick.Price, tick.Volume); };
                     if (enableNq && market2 != null)
-                        market2.OnTrade += (cid, json) => { if (TryExtractTrade(json, out var ts, out var px, out var q)) barPyramid.M1.OnTrade(cid, ts, px, q); };
+                        market2.OnTrade += (cid, tick) => { barPyramid.M1.OnTrade(cid, tick.TimestampUtc, tick.Price, tick.Volume); };
+
+                    // Optional kicker: close bars on silent minutes using last quotes
+                    var lastPrices = new System.Collections.Concurrent.ConcurrentDictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                    market1.OnQuote += (cid, last, bid, ask) => { var px = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m); if (px > 0m) lastPrices[cid] = px; };
+                    if (enableNq && market2 != null)
+                        market2.OnQuote += (cid, last, bid, ask) => { var px = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m); if (px > 0m) lastPrices[cid] = px; };
+                    var barTick = new System.Threading.Timer(_ =>
+                    {
+                        var now = DateTime.UtcNow;
+                        foreach (var kv in lastPrices)
+                        {
+                            try { barPyramid.M1.OnTrade(kv.Key, now, kv.Value, 0); } catch { }
+                        }
+                    }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
                     // Optional: safe order place/cancel smoke test
                     var smokeRaw = Environment.GetEnvironmentVariable("TOPSTEPX_ORDER_SMOKE_TEST");

@@ -155,10 +155,10 @@ namespace SimulationAgent
         {
             // Simulate MarketHubClient quote subscription logic
             var log = new DummyLogger();
-            var client = new BotCore.MarketHubClient(log, () => "dummy-jwt-token");
-            client.OnQuote += (cid, json) =>
+            var client = new BotCore.MarketHubClient(log, () => Task.FromResult<string?>("dummy-jwt-token"));
+            client.OnQuote += (cid, last, bid, ask) =>
             {
-                Console.WriteLine($"[QuoteSubscription] Quote received for contract {cid}: {json}");
+                Console.WriteLine($"[QuoteSubscription] Quote received for contract {cid}: last={last} bid={bid} ask={ask}");
             };
             // Simulate starting client and subscribing (no real SignalR connection)
             var useSimulated = Environment.GetEnvironmentVariable("UseSimulatedMarketHub") == "true";

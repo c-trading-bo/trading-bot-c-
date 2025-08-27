@@ -38,8 +38,9 @@ namespace BotCore
 
 			private static bool Concise() => (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
 
-			public event Action<string, JsonElement>? OnQuote;
-			public event Action<string, JsonElement>? OnTrade;
+			public record TradeTick(DateTime TimestampUtc, decimal Price, long Volume, string RawType);
+			public event Action<string, TradeTick>? OnTrade;   // contractId, tick
+			public event Action<string, decimal, decimal, decimal>? OnQuote; // contractId, last, bid, ask
 			public event Action<string, JsonElement>? OnDepth;
 
  		public TimeSpan LastQuoteSeenAge(string contractId)
@@ -191,8 +192,21 @@ namespace BotCore
 				return empty.RootElement.Clone();
 			}
 
+			void EmitTrade(string cid, JsonElement t)
+			{
+				try
+				{
+					var ts  = t.GetProperty("timestamp").GetDateTime().ToUniversalTime();
+					var px  = t.GetProperty("price").GetDecimal();
+					var vol = t.TryGetProperty("volume", out var vv) ? (vv.TryGetInt64(out var v) ? v : 0L) : 0L;
+					var typ = t.TryGetProperty("type", out var ty) ? ty.ToString() : string.Empty;
+					OnTrade?.Invoke(cid, new TradeTick(ts, px, vol, typ));
+				}
+				catch { }
+			}
+
 			// Known TopstepX gateway-style methods
-			hub.On<string, JsonElement>("GatewayQuote", (cid, json) =>
+   hub.On<string, JsonElement>("GatewayQuote", (cid, q) =>
 			{
 				if (cid == _contractId)
 				{
@@ -200,27 +214,37 @@ namespace BotCore
 					if (!_firstQuoteLogged)
 					{
 						_firstQuoteLogged = true;
-						if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
+						if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, q);
 					}
-					OnQuote?.Invoke(cid, json);
+					var last = q.TryGetProperty("lastPrice", out var lp) ? (lp.TryGetDecimal(out var d) ? d : 0m) : 0m;
+					var bid  = q.TryGetProperty("bestBid", out var bb) ? (bb.TryGetDecimal(out var d2) ? d2 : 0m) : 0m;
+					var ask  = q.TryGetProperty("bestAsk", out var ba) ? (ba.TryGetDecimal(out var d3) ? d3 : 0m) : 0m;
+					OnQuote?.Invoke(cid, last, bid, ask);
 				}
 			});
-			hub.On<string, JsonElement>("GatewayTrade", (cid, json) =>
+   hub.On<string, JsonElement>("GatewayTrade", (cid, payload) =>
 			{
 				if (cid == _contractId)
 				{
 					if (!_firstTradeLogged)
 					{
 						_firstTradeLogged = true;
-						if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json);
+						if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, payload);
 					}
-					OnTrade?.Invoke(cid, json);
+					if (payload.ValueKind == JsonValueKind.Array)
+					{
+						foreach (var t in payload.EnumerateArray()) EmitTrade(cid, t);
+					}
+					else
+					{
+						EmitTrade(cid, payload);
+					}
 				}
 			});
   	hub.On<string, JsonElement>("GatewayDepth", (cid, json) => { if (cid == _contractId) { _lastBarSeen[cid] = DateTime.UtcNow; OnDepth?.Invoke(cid, json); } });
 
 			// Common alt method names seen on some hubs: lowercase simple names and bars
-			hub.On<string, object>("quote", (cid, payload) =>
+   hub.On<string, object>("quote", (cid, payload) =>
 			{
 				if (cid == _contractId)
 				{
@@ -231,10 +255,13 @@ namespace BotCore
 						_firstQuoteLogged = true;
 						if (!Concise()) _log.LogInformation("[MD] First quote for {Cid}: {Payload}", cid, json);
 					}
-					OnQuote?.Invoke(cid, json);
+					var last = json.TryGetProperty("lastPrice", out var lp) ? (lp.TryGetDecimal(out var d) ? d : 0m) : 0m;
+					var bid  = json.TryGetProperty("bestBid", out var bb) ? (bb.TryGetDecimal(out var d2) ? d2 : 0m) : 0m;
+					var ask  = json.TryGetProperty("bestAsk", out var ba) ? (ba.TryGetDecimal(out var d3) ? d3 : 0m) : 0m;
+					OnQuote?.Invoke(cid, last, bid, ask);
 				}
 			});
-			hub.On<string, object>("trade", (cid, payload) => { if (cid == _contractId) { var json = AsJsonElement(payload); if (!_firstTradeLogged) { _firstTradeLogged = true; if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json); } OnTrade?.Invoke(cid, json); } });
+   hub.On<string, object>("trade", (cid, payload) => { if (cid == _contractId) { var json = AsJsonElement(payload); if (!_firstTradeLogged) { _firstTradeLogged = true; if (!Concise()) _log.LogInformation("[MD] First trade for {Cid}: {Payload}", cid, json); } EmitTrade(cid, json); } });
 			hub.On<string, object>("depth", (cid, payload) => { if (cid == _contractId) { var json = AsJsonElement(payload); OnDepth?.Invoke(cid, json); } });
 			hub.On<string, object>("bar", (cid, payload) => { if (cid == _contractId) { _lastBarSeen[cid] = DateTime.UtcNow; } });
 
