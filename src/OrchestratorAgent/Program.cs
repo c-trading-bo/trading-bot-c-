@@ -28,6 +28,7 @@ namespace OrchestratorAgent
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object _entriesLock = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStrat = new(StringComparer.OrdinalIgnoreCase);
 
         // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -1664,6 +1665,85 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
+                    // ET strategy windows + per-strategy attempt caps
+                    try
+                    {
+                        var etNow = NowET().TimeOfDay;
+                        bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
+                        bool isNight = !isBlackout && (etNow >= TS("18:05") || etNow < TS("09:15"));
+                        var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        if (isNight)
+                        {
+                            if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
+                            else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
+                        }
+                        else
+                        {
+                            if (etNow < TS("09:28")) { /* none allowed before 09:28 */ }
+                            else if (InRange(etNow, "09:28", "10:00")) allow.UnionWith(new[] { "S6", "S3" });
+                            else if (etNow >= TS("10:20") && etNow < TS("13:30")) allow.UnionWith(new[] { "S2" });
+                            else if (etNow >= TS("13:30")) allow.UnionWith(new[] { "S11" });
+                        }
+
+                        if (allow.Count > 0)
+                        {
+                            signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
+                            if (signals.Count == 0)
+                            {
+                                log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            log.LogInformation("[SKIP reason=time_window] {Sym} no entries in this ET window", symbol);
+                            return;
+                        }
+
+                        int CapFor(string id, bool night) => night ? ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase)) ? 1 : 0)
+                                                                     : ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S6", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S11", StringComparison.OrdinalIgnoreCase)) ? 2 : 0);
+                        signals = signals.Where(s =>
+                        {
+                            var cap = CapFor(s.StrategyId, isNight);
+                            if (cap <= 0) return false;
+                            try
+                            {
+                                var todayEt = NowET().Date;
+                                var key = s.StrategyId.ToUpperInvariant();
+                                var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
+                                if (cur.DayEt != todayEt) cur = (todayEt, 0);
+                                return cur.Count < cap;
+                            }
+                            catch { return true; }
+                        }).ToList();
+                        if (signals.Count == 0)
+                        {
+                            log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
+                            return;
+                        }
+                    }
+                    catch { }
+
+                    // Night microstructure depth guard before selection/routing
+                    try
+                    {
+                        var etNow2 = NowET().TimeOfDay;
+                        bool isBlackout2 = InRange(etNow2, "16:58", "18:05") || InRange(etNow2, "09:15", "09:23:30");
+                        bool isNight2 = !isBlackout2 && (etNow2 >= TS("18:05") || etNow2 < TS("09:15"));
+                        if (isNight2 && (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) || symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            int minDepth = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 300 : 80;
+                            int curDepth = 0;
+                            try { curDepth = Math.Max(0, status.Get<int>($"depth.top.{symbol}")); } catch { }
+                            if (curDepth < minDepth)
+                            {
+                                log.LogInformation("[SKIP reason=depth_min] {Sym} top-of-book={Depth} min={Min}", symbol, curDepth, minDepth);
+                                return;
+                            }
+                        }
+                    }
+                    catch { }
+
                     // Same-bar arbiter: choose one side (best ExpR) and cap by exposure
                     var bestLong = signals.Where(s => string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
                     var bestShort = signals.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
@@ -1812,13 +1892,19 @@ namespace OrchestratorAgent
                         var routed = await router.RouteAsync(toRoute, ct);
                         if (routed)
                         {
-                            // Record intent and entries/hour stamp
+                            // Record intent, entries/hour stamp, and increment attempt counter (ET day)
                             try
                             {
                                 var dir = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
                                 _lastEntryIntent[symbol] = (dir, DateTime.UtcNow);
                                 var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
                                 lock (_entriesLock) list.Add(DateTime.UtcNow);
+
+                                var todayEt = NowET().Date;
+                                var key = sig.StrategyId.ToUpperInvariant();
+                                var cur = _attemptsPerStrat.AddOrUpdate(key,
+                                    addValueFactory: _ => (todayEt, 1),
+                                    updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
                             }
                             catch { }
                         }
