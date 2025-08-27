@@ -55,8 +55,9 @@
   <div class="topbar sp mono">Tip: open another tab at <span class="u">/dashboard</span> for NQ (after you point the query to symbol=NQ).</div>
 </div>
 
-<script type="module">
-  import { createChart } from "https://unpkg.com/lightweight-charts/dist/lightweight-charts.esm.production.js";
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+  const { createChart } = LightweightCharts;
 
   const symbol = new URLSearchParams(location.search).get("symbol") || "ES";
   const res = "1";
@@ -85,8 +86,8 @@
   function connectStream() {
     const es = new EventSource(`/stream/realtime?symbol=${symbol}&res=${res}`);
 
-    es.addEventListener("hello", e => {
-      // console.log("hello", e.data);
+    es.addEventListener("hello", () => {
+      // console.log("hello");
     });
 
     es.onmessage = (e) => {
@@ -134,7 +135,7 @@
     const max = 200; while (box.childElementCount > max) box.removeChild(box.lastChild);
   }
 
-  await loadHistory();
+  loadHistory();
   connectStream();
 </script>
 </body>
