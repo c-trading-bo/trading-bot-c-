@@ -309,6 +309,24 @@ namespace OrchestratorAgent
                							enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
                					}
                					catch { }
+                    // ===== Positions wiring =====
+                    var posTracker = new PositionTracker(log, accountId);
+                    // Map symbols to contract IDs resolved from env/REST (needed in quote handlers)
+                    var contractIds = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        [esRoot] = esContract!
+                    };
+                    if (enableNq && !string.IsNullOrWhiteSpace(nqContract)) contractIds[nqRoot] = nqContract!;
+
+                    // Subscribe to user hub events
+                    userHub.OnPosition += posTracker.OnPosition;
+                    userHub.OnTrade += posTracker.OnTrade;
+                    // Feed market trades for last price updates
+                    market1.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
+                    if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
+                    // Seed from REST
+                    await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
+
                     market1.OnQuote += (cid, last, bid, ask) => {
                         var nowTs = DateTimeOffset.UtcNow;
                         status.Set("last.quote", nowTs);
@@ -390,16 +408,6 @@ namespace OrchestratorAgent
                         }
                     }, cts.Token);
 
-                    // ===== Positions wiring =====
-                    var posTracker = new PositionTracker(log, accountId);
-                    // Subscribe to user hub events
-                    userHub.OnPosition += posTracker.OnPosition;
-                    userHub.OnTrade += posTracker.OnTrade;
-                    // Feed market trades for last price updates
-                    market1.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
-                    if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
-                    // Seed from REST
-                    await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
                     // Publish snapshot periodically to status
                     _ = Task.Run(async () =>
                     {
@@ -442,12 +450,6 @@ namespace OrchestratorAgent
                     }, cts.Token);
 
                     // ===== Strategy wiring (per-bar) =====
-                    // Map symbols to contract IDs resolved from env/REST
-                    var contractIds = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        [esRoot] = esContract!
-                    };
-                    if (enableNq && !string.IsNullOrWhiteSpace(nqContract)) contractIds[nqRoot] = nqContract!;
                     // Expose root->contract mapping to status for health checks
                     try
                     {
