@@ -230,7 +230,7 @@ public sealed record Bar(
     decimal o, decimal h, decimal l, decimal c,
     long v);
 
-file sealed class BarStore
+sealed class BarStore
 {
     private readonly string _res; // e.g. "1" minutes
     private readonly LinkedList<Bar> _bars = new();
