@@ -21,6 +21,8 @@ namespace BotCore.Strategy
         public static List<Candidate> generate_candidates(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var cands = new List<Candidate>();
+            // Ensure env.volz is computed from history (regime proxy)
+            try { env.volz = VolZ(bars); } catch { env.volz = env.volz ?? 0m; }
             var attemptCaps = Profile.AttemptCaps;
             var strategyMethods = new List<(string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>)> {
                 ("S1", S1), ("S2", S2), ("S3", S3), ("S4", S4), ("S5", S5), ("S6", S6), ("S7", S7), ("S8", S8), ("S9", S9), ("S10", S10), ("S11", S11), ("S12", S12), ("S13", S13), ("S14", S14)
@@ -48,7 +50,7 @@ namespace BotCore.Strategy
             }
 
             // Dispatch to the specific strategy function based on def.Name (S1..S14)
-            var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = 1.0m };
+            var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = VolZ(bars) };
             var levels = new Levels();
             var riskEngine = risk as RiskEngine ?? new RiskEngine();
 
@@ -244,14 +246,79 @@ namespace BotCore.Strategy
             return atr;
         }
 
+        // Regime proxy: z-score of recent returns (default lookback = 50 bars)
+        private static decimal VolZ(IList<Bar> bars, int lookback = 50)
+        {
+            if (bars is null || bars.Count < lookback + 1) return 0m;
+            var rets = new List<decimal>(lookback);
+            for (int i = bars.Count - lookback; i < bars.Count; i++)
+            {
+                var p0 = bars[i - 1].Close; var p1 = bars[i].Close;
+                if (p0 == 0) continue;
+                rets.Add((p1 - p0) / p0);
+            }
+            if (rets.Count == 0) return 0m;
+            var mean = rets.Average();
+            var varv = rets.Select(r => (r - mean) * (r - mean)).Average();
+            var std = (decimal)Math.Sqrt((double)Math.Max(1e-12m, varv));
+            var last = rets[^1];
+            return std == 0m ? 0m : (last - mean) / std;
+        }
+
+        // Session VWAP computed from today's UTC midnight (approximation)
+        private static (decimal vwap, decimal dist) SessionVWAP(IList<Bar> bars)
+        {
+            if (bars is null || bars.Count == 0) return (0m, 0m);
+            var startUtc = DateTime.UtcNow.Date;
+            decimal pv = 0m; decimal vol = 0m;
+            foreach (var b in bars)
+            {
+                try
+                {
+                    var ts = DateTimeOffset.FromUnixTimeMilliseconds(b.Ts).UtcDateTime;
+                    if (ts < startUtc) continue;
+                }
+                catch { }
+                var tp = (b.High + b.Low + b.Close) / 3m;
+                pv += tp * b.Volume;
+                vol += b.Volume;
+            }
+            var vwap = vol > 0 ? pv / Math.Max(1m, vol) : bars[^1].Close;
+            var dist = bars[^1].Close - vwap;
+            return (vwap, dist);
+        }
+
+        // Keltner Channel helper: EMA mid and ATR band
+        private static (decimal mid, decimal up, decimal dn) Keltner(IList<Bar> bars, int emaLen = 20, int atrLen = 20, decimal mult = 1.5m)
+        {
+            var e = EmaNoWarmup(bars, emaLen);
+            var a = AtrNoWarmup(bars, atrLen);
+            var mid = e[^1];
+            return (mid, mid + mult * a, mid - mult * a);
+        }
+
         public static List<Candidate> S2(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.4m && env.volz.HasValue && env.volz.Value > 0.3m)
+            if (bars is null || bars.Count < 50) return lst;
+            var atr = (env.atr.HasValue && env.atr.Value > 0m) ? env.atr.Value : AtrNoWarmup(bars, 14);
+            if (atr <= 0) return lst;
+            var (vwap, dist) = SessionVWAP(bars);
+            var px = bars[^1].Close;
+            if (dist >= 1.5m * atr)
             {
-                var entry = bars[^1].Close;
-                var stop = entry - env.atr.Value * 1.0m;
-                var t1 = entry + env.atr.Value * 2.0m;
+                // stretched above VWAP → fade short back to VWAP
+                var entry = px;
+                var stop = entry + 0.75m * atr;
+                var t1 = vwap;
+                add_cand(lst, "S2", symbol, "SELL", entry, stop, t1, env, risk);
+            }
+            else if (dist <= -1.5m * atr)
+            {
+                // stretched below VWAP → fade long back to VWAP
+                var entry = px;
+                var stop = entry - 0.75m * atr;
+                var t1 = vwap;
                 add_cand(lst, "S2", symbol, "BUY", entry, stop, t1, env, risk);
             }
             return lst;
@@ -325,11 +392,16 @@ namespace BotCore.Strategy
         public static List<Candidate> S8(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.8m)
+            if (bars is null || bars.Count < 30) return lst;
+            var (mid, up, dn) = Keltner(bars, 20, 20, 1.5m);
+            var px = bars[^1].Close;
+            var ema20 = EmaNoWarmup(bars, 20);
+            bool midRising = ema20[^1] > ema20[^2];
+            if (midRising && px > mid)
             {
-                var entry = bars[^1].Close;
-                var stop = entry - env.atr.Value * 2.5m;
-                var t1 = entry + env.atr.Value * 5.0m;
+                var entry = px;
+                var stop = Math.Min(entry, dn);
+                var t1 = up;
                 add_cand(lst, "S8", symbol, "BUY", entry, stop, t1, env, risk);
             }
             return lst;

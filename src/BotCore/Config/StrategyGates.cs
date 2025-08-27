@@ -1,14 +1,22 @@
+using System.Collections.Concurrent;
+
 namespace BotCore.Config;
 
 public static class StrategyGates
 {
     // per-symbol throttle store (UTC seconds)
-    private static readonly Dictionary<string, DateTime> _lastEntryUtc = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, DateTime> _lastEntryUtc = new(StringComparer.OrdinalIgnoreCase);
 
-    // Always returns true in AlwaysOn mode; otherwise fall back to legacy blocking
+    // In AlwaysOn mode, enforce hard spread guard; otherwise use RS gate
     public static bool PassesGlobal(TradingProfileConfig cfg, BotCore.Models.MarketSnapshot snap)
     {
-        if (cfg.AlwaysOn.Enabled) return true;
+        if (cfg.AlwaysOn.Enabled)
+        {
+            var gf = cfg.GlobalFilters;
+            var hardMax = Math.Max(gf.SpreadTicksMaxBo, gf.SpreadTicksMax);
+            if (snap.SpreadTicks > hardMax) return false; // must-have microstructure guard
+            return true; // soft checks handled by ScoreWeight/SizeScale
+        }
         // Legacy: rs + basic global checks still apply when not AlwaysOn
         return PassesRSGate(cfg, snap);
     }
@@ -36,6 +44,17 @@ public static class StrategyGates
         decimal scale = 1.0m;
         if (cfg.News.BoostOnMajorNews && (snap.IsMajorNewsNow || snap.IsHoliday))
             scale *= cfg.News.SizeBoostOnNews;
+
+        var gf = cfg.GlobalFilters;
+        // Soft size penalties: wideness of spread and weak volume
+        if (snap.SpreadTicks > gf.SpreadTicksMaxBo)
+            scale *= 0.70m; // very wide → small size
+        else if (snap.SpreadTicks > gf.SpreadTicksMax)
+            scale *= 0.85m; // slightly wide → trim
+
+        if (snap.VolumePct5m > 0 && snap.VolumePct5m < gf.VolumePctMinMr)
+            scale *= 0.85m; // thin tape → trim size a bit
+
         return Math.Clamp(scale, cfg.AlwaysOn.SizeFloor, cfg.AlwaysOn.SizeCap);
     }
 
@@ -59,6 +78,32 @@ public static class StrategyGates
             else if (family.Equals("meanrev", StringComparison.OrdinalIgnoreCase))
                 w *= cfg.News.MeanRevScoreBias;   // typically <= 1 (soft bias)
         }
+
+        // Soft penalties from global filters (AlwaysOn-friendly)
+        var gf = cfg.GlobalFilters;
+        bool breakout = family.Equals("breakout", StringComparison.OrdinalIgnoreCase) || family.Equals("trend", StringComparison.OrdinalIgnoreCase);
+
+        // Spread
+        if (snap.SpreadTicks > gf.SpreadTicksMaxBo)
+            w *= 0.60m;
+        else if (snap.SpreadTicks > gf.SpreadTicksMax)
+            w *= 0.80m;
+
+        // Volume
+        if (breakout)
+        {
+            if (snap.VolumePct5m > 0 && snap.VolumePct5m < gf.VolumePctMinBo) w *= 0.75m;
+            if (snap.AggIAbs < gf.AggIMinBo) w *= 0.80m;
+        }
+        else
+        {
+            if (snap.VolumePct5m > 0 && snap.VolumePct5m < gf.VolumePctMinMr) w *= 0.85m;
+            if (snap.AggIAbs > gf.AggIMaxMrAbs && gf.AggIMaxMrAbs > 0) w *= 0.85m;
+        }
+
+        // Over-extended signal bar ATR
+        if (snap.SignalBarAtrMult > gf.SignalBarMaxAtrMult) w *= 0.70m;
+
         return w;
     }
 
