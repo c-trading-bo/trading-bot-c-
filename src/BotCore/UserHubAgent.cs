@@ -66,14 +66,14 @@ namespace BotCore
 				?? Environment.GetEnvironmentVariable("RTC_BASE")
 				?? "https://rtc.topstepx.com").TrimEnd('/');
 			var baseUrl = $"{rtcBase}/hubs/user";
-			// Build URL without embedding token to avoid leaking credentials in logs
-			var url = baseUrl;
+			// Build URL with access_token query param for compatibility; do not log the token
+			var url = string.IsNullOrWhiteSpace(_jwt) ? baseUrl : $"{baseUrl}?access_token={Uri.EscapeDataString(_jwt)}";
 			_log.LogInformation("[UserHub] Using URL={Url}", baseUrl);
 
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-     opt.AccessTokenProvider = () => Task.FromResult(_jwt ?? string.Empty);
+					opt.AccessTokenProvider = () => Task.FromResult<string?>(_jwt);
 					opt.Transports = HttpTransportType.WebSockets;
 					// DO NOT force SkipNegotiation unless required; default is fine
 				})

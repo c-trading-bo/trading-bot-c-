@@ -163,9 +163,10 @@ namespace BotCore
 			{
 				_log.LogDebug("[MarketHub] Using URL={Url}", url);
 			}
-			// Use AccessTokenProvider only to avoid embedding token in URL
+			// Include access_token in querystring for compatibility with RTC, but do not log it
+			var urlWithToken = string.IsNullOrWhiteSpace(jwt) ? url : $"{url}?access_token={Uri.EscapeDataString(jwt)}";
 			var hub = new HubConnectionBuilder()
-				.WithUrl(url, o =>
+				.WithUrl(urlWithToken, o =>
 				{
 					o.AccessTokenProvider = _getJwtAsync; // also provide via header for safety
 					o.SkipNegotiation = true;
