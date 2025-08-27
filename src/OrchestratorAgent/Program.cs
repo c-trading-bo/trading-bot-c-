@@ -375,7 +375,8 @@ namespace OrchestratorAgent
                                             web.UseStaticFiles();
                                             dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                                             web.MapDashboard(dashboardHub);
-                                            _ = web.RunAsync("http://localhost:5000", cts.Token);
+                                            web.Urls.Add("http://localhost:5000");
+                                            _ = web.RunAsync(cts.Token);
                                             log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
                                         }
                                         catch (Exception ex)
@@ -1355,8 +1356,8 @@ namespace OrchestratorAgent
             // Local helper runs strategies for a new bar of a symbol
             static async Task RunStrategiesFor(
                 string symbol,
-                Bar bar,
-                System.Collections.Generic.List<Bar> history,
+                BotCore.Models.Bar bar,
+                System.Collections.Generic.List<BotCore.Models.Bar> history,
                 long accountId,
                 string contractId,
                 RiskEngine risk,

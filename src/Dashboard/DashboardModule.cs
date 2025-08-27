@@ -39,7 +39,9 @@ public static class DashboardModule
             ctx.Response.Headers.Connection   = "keep-alive";
             ctx.Response.ContentType          = "text/event-stream";
 
-            using var sub = hub.Subscribe(symbol, res, out var ch);
+            var subscription = hub.Subscribe(symbol, res);
+            using var sub = subscription.sub;
+            var ch = subscription.channel;
             var cancel = ctx.RequestAborted;
 
             // send a hello + recent last bar
@@ -53,10 +55,17 @@ public static class DashboardModule
                 while (!cancel.IsCancellationRequested)
                 {
                     var readTask = ch.Reader.ReadAsync(cancel).AsTask();
-                    var kaTask   = keepAlive?.WaitForNextTickAsync(cancel).AsTask();
-                    var done = kaTask is null ? await readTask : await Task.WhenAny(readTask, kaTask);
+                    if (keepAlive is null)
+                    {
+                        var payload = await readTask; // JSON already
+                        await ctx.Response.WriteAsync($"data: {payload}\n\n");
+                        await ctx.Response.Body.FlushAsync();
+                        continue;
+                    }
 
-                    if (done == readTask)
+                    var kaTask = keepAlive.WaitForNextTickAsync(cancel).AsTask();
+                    var completed = await Task.WhenAny(readTask, kaTask);
+                    if (completed == readTask)
                     {
                         var payload = await readTask; // JSON already
                         await ctx.Response.WriteAsync($"data: {payload}\n\n");
@@ -138,9 +147,9 @@ public sealed class RealtimeHub : IHostedService, IDisposable
 
     // ---------- SSE subscriptions ----------
 
-    public IDisposable Subscribe(string symbol, string res, out Channel<string> channel)
+    public (IDisposable sub, Channel<string> channel) Subscribe(string symbol, string res)
     {
-        channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
+        var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
         var key = (symbol, res);
         var set = _subs.GetOrAdd(key, _ => new HashSet<ChannelWriter<string>>());
@@ -159,11 +168,12 @@ public sealed class RealtimeHub : IHostedService, IDisposable
         var mm = JsonSerializer.Serialize(new { type = "metrics", data = m }, _json);
         _ = channel.Writer.WriteAsync(mm);
 
-        return new SubHandle(() =>
+        var handle = new SubHandle(() =>
         {
             lock (set) set.Remove(channel.Writer);
             channel.Writer.TryComplete();
         });
+        return (handle, channel);
     }
 
     // ---------- Hosted service: push metrics every second ----------
