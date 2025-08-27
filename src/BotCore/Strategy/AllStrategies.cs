@@ -406,8 +406,15 @@ namespace BotCore.Strategy
             bool reclaimDown = bars.Count >= 2 && bars[^2].Low <= dn2 && bars[^1].Close > dn2;
             bool rejectUp    = bars.Count >= 2 && bars[^2].High >= up2 && bars[^1].Close < up2;
 
+            // Dynamic sigma threshold + microstructure safety
+            decimal dynSigma = S2Upg.DynamicSigmaThreshold(baseSigma, volz, slope, DateTime.Now, symbol);
+            var imb = S2Upg.UpDownImbalance(bars, 10);
+            var tickSize = InstrumentMeta.Tick(symbol);
+            bool pivotOKLong  = S2Upg.PivotDistanceOK(bars, px, atr, tickSize, true);
+            bool pivotOKShort = S2Upg.PivotDistanceOK(bars, px, atr, tickSize, false);
+
             // LONG: fade below VWAP
-            if (z <= -baseSigma || a <= -baseAtr)
+            if ((z <= -dynSigma || a <= -baseAtr) && imb >= 0.9m && pivotOKLong)
             {
                 if (BullConfirm(bars) || reclaimDown)
                 {
@@ -423,7 +430,7 @@ namespace BotCore.Strategy
                 }
             }
             // SHORT: fade above VWAP
-            else if (z >= baseSigma || a >= baseAtr)
+            else if ((z >= dynSigma || a >= baseAtr) && imb <= 1.1m && pivotOKShort)
             {
                 if (BearConfirm(bars) || rejectUp)
                 {
