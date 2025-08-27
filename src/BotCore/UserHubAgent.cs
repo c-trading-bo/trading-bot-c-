@@ -66,11 +66,9 @@ namespace BotCore
 				?? Environment.GetEnvironmentVariable("RTC_BASE")
 				?? "https://rtc.topstepx.com").TrimEnd('/');
 			var baseUrl = $"{rtcBase}/hubs/user";
-			// Harden auth: include access_token in querystring in addition to AccessTokenProvider
-			var url = string.IsNullOrWhiteSpace(_jwt)
-				? baseUrl
-				: $"{baseUrl}?access_token={Uri.EscapeDataString(_jwt)}";
-			_log.LogInformation("[UserHub] Using URL={Url} | JWT length={Len}", baseUrl, jwtToken?.Length ?? 0);
+			// Build URL without embedding token to avoid leaking credentials in logs
+			var url = baseUrl;
+			_log.LogInformation("[UserHub] Using URL={Url}", baseUrl);
 
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>

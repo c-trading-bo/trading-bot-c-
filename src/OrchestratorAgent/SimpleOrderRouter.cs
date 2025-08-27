@@ -114,7 +114,7 @@ namespace OrchestratorAgent
                 }
                 catch { }
 
-                // Enforce max contracts cap (default 2; override via MAX_CONTRACTS env)
+                // Enforce per-order cap and global net position cap (max 2)
                 int maxContracts = 2;
                 try { var raw = Environment.GetEnvironmentVariable("MAX_CONTRACTS"); if (int.TryParse(raw, out var mc) && mc > 0) maxContracts = mc; } catch { }
                 var requested = sig.Size > 0 ? sig.Size : 1;
@@ -122,13 +122,60 @@ namespace OrchestratorAgent
                 if (clampedSize != requested)
                     _log.LogInformation("[Router] Clamped size from {Req} to {Clamp} (MAX_CONTRACTS={Max})", requested, clampedSize, maxContracts);
 
+                // Net position guard: ensure resulting net does not exceed ±2
+                async Task<int> GetOpenNetQtyAsync()
+                {
+                    try
+                    {
+                        using var posReq = new HttpRequestMessage(HttpMethod.Post, "/api/Position/searchOpen");
+                        posReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        var body = new { accountId = sig.AccountId };
+                        posReq.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+                        using var posResp = await _http.SendAsync(posReq, ct);
+                        var pText = await posResp.Content.ReadAsStringAsync(ct);
+                        if (!posResp.IsSuccessStatusCode || string.IsNullOrWhiteSpace(pText)) return 0;
+                        using var doc = JsonDocument.Parse(pText);
+                        int sum = 0;
+                        if (doc.RootElement.TryGetProperty("positions", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var el in arr.EnumerateArray())
+                            {
+                                try
+                                {
+                                    var cid = el.TryGetProperty("contractId", out var c) ? c.GetString() : null;
+                                    if (!string.Equals(cid, sig.ContractId, StringComparison.OrdinalIgnoreCase)) continue;
+                                    if (el.TryGetProperty("size", out var sz))
+                                    {
+                                        if (sz.ValueKind == JsonValueKind.Number && sz.TryGetInt32(out var n)) sum += n;
+                                        else if (sz.ValueKind == JsonValueKind.String && int.TryParse(sz.GetString(), out var ns)) sum += ns;
+                                    }
+                                }
+                                catch { }
+                            }
+                        }
+                        return sum;
+                    }
+                    catch { return 0; }
+                }
+
+                var currentNet = await GetOpenNetQtyAsync();
+                var sgn = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                int maxAdd = (currentNet == 0 || Math.Sign(currentNet) == sgn) ? Math.Max(0, 2 - Math.Abs(currentNet)) : clampedSize;
+                var finalSize = Math.Min(clampedSize, maxAdd);
+                if (finalSize <= 0)
+                {
+                    _log.LogInformation("[Router] Net cap: blocking order — current={Cur} side={Side} req={Req} would exceed ±2", currentNet, sig.Side, requested);
+                    await JournalAsync(false, "net_cap", 0, null, modeStr);
+                    return false;
+                }
+
                 var placeBody = new
                 {
                     accountId = sig.AccountId,
                     contractId = sig.ContractId,
                     type = 1, // 1 = Limit
                     side = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? 1 : 0,
-                    size = clampedSize,
+                    size = finalSize,
                     limitPrice = sig.Entry,
                     customTag = sig.Tag
                 };

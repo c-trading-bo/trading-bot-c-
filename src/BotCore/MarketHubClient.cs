@@ -157,16 +157,15 @@ namespace BotCore
 			if (nowLog - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
 			{
 				_lastRebuiltInfoUtc = nowLog;
-				_log.LogInformation("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+				_log.LogInformation("[MarketHub] Using URL={Url}", url);
 			}
 			else
 			{
-				_log.LogDebug("[MarketHub] Using URL={Url} | JWT length={Len}", url, (jwt?.Length ?? 0));
+				_log.LogDebug("[MarketHub] Using URL={Url}", url);
 			}
-			// Per ProjectX docs: pass token in query string, WebSockets only, skip negotiation
-			var urlWithToken = string.IsNullOrWhiteSpace(jwt) ? url : $"{url}?access_token={jwt}";
+			// Use AccessTokenProvider only to avoid embedding token in URL
 			var hub = new HubConnectionBuilder()
-				.WithUrl(urlWithToken, o =>
+				.WithUrl(url, o =>
 				{
 					o.AccessTokenProvider = _getJwtAsync; // also provide via header for safety
 					o.SkipNegotiation = true;
