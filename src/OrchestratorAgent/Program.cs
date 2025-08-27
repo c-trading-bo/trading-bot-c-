@@ -59,14 +59,37 @@ namespace OrchestratorAgent
             var loggerFactory = LoggerFactory.Create(b =>
             {
                 b.ClearProviders();
-                b.AddConsole();
-                b.SetMinimumLevel(LogLevel.Information);
-                if (concise)
+                var clean = (Environment.GetEnvironmentVariable("LOG_PRESET") ?? "CLEAN").Equals("CLEAN", StringComparison.OrdinalIgnoreCase);
+                if (clean)
                 {
+                    b.AddSimpleConsole(o =>
+                    {
+                        o.SingleLine = true;
+                        o.TimestampFormat = "HH:mm:ss.fff ";
+                        o.IncludeScopes = true;
+                        o.UseUtcTimestamp = false;
+                    });
+                    b.SetMinimumLevel(LogLevel.Information);
                     b.AddFilter("Microsoft", LogLevel.Warning);
                     b.AddFilter("System", LogLevel.Warning);
-                    b.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
-                    b.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+                    b.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Warning);
+                    b.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Warning);
+                    b.AddFilter("Orchestrator", LogLevel.Information);
+                    b.AddFilter("BotCore", LogLevel.Information);
+                    b.AddFilter("DataFeed", LogLevel.Information);
+                    b.AddFilter("Risk", LogLevel.Information);
+                }
+                else
+                {
+                    b.AddConsole();
+                    b.SetMinimumLevel(LogLevel.Information);
+                    if (concise)
+                    {
+                        b.AddFilter("Microsoft", LogLevel.Warning);
+                        b.AddFilter("System", LogLevel.Warning);
+                        b.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
+                        b.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+                    }
                 }
             });
             var log = loggerFactory.CreateLogger("Orchestrator");
@@ -1395,6 +1418,7 @@ namespace OrchestratorAgent
                     var bestShort = signals.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
                     var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
                     if (chosen is null) return;
+                    try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
 
                     foreach (var sig in signals)
                     {
@@ -1402,6 +1426,35 @@ namespace OrchestratorAgent
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
                         var toRoute = sig;
+
+                        // Per-strategy cap (default 2)
+                        try
+                        {
+                            int maxPerStrat = 2;
+                            var rawMps = Environment.GetEnvironmentVariable("MAX_PER_STRATEGY");
+                            if (!string.IsNullOrWhiteSpace(rawMps) && int.TryParse(rawMps, out var mps) && mps > 0) maxPerStrat = mps;
+                            if (toRoute.Size > maxPerStrat) toRoute = toRoute with { Size = maxPerStrat };
+                        }
+                        catch { }
+
+                        // Global cap across all symbols (default 2)
+                        try
+                        {
+                            int gcap = 2;
+                            var rawG = Environment.GetEnvironmentVariable("MAX_NET_CONTRACTS_GLOBAL");
+                            if (!string.IsNullOrWhiteSpace(rawG) && int.TryParse(rawG, out var gv) && gv > 0) gcap = gv;
+                            var netEs = System.Math.Abs(status.Get<int>("pos.ES.qty"));
+                            var netNq = System.Math.Abs(status.Get<int>("pos.NQ.qty"));
+                            int total = netEs + netNq;
+                            int room = System.Math.Max(0, gcap - total);
+                            if (room <= 0)
+                            {
+                                log.LogInformation("[SKIP reason=global_cap] {Sym} total={Total} cap={Cap}", symbol, total, gcap);
+                                continue;
+                            }
+                            if (toRoute.Size > room) toRoute = toRoute with { Size = room };
+                        }
+                        catch { }
 
                         // Cap net exposure via env MAX_NET_CONTRACTS_{SYM}
                         try
