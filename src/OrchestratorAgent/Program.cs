@@ -193,6 +193,9 @@ namespace OrchestratorAgent
             string? apiKey = Env("TOPSTEPX_API_KEY") ?? Env("LOGIN_KEY") ?? Env("API_KEY");
             long accountId = long.TryParse(Env("TOPSTEPX_ACCOUNT_ID") ?? Env("ACCOUNT_ID"), out var id) ? id : 0L;
 
+            // Runtime gate for any auth/login activity (default deny)
+            bool authAllowed = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+
             // Pre-apply Authorization if JWT is already present from .env
             try { if (!string.IsNullOrWhiteSpace(jwt)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
 
@@ -255,9 +258,10 @@ namespace OrchestratorAgent
                 {
                     var protectedPaths = new[]
                     {
-                        "src\\BotCore\\UserHubAgent.cs",
-                        "src\\BotCore\\MarketHubClient.cs",
-                        "src\\TopstepAuthAgent"
+                        // Protect auth/login and hub connectivity code from unintended edits
+                        "src\\UserHubAgent",              // User hub client project (login/session wiring)
+                        "src\\BotCore\\MarketHubClient.cs", // Market hub connectivity plumbing
+                        "src\\TopstepAuthAgent"            // JWT acquisition/validation agent
                     };
                     var liveMode = (!paperModeSelected && !shadowModeSelected);
                     OrchestratorAgent.Infra.IntegrityGuard.EnsureLocked(protectedPaths, liveMode, log);
@@ -266,21 +270,28 @@ namespace OrchestratorAgent
             }
             catch { }
 
-            // Try to obtain JWT if not provided
+            // Try to obtain JWT if not provided (runtime-locked unless AUTH_ALLOW=1)
             if (string.IsNullOrWhiteSpace(jwt) && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
             {
-                try
+                if (authAllowed)
                 {
-                    var auth = new TopstepAuthAgent(http);
-                    log.LogInformation("Fetching JWT using login key for {User}…", userName);
-                    jwt = await auth.GetJwtAsync(userName!, apiKey!, cts.Token);
-                    Environment.SetEnvironmentVariable("TOPSTEPX_JWT", jwt);
-                    try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
-                    log.LogInformation("Obtained JWT via loginKey for {User}.", userName);
+                    try
+                    {
+                        var auth = new TopstepAuthAgent(http);
+                        log.LogInformation("Fetching JWT using login key for {User}…", userName);
+                        jwt = await auth.GetJwtAsync(userName!, apiKey!, cts.Token);
+                        Environment.SetEnvironmentVariable("TOPSTEPX_JWT", jwt);
+                        try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
+                        log.LogInformation("Obtained JWT via loginKey for {User}.", userName);
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "Failed to obtain JWT using TOPSTEPX_USERNAME/TOPSTEPX_API_KEY");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    log.LogWarning(ex, "Failed to obtain JWT using TOPSTEPX_USERNAME/TOPSTEPX_API_KEY");
+                    log.LogInformation("[AuthLocked] Skipping JWT acquisition (AUTH_ALLOW is not enabled). Provide TOPSTEPX_JWT via .env to run.");
                 }
             }
 
@@ -294,45 +305,52 @@ namespace OrchestratorAgent
                 }
                 try
                 {
-                    // Start background JWT refresh loop (auth hygiene)
-                    var refreshCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
-                    _ = Task.Run(async () =>
+                    // Start background JWT refresh loop (auth hygiene) — locked unless AUTH_ALLOW=1
+                    if (authAllowed)
                     {
-                        var auth = new TopstepAuthAgent(http);
-                        while (!refreshCts.Token.IsCancellationRequested)
+                        var refreshCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+                        _ = Task.Run(async () =>
                         {
-                            try
+                            var auth = new TopstepAuthAgent(http);
+                            while (!refreshCts.Token.IsCancellationRequested)
                             {
-                                await Task.Delay(TimeSpan.FromMinutes(20), refreshCts.Token);
-                                var newToken = await auth.ValidateAsync(refreshCts.Token);
-                                if (!string.IsNullOrWhiteSpace(newToken))
+                                try
                                 {
-                                    Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newToken);
-                                    http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newToken);
-                                    log.LogInformation("JWT refreshed via validate.");
+                                    await Task.Delay(TimeSpan.FromMinutes(20), refreshCts.Token);
+                                    var newToken = await auth.ValidateAsync(refreshCts.Token);
+                                    if (!string.IsNullOrWhiteSpace(newToken))
+                                    {
+                                        Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newToken);
+                                        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", newToken);
+                                        log.LogInformation("JWT refreshed via validate.");
+                                    }
+                                    else if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
+                                    {
+                                        var refreshed = await auth.GetJwtAsync(userName!, apiKey!, refreshCts.Token);
+                                        Environment.SetEnvironmentVariable("TOPSTEPX_JWT", refreshed);
+                                        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", refreshed);
+                                        log.LogInformation("JWT refreshed via loginKey.");
+                                    }
                                 }
-                                else if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
+                                catch (OperationCanceledException) { }
+                                catch (Exception ex)
                                 {
-                                    var refreshed = await auth.GetJwtAsync(userName!, apiKey!, refreshCts.Token);
-                                    Environment.SetEnvironmentVariable("TOPSTEPX_JWT", refreshed);
-                                    http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", refreshed);
-                                    log.LogInformation("JWT refreshed via loginKey.");
+                                    log.LogWarning(ex, "JWT refresh failed; will retry.");
                                 }
                             }
-                            catch (OperationCanceledException) { }
-                            catch (Exception ex)
-                            {
-                                log.LogWarning(ex, "JWT refresh failed; will retry.");
-                            }
-                        }
-                    }, refreshCts.Token);
+                        }, refreshCts.Token);
+                    }
+                    else
+                    {
+                        log.LogInformation("[AuthLocked] Skipping JWT refresh loop (AUTH_ALLOW is not enabled).");
+                    }
 
-                    // Shared JWT cache so both hubs always get a valid token
+                    // Shared JWT cache so both hubs always get a valid token (login locked unless AUTH_ALLOW=1)
                     var jwtCache = new JwtCache(async () =>
                     {
                         var t = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
                         if (!string.IsNullOrWhiteSpace(t)) return t!;
-                        if (!string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
+                        if (authAllowed && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
                         {
                             var authLocal = new TopstepAuthAgent(http);
                             var fresh = await authLocal.GetJwtAsync(userName!, apiKey!, CancellationToken.None);
@@ -340,7 +358,8 @@ namespace OrchestratorAgent
                             http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fresh);
                             return fresh;
                         }
-                        return jwt!; // fallback: initial token (we only enter this branch when jwt is non-empty)
+                        log.LogInformation("[AuthLocked] JwtCache: no AUTH_ALLOW; returning initial/fallback token only.");
+                        return jwt ?? string.Empty;
                     });
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
