@@ -376,7 +376,7 @@ namespace OrchestratorAgent
                                             dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                                             web.MapDashboard(dashboardHub);
                                             web.Urls.Add("http://localhost:5000");
-                                            _ = web.RunAsync(cts.Token);
+                                            _ = ((Microsoft.Extensions.Hosting.IHost)web).RunAsync(cts.Token);
                                             log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
                                         }
                                         catch (Exception ex)
