@@ -10,6 +10,7 @@
 - Add more comments and documentation for maintainability
 
 ## Status
+
 - S3 strategy is fully functional and ready for live use
 - All config-driven parameters and session windows are enforced
 - No stubs or placeholders remain
