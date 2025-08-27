@@ -312,6 +312,7 @@ namespace OrchestratorAgent
                     // Defer wiring of quote handlers until posTracker and contractIds are initialized below
                     Action wireQuotes = () =>
                     {
+                    // Now that posTracker and contractIds are ready, wire quote handlers
                     market1.OnQuote += (cid, last, bid, ask) => {
                         var nowTs = DateTimeOffset.UtcNow;
                         status.Set("last.quote", nowTs);
