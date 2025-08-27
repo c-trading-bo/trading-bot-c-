@@ -18,6 +18,9 @@ public static class DashboardModule
 {
     public static void MapDashboard(this WebApplication app, RealtimeHub hub)
     {
+        // root redirects to dashboard for convenience
+        app.MapGet("/", () => Results.Redirect("/dashboard"));
+
         // static file (our single-page UI)
         app.MapGet("/dashboard", async ctx =>
         {
