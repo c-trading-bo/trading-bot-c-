@@ -1,6 +1,7 @@
 #nullable enable
 using System.Security.Cryptography;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Infra
 {
