@@ -1484,9 +1484,9 @@ namespace OrchestratorAgent
                         // Curfew: block new entries into U.S. open (ET 09:15–09:23)
                         try
                         {
-                            if (In("09:15", "09:23"))
+                            if (InRange(NowET().TimeOfDay, "09:15", "09:23:30"))
                             {
-                                log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23 curfew active", symbol);
+                                log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23:30 curfew active", symbol);
                                 return;
                             }
                         }

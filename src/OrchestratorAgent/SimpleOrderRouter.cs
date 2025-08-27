@@ -37,6 +37,31 @@ namespace OrchestratorAgent
             _partialExit = partialExit;
         }
 
+        public void DisableAllEntries() => _entriesDisabled = true;
+        public void EnableAllEntries()  => _entriesDisabled = false;
+        public async Task CloseAll(string reason, CancellationToken ct)
+        {
+            try
+            {
+                _log.LogInformation("[Router] CloseAll requested: reason={Reason}", reason);
+                // Best-effort stub: try to resolve JWT and enumerate open positions, then log.
+                var token = await _getJwtAsync();
+                if (string.IsNullOrWhiteSpace(token)) { _log.LogWarning("[Router] CloseAll: missing JWT"); return; }
+                using var req = new HttpRequestMessage(HttpMethod.Post, "/api/Position/searchOpen");
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                // If server requires accountId, backend may infer from JWT; leave body minimal.
+                req.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+                using var resp = await _http.SendAsync(req, ct);
+                var txt = await resp.Content.ReadAsStringAsync(ct);
+                _log.LogInformation("[Router] CloseAll ack: status={Status} body.len={Len}", (int)resp.StatusCode, txt?.Length ?? 0);
+                // Intentionally not placing market exits here due to missing account context; relying on higher-level supervisor if present.
+            }
+            catch (Exception ex)
+            {
+                try { _log.LogWarning(ex, "[Router] CloseAll failed"); } catch { }
+            }
+        }
+
         public async Task<bool> RouteAsync(Signal sig, CancellationToken ct)
         {
             if (sig is null) return false;
@@ -150,8 +175,6 @@ namespace OrchestratorAgent
                             {
                                 try
                                 {
-                                    var cid = el.TryGetProperty("contractId", out var c) ? c.GetString() : null;
-                                    if (!string.Equals(cid, sig.ContractId, StringComparison.OrdinalIgnoreCase)) continue;
                                     if (el.TryGetProperty("size", out var sz))
                                     {
                                         if (sz.ValueKind == JsonValueKind.Number && sz.TryGetInt32(out var n)) sum += n;

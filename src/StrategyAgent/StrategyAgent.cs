@@ -46,6 +46,27 @@ namespace StrategyAgent
             foreach (var s in _cfg.Strategies)
             {
                 if (!s.Enabled) continue;
+
+                // Treat filter-family as gate only (no orders)
+                if (!string.IsNullOrWhiteSpace(s.Family) && s.Family.Equals("filter", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                // Enforce session window and flat-by regardless of AlwaysOn
+                if (!string.IsNullOrWhiteSpace(s.SessionWindowEt) && !BotCore.Config.TimeWindows.IsNowWithinEt(s.SessionWindowEt!, snap.UtcNow))
+                    continue;
+                if (!string.IsNullOrWhiteSpace(s.FlatByEt))
+                {
+                    var until = $"00:00-{s.FlatByEt}";
+                    if (!BotCore.Config.TimeWindows.IsNowWithinEt(until, snap.UtcNow))
+                        continue;
+                }
+
+                // Minimal spread guard: 1 tick default, 2 for breakout/trend
+                var fam = s.Family ?? string.Empty;
+                bool isBo = fam.Equals("breakout", StringComparison.OrdinalIgnoreCase) || fam.Equals("trend", StringComparison.OrdinalIgnoreCase);
+                var spreadMax = isBo ? _cfg.GlobalFilters.SpreadTicksMaxBo : _cfg.GlobalFilters.SpreadTicksMax;
+                if (snap.SpreadTicks > spreadMax) continue;
+
                 if (!StrategyGates.PassesGlobal(_cfg, snap)) continue; // AlwaysOn => always true
 
                 List<Signal> candidates;
