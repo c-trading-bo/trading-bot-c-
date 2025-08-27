@@ -74,11 +74,48 @@ namespace OrchestratorAgent
             }
             return null;
         }
+        private static void LoadDotEnv()
+        {
+            try
+            {
+                // Search current and up to 4 parent directories for .env.local then .env
+                var candidates = new[] { ".env.local", ".env" };
+                string? dir = Environment.CurrentDirectory;
+                for (int up = 0; up < 5 && dir != null; up++)
+                {
+                    foreach (var file in candidates)
+                    {
+                        var path = System.IO.Path.Combine(dir, file);
+                        if (System.IO.File.Exists(path))
+                        {
+                            foreach (var raw in System.IO.File.ReadAllLines(path))
+                            {
+                                var line = raw.Trim();
+                                if (line.Length == 0 || line.StartsWith("#")) continue;
+                                var idx = line.IndexOf('=');
+                                if (idx <= 0) continue;
+                                var key = line.Substring(0, idx).Trim();
+                                var val = line.Substring(idx + 1).Trim();
+                                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
+                                    val = val.Substring(1, val.Length - 2);
+                                if (!string.IsNullOrWhiteSpace(key)) Environment.SetEnvironmentVariable(key, val);
+                            }
+                        }
+                    }
+                    dir = System.IO.Directory.GetParent(dir)?.FullName;
+                }
+            }
+            catch { /* best-effort */ }
+        }
+
         public static async Task Main(string[] args)
         {
             // Ensure invariant culture for all parsing/logging regardless of OS locale
             System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
             System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+
+            // Load .env.local / .env into environment variables before reading any config
+            LoadDotEnv();
 
             var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             var loggerFactory = LoggerFactory.Create(b =>
@@ -155,6 +192,9 @@ namespace OrchestratorAgent
             string? userName = Env("TOPSTEPX_USERNAME") ?? Env("LOGIN_USERNAME") ?? Env("LOGIN_EMAIL") ?? Env("USERNAME") ?? Env("EMAIL");
             string? apiKey = Env("TOPSTEPX_API_KEY") ?? Env("LOGIN_KEY") ?? Env("API_KEY");
             long accountId = long.TryParse(Env("TOPSTEPX_ACCOUNT_ID") ?? Env("ACCOUNT_ID"), out var id) ? id : 0L;
+
+            // Pre-apply Authorization if JWT is already present from .env
+            try { if (!string.IsNullOrWhiteSpace(jwt)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
 
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
