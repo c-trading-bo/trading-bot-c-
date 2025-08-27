@@ -29,14 +29,19 @@ namespace OrchestratorAgent
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object _entriesLock = new();
 
-        // ET helpers for time-window checks
+        // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
         private static readonly TimeZoneInfo ET = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-        private static TimeSpan Et(string hhmm) => TimeSpan.ParseExact(hhmm, @"hh\:mm", _inv);
-        private static bool In(string a, string b)
+        private static DateTime NowET() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ET);
+        private static TimeSpan TS(string s)
         {
-            var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ET).TimeOfDay;
-            var s = Et(a); var e = Et(b);
+            // Support both HH:mm and HH:mm:ss
+            if (TimeSpan.TryParseExact(s, @"hh\:mm\:ss", _inv, out var tss)) return tss;
+            return TimeSpan.ParseExact(s, @"hh\:mm", _inv);
+        }
+        private static bool InRange(TimeSpan now, string a, string b)
+        {
+            var s = TS(a); var e = TS(b);
             return s <= e ? (now >= s && now <= e) : (now >= s || now <= e);
         }
         private static DateTimeOffset? TryGetQuoteLastUpdated(System.Text.Json.JsonElement e)
@@ -706,16 +711,28 @@ namespace OrchestratorAgent
                     var partialExit = new OrchestratorAgent.Ops.PartialExitService(http, jwtCache.GetAsync, log);
                     var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
 
-                    // Auto-switch profile by ET clock (18:05–09:15 -> night; else day)
+                    // Auto-switch profile by ET clock with blackout/curfew
                     try
                     {
-                        var dayPath = "src\\BotCore\\Config\\high_win_rate_profile.json";
+                        var et = NowET().TimeOfDay;
+                        bool isBlackout = InRange(et, "16:58", "18:05") || InRange(et, "09:15", "09:23:30");
+                        bool isNight    = !isBlackout && (et >= TS("18:05") || et < TS("09:15"));
+
+                        var dayPath   = "src\\BotCore\\Config\\high_win_rate_profile.json";
                         var nightPath = "src\\BotCore\\Config\\high_win_rate_profile.night.json";
-                        bool isNight = In("18:05", "09:15");
-                        var cfgPath = isNight ? nightPath : dayPath;
-                        var activeProfile = BotCore.Config.ConfigLoader.FromFile(cfgPath);
+                        var cfgPath   = isNight ? nightPath : dayPath;
+
+                        var activeProfile = ConfigLoader.FromFile(cfgPath);
                         try { status.Set("profile.active", activeProfile.Profile); } catch { }
                         log.LogInformation("Profile loaded: {Profile} from {Path}", activeProfile.Profile, cfgPath);
+
+                        // optional: if curfew, disable entries & flatten
+                        if (InRange(et, "09:15", "09:23:30"))
+                        {
+                            try { router.DisableAllEntries(); } catch { }
+                            try { await router.CloseAll("CurfewIntoRTH", CancellationToken.None); } catch { }
+                            log.LogInformation("[Curfew] ET 09:15–09:23:30 — entries disabled and flatten requested.");
+                        }
                     }
                     catch (Exception ex)
                     {

@@ -17,6 +17,7 @@ namespace OrchestratorAgent
         private readonly ILogger _log;
         private readonly bool _live;
         private readonly OrchestratorAgent.Ops.PartialExitService? _partialExit;
+        private volatile bool _entriesDisabled = false;
 
         public SimpleOrderRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live)
         {
@@ -58,6 +59,13 @@ namespace OrchestratorAgent
             var liveEnv = EnvFlag("LIVE_ORDERS");
             var liveMode = (_live || liveEnv) && !kill;
             var modeStr = liveMode ? "LIVE" : "DRY-RUN";
+
+            if (_entriesDisabled)
+            {
+                _log.LogInformation("[Router] Entries disabled — blocking order (tag={Tag}).", sig.Tag);
+                await JournalAsync(false, "entries_disabled", 0, null, modeStr);
+                return false;
+            }
 
             // Enforce global size cap (max 2) for safety
             sig = sig with { Size = Math.Clamp(sig.Size, 1, 2) };

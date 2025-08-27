@@ -31,7 +31,7 @@
 
   "attempt_caps": {
     "S1": 0, "S2": 2, "S3": 2, "S4": 0, "S5": 0, "S6": 2, "S7": 0,
-    "S8": 1, "S9": 0, "S10": 0, "S11": 2, "S12": 0, "S13": 0
+    "S8": 0, "S9": 0, "S10": 0, "S11": 2, "S12": 0, "S13": 0
   },
 
   "buffers": { "ES_ticks": 1, "NQ_ticks": 2 },
@@ -71,7 +71,7 @@
     { "id": "S7",  "name": "ES↔NQ Relative-Strength Gate (Filter)", "enabled": true, "family": "filter" },
 
     { "id": "S8",  "name": "Keltner Pullback in Trend",
-      "enabled": true, "family": "pullback",
+      "enabled": false, "family": "pullback",
       "session_window_et": "10:30-15:30",
       "regimes": ["trend","mid_vol"]
     },
