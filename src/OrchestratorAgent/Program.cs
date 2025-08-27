@@ -371,7 +371,16 @@ namespace OrchestratorAgent
                                                         var ps = kv.Value;
                                                         realized += ps.RealizedUsd;
                                                         unreal += ps.UnrealizedUsd;
-                                                        chips.Add(new Dashboard.PositionChip(kv.Key, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
+                                                        // Map contractId keys back to root symbols for UI matching (ES/NQ)
+                                                        var key = kv.Key;
+                                                        string symOut = key;
+                                                        try
+                                                        {
+                                                            if (!string.IsNullOrWhiteSpace(esContract) && string.Equals(key, esContract, StringComparison.OrdinalIgnoreCase)) symOut = esRoot;
+                                                            else if (!string.IsNullOrWhiteSpace(nqContract) && string.Equals(key, nqContract, StringComparison.OrdinalIgnoreCase)) symOut = nqRoot;
+                                                        }
+                                                        catch { }
+                                                        chips.Add(new Dashboard.PositionChip(symOut, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
                                                     }
                                                     var mode = (Environment.GetEnvironmentVariable("PAPER_MODE") == "1") ? "PAPER" : (Environment.GetEnvironmentVariable("SHADOW_MODE") == "1") ? "SHADOW" : "LIVE";
                                                     var day = realized + unreal;
