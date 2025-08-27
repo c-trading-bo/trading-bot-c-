@@ -265,27 +265,79 @@ namespace BotCore.Strategy
             return std == 0m ? 0m : (last - mean) / std;
         }
 
-        // Session VWAP computed from today's UTC midnight (approximation)
-        private static (decimal vwap, decimal dist) SessionVWAP(IList<Bar> bars)
+        // === S2 helpers anchored to local 09:30 session ===
+        private static DateTime AnchorToday(DateTime localDate, TimeSpan time) => localDate.Date + time;
+
+        private static int IndexFromLocalAnchor(IList<Bar> bars, DateTime anchorLocal)
         {
-            if (bars is null || bars.Count == 0) return (0m, 0m);
-            var startUtc = DateTime.UtcNow.Date;
-            decimal pv = 0m; decimal vol = 0m;
-            foreach (var b in bars)
+            for (int i = 0; i < bars.Count; i++)
             {
-                try
-                {
-                    var ts = DateTimeOffset.FromUnixTimeMilliseconds(b.Ts).UtcDateTime;
-                    if (ts < startUtc) continue;
-                }
-                catch { }
-                var tp = (b.High + b.Low + b.Close) / 3m;
-                pv += tp * b.Volume;
-                vol += b.Volume;
+                var t = bars[i].Start; // Start assumed local; if UTC adjust upstream
+                if (t >= anchorLocal) return i;
             }
-            var vwap = vol > 0 ? pv / Math.Max(1m, vol) : bars[^1].Close;
-            var dist = bars[^1].Close - vwap;
-            return (vwap, dist);
+            return -1;
+        }
+
+        private static (decimal vwap, decimal wvar, decimal wvol) SessionVwapAndVar(IList<Bar> bars, DateTime anchorLocal)
+        {
+            decimal wv = 0m, vol = 0m;
+            var idx0 = IndexFromLocalAnchor(bars, anchorLocal);
+            if (idx0 < 0) return (0m, 0m, 0m);
+            for (int i = idx0; i < bars.Count; i++)
+            {
+                var b = bars[i];
+                var tp = (b.High + b.Low + b.Close) / 3m;
+                var v = Math.Max(0, b.Volume);
+                wv += tp * v;
+                vol += v;
+            }
+            if (vol <= 0) return (0m, 0m, 0m);
+            var vwap = wv / vol;
+            decimal num = 0m;
+            for (int i = idx0; i < bars.Count; i++)
+            {
+                var b = bars[i];
+                var tp = (b.High + b.Low + b.Close) / 3m;
+                var v = Math.Max(0, b.Volume);
+                var d = tp - vwap;
+                num += d * d * v;
+            }
+            var wvar = vol > 0 ? num / vol : 0m;
+            return (vwap, wvar, vol);
+        }
+
+        private static (decimal high, decimal low) InitialBalance(IList<Bar> bars, DateTime startLocal, DateTime endLocal)
+        {
+            decimal hi = 0m, lo = 0m; bool init = false;
+            for (int i = 0; i < bars.Count; i++)
+            {
+                var t = bars[i].Start;
+                if (t < startLocal) continue;
+                if (t >= endLocal) break;
+                if (!init) { hi = bars[i].High; lo = bars[i].Low; init = true; }
+                else { if (bars[i].High > hi) hi = bars[i].High; if (bars[i].Low < lo) lo = bars[i].Low; }
+            }
+            return init ? (hi, lo) : (0m, 0m);
+        }
+
+        private static int AboveVWAPCount(IList<Bar> b, decimal vwap, int look)
+        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close > vwap) cnt++; return cnt; }
+        private static int BelowVWAPCount(IList<Bar> b, decimal vwap, int look)
+        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close < vwap) cnt++; return cnt; }
+
+        private static bool BullConfirm(IList<Bar> b)
+        {
+            if (b.Count < 3) return false; var a = b[^2]; var c = b[^1];
+            bool engulf = c.Close > a.Open && c.Open < a.Close && c.Close > c.Open;
+            bool hammer = (c.Close >= c.Open) && (c.Open - c.Low) >= 0.5m * (c.High - c.Low) && (c.High - c.Close) <= 0.3m * (c.High - c.Low);
+            return engulf || hammer;
+        }
+        private static bool BearConfirm(IList<Bar> b)
+        {
+            if (b.Count < 3) return false; var a = b[^2]; var c = b[^1];
+            bool engulf = c.Close < a.Open && c.Open > a.Close && c.Close < c.Open;
+            bool shoot = (c.Close <= c.Open) && (c.High - c.Open) >= 0.5m * (c.High - c.Low) && (c.Close - c.Low) <= 0.3m * (c.High - c.Low);
+            return engulf || shoot;
         }
 
         // Keltner Channel helper: EMA mid and ATR band
@@ -300,26 +352,91 @@ namespace BotCore.Strategy
         public static List<Candidate> S2(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars is null || bars.Count < 50) return lst;
+            if (bars is null || bars.Count < 60) return lst;
+
+            // Compute session VWAP/σ anchored to 09:30 local (same as ET for Santo Domingo)
+            var localDate = DateTime.Now.Date; // wall-time
+            var rthOpen = new TimeSpan(9, 30, 0);
+            var anchor = AnchorToday(localDate, rthOpen);
+            var (vwap, wvar, wvol) = SessionVwapAndVar(bars, anchor);
+            if (wvol <= 0 || vwap <= 0) return lst;
+            var sigma = (decimal)Math.Sqrt((double)Math.Max(1e-12m, wvar));
+
             var atr = (env.atr.HasValue && env.atr.Value > 0m) ? env.atr.Value : AtrNoWarmup(bars, 14);
             if (atr <= 0) return lst;
-            var (vwap, dist) = SessionVWAP(bars);
+            var volz = VolZ(bars, 50);
+            if (!(volz >= -0.3m && volz <= 2.2m)) return lst; // regime band
+
             var px = bars[^1].Close;
-            if (dist >= 1.5m * atr)
+            var d = px - vwap;
+            var z = sigma > 0 ? d / sigma : 0m;
+            var a = atr > 0 ? d / atr : 0m;
+
+            // Instrument-specific σ triggers
+            bool isNq = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase);
+            decimal esSigma = 2.0m, nqSigma = 2.4m;
+            decimal needSigma = isNq ? nqSigma : esSigma;
+            decimal baseSigma = Math.Max(needSigma, 2.0m);
+            decimal baseAtr = 1.0m;
+
+            // Trend day detection proxy: EMA20 slope over last 5 bars + VWAP streak
+            var ema20 = EmaNoWarmup(bars, 20).ToArray();
+            decimal slope = ema20.Length > 5 ? (ema20[^1] - ema20[^6]) / 5m : 0m;
+            var strongUp = slope > 0.18m * 0.01m && AboveVWAPCount(bars, vwap, 12) >= 9; // scaled proxy
+            var strongDn = slope < -0.18m * 0.01m && BelowVWAPCount(bars, vwap, 12) >= 9;
+            if (strongUp && z < 0) needSigma = Math.Max(needSigma, 2.8m);
+            if (strongDn && z > 0) needSigma = Math.Max(needSigma, 2.8m);
+
+            // IB continuation filter after 10:30: avoid small fades unless extreme
+            var now = DateTime.Now; var nowMin = now.Hour * 60 + now.Minute;
+            if (nowMin >= (10 * 60 + 30))
             {
-                // stretched above VWAP → fade short back to VWAP
-                var entry = px;
-                var stop = entry + 0.75m * atr;
-                var t1 = vwap;
-                add_cand(lst, "S2", symbol, "SELL", entry, stop, t1, env, risk);
+                var (ibh, ibl) = InitialBalance(bars, AnchorToday(localDate, new TimeSpan(9, 30, 0)), AnchorToday(localDate, new TimeSpan(10, 30, 0)));
+                if (ibh > 0 && ibl > 0)
+                {
+                    bool brokeUp = bars[^1].Close > ibh && bars.Skip(Math.Max(0, bars.Count - 6)).Min(b => b.Low) > ibh - 0.25m * atr;
+                    bool brokeDn = bars[^1].Close < ibl && bars.Skip(Math.Max(0, bars.Count - 6)).Max(b => b.High) < ibl + 0.25m * atr;
+                    if ((brokeUp && z < 0 && Math.Abs(z) < 2.8m) || (brokeDn && z > 0 && Math.Abs(z) < 2.8m))
+                        return lst;
+                }
             }
-            else if (dist <= -1.5m * atr)
+
+            // Reclaim/reject checks at ±2σ
+            var up2 = vwap + 2m * sigma; var dn2 = vwap - 2m * sigma;
+            bool reclaimDown = bars.Count >= 2 && bars[^2].Low <= dn2 && bars[^1].Close > dn2;
+            bool rejectUp    = bars.Count >= 2 && bars[^2].High >= up2 && bars[^1].Close < up2;
+
+            // LONG: fade below VWAP
+            if (z <= -baseSigma || a <= -baseAtr)
             {
-                // stretched below VWAP → fade long back to VWAP
-                var entry = px;
-                var stop = entry - 0.75m * atr;
-                var t1 = vwap;
-                add_cand(lst, "S2", symbol, "BUY", entry, stop, t1, env, risk);
+                if (BullConfirm(bars) || reclaimDown)
+                {
+                    var entry = px;
+                    var dn3 = vwap - 3m * sigma;
+                    var swing = bars.Skip(Math.Max(0, bars.Count - 3)).Min(b => b.Low);
+                    var stop = Math.Min(swing, dn3);
+                    if (stop >= entry) stop = entry - 0.25m * atr;
+                    var r = entry - stop;
+                    var t1 = vwap;
+                    if (t1 - entry < 0.8m * r) t1 = entry + 0.9m * r;
+                    add_cand(lst, "S2", symbol, "BUY", entry, stop, t1, env, risk);
+                }
+            }
+            // SHORT: fade above VWAP
+            else if (z >= baseSigma || a >= baseAtr)
+            {
+                if (BearConfirm(bars) || rejectUp)
+                {
+                    var entry = px;
+                    var up3 = vwap + 3m * sigma;
+                    var swing = bars.Skip(Math.Max(0, bars.Count - 3)).Max(b => b.High);
+                    var stop = Math.Max(swing, up3);
+                    if (stop <= entry) stop = entry + 0.25m * atr;
+                    var r = stop - entry;
+                    var t1 = vwap;
+                    if (entry - t1 < 0.8m * r) t1 = entry - 0.9m * r;
+                    add_cand(lst, "S2", symbol, "SELL", entry, stop, t1, env, risk);
+                }
             }
             return lst;
         }
