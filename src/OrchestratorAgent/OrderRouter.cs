@@ -122,9 +122,10 @@ namespace OrchestratorAgent
             decimal tick = InstrumentMeta.Tick(sig.Symbol);
             int bufTicks = ResolveBufferTicks(sig.Symbol);
             var basePx = InstrumentMeta.RoundToTick(sig.Symbol, sig.LimitPrice ?? 0m);
-                        // Ensure qty respects lot step
+                        // Ensure qty respects lot step (and global max=2)
                         var step = InstrumentMeta.LotStep(sig.Symbol);
-                        var qtyAdj = Math.Max(step, sig.Size - (sig.Size % step));
+                        var sizeClamped = Math.Clamp(sig.Size, 1, 2);
+                        var qtyAdj = Math.Max(step, sizeClamped - (sizeClamped % step));
             var px = sig.Side == SignalSide.Long ? basePx + bufTicks * tick : basePx - bufTicks * tick;
 
             // Slippage guard (per-symbol override)

@@ -74,7 +74,7 @@ namespace OrchestratorAgent
                         Strategy = string.IsNullOrWhiteSpace(sig.Strategy) ? s.Name : sig.Strategy,
                         Symbol   = root,
                         Side     = sig.Side,
-                        Size     = Math.Max(1, sig.Size),
+                        Size     = Math.Clamp(sig.Size, 1, 2),
                         LimitPrice = sig.LimitPrice,
                         Note     = sig.Note
                     };

@@ -53,15 +53,18 @@ namespace OrchestratorAgent
             var stop = sig.Stop != 0 ? sig.Stop : (sig.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase) ? sig.Entry + slTicks * tick : sig.Entry - slTicks * tick);
 
             // Narrative logs similar to live
-            _log.LogInformation("[Router] PAPER Route: {Side} {Size} {Sym} @ {Entry} (stop {Stop}, target {Target}) tag={Tag}", sig.Side, sig.Size, sym, sig.Entry, stop, target, sig.Tag);
-            _log.LogInformation("ORDER NEW  {Side} {Size} {Sym} @ {Entry} (paper)", sig.Side, sig.Size, sym, sig.Entry);
+            // Enforce global size cap
+            var size = Math.Clamp(sig.Size, 1, 2);
+
+            _log.LogInformation("[Router] PAPER Route: {Side} {Size} {Sym} @ {Entry} (stop {Stop}, target {Target}) tag={Tag}", sig.Side, size, sym, sig.Entry, stop, target, sig.Tag);
+            _log.LogInformation("ORDER NEW  {Side} {Size} {Sym} @ {Entry} (paper)", sig.Side, size, sym, sig.Entry);
             _log.LogInformation("Accepted: O#{Tag} (paper)", sig.Tag);
 
             var pend = new PendingOrder
             {
                 Symbol = sym,
                 Side = sig.Side,
-                Size = sig.Size > 0 ? sig.Size : 1,
+                Size = size,
                 Entry = sig.Entry,
                 Stop = stop,
                 Target = target,

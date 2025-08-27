@@ -59,6 +59,9 @@ namespace OrchestratorAgent
             var liveMode = (_live || liveEnv) && !kill;
             var modeStr = liveMode ? "LIVE" : "DRY-RUN";
 
+            // Enforce global size cap (max 2) for safety
+            sig = sig with { Size = Math.Clamp(sig.Size, 1, 2) };
+
             // Ensure a deterministic order_group_id tag for idempotency if none provided
             if (string.IsNullOrWhiteSpace(sig.Tag))
             {

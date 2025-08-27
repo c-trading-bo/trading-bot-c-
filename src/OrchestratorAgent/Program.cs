@@ -69,15 +69,21 @@ namespace OrchestratorAgent
                         o.IncludeScopes = true;
                         o.UseUtcTimestamp = false;
                     });
-                    b.SetMinimumLevel(LogLevel.Information);
+                    // Default noise floor: Warning; whitelist storyline categories at Information
+                    b.SetMinimumLevel(LogLevel.Warning);
+                    b.AddFilter("Orchestrator", LogLevel.Information);
+                    b.AddFilter("BotCore.Orchestrator", LogLevel.Information);
+
+                    // Mute framework chatter
                     b.AddFilter("Microsoft", LogLevel.Warning);
                     b.AddFilter("System", LogLevel.Warning);
-                    b.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Warning);
-                    b.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Warning);
-                    b.AddFilter("Orchestrator", LogLevel.Information);
-                    b.AddFilter("BotCore", LogLevel.Information);
-                    b.AddFilter("DataFeed", LogLevel.Information);
-                    b.AddFilter("Risk", LogLevel.Information);
+                    b.AddFilter("Microsoft.AspNetCore", LogLevel.Error);
+                    b.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+                    b.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
+
+                    // Keep data/risk off the console unless Warning+
+                    b.AddFilter("DataFeed", LogLevel.Warning);
+                    b.AddFilter("Risk", LogLevel.Warning);
                 }
                 else
                 {
@@ -770,18 +776,18 @@ namespace OrchestratorAgent
                                 var bIn  = status.Get<DateTimeOffset?>($"last.bar.{cid}");
                                 int qMs = qUpd.HasValue ? (int)Math.Max(0, (now - qUpd.Value).TotalMilliseconds) : 0;
                                 int bMs = bIn.HasValue  ? (int)Math.Max(0, (now - bIn.Value).TotalMilliseconds)   : 0;
-                                log.LogInformation($"[{root}] Strategies 14/14 | Looking | Q:{qMs}ms B:{bMs}ms");
-                                log.LogInformation("  Name                         En  State     LastSignal (UTC)      Note");
+                                log.LogDebug($"[{root}] Strategies 14/14 | Looking | Q:{qMs}ms B:{bMs}ms");
+                                log.LogDebug("  Name                         En  State     LastSignal (UTC)      Note");
                                 void Row(string name, string en, string state, string lastUtc, string note)
-                                    => log.LogInformation($"  {name,-28} {en,1}   {state,-8}  {lastUtc,-20}    {note}");
+                                    => log.LogDebug($"  {name,-28} {en,1}   {state,-8}  {lastUtc,-20}    {note}");
                                 var tsNow = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
                                 Row("Bias Filter",      "Y", "Armed",   tsNow,                  "-");
                                 Row("Breakout",         "Y", "Looking", DateTime.UtcNow.AddSeconds(-2).ToString("yyyy-MM-dd HH:mm:ss"), "-");
                                 Row("Pullback Pro",     "Y", "Idle",    "-",                   "-");
                                 Row("Opening Drive",    "Y", "Paused",  "-",                   "Daily loss lock");
                                 Row("VWAP Revert",      "Y", "Looking", "-",                   "-");
-                                log.LogInformation("  … +9 more strategies hidden");
-                                log.LogInformation("");
+                                log.LogDebug("  … +9 more strategies hidden");
+                                log.LogDebug("");
                             }
                         }
                         catch { }
@@ -1117,12 +1123,12 @@ namespace OrchestratorAgent
                         barsHist[root].Add(bar);
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
                         // Handoff to strategy engine (bus-equivalent)
-                        log.LogInformation("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
+                        log.LogDebug("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
                         await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
-                        dataLog.LogInformation("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
+                        dataLog.LogDebug("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
-                    barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogInformation("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
-                    barPyramid.M30.OnBarClosed += (cid, b) => { dataLog.LogInformation("[Bars] 30m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
+                    barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
+                    barPyramid.M30.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 30m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
 
                     // Feed live trades into the 1m aggregator (quotes not required for bars)
 
@@ -1197,7 +1203,7 @@ namespace OrchestratorAgent
                                             string state = qty != 0
                                                 ? $"IN TRADE {(qty > 0 ? "LONG" : "SHORT")} x{Math.Abs(qty)} @ {FmtPx(sym, avg)} uPnL {upnl:F2} rPnL {rpnl:F2}"
                                                 : "Looking…";
-                                            log.LogInformation($"[{sym}] Strategies 14/14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
+                                            log.LogDebug($"[{sym}] Strategies 14/14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
                                         }
                                     }
                                     catch { }
@@ -1220,11 +1226,11 @@ namespace OrchestratorAgent
                                 {
                                     var pnl = status.Get<decimal?>("pnl.net") ?? 0m;
                                     var remaining = maxDailyLossCfg - Math.Max(0m, pnl);
-                                    riskLog.LogInformation("Heartbeat — DailyPnL {Pnl}  |  MaxDailyLoss {Max}  |  Remaining Risk {Rem}",
+                                    riskLog.LogDebug("Heartbeat — DailyPnL {Pnl}  |  MaxDailyLoss {Max}  |  Remaining Risk {Rem}",
                                         pnl.ToString("+$0.00;-$0.00;$0.00"),
                                         maxDailyLossCfg.ToString("#,0.00"),
                                         (remaining < 0 ? 0 : remaining).ToString("$#,0.00"));
-                                    log.LogInformation("Session checkpoint — All systems green. Next heartbeat in 60s.");
+                                    log.LogDebug("Session checkpoint — All systems green. Next heartbeat in 60s.");
                                 }
                                 catch { }
                                 try { await Task.Delay(TimeSpan.FromSeconds(60), cts.Token); } catch { }
