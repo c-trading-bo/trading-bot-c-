@@ -26,6 +26,8 @@ Automated cleanup
 - Safe default:   powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1
 - Aggressive:     powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1 -Aggressive
   - Aggressive also removes examples/, ConnectivityProbe, TopstepAI.system.md, and src/SimulationAgent (not required to run the bot).
+- Ultra:          powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1 -Ultra
+  - Ultra removes docs/, tests/, journal/, demo-push.txt, auto-pull.ps1, push-now.ps1, ensure-main.ps1 (keeps only runtime essentials).
 
 The solution builds and runs without the optional items above. If you only want to trade, you don’t need to keep the optional docs/tools or the scan artifacts.
 

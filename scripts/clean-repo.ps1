@@ -3,14 +3,17 @@
 # - Removes all **/bin and **/obj directories
 # - Removes SCAN_REPORT.txt and SCAN_STUBS.txt (generated reports)
 # - Optionally removes examples/, ConnectivityProbe, TopstepAI.system.md, src/SimulationAgent (use -Aggressive)
+# - Ultra option removes additional non-runtime items: docs/, tests/, journal/, demo-push.txt, auto-pull.ps1, push-now.ps1, ensure-main.ps1
 # - Removes empty directories (after artifact removal)
-# - Keeps src/, scripts/, appsettings.json, .env*, state/, journal/, tests/ source, docs by default
+# - Keeps essentials: src/, TopstepX.Bot.sln, appsettings.json, .env*, state/, start-clean.* / launch-bot.* / launch-updater.ps1 by default
 # Usage:
 #   - Safe default:   powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1
 #   - Aggressive:     powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1 -Aggressive
+#   - Ultra:          powershell -ExecutionPolicy Bypass -File .\scripts\clean-repo.ps1 -Ultra
 
 param(
-    [switch]$Aggressive
+    [switch]$Aggressive,
+    [switch]$Ultra
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,6 +63,24 @@ if ($Aggressive) {
         "TopstepAI.system.md"
     )
     foreach ($f in $optFiles) { Remove-FileSafe $f }
+}
+
+# 3b) Ultra removals: strip non-runtime items to a minimal runnable repo
+if ($Ultra) {
+    $ultraDirs = @(
+        "docs",
+        "tests",
+        "journal"
+    )
+    foreach ($ud in $ultraDirs) { if (Test-Path -LiteralPath $ud) { Remove-DirSafe $ud } }
+
+    $ultraFiles = @(
+        "demo-push.txt",
+        "auto-pull.ps1",
+        "push-now.ps1",
+        "ensure-main.ps1"
+    )
+    foreach ($uf in $ultraFiles) { Remove-FileSafe $uf }
 }
 
 # 4) Remove empty directories after cleanup

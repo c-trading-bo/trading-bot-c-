@@ -1,2 +1,0 @@
-# Demo file for push test
-This file is created to demonstrate a git push and CI workflow run.
