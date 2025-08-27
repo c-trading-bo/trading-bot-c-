@@ -15,7 +15,7 @@ namespace StrategyAgent
     public class StrategyAgent
     {
         private readonly TradingProfileConfig _cfg;
-        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new();
 
         public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
 
