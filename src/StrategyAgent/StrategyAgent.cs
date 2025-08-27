@@ -15,7 +15,15 @@ namespace StrategyAgent
     public class StrategyAgent
     {
         private readonly TradingProfileConfig _cfg;
-        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new(EqualityComparer<(string Strat, string Sym, string Side)>.Create((a, b) =>
+            StringComparer.OrdinalIgnoreCase.Equals(a.Strat, b.Strat) &&
+            StringComparer.OrdinalIgnoreCase.Equals(a.Sym, b.Sym) &&
+            StringComparer.OrdinalIgnoreCase.Equals(a.Side, b.Side),
+            v => HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(v.Strat ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(v.Sym ?? string.Empty),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(v.Side ?? string.Empty)
+            )));
 
         public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
 
@@ -45,7 +53,7 @@ namespace StrategyAgent
                 {
                     candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk, snap);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     // Exception policy: skip this strategy for this bar
                     continue;
