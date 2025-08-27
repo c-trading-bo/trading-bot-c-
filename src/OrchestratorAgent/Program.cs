@@ -299,6 +299,17 @@ namespace OrchestratorAgent
                                 var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
                                 status.Set($"spread.ticks.ES", st);
                             }
+                            // Live mark-to-market for ES
+                            var mark = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m);
+                            if (mark > 0m)
+                            {
+                                var qty = status.Get<int>("pos.ES.qty");
+                                var avg = status.Get<decimal?>("pos.ES.avg") ?? 0m;
+                                var bpv = BotCore.Models.InstrumentMeta.BigPointValue("ES"); if (bpv <= 0) bpv = 50m;
+                                var upnl = (qty >= 0 ? (mark - avg) : (avg - mark)) * bpv * Math.Abs(qty);
+                                status.Set("pos.ES.upnl", upnl);
+                                status.Set("pos.ES.mark", mark);
+                            }
                         }
                         catch { }
                     };
@@ -314,6 +325,17 @@ namespace OrchestratorAgent
                                 if (tick <= 0) tick = 0.25m;
                                 var st = (int)Math.Max(0, Math.Round((ask - bid) / tick));
                                 status.Set($"spread.ticks.NQ", st);
+                            }
+                            // Live mark-to-market for NQ
+                            var mark = last > 0m ? last : (bid > 0m && ask > 0m ? (bid + ask) / 2m : 0m);
+                            if (mark > 0m)
+                            {
+                                var qty = status.Get<int>("pos.NQ.qty");
+                                var avg = status.Get<decimal?>("pos.NQ.avg") ?? 0m;
+                                var bpv = BotCore.Models.InstrumentMeta.BigPointValue("NQ"); if (bpv <= 0) bpv = 20m;
+                                var upnl = (qty >= 0 ? (mark - avg) : (avg - mark)) * bpv * Math.Abs(qty);
+                                status.Set("pos.NQ.upnl", upnl);
+                                status.Set("pos.NQ.mark", mark);
                             }
                         }
                         catch { }
@@ -355,10 +377,24 @@ namespace OrchestratorAgent
                                 {
                                     var sym = kv.Key;
                                     var st = kv.Value;
+                                    // publish under original key
                                     status.Set($"pos.{sym}.qty", st.Qty);
                                     status.Set($"pos.{sym}.avg", st.AvgPrice);
                                     status.Set($"pos.{sym}.upnl", st.UnrealizedUsd);
                                     status.Set($"pos.{sym}.rpnl", st.RealizedUsd);
+                                    // also mirror under root symbol (ES/NQ) for header display
+                                    try
+                                    {
+                                        var root = SymbolMeta.RootFromName(sym);
+                                        if (!string.IsNullOrWhiteSpace(root))
+                                        {
+                                            status.Set($"pos.{root}.qty", st.Qty);
+                                            status.Set($"pos.{root}.avg", st.AvgPrice);
+                                            status.Set($"pos.{root}.upnl", st.UnrealizedUsd);
+                                            status.Set($"pos.{root}.rpnl", st.RealizedUsd);
+                                        }
+                                    }
+                                    catch { }
                                     sumRpnl += st.RealizedUsd;
                                 }
                                 // Expose day/net PnL for risk halts and heartbeat
@@ -1140,8 +1176,14 @@ namespace OrchestratorAgent
                                             var avg = status.Get<decimal?>($"pos.{sym}.avg") ?? 0m;
                                             var upnl = status.Get<decimal?>($"pos.{sym}.upnl") ?? 0m;
                                             var rpnl = status.Get<decimal?>($"pos.{sym}.rpnl") ?? 0m;
+                                            string FmtPx(string s, decimal px)
+                                            {
+                                                int dec = s.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 2 : s.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 2 : 2;
+                                                try { var d = BotCore.Models.InstrumentMeta.Decimals(s); if (d > 0) dec = d; } catch { }
+                                                return px.ToString($"F{dec}");
+                                            }
                                             string state = qty != 0
-                                                ? $"IN TRADE {(qty > 0 ? "LONG" : "SHORT")} x{Math.Abs(qty)} @ {avg:F2} uPnL {upnl:F2} rPnL {rpnl:F2}"
+                                                ? $"IN TRADE {(qty > 0 ? "LONG" : "SHORT")} x{Math.Abs(qty)} @ {FmtPx(sym, avg)} uPnL {upnl:F2} rPnL {rpnl:F2}"
                                                 : "Looking…";
                                             log.LogInformation($"[{sym}] Strategies 14/14 | {state} | Q:{(qAge >= 0 ? qAge.ToString() : "-")}s B:{(bAge >= 0 ? bAge.ToString() : "-")}s{(paused ? " PAUSED" : string.Empty)}");
                                         }
@@ -1336,11 +1378,35 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
+                    // Same-bar arbiter: choose one side (best ExpR) and cap by exposure
+                    var bestLong = signals.Where(s => string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                    var bestShort = signals.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                    var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
+                    if (chosen is null) return;
+
                     foreach (var sig in signals)
                     {
+                        if (!object.ReferenceEquals(sig, chosen)) continue; // route only chosen
                         log.LogInformation("[Strategy] {Sym} {StrategyId} {Side} @ {Entry} (stop {Stop}, t1 {Target}) size {Size} expR {ExpR}",
                             symbol, sig.StrategyId, sig.Side, sig.Entry, sig.Stop, sig.Target, sig.Size, sig.ExpR);
                         var toRoute = sig;
+
+                        // Cap net exposure via env MAX_NET_CONTRACTS_{SYM}
+                        try
+                        {
+                            int maxNet = 0;
+                            var envKey = $"MAX_NET_CONTRACTS_{symbol.ToUpperInvariant()}";
+                            var raw = Environment.GetEnvironmentVariable(envKey);
+                            if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out var v) && v > 0) maxNet = v;
+                            if (maxNet > 0)
+                            {
+                                var net = status.Get<int>($"pos.{symbol}.qty");
+                                int room = Math.Max(0, maxNet - Math.Abs(net));
+                                if (room <= 0) { log.LogInformation("[SKIP reason=max_net] {Sym} net={Net} cap={Cap}", symbol, net, maxNet); return; }
+                                if (toRoute.Size > room) { toRoute = toRoute with { Size = room }; }
+                            }
+                        }
+                        catch { }
 
                         // Drain gate: block new parent entries when draining
                         if (appState.DrainMode)
