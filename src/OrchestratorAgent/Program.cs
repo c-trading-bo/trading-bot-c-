@@ -1744,7 +1744,7 @@ namespace OrchestratorAgent
                             try
                             {
                                 var todayEt = NowET().Date;
-                                var key = s.StrategyId.ToUpperInvariant();
+                                var key = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
                                 var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
                                 if (cur.DayEt != todayEt) cur = (todayEt, 0);
                                 return cur.Count < cap;
@@ -2033,7 +2033,7 @@ namespace OrchestratorAgent
                                 lock (_entriesLock) list.Add(DateTime.UtcNow);
 
                                 var todayEt = NowET().Date;
-                                var key = sig.StrategyId.ToUpperInvariant();
+                                var key = $"{sig.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
                                 var cur = _attemptsPerStrat.AddOrUpdate(key,
                                     addValueFactory: _ => (todayEt, 1),
                                     updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
