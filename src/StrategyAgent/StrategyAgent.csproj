@@ -5,5 +5,11 @@
   <ItemGroup>
     <ProjectReference Include="..\BotCore\BotCore.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\BotCore\Strategy\S3-StrategyConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <Link>S3-StrategyConfig.json</Link>
+    </Content>
+  </ItemGroup>
 </Project>
-
