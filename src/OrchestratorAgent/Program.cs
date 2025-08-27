@@ -470,6 +470,19 @@ namespace OrchestratorAgent
                     var nqIdForSeed = enableNq && !string.IsNullOrWhiteSpace(nqContract) ? nqContract! : null;
                     await SeedBarsAsync(esIdForSeed);
                     if (nqIdForSeed != null) await SeedBarsAsync(nqIdForSeed);
+
+                    // Backfill roll-ups (1m history -> 5m/30m) so strategies don't wait 5-30 minutes
+                    void Backfill(string cid)
+                    {
+                        foreach (var b in barPyramid.M1.GetHistory(cid))
+                        {
+                            var t = b.End.AddMilliseconds(-1);
+                            barPyramid.M5.OnTrade(cid, t, b.Close, Math.Max(1, b.Volume));
+                            barPyramid.M30.OnTrade(cid, t, b.Close, Math.Max(1, b.Volume));
+                        }
+                    }
+                    try { Backfill(esIdForSeed); if (nqIdForSeed != null) Backfill(nqIdForSeed); } catch { }
+
                     dataLog.LogInformation("Bars seeded: ES={EsCnt}{NqPart}",
                         barPyramid.M1.GetHistory(esIdForSeed).Count,
                         nqIdForSeed != null ? $", NQ={barPyramid.M1.GetHistory(nqIdForSeed).Count}" : string.Empty);
@@ -1006,6 +1019,8 @@ namespace OrchestratorAgent
                         };
                         barsHist[root].Add(bar);
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
+                        // Handoff to strategy engine (bus-equivalent)
+                        log.LogInformation("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
                         await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
                         dataLog.LogInformation("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
