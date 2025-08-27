@@ -1,8 +1,8 @@
 using System;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+<<<<<<< HEAD
 using BotCore;
 using SupervisorAgent;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -19,11 +19,14 @@ using Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
+=======
+>>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
 
 namespace OrchestratorAgent
 {
     public static class Program
     {
+<<<<<<< HEAD
         // Session & ops guards (process-wide)
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
@@ -108,12 +111,14 @@ namespace OrchestratorAgent
             catch { /* best-effort */ }
         }
 
+=======
+>>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
         public static async Task Main(string[] args)
         {
-            // Ensure invariant culture for all parsing/logging regardless of OS locale
-            System.Globalization.CultureInfo.DefaultThreadCurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-            System.Globalization.CultureInfo.DefaultThreadCurrentUICulture = System.Globalization.CultureInfo.InvariantCulture;
+            var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
+            Console.WriteLine($"[Orchestrator] Starting (urls={urls}) …");
 
+<<<<<<< HEAD
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
 
@@ -174,18 +179,28 @@ namespace OrchestratorAgent
             {
                 log.LogWarning("Quick-exit mode enabled (BOT_QUICK_EXIT). Will cancel after 5 seconds.");
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
+=======
+            // Testing/CI helper: exit immediately when requested to avoid hanging without credentials
+            var quick = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
+            if (!string.IsNullOrEmpty(quick) && quick.Trim().Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("[Orchestrator] BOT_QUICK_EXIT=1 → exiting immediately.");
+                return;
+>>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
 
-            // Load configuration from environment
-            string apiBase = http.BaseAddress!.ToString().TrimEnd('/');
-            string rtcBase = (Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com").TrimEnd('/');
-            var symbolListRaw = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOLS");
-            var roots = (symbolListRaw ?? Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL") ?? "ES")
-                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(s => s.Trim().ToUpperInvariant())
-                .ToArray();
-            string symbol = roots.Length > 0 ? roots[0] : "ES";
+            // If no credentials are present, avoid long-running network calls and just exit with a clear message.
+            var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
+                          || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"))
+                          || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY"));
+            if (!hasAnyCred)
+            {
+                Console.WriteLine("[Orchestrator] No credentials detected (TOPSTEPX_JWT / TOPSTEPX_USERNAME / TOPSTEPX_API_KEY). Exiting cleanly.");
+                await Task.Delay(50);
+                return;
+            }
 
+<<<<<<< HEAD
             // Load credentials (with fallbacks for common env names)
             static string? Env(string name) => Environment.GetEnvironmentVariable(name);
             string? jwt = Env("TOPSTEPX_JWT") ?? Env("JWT");
@@ -202,17 +217,53 @@ namespace OrchestratorAgent
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
             // Clock sanity: local, UTC, CME (America/Chicago)
+=======
+            // Minimal hosting: start health endpoint and keep process running.
+>>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             try
             {
-                var nowLocal = DateTimeOffset.Now;
-                var nowUtc = DateTimeOffset.UtcNow;
-                var cmeTzId = "Central Standard Time"; // Windows TZ for America/Chicago
-                var cmeTz = TimeZoneInfo.FindSystemTimeZoneById(cmeTzId);
-                var nowCme = TimeZoneInfo.ConvertTime(nowUtc, cmeTz);
-                log.LogInformation("Clock: Local={Local} UTC={Utc} CME={CME}", nowLocal, nowUtc, nowCme);
+                var prefix = urls.EndsWith("/") ? urls : urls + "/";
+
+                // Read env
+                var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                var accountIdStr = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+                long.TryParse(accountIdStr, out var accountId);
+                var primarySymbol = Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
+
+                // Lightweight logger factory
+                using var loggerFactory = LoggerFactory.Create(builder =>
+                {
+                    builder.AddConsole();
+                    builder.SetMinimumLevel(LogLevel.Information);
+                });
+                var log = loggerFactory.CreateLogger("Orchestrator");
+
+                // Wire StatusService and ApiClient for Preflight
+                var status = new SupervisorAgent.StatusService(loggerFactory.CreateLogger<SupervisorAgent.StatusService>())
+                {
+                    AccountId = accountId
+                };
+                var http = new HttpClient();
+                var api = new BotCore.ApiClient(http, loggerFactory.CreateLogger<BotCore.ApiClient>(), apiBase);
+                var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                if (!string.IsNullOrWhiteSpace(jwt)) api.SetJwt(jwt);
+
+                var pf = new OrchestratorAgent.Health.Preflight(api, status, new OrchestratorAgent.Health.Preflight.TradingProfileConfig(), accountId);
+                var dst = new OrchestratorAgent.Health.DstGuard("America/Chicago");
+                var mode = new OrchestratorAgent.Ops.ModeController(stickyLive: false);
+
+                OrchestratorAgent.Health.HealthzServer.StartWithMode(pf, dst, mode, primarySymbol, prefix);
+                Console.WriteLine($"[Orchestrator] Health endpoint ready at {prefix}healthz (mode={ (mode.IsLive ? "LIVE" : "SHADOW") })");
+
+                // Keep running until Ctrl+C
+                using var cts = new System.Threading.CancellationTokenSource();
+                Console.CancelKeyPress += (s, e) => { e.Cancel = true; cts.Cancel(); };
+                try { await Task.Delay(System.Threading.Timeout.Infinite, cts.Token); }
+                catch (TaskCanceledException) { }
             }
             catch (Exception ex)
             {
+<<<<<<< HEAD
                 log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
             }
 
@@ -2106,10 +2157,11 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning(ex, "[Strategy] Error running strategies for {Sym}", symbol);
                 }
+=======
+                Console.Error.WriteLine($"[Orchestrator] Fatal error: {ex.Message}");
+                Environment.ExitCode = 1;
+>>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
         }
     }
 }
-
-
-
