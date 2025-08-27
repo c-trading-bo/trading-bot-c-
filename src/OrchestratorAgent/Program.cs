@@ -606,6 +606,23 @@ namespace OrchestratorAgent
                                             var esId = contractIds[esRoot];
                                             string? nqId = enableNq && contractIds.ContainsKey(nqRoot) ? contractIds[nqRoot] : null;
                                             bool quotesDone = false, barsDone = false;
+
+                                            void TryEnablePaperRouting()
+                                            {
+                                                try
+                                                {
+                                                    if (!(paperMode)) return; // enable only matters in PAPER
+                                                    bool quotesReady = status.Get<bool>("quotes.ready.ES") && (nqId == null || status.Get<bool>("quotes.ready.NQ"));
+                                                    bool barsReady = status.Get<bool>("bars.ready.ES") && (nqId == null || status.Get<bool>("bars.ready.NQ"));
+                                                    if (quotesReady && barsReady && !status.Get<bool>("paper.routing"))
+                                                    {
+                                                        status.Set("paper.routing", true);
+                                                        log.LogInformation("[Router] PAPER routing ENABLED (MinHealthy={min})", 1);
+                                                    }
+                                                }
+                                                catch { }
+                                            }
+
                                             _ = Task.Run(async () =>
                                             {
                                                 for (int i = 0; i < 200; i++) // up to ~50s
@@ -629,7 +646,11 @@ namespace OrchestratorAgent
                                                                 dataLog.LogInformation("Quotes ready: ES{0}  (latency {1})",
                                                                     nqId != null ? ",NQ" : string.Empty,
                                                                     string.Join(", ", latParts));
+                                                                // set ready flags per symbol
+                                                                status.Set("quotes.ready.ES", true);
+                                                                if (nqId != null) status.Set("quotes.ready.NQ", true);
                                                                 quotesDone = true;
+                                                                TryEnablePaperRouting();
                                                             }
                                                         }
                                                         // Bars readiness
@@ -648,7 +669,11 @@ namespace OrchestratorAgent
                                                                 dataLog.LogInformation("Bars ready:   ES{0}  (latency {1})",
                                                                     nqId != null ? ",NQ" : string.Empty,
                                                                     string.Join(", ", latParts));
+                                                                // set ready flags per symbol
+                                                                status.Set("bars.ready.ES", true);
+                                                                if (nqId != null) status.Set("bars.ready.NQ", true);
                                                                 barsDone = true;
+                                                                TryEnablePaperRouting();
                                                                 break; // both done
                                                             }
                                                         }
@@ -1256,12 +1281,13 @@ namespace OrchestratorAgent
                         var open = new TimeSpan(8, 30, 0);
                         var close = new TimeSpan(15, 0, 0);
                         bool inRth = nowCt >= open && nowCt <= close;
-                        if (!inRth)
+                        bool rthOnly = (Environment.GetEnvironmentVariable("SESSION_RTH_ONLY") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (rthOnly && !inRth)
                         {
                             log.LogInformation("[SKIP reason=session] {Sym} outside RTH", symbol);
                             return;
                         }
-                        if (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5)))
+                        if (rthOnly && (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5))))
                         {
                             log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
                             return;
