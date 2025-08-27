@@ -495,9 +495,23 @@ namespace BotCore.Strategy
 
             // Spread gate (optional provider)
             var spread = ExternalSpreadTicks?.Invoke(symbol);
+            // instrument overrides (pre-derive locals)
+            int localMaxSpread = cfg.MaxSpreadTicks;
+            decimal localWidthRankEnter = cfg.WidthRankEnter;
+            int localNrClusterMinBars = cfg.NrClusterMinBars;
+            decimal localBreakQ_MinClosePos = cfg.BreakQ_MinClosePos;
+            decimal localBreakQ_MaxOppWick = cfg.BreakQ_MaxOppWick;
+            if (S3RuntimeConfig.TryGetOverride(symbol, out var ov))
+            {
+                if (ov.MaxSpreadTicks.HasValue) localMaxSpread = ov.MaxSpreadTicks.Value;
+                if (ov.WidthRankEnter.HasValue) localWidthRankEnter = ov.WidthRankEnter.Value;
+                if (ov.NrClusterMinBars.HasValue) localNrClusterMinBars = ov.NrClusterMinBars.Value;
+                if (ov.BreakQ_MinClosePos.HasValue) localBreakQ_MinClosePos = ov.BreakQ_MinClosePos.Value;
+                if (ov.BreakQ_MaxOppWick.HasValue) localBreakQ_MaxOppWick = ov.BreakQ_MaxOppWick.Value;
+            }
             if (spread.HasValue)
             {
-                var spreadCap = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase) ? Math.Max(cfg.MaxSpreadTicks, 3) : cfg.MaxSpreadTicks;
+                var spreadCap = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase) ? Math.Max(localMaxSpread, 3) : localMaxSpread;
                 if (spread.Value > spreadCap) return lst;
             }
 
@@ -523,10 +537,10 @@ namespace BotCore.Strategy
 
             // Width-rank based squeeze
             var widthRank = PercentRankOfWidth(bars, cfg.BbLen, cfg.PreSqueezeLookback, cfg.BbMult);
-            var rankThresh = cfg.WidthRankEnter;
+            var rankThresh = localWidthRankEnter;
             if (cfg.HourlyRankAdapt)
             {
-                rankThresh = AdaptedRankThreshold(symbol, last.Start, cfg.WidthRankEnter);
+                rankThresh = AdaptedRankThreshold(symbol, last.Start, rankThresh);
             }
             bool squeezeOnRank = widthRank <= rankThresh;
 
@@ -538,7 +552,7 @@ namespace BotCore.Strategy
 
             // Width slope down and narrow-range cluster
             bool widthSlopeOk = WidthSlopeDown(bars, cfg.BbLen, cfg.BbMult, cfg.WidthSlopeDownBars, cfg.WidthSlopeTol);
-            bool hasNrCluster = HasNarrowRangeCluster(bars, cfg.PreSqueezeLookback, cfg.NrClusterRatio, cfg.NrClusterMinBars);
+            bool hasNrCluster = HasNarrowRangeCluster(bars, cfg.PreSqueezeLookback, cfg.NrClusterRatio, localNrClusterMinBars);
 
             bool squeezeArmed = (squeezeOnTTM || squeezeOnRank) && squeezeRun >= cfg.MinSqueezeBars && hasNrCluster && widthSlopeOk;
             if (!squeezeArmed) return lst;
@@ -626,8 +640,8 @@ namespace BotCore.Strategy
             if ((biasUp && last.Close < boxHi) || (biasDn && last.Close > boxLo)) buf *= cfg.ContraBufferMult;
             if (InOvernightWindow(last.Start.TimeOfDay)) buf += cfg.OvernightBufferAdd * atr;
 
-            // Break bar quality
-            if (!BreakBarQualityOk(last, cfg.BreakQ_MinClosePos, cfg.BreakQ_MaxOppWick, out var barq)) return lst;
+            // Break bar quality (apply instrument overrides if any)
+            if (!BreakBarQualityOk(last, localBreakQ_MinClosePos, localBreakQ_MaxOppWick, out var barq)) return lst;
 
             // Anchored VWAP from segment start
             var segAnchor = bars[Math.Max(0, segStartIdx)].Start;
@@ -655,6 +669,7 @@ namespace BotCore.Strategy
                 if (cfg.EntryMode.Equals("retest", StringComparison.OrdinalIgnoreCase))
                 {
                     var backoff = cfg.RetestBackoffTicks * tick;
+                    if (!DidThrowback(bars, boxHi, true, cfg.RetestBars, backoff)) return lst;
                     entry = Math.Max(px, boxHi - backoff);
                 }
                 else // breakstop
@@ -667,7 +682,8 @@ namespace BotCore.Strategy
                 var isl = Math.Min(boxLo - cfg.StopAtrMult * atr, SwingLow(bars, 5));
                 var r = entry - isl;
                 if (r <= 0) return lst;
-                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, true);
+                var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
+                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, true, expF);
                 add_cand(lst, "S3", symbol, "BUY", entry, isl, t1, env, risk);
                 st.MarkFilled(segStartIdx, Side.BUY, last.Start);
                 RegisterAttempt(symbol, session, Side.BUY);
@@ -680,6 +696,7 @@ namespace BotCore.Strategy
                 if (cfg.EntryMode.Equals("retest", StringComparison.OrdinalIgnoreCase))
                 {
                     var backoff = cfg.RetestBackoffTicks * tick;
+                    if (!DidThrowback(bars, boxLo, false, cfg.RetestBars, backoff)) return lst;
                     entry = Math.Min(px, boxLo + backoff);
                 }
                 else
@@ -692,7 +709,8 @@ namespace BotCore.Strategy
                 var ish = Math.Max(boxHi + cfg.StopAtrMult * atr, SwingHigh(bars, 5));
                 var r = ish - entry;
                 if (r <= 0) return lst;
-                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, false);
+                var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
+                var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, false, expF);
                 add_cand(lst, "S3", symbol, "SELL", entry, ish, t1, env, risk,
                     tag: $"rank={widthRank:F2} run={squeezeRun} nrOK={hasNrCluster} slope5={slope5:F3} barq={barq:F2}");
                 st.MarkFilled(segStartIdx, Side.Sell, last.Start);
@@ -884,6 +902,39 @@ namespace BotCore.Strategy
             for (int i = bars.Count - look; i < bars.Count; i++) { hi = Math.Max(hi, bars[i].High); lo = Math.Min(lo, bars[i].Low); }
             return hi - lo;
         }
+        private static bool DidThrowback(IList<Bar> bars, decimal level, bool longSide, int lookbackBars, decimal tol)
+        {
+            int s = Math.Max(0, bars.Count - lookbackBars);
+            if (longSide)
+                return bars.Skip(s).Any(b => b.Low <= level + tol);
+            else
+                return bars.Skip(s).Any(b => b.High >= level - tol);
+        }
+        private static decimal Quantile(List<decimal> a, decimal p)
+        {
+            if (a == null || a.Count == 0) return 0m; var t = a.OrderBy(x => x).ToList();
+            p = Math.Clamp(p, 0m, 1m);
+            var idx = (t.Count - 1) * (double)p;
+            int lo = (int)Math.Floor(idx); int hi = (int)Math.Ceiling(idx);
+            if (lo == hi) return t[lo];
+            var w = (decimal)(idx - lo);
+            return t[lo] + w * (t[hi] - t[lo]);
+        }
+        private static decimal ExpectedExpansionFactor(IList<Bar> bars, int lookback, decimal boxW, decimal qLevel)
+        {
+            int s = Math.Max(1, bars.Count - lookback);
+            var trs = new List<decimal>();
+            for (int i = s; i < bars.Count; i++)
+            {
+                var c = bars[i]; var p = bars[i - 1];
+                var tr = (decimal)Math.Max((float)(c.High - c.Low), Math.Max((float)Math.Abs(c.High - p.Close), (float)Math.Abs(c.Low - p.Close)));
+                trs.Add(tr);
+            }
+            if (trs.Count == 0 || boxW <= 0) return 1.6m;
+            var q = Quantile(trs, qLevel);
+            var factor = q / Math.Max(1e-9m, boxW / 2m);
+            return Math.Clamp(factor, 0.8m, 2.5m);
+        }
         private static bool InNewsWindow(DateTime nowLocal, int[] onMinutes, int beforeMin, int afterMin)
         {
             int m = nowLocal.Minute;
@@ -903,11 +954,11 @@ namespace BotCore.Strategy
             if (sym.Equals("NQ", StringComparison.OrdinalIgnoreCase)) return cfg.Peers.TryGetValue("NQ", out var v2) ? v2 : "ES";
             return null;
         }
-        private static (decimal t1, decimal t2) Targets(S3RuntimeConfig cfg, string sym, DateTime nowLocal, decimal r, decimal entry, decimal boxW, bool isLong)
+        private static (decimal t1, decimal t2) Targets(S3RuntimeConfig cfg, string sym, DateTime nowLocal, decimal r, decimal entry, decimal boxW, bool isLong, decimal? expOverride = null)
         {
             if (cfg.TargetsMode.Equals("expansion", StringComparison.OrdinalIgnoreCase))
             {
-                var exp = 1.6m; // fallback expected expansion factor of box
+                var exp = expOverride ?? 1.6m; // fallback expected expansion factor of box
                 var move = exp * boxW;
                 var t1 = isLong ? entry + Math.Max(cfg.TargetR1 * r, 0.5m * move) : entry - Math.Max(cfg.TargetR1 * r, 0.5m * move);
                 var t2 = isLong ? entry + Math.Max(cfg.TargetR2 * r, move) : entry - Math.Max(cfg.TargetR2 * r, move);
@@ -987,6 +1038,16 @@ namespace BotCore.Strategy
 
         private sealed class S3RuntimeConfig
         {
+            public sealed class InstrumentOverride
+            {
+                public int? MaxSpreadTicks { get; init; }
+                public decimal? WidthRankEnter { get; init; }
+                public int? NrClusterMinBars { get; init; }
+                public decimal? BreakQ_MinClosePos { get; init; }
+                public decimal? BreakQ_MaxOppWick { get; init; }
+            }
+            private static Dictionary<string, InstrumentOverride> _instrumentOverrides = new(StringComparer.OrdinalIgnoreCase);
+            public static bool TryGetOverride(string sym, out InstrumentOverride ov) => _instrumentOverrides.TryGetValue(sym, out ov);
             public int BbLen { get; init; } = 20;
             public decimal BbMult { get; init; } = 2.0m;
             public int KcEma { get; init; } = 20;
@@ -1125,6 +1186,36 @@ namespace BotCore.Strategy
                         {
                             if (nb.TryGetProperty("on_minutes", out var onm)) newsMins = GetIntArray(onm);
                         }
+                        // Parse instrument_overrides
+                        if (s3.TryGetProperty("instrument_overrides", out var ios) && ios.ValueKind == JsonValueKind.Object)
+                        {
+                            _instrumentOverrides.Clear();
+                            foreach (var kvp in ios.EnumerateObject())
+                            {
+                                var sym = kvp.Name;
+                                var node = kvp.Value;
+                                int? maxSpread = null; decimal? wre = null; int? nrb = null; decimal? qMinClose = null; decimal? qMaxOpp = null;
+                                if (node.ValueKind == JsonValueKind.Object)
+                                {
+                                    if (node.TryGetProperty("max_spread_ticks", out var p1) && p1.TryGetInt32(out var i1)) maxSpread = i1;
+                                    if (node.TryGetProperty("width_rank_enter", out var p2) && p2.TryGetDecimal(out var d2)) wre = d2;
+                                    if (node.TryGetProperty("nr_cluster_min_bars", out var p3) && p3.TryGetInt32(out var i3)) nrb = i3;
+                                    if (node.TryGetProperty("break_bar_quality", out var bbq) && bbq.ValueKind == JsonValueKind.Object)
+                                    {
+                                        if (bbq.TryGetProperty("min_close_pos", out var mcp) && mcp.TryGetDecimal(out var dmcp)) qMinClose = dmcp;
+                                        if (bbq.TryGetProperty("max_opp_wick", out var mow) && mow.TryGetDecimal(out var dmow)) qMaxOpp = dmow;
+                                    }
+                                }
+                                _instrumentOverrides[sym] = new InstrumentOverride
+                                {
+                                    MaxSpreadTicks = maxSpread,
+                                    WidthRankEnter = wre,
+                                    NrClusterMinBars = nrb,
+                                    BreakQ_MinClosePos = qMinClose,
+                                    BreakQ_MaxOppWick = qMaxOpp
+                                };
+                            }
+                        }
                         var cfg = new S3RuntimeConfig
                         {
                             BbLen = s3.TryGetProperty("bb_len", out var v1) && v1.TryGetInt32(out var i1) ? i1 : 20,
@@ -1152,6 +1243,7 @@ namespace BotCore.Strategy
                             ContraBufferMult = s3.TryGetProperty("contra_buffer_mult", out var cb) && cb.TryGetDecimal(out var dcb) ? dcb : 1.5m,
                             OvernightBufferAdd = s3.TryGetProperty("overnight_buffer_add", out var oba) && oba.TryGetDecimal(out var doba) ? doba : 0.05m,
                             EntryMode = s3.TryGetProperty("entry_mode", out var em) && em.ValueKind == JsonValueKind.String ? em.GetString() ?? "retest" : "retest",
+                            RetestBars = s3.TryGetProperty("retest_bars", out var rbs) && rbs.TryGetInt32(out var irbs) ? irbs : 5,
                             RetestBackoffTicks = s3.TryGetProperty("retest_backoff_ticks", out var rbt) && rbt.TryGetInt32(out var irbt) ? irbt : 1,
                             OrGuardEnabled = s3.TryGetProperty("or_guard", out var org) && org.TryGetProperty("enabled", out var oge) && oge.ValueKind == JsonValueKind.True,
                             OrMinutes = s3.TryGetProperty("or_guard", out var org2) && org2.TryGetProperty("minutes", out var ogm) && ogm.TryGetInt32(out var iogm) ? iogm : 10,
