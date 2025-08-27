@@ -484,7 +484,6 @@ namespace OrchestratorAgent
                     var barPyramid = new BotCore.Market.BarPyramid();
 
                     // Seed from REST: Retrieve Bars (1m, last 500, include partial)
-                    static DateTime ParseUtc(string s) => DateTime.Parse(s).ToUniversalTime();
                     async Task SeedBarsAsync(string contractId)
                     {
                         try
@@ -1126,30 +1125,6 @@ namespace OrchestratorAgent
                     barPyramid.M30.OnBarClosed += (cid, b) => { dataLog.LogInformation("[Bars] 30m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
 
                     // Feed live trades into the 1m aggregator (quotes not required for bars)
-                    static bool TryExtractTrade(JsonElement json, out DateTime tsUtc, out decimal price, out long qty)
-                    {
-                        tsUtc = DateTime.UtcNow; price = 0m; qty = 0L;
-                        try
-                        {
-                            // timestamp fields
-                            if (json.ValueKind == JsonValueKind.Object)
-                            {
-                                if (json.TryGetProperty("exchangeTimeUtc", out var ex) && ex.ValueKind == JsonValueKind.String && DateTime.TryParse(ex.GetString(), out var dt)) tsUtc = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-                                else if (json.TryGetProperty("timestamp", out var ts) && ts.ValueKind == JsonValueKind.Number && ts.TryGetInt64(out var ms)) tsUtc = DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime;
-                                else if (json.TryGetProperty("time", out var t) && t.ValueKind == JsonValueKind.Number && t.TryGetInt64(out var ms2)) tsUtc = DateTimeOffset.FromUnixTimeMilliseconds(ms2).UtcDateTime;
-                                // price
-                                if (json.TryGetProperty("price", out var p) && p.TryGetDecimal(out var pd)) price = pd;
-                                else if (json.TryGetProperty("last", out var lp) && lp.TryGetDecimal(out var lpd)) price = lpd;
-                                else if (json.TryGetProperty("lastPrice", out var lpp) && lpp.TryGetDecimal(out var lppd)) price = lppd;
-                                // size/qty
-                                if (json.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var q)) qty = q;
-                                else if (json.TryGetProperty("qty", out var qy) && qy.TryGetInt64(out var q2)) qty = q2;
-                                else if (json.TryGetProperty("volume", out var vv) && vv.TryGetInt64(out var q3)) qty = q3;
-                            }
-                        }
-                        catch { }
-                        return price > 0m;
-                    }
 
                     market1.OnTrade += (cid, tick) => { barPyramid.M1.OnTrade(cid, tick.TimestampUtc, tick.Price, tick.Volume); };
                     if (enableNq && market2 != null)
