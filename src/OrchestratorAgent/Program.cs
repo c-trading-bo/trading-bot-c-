@@ -309,6 +309,9 @@ namespace OrchestratorAgent
                							enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
                					}
                					catch { }
+                    // Defer wiring of quote handlers until posTracker and contractIds are initialized below
+                    Action wireQuotes = () =>
+                    {
                     market1.OnQuote += (cid, last, bid, ask) => {
                         var nowTs = DateTimeOffset.UtcNow;
                         status.Set("last.quote", nowTs);
@@ -374,6 +377,7 @@ namespace OrchestratorAgent
                             }
                         }
                         catch { }
+                    };
                     };
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
@@ -455,6 +459,9 @@ namespace OrchestratorAgent
                             status.Contracts[kv.Key] = kv.Value;
                     }
                     catch { }
+
+                    // Now that posTracker and contractIds are ready, wire quote handlers
+                    try { wireQuotes(); } catch { }
 
                     // Also record per-contract last quote/trade/bar timestamps for /preflight
                     try
