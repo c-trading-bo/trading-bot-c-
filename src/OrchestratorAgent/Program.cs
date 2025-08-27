@@ -321,36 +321,36 @@ namespace OrchestratorAgent
                     // Wire Market hub for real-time quotes/trades (per enabled symbol)
                     var market1 = new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync);
                     MarketHubClient? market2 = enableNq ? new MarketHubClient(loggerFactory.CreateLogger<MarketHubClient>(), jwtCache.GetAsync) : null;
-               					using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
-               					using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
-               					{
-               						m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
-               						await market1.StartAsync(esContract!, m1Cts.Token);
-               						if (enableNq && market2 != null && m2Cts != null)
-               						{
-               							m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
-               							await market2.StartAsync(nqContract!, m2Cts.Token);
-               						}
-               					}
-               					status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
+                    using (var m1Cts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token))
+                    using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
+                    {
+                        m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
+                        await market1.StartAsync(esContract!, m1Cts.Token);
+                        if (enableNq && market2 != null && m2Cts != null)
+                        {
+                            m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
+                            await market2.StartAsync(nqContract!, m2Cts.Token);
+                        }
+                    }
+                    status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
 
-               					// Optional warm-up: wait up to 10s for first ES/NQ tick/bar
-               					try
-               					{
-               						var t0 = DateTime.UtcNow;
-               						while (DateTime.UtcNow - t0 < TimeSpan.FromSeconds(10))
-               						{
-               							bool esOk = market1.HasRecentQuote(esContract!) || market1.HasRecentBar(esContract!, "1m");
-               							bool nqOk = !enableNq || (market2 != null && (market2.HasRecentQuote(nqContract!) || market2.HasRecentBar(nqContract!, "1m")));
-               							if (esOk && nqOk) break;
-               							await Task.Delay(250, cts.Token);
-               						}
-               						log.LogInformation("[MarketHub] Warmup: ES(Q:{Qes} B:{Bes}) NQ(Q:{Qnq} B:{Bnq})",
-               							market1.HasRecentQuote(esContract!), market1.HasRecentBar(esContract!, "1m"),
-               							enableNq && market2 != null ? market2.HasRecentQuote(nqContract!) : false,
-               							enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
-               					}
-               					catch { }
+                    // Optional warm-up: wait up to 10s for first ES/NQ tick/bar
+                    try
+                    {
+                        var t0 = DateTime.UtcNow;
+                        while (DateTime.UtcNow - t0 < TimeSpan.FromSeconds(10))
+                        {
+                            bool esOk = market1.HasRecentQuote(esContract!) || market1.HasRecentBar(esContract!, "1m");
+                            bool nqOk = !enableNq || (market2 != null && (market2.HasRecentQuote(nqContract!) || market2.HasRecentBar(nqContract!, "1m")));
+                            if (esOk && nqOk) break;
+                            await Task.Delay(250, cts.Token);
+                        }
+                        log.LogInformation("[MarketHub] Warmup: ES(Q:{Qes} B:{Bes}) NQ(Q:{Qnq} B:{Bnq})",
+                            market1.HasRecentQuote(esContract!), market1.HasRecentBar(esContract!, "1m"),
+                            enableNq && market2 != null ? market2.HasRecentQuote(nqContract!) : false,
+                            enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
+                    }
+                    catch { }
                     // ===== Positions wiring =====
                     var posTracker = new PositionTracker(log, accountId);
                     // Map symbols to contract IDs resolved from env/REST (needed in quote handlers)
@@ -369,62 +369,62 @@ namespace OrchestratorAgent
                     // Seed from REST
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
 
-                                        // ===== Dashboard: start minimal web host + RealtimeHub =====
-                                        Dashboard.RealtimeHub? dashboardHub = null;
-                                        try
-                                        {
-                                            var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
-                                            // Register RealtimeHub with metrics provider capturing current pos/status
-                                            webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
-                                            {
-                                                var logger = sp.GetRequiredService<ILogger<Dashboard.RealtimeHub>>();
-                                                Dashboard.MetricsSnapshot MetricsProvider()
-                                                {
-                                                    // Build metrics from PositionTracker snapshot
-                                                    var snap = posTracker.Snapshot();
-                                                    decimal realized = 0m, unreal = 0m;
-                                                    var chips = new List<Dashboard.PositionChip>();
-                                                    foreach (var kv in snap)
-                                                    {
-                                                        var ps = kv.Value;
-                                                        realized += ps.RealizedUsd;
-                                                        unreal += ps.UnrealizedUsd;
-                                                        // Map contractId keys back to root symbols for UI matching (ES/NQ)
-                                                        var key = kv.Key;
-                                                        string symOut = key;
-                                                        try
-                                                        {
-                                                            if (!string.IsNullOrWhiteSpace(esContract) && string.Equals(key, esContract, StringComparison.OrdinalIgnoreCase)) symOut = esRoot;
-                                                            else if (!string.IsNullOrWhiteSpace(nqContract) && string.Equals(key, nqContract, StringComparison.OrdinalIgnoreCase)) symOut = nqRoot;
-                                                        }
-                                                        catch { }
-                                                        chips.Add(new Dashboard.PositionChip(symOut, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
-                                                    }
-                                                    var mode = (Environment.GetEnvironmentVariable("PAPER_MODE") == "1") ? "PAPER" : (Environment.GetEnvironmentVariable("SHADOW_MODE") == "1") ? "SHADOW" : "LIVE";
-                                                    var day = realized + unreal;
-                                                    decimal mdl = 1000m;
-                                                    try { mdl = status.Get<decimal?>("risk.daily.max") ?? mdl; } catch { }
-                                                    var remaining = mdl + Math.Min(0m, realized);
-                                                    var userHubState = "Connected"; // simplify; refine from actual hub state if desired
-                                                    var marketHubState = "Connected";
-                                                    return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips);
-                                                }
-                                                return new Dashboard.RealtimeHub(logger, MetricsProvider);
-                                            });
-                                            webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
-                                            var web = webBuilder.Build();
-                                            web.UseDefaultFiles();
-                                            web.UseStaticFiles();
-                                            dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
-                                            web.MapDashboard(dashboardHub);
-                                            web.Urls.Add("http://localhost:5000");
-                                            _ = ((Microsoft.Extensions.Hosting.IHost)web).RunAsync(cts.Token);
-                                            log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            log.LogWarning(ex, "Dashboard failed to start; continuing without UI.");
-                                        }
+                    // ===== Dashboard: start minimal web host + RealtimeHub =====
+                    Dashboard.RealtimeHub? dashboardHub = null;
+                    try
+                    {
+                        var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+                        // Register RealtimeHub with metrics provider capturing current pos/status
+                        webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
+                        {
+                            var logger = sp.GetRequiredService<ILogger<Dashboard.RealtimeHub>>();
+                            Dashboard.MetricsSnapshot MetricsProvider()
+                            {
+                                // Build metrics from PositionTracker snapshot
+                                var snap = posTracker.Snapshot();
+                                decimal realized = 0m, unreal = 0m;
+                                var chips = new List<Dashboard.PositionChip>();
+                                foreach (var kv in snap)
+                                {
+                                    var ps = kv.Value;
+                                    realized += ps.RealizedUsd;
+                                    unreal += ps.UnrealizedUsd;
+                                    // Map contractId keys back to root symbols for UI matching (ES/NQ)
+                                    var key = kv.Key;
+                                    string symOut = key;
+                                    try
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(esContract) && string.Equals(key, esContract, StringComparison.OrdinalIgnoreCase)) symOut = esRoot;
+                                        else if (!string.IsNullOrWhiteSpace(nqContract) && string.Equals(key, nqContract, StringComparison.OrdinalIgnoreCase)) symOut = nqRoot;
+                                    }
+                                    catch { }
+                                    chips.Add(new Dashboard.PositionChip(symOut, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
+                                }
+                                var mode = (Environment.GetEnvironmentVariable("PAPER_MODE") == "1") ? "PAPER" : (Environment.GetEnvironmentVariable("SHADOW_MODE") == "1") ? "SHADOW" : "LIVE";
+                                var day = realized + unreal;
+                                decimal mdl = 1000m;
+                                try { mdl = status.Get<decimal?>("risk.daily.max") ?? mdl; } catch { }
+                                var remaining = mdl + Math.Min(0m, realized);
+                                var userHubState = "Connected"; // simplify; refine from actual hub state if desired
+                                var marketHubState = "Connected";
+                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips);
+                            }
+                            return new Dashboard.RealtimeHub(logger, MetricsProvider);
+                        });
+                        webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
+                        var web = webBuilder.Build();
+                        web.UseDefaultFiles();
+                        web.UseStaticFiles();
+                        dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
+                        web.MapDashboard(dashboardHub);
+                        web.Urls.Add("http://localhost:5000");
+                        _ = ((Microsoft.Extensions.Hosting.IHost)web).RunAsync(cts.Token);
+                        log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "Dashboard failed to start; continuing without UI.");
+                    }
 
                     // Wire ticks/marks into dashboard stream
                     if (dashboardHub is not null)
@@ -435,7 +435,8 @@ namespace OrchestratorAgent
                         if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) => { try { if (cid == nqContract && last > 0) dashboardHub.OnMark(nqRoot, last); } catch { } };
                     }
 
-                    market1.OnQuote += (cid, last, bid, ask) => {
+                    market1.OnQuote += (cid, last, bid, ask) =>
+                    {
                         var nowTs = DateTimeOffset.UtcNow;
                         status.Set("last.quote", nowTs);
                         status.Set("last.quote.updated", nowTs);
@@ -469,7 +470,8 @@ namespace OrchestratorAgent
                         }
                         catch { }
                     };
-                    if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) => {
+                    if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) =>
+                    {
                         var nowTs = DateTimeOffset.UtcNow;
                         status.Set("last.quote", nowTs);
                         status.Set("last.quote.updated", nowTs);
@@ -503,7 +505,8 @@ namespace OrchestratorAgent
                     };
                     market1.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
                     if (enableNq && market2 != null) market2.OnTrade += (_, __) => status.Set("last.trade", DateTimeOffset.UtcNow);
-                    market1.OnDepth += (cid, json) => {
+                    market1.OnDepth += (cid, json) =>
+                    {
                         status.Set("last.depth", DateTimeOffset.UtcNow);
                         try
                         {
@@ -544,7 +547,8 @@ namespace OrchestratorAgent
                         }
                         catch { }
                     };
-                    if (enableNq && market2 != null) market2.OnDepth += (cid, json) => {
+                    if (enableNq && market2 != null) market2.OnDepth += (cid, json) =>
+                    {
                         status.Set("last.depth", DateTimeOffset.UtcNow);
                         try
                         {
@@ -684,7 +688,8 @@ namespace OrchestratorAgent
                             var endUtc = DateTime.UtcNow;
                             var startUtc = endUtc.AddMinutes(-600);
 
-                            var payload = new {
+                            var payload = new
+                            {
                                 contractId = contractId,
                                 live = false,
                                 startTime = startUtc.ToString("o"),
@@ -844,11 +849,11 @@ namespace OrchestratorAgent
                     {
                         var et = NowET().TimeOfDay;
                         bool isBlackout = InRange(et, "16:58", "18:05") || InRange(et, "09:15", "09:23:30");
-                        bool isNight    = !isBlackout && (et >= TS("18:05") || et < TS("09:15"));
+                        bool isNight = !isBlackout && (et >= TS("18:05") || et < TS("09:15"));
 
-                        var dayPath   = "src\\BotCore\\Config\\high_win_rate_profile.json";
+                        var dayPath = "src\\BotCore\\Config\\high_win_rate_profile.json";
                         var nightPath = "src\\BotCore\\Config\\high_win_rate_profile.night.json";
-                        var cfgPath   = isNight ? nightPath : dayPath;
+                        var cfgPath = isNight ? nightPath : dayPath;
 
                         var activeProfile = ConfigLoader.FromFile(cfgPath);
                         try { status.Set("profile.active", activeProfile.Profile); } catch { }
@@ -874,7 +879,7 @@ namespace OrchestratorAgent
                     bool paperMode = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     bool shadowMode = (Environment.GetEnvironmentVariable("SHADOW_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var simulateMode = paperMode || shadowMode;
-                                        PaperBroker? paperBroker = simulateMode ? new PaperBroker(status, log) : null;
+                    PaperBroker? paperBroker = simulateMode ? new PaperBroker(status, log) : null;
 
                     // Autopilot flags
                     var auto = AppEnv.Flag("AUTO", false);
@@ -922,106 +927,106 @@ namespace OrchestratorAgent
                     if (!concise) LogMode();
                     mode.OnChange += _ => LogMode();
 
-                                        // One-time concise startup summary
-                                        try
+                    // One-time concise startup summary
+                    try
+                    {
+                        var symbolsSummary = string.Join(", ", contractIds.Select(kv => $"{kv.Key}:{kv.Value}"));
+                        log.LogInformation("Startup Summary => Account={AccountId} Mode={Mode} LiveOrders={Live} AutoGoLive={AutoGoLive} DryRunMin={DryMin} MinHealthy={MinHealthy} StickyLive={Sticky} Symbols=[{Symbols}]",
+                            accountId,
+                            (paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW")),
+                            live,
+                            autoGoLive,
+                            dryMin,
+                            minHealthy,
+                            stickyLive,
+                            symbolsSummary);
+                    }
+                    catch { }
+
+                    // DataFeed readiness one-time logs (Quotes and Bars)
+                    try
+                    {
+                        var esId = contractIds[esRoot];
+                        string? nqId = enableNq && contractIds.ContainsKey(nqRoot) ? contractIds[nqRoot] : null;
+                        bool quotesDone = false, barsDone = false;
+
+                        void TryEnablePaperRouting()
+                        {
+                            try
+                            {
+                                if (!(paperMode)) return; // enable only matters in PAPER
+                                bool quotesReady = status.Get<bool>("quotes.ready.ES") && (nqId == null || status.Get<bool>("quotes.ready.NQ"));
+                                bool barsReady = status.Get<bool>("bars.ready.ES") && (nqId == null || status.Get<bool>("bars.ready.NQ"));
+                                if (quotesReady && barsReady && !status.Get<bool>("paper.routing"))
+                                {
+                                    status.Set("paper.routing", true);
+                                    log.LogInformation("[Router] PAPER routing ENABLED (MinHealthy={min})", 1);
+                                }
+                            }
+                            catch { }
+                        }
+
+                        _ = Task.Run(async () =>
+                        {
+                            for (int i = 0; i < 200; i++) // up to ~50s
+                            {
+                                try
+                                {
+                                    var now = DateTimeOffset.UtcNow;
+                                    // Quotes readiness
+                                    if (!quotesDone)
+                                    {
+                                        var esQu = status.Get<DateTimeOffset?>($"last.quote.updated.{esId}") ?? status.Get<DateTimeOffset?>($"last.quote.{esId}");
+                                        var nqQu = nqId != null ? (status.Get<DateTimeOffset?>($"last.quote.updated.{nqId}") ?? status.Get<DateTimeOffset?>($"last.quote.{nqId}")) : (DateTimeOffset?)null;
+                                        bool esOk = esQu.HasValue;
+                                        bool nqOk = nqId == null || nqQu.HasValue;
+                                        if (esOk && nqOk)
                                         {
-                                            var symbolsSummary = string.Join(", ", contractIds.Select(kv => $"{kv.Key}:{kv.Value}"));
-                                            log.LogInformation("Startup Summary => Account={AccountId} Mode={Mode} LiveOrders={Live} AutoGoLive={AutoGoLive} DryRunMin={DryMin} MinHealthy={MinHealthy} StickyLive={Sticky} Symbols=[{Symbols}]",
-                                                accountId,
-                                                (paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW")),
-                                                live,
-                                                autoGoLive,
-                                                dryMin,
-                                                minHealthy,
-                                                stickyLive,
-                                                symbolsSummary);
+                                            int esMs = esQu.HasValue ? (int)Math.Max(0, (now - esQu.Value).TotalMilliseconds) : -1;
+                                            int nqMs = nqQu.HasValue ? (int)Math.Max(0, (now - nqQu.Value).TotalMilliseconds) : -1;
+                                            var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
+                                            if (nqId != null) latParts.Add($"NQ={nqMs}ms");
+                                            dataLog.LogInformation("Quotes ready: ES{0}  (latency {1})",
+                                                nqId != null ? ",NQ" : string.Empty,
+                                                string.Join(", ", latParts));
+                                            // set ready flags per symbol
+                                            status.Set("quotes.ready.ES", true);
+                                            if (nqId != null) status.Set("quotes.ready.NQ", true);
+                                            quotesDone = true;
+                                            TryEnablePaperRouting();
                                         }
-                                        catch { }
-
-                                        // DataFeed readiness one-time logs (Quotes and Bars)
-                                        try
+                                    }
+                                    // Bars readiness
+                                    if (!barsDone)
+                                    {
+                                        var esB = status.Get<DateTimeOffset?>($"last.bar.{esId}");
+                                        var nqB = nqId != null ? status.Get<DateTimeOffset?>($"last.bar.{nqId}") : (DateTimeOffset?)null;
+                                        bool esOk = esB.HasValue;
+                                        bool nqOk = nqId == null || nqB.HasValue;
+                                        if (esOk && nqOk)
                                         {
-                                            var esId = contractIds[esRoot];
-                                            string? nqId = enableNq && contractIds.ContainsKey(nqRoot) ? contractIds[nqRoot] : null;
-                                            bool quotesDone = false, barsDone = false;
-
-                                            void TryEnablePaperRouting()
-                                            {
-                                                try
-                                                {
-                                                    if (!(paperMode)) return; // enable only matters in PAPER
-                                                    bool quotesReady = status.Get<bool>("quotes.ready.ES") && (nqId == null || status.Get<bool>("quotes.ready.NQ"));
-                                                    bool barsReady = status.Get<bool>("bars.ready.ES") && (nqId == null || status.Get<bool>("bars.ready.NQ"));
-                                                    if (quotesReady && barsReady && !status.Get<bool>("paper.routing"))
-                                                    {
-                                                        status.Set("paper.routing", true);
-                                                        log.LogInformation("[Router] PAPER routing ENABLED (MinHealthy={min})", 1);
-                                                    }
-                                                }
-                                                catch { }
-                                            }
-
-                                            _ = Task.Run(async () =>
-                                            {
-                                                for (int i = 0; i < 200; i++) // up to ~50s
-                                                {
-                                                    try
-                                                    {
-                                                        var now = DateTimeOffset.UtcNow;
-                                                        // Quotes readiness
-                                                        if (!quotesDone)
-                                                        {
-                                                            var esQu = status.Get<DateTimeOffset?>($"last.quote.updated.{esId}") ?? status.Get<DateTimeOffset?>($"last.quote.{esId}");
-                                                            var nqQu = nqId != null ? (status.Get<DateTimeOffset?>($"last.quote.updated.{nqId}") ?? status.Get<DateTimeOffset?>($"last.quote.{nqId}")) : (DateTimeOffset?)null;
-                                                            bool esOk = esQu.HasValue;
-                                                            bool nqOk = nqId == null || nqQu.HasValue;
-                                                            if (esOk && nqOk)
-                                                            {
-                                                                int esMs = esQu.HasValue ? (int)Math.Max(0, (now - esQu.Value).TotalMilliseconds) : -1;
-                                                                int nqMs = nqQu.HasValue ? (int)Math.Max(0, (now - nqQu.Value).TotalMilliseconds) : -1;
-                                                                var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
-                                                                if (nqId != null) latParts.Add($"NQ={nqMs}ms");
-                                                                dataLog.LogInformation("Quotes ready: ES{0}  (latency {1})",
-                                                                    nqId != null ? ",NQ" : string.Empty,
-                                                                    string.Join(", ", latParts));
-                                                                // set ready flags per symbol
-                                                                status.Set("quotes.ready.ES", true);
-                                                                if (nqId != null) status.Set("quotes.ready.NQ", true);
-                                                                quotesDone = true;
-                                                                TryEnablePaperRouting();
-                                                            }
-                                                        }
-                                                        // Bars readiness
-                                                        if (!barsDone)
-                                                        {
-                                                            var esB = status.Get<DateTimeOffset?>($"last.bar.{esId}");
-                                                            var nqB = nqId != null ? status.Get<DateTimeOffset?>($"last.bar.{nqId}") : (DateTimeOffset?)null;
-                                                            bool esOk = esB.HasValue;
-                                                            bool nqOk = nqId == null || nqB.HasValue;
-                                                            if (esOk && nqOk)
-                                                            {
-                                                                int esMs = esB.HasValue ? (int)Math.Max(0, (now - esB.Value).TotalMilliseconds) : -1;
-                                                                int nqMs = nqB.HasValue ? (int)Math.Max(0, (now - nqB.Value).TotalMilliseconds) : -1;
-                                                                var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
-                                                                if (nqId != null) latParts.Add($"NQ={nqMs}ms");
-                                                                dataLog.LogInformation("Bars ready:   ES{0}  (latency {1})",
-                                                                    nqId != null ? ",NQ" : string.Empty,
-                                                                    string.Join(", ", latParts));
-                                                                // set ready flags per symbol
-                                                                status.Set("bars.ready.ES", true);
-                                                                if (nqId != null) status.Set("bars.ready.NQ", true);
-                                                                barsDone = true;
-                                                                TryEnablePaperRouting();
-                                                                break; // both done
-                                                            }
-                                                        }
-                                                    }
-                                                    catch { }
-                                                    try { await Task.Delay(250, cts.Token); } catch { }
-                                                }
-                                            }, cts.Token);
+                                            int esMs = esB.HasValue ? (int)Math.Max(0, (now - esB.Value).TotalMilliseconds) : -1;
+                                            int nqMs = nqB.HasValue ? (int)Math.Max(0, (now - nqB.Value).TotalMilliseconds) : -1;
+                                            var latParts = new System.Collections.Generic.List<string> { $"ES={esMs}ms" };
+                                            if (nqId != null) latParts.Add($"NQ={nqMs}ms");
+                                            dataLog.LogInformation("Bars ready:   ES{0}  (latency {1})",
+                                                nqId != null ? ",NQ" : string.Empty,
+                                                string.Join(", ", latParts));
+                                            // set ready flags per symbol
+                                            status.Set("bars.ready.ES", true);
+                                            if (nqId != null) status.Set("bars.ready.NQ", true);
+                                            barsDone = true;
+                                            TryEnablePaperRouting();
+                                            break; // both done
                                         }
-                                        catch { }
+                                    }
+                                }
+                                catch { }
+                                try { await Task.Delay(250, cts.Token); } catch { }
+                            }
+                        }, cts.Token);
+                    }
+                    catch { }
 
                     // One-time per-symbol strategies snapshot printer
                     void PrintStrategiesSnapshot()
@@ -1033,19 +1038,19 @@ namespace OrchestratorAgent
                             {
                                 var cid = contractIds[root];
                                 var qUpd = status.Get<DateTimeOffset?>($"last.quote.updated.{cid}") ?? status.Get<DateTimeOffset?>($"last.quote.{cid}");
-                                var bIn  = status.Get<DateTimeOffset?>($"last.bar.{cid}");
+                                var bIn = status.Get<DateTimeOffset?>($"last.bar.{cid}");
                                 int qMs = qUpd.HasValue ? (int)Math.Max(0, (now - qUpd.Value).TotalMilliseconds) : 0;
-                                int bMs = bIn.HasValue  ? (int)Math.Max(0, (now - bIn.Value).TotalMilliseconds)   : 0;
+                                int bMs = bIn.HasValue ? (int)Math.Max(0, (now - bIn.Value).TotalMilliseconds) : 0;
                                 log.LogDebug($"[{root}] Strategies 14/14 | Looking | Q:{qMs}ms B:{bMs}ms");
                                 log.LogDebug("  Name                         En  State     LastSignal (UTC)      Note");
                                 void Row(string name, string en, string state, string lastUtc, string note)
                                     => log.LogDebug($"  {name,-28} {en,1}   {state,-8}  {lastUtc,-20}    {note}");
                                 var tsNow = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-                                Row("Bias Filter",      "Y", "Armed",   tsNow,                  "-");
-                                Row("Breakout",         "Y", "Looking", DateTime.UtcNow.AddSeconds(-2).ToString("yyyy-MM-dd HH:mm:ss"), "-");
-                                Row("Pullback Pro",     "Y", "Idle",    "-",                   "-");
-                                Row("Opening Drive",    "Y", "Paused",  "-",                   "Daily loss lock");
-                                Row("VWAP Revert",      "Y", "Looking", "-",                   "-");
+                                Row("Bias Filter", "Y", "Armed", tsNow, "-");
+                                Row("Breakout", "Y", "Looking", DateTime.UtcNow.AddSeconds(-2).ToString("yyyy-MM-dd HH:mm:ss"), "-");
+                                Row("Pullback Pro", "Y", "Idle", "-", "-");
+                                Row("Opening Drive", "Y", "Paused", "-", "Daily loss lock");
+                                Row("VWAP Revert", "Y", "Looking", "-", "-");
                                 log.LogDebug("  … +9 more strategies hidden");
                                 log.LogDebug("");
                             }
@@ -1094,95 +1099,95 @@ namespace OrchestratorAgent
 
                     // periodic check
                     if (!(paperMode || shadowMode))
-                    _ = Task.Run(async () =>
-                    {
-                        while (!cts.IsCancellationRequested)
+                        _ = Task.Run(async () =>
                         {
-                            try
+                            while (!cts.IsCancellationRequested)
                             {
-                                var r = await pfService.RunAsync(symbol, cts.Token);
-                                status.Set("preflight.ok", r.ok);
-                                status.Set("preflight.msg", r.msg);
-                                if (!r.ok)
-                                {
-                                    status.Set("route.paused", true);
-                                    Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
-                                }
-                                // Daily drawdown halt (simple gate from env and status pnl)
                                 try
                                 {
-                                    var pnlDay = status.Get<decimal?>("pnl.net") ?? 0m;
-                                    var mdlEnv2 = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
-                                    if (!string.IsNullOrWhiteSpace(mdlEnv2) && decimal.TryParse(mdlEnv2, out var mdlVal2) && mdlVal2 > 0m)
+                                    var r = await pfService.RunAsync(symbol, cts.Token);
+                                    status.Set("preflight.ok", r.ok);
+                                    status.Set("preflight.msg", r.msg);
+                                    if (!r.ok)
                                     {
-                                        if (-pnlDay >= mdlVal2)
+                                        status.Set("route.paused", true);
+                                        Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                    }
+                                    // Daily drawdown halt (simple gate from env and status pnl)
+                                    try
+                                    {
+                                        var pnlDay = status.Get<decimal?>("pnl.net") ?? 0m;
+                                        var mdlEnv2 = Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS");
+                                        if (!string.IsNullOrWhiteSpace(mdlEnv2) && decimal.TryParse(mdlEnv2, out var mdlVal2) && mdlVal2 > 0m)
+                                        {
+                                            if (-pnlDay >= mdlVal2)
+                                            {
+                                                status.Set("route.paused", true);
+                                                status.Set("halt.reason", "DAILY_DD");
+                                                Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                            }
+                                        }
+                                    }
+                                    catch { }
+
+                                    // Loss-streak cooldown gate
+                                    try
+                                    {
+                                        var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
+                                        var last = status.Get<decimal?>("last.rpnl") ?? rpnl;
+                                        int streak = status.Get<int>("loss.streak");
+                                        if (rpnl < last - 0.01m) streak++; else if (rpnl > last + 0.01m) streak = 0;
+                                        status.Set("last.rpnl", rpnl);
+                                        status.Set("loss.streak", streak);
+                                        int maxStreak = risk.cfg.max_consecutive_losses;
+                                        if (maxStreak > 0 && streak >= maxStreak)
+                                        {
+                                            var until = DateTimeOffset.UtcNow.AddMinutes(Math.Max(0, risk.cfg.cooldown_minutes_after_streak));
+                                            status.Set("route.paused", true);
+                                            status.Set("halt.reason", "LOSS_STREAK");
+                                            status.Set("halt.until", until);
+                                            Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
+                                        }
+                                        var haltUntil = status.Get<DateTimeOffset?>("halt.until");
+                                        if (haltUntil.HasValue && DateTimeOffset.UtcNow < haltUntil.Value)
                                         {
                                             status.Set("route.paused", true);
-                                            status.Set("halt.reason", "DAILY_DD");
+                                        }
+                                    }
+                                    catch { }
+
+                                    // Weekly drawdown gate (process-scoped baseline)
+                                    try
+                                    {
+                                        var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
+                                        var weekStart = status.Get<DateTimeOffset?>("week.start");
+                                        if (!weekStart.HasValue)
+                                        {
+                                            // compute Monday 00:00 UTC-ish baseline
+                                            var now = DateTimeOffset.UtcNow;
+                                            int delta = ((int)now.DayOfWeek + 6) % 7; // Monday=0
+                                            var monday = new DateTimeOffset(now.Date.AddDays(-delta), TimeSpan.Zero);
+                                            status.Set("week.start", monday);
+                                            status.Set("week.start.pnl", rpnl);
+                                        }
+                                        var startPnl = status.Get<decimal?>("week.start.pnl") ?? rpnl;
+                                        var pnlWeek = rpnl - startPnl;
+                                        var mw = risk.cfg.max_weekly_drawdown;
+                                        if (mw > 0m && -pnlWeek >= mw)
+                                        {
+                                            status.Set("route.paused", true);
+                                            status.Set("halt.reason", "WEEKLY_DD");
                                             Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
                                         }
                                     }
-                                }
-                                catch { }
+                                    catch { }
 
-                                // Loss-streak cooldown gate
-                                try
-                                {
-                                    var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
-                                    var last = status.Get<decimal?>("last.rpnl") ?? rpnl;
-                                    int streak = status.Get<int>("loss.streak");
-                                    if (rpnl < last - 0.01m) streak++; else if (rpnl > last + 0.01m) streak = 0;
-                                    status.Set("last.rpnl", rpnl);
-                                    status.Set("loss.streak", streak);
-                                    int maxStreak = risk.cfg.max_consecutive_losses;
-                                    if (maxStreak > 0 && streak >= maxStreak)
-                                    {
-                                        var until = DateTimeOffset.UtcNow.AddMinutes(Math.Max(0, risk.cfg.cooldown_minutes_after_streak));
-                                        status.Set("route.paused", true);
-                                        status.Set("halt.reason", "LOSS_STREAK");
-                                        status.Set("halt.until", until);
-                                        Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
-                                    }
-                                    var haltUntil = status.Get<DateTimeOffset?>("halt.until");
-                                    if (haltUntil.HasValue && DateTimeOffset.UtcNow < haltUntil.Value)
-                                    {
-                                        status.Set("route.paused", true);
-                                    }
+                                    await Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
                                 }
+                                catch (OperationCanceledException) { }
                                 catch { }
-
-                                // Weekly drawdown gate (process-scoped baseline)
-                                try
-                                {
-                                    var rpnl = status.Get<decimal?>("pnl.net") ?? 0m;
-                                    var weekStart = status.Get<DateTimeOffset?>("week.start");
-                                    if (!weekStart.HasValue)
-                                    {
-                                        // compute Monday 00:00 UTC-ish baseline
-                                        var now = DateTimeOffset.UtcNow;
-                                        int delta = ((int)now.DayOfWeek + 6) % 7; // Monday=0
-                                        var monday = new DateTimeOffset(now.Date.AddDays(-delta), TimeSpan.Zero);
-                                        status.Set("week.start", monday);
-                                        status.Set("week.start.pnl", rpnl);
-                                    }
-                                    var startPnl = status.Get<decimal?>("week.start.pnl") ?? rpnl;
-                                    var pnlWeek = rpnl - startPnl;
-                                    var mw = risk.cfg.max_weekly_drawdown;
-                                    if (mw > 0m && -pnlWeek >= mw)
-                                    {
-                                        status.Set("route.paused", true);
-                                        status.Set("halt.reason", "WEEKLY_DD");
-                                        Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
-                                    }
-                                }
-                                catch { }
-
-                                await Task.Delay(TimeSpan.FromMinutes(1), cts.Token);
                             }
-                            catch (OperationCanceledException) { }
-                            catch { }
-                        }
-                    }, cts.Token);
+                        }, cts.Token);
 
                     // Start autopilot loop (with lease requirement)
                     if (autoGoLive && !(paperMode || shadowMode))
@@ -1275,91 +1280,91 @@ namespace OrchestratorAgent
 
                     // Autopilot controls LIVE/DRY via ModeController -> LIVE_ORDERS sync. Do an initial health check and render concise checklist.
                     if (!(paperMode || shadowMode))
-                    try
-                    {
-                        var initial = await pfService.RunAsync(symbol, cts.Token);
-
-                        // Build concise startup checklist (mod-menu style)
-                        var nowC = DateTimeOffset.UtcNow;
-                        bool hasJwt = !string.IsNullOrWhiteSpace(jwt);
-                        bool jwtOk = true;
                         try
                         {
-                            if (hasJwt)
+                            var initial = await pfService.RunAsync(symbol, cts.Token);
+
+                            // Build concise startup checklist (mod-menu style)
+                            var nowC = DateTimeOffset.UtcNow;
+                            bool hasJwt = !string.IsNullOrWhiteSpace(jwt);
+                            bool jwtOk = true;
+                            try
                             {
-                                var parts = jwt!.Split('.');
-                                if (parts.Length >= 2)
+                                if (hasJwt)
                                 {
-                                    var payload = parts[1];
-                                    var pad = 4 - (payload.Length % 4);
-                                    if (pad > 0 && pad < 4) payload += new string('=', pad);
-                                    payload = payload.Replace('-', '+').Replace('_', '/');
-                                    var bytes = Convert.FromBase64String(payload);
-                                    using var doc = System.Text.Json.JsonDocument.Parse(bytes);
-                                    if (doc.RootElement.TryGetProperty("exp", out var expEl))
+                                    var parts = jwt!.Split('.');
+                                    if (parts.Length >= 2)
                                     {
-                                        var exp = DateTimeOffset.FromUnixTimeSeconds(expEl.GetInt64());
-                                        jwtOk = nowC < exp - TimeSpan.FromSeconds(120);
+                                        var payload = parts[1];
+                                        var pad = 4 - (payload.Length % 4);
+                                        if (pad > 0 && pad < 4) payload += new string('=', pad);
+                                        payload = payload.Replace('-', '+').Replace('_', '/');
+                                        var bytes = Convert.FromBase64String(payload);
+                                        using var doc = System.Text.Json.JsonDocument.Parse(bytes);
+                                        if (doc.RootElement.TryGetProperty("exp", out var expEl))
+                                        {
+                                            var exp = DateTimeOffset.FromUnixTimeSeconds(expEl.GetInt64());
+                                            jwtOk = nowC < exp - TimeSpan.FromSeconds(120);
+                                        }
                                     }
                                 }
                             }
+                            catch { jwtOk = true; }
+
+                            string chk(bool ok) => ok ? "[✓]" : "[x]";
+                            string warm() => "[~]";
+
+                            var userState = status.Get<string>("user.state");
+                            var marketState = status.Get<string>("market.state");
+                            bool userOk = !string.IsNullOrWhiteSpace(userState);
+                            bool marketOk = !string.IsNullOrWhiteSpace(marketState);
+
+                            // Contracts
+                            var contractsView = string.Join(", ", (status.Contracts ?? new System.Collections.Generic.Dictionary<string, string>()).Select(kv => $"{kv.Key}={kv.Value}"));
+                            bool contractsOk = !string.IsNullOrWhiteSpace(contractsView);
+
+                            // Freshness
+                            var lastQ = status.Get<DateTimeOffset?>("last.quote");
+                            var lastB = status.Get<DateTimeOffset?>("last.bar");
+                            string quotesLine;
+                            if (lastQ.HasValue)
+                            {
+                                var age = (int)(nowC - lastQ.Value).TotalSeconds;
+                                quotesLine = $"{chk(age <= 5)} Quotes: age={age}s";
+                            }
+                            else
+                            {
+                                quotesLine = $"{warm()} Quotes: warming";
+                            }
+                            string barsLine;
+                            if (lastB.HasValue)
+                            {
+                                var age = (int)(nowC - lastB.Value).TotalSeconds;
+                                barsLine = $"{chk(age <= 30)} Bars: age={age}s";
+                            }
+                            else
+                            {
+                                barsLine = $"{warm()} Bars: warming";
+                            }
+
+                            var preflightLine = initial.ok ? "[✓] Preflight: OK" : $"[x] Preflight: {initial.msg}";
+
+                            var sb = new System.Text.StringBuilder();
+                            sb.AppendLine("Startup Checklist:");
+                            sb.AppendLine($"  {chk(hasJwt)} JWT present");
+                            sb.AppendLine($"  {chk(jwtOk)} JWT not expiring soon");
+                            sb.AppendLine($"  {chk(userOk)} UserHub: {(userOk ? userState : "disconnected")}");
+                            sb.AppendLine($"  {chk(marketOk)} MarketHub: {(marketOk ? marketState : "disconnected")}");
+                            sb.AppendLine($"  {chk(contractsOk)} Contracts: [{contractsView}]");
+                            sb.AppendLine($"  {quotesLine}");
+                            sb.AppendLine($"  {barsLine}");
+                            sb.AppendLine($"  {preflightLine}");
+                            log.LogInformation(sb.ToString().TrimEnd());
+
+                            if (!initial.ok)
+                                log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy. Reason: {Msg}", initial.msg);
                         }
-                        catch { jwtOk = true; }
-
-                        string chk(bool ok) => ok ? "[✓]" : "[x]";
-                        string warm() => "[~]";
-
-                        var userState = status.Get<string>("user.state");
-                        var marketState = status.Get<string>("market.state");
-                        bool userOk = !string.IsNullOrWhiteSpace(userState);
-                        bool marketOk = !string.IsNullOrWhiteSpace(marketState);
-
-                        // Contracts
-                        var contractsView = string.Join(", ", (status.Contracts ?? new System.Collections.Generic.Dictionary<string,string>()).Select(kv => $"{kv.Key}={kv.Value}"));
-                        bool contractsOk = !string.IsNullOrWhiteSpace(contractsView);
-
-                        // Freshness
-                        var lastQ = status.Get<DateTimeOffset?>("last.quote");
-                        var lastB = status.Get<DateTimeOffset?>("last.bar");
-                        string quotesLine;
-                        if (lastQ.HasValue)
-                        {
-                            var age = (int)(nowC - lastQ.Value).TotalSeconds;
-                            quotesLine = $"{chk(age <= 5)} Quotes: age={age}s";
-                        }
-                        else
-                        {
-                            quotesLine = $"{warm()} Quotes: warming";
-                        }
-                        string barsLine;
-                        if (lastB.HasValue)
-                        {
-                            var age = (int)(nowC - lastB.Value).TotalSeconds;
-                            barsLine = $"{chk(age <= 30)} Bars: age={age}s";
-                        }
-                        else
-                        {
-                            barsLine = $"{warm()} Bars: warming";
-                        }
-
-                        var preflightLine = initial.ok ? "[✓] Preflight: OK" : $"[x] Preflight: {initial.msg}";
-
-                        var sb = new System.Text.StringBuilder();
-                        sb.AppendLine("Startup Checklist:");
-                        sb.AppendLine($"  {chk(hasJwt)} JWT present");
-                        sb.AppendLine($"  {chk(jwtOk)} JWT not expiring soon");
-                        sb.AppendLine($"  {chk(userOk)} UserHub: {(userOk ? userState : "disconnected")}");
-                        sb.AppendLine($"  {chk(marketOk)} MarketHub: {(marketOk ? marketState : "disconnected")}");
-                        sb.AppendLine($"  {chk(contractsOk)} Contracts: [{contractsView}]");
-                        sb.AppendLine($"  {quotesLine}");
-                        sb.AppendLine($"  {barsLine}");
-                        sb.AppendLine($"  {preflightLine}");
-                        log.LogInformation(sb.ToString().TrimEnd());
-
-                        if (!initial.ok)
-                            log.LogWarning("Preflight initial check failed — starting in SHADOW. Autopilot will retry and promote when healthy. Reason: {Msg}", initial.msg);
-                    }
-                    catch { }
+                        catch { }
 
                     // On new bar close (1m), run strategies and notify status; also roll-ups happen inside BarPyramid
                     barPyramid.M1.OnBarClosed += async (cid, b) =>
@@ -1513,8 +1518,8 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                     var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
-                     log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
+                    var quickExit = string.Equals(Environment.GetEnvironmentVariable("BOT_QUICK_EXIT"), "1", StringComparison.Ordinal);
+                    log.LogInformation(quickExit ? "Bot launched (quick-exit). Verifying startup then exiting..." : "Bot launched. Press Ctrl+C to exit.");
                     try
                     {
                         // Keep running until cancelled (or quick short delay when BOT_QUICK_EXIT=1)
