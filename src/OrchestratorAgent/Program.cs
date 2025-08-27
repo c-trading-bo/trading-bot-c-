@@ -855,6 +855,7 @@ namespace OrchestratorAgent
                         log.LogInformation("Profile loaded: {Profile} from {Path}", activeProfile.Profile, cfgPath);
                         try { status.Set("profile.buffers.ES", activeProfile.Buffers?.ES_Ticks ?? 0); } catch { }
                         try { status.Set("profile.buffers.NQ", activeProfile.Buffers?.NQ_Ticks ?? 0); } catch { }
+                        try { status.Set("profile.min_spacing_sec", activeProfile.GlobalFilters?.MinSecondsBetweenEntries ?? (isNight ? 120 : 45)); } catch { }
 
                         // optional: if curfew, disable entries & flatten
                         if (InRange(et, "09:15", "09:23:30"))
@@ -1738,6 +1739,29 @@ namespace OrchestratorAgent
                             if (curDepth < minDepth)
                             {
                                 log.LogInformation("[SKIP reason=depth_min] {Sym} top-of-book={Depth} min={Min}", symbol, curDepth, minDepth);
+                                return;
+                            }
+                        }
+                    }
+                    catch { }
+
+                    // Entry spacing guard per profile (per-symbol)
+                    try
+                    {
+                        var etNow3 = NowET().TimeOfDay;
+                        bool isBlackout3 = InRange(etNow3, "16:58", "18:05") || InRange(etNow3, "09:15", "09:23:30");
+                        bool isNight3 = !isBlackout3 && (etNow3 >= TS("18:05") || etNow3 < TS("09:15"));
+                        int defSpacing = isNight3 ? 120 : 45;
+                        int spacingSec = defSpacing;
+                        try { var s = status.Get<int>("profile.min_spacing_sec"); if (s > 0) spacingSec = s; } catch { }
+                        var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
+                        DateTime? last = null; lock (_entriesLock) { if (list.Count > 0) last = list[^1]; }
+                        if (last.HasValue)
+                        {
+                            var age = DateTime.UtcNow - last.Value;
+                            if (age < TimeSpan.FromSeconds(spacingSec))
+                            {
+                                log.LogInformation("[SKIP reason=entry_spacing] {Sym} last_entry_age={Age}s min={Min}s", symbol, (int)age.TotalSeconds, spacingSec);
                                 return;
                             }
                         }
