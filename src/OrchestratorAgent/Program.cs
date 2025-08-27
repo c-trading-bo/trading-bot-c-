@@ -17,6 +17,7 @@ using System.Net.Http.Json;
 using Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 
 namespace OrchestratorAgent
 {
