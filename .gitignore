@@ -4,3 +4,21 @@ obj/
 **/*.suo
 .vscode/
 .env.local
+# Ignore accidentally embedded repos
+trading-bot-c-/
+trading-bot-c--1/
+
+# Extra build outputs
+**/bin/
+**/obj/
+
+# Logs/temp/state
+*.log
+logs/
+journal/
+state/backtest/
+state/tuning/*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
