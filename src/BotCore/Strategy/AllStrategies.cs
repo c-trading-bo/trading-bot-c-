@@ -394,6 +394,39 @@ namespace BotCore.Strategy
             var a = atr > 0 ? d / atr : 0m;
             try { S2Quantiles.Observe(symbol, nowLocal, Math.Abs(z)); } catch { }
 
+            // ADR guards: compute simple rolling ADR and today's realized range
+            decimal adr = 0m;
+            int look = Math.Max(5, S2RuntimeConfig.AdrLookbackDays);
+            int daysCounted = 0; decimal sumAdr = 0m;
+            for (int i = bars.Count - 1; i >= 0 && daysCounted < look; i--)
+            {
+                var day = bars[i].Start.Date;
+                var dayStartIdx = i;
+                while (dayStartIdx - 1 >= 0 && bars[dayStartIdx - 1].Start.Date == day) dayStartIdx--;
+                var dayEndIdx = i;
+                decimal hi = bars[dayStartIdx].High, lo = bars[dayStartIdx].Low;
+                for (int j = dayStartIdx; j <= dayEndIdx; j++) { if (bars[j].High > hi) hi = bars[j].High; if (bars[j].Low < lo) lo = bars[j].Low; }
+                sumAdr += Math.Max(0m, hi - lo);
+                daysCounted++;
+                i = dayStartIdx; // for-loop will i-- again
+            }
+            if (daysCounted > 0) adr = sumAdr / daysCounted;
+            // Today's realized range
+            decimal todayHi = 0m, todayLo = 0m; bool todayInit = false;
+            var today = nowLocal.Date;
+            for (int i = 0; i < bars.Count; i++)
+            {
+                if (bars[i].Start.Date != today) continue;
+                if (!todayInit) { todayHi = bars[i].High; todayLo = bars[i].Low; todayInit = true; }
+                else { if (bars[i].High > todayHi) todayHi = bars[i].High; if (bars[i].Low < todayLo) todayLo = bars[i].Low; }
+            }
+            var todayRange = todayInit ? (todayHi - todayLo) : 0m;
+            if (adr > 0m)
+            {
+                // Exhaustion cap
+                if (todayRange > S2RuntimeConfig.AdrExhaustionCap * adr) return lst;
+            }
+
             // Instrument-specific σ triggers
             bool isNq = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase);
             decimal esSigma = S2RuntimeConfig.EsSigma, nqSigma = S2RuntimeConfig.NqSigma;
@@ -437,9 +470,13 @@ namespace BotCore.Strategy
             var tickSize = InstrumentMeta.Tick(symbol);
             bool pivotOKLong  = S2Upg.PivotDistanceOK(bars, px, atr, tickSize, true);
             bool pivotOKShort = S2Upg.PivotDistanceOK(bars, px, atr, tickSize, false);
+            // Additional room vs prior-day extremes and deceleration toward VWAP
+            bool roomLong  = S2Upg.HasRoomVsPriorExtremes(bars, nowLocal, px, tickSize, atr, true, (0.25m, 4));
+            bool roomShort = S2Upg.HasRoomVsPriorExtremes(bars, nowLocal, px, tickSize, atr, false, (0.25m, 4));
+            bool decel     = S2Upg.ZDecelerating(bars, vwap, sigma, S2RuntimeConfig.ConfirmLookback);
 
             // LONG: fade below VWAP
-            if ((z <= -dynSigma || a <= -baseAtr) && imb >= 0.9m && pivotOKLong)
+            if ((z <= -dynSigma || a <= -baseAtr) && imb >= 0.9m && pivotOKLong && roomLong && decel)
             {
                 if (BullConfirm(bars) || reclaimDown)
                 {
@@ -450,12 +487,18 @@ namespace BotCore.Strategy
                     if (stop >= entry) stop = entry - 0.25m * atr;
                     var r = entry - stop;
                     var t1 = vwap;
+                    // Require minimum room to target vs ADR
+                    if (adr > 0m)
+                    {
+                        var room = Math.Abs(t1 - entry);
+                        if (room < S2RuntimeConfig.AdrRoomFrac * adr) return lst;
+                    }
                     if (t1 - entry < 0.8m * r) t1 = entry + 0.9m * r;
                     add_cand(lst, "S2", symbol, "BUY", entry, stop, t1, env, risk);
                 }
             }
             // SHORT: fade above VWAP
-            else if ((z >= dynSigma || a >= baseAtr) && imb <= 1.1m && pivotOKShort)
+            else if ((z >= dynSigma || a >= baseAtr) && imb <= 1.1m && pivotOKShort && roomShort && decel)
             {
                 if (BearConfirm(bars) || rejectUp)
                 {
@@ -466,6 +509,12 @@ namespace BotCore.Strategy
                     if (stop <= entry) stop = entry + 0.25m * atr;
                     var r = stop - entry;
                     var t1 = vwap;
+                    // Require minimum room to target vs ADR
+                    if (adr > 0m)
+                    {
+                        var room = Math.Abs(entry - t1);
+                        if (room < S2RuntimeConfig.AdrRoomFrac * adr) return lst;
+                    }
                     if (entry - t1 < 0.8m * r) t1 = entry - 0.9m * r;
                     add_cand(lst, "S2", symbol, "SELL", entry, stop, t1, env, risk);
                 }
