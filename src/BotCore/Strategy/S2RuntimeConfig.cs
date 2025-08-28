@@ -2,72 +2,86 @@ using System;
 using System.Text.Json;
 using BotCore.Config;
 
-namespace BotCore.Strategy
+namespace BotCore.Strategy;
+
+// Lightweight runtime configuration holder for S2 (VWAP Mean-Reversion)
+public static class S2RuntimeConfig
 {
-    // Lightweight runtime configuration holder for S2 (VWAP Mean-Reversion)
-    public static class S2RuntimeConfig
+    // Defaults match the provided JSON requirements
+    public static string Tf1 { get; private set; } = "M1";
+    public static string Tf2 { get; private set; } = "M5";
+    public static int AtrLen { get; private set; } = 14;
+    public static decimal SigmaEnter { get; private set; } = 2.0m;
+    public static decimal AtrEnter { get; private set; } = 1.0m;
+    public static decimal SigmaForceTrend { get; private set; } = 2.8m;
+    public static decimal MinSlopeTf2 { get; private set; } = 0.18m; // ticks/bar on EMA20 TF2 (proxy)
+    public static decimal VolZMin { get; private set; } = -0.3m;
+    public static decimal VolZMax { get; private set; } = 2.2m;
+    public static int ConfirmLookback { get; private set; } = 3;
+    public static int ValidityBars { get; private set; } = 3;
+    public static int CooldownBars { get; private set; } = 5;
+    public static int MaxBarsInTrade { get; private set; } = 45;
+    public static decimal StopAtrMult { get; private set; } = 0.75m;
+    public static decimal TrailAtrMult { get; private set; } = 1.0m;
+    public static int IbEndMinute { get; private set; } = 10 * 60 + 30; // 630
+    public static decimal EsSigma { get; private set; } = 2.0m;
+    public static decimal NqSigma { get; private set; } = 2.6m;
+    public static decimal OvernightScale { get; private set; } = 0.5m;
+    public static int MinVolume { get; private set; } = 3000;
+    public static int MaxSpreadTicks { get; private set; } = 2;
+    // ADR guards
+    public static int AdrLookbackDays { get; private set; } = 20;
+    public static decimal AdrRoomFrac { get; private set; } = 0.25m;    // require ≥25% ADR room to target
+    public static decimal AdrExhaustionCap { get; private set; } = 1.20m; // block if today range > 1.2×ADR
+
+    public static void ApplyFrom(StrategyDef def)
     {
-        // Defaults match the provided JSON requirements
-        public static string Tf1 { get; private set; } = "M1";
-        public static string Tf2 { get; private set; } = "M5";
-        public static int AtrLen { get; private set; } = 14;
-        public static decimal SigmaEnter { get; private set; } = 2.0m;
-        public static decimal AtrEnter { get; private set; } = 1.0m;
-        public static decimal SigmaForceTrend { get; private set; } = 2.8m;
-        public static decimal MinSlopeTf2 { get; private set; } = 0.18m; // ticks/bar on EMA20 TF2 (proxy)
-        public static decimal VolZMin { get; private set; } = -0.3m;
-        public static decimal VolZMax { get; private set; } = 2.2m;
-        public static int ConfirmLookback { get; private set; } = 3;
-        public static int ValidityBars { get; private set; } = 3;
-        public static int CooldownBars { get; private set; } = 5;
-        public static int MaxBarsInTrade { get; private set; } = 45;
-        public static decimal StopAtrMult { get; private set; } = 0.75m;
-        public static decimal TrailAtrMult { get; private set; } = 1.0m;
-        public static int IbEndMinute { get; private set; } = 10 * 60 + 30; // 630
-        public static decimal EsSigma { get; private set; } = 2.0m;
-        public static decimal NqSigma { get; private set; } = 2.6m;
-        public static decimal OvernightScale { get; private set; } = 0.5m;
-        public static int MinVolume { get; private set; } = 3000;
-        public static int MaxSpreadTicks { get; private set; } = 2;
-
-        public static void ApplyFrom(StrategyDef def)
+        if (def is null) return;
+        var extra = def.Extra;
+        TryString(extra, "tf1", s => Tf1 = s);
+        TryString(extra, "tf2", s => Tf2 = s);
+        TryInt(extra, "atr_len", v => AtrLen = v);
+        TryDec(extra, "sigma_enter", v => SigmaEnter = v);
+        TryDec(extra, "atr_enter", v => AtrEnter = v);
+        TryDec(extra, "sigma_force_trend", v => SigmaForceTrend = v);
+        TryDec(extra, "min_slope_tf2", v => MinSlopeTf2 = v);
+        if (extra.TryGetValue("volz", out var volzEl) && volzEl.ValueKind == JsonValueKind.Object)
         {
-            if (def is null) return;
-            var extra = def.Extra;
-            try { if (extra.TryGetValue("tf1", out var el) && el.ValueKind == JsonValueKind.String) Tf1 = el.GetString() ?? Tf1; } catch { }
-            try { if (extra.TryGetValue("tf2", out var el) && el.ValueKind == JsonValueKind.String) Tf2 = el.GetString() ?? Tf2; } catch { }
-            TryInt(extra, "atr_len", v => AtrLen = v);
-            TryDec(extra, "sigma_enter", v => SigmaEnter = v);
-            TryDec(extra, "atr_enter", v => AtrEnter = v);
-            TryDec(extra, "sigma_force_trend", v => SigmaForceTrend = v);
-            TryDec(extra, "min_slope_tf2", v => MinSlopeTf2 = v);
-            if (extra.TryGetValue("volz", out var volzEl) && volzEl.ValueKind == JsonValueKind.Object)
-            {
-                try { if (volzEl.TryGetProperty("min", out var mn) && mn.TryGetDecimal(out var v)) VolZMin = v; } catch { }
-                try { if (volzEl.TryGetProperty("max", out var mx) && mx.TryGetDecimal(out var v)) VolZMax = v; } catch { }
-            }
-            TryInt(extra, "confirm_lookback", v => ConfirmLookback = v);
-            TryInt(extra, "validity_bars", v => ValidityBars = v);
-            TryInt(extra, "cooldown_bars", v => CooldownBars = v);
-            TryInt(extra, "max_bars_in_trade", v => MaxBarsInTrade = v);
-            TryDec(extra, "stop_atr_mult", v => StopAtrMult = v);
-            TryDec(extra, "trail_atr_mult", v => TrailAtrMult = v);
-            TryInt(extra, "ib_end_minute", v => IbEndMinute = v);
-            TryDec(extra, "es_sigma", v => EsSigma = v);
-            TryDec(extra, "nq_sigma", v => NqSigma = v);
-            TryDec(extra, "overnight_scale", v => OvernightScale = v);
-            // news_block not used here; global gates already cover minute gates
-            TryInt(extra, "min_volume", v => MinVolume = v);
-            TryInt(extra, "max_spread_ticks", v => MaxSpreadTicks = v);
+            if (volzEl.TryGetProperty("min", out var mn) && mn.TryGetDecimal(out var vMin)) VolZMin = vMin;
+            if (volzEl.TryGetProperty("max", out var mx) && mx.TryGetDecimal(out var vMax)) VolZMax = vMax;
         }
+        TryInt(extra, "confirm_lookback", v => ConfirmLookback = v);
+        TryInt(extra, "validity_bars", v => ValidityBars = v);
+        TryInt(extra, "cooldown_bars", v => CooldownBars = v);
+        TryInt(extra, "max_bars_in_trade", v => MaxBarsInTrade = v);
+        TryDec(extra, "stop_atr_mult", v => StopAtrMult = v);
+        TryDec(extra, "trail_atr_mult", v => TrailAtrMult = v);
+        TryInt(extra, "ib_end_minute", v => IbEndMinute = v);
+        TryDec(extra, "es_sigma", v => EsSigma = v);
+        TryDec(extra, "nq_sigma", v => NqSigma = v);
+        TryDec(extra, "overnight_scale", v => OvernightScale = v);
+        TryInt(extra, "min_volume", v => MinVolume = v);
+        TryInt(extra, "max_spread_ticks", v => MaxSpreadTicks = v);
+        // ADR guards (optional)
+        TryInt(extra, "adr_lookback_days", v => AdrLookbackDays = v);
+        TryDec(extra, "adr_room_frac", v => AdrRoomFrac = v);
+        TryDec(extra, "adr_exhaustion_cap", v => AdrExhaustionCap = v);
+    }
 
-        private static void TryInt(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<int> set)
+    private static void TryInt(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<int> set)
+    {
+        if (extra.TryGetValue(key, out var el) && el.TryGetInt32(out var v)) set(v);
+    }
+    private static void TryDec(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<decimal> set)
+    {
+        if (extra.TryGetValue(key, out var el) && el.TryGetDecimal(out var v)) set(v);
+    }
+    private static void TryString(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<string> set)
+    {
+        if (extra.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.String)
         {
-            try { if (extra.TryGetValue(key, out var el) && el.TryGetInt32(out var v)) set(v); } catch { }
-        }
-        private static void TryDec(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<decimal> set)
-        {
-            try { if (extra.TryGetValue(key, out var el) && el.TryGetDecimal(out var v)) set(v); } catch { }
+            var s = el.GetString();
+            if (!string.IsNullOrWhiteSpace(s)) set(s!);
         }
     }
 }
