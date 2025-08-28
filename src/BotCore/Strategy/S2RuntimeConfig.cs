@@ -30,6 +30,18 @@ namespace BotCore.Strategy
         public static int MinVolume { get; private set; } = 3000;
         public static int MaxSpreadTicks { get; private set; } = 2;
 
+        // Patch B: S2 tunables
+        public static int MaxTradesPerSession { get; private set; } = 3;
+        public static string EntryMode { get; private set; } = "retest";
+        public static int RetestOffsetTicks { get; private set; } = 1;
+        public static decimal IbAtrGuardMult { get; private set; } = 1.5m;
+        public static decimal OrAtrGuardMult { get; private set; } = 2.0m;
+        public static decimal GapGuardThreshold { get; private set; } = 8.0m; // ticks
+        public static decimal RsPeerThreshold { get; private set; } = 0.7m;
+        public static decimal RollWeekSigmaBump { get; private set; } = 0.3m;
+        public static bool PriorDayVwapVeto { get; private set; } = true;
+        public static bool PriorDayCloseVeto { get; private set; } = true;
+
         public static void ApplyFrom(StrategyDef def)
         {
             if (def is null) return;
@@ -59,6 +71,18 @@ namespace BotCore.Strategy
             // news_block not used here; global gates already cover minute gates
             TryInt(extra, "min_volume", v => MinVolume = v);
             TryInt(extra, "max_spread_ticks", v => MaxSpreadTicks = v);
+            
+            // Patch B: S2 tunables
+            TryInt(extra, "max_trades_per_session", v => MaxTradesPerSession = v);
+            TryStr(extra, "entry_mode", v => EntryMode = v);
+            TryInt(extra, "retest_offset_ticks", v => RetestOffsetTicks = v);
+            TryDec(extra, "ib_atr_guard_mult", v => IbAtrGuardMult = v);
+            TryDec(extra, "or_atr_guard_mult", v => OrAtrGuardMult = v);
+            TryDec(extra, "gap_guard_threshold", v => GapGuardThreshold = v);
+            TryDec(extra, "rs_peer_threshold", v => RsPeerThreshold = v);
+            TryDec(extra, "roll_week_sigma_bump", v => RollWeekSigmaBump = v);
+            TryBool(extra, "prior_day_vwap_veto", v => PriorDayVwapVeto = v);
+            TryBool(extra, "prior_day_close_veto", v => PriorDayCloseVeto = v);
         }
 
         private static void TryInt(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<int> set)
@@ -68,6 +92,14 @@ namespace BotCore.Strategy
         private static void TryDec(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<decimal> set)
         {
             try { if (extra.TryGetValue(key, out var el) && el.TryGetDecimal(out var v)) set(v); } catch { }
+        }
+        private static void TryStr(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<string> set)
+        {
+            try { if (extra.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.String) { var s = el.GetString(); if (s != null) set(s); } } catch { }
+        }
+        private static void TryBool(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<bool> set)
+        {
+            try { if (extra.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.True) set(true); else if (el.ValueKind == JsonValueKind.False) set(false); } catch { }
         }
     }
 }

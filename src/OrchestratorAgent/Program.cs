@@ -980,7 +980,22 @@ namespace OrchestratorAgent
                         // Apply S2 runtime config from profile if present
                         try {
                             var s2def = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
-                            if (s2def is not null) BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
+                            if (s2def is not null) 
+                            {
+                                BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
+                                // Log Patch B S2 config for observability
+                                log.LogInformation("S2 Patch B Config: maxTrades={MaxTrades} entryMode={EntryMode} retestOffset={RetestOffset} ibGuard={IbGuard} orGuard={OrGuard} gapThresh={GapThresh} rsThresh={RsThresh} rollBump={RollBump} vwapVeto={VwapVeto} closeVeto={CloseVeto}",
+                                    BotCore.Strategy.S2RuntimeConfig.MaxTradesPerSession,
+                                    BotCore.Strategy.S2RuntimeConfig.EntryMode,
+                                    BotCore.Strategy.S2RuntimeConfig.RetestOffsetTicks,
+                                    BotCore.Strategy.S2RuntimeConfig.IbAtrGuardMult,
+                                    BotCore.Strategy.S2RuntimeConfig.OrAtrGuardMult,
+                                    BotCore.Strategy.S2RuntimeConfig.GapGuardThreshold,
+                                    BotCore.Strategy.S2RuntimeConfig.RsPeerThreshold,
+                                    BotCore.Strategy.S2RuntimeConfig.RollWeekSigmaBump,
+                                    BotCore.Strategy.S2RuntimeConfig.PriorDayVwapVeto,
+                                    BotCore.Strategy.S2RuntimeConfig.PriorDayCloseVeto);
+                            }
                         } catch { }
 
                         // optional: if curfew, disable entries & flatten; auto-clear at 09:28
