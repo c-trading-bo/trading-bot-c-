@@ -48,7 +48,6 @@
       "session_window_et": "10:20-12:30",
       "regimes": ["range","low_vol"],
       "filters": { "zscore_vwap_min": 1.0, "zscore_vwap_max": 1.6, "adx_max": 18 },
-      // Patch B: S2 tunables (safe defaults, no behavior change yet)
       "attempt_caps_per_session": 3,
       "attempt_caps_per_day": 5,
       "max_trades_per_session": 2,
