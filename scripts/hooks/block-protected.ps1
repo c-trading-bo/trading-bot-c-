@@ -16,18 +16,22 @@ if (-not $files -or $files.Count -eq 0) {
 
 # Case-insensitive regexes for protected areas
 $protected = @(
-    # Secrets / env / keys
-    '^(.*/)?\.env(\..*)?$',
-    '^(secrets|keys)(/|\\)',
-    # CI workflows
-    '^\.github(/|\\)workflows(/|\\).+\.yml$',
-    # Auth/login code
-    '^(src(/|\\))?TopstepAuthAgent(/|\\)',
-    '^(src(/|\\))?BotCore(/|\\)Auth(/|\\)',
-    '^(src(/|\\))?BotCore(/|\\)JwtCache\.cs$',
-    # Risk code
-    '^(src(/|\\))?RiskAgent(/|\\)',
-    '^(src(/|\\))?BotCore(/|\\)Risk(/|\\)'
+  # Secrets / env / keys
+  '^(.*/)?\.env(\..*)?$',
+  '^(secrets|keys)(/|\\)',
+  # CI workflows
+  '^\.github(/|\\)workflows(/|\\).+\.yml$',
+  # Auth/login code — broadened: any src path containing an Auth folder or Auth/Jwt/Login in filename
+  '^(src(/|\\))?TopstepAuthAgent(/|\\)',
+  '^(src(/|\\)).*(/|\\)Auth(/|\\)',
+  '^(src(/|\\)).*Auth.*\.cs$',
+  '^(src(/|\\)).*Jwt.*\.cs$',
+  '^(src(/|\\)).*Login.*\.cs$',
+  # Specific cache file
+  '^(src(/|\\))?BotCore(/|\\)JwtCache\.cs$',
+  # Risk code
+  '^(src(/|\\))?RiskAgent(/|\\)',
+  '^(src(/|\\))?BotCore(/|\\)Risk(/|\\)'
 )
 
 $protectedHits = @()
