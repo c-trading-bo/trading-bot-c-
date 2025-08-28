@@ -24,6 +24,60 @@ namespace BotCore.Strategy
             return dn <= 0 ? 1.5m : up / dn; // >1 buyers dominant; <1 sellers dominant
         }
 
+        // Prior day extremes (using local calendar day on Bar.Start). Returns (hi, lo); zeros if not found.
+        public static (decimal hi, decimal lo) PriorDayHiLo(IList<Bar> bars, DateTime nowLocal)
+        {
+            if (bars == null || bars.Count == 0) return (0m, 0m);
+            var prevDate = nowLocal.Date.AddDays(-1);
+            bool found = false; decimal hi = 0m, lo = 0m;
+            for (int i = 0; i < bars.Count; i++)
+            {
+                var d = bars[i].Start.Date;
+                if (d != prevDate) continue;
+                if (!found) { hi = bars[i].High; lo = bars[i].Low; found = true; }
+                else { if (bars[i].High > hi) hi = bars[i].High; if (bars[i].Low < lo) lo = bars[i].Low; }
+            }
+            return found ? (hi, lo) : (0m, 0m);
+        }
+
+        // Ensure there is minimum room vs prior-day extremes (in ticks or ATR fraction)
+        public static bool HasRoomVsPriorExtremes(
+            IList<Bar> bars,
+            DateTime nowLocal,
+            decimal price,
+            decimal tick,
+            decimal atr,
+            bool longSide,
+            (decimal minAtrFrac, int minTicks) thresh)
+        {
+            var (pHi, pLo) = PriorDayHiLo(bars, nowLocal);
+            if (pHi == 0m && pLo == 0m) return true; // no data → allow
+            var req = Math.Max(thresh.minAtrFrac * Math.Max(tick, atr), thresh.minTicks * Math.Max(tick, 0.25m));
+            if (longSide) return (price - pLo) >= req;
+            else          return (pHi - price) >= req;
+        }
+
+        // Z-score deceleration over last few bars: |z| decreasing toward VWAP
+        public static bool ZDecelerating(IList<Bar> bars, decimal vwap, decimal sigma, int look = 3)
+        {
+            if (bars == null || bars.Count < look) return true; // not enough bars → don't block
+            decimal AbsZ(int idx)
+            {
+                var c = bars[idx].Close;
+                if (sigma <= 0m) return 0m;
+                return Math.Abs((c - vwap) / sigma);
+            }
+            int n = bars.Count - 1;
+            var zNow = AbsZ(n);
+            var zPrev = AbsZ(n - 1);
+            if (look >= 3)
+            {
+                var zPrev2 = AbsZ(n - 2);
+                return zNow <= zPrev && zPrev <= zPrev2; // monotonic decel
+            }
+            return zNow <= zPrev; // simple decel
+        }
+
         // Adaptive sigma threshold: lift threshold on strong 5-bar slope / high volz / NQ; small relax late morning
         public static decimal DynamicSigmaThreshold(decimal baseSigma, decimal volz, decimal slope5, DateTime nowLocal, string sym)
         {
@@ -66,7 +120,10 @@ namespace BotCore.Strategy
         public static decimal SizeScaleFromStretch(decimal absZ)
         {
             decimal s = 0.75m + 0.25m * absZ;
-            if (s < 0.5m) s = 0.5m; if (s > 1.5m) s = 1.5m;
+            if (s < 0.5m)
+                s = 0.5m;
+            if (s > 1.5m)
+                s = 1.5m;
             return s;
         }
     }
