@@ -32,6 +32,8 @@
     <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
     <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
     <span class="chip sp" id="clock">--:--:--</span>
+  <span class="chip sp" id="badge-curfew" style="display:none;background:#3b1d00;color:#ffcc80">curfew</span>
+  <span class="chip sp" id="badge-daypnl" style="display:none;background:#3b0014;color:#ff8aa1">dayPnL</span>
   </div>
 
   <div class="pane">
@@ -64,7 +66,12 @@
 
   const fmt2 = (n)=> (n==null? "-" : Number(n).toFixed(2));
   const set = (id, html)=> document.getElementById(id).innerHTML = html;
-  const setPnL = (id, v)=> set(id, v>0? `<span class="ok">+${fmt2(v)}</span>` : v<0? `<span class="bad">${fmt2(v)}</span>` : fmt2(v));
+  const setPnL = (id, v)=> {
+    let html = fmt2(v);
+    if (v>0) html = `<span class="ok">+${fmt2(v)}</span>`;
+    else if (v<0) html = `<span class="bad">${fmt2(v)}</span>`;
+    set(id, html);
+  };
 
   const chart = createChart(document.getElementById("chart"), {
     layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
@@ -86,9 +93,7 @@
   function connectStream() {
     const es = new EventSource(`/stream/realtime?symbol=${symbol}&res=${res}`);
 
-    es.addEventListener("hello", () => {
-      // console.log("hello");
-    });
+  es.addEventListener("hello", () => {});
 
     es.onmessage = (e) => {
       const msg = JSON.parse(e.data);
@@ -105,6 +110,12 @@
         set("mdl", fmt2(m.maxDailyLoss)); setPnL("rem", m.remaining);
         set("uh", m.userHub); set("mh", m.marketHub);
         set("clock", new Date(m.localTime).toLocaleTimeString());
+
+  // badges
+  const bc = document.getElementById("badge-curfew");
+  const bd = document.getElementById("badge-daypnl");
+  if (m.curfewNoNew) { bc.style.display = "inline-block"; } else { bc.style.display = "none"; }
+  if (m.dayPnlNoNew) { bd.style.display = "inline-block"; } else { bd.style.display = "none"; }
 
         const ps = (m.positions||[]).find(p => p.sym === symbol);
         set("sym", symbol);

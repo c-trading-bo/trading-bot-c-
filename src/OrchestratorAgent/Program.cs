@@ -30,6 +30,8 @@ namespace OrchestratorAgent
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object _entriesLock = new();
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStrat = new(StringComparer.OrdinalIgnoreCase);
+        // Per-direction attempt caps (key: STRAT|SYMBOL|DIR[L|S])
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStratDir = new(StringComparer.OrdinalIgnoreCase);
 
         // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -116,6 +118,17 @@ namespace OrchestratorAgent
 
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
+            // Guardrail: kill.txt forces DRY_RUN/PAPER and disables LIVE_ORDERS
+            try
+            {
+                if (System.IO.File.Exists("kill.txt"))
+                {
+                    Environment.SetEnvironmentVariable("LIVE_ORDERS", "0");
+                    Environment.SetEnvironmentVariable("PAPER_MODE", "1");
+                    Console.WriteLine("[Guard] kill.txt present — forcing DRY_RUN (PAPER_MODE=1, LIVE_ORDERS=0)");
+                }
+            }
+            catch { }
 
             var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             var loggerFactory = LoggerFactory.Create(b =>
@@ -176,16 +189,145 @@ namespace OrchestratorAgent
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
             }
 
-            // If no credentials are present, avoid long-running network calls and just exit with a clear message.
+            // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login).
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY"));
-            if (!hasAnyCred)
+            bool runTuneGate = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            bool authAllowGate = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (!hasAnyCred && !(runTuneGate && authAllowGate))
             {
                 Console.WriteLine("[Orchestrator] No credentials detected (TOPSTEPX_JWT / TOPSTEPX_USERNAME / TOPSTEPX_API_KEY). Exiting cleanly.");
                 await Task.Delay(50);
                 return;
             }
+
+            // Optional: run historical tuning and exit when requested
+            try
+            {
+                var runTune = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                if (runTune)
+                {
+                    Console.WriteLine("[Tune] RUN_TUNING=1 detected — starting tuner setup…");
+                    // Conservative HTTP timeout so we don't hang indefinitely on auth/contract calls
+                    try { http.Timeout = TimeSpan.FromSeconds(30); } catch { }
+                    // Auth like main: prefer TOPSTEPX_JWT; optionally login with AUTH_ALLOW=1 and (USERNAME, API_KEY)
+                    var authAllowedTune = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    var jwtEnv = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? Environment.GetEnvironmentVariable("JWT") ?? string.Empty;
+                    var userNameTune = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME") ?? Environment.GetEnvironmentVariable("LOGIN_USERNAME") ?? Environment.GetEnvironmentVariable("LOGIN_EMAIL") ?? Environment.GetEnvironmentVariable("USERNAME") ?? Environment.GetEnvironmentVariable("EMAIL");
+                    var apiKeyTune = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY") ?? Environment.GetEnvironmentVariable("LOGIN_KEY") ?? Environment.GetEnvironmentVariable("API_KEY");
+
+                    var jwtCacheTune = new JwtCache(async () =>
+                    {
+                        var t = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                        if (!string.IsNullOrWhiteSpace(t)) return t!;
+                        if (authAllowedTune && !string.IsNullOrWhiteSpace(userNameTune) && !string.IsNullOrWhiteSpace(apiKeyTune))
+                        {
+                            Console.WriteLine($"[Tune] Acquiring JWT via loginKey for {userNameTune}…");
+                            var authLocal = new TopstepAuthAgent(http);
+                            // Use the main CTS so Ctrl+C cancels, and avoid indefinite wait
+                            var fresh = await authLocal.GetJwtAsync(userNameTune!, apiKeyTune!, cts.Token);
+                            Environment.SetEnvironmentVariable("TOPSTEPX_JWT", fresh);
+                            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fresh);
+                            Console.WriteLine("[Tune] JWT acquired.");
+                            return fresh;
+                        }
+                        return jwtEnv;
+                    });
+                    // Simple provider for TuningRunner
+                    Func<Task<string>> getJwt = async () => (await jwtCacheTune.GetAsync()) ?? string.Empty;
+
+                    var symbolsCsv = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOLS") ?? Environment.GetEnvironmentVariable("SYMBOLS") ?? Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
+                    var strategiesCsv = Environment.GetEnvironmentVariable("STRATEGIES") ?? "S2,S3";
+                    var symbols = symbolsCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var strategies = strategiesCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    Console.WriteLine($"[Tune] Symbols=[{string.Join(',', symbols)}] Strategies=[{string.Join(',', strategies)}]");
+
+                    var apiBaseTune = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBaseTune);
+                    try
+                    {
+                        Console.WriteLine("[Tune] Ensuring JWT present before contract resolution…");
+                        var tok = await jwtCacheTune.GetAsync();
+                        if (!string.IsNullOrWhiteSpace(tok)) apiClient.SetJwt(tok);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Tune] JWT acquire failed: {ex.Message}");
+                    }
+
+                    var until = DateTime.UtcNow.Date.AddDays(0).AddHours(23).AddMinutes(59);
+                    var lookbackDays = int.TryParse(Environment.GetEnvironmentVariable("TUNE_LOOKBACK_DAYS"), out var lb) && lb > 0 ? lb : 10;
+                    var since = until.AddDays(-lookbackDays);
+                    Console.WriteLine($"[Tune] Window: {since:yyyy-MM-dd} → {until:yyyy-MM-dd} (UTC), lookbackDays={lookbackDays}");
+
+                    // Fail fast if we cannot authenticate and login is locked
+                    var tokenProbe = await jwtCacheTune.GetAsync();
+                    if (string.IsNullOrWhiteSpace(tokenProbe) && !authAllowedTune)
+                    {
+                        Console.WriteLine("[Tune] Missing TOPSTEPX_JWT and AUTH_ALLOW is disabled — cannot fetch history. Set TOPSTEPX_JWT or enable AUTH_ALLOW=1 with username+api key.");
+                        return;
+                    }
+
+                    bool summaryOnly = (Environment.GetEnvironmentVariable("TUNE_SUMMARY_ONLY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    foreach (var sym in symbols)
+                    {
+                        var root = sym.Trim().ToUpperInvariant();
+                        string contractId = string.Empty;
+                        try
+                        {
+                            // Dynamic env var by root, e.g., TOPSTEPX_CONTRACT_ES, TOPSTEPX_CONTRACT_NQ
+                            var contractVar = $"TOPSTEPX_CONTRACT_{root}";
+                            contractId = Environment.GetEnvironmentVariable(contractVar) ?? string.Empty;
+                            Console.WriteLine($"[Tune] Resolving contractId for {root}…");
+                            if (string.IsNullOrWhiteSpace(contractId))
+                                contractId = await apiClient.ResolveContractIdAsync(root, cts.Token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Tune] Contract resolution failed for {root}: {ex.Message}");
+                        }
+
+                        if (string.IsNullOrWhiteSpace(contractId))
+                        { Console.WriteLine($"[Tune] Missing contractId for {root}; set TOPSTEPX_CONTRACT_{root}"); continue; }
+                        else { Console.WriteLine($"[Tune] {root} -> contractId={contractId}"); }
+
+                        foreach (var strat in strategies)
+                        {
+                            var s = strat.Trim().ToUpperInvariant();
+                            if (s == "S2")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S2 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S2 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS2Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                            else if (s == "S3")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S3 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S3 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS3Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                        }
+                    }
+                    Console.WriteLine("[Tune] Completed. Exiting.");
+                    return; // exit after tuning
+                }
+            }
+            catch { }
 
             // Load credentials (with fallbacks for common env names)
             static string? Env(string name) => Environment.GetEnvironmentVariable(name);
@@ -424,6 +566,25 @@ namespace OrchestratorAgent
                     // Subscribe to user hub events
                     userHub.OnPosition += posTracker.OnPosition;
                     userHub.OnTrade += posTracker.OnTrade;
+                    // Structured JSON logs per guardrails
+                    userHub.OnOrder += je =>
+                    {
+                        try
+                        {
+                            var line = new { type = "ORDER", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
+                            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
+                        }
+                        catch { }
+                    };
+                    userHub.OnTrade += je =>
+                    {
+                        try
+                        {
+                            var line = new { type = "TRADE", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
+                            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
+                        }
+                        catch { }
+                    };
                     // Feed market trades for last price updates
                     market1.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
                     if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
@@ -476,7 +637,13 @@ namespace OrchestratorAgent
                                 var remaining = mdl + Math.Min(0m, realized);
                                 var userHubState = "Connected"; // simplify; refine from actual hub state if desired
                                 var marketHubState = "Connected";
-                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips);
+
+                                // Flags for dashboard badges derived from status/env
+                                // (we'll extend the MetricsSnapshot to include them)
+                                bool curfewNoNew = status.Get<bool?>("curfew.no_new") ?? false;
+                                bool dayPnlNoNew = status.Get<bool?>("day_pnl.no_new") ?? false;
+
+                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew);
                             }
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
@@ -518,7 +685,73 @@ namespace OrchestratorAgent
                             };
                             return Results.Json(payload);
                         });
+                        // VerifyToday summary: totals by status using today UTC window
+                        web.MapGet("/verify/today", async () =>
+                        {
+                            try
+                            {
+                                var api = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+                                var tok = await jwtCache.GetAsync();
+                                if (!string.IsNullOrWhiteSpace(tok)) api.SetJwt(tok);
+                                var utc = DateTimeOffset.UtcNow;
+                                var start = new DateTimeOffset(utc.Year, utc.Month, utc.Day, 0, 0, 0, TimeSpan.Zero);
+                                var end = start.AddDays(1);
+                                var body = new { accountId, start = start.ToUnixTimeMilliseconds(), end = end.ToUnixTimeMilliseconds() };
+                                var orders = await api.SearchOrdersAsync(body, cts.Token);
+                                var trades = await api.SearchTradesAsync(body, cts.Token);
+                                int Count(JsonElement root, string status)
+                                {
+                                    try { if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var d)) root = d; } catch { }
+                                    int n = 0; if (root.ValueKind == JsonValueKind.Array)
+                                    {
+                                        foreach (var el in root.EnumerateArray())
+                                        {
+                                            try { if (el.TryGetProperty("status", out var s) && s.ToString().Equals(status, StringComparison.OrdinalIgnoreCase)) n++; } catch { }
+                                        }
+                                    }
+                                    return n;
+                                }
+                                var res = new
+                                {
+                                    filled = Count(orders, "FILLED"),
+                                    rejected = Count(orders, "REJECTED"),
+                                    cancelled = Count(orders, "CANCELLED") + Count(orders, "CANCELED"),
+                                    open = Count(orders, "OPEN") + Count(orders, "NEW"),
+                                    trades = trades.ValueKind == JsonValueKind.Array ? trades.GetArrayLength() : 0
+                                };
+                                return Results.Json(res);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
                         web.MapGet("/capabilities", () => Results.Json(OrchestratorAgent.Infra.Capabilities.All));
+                        // Veto counters: GET snapshot, POST clear
+                        web.MapGet("/veto", () =>
+                        {
+                            try
+                            {
+                                var map = status.Snapshot("veto.");
+                                return Results.Json(map);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
+                        web.MapPost("/veto/clear", () =>
+                        {
+                            try
+                            {
+                                var n = status.ClearByPrefix("veto.");
+                                return Results.Json(new { cleared = n });
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
                         web.MapGet("/deploy/status", () =>
                         {
                             string stateDir = Path.Combine(AppContext.BaseDirectory, "state");
@@ -978,9 +1211,10 @@ namespace OrchestratorAgent
                         try { status.Set("profile.buffers.NQ", activeProfile.Buffers?.NQ_Ticks ?? 0); } catch { }
                         try { status.Set("profile.min_spacing_sec", activeProfile.GlobalFilters?.MinSecondsBetweenEntries ?? (isNight ? 120 : 45)); } catch { }
                         // Apply S2 runtime config from profile if present
-                        try {
+                        try
+                        {
                             var s2def = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
-                            if (s2def is not null) 
+                            if (s2def is not null)
                             {
                                 BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
                                 // Log Patch B S2 config for observability
@@ -996,18 +1230,36 @@ namespace OrchestratorAgent
                                     BotCore.Strategy.S2RuntimeConfig.PriorDayVwapVeto,
                                     BotCore.Strategy.S2RuntimeConfig.PriorDayCloseVeto);
                             }
-                        } catch { }
+                        }
+                        catch { }
 
-                        // optional: if curfew, disable entries & flatten; auto-clear at 09:28
-                        if (InRange(et, "09:15", "09:23:30"))
+                        // optional: if curfew configured in S2 profile, enforce no-new and flatten
+                        var s2 = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
+                        string noNew = string.Empty, forceFlat = string.Empty;
+                        try
+                        {
+                            if (s2 != null && s2.Extra.TryGetValue("curfew", out var cf) && cf.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                if (cf.TryGetProperty("no_new_hhmm", out var nn) && nn.ValueKind == System.Text.Json.JsonValueKind.String) noNew = nn.GetString() ?? string.Empty;
+                                if (cf.TryGetProperty("force_flat_hhmm", out var ff) && ff.ValueKind == System.Text.Json.JsonValueKind.String) forceFlat = ff.GetString() ?? string.Empty;
+                            }
+                        }
+                        catch { }
+                        if (!string.IsNullOrWhiteSpace(noNew) && TimeSpan.TryParse(noNew, out var nnTs) && et >= nnTs && et < TS("09:28"))
                         {
                             try { router.DisableAllEntries(); } catch { }
-                            try { await router.CloseAll("CurfewIntoRTH", CancellationToken.None); } catch { }
-                            log.LogInformation("[Curfew] ET 09:15–09:23:30 — entries disabled and flatten requested.");
+                            try { status.Set("curfew.no_new", true); } catch { }
+                            log.LogInformation("[Curfew] No-new active from {NoNew} — entries disabled.", noNew);
+                        }
+                        if (!string.IsNullOrWhiteSpace(forceFlat) && TimeSpan.TryParse(forceFlat, out var ffTs) && et >= ffTs && et < TS("09:28"))
+                        {
+                            try { await router.CloseAll("CurfewForceFlat", CancellationToken.None); } catch { }
+                            log.LogInformation("[Curfew] Force-flat at {Force}", forceFlat);
                         }
                         else if (et >= TS("09:28"))
                         {
                             try { router.EnableAllEntries(); } catch { }
+                            try { status.Set("curfew.no_new", false); } catch { }
                             log.LogInformation("[Curfew] Cleared at 09:28 ET — entries re-enabled.");
                         }
                     }
@@ -1706,6 +1958,34 @@ namespace OrchestratorAgent
                     // Keep a reasonable history window
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
 
+                    // Local helpers: veto counters and simple RS momentum
+                    void IncVeto(string reason)
+                    {
+                        try
+                        {
+                            var baseKey = $"veto.{reason}";
+                            var total = status.Get<int>(baseKey);
+                            status.Set(baseKey, total + 1);
+                            var symKey = $"{baseKey}.{symbol.ToUpperInvariant()}";
+                            var by = status.Get<int>(symKey);
+                            status.Set(symKey, by + 1);
+                        }
+                        catch { }
+                    }
+
+                    static decimal ComputeMomentum(IReadOnlyList<BotCore.Models.Bar> bars, int look)
+                    {
+                        if (bars == null || bars.Count < look + 1) return 0m;
+                        decimal sum = 0m;
+                        int start = Math.Max(1, bars.Count - look);
+                        for (int i = start; i < bars.Count; i++)
+                        {
+                            var p0 = bars[i - 1].Close; var p1 = bars[i].Close;
+                            if (p0 != 0m) sum += (p1 - p0) / p0;
+                        }
+                        return sum;
+                    }
+
 
                     // Build a minimal env
                     var env = new Env
@@ -1735,11 +2015,13 @@ namespace OrchestratorAgent
                         if (rthOnly && !inRth)
                         {
                             log.LogInformation("[SKIP reason=session] {Sym} outside RTH", symbol);
+                            IncVeto("session");
                             return;
                         }
                         if (rthOnly && (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5))))
                         {
                             log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
+                            IncVeto("session_window");
                             return;
                         }
                         // Curfew: block new entries into U.S. open (ET 09:15–09:23)
@@ -1748,6 +2030,7 @@ namespace OrchestratorAgent
                             if (InRange(NowET().TimeOfDay, "09:15", "09:23:30"))
                             {
                                 log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23:30 curfew active", symbol);
+                                IncVeto("curfew");
                                 return;
                             }
                         }
@@ -1765,7 +2048,7 @@ namespace OrchestratorAgent
                                     var parts = blk.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                     if (parts.Length == 2 && TimeSpan.TryParse(parts[0], out var b) && TimeSpan.TryParse(parts[1], out var e))
                                     {
-                                        if (nowEt >= b && nowEt <= e) { log.LogInformation("[SKIP reason=econ] {Sym} in econ block {Blk}", symbol, blk); return; }
+                                        if (nowEt >= b && nowEt <= e) { log.LogInformation("[SKIP reason=econ] {Sym} in econ block {Blk}", symbol, blk); IncVeto("econ"); return; }
                                     }
                                 }
                             }
@@ -1776,6 +2059,7 @@ namespace OrchestratorAgent
                         if (qUpd.HasValue && (DateTimeOffset.UtcNow - qUpd.Value) > TimeSpan.FromSeconds(5))
                         {
                             log.LogInformation("[SKIP reason=freeze] {Sym} lastQuoteAge={Age}s", symbol, (int)(DateTimeOffset.UtcNow - qUpd.Value).TotalSeconds);
+                            IncVeto("freeze");
                             return;
                         }
                         // Spread guard (per-symbol defaults ES=1, NQ=2)
@@ -1791,6 +2075,7 @@ namespace OrchestratorAgent
                         if (spreadTicks > allow)
                         {
                             log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, allow);
+                            IncVeto("spread");
                             return;
                         }
 
@@ -1805,6 +2090,7 @@ namespace OrchestratorAgent
                             if (aroundTop || aroundHalf)
                             {
                                 log.LogInformation("[SKIP reason=news_minute_gate] {Sym} local={H}:{M:D2}:{S:D2}", symbol, nowLocal.Hour, m, s);
+                                IncVeto("news_minute_gate");
                                 return;
                             }
                         }
@@ -1812,61 +2098,92 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // ET strategy windows + per-strategy attempt caps
+                    // ET strategy windows + per-strategy attempt caps (can be disabled via env for all-hours quality-first)
                     try
                     {
+                        bool skipTimeWindows = (Environment.GetEnvironmentVariable("SKIP_TIME_WINDOWS") ?? Environment.GetEnvironmentVariable("ALL_HOURS_QUALITY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        bool skipAttemptCaps = (Environment.GetEnvironmentVariable("SKIP_ATTEMPT_CAPS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        // In all-hours quality mode, restrict to the initial four strategies
+                        if (skipTimeWindows)
+                        {
+                            var allowedAh = new System.Collections.Generic.HashSet<string>(new[] { "S2", "S3", "S6", "S11" }, StringComparer.OrdinalIgnoreCase);
+                            signals = signals.Where(s => allowedAh.Contains(s.StrategyId)).ToList();
+                        }
                         var etNow = NowET().TimeOfDay;
                         bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
                         bool isNight = !isBlackout && (etNow >= TS("18:05") || etNow < TS("09:15"));
-                        var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                        if (isNight)
+                        if (!skipTimeWindows)
                         {
-                            if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
-                            else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
-                        }
-                        else
-                        {
-                            if (etNow < TS("09:28")) { /* none allowed before 09:28 */ }
-                            else if (InRange(etNow, "09:28", "10:00")) allow.UnionWith(new[] { "S6", "S3" });
-                            else if (etNow >= TS("10:20") && etNow < TS("13:30")) allow.UnionWith(new[] { "S2" });
-                            else if (etNow >= TS("13:30")) allow.UnionWith(new[] { "S11" });
-                        }
-
-                        if (allow.Count > 0)
-                        {
-                            signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
-                            if (signals.Count == 0)
+                            var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            if (isNight)
                             {
-                                log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
+                                if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
+                                else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
+                            }
+                            else
+                            {
+                                if (etNow < TS("09:28")) { /* none allowed before 09:28 */ }
+                                else if (InRange(etNow, "09:28", "10:00")) allow.UnionWith(new[] { "S6", "S3" });
+                                else if (etNow >= TS("10:20") && etNow < TS("13:30")) allow.UnionWith(new[] { "S2" });
+                                else if (etNow >= TS("13:30")) allow.UnionWith(new[] { "S11" });
+                            }
+
+                            if (allow.Count > 0)
+                            {
+                                signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
+                                if (signals.Count == 0)
+                                {
+                                    log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
+                                    IncVeto("time_window");
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                log.LogInformation("[SKIP reason=time_window] {Sym} no entries in this ET window", symbol);
+                                IncVeto("time_window");
                                 return;
                             }
-                        }
-                        else
-                        {
-                            log.LogInformation("[SKIP reason=time_window] {Sym} no entries in this ET window", symbol);
-                            return;
                         }
 
                         int CapFor(string id, bool night) => night ? ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase)) ? 1 : 0)
                                                                      : ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S6", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S11", StringComparison.OrdinalIgnoreCase)) ? 2 : 0);
-                        signals = signals.Where(s =>
+                        // Per-direction caps: same as above by default; can tune via env later
+                        int CapForDir(string id, bool night, int dir)
                         {
-                            var cap = CapFor(s.StrategyId, isNight);
-                            if (cap <= 0) return false;
-                            try
+                            var baseCap = CapFor(id, night);
+                            return baseCap; // symmetric L/S for now
+                        }
+                        if (!skipAttemptCaps)
+                        {
+                            signals = signals.Where(s =>
                             {
-                                var todayEt = NowET().Date;
-                                var key = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
-                                var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
-                                if (cur.DayEt != todayEt) cur = (todayEt, 0);
-                                return cur.Count < cap;
+                                var cap = CapFor(s.StrategyId, isNight);
+                                if (cap <= 0) return false;
+                                try
+                                {
+                                    var todayEt = NowET().Date;
+                                    var key = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
+                                    var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
+                                    if (cur.DayEt != todayEt) cur = (todayEt, 0);
+                                    if (cur.Count >= cap) return false;
+
+                                    // Check per-direction as well
+                                    int dir = string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                                    var keyDir = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}|{(dir > 0 ? "L" : "S")}";
+                                    var capDir = CapForDir(s.StrategyId, isNight, dir);
+                                    var curDir = _attemptsPerStratDir.GetOrAdd(keyDir, _ => (todayEt, 0));
+                                    if (curDir.DayEt != todayEt) curDir = (todayEt, 0);
+                                    return curDir.Count < capDir;
+                                }
+                                catch { return true; }
+                            }).ToList();
+                            if (signals.Count == 0)
+                            {
+                                log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
+                                IncVeto("attempt_cap");
+                                return;
                             }
-                            catch { return true; }
-                        }).ToList();
-                        if (signals.Count == 0)
-                        {
-                            log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
-                            return;
                         }
                     }
                     catch { }
@@ -1885,6 +2202,7 @@ namespace OrchestratorAgent
                             if (curDepth < minDepth)
                             {
                                 log.LogInformation("[SKIP reason=depth_min] {Sym} top-of-book={Depth} min={Min}", symbol, curDepth, minDepth);
+                                IncVeto("depth_min");
                                 return;
                             }
                         }
@@ -1908,6 +2226,7 @@ namespace OrchestratorAgent
                             if (age < TimeSpan.FromSeconds(spacingSec))
                             {
                                 log.LogInformation("[SKIP reason=entry_spacing] {Sym} last_entry_age={Age}s min={Min}s", symbol, (int)age.TotalSeconds, spacingSec);
+                                IncVeto("entry_spacing");
                                 return;
                             }
                         }
@@ -1928,6 +2247,41 @@ namespace OrchestratorAgent
                     var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
                     if (chosen is null) return;
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
+
+                    // RS leader-only arbiter (env RS_ARB/RS_ARB_LEADER_ONLY=1):
+                    try
+                    {
+                        bool rsEnable = (Environment.GetEnvironmentVariable("RS_ARB") ?? Environment.GetEnvironmentVariable("RS_ARB_LEADER_ONLY") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (rsEnable && (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) || symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            int look = 30; try { var v = Environment.GetEnvironmentVariable("RS_LOOKBACK"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var l) && l > 5) look = l; } catch { }
+                            var momThis = ComputeMomentum(history, look);
+                            status.Set($"rs.mom.{symbol.ToUpperInvariant()}", momThis);
+                            status.Set($"rs.updated.{symbol.ToUpperInvariant()}", DateTimeOffset.UtcNow);
+                            var other = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? "NQ" : "ES";
+                            var momOther = status.Get<decimal?>($"rs.mom.{other}") ?? 0m;
+                            var updatedOther = status.Get<DateTimeOffset?>($"rs.updated.{other}") ?? DateTimeOffset.MinValue;
+                            if (updatedOther != DateTimeOffset.MinValue && (DateTimeOffset.UtcNow - updatedOther) < TimeSpan.FromMinutes(2))
+                            {
+                                var absThis = Math.Abs(momThis); var absOther = Math.Abs(momOther);
+                                decimal minDiff = 0.0003m; try { var d = Environment.GetEnvironmentVariable("RS_MIN_DIFF"); if (!string.IsNullOrWhiteSpace(d) && decimal.TryParse(d, out var dv)) minDiff = dv; } catch { }
+                                if (Math.Abs(absThis - absOther) >= minDiff)
+                                {
+                                    var leader = absThis >= absOther ? symbol.ToUpperInvariant() : other;
+                                    var dir = (absThis >= absOther ? momThis : momOther) >= 0m ? 1 : -1;
+                                    bool sideOk = (dir > 0 && string.Equals(chosen.Side, "BUY", StringComparison.OrdinalIgnoreCase)) || (dir < 0 && string.Equals(chosen.Side, "SELL", StringComparison.OrdinalIgnoreCase));
+                                    bool symOk = string.Equals(symbol, leader, StringComparison.OrdinalIgnoreCase);
+                                    if (!(sideOk && symOk))
+                                    {
+                                        log.LogInformation("[SKIP reason=rs_leader] {Sym} leader={Leader} dir={Dir} side={Side}", symbol, leader, dir > 0 ? "UP" : "DOWN", chosen.Side);
+                                        IncVeto("rs_leader");
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
 
                     // Per-symbol single-position rule with flip eligibility (S6 only, opposite side, ExpR ≥ 1.25)
                     try
@@ -2025,6 +2379,7 @@ namespace OrchestratorAgent
                             if (room <= 0)
                             {
                                 log.LogInformation("[SKIP reason=global_cap] {Sym} total={Total} cap={Cap}", symbol, total, gcap);
+                                IncVeto("global_cap");
                                 continue;
                             }
                             if (toRoute.Size > room) toRoute = toRoute with { Size = room };
@@ -2042,7 +2397,7 @@ namespace OrchestratorAgent
                             {
                                 var net = status.Get<int>($"pos.{symbol}.qty");
                                 int room = Math.Max(0, maxNet - Math.Abs(net));
-                                if (room <= 0) { log.LogInformation("[SKIP reason=max_net] {Sym} net={Net} cap={Cap}", symbol, net, maxNet); return; }
+                                if (room <= 0) { log.LogInformation("[SKIP reason=max_net] {Sym} net={Net} cap={Cap}", symbol, net, maxNet); IncVeto("max_net"); return; }
                                 if (toRoute.Size > room) { toRoute = toRoute with { Size = room }; }
                             }
                         }
@@ -2089,6 +2444,7 @@ namespace OrchestratorAgent
                                     if (sig.ExpR < minExpr)
                                     {
                                         log.LogInformation("[SKIP reason=dd_proximity] {Sym} expR={R} min={Min}", symbol, sig.ExpR, minExpr);
+                                        IncVeto("dd_proximity");
                                         continue;
                                     }
                                     toRoute = toRoute with { Size = half };
@@ -2113,6 +2469,7 @@ namespace OrchestratorAgent
                                 if (list.Count >= capPerHr)
                                 {
                                     log.LogInformation("[SKIP reason=entries_per_hour] {Sym} cap={Cap}", symbol, capPerHr);
+                                    IncVeto("entries_per_hour");
                                     continue;
                                 }
                             }
@@ -2133,6 +2490,40 @@ namespace OrchestratorAgent
                         }
                         catch { }
 
+                        // Day PnL kill (in R units) as no-new gate for S2
+                        try
+                        {
+                            if (string.Equals(sig.StrategyId, "S2", StringComparison.OrdinalIgnoreCase) && sig.Stop != 0 && sig.Entry != 0)
+                            {
+                                decimal rpt = risk.cfg.risk_per_trade > 0 ? risk.cfg.risk_per_trade : 0m;
+                                var dayUsd = status.Get<decimal?>("pnl.net") ?? 0m;
+                                if (rpt > 0m)
+                                {
+                                    var dayR = dayUsd / rpt;
+                                    var stopGain = BotCore.Strategy.S2RuntimeConfig.DayPnlStopGainR;
+                                    var stopLoss = BotCore.Strategy.S2RuntimeConfig.DayPnlStopLossR;
+                                    var enabled = BotCore.Strategy.S2RuntimeConfig.DayPnlKillEnabled && (stopGain != 0m || stopLoss != 0m);
+                                    if (enabled)
+                                    {
+                                        if (stopGain > 0m && dayR >= stopGain)
+                                        {
+                                            try { status.Set("day_pnl.no_new", true); } catch { }
+                                            log.LogInformation("[SKIP reason=day_pnl_gain] {Sym} dayR={DayR:F2} \u2265 {StopR:F2}", symbol, dayR, stopGain);
+                                            continue;
+                                        }
+                                        if (stopLoss < 0m && dayR <= stopLoss)
+                                        {
+                                            try { status.Set("day_pnl.no_new", true); } catch { }
+                                            log.LogInformation("[SKIP reason=day_pnl_loss] {Sym} dayR={DayR:F2} \u2264 {StopR:F2}", symbol, dayR, stopLoss);
+                                            continue;
+                                        }
+                                        try { status.Set("day_pnl.no_new", false); } catch { }
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+
                         var routed = await router.RouteAsync(toRoute, ct);
                         if (routed)
                         {
@@ -2146,7 +2537,12 @@ namespace OrchestratorAgent
 
                                 var todayEt = NowET().Date;
                                 var key = $"{sig.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
-                                var cur = _attemptsPerStrat.AddOrUpdate(key,
+                                _ = _attemptsPerStrat.AddOrUpdate(key,
+                                    addValueFactory: _ => (todayEt, 1),
+                                    updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
+                                int dir2 = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                                var keyDir = $"{sig.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}|{(dir2 > 0 ? "L" : "S")}";
+                                _ = _attemptsPerStratDir.AddOrUpdate(keyDir,
                                     addValueFactory: _ => (todayEt, 1),
                                     updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
                             }

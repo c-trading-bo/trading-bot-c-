@@ -23,6 +23,34 @@ namespace SupervisorAgent
         public void Set(string key, object value) => _vals[key] = value;
         public T? Get<T>(string key) => _vals.TryGetValue(key, out var v) ? (T?)v : default;
 
+        // Snapshot the current status values; when prefix is provided, only keys with that prefix are returned.
+        public Dictionary<string, object> Snapshot(string? prefix = null)
+        {
+            if (string.IsNullOrWhiteSpace(prefix)) return _vals.ToDictionary(kv => kv.Key, kv => kv.Value);
+            var p = prefix!;
+            return _vals.Where(kv => kv.Key.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+        }
+
+        // Remove keys by prefix (e.g., to clear veto.* counters)
+        public int ClearByPrefix(string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(prefix)) return 0;
+            int n = 0;
+            foreach (var k in _vals.Keys)
+            {
+                try
+                {
+                    if (k.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_vals.TryRemove(k, out _)) n++;
+                    }
+                }
+                catch { }
+            }
+            return n;
+        }
+
         private static bool Concise() => (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
         private static bool ShowStatusTick() => (Environment.GetEnvironmentVariable("APP_SHOW_STATUS_TICK") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
         private static bool QuietJson() => (Environment.GetEnvironmentVariable("QUIET_JSON_STATUS") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -40,6 +68,19 @@ namespace SupervisorAgent
             }
             _lastBeat = now;
 
+            // Compute top veto reasons (best-effort)
+            Dictionary<string, int> vetoTop = new();
+            try
+            {
+                vetoTop = _vals
+                    .Where(kv => kv.Key.StartsWith("veto.", StringComparison.OrdinalIgnoreCase))
+                    .Select(kv => new { kv.Key, Val = kv.Value is int i ? i : (kv.Value is long l ? (int)l : 0) })
+                    .OrderByDescending(x => x.Val)
+                    .Take(5)
+                    .ToDictionary(x => x.Key, x => x.Val);
+            }
+            catch { }
+
             var snapshot = new
             {
                 whenUtc = now,
@@ -51,7 +92,8 @@ namespace SupervisorAgent
                 lastQuote = Get<DateTimeOffset?>("last.quote"),
                 strategies = Get<object?>("strategies"),
                 openOrders = Get<object?>("orders.open"),
-                risk = Get<object?>("risk.state")
+                risk = Get<object?>("risk.state"),
+                vetoTop
             };
             var json = JsonSerializer.Serialize(snapshot);
 

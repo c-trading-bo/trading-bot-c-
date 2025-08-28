@@ -39,8 +39,8 @@ public static class DashboardModule
         app.MapGet("/stream/realtime", async (HttpContext ctx, string symbol, string res) =>
         {
             ctx.Response.Headers.CacheControl = "no-store";
-            ctx.Response.Headers.Connection   = "keep-alive";
-            ctx.Response.ContentType          = "text/event-stream";
+            ctx.Response.Headers.Connection = "keep-alive";
+            ctx.Response.ContentType = "text/event-stream";
 
             var subscription = hub.Subscribe(symbol, res);
             using var sub = subscription.sub;
@@ -329,4 +329,6 @@ public sealed record MetricsSnapshot(
     string userHub,
     string marketHub,
     DateTime localTime,
-    IReadOnlyList<PositionChip> positions);
+    IReadOnlyList<PositionChip> positions,
+    bool curfewNoNew = false,
+    bool dayPnlNoNew = false);

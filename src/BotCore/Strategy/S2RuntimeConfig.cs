@@ -45,6 +45,30 @@ public static class S2RuntimeConfig
     public static decimal AdrRoomFrac { get; private set; } = 0.25m;    // require ≥25% ADR room to target
     public static decimal AdrExhaustionCap { get; private set; } = 1.20m; // block if today range > 1.2×ADR
 
+    // Patch C extras (optional; default-off semantics where reasonable)
+    public static bool AdrGuardEnabled { get; private set; } = false;
+    public static int AdrGuardLen { get; private set; } = 14;
+    public static decimal AdrGuardMaxUsed { get; private set; } = 0.0m; // fraction of ADR used today to block, 0 = ignore
+    public static decimal AdrGuardWarnUsed { get; private set; } = 0.0m; // not used in logic; reserved for logging/UI
+
+    public static bool PdExtremeGuardEnabled { get; private set; } = false;
+    public static decimal PdExtremeMinRoomAtr { get; private set; } = 0.40m;
+
+    public static bool VwapSlopeGuardEnabled { get; private set; } = false;
+    public static decimal VwapMaxSigmaPerMin { get; private set; } = 0.12m;
+
+    public static bool ZDecelerateEnabled { get; private set; } = false;
+    public static int ZDecelNeed { get; private set; } = 2;
+
+    // Patch C: optional day PnL kill-switch (in R units) and curfew helper
+    public static bool DayPnlKillEnabled { get; private set; } = false;
+    public static decimal DayPnlStopGainR { get; private set; } = 0m; // e.g., 8.0
+    public static decimal DayPnlStopLossR { get; private set; } = 0m; // e.g., -6.0
+
+    public static bool CurfewEnabled { get; private set; } = false;
+    public static string CurfewNoNewHHMM { get; private set; } = "";      // e.g., 09:15
+    public static string CurfewForceFlatHHMM { get; private set; } = "";  // e.g., 09:23:30
+
     public static void ApplyFrom(StrategyDef def)
     {
         if (def is null) return;
@@ -88,6 +112,51 @@ public static class S2RuntimeConfig
         TryInt(extra, "adr_lookback_days", v => AdrLookbackDays = v);
         TryDec(extra, "adr_room_frac", v => AdrRoomFrac = v);
         TryDec(extra, "adr_exhaustion_cap", v => AdrExhaustionCap = v);
+
+        // Patch C: nested guard objects
+        if (extra.TryGetValue("adr_guard", out var adrGuard) && adrGuard.ValueKind == JsonValueKind.Object)
+        {
+            AdrGuardEnabled = true;
+            if (adrGuard.TryGetProperty("len", out var gLen) && gLen.TryGetInt32(out var v1)) AdrGuardLen = v1;
+            if (adrGuard.TryGetProperty("max_used", out var gMax) && gMax.TryGetDecimal(out var v2)) AdrGuardMaxUsed = v2;
+            if (adrGuard.TryGetProperty("warn_used", out var gWarn) && gWarn.TryGetDecimal(out var v3)) AdrGuardWarnUsed = v3;
+        }
+        if (extra.TryGetValue("pd_extreme_guard", out var pdx) && pdx.ValueKind == JsonValueKind.Object)
+        {
+            PdExtremeGuardEnabled = true;
+            if (pdx.TryGetProperty("min_room_atr", out var mra) && mra.TryGetDecimal(out var v)) PdExtremeMinRoomAtr = v;
+        }
+        if (extra.TryGetValue("vwap_slope_guard", out var vsg) && vsg.ValueKind == JsonValueKind.Object)
+        {
+            VwapSlopeGuardEnabled = true;
+            if (vsg.TryGetProperty("max_sigma_per_min", out var msm) && msm.TryGetDecimal(out var v)) VwapMaxSigmaPerMin = v;
+        }
+        if (extra.TryGetValue("z_decelerate", out var zdz) && zdz.ValueKind == JsonValueKind.Object)
+        {
+            ZDecelerateEnabled = true;
+            if (zdz.TryGetProperty("need", out var needEl) && needEl.TryGetInt32(out var need)) ZDecelNeed = need;
+        }
+
+        // Optional: day PnL kill-switch (R units)
+        if (extra.TryGetValue("day_pnl_kill", out var dpk) && dpk.ValueKind == JsonValueKind.Object)
+        {
+            DayPnlKillEnabled = true;
+            if (dpk.TryGetProperty("stop_gain", out var sg) && sg.TryGetDecimal(out var vg)) DayPnlStopGainR = vg;
+            if (dpk.TryGetProperty("stop_loss", out var sl) && sl.TryGetDecimal(out var vl)) DayPnlStopLossR = vl;
+        }
+        // Optional: curfew helper (no-new and/or force-flat clock marks)
+        if (extra.TryGetValue("curfew", out var cf) && cf.ValueKind == JsonValueKind.Object)
+        {
+            CurfewEnabled = true;
+            if (cf.TryGetProperty("no_new_hhmm", out var nn) && nn.ValueKind == JsonValueKind.String)
+            {
+                var s = nn.GetString(); if (!string.IsNullOrWhiteSpace(s)) CurfewNoNewHHMM = s!;
+            }
+            if (cf.TryGetProperty("force_flat_hhmm", out var ff) && ff.ValueKind == JsonValueKind.String)
+            {
+                var s = ff.GetString(); if (!string.IsNullOrWhiteSpace(s)) CurfewForceFlatHHMM = s!;
+            }
+        }
     }
 
     private static void TryInt(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<int> set)
