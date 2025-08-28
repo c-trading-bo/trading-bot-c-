@@ -48,6 +48,7 @@
       "session_window_et": "10:20-12:30",
       "regimes": ["range","low_vol"],
   "filters": { "zscore_vwap_min": 1.0, "zscore_vwap_max": 1.6, "adx_max": 18 },
+<<<<<<< HEAD
   "max_trades_per_session": 3,
   "entry_mode": "retest",
   "retest_offset_ticks": 1,
@@ -59,6 +60,8 @@
   "prior_day_vwap_veto": true,
   "prior_day_close_veto": true,
 
+=======
+>>>>>>> 0768901781296b12038bfa5fd66625f8c8be3260
   "tf1": "M1",
   "tf2": "M5",
   "atr_len": 14,
