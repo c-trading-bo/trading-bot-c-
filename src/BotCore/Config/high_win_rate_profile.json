@@ -47,7 +47,20 @@
       "enabled": true, "family": "meanrev",
       "session_window_et": "10:20-12:30",
       "regimes": ["range","low_vol"],
-      "filters": { "zscore_vwap_min": 1.0, "zscore_vwap_max": 1.6, "adx_max": 18 }
+      "filters": { "zscore_vwap_min": 1.0, "zscore_vwap_max": 1.6, "adx_max": 18 },
+      // Patch B: S2 tunables (safe defaults, no behavior change yet)
+      "attempt_caps_per_session": 3,
+      "attempt_caps_per_day": 5,
+      "max_trades_per_session": 2,
+      "entry_mode": "retest",
+      "retest_offset_ticks": 1.0,
+      "ib_or_room_guard_atr_mult": 1.5,
+      "gap_guard_threshold": 8.0,
+      "rs_peer_filter_threshold": 0.3,
+      "roll_week_sigma_bump": 0.2,
+      "prior_day_magnet_veto_enabled": true,
+      "prior_day_vwap_threshold": 2.0,
+      "prior_day_close_threshold": 4.0
     },
 
     { "id": "S3",  "name": "Compression → Expansion (Squeeze Breakout)",

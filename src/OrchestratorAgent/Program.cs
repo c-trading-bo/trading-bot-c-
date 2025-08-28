@@ -980,7 +980,11 @@ namespace OrchestratorAgent
                         // Apply S2 runtime config from profile if present
                         try {
                             var s2def = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
-                            if (s2def is not null) BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
+                            if (s2def is not null) 
+                            {
+                                BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
+                                BotCore.Strategy.S2RuntimeConfig.LogPatchBSettings(log);
+                            }
                         } catch { }
 
                         // optional: if curfew, disable entries & flatten; auto-clear at 09:28
