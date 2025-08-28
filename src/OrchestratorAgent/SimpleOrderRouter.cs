@@ -90,8 +90,8 @@ namespace OrchestratorAgent
             if (tick <= 0) tick = 0.25m;
             static decimal RoundToTick(decimal px, decimal t) => t <= 0 ? px : Math.Round(px / t, 0, MidpointRounding.AwayFromZero) * t;
             var roundedEntry = sig.Entry > 0 ? RoundToTick(sig.Entry, tick) : sig.Entry;
-            var roundedStop  = sig.Stop  > 0 ? RoundToTick(sig.Stop,  tick) : sig.Stop;
-            var roundedT1    = sig.Target> 0 ? RoundToTick(sig.Target,tick) : sig.Target;
+            var roundedStop = sig.Stop > 0 ? RoundToTick(sig.Stop, tick) : sig.Stop;
+            var roundedT1 = sig.Target > 0 ? RoundToTick(sig.Target, tick) : sig.Target;
             if (roundedEntry != sig.Entry || roundedStop != sig.Stop || roundedT1 != sig.Target)
             {
                 sig = sig with { Entry = roundedEntry, Stop = roundedStop, Target = roundedT1 };

@@ -32,6 +32,8 @@
     <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
     <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
     <span class="chip sp" id="clock">--:--:--</span>
+  <span class="chip sp" id="chip-allowed" title="Allowed strategies now" style="display:none"></span>
+  <span class="chip sp" id="chip-learner" title="Learner status" style="display:none"></span>
   <span class="chip sp" id="badge-curfew" style="display:none;background:#3b1d00;color:#ffcc80">curfew</span>
   <span class="chip sp" id="badge-daypnl" style="display:none;background:#3b0014;color:#ff8aa1">dayPnL</span>
   </div>
@@ -51,6 +53,64 @@
         <div class="u">Events</div>
         <div class="stream mono" id="events"></div>
       </div>
+      <div class="card" id="canary-card">
+        <div class="u">Canary</div>
+        <div class="mono" style="font-size:12px">
+          <div id="canary-summary">loading…</div>
+          <div id="canary-meta" class="u" style="margin-top:4px"></div>
+          <div style="margin-top:6px; display:flex; gap:6px">
+            <button id="btn-canary-reset" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Reset</button>
+            <button id="btn-canary-clearbl" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Clear Blacklist</button>
+          </div>
+          <table id="canary-table" style="width:100%;border-collapse:collapse;margin-top:6px">
+            <thead><tr><th style="text-align:left">Key</th><th style="text-align:left">Arm</th><th>Plays</th><th>Avg $</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="u" style="margin-top:6px">Running</div>
+          <table id="canary-running" style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Root</th><th>Regime</th><th>Arm</th><th>Age</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="u" style="margin-top:6px">Blacklist</div>
+          <table id="canary-blacklist" style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Key</th><th>Arm</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="retune-card">
+        <div class="u">Retune</div>
+        <div class="mono" style="font-size:12px">
+          <div id="retune-summary">loading…</div>
+          <table id="retune-table" style="width:100%;border-collapse:collapse;margin-top:6px">
+            <thead><tr><th style="text-align:left">Root</th><th>Strat</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="learners-card">
+        <div class="u">Learners</div>
+        <div class="mono" style="font-size:12px">
+          <div id="learners-status">ready</div>
+          <div style="margin-top:6px; display:flex; gap:6px">
+            <button id="btn-launch-tuner" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Launch Tuner</button>
+            <button id="btn-run-adapt" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Run Adaptive</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="perf-card">
+        <div class="u">Performance (last 10 days)</div>
+        <div class="mono" style="font-size:12px">
+          <div style="margin-bottom:6px;display:flex;gap:6px;align-items:center">
+            <span id="perf-window">loading…</span>
+            <button id="btn-perf-refresh" style="margin-left:auto;background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Refresh</button>
+          </div>
+          <table id="perf-table" style="width:100%;border-collapse:collapse">
+            <thead><tr><th style="text-align:left">Root</th><th style="text-align:right">Trades</th><th style="text-align:right">Net $</th><th style="text-align:left">By strategy</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -59,7 +119,15 @@
 
 <script src="lib/lightweight-charts-loader.js"></script>
 <script>
-  const { createChart } = LightweightCharts;
+  // Wait for LightweightCharts to be available before initializing the chart.
+  function whenLCReady(cb){
+    if (window.LightweightCharts) return cb(window.LightweightCharts);
+    const iv = setInterval(()=>{
+      if (window.LightweightCharts){ clearInterval(iv); cb(window.LightweightCharts); }
+    }, 50);
+    // stop polling after 10s to avoid runaway
+    setTimeout(()=> clearInterval(iv), 10000);
+  }
 
   const symbol = new URLSearchParams(location.search).get("symbol") || "ES";
   const res = "1";
@@ -73,14 +141,20 @@
     set(id, html);
   };
 
-  const chart = createChart(document.getElementById("chart"), {
-    layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
-    grid: { vertLines: { color: "#1c2330" }, horzLines: { color: "#1c2330" } },
-    timeScale: { timeVisible: true, secondsVisible: false },
-    rightPriceScale: { borderVisible: false },
+  let chart, candles, volume;
+  whenLCReady(({ createChart }) => {
+    chart = createChart(document.getElementById("chart"), {
+      layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
+      grid: { vertLines: { color: "#1c2330" }, horzLines: { color: "#1c2330" } },
+      timeScale: { timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderVisible: false },
+    });
+    candles = chart.addCandlestickSeries();
+    volume  = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
+    // Only load data and stream once the chart is ready
+    loadHistory();
+    connectStream();
   });
-  const candles = chart.addCandlestickSeries();
-  const volume  = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
 
   async function loadHistory() {
     const now = Math.floor(Date.now()/1000), from = now - 3*24*60*60;
@@ -111,6 +185,20 @@
         set("uh", m.userHub); set("mh", m.marketHub);
         set("clock", new Date(m.localTime).toLocaleTimeString());
 
+        // allowed-now chip
+        const ca = document.getElementById('chip-allowed');
+        const allowed = (m.allowedNow||[]);
+        if (allowed.length>0) { ca.style.display='inline-block'; ca.textContent = 'allowed ' + allowed.join(','); } else { ca.style.display='none'; }
+
+        // learner chip
+        const cl = document.getElementById('chip-learner');
+        if (m.learnerOn) {
+          const last = m.learnerLastRun? new Date(m.learnerLastRun).toLocaleTimeString() : '-';
+          const note = m.learnerApplied==null? '' : (m.learnerApplied? 'applied' : 'skipped');
+          cl.style.display='inline-block';
+          cl.textContent = `learner ON · ${last}${note? ' · '+note:''}`;
+        } else { cl.style.display='none'; }
+
   // badges
   const bc = document.getElementById("badge-curfew");
   const bd = document.getElementById("badge-daypnl");
@@ -130,6 +218,10 @@
           setPnL("rpnl", ps.rPnL);
         }
       }
+      if (msg.type === "event") {
+        const lvl = (msg.level||'info').toUpperCase();
+        addEvent(`[${lvl}] ${msg.text}`);
+      }
     };
 
     es.onerror = () => {
@@ -146,8 +238,144 @@
     const max = 200; while (box.childElementCount > max) box.removeChild(box.lastChild);
   }
 
-  loadHistory();
-  connectStream();
+  // history/stream are invoked after chart init in whenLCReady()
+
+  async function loadCanary() {
+    try {
+      const txt = await fetch('/canary/state').then(r=>r.text());
+      const st = JSON.parse(txt||'{}');
+      const tb = document.querySelector('#canary-table tbody');
+      tb.innerHTML = '';
+  const stats = st.stats || {};
+      let rows = [];
+      for (const key in stats) {
+        const arms = stats[key] || {};
+        for (const arm in arms) {
+          const s = arms[arm];
+          const avg = s.plays > 0 ? (s.totalReward / s.plays) : 0;
+          rows.push({ key, arm, plays: s.plays, avg });
+        }
+      }
+      rows.sort((a,b)=> b.avg - a.avg);
+      for (const r of rows.slice(0, 12)) {
+        const tr = document.createElement('tr');
+        const cls = r.avg>0? 'ok' : (r.avg<0? 'bad':'');
+        tr.innerHTML = `<td>${r.key}</td><td>${r.arm}</td><td style="text-align:right">${r.plays}</td><td style="text-align:right" class="${cls}">${fmt2(r.avg)}</td>`;
+        tb.appendChild(tr);
+      }
+      const bl = st.blacklist || {};
+      const blCount = Object.values(bl).reduce((n,arr)=> n + (arr?.length||0), 0);
+      document.getElementById('canary-summary').innerText = `arms=${rows.length} blacklisted=${blCount}`;
+
+  const meta = st.meta || {};
+  const eps = meta.epsilon != null ? Number(meta.epsilon).toFixed(2) : '-';
+  const dwell = meta.dwellMinutes ?? '-';
+  const window = meta.windowMinutes ?? '-';
+  const minPlays = meta.minPlays ?? '-';
+  document.getElementById('canary-meta').innerText = `eps=${eps} dwell=${dwell}m window=${window}m minPlays=${minPlays}`;
+
+      const runTb = document.querySelector('#canary-running tbody');
+      runTb.innerHTML = '';
+      const running = st.running || [];
+      for (const e of running) {
+        const ageMin = Math.max(0, (Date.now() - new Date(e.appliedUtc).getTime()))/60000;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e.root}</td><td>${e.regime}</td><td>${e.arm}</td><td style="text-align:right">${ageMin.toFixed(0)}m</td>`;
+        runTb.appendChild(tr);
+      }
+      const blTb = document.querySelector('#canary-blacklist tbody');
+      blTb.innerHTML = '';
+      const blRows = [];
+      for (const key in bl) {
+        const arr = bl[key] || [];
+        for (const arm of arr) blRows.push({ key, arm });
+      }
+      blRows.sort((a,b)=> a.key.localeCompare(b.key) || a.arm.localeCompare(b.arm));
+      for (const r of blRows.slice(0, 20)) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.key}</td><td>${r.arm}</td>`;
+        blTb.appendChild(tr);
+      }
+    } catch { /* no-op */ }
+  }
+  setInterval(loadCanary, 15000);
+  loadCanary();
+
+  async function loadRetune() {
+    try {
+      const txt = await fetch('/retune/status').then(r=>r.text());
+      const st = JSON.parse(txt||'{}');
+      const sum = document.getElementById('retune-summary');
+      if (!st.since) { sum.innerText = 'idle'; return; }
+      const since = new Date(st.since).toISOString().slice(0,10);
+      const until = new Date(st.until).toISOString().slice(0,10);
+      sum.innerText = `window ${since} → ${until} (${st.lookbackDays||'-'}d, every ${st.intervalMinutes||'-'}m)`;
+      const tb = document.querySelector('#retune-table tbody'); tb.innerHTML = '';
+      const rows = (st.results||[]).map(x=>({ root:x.root, strat:x.strat, ok:x.ok, error:x.error }));
+      rows.sort((a,b)=> a.root.localeCompare(b.root)||a.strat.localeCompare(b.strat));
+      for (const r of rows) {
+        const tr = document.createElement('tr');
+        const status = r.ok? '<span class="ok">ok</span>' : `<span class="bad">fail</span>`;
+        tr.innerHTML = `<td>${r.root||'-'}</td><td>${r.strat||'-'}</td><td>${status}${r.error? ' · '+r.error:''}</td>`;
+        tb.appendChild(tr);
+      }
+    } catch { /* no-op */ }
+  }
+  setInterval(loadRetune, 20000);
+  loadRetune();
+
+  async function loadPerf() {
+    try {
+      const j = await fetch('/perf/summary?days=10').then(r=>r.json());
+      const since = new Date(j.since).toISOString().slice(0,10);
+      const until = new Date(j.until).toISOString().slice(0,10);
+      document.getElementById('perf-window').innerText = `window ${since} → ${until}`;
+      const tb = document.querySelector('#perf-table tbody');
+      tb.innerHTML = '';
+      const rows = (j.roots||[]).map(x=>({ root:x.root, trades:x.totalTrades||0, usd:x.totalUsd||0, per:x.perStrategy||[] }));
+      rows.sort((a,b)=> a.root.localeCompare(b.root));
+      for (const r of rows) {
+        const per = r.per.map(p=> `${p.strat}:${fmt2(p.netUsd)}(${p.trades})`).join(' · ');
+        const cls = r.usd>0? 'ok' : (r.usd<0? 'bad' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.root}</td><td style="text-align:right">${r.trades}</td><td style="text-align:right" class="${cls}">${fmt2(r.usd)}</td><td>${per}</td>`;
+        tb.appendChild(tr);
+      }
+    } catch {}
+  }
+  document.getElementById('btn-perf-refresh').addEventListener('click', loadPerf);
+  setInterval(loadPerf, 300000); // every 5m
+  loadPerf();
+
+  // Canary actions
+  document.getElementById('btn-canary-reset').addEventListener('click', async ()=>{
+    try { await fetch('/canary/reset', { method:'POST' }); addEvent('canary reset'); loadCanary(); } catch {}
+  });
+  document.getElementById('btn-canary-clearbl').addEventListener('click', async ()=>{
+    try { await fetch('/canary/blacklist/clear', { method:'POST' }); addEvent('canary blacklist cleared'); loadCanary(); } catch {}
+  });
+
+  // Learners actions
+  document.getElementById('btn-launch-tuner').addEventListener('click', async ()=>{
+    const s = document.getElementById('learners-status');
+    try {
+      s.innerText = 'starting tuner…';
+      const resp = await fetch('/learner/tune', { method:'POST' });
+      const j = await resp.json();
+      if (j.started) { s.innerText = `tuner started (${j.days||'-'}d) roots=${(j.roots||[]).join(',')} strats=${(j.strats||[]).join(',')}`; addEvent('tuner started'); loadRetune(); }
+      else { s.innerText = 'tuner failed'; }
+    } catch (e) { s.innerText = 'tuner error'; }
+  });
+  document.getElementById('btn-run-adapt').addEventListener('click', async ()=>{
+    const s = document.getElementById('learners-status');
+    try {
+      s.innerText = 'running adaptive…';
+      const resp = await fetch('/learner/adapt', { method:'POST' });
+      const j = await resp.json();
+      if (j.started) { s.innerText = 'adaptive started'; addEvent('adaptive learner started'); }
+      else { s.innerText = 'adaptive failed'; }
+    } catch (e) { s.innerText = 'adaptive error'; }
+  });
 </script>
 </body>
 </html>

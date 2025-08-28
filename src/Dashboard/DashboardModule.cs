@@ -103,9 +103,12 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+    private readonly ConcurrentQueue<string> _recentEvents = new();
+    private const int RecentEventsMax = 200;
 
     private PeriodicTimer? _metricsTimer;
     private readonly CancellationTokenSource _cts = new();
+    private string _lastAllowedKey = string.Empty; // track allowed set changes
 
     public RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> metricsProvider)
     {
@@ -176,6 +179,16 @@ public sealed class RealtimeHub : IHostedService, IDisposable
             lock (set) set.Remove(channel.Writer);
             channel.Writer.TryComplete();
         });
+
+        // Best-effort: push recent events so the UI has some context on first load
+        try
+        {
+            foreach (var evt in _recentEvents.ToArray())
+            {
+                _ = channel.Writer.WriteAsync(evt);
+            }
+        }
+        catch { }
         return (handle, channel);
     }
 
@@ -191,6 +204,19 @@ public sealed class RealtimeHub : IHostedService, IDisposable
                 while (await _metricsTimer!.WaitForNextTickAsync(_cts.Token))
                 {
                     var m = _metrics();
+                    // Detect allowed strategy set changes and emit an event
+                    try
+                    {
+                        var allowed = (m.allowedNow ?? Array.Empty<string>()).OrderBy(x => x).ToArray();
+                        var key = string.Join(",", allowed);
+                        if (!string.Equals(key, _lastAllowedKey, StringComparison.Ordinal))
+                        {
+                            _lastAllowedKey = key;
+                            var pretty = allowed.Length == 0 ? "none" : string.Join(",", allowed);
+                            EmitEvent("info", $"allowed → {pretty}");
+                        }
+                    }
+                    catch { /* non-fatal */ }
                     var json = JsonSerializer.Serialize(new { type = "metrics", data = m }, _json);
                     BroadcastAll(json);
                 }
@@ -227,6 +253,23 @@ public sealed class RealtimeHub : IHostedService, IDisposable
             ChannelWriter<string>[] writers; lock (set) writers = set.ToArray();
             foreach (var w in writers) _ = w.WriteAsync(json);
         }
+    }
+
+    // ---------- Events/logs ----------
+
+    public void EmitEvent(string level, string text)
+    {
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "event",
+            level,
+            text,
+            ts = DateTimeOffset.Now
+        }, _json);
+
+        _recentEvents.Enqueue(payload);
+        while (_recentEvents.Count > RecentEventsMax && _recentEvents.TryDequeue(out _)) { }
+        BroadcastAll(payload);
     }
 
     private sealed class SubHandle : IDisposable
@@ -331,4 +374,10 @@ public sealed record MetricsSnapshot(
     DateTime localTime,
     IReadOnlyList<PositionChip> positions,
     bool curfewNoNew = false,
-    bool dayPnlNoNew = false);
+    bool dayPnlNoNew = false,
+    // Optional extras (safe defaults)
+    IReadOnlyList<string>? allowedNow = null,
+    bool learnerOn = false,
+    DateTime? learnerLastRun = null,
+    bool? learnerApplied = null,
+    string? learnerNote = null);

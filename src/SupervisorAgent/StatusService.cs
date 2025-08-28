@@ -16,7 +16,7 @@ namespace SupervisorAgent
         private string _lastSig = string.Empty;
 
         public long AccountId { get; set; }
-        public Dictionary<string,string> Contracts { get; set; } = new();
+        public Dictionary<string, string> Contracts { get; set; } = new();
 
         public StatusService(ILogger<StatusService> log) => _log = log;
 

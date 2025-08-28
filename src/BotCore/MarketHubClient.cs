@@ -163,14 +163,31 @@ namespace BotCore
 			{
 				_log.LogDebug("[MarketHub] Using URL={Url}", url);
 			}
-			// Include access_token in querystring for compatibility with RTC, but do not log it
-			var urlWithToken = string.IsNullOrWhiteSpace(jwt) ? url : $"{url}?access_token={Uri.EscapeDataString(jwt)}";
+			// Do not include access_token in the URL; rely on AccessTokenProvider only
 			var hub = new HubConnectionBuilder()
-				.WithUrl(urlWithToken, o =>
+				.WithUrl(url, o =>
 				{
 					o.AccessTokenProvider = _getJwtAsync; // also provide via header for safety
 					o.SkipNegotiation = true;
 					o.Transports = HttpTransportType.WebSockets;
+				})
+				.ConfigureLogging(lb =>
+				{
+					lb.ClearProviders();
+					lb.AddConsole();
+					lb.SetMinimumLevel(LogLevel.Information);
+					var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+					if (concise)
+					{
+						lb.AddFilter("Microsoft", LogLevel.Warning);
+						lb.AddFilter("System", LogLevel.Warning);
+						lb.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
+						lb.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
+					}
+					// Suppress transport logs that can echo access_token
+					lb.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+					lb.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
+					lb.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
 				})
 				.WithAutomaticReconnect(new ExpoRetry())
 				.Build();

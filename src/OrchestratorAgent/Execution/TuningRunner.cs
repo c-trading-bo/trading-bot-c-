@@ -28,6 +28,40 @@ public static class TuningRunner
         }
     }
 
+    // Helper: parse comma-separated decimals from env with invariant culture and sane fallbacks
+    private static decimal[] ParseDecArray(string? raw, decimal[] defaults)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return defaults;
+            var parts = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var list = new List<decimal>(parts.Length);
+            foreach (var p in parts)
+            {
+                if (decimal.TryParse(p, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                    list.Add(d);
+            }
+            return list.Count > 0 ? list.ToArray() : defaults;
+        }
+        catch { return defaults; }
+    }
+
+    private static int[] ParseIntArray(string? raw, int[] defaults)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return defaults;
+            var parts = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var list = new List<int>(parts.Length);
+            foreach (var p in parts)
+            {
+                if (int.TryParse(p, out var i)) list.Add(i);
+            }
+            return list.Count > 0 ? list.ToArray() : defaults;
+        }
+        catch { return defaults; }
+    }
+
     public sealed record TrialConfig(List<Param> Params)
     {
         public StrategyDef BuildStrategyDef()
@@ -91,11 +125,11 @@ public static class TuningRunner
 
         // 3) Parameter grid (keep small for speed; expand later)
         var grids = new List<TrialConfig>();
-        decimal[] sigmaEnter = new[] { 1.8m, 2.0m, 2.2m };
-        decimal[] atrEnter = new[] { 0.8m, 1.0m, 1.2m };
-        int[] retestTicks = new[] { 0, 1, 2 };
-        decimal[] vwapSlopeMax = new[] { 0.10m, 0.12m, 0.15m };
-        decimal[] adrUsedMax = new[] { 0.0m, 0.60m, 0.75m }; // 0 disables guard
+        decimal[] sigmaEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_SIGMA_ENTER"), new[] { 1.8m, 2.0m, 2.2m });
+        decimal[] atrEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ATR_ENTER"), new[] { 0.8m, 1.0m, 1.2m });
+        int[] retestTicks = ParseIntArray(Environment.GetEnvironmentVariable("S2_GRID_RETEST_TICKS"), new[] { 0, 1, 2 });
+        decimal[] vwapSlopeMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_VWAP_SLOPE_MAX"), new[] { 0.10m, 0.12m, 0.15m });
+        decimal[] adrUsedMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ADR_USED_MAX"), new[] { 0.0m, 0.60m, 0.75m }); // 0 disables guard
 
         foreach (var se in sigmaEnter)
             foreach (var ae in atrEnter)
@@ -175,10 +209,21 @@ public static class TuningRunner
             results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
         }
 
-        // 5) Pick best by net pnl then drawdown constraint
-        var viable = results.Where(r => r.Trades >= 20).OrderByDescending(r => r.NetUsd).ThenBy(r => r.MaxDrawdownUsd).ToList();
-        var best = viable.FirstOrDefault() ?? results.OrderByDescending(r => r.NetUsd).First();
-        log.LogInformation("[Tune] Best: {Best}", best.ToString());
+        // 5) Pick best by explicit profit objective (risk-aware)
+        var weights = BotCore.Objectives.ProfitObjective.FromEnv();
+        var scored = results
+            .Select(r => new
+            {
+                Res = r,
+                Score = BotCore.Objectives.ProfitObjective.Score(
+                    new BotCore.Objectives.ProfitObjective.Metrics(r.NetUsd, r.MaxDrawdownUsd, r.Trades, r.WinRate, r.AvgR),
+                    weights)
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+        var best = scored.FirstOrDefault(x => x.Score > decimal.MinusOne)?.Res
+                   ?? results.OrderByDescending(r => r.NetUsd).First();
+        log.LogInformation("[Tune] Best (objective): {Best}", best.ToString());
 
         // 6) Persist tuned profile copy under state/tuning
         try
@@ -207,6 +252,28 @@ public static class TuningRunner
         catch (Exception ex)
         {
             log.LogWarning(ex, "[Tune] Persist tuned output failed");
+        }
+
+        // Optional: promote best S2 into ParamStore for immediate runtime use
+        try
+        {
+            var promote = (Environment.GetEnvironmentVariable("PROMOTE_TUNER") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (promote)
+            {
+                int ttlHours = 24;
+                var rawH = Environment.GetEnvironmentVariable("PROMOTE_TTL_HOURS");
+                var rawD = Environment.GetEnvironmentVariable("PROMOTE_TTL_DAYS");
+                if (!string.IsNullOrWhiteSpace(rawH) && int.TryParse(rawH, out var th) && th > 0) ttlHours = th;
+                else if (!string.IsNullOrWhiteSpace(rawD) && int.TryParse(rawD, out var td) && td > 0) ttlHours = td * 24;
+
+                var def = best.Config.BuildStrategyDef();
+                ParamStore.SaveS2(symbolRoot, def.Extra, TimeSpan.FromHours(ttlHours));
+                log.LogInformation("[Tune:S2] PROMOTE_TUNER on — wrote S2 override (TTL={Ttl}h) to ParamStore for {Sym}", ttlHours, symbolRoot);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "[Tune:S2] Promote-to-ParamStore failed");
         }
     }
 
@@ -240,6 +307,28 @@ public static class TuningRunner
                 var profile = ConfigLoader.FromFile(basePath);
                 var s2def = profile.Strategies.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
                 if (s2def != null) S2RuntimeConfig.ApplyFrom(s2def);
+            }
+        }
+        catch { }
+
+        // Optional: relax S2 guards for summary runs to diagnose zero-trade cases
+        try
+        {
+            var relax = (Environment.GetEnvironmentVariable("TUNE_RELAX") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (relax)
+            {
+                var def = new StrategyDef
+                {
+                    Name = "S2",
+                    Enabled = true,
+                    Extra = new System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement>()
+                };
+                // Build a simple relaxed config payload
+                using var doc = System.Text.Json.JsonDocument.Parse("{\n  \"min_volume\": 0,\n  \"sigma_enter\": 1.5,\n  \"atr_enter\": 0.8,\n  \"confirm_lookback\": 2,\n  \"retest_offset_ticks\": 0,\n  \"volz\": { \"min\": -5, \"max\": 5 }\n}");
+                foreach (var p in doc.RootElement.EnumerateObject())
+                    def.Extra[p.Name] = p.Value.Clone();
+                S2RuntimeConfig.ApplyFrom(def);
+                log.LogInformation("[Backtest:S2] Applied TUNE_RELAX overrides.");
             }
         }
         catch { }
@@ -334,12 +423,12 @@ public static class TuningRunner
 
         // 3) Parameter grid for S3 (keep compact for speed)
         var grids = new List<TrialConfig>();
-        decimal[] widthRankEnter = new[] { 0.10m, 0.15m, 0.20m };
-        int[] minSqueezeBars = new[] { 5, 6, 8 };
-        decimal[] confirmBreakMult = new[] { 0.10m, 0.15m, 0.20m };
-        decimal[] stopAtrMult = new[] { 1.0m, 1.1m, 1.2m };
-        int[] retestBackoffTicks = new[] { 1, 2 };
-        decimal[] rsThreshold = new[] { 0.05m, 0.10m };
+        decimal[] widthRankEnter = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_WIDTH_RANK"), new[] { 0.10m, 0.15m, 0.20m });
+        int[] minSqueezeBars = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_MIN_SQZ_BARS"), new[] { 5, 6, 8 });
+        decimal[] confirmBreakMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_CONFIRM_MULT"), new[] { 0.10m, 0.15m, 0.20m });
+        decimal[] stopAtrMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_STOP_ATR_MULT"), new[] { 1.0m, 1.1m, 1.2m });
+        int[] retestBackoffTicks = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_RETEST_BACKOFF"), new[] { 1, 2 });
+        decimal[] rsThreshold = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_RS_THRESHOLD"), new[] { 0.05m, 0.10m });
 
         foreach (var wre in widthRankEnter)
             foreach (var msb in minSqueezeBars)
@@ -408,10 +497,21 @@ public static class TuningRunner
             results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
         }
 
-        // 5) Pick best and persist
-        var viable = results.Where(r => r.Trades >= 15).OrderByDescending(r => r.NetUsd).ThenBy(r => r.MaxDrawdownUsd).ToList();
-        var best = viable.FirstOrDefault() ?? results.OrderByDescending(r => r.NetUsd).First();
-        log.LogInformation("[Tune:S3] Best: {Best}", best.ToString());
+        // 5) Pick best by explicit profit objective (risk-aware)
+        var weights = BotCore.Objectives.ProfitObjective.FromEnv();
+        var scored = results
+            .Select(r => new
+            {
+                Res = r,
+                Score = BotCore.Objectives.ProfitObjective.Score(
+                    new BotCore.Objectives.ProfitObjective.Metrics(r.NetUsd, r.MaxDrawdownUsd, r.Trades, r.WinRate, r.AvgR),
+                    weights)
+            })
+            .OrderByDescending(x => x.Score)
+            .ToList();
+        var best = scored.FirstOrDefault(x => x.Score > decimal.MinusOne)?.Res
+                   ?? results.OrderByDescending(r => r.NetUsd).First();
+        log.LogInformation("[Tune:S3] Best (objective): {Best}", best.ToString());
 
         try
         {
@@ -428,6 +528,28 @@ public static class TuningRunner
         catch (Exception ex)
         {
             log.LogWarning(ex, "[Tune:S3] Persist tuned output failed");
+        }
+
+        // Optional: promote best S3 into ParamStore for immediate runtime use
+        try
+        {
+            var promote = (Environment.GetEnvironmentVariable("PROMOTE_TUNER") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (promote)
+            {
+                int ttlHours = 24;
+                var rawH = Environment.GetEnvironmentVariable("PROMOTE_TTL_HOURS");
+                var rawD = Environment.GetEnvironmentVariable("PROMOTE_TTL_DAYS");
+                if (!string.IsNullOrWhiteSpace(rawH) && int.TryParse(rawH, out var th) && th > 0) ttlHours = th;
+                else if (!string.IsNullOrWhiteSpace(rawD) && int.TryParse(rawD, out var td) && td > 0) ttlHours = td * 24;
+
+                var json = BuildS3ConfigJson(best.Config);
+                ParamStore.SaveS3(symbolRoot, json, TimeSpan.FromHours(ttlHours));
+                log.LogInformation("[Tune:S3] PROMOTE_TUNER on — wrote S3 override (TTL={Ttl}h) to ParamStore for {Sym}", ttlHours, symbolRoot);
+            }
+        }
+        catch (Exception ex)
+        {
+            log.LogWarning(ex, "[Tune:S3] Promote-to-ParamStore failed");
         }
     }
 
@@ -448,6 +570,42 @@ public static class TuningRunner
         {
             var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE");
             if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v;
+        }
+        catch { }
+
+        // Optionally apply S3 tuned config for summary backtests
+        try
+        {
+            var s3cfg = Environment.GetEnvironmentVariable("S3_CONFIG_PATH");
+            if (!string.IsNullOrWhiteSpace(s3cfg) && File.Exists(s3cfg))
+            {
+                var json = await File.ReadAllTextAsync(s3cfg, ct);
+                try { BotCore.Strategy.S3Strategy.ApplyTuningJson(json); } catch { }
+            }
+        }
+        catch { }
+
+        // Optional: relax S3 guards for summary runs
+        try
+        {
+            var relax = (Environment.GetEnvironmentVariable("TUNE_RELAX") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (relax)
+            {
+                var relaxed = new System.Collections.Generic.Dictionary<string, object?>();
+                relaxed.Add("min_volume", 0);
+                relaxed.Add("width_rank_enter", 0.10m);
+                relaxed.Add("min_squeeze_bars", 3);
+                relaxed.Add("confirm_break_mult", 0.10m);
+                relaxed.Add("retest_backoff_ticks", 1);
+                relaxed.Add("entry_mode", "retest");
+                var rs = new System.Collections.Generic.Dictionary<string, object?>();
+                rs.Add("enabled", false);
+                rs.Add("threshold", 0.05m);
+                relaxed.Add("rs_filter", rs);
+                var json = System.Text.Json.JsonSerializer.Serialize(relaxed);
+                try { BotCore.Strategy.S3Strategy.ApplyTuningJson(json); } catch { }
+                log.LogInformation("[Backtest:S3] Applied TUNE_RELAX overrides.");
+            }
         }
         catch { }
 
@@ -528,6 +686,250 @@ public static class TuningRunner
             var summary = new { strategy = "S3", symbol = symbolRoot, start = utcStart, end = utcEnd, trades, wins, losses, netUsd = net, winRate = wr, avgR, maxDrawdownUsd = maxDd };
             await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct);
             log.LogInformation("[Backtest:S3] Wrote summary: {Path}", outPath);
+        }
+        catch { }
+    }
+
+    // Grid tuning for S6 (trend/open bias) using S6RuntimeConfig knobs
+    public static async Task RunS6Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
+    {
+        log.LogInformation("[Tune:S6] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        log.LogInformation("[Tune:S6] Bars fetched: {N}", bars.Count);
+        if (bars.Count < 200) { log.LogWarning("[Tune:S6] Not enough bars: {N}", bars.Count); return; }
+
+        var risk = new RiskEngine();
+        try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
+
+        var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_MIN_ATR"), new[] { 0.6m, 0.8m, 1.0m });
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_STOP_MULT"), new[] { 2.0m, 2.5m, 3.0m });
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_TGT_MULT"), new[] { 3.5m, 4.0m, 5.0m });
+        foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
+
+        var results = new List<TrialResult>(grids.Count);
+        int trialIndex = 0;
+        foreach (var g in grids)
+        {
+            trialIndex++;
+            if (trialIndex == 1 || trialIndex % Math.Max(1, grids.Count / 10) == 0)
+                log.LogInformation("[Tune:S6] Trial {Idx}/{Total}…", trialIndex, grids.Count);
+            var def = new StrategyDef { Id = "S6", Name = "S6-Override", Enabled = true };
+            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(g.MinAtr);
+            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(g.StopMult);
+            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(g.TargetMult);
+            S6RuntimeConfig.ApplyFrom(def);
+
+            var env = new Env { Symbol = symbolRoot };
+            var levels = new Levels();
+            Trade? open = null;
+            var equity = new List<decimal> { 0m };
+            int wins = 0, losses = 0, trades = 0;
+            var history = new List<Bar>(Math.Min(5000, bars.Count));
+            foreach (var b in bars)
+            {
+                try { env.atr = Math.Abs(b.High - b.Low); } catch { }
+                if (open != null)
+                {
+                    if (TryExit(ref open, b, symbolRoot, out var pnlUsd, out var won))
+                    { trades++; if (won) wins++; else losses++; equity.Add(equity[^1] + pnlUsd); open = null; }
+                }
+                history.Add(b);
+                var signals = AllStrategies.generate_signals(symbolRoot, env, levels, history, risk, 0, contractId);
+                var s6 = signals.Where(s => string.Equals(s.StrategyId, "S6", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                if (s6 != null && open == null) open = new Trade(s6.Side, s6.Entry, s6.Stop, s6.Target, s6.Size);
+            }
+            var net = equity[^1]; var maxDd = MaxDrawdown(equity); var wr = trades > 0 ? (decimal)wins / trades : 0m; var avgR = ComputeAvgR(equity, risk.cfg.risk_per_trade);
+            var cfg = new TrialConfig(new List<Param> { new("min_atr", g.MinAtr), new("stop_mult", g.StopMult), new("target_mult", g.TargetMult) });
+            results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
+        }
+
+        var weights = BotCore.Objectives.ProfitObjective.FromEnv();
+        var scored = results.Select(r => new { Res = r, Score = BotCore.Objectives.ProfitObjective.Score(new BotCore.Objectives.ProfitObjective.Metrics(r.NetUsd, r.MaxDrawdownUsd, r.Trades, r.WinRate, r.AvgR), weights) })
+                            .OrderByDescending(x => x.Score).ToList();
+        var best = scored.FirstOrDefault(x => x.Score > decimal.MinusOne)?.Res ?? results.OrderByDescending(r => r.NetUsd).First();
+        log.LogInformation("[Tune:S6] Best (objective): {Best}", best.ToString());
+
+        try
+        {
+            var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
+            Directory.CreateDirectory(outDir);
+            var outPath = Path.Combine(outDir, $"S6-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+        }
+        catch (Exception ex) { log.LogWarning(ex, "[Tune:S6] Persist tuned output failed"); }
+
+        try
+        {
+            var promote = (Environment.GetEnvironmentVariable("PROMOTE_TUNER") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (promote)
+            {
+                int ttlHours = 24;
+                var rawH = Environment.GetEnvironmentVariable("PROMOTE_TTL_HOURS"); var rawD = Environment.GetEnvironmentVariable("PROMOTE_TTL_DAYS");
+                if (!string.IsNullOrWhiteSpace(rawH) && int.TryParse(rawH, out var th) && th > 0) ttlHours = th; else if (!string.IsNullOrWhiteSpace(rawD) && int.TryParse(rawD, out var td) && td > 0) ttlHours = td * 24;
+                var def = new StrategyDef { Id = "S6", Enabled = true };
+                foreach (var p in best.Config.Params) p.Apply(def.Extra);
+                ParamStore.SaveS6(symbolRoot, def.Extra, TimeSpan.FromHours(ttlHours));
+                log.LogInformation("[Tune:S6] PROMOTE_TUNER on — wrote S6 override (TTL={Ttl}h) to ParamStore for {Sym}", ttlHours, symbolRoot);
+            }
+        }
+        catch (Exception ex) { log.LogWarning(ex, "[Tune:S6] Promote-to-ParamStore failed"); }
+    }
+
+    // Grid tuning for S11 using S11RuntimeConfig knobs
+    public static async Task RunS11Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
+    {
+        log.LogInformation("[Tune:S11] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        log.LogInformation("[Tune:S11] Bars fetched: {N}", bars.Count);
+        if (bars.Count < 200) { log.LogWarning("[Tune:S11] Not enough bars: {N}", bars.Count); return; }
+
+        var risk = new RiskEngine();
+        try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
+
+        var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_MIN_ATR"), new[] { 0.8m, 1.0m, 1.2m });
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_STOP_MULT"), new[] { 3.0m, 3.5m, 4.0m });
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_TGT_MULT"), new[] { 5.0m, 6.0m, 7.0m });
+        foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
+
+        var results = new List<TrialResult>(grids.Count);
+        int trialIndex = 0;
+        foreach (var g in grids)
+        {
+            trialIndex++;
+            if (trialIndex == 1 || trialIndex % Math.Max(1, grids.Count / 10) == 0)
+                log.LogInformation("[Tune:S11] Trial {Idx}/{Total}…", trialIndex, grids.Count);
+            var def = new StrategyDef { Id = "S11", Name = "S11-Override", Enabled = true };
+            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(g.MinAtr);
+            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(g.StopMult);
+            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(g.TargetMult);
+            S11RuntimeConfig.ApplyFrom(def);
+
+            var env = new Env { Symbol = symbolRoot };
+            var levels = new Levels();
+            Trade? open = null;
+            var equity = new List<decimal> { 0m };
+            int wins = 0, losses = 0, trades = 0;
+            var history = new List<Bar>(Math.Min(5000, bars.Count));
+            foreach (var b in bars)
+            {
+                try { env.atr = Math.Abs(b.High - b.Low); } catch { }
+                if (open != null)
+                {
+                    if (TryExit(ref open, b, symbolRoot, out var pnlUsd, out var won))
+                    { trades++; if (won) wins++; else losses++; equity.Add(equity[^1] + pnlUsd); open = null; }
+                }
+                history.Add(b);
+                var signals = AllStrategies.generate_signals(symbolRoot, env, levels, history, risk, 0, contractId);
+                var s11 = signals.Where(s => string.Equals(s.StrategyId, "S11", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
+                if (s11 != null && open == null) open = new Trade(s11.Side, s11.Entry, s11.Stop, s11.Target, s11.Size);
+            }
+            var net = equity[^1]; var maxDd = MaxDrawdown(equity); var wr = trades > 0 ? (decimal)wins / trades : 0m; var avgR = ComputeAvgR(equity, risk.cfg.risk_per_trade);
+            var cfg = new TrialConfig(new List<Param> { new("min_atr", g.MinAtr), new("stop_mult", g.StopMult), new("target_mult", g.TargetMult) });
+            results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
+        }
+
+        var weights = BotCore.Objectives.ProfitObjective.FromEnv();
+        var scored = results.Select(r => new { Res = r, Score = BotCore.Objectives.ProfitObjective.Score(new BotCore.Objectives.ProfitObjective.Metrics(r.NetUsd, r.MaxDrawdownUsd, r.Trades, r.WinRate, r.AvgR), weights) })
+                            .OrderByDescending(x => x.Score).ToList();
+        var best = scored.FirstOrDefault(x => x.Score > decimal.MinusOne)?.Res ?? results.OrderByDescending(r => r.NetUsd).First();
+        log.LogInformation("[Tune:S11] Best (objective): {Best}", best.ToString());
+
+        try
+        {
+            var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
+            Directory.CreateDirectory(outDir);
+            var outPath = Path.Combine(outDir, $"S11-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+        }
+        catch (Exception ex) { log.LogWarning(ex, "[Tune:S11] Persist tuned output failed"); }
+
+        try
+        {
+            var promote = (Environment.GetEnvironmentVariable("PROMOTE_TUNER") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (promote)
+            {
+                int ttlHours = 24;
+                var rawH = Environment.GetEnvironmentVariable("PROMOTE_TTL_HOURS"); var rawD = Environment.GetEnvironmentVariable("PROMOTE_TTL_DAYS");
+                if (!string.IsNullOrWhiteSpace(rawH) && int.TryParse(rawH, out var th) && th > 0) ttlHours = th; else if (!string.IsNullOrWhiteSpace(rawD) && int.TryParse(rawD, out var td) && td > 0) ttlHours = td * 24;
+                var def = new StrategyDef { Id = "S11", Enabled = true };
+                foreach (var p in best.Config.Params) p.Apply(def.Extra);
+                ParamStore.SaveS11(symbolRoot, def.Extra, TimeSpan.FromHours(ttlHours));
+                log.LogInformation("[Tune:S11] PROMOTE_TUNER on — wrote S11 override (TTL={Ttl}h) to ParamStore for {Sym}", ttlHours, symbolRoot);
+            }
+        }
+        catch (Exception ex) { log.LogWarning(ex, "[Tune:S11] Promote-to-ParamStore failed"); }
+    }
+    // Generic single-run backtest for any strategy id using current defaults; prints trades and PnL
+    public static async Task RunStrategySummaryAsync(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, string strategyId, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(strategyId)) return;
+        log.LogInformation("[Backtest:{Strat}] Fetching bars for {Cid} {From:u} → {To:u}…", strategyId, contractId, utcStart, utcEnd);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        log.LogInformation("[Backtest:{Strat}] Bars fetched: {N}", strategyId, bars.Count);
+        if (bars.Count < 200)
+        {
+            log.LogWarning("[Backtest:{Strat}] Not enough bars: {N}", strategyId, bars.Count);
+            return;
+        }
+
+        var risk = new RiskEngine();
+        try
+        {
+            var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE");
+            if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v;
+        }
+        catch { }
+
+        var env = new Env { Symbol = symbolRoot };
+        var levels = new Levels();
+        Trade? open = null;
+        var equity = new List<decimal> { 0m };
+        int wins = 0, losses = 0, trades = 0;
+        var history = new List<Bar>(Math.Min(5000, bars.Count));
+        int barCounter = 0;
+
+        foreach (var b in bars)
+        {
+            try { env.atr = Math.Abs(b.High - b.Low); } catch { }
+            if (open != null)
+            {
+                if (TryExit(ref open, b, symbolRoot, out var pnlUsd, out var won))
+                {
+                    trades++; if (won) wins++; else losses++;
+                    var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
+                    open = null;
+                }
+            }
+            history.Add(b);
+            var signals = AllStrategies.generate_signals(symbolRoot, env, levels, history, risk, 0, contractId);
+            var pick = signals.Where(s => string.Equals(s.StrategyId, strategyId, StringComparison.OrdinalIgnoreCase))
+                              .OrderByDescending(s => s.ExpR)
+                              .FirstOrDefault();
+            if (pick != null && open == null)
+            {
+                open = new Trade(pick.Side, pick.Entry, pick.Stop, pick.Target, pick.Size);
+            }
+            barCounter++;
+            if (barCounter % 200 == 0)
+                log.LogInformation("[Backtest:{Strat}] Progress {Bars} bars → trades={Trades} net=${Net:F2}", strategyId, barCounter, trades, equity[^1]);
+        }
+
+        var net = equity[^1];
+        var maxDd = MaxDrawdown(equity);
+        var wr = trades > 0 ? (decimal)wins / trades : 0m;
+        var avgR = ComputeAvgR(equity, risk.cfg.risk_per_trade);
+        log.LogInformation("[Backtest:{Strat}] Done symbol={Sym} days={Days} trades={Trades} win%={Wr:P1} net=${Net:F2} avgR={AvgR:F2} maxDD=${DD:F0}", strategyId, symbolRoot, (utcEnd - utcStart).TotalDays, trades, wr, net, avgR, maxDd);
+
+        try
+        {
+            var outDir = Path.Combine(AppContext.BaseDirectory, "state", "backtest");
+            Directory.CreateDirectory(outDir);
+            var outPath = Path.Combine(outDir, $"{strategyId}-summary-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
+            var summary = new { strategy = strategyId, symbol = symbolRoot, start = utcStart, end = utcEnd, trades, wins, losses, netUsd = net, winRate = wr, avgR, maxDrawdownUsd = maxDd };
+            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct);
+            log.LogInformation("[Backtest:{Strat}] Wrote summary: {Path}", strategyId, outPath);
         }
         catch { }
     }

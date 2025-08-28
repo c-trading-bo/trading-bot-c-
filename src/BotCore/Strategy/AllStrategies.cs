@@ -757,11 +757,12 @@ namespace BotCore.Strategy
         public static List<Candidate> S6(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.7m)
+            var minAtr = S6RuntimeConfig.MinAtr;
+            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
             {
                 var entry = bars[^1].Close;
-                var stop = entry - env.atr.Value * 2.0m;
-                var t1 = entry + env.atr.Value * 4.0m;
+                var stop = entry - env.atr.Value * S6RuntimeConfig.StopAtrMult;
+                var t1 = entry + env.atr.Value * S6RuntimeConfig.TargetAtrMult;
                 add_cand(lst, "S6", symbol, "BUY", entry, stop, t1, env, risk);
             }
             return lst;
@@ -827,11 +828,12 @@ namespace BotCore.Strategy
         public static List<Candidate> S11(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > 0.9m)
+            var minAtr = S11RuntimeConfig.MinAtr;
+            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
             {
                 var entry = bars[^1].Close;
-                var stop = entry + env.atr.Value * 3.0m;
-                var t1 = entry - env.atr.Value * 6.0m;
+                var stop = entry + env.atr.Value * S11RuntimeConfig.StopAtrMult;
+                var t1 = entry - env.atr.Value * S11RuntimeConfig.TargetAtrMult;
                 add_cand(lst, "S11", symbol, "SELL", entry, stop, t1, env, risk);
             }
             return lst;

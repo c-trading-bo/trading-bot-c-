@@ -66,12 +66,11 @@ namespace BotCore
 				?? Environment.GetEnvironmentVariable("RTC_BASE")
 				?? "https://rtc.topstepx.com").TrimEnd('/');
 			var baseUrl = $"{rtcBase}/hubs/user";
-			// Build URL with access_token query param for compatibility; do not log the token
-			var url = string.IsNullOrWhiteSpace(_jwt) ? baseUrl : $"{baseUrl}?access_token={Uri.EscapeDataString(_jwt)}";
+			// Do NOT include access_token in querystring; rely on AccessTokenProvider header
 			_log.LogInformation("[UserHub] Using URL={Url}", baseUrl);
 
 			_hub = new HubConnectionBuilder()
-				.WithUrl(url, opt =>
+				.WithUrl(baseUrl, opt =>
 				{
 					// AccessTokenProvider in newer packages is Func<Task<string?>>; return nullable to match
 					opt.AccessTokenProvider = () => Task.FromResult<string?>(_jwt);
@@ -79,7 +78,7 @@ namespace BotCore
 					// DO NOT force SkipNegotiation unless required; default is fine
 				})
 				.WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5) })
-    .ConfigureLogging(lb =>
+				.ConfigureLogging(lb =>
     				{
     					lb.ClearProviders();
     					lb.AddConsole();
@@ -92,6 +91,10 @@ namespace BotCore
     						lb.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
     						lb.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
     					}
+						// Always suppress verbose client transport logs that can echo access_token in URLs
+						lb.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+						lb.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
+						lb.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
     				})
 				.Build();
 

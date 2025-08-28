@@ -341,6 +341,10 @@ namespace OrchestratorAgent
                         logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
                         logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
                     }
+                    // Always suppress verbose client transport logs that can echo access_token in URLs
+                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
                 })
                 .Build();
 
