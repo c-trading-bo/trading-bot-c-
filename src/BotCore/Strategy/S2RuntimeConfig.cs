@@ -29,7 +29,6 @@ public static class S2RuntimeConfig
     public static decimal OvernightScale { get; private set; } = 0.5m;
     public static int MinVolume { get; private set; } = 3000;
     public static int MaxSpreadTicks { get; private set; } = 2;
-<<<<<<< HEAD
     // Patch B: session-level tunables
     public static int MaxTradesPerSession { get; private set; } = 3;
     public static string EntryMode { get; private set; } = "retest";
@@ -43,14 +42,8 @@ public static class S2RuntimeConfig
     public static bool PriorDayCloseVeto { get; private set; } = true;
     // ADR guards
     public static int AdrLookbackDays { get; private set; } = 20;
-    public static decimal AdrRoomFrac { get; private set; } = 0.25m;
-    public static decimal AdrExhaustionCap { get; private set; } = 1.20m;
-=======
-    // ADR guards
-    public static int AdrLookbackDays { get; private set; } = 20;
     public static decimal AdrRoomFrac { get; private set; } = 0.25m;    // require ≥25% ADR room to target
     public static decimal AdrExhaustionCap { get; private set; } = 1.20m; // block if today range > 1.2×ADR
->>>>>>> 0768901781296b12038bfa5fd66625f8c8be3260
 
     public static void ApplyFrom(StrategyDef def)
     {
@@ -80,7 +73,6 @@ public static class S2RuntimeConfig
         TryDec(extra, "overnight_scale", v => OvernightScale = v);
         TryInt(extra, "min_volume", v => MinVolume = v);
         TryInt(extra, "max_spread_ticks", v => MaxSpreadTicks = v);
-<<<<<<< HEAD
         // Patch B: session-level tunables
         TryInt(extra, "max_trades_per_session", v => MaxTradesPerSession = v);
         TryString(extra, "entry_mode", v => EntryMode = v);
@@ -93,20 +85,12 @@ public static class S2RuntimeConfig
         TryBool(extra, "prior_day_vwap_veto", v => PriorDayVwapVeto = v);
         TryBool(extra, "prior_day_close_veto", v => PriorDayCloseVeto = v);
         // ADR guards
-=======
-        // ADR guards (optional)
->>>>>>> 0768901781296b12038bfa5fd66625f8c8be3260
         TryInt(extra, "adr_lookback_days", v => AdrLookbackDays = v);
         TryDec(extra, "adr_room_frac", v => AdrRoomFrac = v);
         TryDec(extra, "adr_exhaustion_cap", v => AdrExhaustionCap = v);
     }
 
     private static void TryInt(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<int> set)
-<<<<<<< HEAD
-    { if (extra.TryGetValue(key, out var el) && el.TryGetInt32(out var v)) set(v); }
-    private static void TryDec(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<decimal> set)
-    { if (extra.TryGetValue(key, out var el) && el.TryGetDecimal(out var v)) set(v); }
-=======
     {
         if (extra.TryGetValue(key, out var el) && el.TryGetInt32(out var v)) set(v);
     }
@@ -114,14 +98,12 @@ public static class S2RuntimeConfig
     {
         if (extra.TryGetValue(key, out var el) && el.TryGetDecimal(out var v)) set(v);
     }
->>>>>>> 0768901781296b12038bfa5fd66625f8c8be3260
     private static void TryString(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<string> set)
     {
         if (extra.TryGetValue(key, out var el) && el.ValueKind == JsonValueKind.String)
         {
             var s = el.GetString();
             if (!string.IsNullOrWhiteSpace(s)) set(s!);
-<<<<<<< HEAD
         }
     }
     private static void TryBool(System.Collections.Generic.Dictionary<string, JsonElement> extra, string key, Action<bool> set)
@@ -130,8 +112,6 @@ public static class S2RuntimeConfig
         {
             if (el.ValueKind == JsonValueKind.True) set(true);
             else if (el.ValueKind == JsonValueKind.False) set(false);
-=======
->>>>>>> 0768901781296b12038bfa5fd66625f8c8be3260
         }
     }
 }
