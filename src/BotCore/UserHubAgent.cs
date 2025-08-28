@@ -73,10 +73,7 @@ namespace BotCore
 			_hub = new HubConnectionBuilder()
 				.WithUrl(url, opt =>
 				{
-<<<<<<< HEAD
-=======
 					// AccessTokenProvider in newer packages is Func<Task<string?>>; return nullable to match
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
 					opt.AccessTokenProvider = () => Task.FromResult<string?>(_jwt);
 					opt.Transports = HttpTransportType.WebSockets;
 					// DO NOT force SkipNegotiation unless required; default is fine

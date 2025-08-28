@@ -187,3 +187,15 @@ Do/Don’t quick list
 ❌ Don’t send orders from VPN/VPS/remote environments.
 
 Keep this file concise and link deeper docs. Copilot reads this on every chat. Add any new rules/API specifics here as you refine the bot.
+
+Developer guardrails (process & Git)
+
+- Branch workflow: create a disposable branch per task and push upstream, e.g.:
+    - git switch -c agent/feat-short-desc
+    - git push -u origin HEAD
+- Protect main: only merge via PR; ask for minimal patches, not rewrites.
+- Patch mode prompt: “Make the smallest possible change. Return a unified diff only (no full files). Keep signatures/exports stable. Don’t touch .env, settings.json, keys/*.”
+- Do-not-touch: .env, secrets, keys, CI YAML, versioning, risk controls, auth/login code (TopstepAuthAgent, JwtCache, any Auth/* folder).
+- Pre-commit gate: use .pre-commit-config.yaml to run dotnet format/build/test and block protected files.
+- Approvals: require confirmation for file writes and terminal commands when using local agents; propose a plan before executing.
+- Review hunks: stage with git add -p and verify with git diff --staged before committing.

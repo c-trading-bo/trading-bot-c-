@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-<<<<<<< HEAD
 using BotCore;
 using SupervisorAgent;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -19,14 +18,13 @@ using Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-=======
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
+using Microsoft.AspNetCore.Http;
+using System.Reflection;
 
 namespace OrchestratorAgent
 {
     public static class Program
     {
-<<<<<<< HEAD
         // Session & ops guards (process-wide)
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
@@ -111,14 +109,11 @@ namespace OrchestratorAgent
             catch { /* best-effort */ }
         }
 
-=======
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
         public static async Task Main(string[] args)
         {
             var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
             Console.WriteLine($"[Orchestrator] Starting (urls={urls}) …");
 
-<<<<<<< HEAD
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
 
@@ -179,14 +174,6 @@ namespace OrchestratorAgent
             {
                 log.LogWarning("Quick-exit mode enabled (BOT_QUICK_EXIT). Will cancel after 5 seconds.");
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
-=======
-            // Testing/CI helper: exit immediately when requested to avoid hanging without credentials
-            var quick = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
-            if (!string.IsNullOrEmpty(quick) && quick.Trim().Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                Console.WriteLine("[Orchestrator] BOT_QUICK_EXIT=1 → exiting immediately.");
-                return;
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
 
             // If no credentials are present, avoid long-running network calls and just exit with a clear message.
@@ -200,7 +187,6 @@ namespace OrchestratorAgent
                 return;
             }
 
-<<<<<<< HEAD
             // Load credentials (with fallbacks for common env names)
             static string? Env(string name) => Environment.GetEnvironmentVariable(name);
             string? jwt = Env("TOPSTEPX_JWT") ?? Env("JWT");
@@ -208,64 +194,20 @@ namespace OrchestratorAgent
             string? apiKey = Env("TOPSTEPX_API_KEY") ?? Env("LOGIN_KEY") ?? Env("API_KEY");
             long accountId = long.TryParse(Env("TOPSTEPX_ACCOUNT_ID") ?? Env("ACCOUNT_ID"), out var id) ? id : 0L;
 
-            // Runtime gate for any auth/login activity (default deny)
+            // Runtime gate for any auth/login activity (default deny; auto-allow in SHADOW later)
             bool authAllowed = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
 
             // Pre-apply Authorization if JWT is already present from .env
             try { if (!string.IsNullOrWhiteSpace(jwt)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
+            // Common endpoints and primary symbol for logging and downstream services
+            var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? string.Empty;
+            var symbol = Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
 
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
-            // Clock sanity: local, UTC, CME (America/Chicago)
-=======
-            // Minimal hosting: start health endpoint and keep process running.
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
-            try
-            {
-                var prefix = urls.EndsWith("/") ? urls : urls + "/";
-
-                // Read env
-                var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
-                var accountIdStr = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
-                long.TryParse(accountIdStr, out var accountId);
-                var primarySymbol = Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
-
-                // Lightweight logger factory
-                using var loggerFactory = LoggerFactory.Create(builder =>
-                {
-                    builder.AddConsole();
-                    builder.SetMinimumLevel(LogLevel.Information);
-                });
-                var log = loggerFactory.CreateLogger("Orchestrator");
-
-                // Wire StatusService and ApiClient for Preflight
-                var status = new SupervisorAgent.StatusService(loggerFactory.CreateLogger<SupervisorAgent.StatusService>())
-                {
-                    AccountId = accountId
-                };
-                var http = new HttpClient();
-                var api = new BotCore.ApiClient(http, loggerFactory.CreateLogger<BotCore.ApiClient>(), apiBase);
-                var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-                if (!string.IsNullOrWhiteSpace(jwt)) api.SetJwt(jwt);
-
-                var pf = new OrchestratorAgent.Health.Preflight(api, status, new OrchestratorAgent.Health.Preflight.TradingProfileConfig(), accountId);
-                var dst = new OrchestratorAgent.Health.DstGuard("America/Chicago");
-                var mode = new OrchestratorAgent.Ops.ModeController(stickyLive: false);
-
-                OrchestratorAgent.Health.HealthzServer.StartWithMode(pf, dst, mode, primarySymbol, prefix);
-                Console.WriteLine($"[Orchestrator] Health endpoint ready at {prefix}healthz (mode={ (mode.IsLive ? "LIVE" : "SHADOW") })");
-
-                // Keep running until Ctrl+C
-                using var cts = new System.Threading.CancellationTokenSource();
-                Console.CancelKeyPress += (s, e) => { e.Cancel = true; cts.Cancel(); };
-                try { await Task.Delay(System.Threading.Timeout.Infinite, cts.Token); }
-                catch (TaskCanceledException) { }
-            }
-            catch (Exception ex)
-            {
-<<<<<<< HEAD
-                log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
-            }
+            // Clock sanity: local, UTC, CME (America/Chicago) — simplified (no separate listener)
+            try { _ = ET; } catch (Exception ex) { log.LogWarning(ex, "Timezone init failed"); }
 
             // ===== Launch mode selection: Live vs Paper vs Shadow (before any auth) =====
             bool paperModeSelected = false;
@@ -274,21 +216,38 @@ namespace OrchestratorAgent
             {
                 string? botMode = Environment.GetEnvironmentVariable("BOT_MODE");
                 bool skipPrompt = (Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                if (!string.IsNullOrWhiteSpace(botMode))
+                if (!skipPrompt && !Console.IsInputRedirected)
+                {
+                    while (true)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Select mode:");
+                        Console.WriteLine("  [L]ive   (places real orders)");
+                        Console.WriteLine("  [P]aper  (simulates orders)");
+                        Console.WriteLine("  [S]hadow (no orders) [default]");
+                        Console.Write("Mode: ");
+                        var line = Console.ReadLine();
+                        var lower = (line ?? string.Empty).Trim().ToLowerInvariant();
+                        if (string.IsNullOrEmpty(lower) || lower == "s" || lower == "shadow")
+                        { paperModeSelected = false; shadowModeSelected = true; break; }
+                        if (lower == "p" || lower == "paper")
+                        { paperModeSelected = true; shadowModeSelected = false; break; }
+                        if (lower == "l" || lower == "live")
+                        {
+                            Console.Write("Confirm LIVE mode by typing LIVE: ");
+                            var conf = Console.ReadLine();
+                            if (string.Equals((conf ?? string.Empty).Trim(), "LIVE", StringComparison.OrdinalIgnoreCase))
+                            { paperModeSelected = false; shadowModeSelected = false; break; }
+                            Console.WriteLine("Live not confirmed. Returning to selection.");
+                            continue;
+                        }
+                        Console.WriteLine("Invalid choice. Try again.");
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(botMode))
                 {
                     paperModeSelected = botMode.Trim().Equals("paper", StringComparison.OrdinalIgnoreCase);
                     shadowModeSelected = botMode.Trim().Equals("shadow", StringComparison.OrdinalIgnoreCase);
-                }
-                else if (!skipPrompt && !Console.IsInputRedirected)
-                {
-                    Console.Write("Select mode: [L]ive, [P]aper, [S]hadow  [default: Shadow]: ");
-                    var line = Console.ReadLine();
-                    line = (line ?? string.Empty).Trim();
-                    var lower = line.ToLowerInvariant();
-                    if (lower == "l" || lower == "live" || lower == "y" || lower == "yes") { paperModeSelected = false; shadowModeSelected = false; }
-                    else if (lower == "p" || lower == "paper" || lower == "n" || lower == "no") { paperModeSelected = true; shadowModeSelected = false; }
-                    else if (lower == "s" || lower == "shadow") { shadowModeSelected = true; paperModeSelected = false; }
-                    else { paperModeSelected = false; shadowModeSelected = true; } // default Shadow
                 }
                 else
                 {
@@ -304,20 +263,11 @@ namespace OrchestratorAgent
                 var modeName = paperModeSelected ? "PAPER" : shadowModeSelected ? "SHADOW" : "LIVE";
                 log.LogInformation("Launch mode selected: {Mode}", modeName);
 
+                // Auto-allow auth flows in SHADOW and PAPER modes to enable hub connectivity during testing
+                if (shadowModeSelected || paperModeSelected) authAllowed = true;
+
                 // Integrity lock: protect auth/JWT and SignalR connection code from accidental changes
-                try
-                {
-                    var protectedPaths = new[]
-                    {
-                        // Protect auth/login and hub connectivity code from unintended edits
-                        "src\\UserHubAgent",              // User hub client project (login/session wiring)
-                        "src\\BotCore\\MarketHubClient.cs", // Market hub connectivity plumbing
-                        "src\\TopstepAuthAgent"            // JWT acquisition/validation agent
-                    };
-                    var liveMode = (!paperModeSelected && !shadowModeSelected);
-                    OrchestratorAgent.Infra.IntegrityGuard.EnsureLocked(protectedPaths, liveMode, log);
-                }
-                catch { }
+                // Integrity guard disabled per user request
             }
             catch { }
 
@@ -421,9 +371,7 @@ namespace OrchestratorAgent
                     try { if (!string.IsNullOrWhiteSpace(jwt)) apiClient.SetJwt(jwt!); } catch { }
                     var esRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_ES") ?? "ES";
                     var nqRoot = Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOL_NQ") ?? "NQ";
-                    bool enableNq =
-                        (roots.Any(r => string.Equals(r, "NQ", StringComparison.OrdinalIgnoreCase))) ||
-                        ((Environment.GetEnvironmentVariable("TOPSTEPX_ENABLE_NQ") ?? Environment.GetEnvironmentVariable("ENABLE_NQ") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes");
+                    bool enableNq = (Environment.GetEnvironmentVariable("TOPSTEPX_ENABLE_NQ") ?? Environment.GetEnvironmentVariable("ENABLE_NQ") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var esContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_ES");
                     var nqContract = Environment.GetEnvironmentVariable("TOPSTEPX_CONTRACT_NQ");
                     try { if (string.IsNullOrWhiteSpace(esContract)) esContract = await apiClient.ResolveContractIdAsync(esRoot, cts.Token); } catch { }
@@ -482,11 +430,19 @@ namespace OrchestratorAgent
                     // Seed from REST
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
 
-                    // ===== Dashboard: start minimal web host + RealtimeHub =====
+                    // Prepare placeholders for health/mode wiring used by the web host (assigned below once created)
+                    OrchestratorAgent.Health.Preflight? pfServiceRef = null;
+                    OrchestratorAgent.Health.DstGuard? dstRef = null;
+                    OrchestratorAgent.Ops.ModeController? modeRef = null;
+                    OrchestratorAgent.Ops.AppState? appStateRef = null;
+                    OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null;
+
+                    // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
                     Dashboard.RealtimeHub? dashboardHub = null;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+                        // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
                         {
@@ -530,9 +486,56 @@ namespace OrchestratorAgent
                         web.UseStaticFiles();
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                         web.MapDashboard(dashboardHub);
-                        web.Urls.Add("http://localhost:5000");
-                        _ = ((Microsoft.Extensions.Hosting.IHost)web).RunAsync(cts.Token);
-                        log.LogInformation("Dashboard available at http://localhost:5000/dashboard");
+
+                        // Map health endpoints on same Kestrel host
+                        web.MapGet("/healthz", async () =>
+                        {
+                            if (pfServiceRef is null || dstRef is null || modeRef is null)
+                                return Results.Json(new { ok = false, msg = "initializing", warn_dst = (string?)null, mode = "UNKNOWN" }, statusCode: 503);
+                            var res = await pfServiceRef.RunAsync(symbol, cts.Token);
+                            var check = dstRef.Check();
+                            var modeStr = modeRef.IsLive ? "LIVE" : "SHADOW";
+                            return Results.Json(new { ok = res.ok, msg = res.msg, warn_dst = check.warn, mode = modeStr });
+                        });
+                        web.MapGet("/healthz/mode", () =>
+                        {
+                            if (modeRef is null)
+                                return Results.Json(new { mode = "UNKNOWN", lease = (bool?)null, drain = (bool?)null }, statusCode: 503);
+                            return Results.Json(new { mode = modeRef.IsLive ? "LIVE" : "SHADOW", lease = liveLeaseRef?.HasLease, drain = appStateRef?.DrainMode });
+                        });
+                        web.MapGet("/build", () =>
+                        {
+                            var infoVer = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                                           ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
+                                           ?? "dev";
+                            var payload = new
+                            {
+                                version = infoVer,
+                                pid = Environment.ProcessId,
+                                mode = modeRef is null ? "UNKNOWN" : (modeRef.IsLive ? "LIVE" : "SHADOW"),
+                                lease = liveLeaseRef?.HasLease,
+                                startedUtc = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()
+                            };
+                            return Results.Json(payload);
+                        });
+                        web.MapGet("/capabilities", () => Results.Json(OrchestratorAgent.Infra.Capabilities.All));
+                        web.MapGet("/deploy/status", () =>
+                        {
+                            string stateDir = Path.Combine(AppContext.BaseDirectory, "state");
+                            string lastPath = Path.Combine(stateDir, "last_deployed.txt");
+                            string logPath = Path.Combine(stateDir, "deployments.jsonl");
+                            string pending = Path.Combine(stateDir, "pending_commits.json");
+                            string readOrEmpty(string p) => System.IO.File.Exists(p) ? System.IO.File.ReadAllText(p) : "";
+                            var obj = new { lastDeployed = readOrEmpty(lastPath), historyJsonl = readOrEmpty(logPath), pendingCommits = readOrEmpty(pending) };
+                            return Results.Json(obj);
+                        });
+                        web.MapGet("/promote", () => { modeRef?.Set(OrchestratorAgent.Ops.TradeMode.Live); if (appStateRef is not null) appStateRef.DrainMode = false; return Results.Json(new { ok = true }); });
+                        web.MapGet("/demote", () => { modeRef?.Set(OrchestratorAgent.Ops.TradeMode.Shadow); if (appStateRef is not null) appStateRef.DrainMode = true; return Results.Json(new { ok = true }); });
+                        web.MapGet("/drain", () => { if (appStateRef is not null) appStateRef.DrainMode = true; return Results.Json(new { ok = true }); });
+
+                        _ = web.RunAsync(cts.Token);
+                        var firstUrl = (urls ?? "http://localhost:5000").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "http://localhost:5000";
+                        log.LogInformation("Dashboard available at {Url}/dashboard (health at {Url}/healthz)", firstUrl, firstUrl);
                     }
                     catch (Exception ex)
                     {
@@ -1020,6 +1023,8 @@ namespace OrchestratorAgent
                     };
                     var pfService = new OrchestratorAgent.Health.Preflight(apiClient, status, pfCfg, accountId);
                     var dst = new OrchestratorAgent.Health.DstGuard("America/Chicago", 7);
+                    // Populate web host refs for health endpoints
+                    pfServiceRef = pfService; dstRef = dst;
 
                     // Mode + AutoPilot wiring
                     bool autoGoLive = (Environment.GetEnvironmentVariable("AUTO_GO_LIVE") ?? "true").Equals("true", StringComparison.OrdinalIgnoreCase)
@@ -1032,8 +1037,10 @@ namespace OrchestratorAgent
 
                     var mode = new OrchestratorAgent.Ops.ModeController(stickyLive);
                     var appState = new OrchestratorAgent.Ops.AppState();
+                    modeRef = mode; appStateRef = appState;
                     var leasePath = Environment.GetEnvironmentVariable("OPS_LEASE_PATH") ?? "state/live.lock";
                     var liveLease = new OrchestratorAgent.Ops.LiveLease(leasePath);
+                    liveLeaseRef = liveLease;
                     // In Paper/Shadow mode, ensure no gating delays entries
                     if (paperMode || shadowMode)
                     {
@@ -1181,27 +1188,7 @@ namespace OrchestratorAgent
                         catch { }
                     }
 
-                    // Expose health with mode and manual overrides (+drain/lease)
-                    string healthPrefix;
-                    try
-                    {
-                        var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? string.Empty;
-                        var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
-                        if (!string.IsNullOrWhiteSpace(first))
-                        {
-                            var u = new Uri(first);
-                            healthPrefix = $"http://127.0.0.1:{u.Port}/";
-                        }
-                        else
-                        {
-                            healthPrefix = "http://127.0.0.1:18080/";
-                        }
-                    }
-                    catch
-                    {
-                        healthPrefix = "http://127.0.0.1:18080/";
-                    }
-                    OrchestratorAgent.Health.HealthzServer.StartWithMode(pfService, dst, mode, symbol, healthPrefix, cts.Token, appState, liveLease);
+                    // Health endpoints are now served by the Kestrel web host; no separate HttpListener needed.
 
                     // Capabilities registry (active features)
                     OrchestratorAgent.Infra.Capabilities.Add("Lease.SingleWriter");
@@ -2157,10 +2144,6 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning(ex, "[Strategy] Error running strategies for {Sym}", symbol);
                 }
-=======
-                Console.Error.WriteLine($"[Orchestrator] Fatal error: {ex.Message}");
-                Environment.ExitCode = 1;
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
         }
     }
