@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-<<<<<<< HEAD
 using BotCore;
 using SupervisorAgent;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -19,14 +18,11 @@ using Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-=======
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
 
 namespace OrchestratorAgent
 {
     public static class Program
     {
-<<<<<<< HEAD
         // Session & ops guards (process-wide)
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
@@ -111,14 +107,11 @@ namespace OrchestratorAgent
             catch { /* best-effort */ }
         }
 
-=======
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
         public static async Task Main(string[] args)
         {
             var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
             Console.WriteLine($"[Orchestrator] Starting (urls={urls}) …");
 
-<<<<<<< HEAD
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
 
@@ -179,14 +172,6 @@ namespace OrchestratorAgent
             {
                 log.LogWarning("Quick-exit mode enabled (BOT_QUICK_EXIT). Will cancel after 5 seconds.");
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
-=======
-            // Testing/CI helper: exit immediately when requested to avoid hanging without credentials
-            var quick = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
-            if (!string.IsNullOrEmpty(quick) && quick.Trim().Equals("1", StringComparison.OrdinalIgnoreCase))
-            {
-                Console.WriteLine("[Orchestrator] BOT_QUICK_EXIT=1 → exiting immediately.");
-                return;
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
 
             // If no credentials are present, avoid long-running network calls and just exit with a clear message.
@@ -200,7 +185,6 @@ namespace OrchestratorAgent
                 return;
             }
 
-<<<<<<< HEAD
             // Load credentials (with fallbacks for common env names)
             static string? Env(string name) => Environment.GetEnvironmentVariable(name);
             string? jwt = Env("TOPSTEPX_JWT") ?? Env("JWT");
@@ -217,9 +201,7 @@ namespace OrchestratorAgent
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
             // Clock sanity: local, UTC, CME (America/Chicago)
-=======
             // Minimal hosting: start health endpoint and keep process running.
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             try
             {
                 var prefix = urls.EndsWith("/") ? urls : urls + "/";
@@ -263,7 +245,6 @@ namespace OrchestratorAgent
             }
             catch (Exception ex)
             {
-<<<<<<< HEAD
                 log.LogWarning(ex, "Clock sanity logging failed (timezone not found)");
             }
 
@@ -2157,10 +2138,8 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning(ex, "[Strategy] Error running strategies for {Sym}", symbol);
                 }
-=======
                 Console.Error.WriteLine($"[Orchestrator] Fatal error: {ex.Message}");
                 Environment.ExitCode = 1;
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
             }
         }
     }

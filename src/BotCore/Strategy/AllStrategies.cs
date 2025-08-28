@@ -620,7 +620,7 @@ namespace BotCore.Strategy
                     var peerBars = ExternalGetBars(peer!);
                     if (peerBars != null && peerBars.Count >= cfg.RsWindowBars + 2)
                     {
-                        var rs = RelativeStrength(bars, peerBars, cfg.RsWindowBars);
+                        var rs = RelativeStrength((IReadOnlyList<Bar>)bars, peerBars, cfg.RsWindowBars);
                         if (cfg.RsDirectionalOnly)
                         {
                             if (biasUp && rs < cfg.RsThreshold) return lst;
@@ -713,8 +713,8 @@ namespace BotCore.Strategy
                 var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, false, expF);
                 add_cand(lst, "S3", symbol, "SELL", entry, ish, t1, env, risk,
                     tag: $"rank={widthRank:F2} run={squeezeRun} nrOK={hasNrCluster} slope5={slope5:F3} barq={barq:F2}");
-                st.MarkFilled(segStartIdx, Side.Sell, last.Start);
-                RegisterAttempt(symbol, session, Side.Sell);
+                st.MarkFilled(segStartIdx, Side.SELL, last.Start);
+                RegisterAttempt(symbol, session, Side.SELL);
             }
 
             return lst;
@@ -746,7 +746,7 @@ namespace BotCore.Strategy
             {
                 var c = b[i]; var p = b[i - 1];
                 var tr = Math.Max((float)(c.High - c.Low), Math.Max((float)Math.Abs(c.High - p.Close), (float)Math.Abs(c.Low - p.Close)));
-                atr = i == start ? tr : (atr * (n - 1) + (decimal)tr) / n;
+                atr = i == start ? (decimal)tr : (atr * (n - 1) + (decimal)tr) / n;
             }
             return atr;
         }
@@ -863,9 +863,9 @@ namespace BotCore.Strategy
         private static decimal LinearSlope(decimal[] arr, int n)
         {
             if (arr.Length < n + 1) return 0m;
-            return (arr[^1] - arr[^1 - n]) / n;
+            return (arr[^1] - arr[arr.Length - 1 - n]) / n;
         }
-        private static decimal RelativeStrength(IList<Bar> a, IList<Bar> b, int look)
+        private static decimal RelativeStrength(IReadOnlyList<Bar> a, IReadOnlyList<Bar> b, int look)
         {
             int sa = Math.Max(0, a.Count - look);
             int sb = Math.Max(0, b.Count - look);
@@ -1197,13 +1197,13 @@ namespace BotCore.Strategy
                                 int? maxSpread = null; decimal? wre = null; int? nrb = null; decimal? qMinClose = null; decimal? qMaxOpp = null;
                                 if (node.ValueKind == JsonValueKind.Object)
                                 {
-                                    if (node.TryGetProperty("max_spread_ticks", out var p1) && p1.TryGetInt32(out var i1)) maxSpread = i1;
-                                    if (node.TryGetProperty("width_rank_enter", out var p2) && p2.TryGetDecimal(out var d2)) wre = d2;
-                                    if (node.TryGetProperty("nr_cluster_min_bars", out var p3) && p3.TryGetInt32(out var i3)) nrb = i3;
-                                    if (node.TryGetProperty("break_bar_quality", out var bbq) && bbq.ValueKind == JsonValueKind.Object)
+                                    if (node.TryGetProperty("max_spread_ticks", out var p1) && p1.TryGetInt32(out var i1_inner)) maxSpread = i1_inner;
+                                    if (node.TryGetProperty("width_rank_enter", out var p2) && p2.TryGetDecimal(out var d2_inner)) wre = d2_inner;
+                                    if (node.TryGetProperty("nr_cluster_min_bars", out var p3) && p3.TryGetInt32(out var i3_inner)) nrb = i3_inner;
+                                    if (node.TryGetProperty("break_bar_quality", out var bbq_inner) && bbq_inner.ValueKind == JsonValueKind.Object)
                                     {
-                                        if (bbq.TryGetProperty("min_close_pos", out var mcp) && mcp.TryGetDecimal(out var dmcp)) qMinClose = dmcp;
-                                        if (bbq.TryGetProperty("max_opp_wick", out var mow) && mow.TryGetDecimal(out var dmow)) qMaxOpp = dmow;
+                                        if (bbq_inner.TryGetProperty("min_close_pos", out var mcp_inner) && mcp_inner.TryGetDecimal(out var dmcp_inner)) qMinClose = dmcp_inner;
+                                        if (bbq_inner.TryGetProperty("max_opp_wick", out var mow_inner) && mow_inner.TryGetDecimal(out var dmow_inner)) qMaxOpp = dmow_inner;
                                     }
                                 }
                                 _instrumentOverrides[sym] = new InstrumentOverride
@@ -1237,7 +1237,7 @@ namespace BotCore.Strategy
                             WidthRankEnter = s3.TryGetProperty("width_rank_enter", out var wr) && wr.TryGetDecimal(out var dwr) ? dwr : 0.15m,
                             HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind == JsonValueKind.False ? false : true),
                             NrClusterRatio = s3.TryGetProperty("nr_cluster_ratio", out var nrr) && nrr.TryGetDecimal(out var dnrr) ? dnrr : 0.60m,
-                            NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb) && nrb.TryGetInt32(out var inrb) ? inrb : 5,
+                            NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb_default) && nrb_default.TryGetInt32(out var inrb) ? inrb : 5,
                             WidthSlopeDownBars = s3.TryGetProperty("width_slope_down_bars", out var wsb) && wsb.TryGetInt32(out var iwsb) ? iwsb : 8,
                             WidthSlopeTol = s3.TryGetProperty("width_slope_tol", out var wst) && wst.TryGetDecimal(out var dwst) ? dwst : 0.0m,
                             ContraBufferMult = s3.TryGetProperty("contra_buffer_mult", out var cb) && cb.TryGetDecimal(out var dcb) ? dcb : 1.5m,
@@ -1248,7 +1248,7 @@ namespace BotCore.Strategy
                             OrGuardEnabled = s3.TryGetProperty("or_guard", out var org) && org.TryGetProperty("enabled", out var oge) && oge.ValueKind == JsonValueKind.True,
                             OrMinutes = s3.TryGetProperty("or_guard", out var org2) && org2.TryGetProperty("minutes", out var ogm) && ogm.TryGetInt32(out var iogm) ? iogm : 10,
                             OrAvoidBreakInto = s3.TryGetProperty("or_guard", out var org3) && org3.TryGetProperty("avoid_break_into", out var abi) && abi.ValueKind == JsonValueKind.String ? abi.GetString() ?? "opposite" : "opposite",
-                            RsEnabled = s3.TryGetProperty("rs_filter", out var rs) && rs.TryGetProperty("enabled", out var rse) && rse.ValueKind == JsonValueKind.True,
+                            RsEnabled = s3.TryGetProperty("rs_filter", out var rs_inner) && rs_inner.TryGetProperty("enabled", out var rse) && rse.ValueKind == JsonValueKind.True,
                             RsWindowBars = s3.TryGetProperty("rs_filter", out var rs2) && rs2.TryGetProperty("window_bars", out var rwb) && rwb.TryGetInt32(out var irwb) ? irwb : 60,
                             RsThreshold = s3.TryGetProperty("rs_filter", out var rs3) && rs3.TryGetProperty("threshold", out var rst) && rst.TryGetDecimal(out var drst) ? drst : 0.10m,
                             RsDirectionalOnly = s3.TryGetProperty("rs_filter", out var rs4) && rs4.TryGetProperty("directional_only", out var rdo) && rdo.ValueKind == JsonValueKind.True,
@@ -1263,7 +1263,7 @@ namespace BotCore.Strategy
                             CooldownBars = s3.TryGetProperty("cooldown_bars", out var cb2) && cb2.TryGetInt32(out var icb) ? icb : 5,
                             MaxBarsInTrade = s3.TryGetProperty("max_bars_in_trade", out var mb) && mb.TryGetInt32(out var imb) ? imb : 45,
                             TrailAtrMult = s3.TryGetProperty("trail_atr_mult", out var tam) && tam.TryGetDecimal(out var dtam) ? dtam : 1.0m,
-                            NewsBlockBeforeMin = s3.TryGetProperty("news_block", out var nb) && nb.TryGetProperty("minutes_before", out var nbB) && nbB.TryGetInt32(out var inbB) ? inbB : 2,
+                            NewsBlockBeforeMin = s3.TryGetProperty("news_block", out var nb_inner) && nb_inner.TryGetProperty("minutes_before", out var nbB) && nbB.TryGetInt32(out var inbB) ? inbB : 2,
                             NewsBlockAfterMin = s3.TryGetProperty("news_block", out var nb2) && nb2.TryGetProperty("minutes_after", out var nbA) && nbA.TryGetInt32(out var inbA) ? inbA : 3,
                             NewsOnMinutes = newsMins,
                             OnePerSegment = s3.TryGetProperty("one_per_segment", out var ops) && ops.ValueKind == JsonValueKind.True,
