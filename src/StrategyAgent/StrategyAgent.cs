@@ -15,7 +15,6 @@ namespace StrategyAgent
     public class StrategyAgent
     {
         private readonly TradingProfileConfig _cfg;
-<<<<<<< HEAD
         private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new(EqualityComparer<(string Strat, string Sym, string Side)>.Create((a, b) =>
             StringComparer.OrdinalIgnoreCase.Equals(a.Strat, b.Strat) &&
             StringComparer.OrdinalIgnoreCase.Equals(a.Sym, b.Sym) &&
@@ -25,9 +24,6 @@ namespace StrategyAgent
                 StringComparer.OrdinalIgnoreCase.GetHashCode(v.Sym ?? string.Empty),
                 StringComparer.OrdinalIgnoreCase.GetHashCode(v.Side ?? string.Empty)
             )));
-=======
-        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new();
->>>>>>> 9a545de50671e6a8a4e2eca5f1ce5993a8c1e1e4
 
         public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
 
