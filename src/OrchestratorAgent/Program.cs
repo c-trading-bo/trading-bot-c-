@@ -172,6 +172,12 @@ namespace OrchestratorAgent
             {
                 log.LogWarning("Quick-exit mode enabled (BOT_QUICK_EXIT). Will cancel after 5 seconds.");
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
+            // Testing/CI helper: exit immediately when requested to avoid hanging without credentials
+            var quick = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
+            if (!string.IsNullOrEmpty(quick) && quick.Trim().Equals("1", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("[Orchestrator] BOT_QUICK_EXIT=1 → exiting immediately.");
+                return;
             }
 
             // If no credentials are present, avoid long-running network calls and just exit with a clear message.
@@ -2138,9 +2144,8 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning(ex, "[Strategy] Error running strategies for {Sym}", symbol);
                 }
-                Console.Error.WriteLine($"[Orchestrator] Fatal error: {ex.Message}");
-                Environment.ExitCode = 1;
             }
+        }
         }
     }
 }
