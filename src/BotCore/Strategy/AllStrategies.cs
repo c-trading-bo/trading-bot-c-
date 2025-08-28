@@ -47,15 +47,7 @@ namespace BotCore.Strategy
         // Config-aware method for StrategyAgent
         public static List<Signal> generate_candidates(string symbol, TradingProfileConfig cfg, StrategyDef def, List<Bar> bars, object risk, BotCore.Models.MarketSnapshot snap)
         {
-            // Warm-up: allow immediate indicators if AlwaysOn.ZeroWarmupIndicators
-            int warmup = 20;
-            if (def.Extra.TryGetValue("warmup_n", out var wEl) && wEl.TryGetInt32(out var w) && w > 0)
-                warmup = w;
-            if (!(cfg.AlwaysOn?.ZeroWarmupIndicators ?? false))
-            {
-                if (bars is null || bars.Count < warmup)
-                    return new List<Signal>();
-            }
+            // Warm-up disabled: always allow indicator use immediately
 
             // Dispatch to the specific strategy function based on def.Name (S1..S14)
             var env = new Env { atr = bars.Count > 0 ? (decimal?)Math.Abs(bars[^1].High - bars[^1].Low) : null, volz = VolZ(bars) };
