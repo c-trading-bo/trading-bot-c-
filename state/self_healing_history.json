@@ -1,0 +1,89 @@
+{
+  "Position Tracking Recovery": {
+    "ActionName": "Position Tracking Recovery",
+    "RecentAttempts": [
+      {
+        "AttemptId": "a251249a",
+        "Timestamp": "2025-08-29T19:39:41.6876988Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 5 safe operations with full backup",
+        "Duration": "00:00:00.0040513"
+      },
+      {
+        "AttemptId": "c37e4ce2",
+        "Timestamp": "2025-08-29T19:40:41.5983752Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0020154"
+      },
+      {
+        "AttemptId": "9892ad8c",
+        "Timestamp": "2025-08-29T19:41:41.5560771Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0046621"
+      },
+      {
+        "AttemptId": "fbab9d28",
+        "Timestamp": "2025-08-29T19:42:41.5727497Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0100040"
+      },
+      {
+        "AttemptId": "fa968da5",
+        "Timestamp": "2025-08-29T19:43:41.5486858Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0008520"
+      },
+      {
+        "AttemptId": "8dc90605",
+        "Timestamp": "2025-08-29T19:44:41.5616806Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0007410"
+      },
+      {
+        "AttemptId": "d70b94b4",
+        "Timestamp": "2025-08-29T19:45:41.5624787Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0010471"
+      },
+      {
+        "AttemptId": "5e948364",
+        "Timestamp": "2025-08-29T19:46:41.5552559Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0042838"
+      },
+      {
+        "AttemptId": "2a0eff48",
+        "Timestamp": "2025-08-29T19:47:41.5542616Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0013907"
+      },
+      {
+        "AttemptId": "916a467f",
+        "Timestamp": "2025-08-29T19:48:41.5585885Z",
+        "Success": true,
+        "InProgress": false,
+        "Message": "Position tracking recovery successful - performed 4 safe operations with full backup",
+        "Duration": "00:00:00.0013105"
+      }
+    ],
+    "AttemptsToday": 10,
+    "SuccessfulAttemptsToday": 10
+  }
+}

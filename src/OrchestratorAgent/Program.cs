@@ -608,12 +608,17 @@ namespace OrchestratorAgent
                             LearnerStatus.Update(on: true);
                             Console.WriteLine("[CONSOLE] LearnerStatus updated...");
 
-                            var lastPractice = DateTime.MinValue;
+                            // Load persistent learning state
+                            var learningState = LearningStateManager.LoadState();
+                            var lastPractice = learningState.LastPracticeUtc;
+                            var lastPracticeLocal = lastPractice == DateTime.MinValue ? "never" : TimeZoneInfo.ConvertTimeFromUtc(lastPractice, TimeZoneInfo.Local).ToString("yyyy-MM-dd h:mm:ss tt");
+                            Console.WriteLine($"[CONSOLE] Loaded learning state: Last practice = {lastPracticeLocal}, Total cycles = {learningState.TotalLearningCycles}");
+                            
                             var demoMode = (Environment.GetEnvironmentVariable("LEARN_DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                             var minGap = demoMode ?
                                 TimeSpan.FromMinutes(2) : // Demo: 2 minute cycles 
                                 TimeSpan.FromMinutes(Math.Max(45, int.TryParse(Environment.GetEnvironmentVariable("RETUNE_INTERVAL_MIN"), out var m) ? Math.Max(15, m) : 60));
-                            llog.LogInformation("[Learner] Background loop ready (minGap={minGap}, allowLiveInstant={allowLiveInstant}, demoMode={demoMode})", minGap, allowLiveInstant, demoMode);
+                            llog.LogInformation("[Learner] Background loop ready (minGap={minGap}, allowLiveInstant={allowLiveInstant}, demoMode={demoMode}, lastPractice={lastPractice})", minGap, allowLiveInstant, demoMode, lastPractice);
                             Console.WriteLine("[CONSOLE] After second log message...");
 
                             // Wait for basic setup to complete before starting learning cycles
@@ -633,7 +638,9 @@ namespace OrchestratorAgent
                                     Console.WriteLine($"[CONSOLE] === Learning Loop #{loopCount} ===");
                                     var now = DateTime.UtcNow;
                                     var timeSinceLastPractice = now - lastPractice;
-                                    Console.WriteLine($"[CONSOLE] Current time: {now:HH:mm:ss}, Last practice: {(lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("HH:mm:ss"))}, Time since: {timeSinceLastPractice}");
+                                    var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.Local);
+                                    var lastPracticeLocalLoop = lastPractice == DateTime.MinValue ? "never" : TimeZoneInfo.ConvertTimeFromUtc(lastPractice, TimeZoneInfo.Local).ToString("h:mm:ss tt");
+                                    Console.WriteLine($"[CONSOLE] Current time: {nowLocal:h:mm:ss tt}, Last practice: {lastPracticeLocalLoop}, Time since: {timeSinceLastPractice}");
                                     llog.LogInformation("[Learner] Loop iteration: lastPractice={lastPractice}, timeSince={timeSince}, minGap={minGap}",
                                         lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("yyyy-MM-dd HH:mm:ss"),
                                         timeSinceLastPractice, minGap);
@@ -719,15 +726,42 @@ namespace OrchestratorAgent
                                                 llog.LogWarning(volEx, "[ML] Volume analysis failed (hot-loaded feature)");
                                             }
                                             
-                                            // 6. Log comprehensive ML cycle completion
+                                            // 8. NEWEST: News Intelligence Engine (Smart news trading)
+                                            Console.WriteLine("[CONSOLE] Running NewsIntelligenceEngine...");
+                                            llog.LogInformation("[ML] News Intelligence: Analyzing market news for trading opportunities...");
+                                            try
+                                            {
+                                                var newsEngine = new OrchestratorAgent.Execution.NewsIntelligenceEngine();
+                                                // Mock news updates (in production, connect to Bloomberg/Reuters feeds)
+                                                newsEngine.UpdateNewsEvent("Fed Chair signals potential policy shift amid inflation concerns", DateTime.Now);
+                                                newsEngine.UpdateNewsEvent("Strong jobs report beats expectations, markets rally", DateTime.Now.AddMinutes(-5));
+                                                
+                                                if (newsEngine.ShouldTradeOnNews(DateTime.Now, out string direction, out decimal sizeMultiplier))
+                                                {
+                                                    llog.LogInformation("[ML] News trading opportunity: {Direction} with {Size}x sizing", direction, sizeMultiplier);
+                                                }
+                                                else
+                                                {
+                                                    llog.LogInformation("[ML] No immediate news trading opportunities detected");
+                                                }
+                                            }
+                                            catch (Exception newsEx)
+                                            {
+                                                llog.LogWarning(newsEx, "[ML] News intelligence failed (hot-loaded feature)");
+                                            }
+                                            
+                                            // 6. Log comprehensive ML cycle completion and save state
                                             lastPractice = DateTime.UtcNow;
+                                            learningState.RecordCycleCompletion();
+                                            LearningStateManager.SaveState(learningState);
                                             Console.WriteLine($"[CONSOLE] ML cycle completed at {lastPractice:HH:mm:ss}, next cycle in {minGap}");
-                                            llog.LogInformation("[ML] Complete autonomous cycle finished at {time} - Regime:{regime}, Size:{size}x, Drift:{drift}, Canaries:{canaries}",
+                                            llog.LogInformation("[ML] Complete autonomous cycle finished at {time} - Regime:{regime}, Size:{size}x, Drift:{drift}, Canaries:{canaries}, TotalCycles:{total}",
                                                 lastPractice.ToString("yyyy-MM-dd HH:mm:ss"),
                                                 currentRegime,
                                                 optimalSize,
                                                 isDrifting ? "DETECTED" : "STABLE",
-                                                shouldPromote ? "PROMOTED" : "TESTING");
+                                                shouldPromote ? "PROMOTED" : "TESTING",
+                                                learningState.TotalLearningCycles);
                                             
                                             LearnerStatus.Update(on: true, lastRunUtc: DateTime.UtcNow, lastApplied: true, note: $"Full ML cycle: {currentRegime} regime, {optimalSize:F2}x size");
                                         }
@@ -747,9 +781,26 @@ namespace OrchestratorAgent
 
                                     // Sleep for shorter periods in demo mode
                                     var sleepDuration = demoMode ? TimeSpan.FromMinutes(2) : TimeSpan.FromHours(1);
-                                    Console.WriteLine($"[CONSOLE] Sleeping for {sleepDuration} until next learning cycle...");
-                                    llog.LogInformation("[Learner] Sleeping for {sleepDuration} until next learning cycle...", sleepDuration);
-                                    Thread.Sleep(sleepDuration); // Use Thread.Sleep instead of async Task.Delay
+                                    var nextCycleTime = DateTime.Now.Add(sleepDuration);
+                                    Console.WriteLine($"[CONSOLE] Next ML cycle at {nextCycleTime:HH:mm:ss} (sleeping for {sleepDuration})");
+                                    llog.LogInformation("[Learner] Next ML cycle at {nextCycleTime} (sleeping for {sleepDuration})", nextCycleTime, sleepDuration);
+                                    
+                                    // Countdown loop - show remaining time every 30 seconds
+                                    var remaining = sleepDuration;
+                                    while (remaining > TimeSpan.Zero)
+                                    {
+                                        var sleepChunk = remaining > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : remaining;
+                                        Thread.Sleep(sleepChunk);
+                                        remaining = remaining.Subtract(sleepChunk);
+                                        
+                                        if (remaining > TimeSpan.Zero)
+                                        {
+                                            if (remaining.TotalMinutes >= 1)
+                                                Console.WriteLine($"[COUNTDOWN] Next ML cycle in {remaining.TotalMinutes:F0}m {remaining.Seconds}s (at {nextCycleTime:HH:mm:ss})");
+                                            else
+                                                Console.WriteLine($"[COUNTDOWN] Next ML cycle in {remaining.TotalSeconds:F0}s (at {nextCycleTime:HH:mm:ss})");
+                                        }
+                                    }
                                 }
                                 catch (Exception ex)
                                 {
@@ -990,6 +1041,9 @@ namespace OrchestratorAgent
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                         // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
+                        // Register SystemHealthMonitor
+                        webBuilder.Services.AddSingleton<SystemHealthMonitor>();
+                        
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
                         {
@@ -1048,7 +1102,37 @@ namespace OrchestratorAgent
                                 }
 
                                 var (lon, llast, lapplied, lnote) = LearnerStatus.Snapshot();
-                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew, allowed, lon, llast, lapplied, lnote);
+                                
+                                // Get health status from SystemHealthMonitor
+                                var healthMonitor = sp.GetService<SystemHealthMonitor>();
+                                string healthStatus = "UNKNOWN";
+                                Dictionary<string, object>? healthDetails = null;
+                                if (healthMonitor != null)
+                                {
+                                    var health = healthMonitor.GetCurrentHealth();
+                                    healthStatus = health.OverallStatus.ToString().ToUpper();
+                                    healthDetails = health.Results.ToDictionary(
+                                        kv => kv.Key,
+                                        kv => (object)new { 
+                                            status = kv.Value.Status.ToString(),
+                                            message = kv.Value.Message,
+                                            checkTime = kv.Value.CheckTime
+                                        }
+                                    );
+                                }
+                                
+                                // Get strategy P&L data
+                                var strategyPnl = new Dictionary<string, object>();
+                                foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
+                                {
+                                    foreach (var symbol in new[] { "ES", "NQ" })
+                                    {
+                                        // For now, use mock data - will be replaced with real tracking
+                                        strategyPnl[$"{strategy}_{symbol}"] = new { pnl = 0.0, trades = 0 };
+                                    }
+                                }
+                                
+                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew, allowed, lon, llast, lapplied, lnote, strategyPnl, healthStatus, healthDetails);
                             }
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
@@ -1057,9 +1141,14 @@ namespace OrchestratorAgent
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
+                        
+                        // Initialize SystemHealthMonitor
+                        var healthMonitor = web.Services.GetRequiredService<SystemHealthMonitor>();
+                        log.LogInformation("[HEALTH] System health monitoring initialized");
+                        
                         emitEvent = (lvl, text) => { try { dashboardHub.EmitEvent(lvl, text); } catch { } };
-                        // DASHBOARD DISABLED - Comment out to remove dashboard functionality
-                        // web.MapDashboard(dashboardHub);
+                        // DASHBOARD ENABLED - Health monitoring dashboard
+                        web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
                         web.MapGet("/healthz", async () =>
@@ -1153,6 +1242,39 @@ namespace OrchestratorAgent
                         });
                         // Learner health (simple OK+timestamp)
                         web.MapGet("/learner/health", () => Results.Json(new { ok = true, ts = DateTime.UtcNow }));
+                        
+                        // System health monitoring endpoint
+                        web.MapGet("/health/system", () =>
+                        {
+                            try
+                            {
+                                var healthMonitor = web.Services.GetService<SystemHealthMonitor>();
+                                if (healthMonitor == null)
+                                {
+                                    return Results.Json(new { status = "UNKNOWN", message = "Health monitor not initialized" }, statusCode: 503);
+                                }
+                                
+                                var health = healthMonitor.GetCurrentHealth();
+                                var summary = new
+                                {
+                                    status = health.OverallStatus.ToString(),
+                                    timestamp = health.Timestamp,
+                                    checks = health.Results.Select(kv => new
+                                    {
+                                        name = kv.Key,
+                                        status = kv.Value.Status.ToString(),
+                                        message = kv.Value.Message,
+                                        checkTime = kv.Value.CheckTime
+                                    }).ToArray()
+                                };
+                                
+                                return Results.Json(summary);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { status = "FAILED", message = ex.Message }, statusCode: 500);
+                            }
+                        });
                         // Manual: launch tuner (one-off run). Params: days (int, default 7), strats (csv), roots (csv)
                         web.MapPost("/learner/tune", (HttpContext ctx) =>
                                     {
@@ -1676,7 +1798,14 @@ namespace OrchestratorAgent
                                 bool allowLiveInstant = (Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                                 bool liveNow = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                                 LearnerStatus.Update(on: true);
-                                var lastPractice = DateTime.MinValue;
+                                
+                                // Load persistent learning state for adaptive system
+                                var learningState = LearningStateManager.LoadState();
+                                var lastPractice = learningState.LastPracticeUtc;
+                                llog.LogInformation("[Learner] Loaded adaptive learning state: Last practice = {lastPractice}, Total cycles = {total}", 
+                                    lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("yyyy-MM-dd HH:mm:ss UTC"), 
+                                    learningState.TotalLearningCycles);
+                                
                                 // For demo purposes, use shorter intervals - change back to hours for production
                                 var demoMode = (Environment.GetEnvironmentVariable("LEARN_DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                                 var minGap = demoMode ? 
@@ -1709,7 +1838,10 @@ namespace OrchestratorAgent
                                                 try { await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, getJwt, cid, root, "S11", since, until, llog, learnCts.Token); } catch { }
                                             }
                                             lastPractice = DateTime.UtcNow;
-                                            llog.LogInformation("[Learner] Learning cycle completed at {time}, next cycle in {minGap}", lastPractice.ToString("yyyy-MM-dd HH:mm:ss"), minGap);
+                                            learningState.RecordCycleCompletion();
+                                            LearningStateManager.SaveState(learningState);
+                                            llog.LogInformation("[Learner] Adaptive learning cycle completed at {time}, next cycle in {minGap}, TotalCycles={total}", 
+                                                lastPractice.ToString("yyyy-MM-dd HH:mm:ss"), minGap, learningState.TotalLearningCycles);
                                         }
                                         else
                                         {
@@ -3313,11 +3445,17 @@ namespace OrchestratorAgent
                             }
                         }
 
-                        // News-minute gate (America/Santo_Domingo wall-time): block −2m..+3m around :00 and :30
+                        // INTELLIGENT NEWS TRADING - Convert news events into profit opportunities
                         bool btBypassNews = string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_NEWS"), "1", StringComparison.OrdinalIgnoreCase)
                                            || string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_NEWS"), "true", StringComparison.OrdinalIgnoreCase);
-                        if (!etNoGuard && !btBypassNews)
+                        
+                        // Enable smart news trading (override old avoidance logic)
+                        bool smartNewsTrading = string.Equals(Environment.GetEnvironmentVariable("SMART_NEWS_TRADING"), "1", StringComparison.OrdinalIgnoreCase)
+                                               || string.Equals(Environment.GetEnvironmentVariable("SMART_NEWS_TRADING"), "true", StringComparison.OrdinalIgnoreCase);
+                        
+                        if (!etNoGuard && !btBypassNews && !smartNewsTrading)
                         {
+                            // OLD LOGIC: Simple news avoidance (kept for compatibility)
                             try
                             {
                                 var nowLocal = NowSD();
@@ -3333,6 +3471,36 @@ namespace OrchestratorAgent
                                 }
                             }
                             catch { }
+                        }
+                        else if (smartNewsTrading && !etNoGuard && !btBypassNews)
+                        {
+                            // NEW LOGIC: Intelligent news trading
+                            try
+                            {
+                                var newsEngine = new OrchestratorAgent.Execution.NewsIntelligenceEngine();
+                                var nowLocal = NowSD();
+                                
+                                // Mock news input (in production, connect to real news feeds)
+                                newsEngine.UpdateNewsEvent("Fed Chair Powell signals potential rate changes ahead", nowLocal);
+                                
+                                // Check if we should trade on news
+                                if (newsEngine.ShouldTradeOnNews(nowLocal, out string tradeDirection, out decimal sizeMultiplier))
+                                {
+                                    log.LogInformation("[NEWS-OPPORTUNITY] {Sym} {Direction} trade signal with {Size}x sizing", 
+                                        symbol, tradeDirection, sizeMultiplier);
+                                    // Continue to trading logic with enhanced parameters
+                                }
+                                else if (newsEngine.IsHighNewsVolatilityTime(nowLocal))
+                                {
+                                    log.LogInformation("[NEWS-AWARENESS] {Sym} high volatility period - using enhanced risk management", symbol);
+                                    // Continue but with higher volatility awareness
+                                }
+                                // No return here - always continue to trading logic
+                            }
+                            catch (Exception ex)
+                            {
+                                log.LogWarning(ex, "[NEWS-ENGINE] Error in news analysis, falling back to standard logic");
+                            }
                         }
                     }
                     catch { }

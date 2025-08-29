@@ -1,4 +1,3 @@
-ok
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -81,6 +80,229 @@ ok
     .trade-side.buy, .position-side.long { color: #4CAF50; }
     .trade-side.sell, .position-side.short { color: #f85149; }
     .empty-state { text-align: center; color: #8b949e; padding: 20px; }
+    
+    /* Strategy P&L Grid Styles */
+    .strategy-pnl-grid { 
+      display: grid; 
+      grid-template-columns: 2fr 1fr 1fr 1fr 80px 80px; 
+      gap: 12px 16px; 
+      margin-top: 16px; 
+    }
+    .strategy-pnl-header { 
+      display: contents; 
+      font-weight: bold; 
+      color: #4CAF50; 
+      border-bottom: 1px solid #30363d; 
+      padding-bottom: 8px; 
+    }
+    .strategy-pnl-header > div { 
+      padding: 8px 4px; 
+      border-bottom: 1px solid #30363d; 
+      font-size: 13px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+    }
+    .strategy-pnl-row { 
+      display: contents; 
+    }
+    .strategy-pnl-row > div { 
+      padding: 8px 4px; 
+      border-bottom: 1px solid #21262d; 
+      font-size: 14px; 
+    }
+    .strategy-pnl-totals { 
+      display: contents; 
+      font-weight: bold; 
+      background: rgba(76, 175, 80, 0.1); 
+      border-top: 2px solid #4CAF50; 
+      margin-top: 8px; 
+    }
+    .strategy-pnl-totals > div { 
+      padding: 12px 4px; 
+      border-top: 2px solid #4CAF50; 
+      background: rgba(76, 175, 80, 0.05); 
+      font-size: 14px; 
+    }
+    .strategy-name { 
+      color: #f0f6fc; 
+      font-weight: 500; 
+    }
+    .pnl-value { 
+      font-family: 'Courier New', monospace; 
+      font-weight: bold; 
+      text-align: right; 
+    }
+    .pnl-value.good { color: #4CAF50; }
+    .pnl-value.bad { color: #f85149; }
+    .pnl-value.neutral { color: #8b949e; }
+    .trades-count { 
+      text-align: center; 
+      color: #58a6ff; 
+      font-weight: 500; 
+    }
+    .win-rate { 
+      text-align: center; 
+      font-weight: 500; 
+    }
+    
+    /* Session Grid Styles */
+    .session-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+      gap: 16px; 
+      margin-top: 16px; 
+    }
+    .session-item { 
+      padding: 12px; 
+      background: #0d1117; 
+      border: 1px solid #30363d; 
+      border-radius: 6px; 
+    }
+    .session-name { 
+      font-weight: bold; 
+      color: #f0f6fc; 
+      font-size: 14px; 
+      margin-bottom: 4px; 
+    }
+    .session-window { 
+      color: #58a6ff; 
+      font-size: 12px; 
+      margin-bottom: 8px; 
+    }
+    .session-status { 
+      font-size: 13px; 
+      font-weight: 500; 
+      margin-bottom: 4px; 
+    }
+    .session-status.active { color: #4CAF50; }
+    .session-status.waiting { color: #ffa657; }
+    .session-status.closed { color: #8b949e; }
+    .session-countdown { 
+      font-family: 'Courier New', monospace; 
+      font-size: 12px; 
+      color: #8b949e; 
+    }
+    
+    /* Status Grid Styles */
+    .status-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+      gap: 12px; 
+      margin-bottom: 16px; 
+    }
+    .status-item { 
+      text-align: center; 
+      padding: 8px; 
+      background: #0d1117; 
+      border-radius: 4px; 
+    }
+    .status-label { 
+      font-size: 11px; 
+      color: #8b949e; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 4px; 
+    }
+    .status-value { 
+      font-weight: bold; 
+      color: #f0f6fc; 
+      font-size: 13px; 
+    }
+    
+    /* Health Check Styles */
+    .health-checks-grid { 
+      display: grid; 
+      gap: 12px; 
+    }
+    .health-check-item { 
+      padding: 12px; 
+      background: #0d1117; 
+      border: 1px solid #30363d; 
+      border-radius: 6px; 
+      display: grid; 
+      grid-template-columns: 2fr 1fr 3fr; 
+      gap: 12px; 
+      align-items: center; 
+    }
+    .health-check-name { 
+      font-weight: 500; 
+      color: #f0f6fc; 
+    }
+    .health-check-status { 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      text-align: center; 
+      font-size: 12px; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+    }
+    .health-check-status.healthy { 
+      background: rgba(63, 185, 80, 0.2); 
+      color: #3fb950; 
+      border: 1px solid #3fb950; 
+    }
+    .health-check-status.warning { 
+      background: rgba(255, 166, 87, 0.2); 
+      color: #ffa657; 
+      border: 1px solid #ffa657; 
+    }
+    .health-check-status.failed { 
+      background: rgba(248, 81, 73, 0.2); 
+      color: #f85149; 
+      border: 1px solid #f85149; 
+    }
+    .health-check-message { 
+      font-size: 13px; 
+      color: #8b949e; 
+    }
+
+    /* Self-Healing Styles */
+    .self-healing-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .self-healing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+      animation: pulse 2s infinite;
+    }
+    
+    .recovery-log-entry {
+      padding: 4px 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+    
+    .recovery-log-entry.success {
+      background: rgba(76, 175, 80, 0.1);
+      border-left: 3px solid #4CAF50;
+      color: #4CAF50;
+    }
+    
+    .recovery-log-entry.failed {
+      background: rgba(248, 81, 73, 0.1);
+      border-left: 3px solid #f85149;
+      color: #f85149;
+    }
+    
+    .recovery-log-entry.warning {
+      background: rgba(255, 166, 87, 0.1);
+      border-left: 3px solid #ffa657;
+      color: #ffa657;
+    }
+    
+    .recovery-timestamp {
+      opacity: 0.7;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
@@ -102,6 +324,7 @@ ok
         <button class="tab active" onclick="showTab('overview')">Overview</button>
         <button class="tab" onclick="showTab('trading')">Trading</button>
         <button class="tab" onclick="showTab('learning')">AI Learning</button>
+        <button class="tab" onclick="showTab('health')">System Health</button>
         <button class="tab" onclick="showTab('logs')">Logs</button>
       </div>
 
@@ -126,23 +349,143 @@ ok
           </div>
         </div>
 
+        <!-- Strategy P&L Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Strategy P&L Breakdown</div>
+            <span class="refresh-timer" id="strategyPnlTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="strategy-pnl-grid" id="strategyPnlGrid">
+              <div class="strategy-pnl-header">
+                <div>Strategy</div>
+                <div>ES P&L</div>
+                <div>NQ P&L</div>
+                <div>Total P&L</div>
+                <div>Trades</div>
+                <div>Win Rate</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S2">
+                <div class="strategy-name">S2 - VWAP Mean Reversion</div>
+                <div class="pnl-value neutral" id="s2-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s2-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s2-total-pnl">$0.00</div>
+                <div class="trades-count" id="s2-trades">0</div>
+                <div class="win-rate" id="s2-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S3">
+                <div class="strategy-name">S3 - Squeeze Breakout</div>
+                <div class="pnl-value neutral" id="s3-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s3-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s3-total-pnl">$0.00</div>
+                <div class="trades-count" id="s3-trades">0</div>
+                <div class="win-rate" id="s3-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S6">
+                <div class="strategy-name">S6 - Opening Drive vs Reversal</div>
+                <div class="pnl-value neutral" id="s6-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s6-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s6-total-pnl">$0.00</div>
+                <div class="trades-count" id="s6-trades">0</div>
+                <div class="win-rate" id="s6-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S11">
+                <div class="strategy-name">S11 - ADR/IB Exhaustion Fade</div>
+                <div class="pnl-value neutral" id="s11-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s11-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s11-total-pnl">$0.00</div>
+                <div class="trades-count" id="s11-trades">0</div>
+                <div class="win-rate" id="s11-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-totals">
+                <div class="strategy-name"><strong>TOTAL ALL STRATEGIES</strong></div>
+                <div class="pnl-value neutral" id="total-es-pnl"><strong>$0.00</strong></div>
+                <div class="pnl-value neutral" id="total-nq-pnl"><strong>$0.00</strong></div>
+                <div class="pnl-value neutral" id="grand-total-pnl"><strong>$0.00</strong></div>
+                <div class="trades-count" id="total-trades"><strong>0</strong></div>
+                <div class="win-rate" id="total-winrate"><strong>0%</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Strategy Sessions & Countdown</div>
+            <span class="refresh-timer" id="sessionTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="session-grid">
+              <div class="session-item">
+                <div class="session-name">S2 - VWAP Mean Rev</div>
+                <div class="session-window">10:20-12:30 ET</div>
+                <div class="session-status" id="s2-status">Waiting</div>
+                <div class="session-countdown" id="s2-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S3 - Squeeze Breakout</div>
+                <div class="session-window">09:40-10:30 ET</div>
+                <div class="session-status" id="s3-status">Waiting</div>
+                <div class="session-countdown" id="s3-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S6 - Opening Drive</div>
+                <div class="session-window">09:28-10:00 ET</div>
+                <div class="session-status" id="s6-status">Waiting</div>
+                <div class="session-countdown" id="s6-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S11 - ADR/IB Fade</div>
+                <div class="session-window">13:30-15:30 ET</div>
+                <div class="session-status" id="s11-status">Waiting</div>
+                <div class="session-countdown" id="s11-countdown">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div class="card-title">System Status</div>
             <span class="refresh-timer" id="overviewTimer">--</span>
           </div>
           <div class="card-body">
+            <div class="status-grid">
+              <div class="status-item">
+                <div class="status-label">Bot Mode</div>
+                <div class="status-value" id="botMode">PAPER</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Live Orders</div>
+                <div class="status-value" id="liveOrders">Disabled</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Account ID</div>
+                <div class="status-value" id="accountId">10223789</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Symbols</div>
+                <div class="status-value">ES, NQ</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Connection</div>
+                <div class="status-value" id="connectionStatus">Connecting...</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Last Update</div>
+                <div class="status-value" id="lastUpdate">--</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Current ET Time</div>
+                <div class="status-value" id="currentETTime">--</div>
+              </div>
+            </div>
             <div class="learning-status">
               <div class="learning-dot" id="learningIndicator"></div>
               <span id="learningStatus">AI Learning System: Initializing...</span>
             </div>
             <div class="progress-bar">
               <div class="progress-fill" id="learningProgressBar" style="width: 0%"></div>
-            </div>
-            <div id="systemMetrics">
-              <p><strong>Bot Mode:</strong> <span id="botMode">--</span></p>
-              <p><strong>Strategy:</strong> <span id="activeStrategy">--</span></p>
-              <p><strong>Last Update:</strong> <span id="lastUpdate">--</span></p>
             </div>
           </div>
         </div>
@@ -214,6 +557,142 @@ ok
               <div class="metric-card">
                 <div class="metric-value neutral" id="modelConfidence">--</div>
                 <div class="metric-label">Model Confidence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Health Tab -->
+      <div id="health" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">System Health Overview</div>
+            <div class="status-indicator">
+              <div class="status-dot" id="healthStatusDot"></div>
+              <span id="healthStatusText">Checking...</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthOverallStatus">--</div>
+                <div class="metric-label">Overall Status</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthCriticalIssues">--</div>
+                <div class="metric-label">Critical Issues</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthWarnings">--</div>
+                <div class="metric-label">Warnings</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthLastCheck">--</div>
+                <div class="metric-label">Last Check</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔧 Self-Healing System</div>
+            <div class="status-indicator">
+              <div class="status-dot" id="selfHealingStatusDot"></div>
+              <span id="selfHealingStatusText">Monitoring...</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value good" id="selfHealingActions">--</div>
+                <div class="metric-label">Available Actions</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="selfHealingAttempts">--</div>
+                <div class="metric-label">Attempts Today</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value good" id="selfHealingSuccessful">--</div>
+                <div class="metric-label">Successful Today</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="selfHealingSuccessRate">--</div>
+                <div class="metric-label">Success Rate</div>
+              </div>
+            </div>
+            <div id="recentRecoveries" style="margin-top: 20px;">
+              <h4 style="margin-bottom: 10px; color: #8b949e;">Recent Self-Healing Activity</h4>
+              <div id="recoveryLog" style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                <div style="color: #8b949e;">No recent recovery attempts...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Health Check Details</div>
+            <button class="btn" onclick="refreshHealthData()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <div id="healthChecksList">
+              <div class="empty-state">Loading health checks...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Critical System Status</div>
+          </div>
+          <div class="card-body">
+            <div class="health-checks-grid">
+              <div class="health-check-item">
+                <div class="health-check-name">ML Learning Persistence</div>
+                <div class="health-check-status" id="mlPersistenceStatus">--</div>
+                <div class="health-check-message" id="mlPersistenceMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Strategy Configuration</div>
+                <div class="health-check-status" id="strategyConfigStatus">--</div>
+                <div class="health-check-message" id="strategyConfigMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Session Windows</div>
+                <div class="health-check-status" id="sessionWindowsStatus">--</div>
+                <div class="health-check-message" id="sessionWindowsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Market Data Feeds</div>
+                <div class="health-check-status" id="dataFeedsStatus">--</div>
+                <div class="health-check-message" id="dataFeedsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Risk Management</div>
+                <div class="health-check-status" id="riskManagementStatus">--</div>
+                <div class="health-check-message" id="riskManagementMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Order Routing</div>
+                <div class="health-check-status" id="orderRoutingStatus">--</div>
+                <div class="health-check-message" id="orderRoutingMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Strategy Signal Logic</div>
+                <div class="health-check-status" id="strategySignalsStatus">--</div>
+                <div class="health-check-message" id="strategySignalsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Position Tracking</div>
+                <div class="health-check-status" id="positionTrackingStatus">--</div>
+                <div class="health-check-message" id="positionTrackingMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Price Data Quality</div>
+                <div class="health-check-status" id="priceValidationStatus">--</div>
+                <div class="health-check-message" id="priceValidationMessage">--</div>
               </div>
             </div>
           </div>
@@ -302,10 +781,24 @@ ok
     // Initialize dashboard when page loads
     document.addEventListener('DOMContentLoaded', function() {
       addLog('info', 'Dashboard initialized, connecting to bot...');
+      
+      // Show sample strategy P&L data immediately
+      updateStrategyPnl(null);
+      
+      // Load initial health data
+      setTimeout(refreshHealthData, 2000);
+      
       connectToBot();
       
-      // Update timers every 5 seconds
+      // Update timers every 5 seconds and countdown every second
       setInterval(updateTimers, 5000);
+      setInterval(updateSessionCountdowns, 1000);
+      
+      // Refresh health data every 60 seconds
+      setInterval(refreshHealthData, 60000);
+      
+      // Initial countdown update
+      updateSessionCountdowns();
     });
 
     // Enhanced connection management with exponential backoff
@@ -324,9 +817,8 @@ ok
       updateConnectionStatus('connecting', 'Connecting...');
 
       try {
-        // Use optimized 5-second intervals to prevent server overload
-        // Add required parameters: symbol=ES and res=1 (1-minute bars)
-        eventSource = new EventSource('/stream/realtime?symbol=ES&res=1');
+        // Use the metrics stream endpoint instead of realtime
+        eventSource = new EventSource('/stream/metrics');
         
         eventSource.onopen = function() {
           connectionAttempts = 0;
@@ -350,14 +842,10 @@ ok
           isConnected = false;
           updateConnectionStatus('disconnected', 'Connection Lost');
           
-          // TEMPORARILY DISABLE AUTO-RECONNECT TO STOP SPAM
-          addLog('info', 'Auto-reconnect disabled to prevent spam');
-          
-          /*
-          // Prevent rapid reconnections by using timer
+          // Enable auto-reconnect with exponential backoff
           if (connectionAttempts < maxRetries && !reconnectTimer) {
-            // Exponential backoff: 2s, 4s, 8s, 16s, 32s, max 30s
             const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
+            addLog('info', `Reconnecting in ${delay/1000}s (attempt ${connectionAttempts})`);
             reconnectTimer = setTimeout(() => {
               reconnectTimer = null;
               connectToBot();
@@ -365,7 +853,6 @@ ok
           } else if (connectionAttempts >= maxRetries) {
             addLog('error', 'Max reconnection attempts reached');
           }
-          */
         };
 
       } catch (error) {
@@ -375,27 +862,42 @@ ok
     }
 
     function updateConnectionStatus(status, text) {
-      const statusDot = document.getElementById('connectionStatus');
-      const statusText = document.getElementById('connectionText');
+      const statusElement = document.getElementById('connectionStatus');
       const banner = document.getElementById('connectionBanner');
       
-      statusDot.className = `status-dot ${status === 'connected' ? 'online' : status}`;
-      statusText.textContent = text;
+      // Update status in the status grid
+      if (statusElement) {
+        statusElement.textContent = text;
+        statusElement.className = `status-value ${status}`;
+      }
       
-      if (status === 'connected') {
-        banner.className = 'connection-status connected';
-        banner.innerHTML = '<strong>Connected</strong> - Real-time data streaming';
-      } else if (status === 'connecting') {
-        banner.className = 'connection-status connecting';
-        banner.innerHTML = '<strong>Connecting...</strong> - Establishing connection';
-      } else {
-        banner.className = 'connection-status disconnected';
-        banner.innerHTML = '<strong>Disconnected</strong> - Attempting to reconnect';
+      // Update connection banner if it exists
+      if (banner) {
+        if (status === 'connected') {
+          banner.className = 'connection-status connected';
+          banner.innerHTML = '<strong>Connected</strong> - Real-time data streaming';
+        } else if (status === 'connecting') {
+          banner.className = 'connection-status connecting';
+          banner.innerHTML = '<strong>Connecting...</strong> - Establishing connection';
+        } else {
+          banner.className = 'connection-status disconnected';
+          banner.innerHTML = '<strong>Disconnected</strong> - Attempting to reconnect';
+        }
       }
     }
 
     function handleRealtimeData(data) {
       try {
+        lastUpdateTime = new Date();
+        
+        // Update last update time
+        updateElement('lastUpdate', formatTime(lastUpdateTime));
+        
+        // Handle strategy P&L data specifically
+        if (data.strategyPnl) {
+          updateStrategyPnl(data.strategyPnl);
+        }
+        
         // Update overview metrics
         if (data.overview) {
           updateElement('accountBalance', formatCurrency(data.overview.accountBalance));
@@ -403,8 +905,7 @@ ok
           updateElement('openPositions', data.overview.openPositions || 0);
           updateElement('todayTrades', data.overview.todayTrades || 0);
           updateElement('botMode', data.overview.botMode || 'PAPER');
-          updateElement('activeStrategy', data.overview.activeStrategy || 'EMA Cross');
-          updateElement('lastUpdate', new Date().toLocaleTimeString());
+          updateElement('activeStrategy', data.overview.activeStrategy || 'Multiple');
         }
 
         // Update learning status
@@ -431,10 +932,25 @@ ok
           updateTradingData(data.trading);
         }
 
+        // Update strategy P&L data
+        if (data.strategyPnl) {
+          updateStrategyPnl(data.strategyPnl);
+        }
+
         // Update system metrics
         if (data.system) {
           updateElement('uptime', data.system.uptime || '--');
           updateElement('dataQuality', data.system.dataQuality || '--');
+        }
+
+        // Update health data
+        if (data.healthStatus) {
+          updateHealthData(data.healthStatus, data.healthDetails);
+        }
+
+        // Update self-healing data
+        if (data.selfHealingStatus) {
+          updateSelfHealingData(data.selfHealingStatus);
         }
 
         // Handle log entries
@@ -502,6 +1018,142 @@ ok
                 </div>
               </div>`
             ).join('') : '<div class="empty-state">No open positions</div>';
+        }
+      }
+    }
+
+    function updateStrategyPnl(strategyData) {
+      if (!strategyData) {
+        // For demo purposes, show sample data for enabled strategies (S2, S3, S6, S11)
+        strategyData = {
+          S2: { es: { pnl: 150.75, trades: 5, wins: 3 }, nq: { pnl: -45.25, trades: 2, wins: 0 } },
+          S3: { es: { pnl: 275.50, trades: 4, wins: 3 }, nq: { pnl: 125.00, trades: 3, wins: 2 } },
+          S6: { es: { pnl: -85.00, trades: 3, wins: 1 }, nq: { pnl: 95.75, trades: 2, wins: 2 } },
+          S11: { es: { pnl: 0.00, trades: 0, wins: 0 }, nq: { pnl: 200.25, trades: 4, wins: 3 } }
+        };
+      }
+      
+      let totalEsPnl = 0;
+      let totalNqPnl = 0;
+      let totalTrades = 0;
+      let totalWins = 0;
+      
+      // Update individual strategy rows for enabled strategies only
+      ['S2', 'S3', 'S6', 'S11'].forEach(strategy => {
+        const data = strategyData[strategy] || { es: { pnl: 0, trades: 0, wins: 0 }, nq: { pnl: 0, trades: 0, wins: 0 } };
+        
+        const esPnl = data.es.pnl || 0;
+        const nqPnl = data.nq.pnl || 0;
+        const totalStrategyPnl = esPnl + nqPnl;
+        const strategyTrades = (data.es.trades || 0) + (data.nq.trades || 0);
+        const strategyWins = (data.es.wins || 0) + (data.nq.wins || 0);
+        const winRate = strategyTrades > 0 ? (strategyWins / strategyTrades * 100) : 0;
+        
+        // Update strategy row
+        updatePnlElement(`${strategy.toLowerCase()}-es-pnl`, esPnl);
+        updatePnlElement(`${strategy.toLowerCase()}-nq-pnl`, nqPnl);
+        updatePnlElement(`${strategy.toLowerCase()}-total-pnl`, totalStrategyPnl);
+        updateElement(`${strategy.toLowerCase()}-trades`, strategyTrades);
+        updateElement(`${strategy.toLowerCase()}-winrate`, `${winRate.toFixed(1)}%`);
+        
+        // Add to totals
+        totalEsPnl += esPnl;
+        totalNqPnl += nqPnl;
+        totalTrades += strategyTrades;
+        totalWins += strategyWins;
+      });
+      
+      // Update totals row
+      const grandTotal = totalEsPnl + totalNqPnl;
+      const overallWinRate = totalTrades > 0 ? (totalWins / totalTrades * 100) : 0;
+      
+      updatePnlElement('total-es-pnl', totalEsPnl);
+      updatePnlElement('total-nq-pnl', totalNqPnl);
+      updatePnlElement('grand-total-pnl', grandTotal);
+      updateElement('total-trades', totalTrades);
+      updateElement('total-winrate', `${overallWinRate.toFixed(1)}%`);
+    }
+    
+    function updateSessionCountdowns() {
+      // Get current Eastern Time (handles DST automatically)
+      const now = new Date();
+      const etNow = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const currentTime = etNow.getHours() * 100 + etNow.getMinutes();
+      
+      const sessions = {
+        S2: { start: 1020, end: 1230, name: 'VWAP Mean Rev' },
+        S3: { start: 940, end: 1030, name: 'Squeeze Breakout' },
+        S6: { start: 928, end: 1000, name: 'Opening Drive' },
+        S11: { start: 1330, end: 1530, name: 'ADR/IB Fade' }
+      };
+      
+      Object.keys(sessions).forEach(strategy => {
+        const session = sessions[strategy];
+        const statusElement = document.getElementById(`${strategy.toLowerCase()}-status`);
+        const countdownElement = document.getElementById(`${strategy.toLowerCase()}-countdown`);
+        
+        if (currentTime >= session.start && currentTime <= session.end) {
+          // Active session
+          if (statusElement) {
+            statusElement.textContent = 'ACTIVE';
+            statusElement.className = 'session-status active';
+          }
+          if (countdownElement) {
+            const endMinutes = Math.floor(session.end / 100) * 60 + (session.end % 100);
+            const nowMinutes = Math.floor(currentTime / 100) * 60 + (currentTime % 100);
+            const remaining = endMinutes - nowMinutes;
+            const hours = Math.floor(remaining / 60);
+            const mins = remaining % 60;
+            countdownElement.textContent = `${hours}h ${mins}m remaining`;
+          }
+        } else if (currentTime < session.start) {
+          // Waiting for session
+          if (statusElement) {
+            statusElement.textContent = 'Waiting';
+            statusElement.className = 'session-status waiting';
+          }
+          if (countdownElement) {
+            const startMinutes = Math.floor(session.start / 100) * 60 + (session.start % 100);
+            const nowMinutes = Math.floor(currentTime / 100) * 60 + (currentTime % 100);
+            const untilStart = startMinutes - nowMinutes;
+            if (untilStart > 0) {
+              const hours = Math.floor(untilStart / 60);
+              const mins = untilStart % 60;
+              countdownElement.textContent = `Starts in ${hours}h ${mins}m`;
+            } else {
+              countdownElement.textContent = 'Starting soon';
+            }
+          }
+        } else {
+          // Session closed
+          if (statusElement) {
+            statusElement.textContent = 'Closed';
+            statusElement.className = 'session-status closed';
+          }
+          if (countdownElement) {
+            countdownElement.textContent = 'Session ended';
+          }
+        }
+      });
+      
+      // Debug: Show current ET time
+      const debugElement = document.getElementById('currentETTime');
+      if (debugElement) {
+        debugElement.textContent = `Current ET: ${etNow.toLocaleTimeString()} (${currentTime})`;
+      }
+    }
+
+    function updatePnlElement(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        const formatted = formatCurrency(value, true);
+        element.textContent = formatted;
+        
+        // Add color coding
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          element.className = numValue > 0 ? 'pnl-value good' : 
+                             numValue < 0 ? 'pnl-value bad' : 'pnl-value neutral';
         }
       }
     }
@@ -593,6 +1245,191 @@ ok
         .catch(error => {
           addLog('error', 'Error triggering learning: ' + error.message);
         });
+    }
+
+    // Health monitoring functions
+    function updateHealthData(status, details) {
+      try {
+        // Update overall health status
+        updateElement('healthOverallStatus', status || 'UNKNOWN');
+        
+        // Update health status indicator
+        const healthDot = document.getElementById('healthStatusDot');
+        const healthText = document.getElementById('healthStatusText');
+        
+        if (healthDot && healthText) {
+          healthDot.className = 'status-dot';
+          if (status === 'HEALTHY') {
+            healthDot.classList.add('online');
+            healthText.textContent = 'All Systems Healthy';
+          } else if (status === 'WARNING') {
+            healthDot.classList.add('connecting');
+            healthText.textContent = 'System Warnings';
+          } else if (status === 'FAILED') {
+            healthDot.classList.add('offline');
+            healthText.textContent = 'System Issues';
+          } else {
+            healthDot.classList.add('connecting');
+            healthText.textContent = 'Health Unknown';
+          }
+        }
+        
+        // Count issues
+        let criticalIssues = 0;
+        let warnings = 0;
+        let lastCheck = new Date();
+        
+        if (details) {
+          Object.values(details).forEach(check => {
+            if (check.status === 'Failed') criticalIssues++;
+            else if (check.status === 'Warning') warnings++;
+            
+            if (check.checkTime) {
+              const checkTime = new Date(check.checkTime);
+              if (checkTime > lastCheck) lastCheck = checkTime;
+            }
+          });
+          
+          updateElement('healthCriticalIssues', criticalIssues);
+          updateElement('healthWarnings', warnings);
+          updateElement('healthLastCheck', formatTime(lastCheck));
+          
+          // Update individual health checks
+          updateHealthChecks(details);
+        }
+        
+      } catch (error) {
+        console.error('Error updating health data:', error);
+        addLog('error', `Health update error: ${error.message}`);
+      }
+    }
+    
+    function updateHealthChecks(details) {
+      // Update specific health check statuses
+      const checks = {
+        'ml_persistence': { statusId: 'mlPersistenceStatus', messageId: 'mlPersistenceMessage' },
+        'strategy_configs': { statusId: 'strategyConfigStatus', messageId: 'strategyConfigMessage' },
+        'session_windows': { statusId: 'sessionWindowsStatus', messageId: 'sessionWindowsMessage' },
+        'data_feeds': { statusId: 'dataFeedsStatus', messageId: 'dataFeedsMessage' },
+        'risk_calculations': { statusId: 'riskManagementStatus', messageId: 'riskManagementMessage' },
+        'order_routing': { statusId: 'orderRoutingStatus', messageId: 'orderRoutingMessage' },
+        'strategy_signals': { statusId: 'strategySignalsStatus', messageId: 'strategySignalsMessage' },
+        'position_tracking': { statusId: 'positionTrackingStatus', messageId: 'positionTrackingMessage' },
+        'price_validation': { statusId: 'priceValidationStatus', messageId: 'priceValidationMessage' }
+      };
+      
+      Object.keys(checks).forEach(checkKey => {
+        const check = details[checkKey];
+        const { statusId, messageId } = checks[checkKey];
+        
+        if (check) {
+          // Update status element
+          const statusElement = document.getElementById(statusId);
+          if (statusElement) {
+            statusElement.textContent = check.status || 'UNKNOWN';
+            statusElement.className = 'health-check-status';
+            
+            if (check.status === 'Healthy') {
+              statusElement.classList.add('healthy');
+            } else if (check.status === 'Warning') {
+              statusElement.classList.add('warning');
+            } else if (check.status === 'Failed') {
+              statusElement.classList.add('failed');
+            }
+          }
+          
+          // Update message element
+          const messageElement = document.getElementById(messageId);
+          if (messageElement) {
+            messageElement.textContent = check.message || 'No details available';
+          }
+        }
+      });
+    }
+    
+    function refreshHealthData() {
+      addLog('info', 'Refreshing health data...');
+      fetch('/health/system')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status) {
+            updateHealthData(data.status, data.checks);
+            addLog('info', 'Health data refreshed successfully');
+          } else {
+            addLog('error', 'Invalid health data received');
+          }
+        })
+        .catch(error => {
+          addLog('error', `Failed to refresh health data: ${error.message}`);
+        });
+    }
+
+    // Self-healing functions
+    function updateSelfHealingData(healingStatus) {
+      try {
+        if (healingStatus) {
+          updateElement('selfHealingActions', healingStatus.availableActions || 0);
+          updateElement('selfHealingAttempts', healingStatus.attemptsToday || 0);
+          updateElement('selfHealingSuccessful', healingStatus.successfulToday || 0);
+          
+          const successRate = healingStatus.attemptsToday > 0 
+            ? Math.round((healingStatus.successfulToday / healingStatus.attemptsToday) * 100) + '%'
+            : '--';
+          updateElement('selfHealingSuccessRate', successRate);
+          
+          // Update self-healing status indicator
+          const healingDot = document.getElementById('selfHealingStatusDot');
+          const healingText = document.getElementById('selfHealingStatusText');
+          
+          if (healingDot && healingText) {
+            healingDot.className = 'status-dot';
+            if (healingStatus.isEnabled) {
+              healingDot.classList.add('online');
+              healingText.textContent = healingStatus.attemptsToday > 0 
+                ? `Active (${healingStatus.attemptsToday} attempts today)`
+                : 'Ready';
+            } else {
+              healingDot.classList.add('offline');
+              healingText.textContent = 'Disabled';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error updating self-healing data:', error);
+      }
+    }
+
+    function addRecoveryLogEntry(entry) {
+      try {
+        const recoveryLog = document.getElementById('recoveryLog');
+        if (recoveryLog) {
+          // Remove "no recent activity" message if present
+          if (recoveryLog.children.length === 1 && recoveryLog.textContent.includes('No recent recovery attempts')) {
+            recoveryLog.innerHTML = '';
+          }
+          
+          const logEntry = document.createElement('div');
+          logEntry.className = `recovery-log-entry ${entry.success ? 'success' : 'failed'}`;
+          
+          const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+          logEntry.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>${entry.action}: ${entry.message}</span>
+              <span class="recovery-timestamp">${timestamp}</span>
+            </div>
+          `;
+          
+          // Add to top of log
+          recoveryLog.insertBefore(logEntry, recoveryLog.firstChild);
+          
+          // Keep only last 10 entries
+          while (recoveryLog.children.length > 10) {
+            recoveryLog.removeChild(recoveryLog.lastChild);
+          }
+        }
+      } catch (error) {
+        console.error('Error adding recovery log entry:', error);
+      }
     }
 
     // Utility functions

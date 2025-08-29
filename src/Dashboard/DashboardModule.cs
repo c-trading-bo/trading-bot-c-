@@ -83,6 +83,35 @@ public static class DashboardModule
             }
             catch { /* client disconnected */ }
         });
+
+        // metrics SSE stream for dashboard overview
+        app.MapGet("/stream/metrics", async (HttpContext ctx) =>
+        {
+            ctx.Response.Headers.CacheControl = "no-store";
+            ctx.Response.Headers.Connection = "keep-alive";
+            ctx.Response.ContentType = "text/event-stream";
+
+            var cancel = ctx.RequestAborted;
+            await ctx.Response.WriteAsync($"event: hello\ndata: {{\"ok\": true}}\n\n");
+            await ctx.Response.Body.FlushAsync();
+
+            try
+            {
+                while (!cancel.IsCancellationRequested)
+                {
+                    // Get current metrics snapshot
+                    var metrics = hub.GetMetrics();
+                    var json = JsonSerializer.Serialize(metrics);
+                    
+                    await ctx.Response.WriteAsync($"data: {json}\n\n");
+                    await ctx.Response.Body.FlushAsync();
+                    
+                    // Send metrics every 5 seconds
+                    await Task.Delay(5000, cancel);
+                }
+            }
+            catch { /* client disconnected */ }
+        });
     }
 
     private static PeriodicTimer? PeriodicTimerOrNull(TimeSpan? period)
@@ -227,6 +256,10 @@ public sealed class RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> 
         _metricsTimer?.Dispose();
         return Task.CompletedTask;
     }
+
+    // ---------- Get current metrics for SSE stream ----------
+    
+    public MetricsSnapshot GetMetrics() => _metrics();
 
     // ---------- internals ----------
 
@@ -373,4 +406,11 @@ public sealed record MetricsSnapshot(
     bool learnerOn = false,
     DateTime? learnerLastRun = null,
     bool? learnerApplied = null,
-    string? learnerNote = null);
+    string? learnerNote = null,
+    // Strategy P&L tracking
+    Dictionary<string, object>? strategyPnl = null,
+    // System health monitoring
+    string? healthStatus = null,
+    Dictionary<string, object>? healthDetails = null,
+    // Self-healing system status
+    object? selfHealingStatus = null);
