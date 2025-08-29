@@ -360,9 +360,9 @@ namespace OrchestratorAgent
 
                 // Derive a reference price from update, prefer limit then avg fill then last
                 decimal refPx = 0m;
-                refPx = PickPrice(t, orderUpdate, ["LimitPrice", "limitPrice", "Price", "price"], refPx);
-                refPx = PickPrice(t, orderUpdate, ["AvgFillPrice", "avgFillPrice", "AverageFillPrice"], refPx);
-                refPx = PickPrice(t, orderUpdate, ["LastPrice", "lastPrice"], refPx);
+                refPx = PickPrice(t, orderUpdate, new string[] { "LimitPrice", "limitPrice", "Price", "price" }, refPx);
+                refPx = PickPrice(t, orderUpdate, new string[] { "AvgFillPrice", "avgFillPrice", "AverageFillPrice" }, refPx);
+                refPx = PickPrice(t, orderUpdate, new string[] { "LastPrice", "lastPrice" }, refPx);
 
                 bool converted = false;
                 if (refPx > 0m)

@@ -234,7 +234,7 @@ namespace BotCore.Strategy
                     ContractId = contractId,
                     Tag = c.Tag,
                     StrategyVersion = "1.0.0",
-                    ProfileName = new HighWinRateProfile().Profile,
+                    ProfileName = HighWinRateProfile.Profile,
                     EmittedUtc = DateTime.UtcNow
                 });
             }
