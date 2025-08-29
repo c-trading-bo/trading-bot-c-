@@ -12,12 +12,10 @@ using BotCore.Strategy;
 
 namespace StrategyAgent
 {
-    public class StrategyAgent
+    public class StrategyAgent(TradingProfileConfig cfg)
     {
-        private readonly TradingProfileConfig _cfg;
-    private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = new();
-
-        public StrategyAgent(TradingProfileConfig cfg) => _cfg = cfg;
+        private readonly TradingProfileConfig _cfg = cfg;
+        private static readonly Dictionary<(string Strat, string Sym, string Side), long> _lastBarEnteredTs = [];
 
         public List<Signal> RunAll(BotCore.Models.MarketSnapshot snap, IReadOnlyList<Bar> bars, RiskEngine risk)
         {
@@ -30,7 +28,7 @@ namespace StrategyAgent
             var tradeLock = Environment.GetEnvironmentVariable("TRADE_LOCKOUT");
             if ((dailyLock?.Equals("1", StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (tradeLock?.Equals("1", StringComparison.OrdinalIgnoreCase) ?? false))
-                return new List<Signal>();
+                return [];
 
             var outSignals = new List<Signal>();
             var lastBarTs = (bars != null && bars.Count > 0) ? bars[^1].Ts : 0L;
@@ -53,10 +51,14 @@ namespace StrategyAgent
                         continue;
                 }
 
-                // Minimal spread guard: 1 tick default, 2 for breakout/trend
+                // Session-aware spread guard (ES:2/3, NQ:3/4) — do not be stricter than profile
                 var fam = s.Family ?? string.Empty;
                 bool isBo = fam.Equals("breakout", StringComparison.OrdinalIgnoreCase) || fam.Equals("trend", StringComparison.OrdinalIgnoreCase);
-                var spreadMax = isBo ? _cfg.GlobalFilters.SpreadTicksMaxBo : _cfg.GlobalFilters.SpreadTicksMax;
+                int baseMax = isBo ? _cfg.GlobalFilters.SpreadTicksMaxBo : _cfg.GlobalFilters.SpreadTicksMax;
+
+                bool inRth = BotCore.Config.TimeWindows.IsNowWithinEt("09:30-16:00", snap.UtcNow);
+                int sessMax = snap.Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? (inRth ? 3 : 4) : (inRth ? 2 : 3);
+                int spreadMax = Math.Max(baseMax, sessMax);
                 if (snap.SpreadTicks > spreadMax) continue;
 
                 if (!StrategyGates.PassesGlobal(_cfg, snap)) continue; // AlwaysOn => always true
@@ -64,7 +66,7 @@ namespace StrategyAgent
                 List<Signal> candidates;
                 try
                 {
-                    candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, new List<Bar>(bars), risk, snap);
+                    candidates = AllStrategies.generate_candidates(snap.Symbol, _cfg, s, [.. bars], risk, snap);
                 }
                 catch (Exception)
                 {
@@ -101,20 +103,19 @@ namespace StrategyAgent
                 return Math.Round(px / t, 0, MidpointRounding.AwayFromZero) * t;
             }
 
-            outSignals = outSignals
+            outSignals = [.. outSignals
                 .OrderByDescending(x => x.Score)
                 // Cross-strategy de-dupe: drop StrategyId from the hash so identical trades from different Sx collapse
-                .DistinctBy(x => (x.Side, RoundToTick(x.Symbol, x.Entry), RoundToTick(x.Symbol, x.Target), RoundToTick(x.Symbol, x.Stop)))
-                .ToList();
+                .DistinctBy(x => (x.Side, RoundToTick(x.Symbol, x.Entry), RoundToTick(x.Symbol, x.Target), RoundToTick(x.Symbol, x.Stop)))];
 
             // Simple ES/NQ correlation guard: avoid doubling exposure in same direction
             var hasEsLong = outSignals.Any(s => s.Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && s.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase));
             var hasEsShort = outSignals.Any(s => s.Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase));
-            outSignals = outSignals.Where(s =>
+            outSignals = [.. outSignals.Where(s =>
                 !s.Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ||
                 !((s.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase) && hasEsLong) ||
                    (s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase) && hasEsShort))
-            ).ToList();
+            )];
 
             // Concurrency: enforce one fresh entry per symbol and total cap
             if (_cfg.Concurrency.OneFreshEntryPerSymbol)

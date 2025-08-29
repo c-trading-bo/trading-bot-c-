@@ -20,8 +20,8 @@
     "aggI_min_bo": 0.15,
     "aggI_max_mr_abs": 0.12,
     "signal_bar_max_atr_mult": 2.0,
-    "spread_ticks_max": 1,
-    "spread_ticks_max_bo": 2,
+  "spread_ticks_max": 2,
+  "spread_ticks_max_bo": 3,
     "three_stop_rule": true,
     "min_seconds_between_entries": 120
   },

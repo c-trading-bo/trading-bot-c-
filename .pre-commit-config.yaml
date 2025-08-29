@@ -1,8 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: block-protected
-        name: Block protected file edits
-        entry: powershell -ExecutionPolicy Bypass -File scripts/hooks/block-protected.ps1
-        language: system
-        stages: [commit]

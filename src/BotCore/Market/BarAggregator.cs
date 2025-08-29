@@ -5,17 +5,14 @@ namespace BotCore.Market
 {
     public sealed record Bar(DateTime Start, DateTime End, decimal Open, decimal High, decimal Low, decimal Close, long Volume);
 
-    public sealed class BarAggregator
+    public sealed class BarAggregator(TimeSpan timeframe, int maxKeep = 1000)
     {
-        readonly int _tfSec; // 60, 300, 1800
-        readonly Dictionary<string, Bar> _working = new();     // contractId -> current bar
-        readonly Dictionary<string, List<Bar>> _history = new(); // contractId -> recent bars (FIFO)
-        readonly int _maxKeep;
+        readonly int _tfSec = (int)timeframe.TotalSeconds; // 60, 300, 1800
+        readonly Dictionary<string, Bar> _working = [];     // contractId -> current bar
+        readonly Dictionary<string, List<Bar>> _history = []; // contractId -> recent bars (FIFO)
+        readonly int _maxKeep = Math.Max(100, maxKeep);
 
         public event Action<string, Bar>? OnBarClosed; // contractId, bar
-
-        public BarAggregator(TimeSpan timeframe, int maxKeep = 1000)
-        { _tfSec = (int)timeframe.TotalSeconds; _maxKeep = Math.Max(100, maxKeep); }
 
         static DateTime BucketStartUtc(DateTime tsUtc, int tfSec)
         {
@@ -38,7 +35,7 @@ namespace BotCore.Market
         public void OnTrade(string cid, DateTime tsUtc, decimal price, long qty)
         {
             var start = BucketStartUtc(tsUtc, _tfSec);
-            var end   = start.AddSeconds(_tfSec);
+            var end = start.AddSeconds(_tfSec);
 
             _working.TryGetValue(cid, out var bar);
             if (bar is null || bar.Start != start)
@@ -57,8 +54,8 @@ namespace BotCore.Market
             // update current
             var open = bar.Open;
             var high = price > bar.High ? price : bar.High;
-            var low  = price < bar.Low  ? price : bar.Low;
-            var vol  = bar.Volume + qty;
+            var low = price < bar.Low ? price : bar.Low;
+            var vol = bar.Volume + qty;
             _working[cid] = bar with { High = high, Low = low, Close = price, Volume = vol };
 
             // optional: if ts ≥ end (late ticks), force close

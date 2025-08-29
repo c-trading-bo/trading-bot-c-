@@ -132,10 +132,10 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
                                 // best-effort: just bump a generic "range_cons" arm for this key (format-agnostic)
                                 var newObj = new System.Text.Json.Nodes.JsonObject();
                                 foreach (var prop in json.EnumerateObject()) newObj[prop.Name] = System.Text.Json.Nodes.JsonNode.Parse(prop.Value.GetRawText());
-                                var statsNode = newObj["stats"] as System.Text.Json.Nodes.JsonObject ?? new System.Text.Json.Nodes.JsonObject();
-                                var armsNode = statsNode[keyReg] as System.Text.Json.Nodes.JsonObject ?? new System.Text.Json.Nodes.JsonObject();
+                                var statsNode = newObj["stats"] as System.Text.Json.Nodes.JsonObject ?? [];
+                                var armsNode = statsNode[keyReg] as System.Text.Json.Nodes.JsonObject ?? [];
                                 var armKey = "range_cons";
-                                var armNode = armsNode[armKey] as System.Text.Json.Nodes.JsonObject ?? new System.Text.Json.Nodes.JsonObject();
+                                var armNode = armsNode[armKey] as System.Text.Json.Nodes.JsonObject ?? [];
                                 int plays = (int?)armNode["plays"] ?? 0; decimal total = (decimal?)armNode["totalReward"] ?? 0m;
                                 armNode["plays"] = plays + 1; armNode["totalReward"] = total + delta; // delta is negative
                                 armsNode[armKey] = armNode; statsNode[keyReg] = armsNode; newObj["stats"] = statsNode;

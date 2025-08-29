@@ -11,6 +11,13 @@ namespace BotCore.Strategy
 {
     public static class S3Strategy
     {
+        private static bool BtBypass(string gate)
+        {
+            string k = gate switch { "news" => "BT_IGNORE_NEWS", "spread" => "BT_IGNORE_SPREAD", _ => string.Empty };
+            if (string.IsNullOrEmpty(k)) return false;
+            var v = Environment.GetEnvironmentVariable(k);
+            return v is not null && (v.Equals("1", StringComparison.OrdinalIgnoreCase) || v.Equals("true", StringComparison.OrdinalIgnoreCase));
+        }
         // S3 state and constants
         private static readonly ConcurrentDictionary<string, SegmentState> _segState = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<(string Sym, DateOnly Day, string Sess, Side Side), int> _attempts = new();
@@ -72,11 +79,14 @@ namespace BotCore.Strategy
             var cfg = S3RuntimeConfig.Instance;
             var last = bars[^1];
 
-            // News block
-            if (InNewsWindow(last.Start, cfg.NewsOnMinutes, cfg.NewsBlockBeforeMin, cfg.NewsBlockAfterMin))
+            // News block (bypass in backtest)
+            if (!BtBypass("news"))
             {
-                Reject("news_window");
-                return lst;
+                if (InNewsWindow(last.Start, cfg.NewsOnMinutes, cfg.NewsBlockBeforeMin, cfg.NewsBlockAfterMin))
+                {
+                    Reject("news_window");
+                    return lst;
+                }
             }
 
             // Volume gate
@@ -102,7 +112,7 @@ namespace BotCore.Strategy
                 if (ov.BreakQ_MinClosePos.HasValue) localBreakQ_MinClosePos = ov.BreakQ_MinClosePos.Value;
                 if (ov.BreakQ_MaxOppWick.HasValue) localBreakQ_MaxOppWick = ov.BreakQ_MaxOppWick.Value;
             }
-            if (spread.HasValue)
+            if (!BtBypass("spread") && spread.HasValue)
             {
                 var spreadCap = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase) ? Math.Max(localMaxSpread, 3) : localMaxSpread;
                 if (spread.Value > spreadCap)
@@ -167,7 +177,7 @@ namespace BotCore.Strategy
 
             // TF2 slope bias via 5m aggregation
             var bars5 = Aggregate(bars, 5);
-            var ema20_5 = EMA(bars5.Select(b => b.Close).ToArray(), 20);
+            var ema20_5 = EMA([.. bars5.Select(b => b.Close)], 20);
             var slope5 = LinearSlope(ema20_5, Math.Min(5, ema20_5.Length));
             bool biasUp = slope5 > cfg.MinSlopeTf2;
             bool biasDn = slope5 < -cfg.MinSlopeTf2;
@@ -228,7 +238,7 @@ namespace BotCore.Strategy
                     var peerBars = AllStrategies.ExternalGetBars(peer!);
                     if (peerBars != null && peerBars.Count >= cfg.RsWindowBars + 2)
                     {
-                        var rs = RelativeStrength(bars, peerBars.ToList(), cfg.RsWindowBars);
+                        var rs = RelativeStrength(bars, [.. peerBars], cfg.RsWindowBars);
                         if (cfg.RsDirectionalOnly)
                         {
                             if (biasUp && rs < cfg.RsThreshold) { Reject("rs_filter"); return lst; }
@@ -349,7 +359,7 @@ namespace BotCore.Strategy
         }
         private static decimal[] EMA(decimal[] x, int n)
         {
-            if (x.Length == 0) return Array.Empty<decimal>();
+            if (x.Length == 0) return [];
             var a = 2m / (n + 1);
             var y = new decimal[x.Length];
             y[0] = x[0];
@@ -441,7 +451,7 @@ namespace BotCore.Strategy
                 var arr = closes.Take(i + 1).ToArray();
                 var ema = EMA(arr, kcEma); var mid = ema[^1];
                 var sd = Stdev(arr, bbLen); var bbUp = mid + bbMult * sd; var bbDn = mid - bbMult * sd;
-                var atr = ATR(bars.Take(i + 1).ToList(), kcAtrLen);
+                var atr = ATR([.. bars.Take(i + 1)], kcAtrLen);
                 var kcUp = mid + kcMult * atr; var kcDn = mid - kcMult * atr;
                 bool squeeze = bbUp <= kcUp && bbDn >= kcDn;
                 if (squeeze) run++; else break;
@@ -457,7 +467,7 @@ namespace BotCore.Strategy
                 var arr = closes.Take(i + 1).ToArray();
                 var ema = EMA(arr, kcEma); var mid = ema[^1];
                 var sd = Stdev(arr, bbLen); var bbUp = mid + bbMult * sd; var bbDn = mid - bbMult * sd;
-                var atr = ATR(bars.Take(i + 1).ToList(), kcAtrLen); var kcUp = mid + kcMult * atr; var kcLo = mid - kcMult * atr;
+                var atr = ATR([.. bars.Take(i + 1)], kcAtrLen); var kcUp = mid + kcMult * atr; var kcLo = mid - kcMult * atr;
                 bool squeeze = bbUp <= kcUp && bbDn >= kcLo;
                 if (squeeze) start = i; else if (start != end) break;
             }
@@ -471,7 +481,7 @@ namespace BotCore.Strategy
         }
         private static List<Bar> Aggregate(IList<Bar> bars, int n)
         {
-            if (bars == null || bars.Count == 0 || n <= 1) return bars?.ToList() ?? new List<Bar>();
+            if (bars == null || bars.Count == 0 || n <= 1) return bars?.ToList() ?? [];
             var res = new List<Bar>();
             int i = 0;
             while (i < bars.Count)
@@ -673,7 +683,7 @@ namespace BotCore.Strategy
                 public decimal? BreakQ_MinClosePos { get; init; }
                 public decimal? BreakQ_MaxOppWick { get; init; }
             }
-            private static Dictionary<string, InstrumentOverride> _instrumentOverrides = new(StringComparer.OrdinalIgnoreCase);
+            private static readonly Dictionary<string, InstrumentOverride> _instrumentOverrides = new(StringComparer.OrdinalIgnoreCase);
             public static bool TryGetOverride(string sym, out InstrumentOverride? ov) => _instrumentOverrides.TryGetValue(sym, out ov);
             public int BbLen { get; init; } = 20;
             public decimal BbMult { get; init; } = 2.0m;
@@ -734,7 +744,7 @@ namespace BotCore.Strategy
             public int MaxSpreadTicks { get; init; } = 2;
             public int NewsBlockBeforeMin { get; init; } = 2;
             public int NewsBlockAfterMin { get; init; } = 3;
-            public int[] NewsOnMinutes { get; init; } = new[] { 0, 30 };
+            public int[] NewsOnMinutes { get; init; } = [0, 30];
 
             public int AttemptCapRTH { get; init; } = 2;
             public int AttemptCapOvernight { get; init; } = 1;
@@ -765,7 +775,7 @@ namespace BotCore.Strategy
                     if (!string.IsNullOrWhiteSpace(envPath)) candidates.Add(envPath!);
 
                     // 2) Probe from BaseDirectory and CurrentDirectory walking up for common repo layouts
-                    string[] bases = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() };
+                    string[] bases = [AppContext.BaseDirectory, Directory.GetCurrentDirectory()];
                     foreach (var b in bases.Distinct())
                     {
                         var dir = new DirectoryInfo(b);
@@ -795,10 +805,10 @@ namespace BotCore.Strategy
                         // Nested helpers
                         static int[] GetIntArray(JsonElement e)
                         {
-                            if (e.ValueKind != JsonValueKind.Array) return Array.Empty<int>();
+                            if (e.ValueKind != JsonValueKind.Array) return [];
                             var list = new List<int>();
                             foreach (var it in e.EnumerateArray()) if (it.TryGetInt32(out var v)) list.Add(v);
-                            return list.ToArray();
+                            return [.. list];
                         }
                         var peers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                         if (s3.TryGetProperty("rs_filter", out var rsNode) && rsNode.ValueKind == JsonValueKind.Object)
@@ -862,7 +872,7 @@ namespace BotCore.Strategy
                             AttemptCapRTH = s3.TryGetProperty("attempt_cap", out var ac) && ac.TryGetProperty("RTH", out var rth) && rth.TryGetInt32(out var iac1) ? iac1 : 2,
                             AttemptCapOvernight = s3.TryGetProperty("attempt_cap", out var ac2) && ac2.TryGetProperty("overnight", out var on) && on.TryGetInt32(out var iac2) ? iac2 : 1,
                             WidthRankEnter = s3.TryGetProperty("width_rank_enter", out var wr) && wr.TryGetDecimal(out var dwr) ? dwr : 0.15m,
-                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind == JsonValueKind.False ? false : true),
+                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind != JsonValueKind.False),
                             NrClusterRatio = s3.TryGetProperty("nr_cluster_ratio", out var nrr) && nrr.TryGetDecimal(out var dnrr) ? dnrr : 0.60m,
                             NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb) && nrb.TryGetInt32(out var inrb) ? inrb : 5,
                             WidthSlopeDownBars = s3.TryGetProperty("width_slope_down_bars", out var wsb) && wsb.TryGetInt32(out var iwsb) ? iwsb : 8,
@@ -952,7 +962,7 @@ namespace BotCore.Strategy
                             AttemptCapRTH = s3.TryGetProperty("attempt_cap", out var ac) && ac.TryGetProperty("RTH", out var rth) && rth.TryGetInt32(out var iac1) ? iac1 : cfg.AttemptCapRTH,
                             AttemptCapOvernight = s3.TryGetProperty("attempt_cap", out var ac2) && ac2.TryGetProperty("overnight", out var on) && on.TryGetInt32(out var iac2) ? iac2 : cfg.AttemptCapOvernight,
                             WidthRankEnter = s3.TryGetProperty("width_rank_enter", out var wr) && wr.TryGetDecimal(out var dwr) ? dwr : cfg.WidthRankEnter,
-                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind == JsonValueKind.False ? false : cfg.HourlyRankAdapt),
+                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind != JsonValueKind.False && cfg.HourlyRankAdapt),
                             NrClusterRatio = s3.TryGetProperty("nr_cluster_ratio", out var nrr) && nrr.TryGetDecimal(out var dnrr) ? dnrr : cfg.NrClusterRatio,
                             NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb) && nrb.TryGetInt32(out var inrb) ? inrb : cfg.NrClusterMinBars,
                             WidthSlopeDownBars = s3.TryGetProperty("width_slope_down_bars", out var wsb) && wsb.TryGetInt32(out var iwsb) ? iwsb : cfg.WidthSlopeDownBars,
@@ -982,7 +992,7 @@ namespace BotCore.Strategy
                             TrailAtrMult = s3.TryGetProperty("trail_atr_mult", out var tam) && tam.TryGetDecimal(out var dtam) ? dtam : cfg.TrailAtrMult,
                             NewsBlockBeforeMin = s3.TryGetProperty("news_block", out var nb) && nb.TryGetProperty("minutes_before", out var nbB) && nbB.TryGetInt32(out var inbB) ? inbB : cfg.NewsBlockBeforeMin,
                             NewsBlockAfterMin = s3.TryGetProperty("news_block", out var nb2) && nb2.TryGetProperty("minutes_after", out var nbA) && nbA.TryGetInt32(out var inbA) ? inbA : cfg.NewsBlockAfterMin,
-                            NewsOnMinutes = s3.TryGetProperty("news_block", out var nb3) && nb3.TryGetProperty("on_minutes", out var onm) && onm.ValueKind == JsonValueKind.Array ? onm.EnumerateArray().Where(e => e.TryGetInt32(out _)).Select(e => e.GetInt32()).ToArray() : cfg.NewsOnMinutes,
+                            NewsOnMinutes = s3.TryGetProperty("news_block", out var nb3) && nb3.TryGetProperty("on_minutes", out var onm) && onm.ValueKind == JsonValueKind.Array ? [.. onm.EnumerateArray().Where(e => e.TryGetInt32(out _)).Select(e => e.GetInt32())] : cfg.NewsOnMinutes,
                             OnePerSegment = s3.TryGetProperty("one_per_segment", out var ops) && ops.ValueKind == JsonValueKind.True,
                             SegmentCooldownMinutes = s3.TryGetProperty("segment_cooldown_minutes", out var scm) && scm.TryGetInt32(out var iscm) ? iscm : cfg.SegmentCooldownMinutes,
                             EarlyInvalidateBars = s3.TryGetProperty("early_invalidate_bars", out var eib) && eib.TryGetInt32(out var ieib) ? ieib : cfg.EarlyInvalidateBars,

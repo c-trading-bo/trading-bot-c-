@@ -10,29 +10,22 @@ using System.IO;
 
 namespace OrchestratorAgent.Execution;
 
-public sealed class ContinuousRetuner : IAsyncDisposable
+public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt,
+    IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots,
+    TimeSpan interval, int lookbackDays, bool allowLive, CancellationToken ct) : IAsyncDisposable
 {
-    private readonly ILogger _log;
-    private readonly HttpClient _http;
-    private readonly Func<Task<string>> _getJwt;
-    private readonly IReadOnlyDictionary<string, string> _contractIdsByRoot;
-    private readonly IReadOnlyList<string> _roots;
-    private readonly TimeSpan _interval;
-    private readonly int _lookbackDays;
-    private readonly bool _allowLive;
-    private readonly CancellationToken _ct;
+    private readonly ILogger _log = log;
+    private readonly HttpClient _http = http;
+    private readonly Func<Task<string>> _getJwt = getJwt;
+    private readonly IReadOnlyDictionary<string, string> _contractIdsByRoot = new Dictionary<string, string>(contractIdsByRoot, StringComparer.OrdinalIgnoreCase);
+    private readonly IReadOnlyList<string> _roots = [.. roots];
+    private readonly TimeSpan _interval = interval <= TimeSpan.Zero ? TimeSpan.FromHours(1) : interval;
+    private readonly int _lookbackDays = Math.Max(1, lookbackDays);
+    private readonly bool _allowLive = allowLive;
+    private readonly CancellationToken _ct = ct;
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
     private int _running;
-
-    public ContinuousRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt,
-        IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots,
-        TimeSpan interval, int lookbackDays, bool allowLive, CancellationToken ct)
-    {
-        _log = log; _http = http; _getJwt = getJwt; _contractIdsByRoot = new Dictionary<string, string>(contractIdsByRoot, StringComparer.OrdinalIgnoreCase);
-        _roots = roots.ToList(); _interval = interval <= TimeSpan.Zero ? TimeSpan.FromHours(1) : interval; _lookbackDays = Math.Max(1, lookbackDays);
-        _allowLive = allowLive; _ct = ct;
-    }
 
     public void Start()
     {
@@ -116,7 +109,7 @@ public sealed class ContinuousRetuner : IAsyncDisposable
         }
     }
 
-    private object RunOne(string root, string strat, Func<Task> run)
+    private static object RunOne(string root, string strat, Func<Task> run)
     {
         try { run().GetAwaiter().GetResult(); return new { root, strat, ok = true, error = (string?)null }; }
         catch (Exception ex) { return new { root, strat, ok = false, error = ex.Message }; }

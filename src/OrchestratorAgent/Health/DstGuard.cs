@@ -41,7 +41,7 @@ namespace OrchestratorAgent.Health
         public bool IsOpen(DateTime utc, (int openHour, int openMin, int closeHour, int closeMin) sess)
         {
             var local = TimeZoneInfo.ConvertTimeFromUtc(utc, _tz);
-            var open  = new DateTime(local.Year, local.Month, local.Day, sess.openHour,  sess.openMin, 0, local.Kind);
+            var open = new DateTime(local.Year, local.Month, local.Day, sess.openHour, sess.openMin, 0, local.Kind);
             var close = new DateTime(local.Year, local.Month, local.Day, sess.closeHour, sess.closeMin, 0, local.Kind);
             if (close <= open) close = close.AddDays(1);
             return local >= open && local < close;

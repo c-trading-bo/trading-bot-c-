@@ -8,9 +8,10 @@ if (Test-Path $envFile) {
         if ($_ -match "^([A-Za-z0-9_]+)=(.*)$") {
             $name = $matches[1]
             $value = $matches[2]
-            # Respect variables already set in the current shell
+            # Respect variables already set in the current shell; never override BOT_MODE or SKIP_MODE_PROMPT
             $existing = [Environment]::GetEnvironmentVariable($name)
-            if ([string]::IsNullOrWhiteSpace($existing)) {
+            $isProtected = $name -in @('BOT_MODE','SKIP_MODE_PROMPT')
+            if (-not $isProtected -and [string]::IsNullOrWhiteSpace($existing)) {
                 Set-Item -Path "Env:$name" -Value $value
             }
         }
@@ -48,9 +49,10 @@ if (-not $skipPrompt) {
     Write-Host "Select mode:"
     Write-Host "  [L]ive   (places real orders)"
     Write-Host "  [P]aper  (simulates orders)"
-    Write-Host "  [S]hadow (no orders) [default]"
+    Write-Host "  [S]hadow (no orders)"
+    Write-Host "  [P]aper  (simulates orders) [default]"
     $choice = Read-Host -Prompt "Mode"
-    if ([string]::IsNullOrWhiteSpace($choice)) { $lower = "s" } else { $lower = $choice.Trim().ToLowerInvariant() }
+    if ([string]::IsNullOrWhiteSpace($choice)) { $lower = "p" } else { $lower = $choice.Trim().ToLowerInvariant() }
     switch ($lower) {
         "l" { $env:BOT_MODE = "live" }
         "live" { $env:BOT_MODE = "live" }

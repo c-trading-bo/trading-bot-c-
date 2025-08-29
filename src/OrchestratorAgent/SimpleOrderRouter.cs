@@ -375,10 +375,10 @@ namespace OrchestratorAgent
                         {
                             var lot = BotCore.Models.InstrumentMeta.LotStep(sig.Symbol);
                             int tp1Qty = (int)Math.Max(0, Math.Floor(clampedSize * (double)tp1Pct));
-                            if (lot > 1) tp1Qty = tp1Qty - (tp1Qty % lot);
+                            if (lot > 1) tp1Qty -= (tp1Qty % lot);
                             if (tp1Qty > 0)
                             {
-                                _ = Task.Run(() => _partialExit!.TryScaleOutAsync(sig.Symbol, parentId!, clampedSize, sig.Entry, !isSell, tp1Ticks, tp1Qty, ct));
+                                _ = Task.Run(() => _partialExit!.TryScaleOutAsync(sig.Symbol, parentId!, clampedSize, sig.Entry, !isSell, tp1Ticks, tp1Qty, ct), ct);
                                 _log.LogInformation("[TP1] scheduled reduce-only partial qty={Qty} at {Ticks} ticks ({R}R)", tp1Qty, tp1Ticks, rTp1);
                             }
                         }
@@ -578,7 +578,7 @@ namespace OrchestratorAgent
         private static string Trunc(string? s, int max = 256)
         {
             if (string.IsNullOrEmpty(s)) return string.Empty;
-            return s.Length <= max ? s : s.Substring(0, max) + "…";
+            return s.Length <= max ? s : s[..max] + "…";
         }
     }
 }

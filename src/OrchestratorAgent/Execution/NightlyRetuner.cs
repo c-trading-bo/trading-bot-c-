@@ -8,21 +8,16 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Execution;
 
-public sealed class NightlyRetuner : IAsyncDisposable
+public sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt, IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots, CancellationToken ct) : IAsyncDisposable
 {
-    private readonly ILogger _log;
-    private readonly HttpClient _http;
-    private readonly Func<Task<string>> _getJwt;
-    private readonly IReadOnlyDictionary<string, string> _contractIdsByRoot;
-    private readonly IReadOnlyList<string> _roots;
-    private readonly CancellationToken _ct;
+    private readonly ILogger _log = log;
+    private readonly HttpClient _http = http;
+    private readonly Func<Task<string>> _getJwt = getJwt;
+    private readonly IReadOnlyDictionary<string, string> _contractIdsByRoot = new Dictionary<string, string>(contractIdsByRoot, StringComparer.OrdinalIgnoreCase);
+    private readonly IReadOnlyList<string> _roots = [.. roots];
+    private readonly CancellationToken _ct = ct;
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
-
-    public NightlyRetuner(ILogger log, HttpClient http, Func<Task<string>> getJwt, IReadOnlyDictionary<string, string> contractIdsByRoot, IEnumerable<string> roots, CancellationToken ct)
-    {
-        _log = log; _http = http; _getJwt = getJwt; _contractIdsByRoot = new Dictionary<string, string>(contractIdsByRoot, StringComparer.OrdinalIgnoreCase); _roots = roots.ToList(); _ct = ct;
-    }
 
     public void Start()
     {

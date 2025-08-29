@@ -8,11 +8,11 @@ namespace OrchestratorAgent.Realtime
 {
     public sealed class ReplayFeeder
     {
-        public async IAsyncEnumerable<(string type, JsonElement data)> ReadAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        public static async IAsyncEnumerable<(string type, JsonElement data)> ReadAsync(string path, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
         {
             using var r = new StreamReader(File.OpenRead(path));
             string? line;
-            while ((line = await r.ReadLineAsync()) != null)
+            while ((line = await r.ReadLineAsync(ct)) != null)
             {
                 ct.ThrowIfCancellationRequested();
                 using var doc = JsonDocument.Parse(line);

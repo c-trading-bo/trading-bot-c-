@@ -9,26 +9,18 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent
 {
-    internal sealed class PreflightRunner
+    internal sealed class PreflightRunner(ILogger log, HubConnection userHub, HubConnection marketHub, string primaryCid)
     {
-        private readonly ILogger _log;
-        private readonly HubConnection _userHub;
-        private readonly HubConnection _marketHub;
-        private readonly string _primaryCid;
+        private readonly ILogger _log = log;
+        private readonly HubConnection _userHub = userHub;
+        private readonly HubConnection _marketHub = marketHub;
+        private readonly string _primaryCid = primaryCid;
         private Func<Task<bool>>? _orderTest;
 
-        private readonly List<string> _steps = new();
-        private readonly List<string> _fails = new();
+        private readonly List<string> _steps = [];
+        private readonly List<string> _fails = [];
         public IReadOnlyList<string> Steps => _steps;
         public IReadOnlyList<string> FailReasons => _fails;
-
-        public PreflightRunner(ILogger log, HubConnection userHub, HubConnection marketHub, string primaryCid)
-        {
-            _log = log;
-            _userHub = userHub;
-            _marketHub = marketHub;
-            _primaryCid = primaryCid;
-        }
 
         private void Step(string msg)
         {

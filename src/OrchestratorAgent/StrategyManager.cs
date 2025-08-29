@@ -8,46 +8,37 @@ using BotCore.Models;
 namespace OrchestratorAgent
 {
     /// <summary>Discovers all IStrategy implementations and runs them on each bar.</summary>
-    public sealed class StrategyManager
+    public sealed class StrategyManager(ILogger<StrategyManager> log,
+                           StrategyContext ctx,
+                           OrderRouter router,
+                           EvalGates gates,
+                           IReadOnlyDictionary<string, string> contractIds)
     {
-        private readonly ILogger<StrategyManager> _log;
-        private readonly List<IStrategy> _strategies = new();
-        private readonly StrategyContext _ctx;
-        private readonly OrderRouter _router;
-        private readonly EvalGates _gates;
-        private readonly IReadOnlyDictionary<string,string> _contractIds;
-
-        public StrategyManager(ILogger<StrategyManager> log,
-                               StrategyContext ctx,
-                               OrderRouter router,
-                               EvalGates gates,
-                               IReadOnlyDictionary<string,string> contractIds)
-        {
-            _log = log;
-            _ctx = ctx;
-            _router = router;
-            _gates = gates;
-            _contractIds = contractIds;
-        }
+        private readonly ILogger<StrategyManager> _log = log;
+        private readonly List<IStrategy> _strategies = [];
+        private readonly StrategyContext _ctx = ctx;
+        private readonly OrderRouter _router = router;
+        private readonly EvalGates _gates = gates;
+        private readonly IReadOnlyDictionary<string, string> _contractIds = contractIds;
 
         public void DiscoverFrom(params Assembly[] assemblies)
         {
             if (assemblies == null || assemblies.Length == 0)
-                assemblies = new[] { Assembly.GetExecutingAssembly() };
+                assemblies = [Assembly.GetExecutingAssembly()];
 
             foreach (var asm in assemblies)
-            foreach (var t in asm.GetTypes())
-            {
-                if (t.IsAbstract || t.IsInterface) continue;
-                if (typeof(IStrategy).IsAssignableFrom(t))
+                foreach (var t in asm.GetTypes())
                 {
-                    if (Activator.CreateInstance(t) is IStrategy s)
+                    if (t.IsAbstract || t.IsInterface) continue;
+                    if (typeof(IStrategy).IsAssignableFrom(t))
                     {
-                        _strategies.Add(s);
-                        _log.LogInformation("Strategy registered: {Name} ({Type})", s.Name, t.FullName);
+                        if (Activator.CreateInstance(t) is IStrategy s)
+                        {
+                            _strategies.Add(s);
+                            _log.LogInformation("Strategy registered: {Name} ({Type})", s.Name, t.FullName);
+                        }
                     }
                 }
-            }
         }
 
         public async Task OnNewBarAsync(string symbol, Bar bar, CancellationToken ct = default)
@@ -72,11 +63,11 @@ namespace OrchestratorAgent
                     var normalized = new StrategySignal
                     {
                         Strategy = string.IsNullOrWhiteSpace(sig.Strategy) ? s.Name : sig.Strategy,
-                        Symbol   = root,
-                        Side     = sig.Side,
-                        Size     = Math.Clamp(sig.Size, 1, 2),
+                        Symbol = root,
+                        Side = sig.Side,
+                        Size = Math.Clamp(sig.Size, 1, 2),
                         LimitPrice = sig.LimitPrice,
-                        Note     = sig.Note
+                        Note = sig.Note
                     };
 
                     if (normalized.Side == SignalSide.Flat) continue;

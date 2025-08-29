@@ -93,10 +93,10 @@ public static class DashboardModule
 /// Keeps a rolling bar store per (symbol,res), builds 1-minute bars from ticks,
 /// fans out realtime events to SSE subscribers, and emits metrics periodically.
 /// </summary>
-public sealed class RealtimeHub : IHostedService, IDisposable
+public sealed class RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> metricsProvider) : IHostedService, IDisposable
 {
-    private readonly ILogger _log;
-    private readonly Func<MetricsSnapshot> _metrics; // provided by your bot
+    private readonly ILogger _log = log;
+    private readonly Func<MetricsSnapshot> _metrics = metricsProvider; // provided by your bot
     private readonly ConcurrentDictionary<(string sym, string res), BarStore> _stores = new();
     private readonly ConcurrentDictionary<(string sym, string res), HashSet<ChannelWriter<string>>> _subs = new();
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web)
@@ -109,12 +109,6 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     private PeriodicTimer? _metricsTimer;
     private readonly CancellationTokenSource _cts = new();
     private string _lastAllowedKey = string.Empty; // track allowed set changes
-
-    public RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> metricsProvider)
-    {
-        _log = log;
-        _metrics = metricsProvider;
-    }
 
     public void Dispose() => _cts.Cancel();
 
@@ -158,7 +152,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
         var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
         var key = (symbol, res);
-        var set = _subs.GetOrAdd(key, _ => new HashSet<ChannelWriter<string>>());
+        var set = _subs.GetOrAdd(key, _ => []);
 
         lock (set) set.Add(channel.Writer);
 
@@ -207,7 +201,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
                     // Detect allowed strategy set changes and emit an event
                     try
                     {
-                        var allowed = (m.allowedNow ?? Array.Empty<string>()).OrderBy(x => x).ToArray();
+                        var allowed = (m.allowedNow ?? []).OrderBy(x => x).ToArray();
                         var key = string.Join(",", allowed);
                         if (!string.Equals(key, _lastAllowedKey, StringComparison.Ordinal))
                         {
@@ -242,7 +236,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     private void Broadcast(string sym, string res, string json)
     {
         if (!_subs.TryGetValue((sym, res), out var set)) return;
-        ChannelWriter<string>[] writers; lock (set) writers = set.ToArray();
+        ChannelWriter<string>[] writers; lock (set) writers = [.. set];
         foreach (var w in writers) _ = w.WriteAsync(json);
     }
 
@@ -250,7 +244,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     {
         foreach (var set in _subs.Values)
         {
-            ChannelWriter<string>[] writers; lock (set) writers = set.ToArray();
+            ChannelWriter<string>[] writers; lock (set) writers = [.. set];
             foreach (var w in writers) _ = w.WriteAsync(json);
         }
     }
@@ -272,9 +266,10 @@ public sealed class RealtimeHub : IHostedService, IDisposable
         BroadcastAll(payload);
     }
 
-    private sealed class SubHandle : IDisposable
+    private sealed class SubHandle(Action a) : IDisposable
     {
-        private readonly Action _onDispose; public SubHandle(Action a) => _onDispose = a;
+        private readonly Action _onDispose = a;
+
         public void Dispose() => _onDispose();
     }
 }
@@ -286,14 +281,12 @@ public sealed record Bar(
     decimal o, decimal h, decimal l, decimal c,
     long v);
 
-sealed class BarStore
+sealed class BarStore(string res)
 {
-    private readonly string _res; // e.g. "1" minutes
+    private readonly string _res = res; // e.g. "1" minutes
     private readonly LinkedList<Bar> _bars = new();
     private readonly object _sync = new();
     private decimal _mark;
-
-    public BarStore(string res) => _res = res;
 
     public void Seed(IEnumerable<Bar> bars)
     {
@@ -341,7 +334,7 @@ sealed class BarStore
     {
         lock (_sync)
         {
-            return _bars.Where(b => b.t >= fromUnix && b.t <= toUnix).ToArray();
+            return [.. _bars.Where(b => b.t >= fromUnix && b.t <= toUnix)];
         }
     }
 

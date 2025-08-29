@@ -10,19 +10,19 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class CanarySelector : IAsyncDisposable
+public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> getTags, PositionTracker pos, TimeSpan dwell, TimeSpan window, decimal epsilon, bool allowLive, int minPlays = 2, decimal minEpsilon = 0.05m, double decayHalfLifeHours = 6d) : IAsyncDisposable
 {
-    private readonly ILogger _log;
-    private readonly Func<string, HashSet<string>> _getTags; // by root
-    private readonly PositionTracker _pos;
-    private readonly TimeSpan _dwell;
-    private readonly TimeSpan _window;
-    private readonly decimal _eps0;
-    private readonly decimal _minEps;
-    private readonly int _minPlays;
-    private readonly double _halfLifeHours;
+    private readonly ILogger _log = log;
+    private readonly Func<string, HashSet<string>> _getTags = getTags; // by root
+    private readonly PositionTracker _pos = pos;
+    private readonly TimeSpan _dwell = dwell <= TimeSpan.Zero ? TimeSpan.FromMinutes(45) : dwell;
+    private readonly TimeSpan _window = window <= TimeSpan.Zero ? TimeSpan.FromMinutes(60) : window;
+    private readonly decimal _eps0 = Math.Clamp(epsilon, 0m, 1m);
+    private readonly decimal _minEps = Math.Clamp(minEpsilon, 0m, 1m);
+    private readonly int _minPlays = Math.Max(0, minPlays);
+    private readonly double _halfLifeHours = decayHalfLifeHours <= 0 ? 6d : decayHalfLifeHours;
     private readonly DateTime _startUtc = DateTime.UtcNow;
-    private readonly bool _allowLive;
+    private readonly bool _allowLive = allowLive;
     private readonly CancellationTokenSource _cts = new();
     private Task? _loop;
 
@@ -34,18 +34,12 @@ public sealed class CanarySelector : IAsyncDisposable
         public double m2 { get; set; }
     }
     private sealed record Experiment(string root, string regime, string arm, DateTime appliedUtc, decimal baselineRealized);
-    private sealed class State
+    private sealed class State(Dictionary<string, Dictionary<string, CanarySelector.ArmState>> stats, List<CanarySelector.Experiment> running, Dictionary<string, DateTime> lastApplied, Dictionary<string, List<string>> blacklist)
     {
-        public Dictionary<string, Dictionary<string, ArmState>> stats { get; set; }
-        public List<Experiment> running { get; set; }
-        public Dictionary<string, DateTime> lastApplied { get; set; }
-        public Dictionary<string, List<string>> blacklist { get; set; }
-        public Dictionary<string, object>? meta { get; set; }
-        public State(Dictionary<string, Dictionary<string, ArmState>> stats, List<Experiment> running, Dictionary<string, DateTime> lastApplied, Dictionary<string, List<string>> blacklist)
-        { this.stats = stats; this.running = running; this.lastApplied = lastApplied; this.blacklist = blacklist; }
+        public Dictionary<string, Dictionary<string, ArmState>> stats { get; set; } = stats; public List<Experiment> running { get; set; } = running; public Dictionary<string, DateTime> lastApplied { get; set; } = lastApplied; public Dictionary<string, List<string>> blacklist { get; set; } = blacklist; public Dictionary<string, object>? meta { get; set; }
     }
 
-    private readonly string _path;
+    private readonly string _path = Path.Combine(AppContext.BaseDirectory, "state", "params", "canary.json");
     private const string CanaryIdKey = "_canary_id";
     private const string Trend = "trend";
     private const string HighVol = "high_vol";
@@ -53,13 +47,6 @@ public sealed class CanarySelector : IAsyncDisposable
     private const string MinAtr = "min_atr";
     private const string StopMult = "stop_mult";
     private const string TargetMult = "target_mult";
-
-    public CanarySelector(ILogger log, Func<string, HashSet<string>> getTags, PositionTracker pos, TimeSpan dwell, TimeSpan window, decimal epsilon, bool allowLive, int minPlays = 2, decimal minEpsilon = 0.05m, double decayHalfLifeHours = 6d)
-    {
-        _log = log; _getTags = getTags; _pos = pos; _dwell = dwell <= TimeSpan.Zero ? TimeSpan.FromMinutes(45) : dwell; _window = window <= TimeSpan.Zero ? TimeSpan.FromMinutes(60) : window; _eps0 = Math.Clamp(epsilon, 0m, 1m); _allowLive = allowLive;
-        _minPlays = Math.Max(0, minPlays); _minEps = Math.Clamp(minEpsilon, 0m, 1m); _halfLifeHours = decayHalfLifeHours <= 0 ? 6d : decayHalfLifeHours;
-        _path = Path.Combine(AppContext.BaseDirectory, "state", "params", "canary.json");
-    }
 
     public void Start()
     {
@@ -135,7 +122,7 @@ public sealed class CanarySelector : IAsyncDisposable
                         try
                         {
                             var hintsDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning"); Directory.CreateDirectory(hintsDir);
-                            var line = new { ts = DateTime.UtcNow, evt = "canary_promote", root = exp.root, regime = exp.regime, arm = exp.arm, plays = nowS.plays, avg = avg, conf_lower = lower, ttl_h = ttlH };
+                            var line = new { ts = DateTime.UtcNow, evt = "canary_promote", exp.root, exp.regime, exp.arm, nowS.plays, avg, conf_lower = lower, ttl_h = ttlH };
                             File.AppendAllText(Path.Combine(hintsDir, "hints.jsonl"), JsonSerializer.Serialize(line) + Environment.NewLine);
                         }
                         catch { /* best-effort hint log */ }
@@ -145,7 +132,7 @@ public sealed class CanarySelector : IAsyncDisposable
                     decimal dropBl = EnvDec("CANARY_BLACKLIST_DROP_USD", 150m);
                     if (nowS.plays >= minPlaysBl && avg <= -Math.Abs(dropBl))
                     {
-                        if (!state.blacklist.TryGetValue(key, out var bl)) { bl = new List<string>(); state.blacklist[key] = bl; }
+                        if (!state.blacklist.TryGetValue(key, out var bl)) { bl = []; state.blacklist[key] = bl; }
                         if (!bl.Contains(exp.arm, StringComparer.OrdinalIgnoreCase)) { bl.Add(exp.arm); _log.LogInformation("[Canary] Blacklist {Key}/{Arm} avg=${Avg:F2}", key, exp.arm, avg); }
                     }
                 }
@@ -255,7 +242,7 @@ public sealed class CanarySelector : IAsyncDisposable
         return eps;
     }
 
-    private void ApplyBundle(string root, string regime, string arm, TimeSpan? ttl = null)
+    private static void ApplyBundle(string root, string regime, string arm, TimeSpan? ttl = null)
     {
         var life = ttl ?? TimeSpan.FromHours(2);
         // two families per regime: conservative vs aggressive; encode via arm id
@@ -332,9 +319,9 @@ public sealed class CanarySelector : IAsyncDisposable
         var regime = Regime(tags);
         if (regime == Trend) { list.Add("trend_cons"); list.Add("trend_aggr"); }
         else { list.Add("range_cons"); list.Add("range_aggr"); }
-        if (tags.Contains(HighVol)) list = list.Select(x => HighVol + "_" + x).ToList();
-        else if (tags.Contains(LowVol)) list = list.Select(x => LowVol + "_" + x).ToList();
-        else list = list.Select(x => "mid_vol_" + x).ToList();
+        if (tags.Contains(HighVol)) list = [.. list.Select(x => HighVol + "_" + x)];
+        else if (tags.Contains(LowVol)) list = [.. list.Select(x => LowVol + "_" + x)];
+        else list = [.. list.Select(x => "mid_vol_" + x)];
         return list;
     }
 
@@ -352,7 +339,7 @@ public sealed class CanarySelector : IAsyncDisposable
             }
         }
         catch (Exception) { /* best-effort load */ }
-        return new State(new Dictionary<string, Dictionary<string, ArmState>>(), new List<Experiment>(), new Dictionary<string, DateTime>(), new Dictionary<string, List<string>>());
+        return new State([], [], [], []);
     }
 
     private void Save(State st)

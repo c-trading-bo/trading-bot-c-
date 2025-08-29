@@ -10,6 +10,10 @@
     .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
     .topbar{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid #1c2330}
     .chip{background:var(--chip);border-radius:12px;padding:6px 10px}
+  .badge{border-radius:8px;padding:2px 6px;margin-left:6px;font-weight:600}
+  .badge.paper{background:#0b2a1a;color:#a7f3d0;border:1px solid #14532d}
+  .badge.live{background:#2a0d0d;color:#fecaca;border:1px solid #7f1d1d}
+  .badge.shadow{background:#111827;color:#cbd5e1;border:1px solid #1f2937}
     .sp{opacity:.85}
     .pane{display:grid;grid-template-columns:1fr 280px;gap:8px;padding:8px;height:calc(100vh - 100px)}
     #chart{height:100%;border:1px solid #1c2330;border-radius:12px}
@@ -27,7 +31,7 @@
 <div class="wrap">
   <div class="topbar mono" id="topbar">
     <span class="chip">acc <span id="acc">-</span></span>
-    <span class="chip">mode <span id="mode">-</span></span>
+  <span class="chip">mode <span id="mode">-</span></span>
     <span class="chip">r:<span id="r">0.00</span> u:<span id="u">0.00</span> d:<span id="d">0.00</span></span>
     <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
     <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
@@ -179,7 +183,15 @@
       }
       if (msg.type === "metrics") {
         const m = msg.data;
-        set("acc", m.accountId); set("mode", m.mode);
+  set("acc", m.accountId);
+  // Mode badge (color-coded)
+  const modeEl = document.getElementById('mode');
+  modeEl.textContent = m.mode;
+  modeEl.className = '';
+  modeEl.classList.add('badge');
+  if (m.mode === 'LIVE') modeEl.classList.add('live');
+  else if (m.mode === 'PAPER') modeEl.classList.add('paper');
+  else modeEl.classList.add('shadow');
         setPnL("r", m.realized); setPnL("u", m.unrealized); setPnL("d", m.day);
         set("mdl", fmt2(m.maxDailyLoss)); setPnL("rem", m.remaining);
         set("uh", m.userHub); set("mh", m.marketHub);

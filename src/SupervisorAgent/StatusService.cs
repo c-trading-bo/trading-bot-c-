@@ -6,9 +6,9 @@ using System.Linq;
 
 namespace SupervisorAgent
 {
-    public sealed class StatusService
+    public sealed class StatusService(ILogger<StatusService> log)
     {
-        private readonly ILogger<StatusService> _log;
+        private readonly ILogger<StatusService> _log = log;
         private readonly ConcurrentDictionary<string, object> _vals = new();
         private DateTimeOffset _lastBeat = DateTimeOffset.MinValue;
         private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
@@ -16,9 +16,7 @@ namespace SupervisorAgent
         private string _lastSig = string.Empty;
 
         public long AccountId { get; set; }
-        public Dictionary<string, string> Contracts { get; set; } = new();
-
-        public StatusService(ILogger<StatusService> log) => _log = log;
+        public Dictionary<string, string> Contracts { get; set; } = [];
 
         public void Set(string key, object value) => _vals[key] = value;
         public T? Get<T>(string key) => _vals.TryGetValue(key, out var v) ? (T?)v : default;
@@ -69,7 +67,7 @@ namespace SupervisorAgent
             _lastBeat = now;
 
             // Compute top veto reasons (best-effort)
-            Dictionary<string, int> vetoTop = new();
+            Dictionary<string, int> vetoTop = [];
             try
             {
                 vetoTop = _vals
@@ -100,7 +98,7 @@ namespace SupervisorAgent
             // Stable signature excludes whenUtc so we don't emit just because time advanced
             // Deterministic ordering for contracts in signature to avoid spurious emits
             var contractsSig = Contracts is null
-                ? new Dictionary<string, string>()
+                ? []
                 : Contracts.OrderBy(kv => kv.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(kv => kv.Key, kv => kv.Value);
             var sigObj = new
             {

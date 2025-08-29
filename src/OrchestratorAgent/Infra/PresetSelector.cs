@@ -9,18 +9,13 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Infra;
 
-public sealed class PresetSelector
+public sealed class PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>> getBars, TimeSpan dwell, bool allowLive)
 {
-    private readonly ILogger _log;
-    private readonly Func<string, IReadOnlyList<Bar>> _getBars;
-    private readonly TimeSpan _dwell;
-    private readonly bool _allowLive;
+    private readonly ILogger _log = log;
+    private readonly Func<string, IReadOnlyList<Bar>> _getBars = getBars;
+    private readonly TimeSpan _dwell = dwell <= TimeSpan.Zero ? TimeSpan.FromMinutes(30) : dwell;
+    private readonly bool _allowLive = allowLive;
     private readonly Dictionary<string, (string presetId, DateTime appliedUtc)> _last = new(StringComparer.OrdinalIgnoreCase);
-
-    public PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>> getBars, TimeSpan dwell, bool allowLive)
-    {
-        _log = log; _getBars = getBars; _dwell = dwell <= TimeSpan.Zero ? TimeSpan.FromMinutes(30) : dwell; _allowLive = allowLive;
-    }
 
     public void EvaluateAndApply(string symbolRoot)
     {

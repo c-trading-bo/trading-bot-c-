@@ -34,14 +34,14 @@ public static class TuningRunner
         try
         {
             if (string.IsNullOrWhiteSpace(raw)) return defaults;
-            var parts = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var list = new List<decimal>(parts.Length);
             foreach (var p in parts)
             {
                 if (decimal.TryParse(p, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d))
                     list.Add(d);
             }
-            return list.Count > 0 ? list.ToArray() : defaults;
+            return list.Count > 0 ? [.. list] : defaults;
         }
         catch { return defaults; }
     }
@@ -51,13 +51,13 @@ public static class TuningRunner
         try
         {
             if (string.IsNullOrWhiteSpace(raw)) return defaults;
-            var parts = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var list = new List<int>(parts.Length);
             foreach (var p in parts)
             {
                 if (int.TryParse(p, out var i)) list.Add(i);
             }
-            return list.Count > 0 ? list.ToArray() : defaults;
+            return list.Count > 0 ? [.. list] : defaults;
         }
         catch { return defaults; }
     }
@@ -125,11 +125,11 @@ public static class TuningRunner
 
         // 3) Parameter grid (keep small for speed; expand later)
         var grids = new List<TrialConfig>();
-        decimal[] sigmaEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_SIGMA_ENTER"), new[] { 1.8m, 2.0m, 2.2m });
-        decimal[] atrEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ATR_ENTER"), new[] { 0.8m, 1.0m, 1.2m });
-        int[] retestTicks = ParseIntArray(Environment.GetEnvironmentVariable("S2_GRID_RETEST_TICKS"), new[] { 0, 1, 2 });
-        decimal[] vwapSlopeMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_VWAP_SLOPE_MAX"), new[] { 0.10m, 0.12m, 0.15m });
-        decimal[] adrUsedMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ADR_USED_MAX"), new[] { 0.0m, 0.60m, 0.75m }); // 0 disables guard
+        decimal[] sigmaEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_SIGMA_ENTER"), [1.8m, 2.0m, 2.2m]);
+        decimal[] atrEnter = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ATR_ENTER"), [0.8m, 1.0m, 1.2m]);
+        int[] retestTicks = ParseIntArray(Environment.GetEnvironmentVariable("S2_GRID_RETEST_TICKS"), [0, 1, 2]);
+        decimal[] vwapSlopeMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_VWAP_SLOPE_MAX"), [0.10m, 0.12m, 0.15m]);
+        decimal[] adrUsedMax = ParseDecArray(Environment.GetEnvironmentVariable("S2_GRID_ADR_USED_MAX"), [0.0m, 0.60m, 0.75m]); // 0 disables guard
 
         foreach (var se in sigmaEnter)
             foreach (var ae in atrEnter)
@@ -321,7 +321,7 @@ public static class TuningRunner
                 {
                     Name = "S2",
                     Enabled = true,
-                    Extra = new System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement>()
+                    Extra = []
                 };
                 // Build a simple relaxed config payload
                 using var doc = System.Text.Json.JsonDocument.Parse("{\n  \"min_volume\": 0,\n  \"sigma_enter\": 1.5,\n  \"atr_enter\": 0.8,\n  \"confirm_lookback\": 2,\n  \"retest_offset_ticks\": 0,\n  \"volz\": { \"min\": -5, \"max\": 5 }\n}");
@@ -423,12 +423,12 @@ public static class TuningRunner
 
         // 3) Parameter grid for S3 (keep compact for speed)
         var grids = new List<TrialConfig>();
-        decimal[] widthRankEnter = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_WIDTH_RANK"), new[] { 0.10m, 0.15m, 0.20m });
-        int[] minSqueezeBars = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_MIN_SQZ_BARS"), new[] { 5, 6, 8 });
-        decimal[] confirmBreakMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_CONFIRM_MULT"), new[] { 0.10m, 0.15m, 0.20m });
-        decimal[] stopAtrMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_STOP_ATR_MULT"), new[] { 1.0m, 1.1m, 1.2m });
-        int[] retestBackoffTicks = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_RETEST_BACKOFF"), new[] { 1, 2 });
-        decimal[] rsThreshold = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_RS_THRESHOLD"), new[] { 0.05m, 0.10m });
+        decimal[] widthRankEnter = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_WIDTH_RANK"), [0.10m, 0.15m, 0.20m]);
+        int[] minSqueezeBars = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_MIN_SQZ_BARS"), [5, 6, 8]);
+        decimal[] confirmBreakMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_CONFIRM_MULT"), [0.10m, 0.15m, 0.20m]);
+        decimal[] stopAtrMult = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_STOP_ATR_MULT"), [1.0m, 1.1m, 1.2m]);
+        int[] retestBackoffTicks = ParseIntArray(Environment.GetEnvironmentVariable("S3_GRID_RETEST_BACKOFF"), [1, 2]);
+        decimal[] rsThreshold = ParseDecArray(Environment.GetEnvironmentVariable("S3_GRID_RS_THRESHOLD"), [0.05m, 0.10m]);
 
         foreach (var wre in widthRankEnter)
             foreach (var msb in minSqueezeBars)
@@ -591,16 +591,20 @@ public static class TuningRunner
             var relax = (Environment.GetEnvironmentVariable("TUNE_RELAX") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             if (relax)
             {
-                var relaxed = new System.Collections.Generic.Dictionary<string, object?>();
-                relaxed.Add("min_volume", 0);
-                relaxed.Add("width_rank_enter", 0.10m);
-                relaxed.Add("min_squeeze_bars", 3);
-                relaxed.Add("confirm_break_mult", 0.10m);
-                relaxed.Add("retest_backoff_ticks", 1);
-                relaxed.Add("entry_mode", "retest");
-                var rs = new System.Collections.Generic.Dictionary<string, object?>();
-                rs.Add("enabled", false);
-                rs.Add("threshold", 0.05m);
+                var relaxed = new System.Collections.Generic.Dictionary<string, object?>
+                {
+                    { "min_volume", 0 },
+                    { "width_rank_enter", 0.10m },
+                    { "min_squeeze_bars", 3 },
+                    { "confirm_break_mult", 0.10m },
+                    { "retest_backoff_ticks", 1 },
+                    { "entry_mode", "retest" }
+                };
+                var rs = new System.Collections.Generic.Dictionary<string, object?>
+                {
+                    { "enabled", false },
+                    { "threshold", 0.05m }
+                };
                 relaxed.Add("rs_filter", rs);
                 var json = System.Text.Json.JsonSerializer.Serialize(relaxed);
                 try { BotCore.Strategy.S3Strategy.ApplyTuningJson(json); } catch { }
@@ -702,22 +706,22 @@ public static class TuningRunner
         try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
 
         var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
-        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_MIN_ATR"), new[] { 0.6m, 0.8m, 1.0m });
-        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_STOP_MULT"), new[] { 2.0m, 2.5m, 3.0m });
-        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_TGT_MULT"), new[] { 3.5m, 4.0m, 5.0m });
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_MIN_ATR"), [0.6m, 0.8m, 1.0m]);
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_STOP_MULT"), [2.0m, 2.5m, 3.0m]);
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S6_GRID_TGT_MULT"), [3.5m, 4.0m, 5.0m]);
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
         int trialIndex = 0;
-        foreach (var g in grids)
+        foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
             if (trialIndex == 1 || trialIndex % Math.Max(1, grids.Count / 10) == 0)
                 log.LogInformation("[Tune:S6] Trial {Idx}/{Total}…", trialIndex, grids.Count);
             var def = new StrategyDef { Id = "S6", Name = "S6-Override", Enabled = true };
-            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(g.MinAtr);
-            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(g.StopMult);
-            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(g.TargetMult);
+            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(MinAtr);
+            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(StopMult);
+            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(TargetMult);
             S6RuntimeConfig.ApplyFrom(def);
 
             var env = new Env { Symbol = symbolRoot };
@@ -740,7 +744,7 @@ public static class TuningRunner
                 if (s6 != null && open == null) open = new Trade(s6.Side, s6.Entry, s6.Stop, s6.Target, s6.Size);
             }
             var net = equity[^1]; var maxDd = MaxDrawdown(equity); var wr = trades > 0 ? (decimal)wins / trades : 0m; var avgR = ComputeAvgR(equity, risk.cfg.risk_per_trade);
-            var cfg = new TrialConfig(new List<Param> { new("min_atr", g.MinAtr), new("stop_mult", g.StopMult), new("target_mult", g.TargetMult) });
+            var cfg = new TrialConfig([new("min_atr", MinAtr), new("stop_mult", StopMult), new("target_mult", TargetMult)]);
             results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
         }
 
@@ -788,22 +792,22 @@ public static class TuningRunner
         try { var rpt = Environment.GetEnvironmentVariable("RISK_PER_TRADE_USD") ?? Environment.GetEnvironmentVariable("RISK_PER_TRADE"); if (!string.IsNullOrWhiteSpace(rpt) && decimal.TryParse(rpt, out var v) && v > 0) risk.cfg.risk_per_trade = v; } catch { }
 
         var grids = new List<(decimal MinAtr, decimal StopMult, decimal TargetMult)>();
-        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_MIN_ATR"), new[] { 0.8m, 1.0m, 1.2m });
-        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_STOP_MULT"), new[] { 3.0m, 3.5m, 4.0m });
-        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_TGT_MULT"), new[] { 5.0m, 6.0m, 7.0m });
+        decimal[] minAtr = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_MIN_ATR"), [0.8m, 1.0m, 1.2m]);
+        decimal[] stopM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_STOP_MULT"), [3.0m, 3.5m, 4.0m]);
+        decimal[] targM = ParseDecArray(Environment.GetEnvironmentVariable("S11_GRID_TGT_MULT"), [5.0m, 6.0m, 7.0m]);
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
         int trialIndex = 0;
-        foreach (var g in grids)
+        foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
             if (trialIndex == 1 || trialIndex % Math.Max(1, grids.Count / 10) == 0)
                 log.LogInformation("[Tune:S11] Trial {Idx}/{Total}…", trialIndex, grids.Count);
             var def = new StrategyDef { Id = "S11", Name = "S11-Override", Enabled = true };
-            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(g.MinAtr);
-            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(g.StopMult);
-            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(g.TargetMult);
+            def.Extra["min_atr"] = JsonSerializer.SerializeToElement(MinAtr);
+            def.Extra["stop_mult"] = JsonSerializer.SerializeToElement(StopMult);
+            def.Extra["target_mult"] = JsonSerializer.SerializeToElement(TargetMult);
             S11RuntimeConfig.ApplyFrom(def);
 
             var env = new Env { Symbol = symbolRoot };
@@ -826,7 +830,7 @@ public static class TuningRunner
                 if (s11 != null && open == null) open = new Trade(s11.Side, s11.Entry, s11.Stop, s11.Target, s11.Size);
             }
             var net = equity[^1]; var maxDd = MaxDrawdown(equity); var wr = trades > 0 ? (decimal)wins / trades : 0m; var avgR = ComputeAvgR(equity, risk.cfg.risk_per_trade);
-            var cfg = new TrialConfig(new List<Param> { new("min_atr", g.MinAtr), new("stop_mult", g.StopMult), new("target_mult", g.TargetMult) });
+            var cfg = new TrialConfig([new("min_atr", MinAtr), new("stop_mult", StopMult), new("target_mult", TargetMult)]);
             results.Add(new TrialResult(cfg, trades, wins, losses, net, wr, avgR, maxDd));
         }
 
@@ -967,7 +971,7 @@ public static class TuningRunner
                 foreach (var p in cfg.Params)
                 {
                     if (!p.Key.StartsWith("rs_filter.", StringComparison.OrdinalIgnoreCase)) continue;
-                    var k = p.Key.Substring("rs_filter.".Length);
+                    var k = p.Key["rs_filter.".Length..];
                     switch (k)
                     {
                         case "enabled": if (p.B.HasValue) enabled = p.B.Value; break;
@@ -1043,15 +1047,9 @@ public static class TuningRunner
         return list;
     }
 
-    private sealed class Trade
+    private sealed class Trade(string side, decimal entry, decimal stop, decimal target, int size)
     {
-        public string Side { get; }
-        public decimal Entry { get; }
-        public decimal Stop { get; }
-        public decimal Target { get; }
-        public int Size { get; }
-        public Trade(string side, decimal entry, decimal stop, decimal target, int size)
-        { Side = side; Entry = entry; Stop = stop; Target = target; Size = size; }
+        public string Side { get; } = side; public decimal Entry { get; } = entry; public decimal Stop { get; } = stop; public decimal Target { get; } = target; public int Size { get; } = size;
     }
 
     private static bool TryExit(ref Trade? tr, Bar b, string root, out decimal pnlUsd, out bool won)

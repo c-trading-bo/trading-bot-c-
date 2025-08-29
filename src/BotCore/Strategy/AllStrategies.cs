@@ -28,18 +28,18 @@ namespace BotCore.Strategy
         {
             var cands = new List<Candidate>();
             // Ensure env.volz is computed from history (regime proxy)
-            try { env.volz = VolZ(bars); } catch { env.volz = env.volz ?? 0m; }
-            var attemptCaps = Profile.AttemptCaps;
+            try { env.volz = VolZ(bars); } catch { env.volz ??= 0m; }
+            var attemptCaps = HighWinRateProfile.AttemptCaps;
             bool noAttemptCaps = (Environment.GetEnvironmentVariable("NO_ATTEMPT_CAPS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             var strategyMethods = new List<(string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>)> {
                 ("S1", S1), ("S2", S2), ("S3", S3), ("S4", S4), ("S5", S5), ("S6", S6), ("S7", S7), ("S8", S8), ("S9", S9), ("S10", S10), ("S11", S11), ("S12", S12), ("S13", S13), ("S14", S14)
             };
             foreach (var (id, method) in strategyMethods)
             {
-                int cap = 0; bool hasCap = attemptCaps.TryGetValue(id, out cap);
+                bool hasCap = attemptCaps.TryGetValue(id, out int cap);
                 if (!noAttemptCaps && hasCap && cap == 0) continue;
                 var candidates = method(symbol, env, levels, bars, risk);
-                if (!noAttemptCaps && hasCap && cap > 0 && candidates.Count > cap) candidates = candidates.Take(cap).ToList();
+                if (!noAttemptCaps && hasCap && cap > 0 && candidates.Count > cap) candidates = [.. candidates.Take(cap)];
                 cands.AddRange(candidates);
             }
             return cands;
@@ -73,8 +73,8 @@ namespace BotCore.Strategy
                 ["S14"] = S14,
             };
 
-            if (!def.Enabled) return new List<Signal>();
-            if (!map.TryGetValue(def.Name, out var fn)) return new List<Signal>();
+            if (!def.Enabled) return [];
+            if (!map.TryGetValue(def.Name, out var fn)) return [];
 
             var candidates = fn(symbol, env, levels, bars, riskEngine);
 
@@ -204,11 +204,10 @@ namespace BotCore.Strategy
                     signals.Add(s);
                 }
             }
-            return signals
+            return [.. signals
                 .OrderByDescending(x => x.Score)
                 .DistinctBy(x => (x.Side, x.StrategyId, Math.Round(x.Entry, 2), Math.Round(x.Target, 2), Math.Round(x.Stop, 2)))
-                .Take(max)
-                .ToList();
+                .Take(max)];
         }
 
         // Config-aware method for StrategyAgent
@@ -312,7 +311,7 @@ namespace BotCore.Strategy
             {
                 var h = bars[i].High; var l = bars[i].Low; var pc = bars[i - 1].Close;
                 var tr = Math.Max(h - l, Math.Max(Math.Abs(h - pc), Math.Abs(l - pc)));
-                atr = atr + (tr - atr) / len; // Wilder smoothing seeded by first TR
+                atr += (tr - atr) / len; // Wilder smoothing seeded by first TR
             }
             return atr;
         }
@@ -542,7 +541,7 @@ namespace BotCore.Strategy
                     var rollDay = DateTime.UtcNow.Date;
                     if (rollDay.Month is 3 or 6 or 9 or 12)
                     {
-                        DateTime first = new DateTime(rollDay.Year, rollDay.Month, 1);
+                        DateTime first = new(rollDay.Year, rollDay.Month, 1);
                         int add = ((int)DayOfWeek.Friday - (int)first.DayOfWeek + 7) % 7;
                         DateTime firstFri = first.AddDays(add);
                         DateTime secondFri = firstFri.AddDays(7);
@@ -590,8 +589,8 @@ namespace BotCore.Strategy
                 string peer = symbol.Contains("ES", StringComparison.OrdinalIgnoreCase) ? "NQ" : symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase) ? "ES" : string.Empty;
                 if (!string.IsNullOrWhiteSpace(peer) && S2RuntimeConfig.RsPeerThreshold > 0m && ExternalGetBars != null)
                 {
-                    var pb = ExternalGetBars(peer) ?? Array.Empty<Bar>();
-                    var pbl = pb as IList<Bar> ?? pb.ToList();
+                    var pb = ExternalGetBars(peer) ?? [];
+                    var pbl = pb as IList<Bar> ?? [.. pb];
                     if (pbl.Count >= 10)
                     {
                         var pEma = EmaNoWarmup(pbl, 20).ToArray();
@@ -885,8 +884,8 @@ namespace BotCore.Strategy
             var tick = InstrumentMeta.Tick(symbol);
             var dist = Math.Max(Math.Abs(entry - stop), tick); // ≥ 1 tick
             // Prefer equity-% aware sizing if configured; pass 0 equity to fallback to fixed RPT when not provided
-            var sz = risk.ComputeSize(symbol, entry, stop, 0m);
-            var qty = sz.Qty > 0 ? sz.Qty : (int)risk.size_for(risk.cfg.risk_per_trade, dist, pv);
+            var (Qty, UsedRpt) = risk.ComputeSize(symbol, entry, stop, 0m);
+            var qty = Qty > 0 ? Qty : (int)RiskEngine.size_for(risk.cfg.risk_per_trade, dist, pv);
             if (qty <= 0) return;
 
             var expR = rr_quality(entry, stop, t1);

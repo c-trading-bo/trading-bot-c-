@@ -17,8 +17,8 @@ namespace BotCore.Strategy
             {
                 var current = _q80.TryGetValue(key, out var v) ? v : 2.0m; // sensible default
                 var alpha = 0.02m; // slow adapt
-                var step  = absZ >= current ? alpha : -alpha * 0.5m;
-                var next  = Math.Max(1.5m, Math.Min(3.5m, current + step));
+                var step = absZ >= current ? alpha : -alpha * 0.5m;
+                var next = Math.Max(1.5m, Math.Min(3.5m, current + step));
                 _q80[key] = next;
             }
         }

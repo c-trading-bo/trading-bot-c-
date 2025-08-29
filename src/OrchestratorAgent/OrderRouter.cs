@@ -54,11 +54,11 @@ namespace OrchestratorAgent
         private readonly OrderLimiter _limiter = new(20, TimeSpan.FromSeconds(10));
         private readonly Notifier _notifier = new();
 
-        private sealed class OrderLimiter
+        private sealed class OrderLimiter(int max, TimeSpan window)
         {
             private readonly Queue<DateTime> _ts = new();
-            private readonly int _max; private readonly TimeSpan _window;
-            public OrderLimiter(int max, TimeSpan window) { _max = max; _window = window; }
+            private readonly int _max = max; private readonly TimeSpan _window = window;
+
             public bool Allow()
             {
                 var now = DateTime.UtcNow;
@@ -71,7 +71,7 @@ namespace OrchestratorAgent
         public OrderRouter(ILogger<OrderRouter> log, HttpClient http, string apiBase, string jwt, int accountId)
         {
             _log = log;
-            _api = new ApiClient(http, log as ILogger<ApiClient> ?? LoggerFactory.Create(b=>{}).CreateLogger<ApiClient>(), apiBase);
+            _api = new ApiClient(http, log as ILogger<ApiClient> ?? LoggerFactory.Create(b => { }).CreateLogger<ApiClient>(), apiBase);
             _api.SetJwt(jwt);
             _accountId = accountId;
         }
@@ -122,10 +122,10 @@ namespace OrchestratorAgent
             decimal tick = InstrumentMeta.Tick(sig.Symbol);
             int bufTicks = ResolveBufferTicks(sig.Symbol);
             var basePx = InstrumentMeta.RoundToTick(sig.Symbol, sig.LimitPrice ?? 0m);
-                        // Ensure qty respects lot step (and global max=2)
-                        var step = InstrumentMeta.LotStep(sig.Symbol);
-                        var sizeClamped = Math.Clamp(sig.Size, 1, 2);
-                        var qtyAdj = Math.Max(step, sizeClamped - (sizeClamped % step));
+            // Ensure qty respects lot step (and global max=2)
+            var step = InstrumentMeta.LotStep(sig.Symbol);
+            var sizeClamped = Math.Clamp(sig.Size, 1, 2);
+            var qtyAdj = Math.Max(step, sizeClamped - (sizeClamped % step));
             var px = sig.Side == SignalSide.Long ? basePx + bufTicks * tick : basePx - bufTicks * tick;
 
             // Slippage guard (per-symbol override)
@@ -133,7 +133,8 @@ namespace OrchestratorAgent
             var sym = sig.Symbol.ToUpperInvariant();
             var symEnv = Environment.GetEnvironmentVariable($"TOPSTEPX_SLIP_{sym}");
             if (int.TryParse(symEnv, out var symTicks) && symTicks > 0) maxSlipTicks = symTicks;
-            else {
+            else
+            {
                 var msEnv = Environment.GetEnvironmentVariable("MAX_SLIPPAGE_TICKS");
                 if (int.TryParse(msEnv, out var maxEnv) && maxEnv > 0) maxSlipTicks = maxEnv;
             }
@@ -172,9 +173,10 @@ namespace OrchestratorAgent
                 px = sig.Side == SignalSide.Long ? px + extra : px - extra;
             }
 
-            var orderReq = new {
+            var orderReq = new
+            {
                 accountId = _accountId,
-                contractId = contractId,
+                contractId,
                 side = sideBuy0Sell1,
                 qty = qtyAdj,
                 price = px,
@@ -235,7 +237,7 @@ namespace OrchestratorAgent
             try
             {
                 var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct)
-                               ?? new List<dynamic>();
+                               ?? [];
                 foreach (var p in parents)
                 {
                     bool hasBr = false;
@@ -358,9 +360,9 @@ namespace OrchestratorAgent
 
                 // Derive a reference price from update, prefer limit then avg fill then last
                 decimal refPx = 0m;
-                refPx = PickPrice(t, orderUpdate, new[] { "LimitPrice", "limitPrice", "Price", "price" }, refPx);
-                refPx = PickPrice(t, orderUpdate, new[] { "AvgFillPrice", "avgFillPrice", "AverageFillPrice" }, refPx);
-                refPx = PickPrice(t, orderUpdate, new[] { "LastPrice", "lastPrice" }, refPx);
+                refPx = PickPrice(t, orderUpdate, ["LimitPrice", "limitPrice", "Price", "price"], refPx);
+                refPx = PickPrice(t, orderUpdate, ["AvgFillPrice", "avgFillPrice", "AverageFillPrice"], refPx);
+                refPx = PickPrice(t, orderUpdate, ["LastPrice", "lastPrice"], refPx);
 
                 bool converted = false;
                 if (refPx > 0m)
@@ -442,12 +444,12 @@ namespace OrchestratorAgent
             try
             {
                 var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct);
-                return list ?? new List<dynamic>();
+                return list ?? [];
             }
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "[ROUTER] QueryOpenPositions failed for account {Acc}", accountId);
-                return new List<dynamic>();
+                return [];
             }
         }
 
@@ -456,12 +458,12 @@ namespace OrchestratorAgent
             try
             {
                 var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct);
-                return list ?? new List<dynamic>();
+                return list ?? [];
             }
             catch (Exception ex)
             {
                 _log.LogWarning(ex, "[ROUTER] QueryOpenOrders failed for account {Acc}", accountId);
-                return new List<dynamic>();
+                return [];
             }
         }
 
@@ -483,8 +485,8 @@ namespace OrchestratorAgent
             try
             {
                 var profile = new HighWinRateProfile();
-                if (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && profile.Buffers.TryGetValue("ES_ticks", out var es)) return Math.Max(0, es);
-                if (symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) && profile.Buffers.TryGetValue("NQ_ticks", out var nq)) return Math.Max(0, nq);
+                if (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && HighWinRateProfile.Buffers.TryGetValue("ES_ticks", out var es)) return Math.Max(0, es);
+                if (symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) && HighWinRateProfile.Buffers.TryGetValue("NQ_ticks", out var nq)) return Math.Max(0, nq);
             }
             catch { }
 

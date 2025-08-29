@@ -3,10 +3,9 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class LiveSink : IExecutionSink
+    public sealed class LiveSink(BotCore.ApiClient api) : IExecutionSink
     {
-        private readonly BotCore.ApiClient _api;
-        public LiveSink(BotCore.ApiClient api) => _api = api;
+        private readonly BotCore.ApiClient _api = api;
 
         public async Task<object> HandleAsync(NewOrder o, CancellationToken ct)
         {

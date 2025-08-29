@@ -8,21 +8,16 @@ namespace BotCore
     // Use the unified Bar model from BotCore.Models
     using BotCore.Models;
 
-    public sealed class BarAggregator
+    public sealed class BarAggregator(int seconds)
     {
         private readonly object _lock = new();
-        private readonly int _seconds;
+        private readonly int _seconds = Math.Max(5, seconds);
         private DateTimeOffset _bucket = DateTimeOffset.MinValue;
         private decimal _o, _h, _l, _c;
         private long _v;
 
         public event Action<Bar>? OnBar;
         public string Symbol { get; set; } = string.Empty;
-
-        public BarAggregator(int seconds)
-        {
-            _seconds = Math.Max(5, seconds);
-        }
 
         // ---- Public entry points ----
 
@@ -105,7 +100,8 @@ namespace BotCore
 
         private void Flush()
         {
-            var bar = new Bar {
+            var bar = new Bar
+            {
                 Start = _bucket.UtcDateTime,
                 Ts = new DateTimeOffset(_bucket.UtcDateTime).ToUnixTimeMilliseconds(),
                 Symbol = this.Symbol,

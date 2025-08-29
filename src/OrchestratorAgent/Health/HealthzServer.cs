@@ -42,7 +42,7 @@ namespace OrchestratorAgent.Health
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/healthz/mode", StringComparison.OrdinalIgnoreCase))
@@ -53,7 +53,7 @@ namespace OrchestratorAgent.Health
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/build", StringComparison.OrdinalIgnoreCase))
@@ -73,7 +73,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/capabilities", StringComparison.OrdinalIgnoreCase))
@@ -83,7 +83,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/deploy/status", StringComparison.OrdinalIgnoreCase))
@@ -92,7 +92,7 @@ namespace OrchestratorAgent.Health
                                 string lastPath = Path.Combine(stateDir, "last_deployed.txt");
                                 string logPath = Path.Combine(stateDir, "deployments.jsonl");
                                 string pending = Path.Combine(stateDir, "pending_commits.json");
-                                string readOrEmpty(string p) => File.Exists(p) ? File.ReadAllText(p) : "";
+                                static string readOrEmpty(string p) => File.Exists(p) ? File.ReadAllText(p) : "";
                                 var json = JsonSerializer.Serialize(new
                                 {
                                     lastDeployed = readOrEmpty(lastPath),
@@ -102,7 +102,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/promote", StringComparison.OrdinalIgnoreCase) && mode != null)
@@ -112,7 +112,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/demote", StringComparison.OrdinalIgnoreCase) && mode != null)
@@ -122,7 +122,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/drain", StringComparison.OrdinalIgnoreCase) && state != null)
@@ -131,7 +131,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+                                await ctx.Response.OutputStream.WriteAsync(bytes);
                                 ctx.Response.Close();
                             }
                             else
