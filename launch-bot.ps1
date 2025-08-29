@@ -11,7 +11,9 @@ if (Test-Path $envFile) {
             # Respect variables already set in the current shell; never override BOT_MODE or SKIP_MODE_PROMPT
             $existing = [Environment]::GetEnvironmentVariable($name)
             $isProtected = $name -in @('BOT_MODE','SKIP_MODE_PROMPT')
-            if (-not $isProtected -and [string]::IsNullOrWhiteSpace($existing)) {
+            # Always force BOT_QUICK_EXIT from .env.local to prevent exit issues
+            $isForced = $name -eq 'BOT_QUICK_EXIT'
+            if ($isForced -or (-not $isProtected -and [string]::IsNullOrWhiteSpace($existing))) {
                 Set-Item -Path "Env:$name" -Value $value
             }
         }
@@ -23,7 +25,8 @@ else {
 }
 
 # Defaults (safe): prefer persistent run and a single HTTP port
-if (-not $env:BOT_QUICK_EXIT) { $env:BOT_QUICK_EXIT = "0" }
+# FORCE BOT_QUICK_EXIT to 0 to prevent exit issues (override any system setting)
+$env:BOT_QUICK_EXIT = "0"
 if (-not $env:ASPNETCORE_URLS) { $env:ASPNETCORE_URLS = "http://localhost:5050" }
 if (-not $env:APP_CONCISE_CONSOLE) { $env:APP_CONCISE_CONSOLE = "true" }
 if (-not $env:RUN_LEARNING) { $env:RUN_LEARNING = "1" }           # Always run the learner loop

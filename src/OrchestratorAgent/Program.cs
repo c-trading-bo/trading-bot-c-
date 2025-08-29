@@ -966,7 +966,8 @@ namespace OrchestratorAgent
                         web.UseStaticFiles();
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                         emitEvent = (lvl, text) => { try { dashboardHub.EmitEvent(lvl, text); } catch { } };
-                        web.MapDashboard(dashboardHub);
+                        // DASHBOARD DISABLED - Comment out to remove dashboard functionality
+                        // web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
                         web.MapGet("/healthz", async () =>
@@ -1388,7 +1389,8 @@ namespace OrchestratorAgent
 
                         _ = web.RunAsync(cts.Token);
                         var firstUrl = (urls ?? "http://localhost:5000").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "http://localhost:5000";
-                        log.LogInformation("Dashboard available at {Url}/dashboard (health at {Url}/healthz)", firstUrl, firstUrl);
+                        // DASHBOARD DISABLED - log.LogInformation("Dashboard available at {Url}/dashboard (health at {Url}/healthz)", firstUrl, firstUrl);
+                        log.LogInformation("Health endpoint available at {Url}/healthz (dashboard disabled)", firstUrl);
                     }
                     catch (Exception ex)
                     {

@@ -1,393 +1,645 @@
-<!doctype html>
+ok
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>TopstepX Bot — Dashboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TopstepX Trading Bot Dashboard</title>
   <style>
-    :root { --bg:#0f1217; --fg:#cbd5e1; --muted:#93a3b8; --good:#16a34a; --bad:#dc2626; --chip:#1f2733; }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter}
-    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
-    .topbar{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid #1c2330}
-    .chip{background:var(--chip);border-radius:12px;padding:6px 10px}
-  .badge{border-radius:8px;padding:2px 6px;margin-left:6px;font-weight:600}
-  .badge.paper{background:#0b2a1a;color:#a7f3d0;border:1px solid #14532d}
-  .badge.live{background:#2a0d0d;color:#fecaca;border:1px solid #7f1d1d}
-  .badge.shadow{background:#111827;color:#cbd5e1;border:1px solid #1f2937}
-    .sp{opacity:.85}
-    .pane{display:grid;grid-template-columns:1fr 280px;gap:8px;padding:8px;height:calc(100vh - 100px)}
-    #chart{height:100%;border:1px solid #1c2330;border-radius:12px}
-    .side{display:flex;flex-direction:column;gap:8px}
-    .card{background:#0c1016;border:1px solid #1c2330;border-radius:12px;padding:10px}
-    .k{color:var(--muted);min-width:120px;display:inline-block}
-    .u{color:var(--muted)}
-    .ok{color:var(--good)} .bad{color:var(--bad)}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
-    .stream{height:220px;overflow:auto;font-size:12px;background:#0b0f14;border:1px solid #1c2330;border-radius:12px;padding:8px}
-    .row{display:flex;justify-content:space-between}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e16; color: #e0e6ed; }
+    .container { display: flex; height: 100vh; }
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    .sidebar { width: 300px; background: #161b22; padding: 20px; overflow-y: auto; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+    .logo { font-size: 24px; font-weight: bold; color: #4CAF50; }
+    .status-indicator { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .status-dot.online { background: #4CAF50; animation: pulse 2s infinite; }
+    .status-dot.offline { background: #f44336; }
+    .status-dot.connecting { background: #ffa657; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    .tabs { display: flex; border-bottom: 2px solid #30363d; margin-bottom: 20px; }
+    .tab { padding: 12px 24px; cursor: pointer; border: none; background: none; color: #8b949e; font-size: 14px; }
+    .tab.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; }
+    .tab:hover { color: #f0f6fc; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 20px; }
+    .card-header { padding: 16px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-weight: 600; font-size: 16px; }
+    .card-body { padding: 16px; }
+    
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .metric-card { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 16px; text-align: center; }
+    .metric-value { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+    .metric-label { font-size: 14px; color: #8b949e; }
+    .metric-value.good { color: #4CAF50; }
+    .metric-value.bad { color: #f85149; }
+    .metric-value.neutral { color: #ffa657; }
+    
+    .learning-status { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+    .learning-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; animation: pulse 1.5s infinite; }
+    
+    .log-container { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; height: 400px; overflow-y: auto; }
+    .log-controls { padding: 12px; border-bottom: 1px solid #21262d; display: flex; gap: 8px; }
+    .log-filter { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #e0e6ed; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .log-filter.active { background: #4CAF50; color: white; }
+    .log-stream { padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; }
+    .log-entry { margin-bottom: 4px; }
+    .log-entry.info { color: #58a6ff; }
+    .log-entry.warning { color: #d29922; }
+    .log-entry.error { color: #f85149; }
+    .log-entry.success { color: #3fb950; }
+    .log-entry.learning { color: #a5b4fc; }
+    
+    .actions { display: flex; gap: 12px; margin-bottom: 20px; }
+    .btn { padding: 8px 16px; border: 1px solid #30363d; background: #21262d; color: #e0e6ed; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #30363d; }
+    .btn.primary { background: #238636; border-color: #238636; }
+    .btn.primary:hover { background: #2ea043; }
+    .btn.danger { background: #da3633; border-color: #da3633; }
+    .btn.danger:hover { background: #f85149; }
+    
+    .connection-status { padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+    .connection-status.connected { background: rgba(63, 185, 80, 0.1); border: 1px solid #3fb950; }
+    .connection-status.disconnected { background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; }
+    .connection-status.connecting { background: rgba(255, 166, 87, 0.1); border: 1px solid #ffa657; }
+    
+    .progress-bar { width: 100%; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; background: #4CAF50; transition: width 0.3s ease; }
+    
+    .refresh-timer { font-size: 12px; color: #8b949e; margin-left: auto; }
+    
+    .trade-entry, .position-entry { 
+      padding: 8px; margin-bottom: 8px; background: #0d1117; border-radius: 4px; 
+      display: flex; justify-content: space-between; align-items: center; 
+    }
+    .trade-side.buy, .position-side.long { color: #4CAF50; }
+    .trade-side.sell, .position-side.short { color: #f85149; }
+    .empty-state { text-align: center; color: #8b949e; padding: 20px; }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar mono" id="topbar">
-    <span class="chip">acc <span id="acc">-</span></span>
-  <span class="chip">mode <span id="mode">-</span></span>
-    <span class="chip">r:<span id="r">0.00</span> u:<span id="u">0.00</span> d:<span id="d">0.00</span></span>
-    <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
-    <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
-    <span class="chip sp" id="clock">--:--:--</span>
-  <span class="chip sp" id="chip-allowed" title="Allowed strategies now" style="display:none"></span>
-  <span class="chip sp" id="chip-learner" title="Learner status" style="display:none"></span>
-  <span class="chip sp" id="badge-curfew" style="display:none;background:#3b1d00;color:#ffcc80">curfew</span>
-  <span class="chip sp" id="badge-daypnl" style="display:none;background:#3b0014;color:#ff8aa1">dayPnL</span>
-  </div>
+  <div class="container">
+    <div class="main-content">
+      <div class="header">
+        <div class="logo">TopstepX Trading Bot</div>
+        <div class="status-indicator">
+          <div class="status-dot connecting" id="connectionStatus"></div>
+          <span id="connectionText">Connecting...</span>
+        </div>
+      </div>
 
-  <div class="pane">
-    <div id="chart"></div>
-    <div class="side">
-      <div class="card mono">
-        <div class="row"><span class="k">Symbol</span><span id="sym">ES</span></div>
-        <div class="row"><span class="k">Pos</span><span id="pos">FLAT</span></div>
-        <div class="row"><span class="k">Avg</span><span id="avg">-</span></div>
-        <div class="row"><span class="k">Mark</span><span id="mark">-</span></div>
-        <div class="row"><span class="k">uPnL</span><span id="upnl">0.00</span></div>
-        <div class="row"><span class="k">rPnL</span><span id="rpnl">0.00</span></div>
+      <div class="connection-status connecting" id="connectionBanner">
+        <strong>Connecting to bot...</strong> - Establishing real-time connection
       </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('overview')">Overview</button>
+        <button class="tab" onclick="showTab('trading')">Trading</button>
+        <button class="tab" onclick="showTab('learning')">AI Learning</button>
+        <button class="tab" onclick="showTab('logs')">Logs</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="overview" class="tab-content active">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value neutral" id="accountBalance">--</div>
+            <div class="metric-label">Account Balance</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="totalPnL">--</div>
+            <div class="metric-label">Total P&L</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="openPositions">--</div>
+            <div class="metric-label">Open Positions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="todayTrades">--</div>
+            <div class="metric-label">Today's Trades</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">System Status</div>
+            <span class="refresh-timer" id="overviewTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="learning-status">
+              <div class="learning-dot" id="learningIndicator"></div>
+              <span id="learningStatus">AI Learning System: Initializing...</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="learningProgressBar" style="width: 0%"></div>
+            </div>
+            <div id="systemMetrics">
+              <p><strong>Bot Mode:</strong> <span id="botMode">--</span></p>
+              <p><strong>Strategy:</strong> <span id="activeStrategy">--</span></p>
+              <p><strong>Last Update:</strong> <span id="lastUpdate">--</span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trading Tab -->
+      <div id="trading" class="tab-content">
+        <div class="actions">
+          <button class="btn primary" onclick="executeAction('start-trading')">Start Trading</button>
+          <button class="btn" onclick="executeAction('pause-trading')">Pause Trading</button>
+          <button class="btn danger" onclick="executeAction('stop-trading')">Stop Trading</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Trades</div>
+            <span class="refresh-timer" id="tradingTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div id="recentTrades">
+              <div class="empty-state">Loading recent trades...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Current Positions</div>
+          </div>
+          <div class="card-body">
+            <div id="currentPositions">
+              <div class="empty-state">Loading positions...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Learning Tab -->
+      <div id="learning" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Learning Progress</div>
+            <span class="refresh-timer" id="learningTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div id="learningProgress">
+              <p><strong>Current Loop:</strong> <span id="currentLoop">--</span></p>
+              <p><strong>Learning Rate:</strong> <span id="learningRate">--</span></p>
+              <p><strong>Adaptation Cycle:</strong> <span id="adaptationCycle">Every 2 minutes</span></p>
+              <p><strong>Last Adaptation:</strong> <span id="lastAdaptation">--</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Learning Metrics</div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value neutral" id="learningAccuracy">--</div>
+                <div class="metric-label">Accuracy</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="adaptationScore">--</div>
+                <div class="metric-label">Adaptation Score</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="modelConfidence">--</div>
+                <div class="metric-label">Model Confidence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs Tab -->
+      <div id="logs" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Real-time Logs</div>
+            <span class="refresh-timer" id="logsTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="log-container">
+              <div class="log-controls">
+                <button class="log-filter active" onclick="filterLogs('all')">All</button>
+                <button class="log-filter" onclick="filterLogs('info')">Info</button>
+                <button class="log-filter" onclick="filterLogs('warning')">Warning</button>
+                <button class="log-filter" onclick="filterLogs('error')">Error</button>
+                <button class="log-filter" onclick="filterLogs('success')">Success</button>
+                <button class="log-filter" onclick="filterLogs('learning')">Learning</button>
+                <button class="btn" onclick="clearLogs()" style="margin-left: auto; font-size: 11px; padding: 4px 8px;">Clear</button>
+              </div>
+              <div class="log-stream" id="logStream">
+                <div class="log-entry info">Connecting to bot log stream...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
       <div class="card">
-        <div class="u">Events</div>
-        <div class="stream mono" id="events"></div>
-      </div>
-      <div class="card" id="canary-card">
-        <div class="u">Canary</div>
-        <div class="mono" style="font-size:12px">
-          <div id="canary-summary">loading…</div>
-          <div id="canary-meta" class="u" style="margin-top:4px"></div>
-          <div style="margin-top:6px; display:flex; gap:6px">
-            <button id="btn-canary-reset" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Reset</button>
-            <button id="btn-canary-clearbl" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Clear Blacklist</button>
+        <div class="card-header">
+          <div class="card-title">🧠 AI Learning System</div>
+        </div>
+        <div class="card-body">
+          <div class="learning-status">
+            <div class="learning-dot"></div>
+            <span id="learningStatusSidebar">Learning active...</span>
           </div>
-          <table id="canary-table" style="width:100%;border-collapse:collapse;margin-top:6px">
-            <thead><tr><th style="text-align:left">Key</th><th style="text-align:left">Arm</th><th>Plays</th><th>Avg $</th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <div class="u" style="margin-top:6px">Running</div>
-          <table id="canary-running" style="width:100%;border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Root</th><th>Regime</th><th>Arm</th><th>Age</th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <div class="u" style="margin-top:6px">Blacklist</div>
-          <table id="canary-blacklist" style="width:100%;border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Key</th><th>Arm</th></tr></thead>
-            <tbody></tbody>
-          </table>
+          <div class="metrics-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="metric-card">
+              <div class="metric-value" id="learningCycles">0</div>
+              <div class="metric-label">Cycles</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="learningAccuracySidebar">0%</div>
+              <div class="metric-label">Accuracy</div>
+            </div>
+          </div>
+          <button class="btn primary" style="width: 100%; margin-top: 16px;" onclick="triggerLearning()">Run Learning Cycle</button>
         </div>
       </div>
-      <div class="card" id="retune-card">
-        <div class="u">Retune</div>
-        <div class="mono" style="font-size:12px">
-          <div id="retune-summary">loading…</div>
-          <table id="retune-table" style="width:100%;border-collapse:collapse;margin-top:6px">
-            <thead><tr><th style="text-align:left">Root</th><th>Strat</th><th>Status</th></tr></thead>
-            <tbody></tbody>
-          </table>
+      
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">System Status</div>
         </div>
-      </div>
-      <div class="card" id="learners-card">
-        <div class="u">Learners</div>
-        <div class="mono" style="font-size:12px">
-          <div id="learners-status">ready</div>
-          <div style="margin-top:6px; display:flex; gap:6px">
-            <button id="btn-launch-tuner" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Launch Tuner</button>
-            <button id="btn-run-adapt" style="background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Run Adaptive</button>
+        <div class="card-body">
+          <div class="metric-card">
+            <div class="metric-value" id="uptime">--</div>
+            <div class="metric-label">Uptime</div>
           </div>
-        </div>
-      </div>
-      <div class="card" id="perf-card">
-        <div class="u">Performance (last 10 days)</div>
-        <div class="mono" style="font-size:12px">
-          <div style="margin-bottom:6px;display:flex;gap:6px;align-items:center">
-            <span id="perf-window">loading…</span>
-            <button id="btn-perf-refresh" style="margin-left:auto;background:#1f2733;color:#cbd5e1;border:1px solid #2a3447;border-radius:8px;padding:4px 8px;cursor:pointer">Refresh</button>
+          <div class="metric-card">
+            <div class="metric-value" id="dataQuality">--</div>
+            <div class="metric-label">Data Quality</div>
           </div>
-          <table id="perf-table" style="width:100%;border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Root</th><th style="text-align:right">Trades</th><th style="text-align:right">Net $</th><th style="text-align:left">By strategy</th></tr></thead>
-            <tbody></tbody>
-          </table>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="topbar sp mono">Tip: open another tab at <span class="u">/dashboard</span> for NQ (after you point the query to symbol=NQ).</div>
-</div>
+  <script>
+    let eventSource = null;
+    let connectionAttempts = 0;
+    let maxRetries = 10;
+    let logFilter = 'all';
+    let lastUpdateTime = null;
+    let isConnected = false;
+    let reconnectTimer = null; // Add timer to prevent rapid reconnections
 
-<script src="lib/lightweight-charts-loader.js"></script>
-<script>
-  // Wait for LightweightCharts to be available before initializing the chart.
-  function whenLCReady(cb){
-    if (window.LightweightCharts) return cb(window.LightweightCharts);
-    const iv = setInterval(()=>{
-      if (window.LightweightCharts){ clearInterval(iv); cb(window.LightweightCharts); }
-    }, 50);
-    // stop polling after 10s to avoid runaway
-    setTimeout(()=> clearInterval(iv), 10000);
-  }
-
-  const symbol = new URLSearchParams(location.search).get("symbol") || "ES";
-  const res = "1";
-
-  const fmt2 = (n)=> (n==null? "-" : Number(n).toFixed(2));
-  const set = (id, html)=> document.getElementById(id).innerHTML = html;
-  const setPnL = (id, v)=> {
-    let html = fmt2(v);
-    if (v>0) html = `<span class="ok">+${fmt2(v)}</span>`;
-    else if (v<0) html = `<span class="bad">${fmt2(v)}</span>`;
-    set(id, html);
-  };
-
-  let chart, candles, volume;
-  whenLCReady(({ createChart }) => {
-    chart = createChart(document.getElementById("chart"), {
-      layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
-      grid: { vertLines: { color: "#1c2330" }, horzLines: { color: "#1c2330" } },
-      timeScale: { timeVisible: true, secondsVisible: false },
-      rightPriceScale: { borderVisible: false },
+    // Initialize dashboard when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      addLog('info', 'Dashboard initialized, connecting to bot...');
+      connectToBot();
+      
+      // Update timers every 5 seconds
+      setInterval(updateTimers, 5000);
     });
-    candles = chart.addCandlestickSeries();
-    volume  = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
-    // Only load data and stream once the chart is ready
-    loadHistory();
-    connectStream();
-  });
 
-  async function loadHistory() {
-    const now = Math.floor(Date.now()/1000), from = now - 3*24*60*60;
-    const url = `/data/history?symbol=${symbol}&res=${res}&from=${from}&to=${now}`;
-    const bars = await fetch(url).then(r=>r.json());
-    candles.setData(bars.map(b=>({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c })));
-    volume.setData(bars.map(b=>({ time:b.t, value:b.v })));
-  }
-
-  function connectStream() {
-    const es = new EventSource(`/stream/realtime?symbol=${symbol}&res=${res}`);
-
-  es.addEventListener("hello", () => {});
-
-    es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === "bar") {
-        const b = msg.bar;
-        candles.update({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c });
-        volume.update({ time:b.t, value:b.v });
-        set("mark", b.c);
+    // Enhanced connection management with exponential backoff
+    function connectToBot() {
+      // Clear any existing reconnection timer
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
-      if (msg.type === "metrics") {
-        const m = msg.data;
-  set("acc", m.accountId);
-  // Mode badge (color-coded)
-  const modeEl = document.getElementById('mode');
-  modeEl.textContent = m.mode;
-  modeEl.className = '';
-  modeEl.classList.add('badge');
-  if (m.mode === 'LIVE') modeEl.classList.add('live');
-  else if (m.mode === 'PAPER') modeEl.classList.add('paper');
-  else modeEl.classList.add('shadow');
-        setPnL("r", m.realized); setPnL("u", m.unrealized); setPnL("d", m.day);
-        set("mdl", fmt2(m.maxDailyLoss)); setPnL("rem", m.remaining);
-        set("uh", m.userHub); set("mh", m.marketHub);
-        set("clock", new Date(m.localTime).toLocaleTimeString());
+      
+      if (eventSource) {
+        eventSource.close();
+      }
 
-        // allowed-now chip
-        const ca = document.getElementById('chip-allowed');
-        const allowed = (m.allowedNow||[]);
-        if (allowed.length>0) { ca.style.display='inline-block'; ca.textContent = 'allowed ' + allowed.join(','); } else { ca.style.display='none'; }
+      connectionAttempts++;
+      updateConnectionStatus('connecting', 'Connecting...');
 
-        // learner chip
-        const cl = document.getElementById('chip-learner');
-        if (m.learnerOn) {
-          const last = m.learnerLastRun? new Date(m.learnerLastRun).toLocaleTimeString() : '-';
-          const note = m.learnerApplied==null? '' : (m.learnerApplied? 'applied' : 'skipped');
-          cl.style.display='inline-block';
-          cl.textContent = `learner ON · ${last}${note? ' · '+note:''}`;
-        } else { cl.style.display='none'; }
+      try {
+        // Use optimized 5-second intervals to prevent server overload
+        // Add required parameters: symbol=ES and res=1 (1-minute bars)
+        eventSource = new EventSource('/stream/realtime?symbol=ES&res=1');
+        
+        eventSource.onopen = function() {
+          connectionAttempts = 0;
+          isConnected = true;
+          updateConnectionStatus('connected', 'Connected');
+          addLog('success', 'Connected to real-time stream');
+        };
 
-  // badges
-  const bc = document.getElementById("badge-curfew");
-  const bd = document.getElementById("badge-daypnl");
-  if (m.curfewNoNew) { bc.style.display = "inline-block"; } else { bc.style.display = "none"; }
-  if (m.dayPnlNoNew) { bd.style.display = "inline-block"; } else { bd.style.display = "none"; }
+        eventSource.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            handleRealtimeData(data);
+            lastUpdateTime = new Date();
+          } catch (error) {
+            addLog('error', `Failed to parse data: ${error.message}`);
+          }
+        };
 
-        const ps = (m.positions||[]).find(p => p.sym === symbol);
-        set("sym", symbol);
-        if (!ps || ps.qty === 0) {
-          set("pos", "FLAT"); set("avg","-"); set("mark","-");
-          setPnL("upnl", 0); setPnL("rpnl", m.realized);
-        } else {
-          set("pos", (ps.qty > 0 ? "LONG " : "SHORT ") + Math.abs(ps.qty));
-          set("avg", fmt2(ps.avg));
-          set("mark", fmt2(ps.mark));
-          setPnL("upnl", ps.uPnL);
-          setPnL("rpnl", ps.rPnL);
+        eventSource.onerror = function() {
+          addLog('error', `EventSource error - readyState: ${eventSource.readyState}`);
+          isConnected = false;
+          updateConnectionStatus('disconnected', 'Connection Lost');
+          
+          // TEMPORARILY DISABLE AUTO-RECONNECT TO STOP SPAM
+          addLog('info', 'Auto-reconnect disabled to prevent spam');
+          
+          /*
+          // Prevent rapid reconnections by using timer
+          if (connectionAttempts < maxRetries && !reconnectTimer) {
+            // Exponential backoff: 2s, 4s, 8s, 16s, 32s, max 30s
+            const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
+            reconnectTimer = setTimeout(() => {
+              reconnectTimer = null;
+              connectToBot();
+            }, delay);
+          } else if (connectionAttempts >= maxRetries) {
+            addLog('error', 'Max reconnection attempts reached');
+          }
+          */
+        };
+
+      } catch (error) {
+        updateConnectionStatus('disconnected', 'Connection Failed');
+        addLog('error', `Connection failed: ${error.message}`);
+      }
+    }
+
+    function updateConnectionStatus(status, text) {
+      const statusDot = document.getElementById('connectionStatus');
+      const statusText = document.getElementById('connectionText');
+      const banner = document.getElementById('connectionBanner');
+      
+      statusDot.className = `status-dot ${status === 'connected' ? 'online' : status}`;
+      statusText.textContent = text;
+      
+      if (status === 'connected') {
+        banner.className = 'connection-status connected';
+        banner.innerHTML = '<strong>Connected</strong> - Real-time data streaming';
+      } else if (status === 'connecting') {
+        banner.className = 'connection-status connecting';
+        banner.innerHTML = '<strong>Connecting...</strong> - Establishing connection';
+      } else {
+        banner.className = 'connection-status disconnected';
+        banner.innerHTML = '<strong>Disconnected</strong> - Attempting to reconnect';
+      }
+    }
+
+    function handleRealtimeData(data) {
+      try {
+        // Update overview metrics
+        if (data.overview) {
+          updateElement('accountBalance', formatCurrency(data.overview.accountBalance));
+          updateElement('totalPnL', formatCurrency(data.overview.totalPnL, true));
+          updateElement('openPositions', data.overview.openPositions || 0);
+          updateElement('todayTrades', data.overview.todayTrades || 0);
+          updateElement('botMode', data.overview.botMode || 'PAPER');
+          updateElement('activeStrategy', data.overview.activeStrategy || 'EMA Cross');
+          updateElement('lastUpdate', new Date().toLocaleTimeString());
+        }
+
+        // Update learning status
+        if (data.learning) {
+          updateElement('learningStatus', `AI Learning System: ${data.learning.status || 'Active'}`);
+          updateElement('learningStatusSidebar', data.learning.status || 'Learning active...');
+          updateElement('currentLoop', data.learning.currentLoop || '--');
+          updateElement('learningRate', data.learning.learningRate || '--');
+          updateElement('lastAdaptation', data.learning.lastAdaptation || '--');
+          updateElement('learningAccuracy', formatPercentage(data.learning.accuracy));
+          updateElement('learningAccuracySidebar', formatPercentage(data.learning.accuracy));
+          updateElement('adaptationScore', data.learning.adaptationScore || '--');
+          updateElement('modelConfidence', formatPercentage(data.learning.modelConfidence));
+          updateElement('learningCycles', data.learning.cycles || 0);
+          
+          if (data.learning.progress !== undefined) {
+            const progressBar = document.getElementById('learningProgressBar');
+            if (progressBar) progressBar.style.width = `${data.learning.progress}%`;
+          }
+        }
+
+        // Update trading data
+        if (data.trading) {
+          updateTradingData(data.trading);
+        }
+
+        // Update system metrics
+        if (data.system) {
+          updateElement('uptime', data.system.uptime || '--');
+          updateElement('dataQuality', data.system.dataQuality || '--');
+        }
+
+        // Handle log entries
+        if (data.logs && Array.isArray(data.logs)) {
+          data.logs.forEach(log => addLog(log.level || 'info', log.message || log));
+        }
+
+        // Update timers
+        updateTimers();
+
+      } catch (error) {
+        addLog('error', `Error processing data: ${error.message}`);
+      }
+    }
+
+    function updateElement(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+        
+        // Add color coding for P&L metrics
+        if (id.includes('PnL') && element.classList.contains('metric-value')) {
+          const numValue = parseFloat(value.toString().replace(/[^-\d.]/g, ''));
+          if (!isNaN(numValue)) {
+            element.className = numValue > 0 ? 'metric-value good' : 
+                               numValue < 0 ? 'metric-value bad' : 'metric-value neutral';
+          }
         }
       }
-      if (msg.type === "event") {
-        const lvl = (msg.level||'info').toUpperCase();
-        addEvent(`[${lvl}] ${msg.text}`);
-      }
-    };
+    }
 
-    es.onerror = () => {
-      addEvent("stream error — reconnecting…");
-      es.close();
-      setTimeout(connectStream, 1500);
-    };
-  }
-
-  function addEvent(line) {
-    const box = document.getElementById("events");
-    const at = new Date().toLocaleTimeString();
-    box.insertAdjacentHTML("afterbegin", `<div>${at} — ${line}</div>`);
-    const max = 200; while (box.childElementCount > max) box.removeChild(box.lastChild);
-  }
-
-  // history/stream are invoked after chart init in whenLCReady()
-
-  async function loadCanary() {
-    try {
-      const txt = await fetch('/canary/state').then(r=>r.text());
-      const st = JSON.parse(txt||'{}');
-      const tb = document.querySelector('#canary-table tbody');
-      tb.innerHTML = '';
-  const stats = st.stats || {};
-      let rows = [];
-      for (const key in stats) {
-        const arms = stats[key] || {};
-        for (const arm in arms) {
-          const s = arms[arm];
-          const avg = s.plays > 0 ? (s.totalReward / s.plays) : 0;
-          rows.push({ key, arm, plays: s.plays, avg });
+    function updateTradingData(trading) {
+      if (trading.recentTrades) {
+        const tradesContainer = document.getElementById('recentTrades');
+        if (tradesContainer) {
+          tradesContainer.innerHTML = trading.recentTrades.length > 0 ?
+            trading.recentTrades.map(trade => 
+              `<div class="trade-entry">
+                <div>
+                  <span class="trade-side ${trade.side.toLowerCase()}">${trade.side}</span> 
+                  <span>${trade.symbol}</span> × ${trade.quantity}
+                </div>
+                <div>
+                  <span>${formatCurrency(trade.price)}</span>
+                  <small>${formatTime(trade.time)}</small>
+                </div>
+              </div>`
+            ).join('') : '<div class="empty-state">No recent trades</div>';
         }
       }
-      rows.sort((a,b)=> b.avg - a.avg);
-      for (const r of rows.slice(0, 12)) {
-        const tr = document.createElement('tr');
-        const cls = r.avg>0? 'ok' : (r.avg<0? 'bad':'');
-        tr.innerHTML = `<td>${r.key}</td><td>${r.arm}</td><td style="text-align:right">${r.plays}</td><td style="text-align:right" class="${cls}">${fmt2(r.avg)}</td>`;
-        tb.appendChild(tr);
-      }
-      const bl = st.blacklist || {};
-      const blCount = Object.values(bl).reduce((n,arr)=> n + (arr?.length||0), 0);
-      document.getElementById('canary-summary').innerText = `arms=${rows.length} blacklisted=${blCount}`;
 
-  const meta = st.meta || {};
-  const eps = meta.epsilon != null ? Number(meta.epsilon).toFixed(2) : '-';
-  const dwell = meta.dwellMinutes ?? '-';
-  const window = meta.windowMinutes ?? '-';
-  const minPlays = meta.minPlays ?? '-';
-  document.getElementById('canary-meta').innerText = `eps=${eps} dwell=${dwell}m window=${window}m minPlays=${minPlays}`;
-
-      const runTb = document.querySelector('#canary-running tbody');
-      runTb.innerHTML = '';
-      const running = st.running || [];
-      for (const e of running) {
-        const ageMin = Math.max(0, (Date.now() - new Date(e.appliedUtc).getTime()))/60000;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${e.root}</td><td>${e.regime}</td><td>${e.arm}</td><td style="text-align:right">${ageMin.toFixed(0)}m</td>`;
-        runTb.appendChild(tr);
+      if (trading.positions) {
+        const positionsContainer = document.getElementById('currentPositions');
+        if (positionsContainer) {
+          positionsContainer.innerHTML = trading.positions.length > 0 ?
+            trading.positions.map(pos => 
+              `<div class="position-entry">
+                <div>
+                  <span class="position-side ${pos.side.toLowerCase()}">${pos.quantity} ${pos.side}</span> 
+                  <span>${pos.symbol}</span>
+                </div>
+                <div>
+                  <span>${formatCurrency(pos.avgPrice)}</span>
+                  <span class="${pos.pnl >= 0 ? 'good' : 'bad'}">${formatCurrency(pos.pnl, true)}</span>
+                </div>
+              </div>`
+            ).join('') : '<div class="empty-state">No open positions</div>';
+        }
       }
-      const blTb = document.querySelector('#canary-blacklist tbody');
-      blTb.innerHTML = '';
-      const blRows = [];
-      for (const key in bl) {
-        const arr = bl[key] || [];
-        for (const arm of arr) blRows.push({ key, arm });
-      }
-      blRows.sort((a,b)=> a.key.localeCompare(b.key) || a.arm.localeCompare(b.arm));
-      for (const r of blRows.slice(0, 20)) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.key}</td><td>${r.arm}</td>`;
-        blTb.appendChild(tr);
-      }
-    } catch { /* no-op */ }
-  }
-  setInterval(loadCanary, 15000);
-  loadCanary();
+    }
 
-  async function loadRetune() {
-    try {
-      const txt = await fetch('/retune/status').then(r=>r.text());
-      const st = JSON.parse(txt||'{}');
-      const sum = document.getElementById('retune-summary');
-      if (!st.since) { sum.innerText = 'idle'; return; }
-      const since = new Date(st.since).toISOString().slice(0,10);
-      const until = new Date(st.until).toISOString().slice(0,10);
-      sum.innerText = `window ${since} → ${until} (${st.lookbackDays||'-'}d, every ${st.intervalMinutes||'-'}m)`;
-      const tb = document.querySelector('#retune-table tbody'); tb.innerHTML = '';
-      const rows = (st.results||[]).map(x=>({ root:x.root, strat:x.strat, ok:x.ok, error:x.error }));
-      rows.sort((a,b)=> a.root.localeCompare(b.root)||a.strat.localeCompare(b.strat));
-      for (const r of rows) {
-        const tr = document.createElement('tr');
-        const status = r.ok? '<span class="ok">ok</span>' : `<span class="bad">fail</span>`;
-        tr.innerHTML = `<td>${r.root||'-'}</td><td>${r.strat||'-'}</td><td>${status}${r.error? ' · '+r.error:''}</td>`;
-        tb.appendChild(tr);
+    function addLog(level, message) {
+      const logStream = document.getElementById('logStream');
+      if (!logStream) return;
+
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry ${level}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logEntry.style.display = (logFilter === 'all' || logFilter === level) ? 'block' : 'none';
+
+      logStream.appendChild(logEntry);
+      
+      // Keep only last 100 log entries
+      while (logStream.children.length > 100) {
+        logStream.removeChild(logStream.firstChild);
       }
-    } catch { /* no-op */ }
-  }
-  setInterval(loadRetune, 20000);
-  loadRetune();
+      
+      logStream.scrollTop = logStream.scrollHeight;
+    }
 
-  async function loadPerf() {
-    try {
-      const j = await fetch('/perf/summary?days=10').then(r=>r.json());
-      const since = new Date(j.since).toISOString().slice(0,10);
-      const until = new Date(j.until).toISOString().slice(0,10);
-      document.getElementById('perf-window').innerText = `window ${since} → ${until}`;
-      const tb = document.querySelector('#perf-table tbody');
-      tb.innerHTML = '';
-      const rows = (j.roots||[]).map(x=>({ root:x.root, trades:x.totalTrades||0, usd:x.totalUsd||0, per:x.perStrategy||[] }));
-      rows.sort((a,b)=> a.root.localeCompare(b.root));
-      for (const r of rows) {
-        const per = r.per.map(p=> `${p.strat}:${fmt2(p.netUsd)}(${p.trades})`).join(' · ');
-        const cls = r.usd>0? 'ok' : (r.usd<0? 'bad' : '');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${r.root}</td><td style="text-align:right">${r.trades}</td><td style="text-align:right" class="${cls}">${fmt2(r.usd)}</td><td>${per}</td>`;
-        tb.appendChild(tr);
+    function updateTimers() {
+      const now = new Date().toLocaleTimeString();
+      ['overviewTimer', 'tradingTimer', 'learningTimer', 'logsTimer'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = `Updated: ${now}`;
+      });
+    }
+
+    function showTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      
+      // Show selected tab
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function filterLogs(level) {
+      logFilter = level;
+      document.querySelectorAll('.log-filter').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      document.querySelectorAll('.log-entry').forEach(entry => {
+        entry.style.display = (level === 'all' || entry.classList.contains(level)) ? 'block' : 'none';
+      });
+    }
+
+    function clearLogs() {
+      const logStream = document.getElementById('logStream');
+      if (logStream) {
+        logStream.innerHTML = '<div class="log-entry info">Logs cleared</div>';
       }
-    } catch {}
-  }
-  document.getElementById('btn-perf-refresh').addEventListener('click', loadPerf);
-  setInterval(loadPerf, 300000); // every 5m
-  loadPerf();
+    }
 
-  // Canary actions
-  document.getElementById('btn-canary-reset').addEventListener('click', async ()=>{
-    try { await fetch('/canary/reset', { method:'POST' }); addEvent('canary reset'); loadCanary(); } catch {}
-  });
-  document.getElementById('btn-canary-clearbl').addEventListener('click', async ()=>{
-    try { await fetch('/canary/blacklist/clear', { method:'POST' }); addEvent('canary blacklist cleared'); loadCanary(); } catch {}
-  });
+    function executeAction(action) {
+      addLog('info', `Executing action: ${action}`);
+      
+      fetch('/api/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action })
+      })
+      .then(response => response.json())
+      .then(data => {
+        addLog('success', `Action completed: ${action}`);
+        if (data.message) addLog('info', data.message);
+      })
+      .catch(error => {
+        addLog('error', `Action failed: ${error.message}`);
+      });
+    }
 
-  // Learners actions
-  document.getElementById('btn-launch-tuner').addEventListener('click', async ()=>{
-    const s = document.getElementById('learners-status');
-    try {
-      s.innerText = 'starting tuner…';
-      const resp = await fetch('/learner/tune', { method:'POST' });
-      const j = await resp.json();
-      if (j.started) { s.innerText = `tuner started (${j.days||'-'}d) roots=${(j.roots||[]).join(',')} strats=${(j.strats||[]).join(',')}`; addEvent('tuner started'); loadRetune(); }
-      else { s.innerText = 'tuner failed'; }
-    } catch (e) { s.innerText = 'tuner error'; }
-  });
-  document.getElementById('btn-run-adapt').addEventListener('click', async ()=>{
-    const s = document.getElementById('learners-status');
-    try {
-      s.innerText = 'running adaptive…';
-      const resp = await fetch('/learner/adapt', { method:'POST' });
-      const j = await resp.json();
-      if (j.started) { s.innerText = 'adaptive started'; addEvent('adaptive learner started'); }
-      else { s.innerText = 'adaptive failed'; }
-    } catch (e) { s.innerText = 'adaptive error'; }
-  });
-</script>
+    function triggerLearning() {
+      addLog('learning', 'Triggering learning cycle...');
+      fetch('/learner/adapt', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.started) {
+            addLog('learning', 'Learning cycle started successfully');
+          } else {
+            addLog('error', 'Failed to start learning cycle');
+          }
+        })
+        .catch(error => {
+          addLog('error', 'Error triggering learning: ' + error.message);
+        });
+    }
+
+    // Utility functions
+    function formatCurrency(value, showSign = false) {
+      if (value === null || value === undefined || value === '--') return '--';
+      const num = parseFloat(value);
+      if (isNaN(num)) return '--';
+      const formatted = num.toLocaleString('en-US', { 
+        style: 'currency', 
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      return showSign && num > 0 ? '+' + formatted : formatted;
+    }
+    
+    function formatPercentage(value) {
+      if (value === null || value === undefined || value === '--') return '--';
+      const num = parseFloat(value);
+      if (isNaN(num)) return '--';
+      return `${(num * 100).toFixed(1)}%`;
+    }
+    
+    function formatTime(timestamp) {
+      return new Date(timestamp).toLocaleTimeString();
+    }
+
+    // Handle page visibility to prevent excessive connections
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        addLog('info', 'Page hidden, maintaining connection...');
+      } else if (!document.hidden && !isConnected) {
+        addLog('info', 'Page visible, reconnecting...');
+        connectToBot();
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
+    });
+  </script>
 </body>
 </html>
