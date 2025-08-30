@@ -9,10 +9,9 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent.Ops
 {
-    internal sealed class PartialExitService
+    internal sealed class PartialExitService(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log)
     {
-        private readonly HttpClient _http; private readonly Func<Task<string?>> _getJwtAsync; private readonly ILogger _log;
-        public PartialExitService(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log){ _http = http; _getJwtAsync = getJwtAsync; _log = log; }
+        private readonly HttpClient _http = http; private readonly Func<Task<string?>> _getJwtAsync = getJwtAsync; private readonly ILogger _log = log;
 
         public async Task TryScaleOutAsync(string symbol, string parentId, int parentQty, decimal parentAvg, bool isLong, int tp1Ticks, int tp1Qty, CancellationToken ct)
         {

@@ -38,7 +38,7 @@ namespace OrchestratorAgent
         }
 
         public void DisableAllEntries() => _entriesDisabled = true;
-        public void EnableAllEntries()  => _entriesDisabled = false;
+        public void EnableAllEntries() => _entriesDisabled = false;
         public async Task CloseAll(string reason, CancellationToken ct)
         {
             try
@@ -85,6 +85,18 @@ namespace OrchestratorAgent
             var liveMode = (_live || liveEnv) && !kill;
             var modeStr = liveMode ? "LIVE" : "DRY-RUN";
 
+            // Enforce ES/MES rounding and validate risk > 0 when stop present
+            decimal tick = BotCore.Models.InstrumentMeta.Tick(sig.Symbol);
+            if (tick <= 0) tick = 0.25m;
+            static decimal RoundToTick(decimal px, decimal t) => t <= 0 ? px : Math.Round(px / t, 0, MidpointRounding.AwayFromZero) * t;
+            var roundedEntry = sig.Entry > 0 ? RoundToTick(sig.Entry, tick) : sig.Entry;
+            var roundedStop = sig.Stop > 0 ? RoundToTick(sig.Stop, tick) : sig.Stop;
+            var roundedT1 = sig.Target > 0 ? RoundToTick(sig.Target, tick) : sig.Target;
+            if (roundedEntry != sig.Entry || roundedStop != sig.Stop || roundedT1 != sig.Target)
+            {
+                sig = sig with { Entry = roundedEntry, Stop = roundedStop, Target = roundedT1 };
+            }
+
             if (_entriesDisabled)
             {
                 _log.LogInformation("[Router] Entries disabled — blocking order (tag={Tag}).", sig.Tag);
@@ -103,6 +115,38 @@ namespace OrchestratorAgent
                 sig = sig with { Tag = tag };
             }
 
+            // Risk sanity: require positive risk when a stop is provided
+            if (sig.Stop != 0 && sig.Entry != 0)
+            {
+                var isShort = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase);
+                var risk = isShort ? (sig.Stop - sig.Entry) : (sig.Entry - sig.Stop);
+                if (risk <= 0)
+                {
+                    _log.LogInformation("[Router] risk<=0 — blocking: entry={Entry} stop={Stop} side={Side}", sig.Entry, sig.Stop, sig.Side);
+                    await JournalAsync(false, "risk_non_positive", 0, null, modeStr);
+                    return false;
+                }
+            }
+
+            // Structured signal line per spec
+            try
+            {
+                var isBuy = string.Equals(sig.Side, "BUY", StringComparison.OrdinalIgnoreCase) || string.Equals(sig.Side, "LONG", StringComparison.OrdinalIgnoreCase);
+                var line = new
+                {
+                    sig = sig.StrategyId,
+                    side = isBuy ? "BUY" : "SELL",
+                    symbol = sig.Symbol,
+                    qty = sig.Size,
+                    entry = Math.Round(sig.Entry, 2),
+                    stop = Math.Round(sig.Stop, 2),
+                    t1 = Math.Round(sig.Target, 2),
+                    tag = sig.Tag,
+                    mode = modeStr
+                };
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
+            }
+            catch { }
             _log.LogInformation("[Router] {Mode} Route: {Side} {Size} {Contract} @ {Entry} (stop {Stop}, target {Target}) tag={Tag}",
                 modeStr, sig.Side, sig.Size, sig.ContractId, sig.Entry, sig.Stop, sig.Target, sig.Tag);
 
@@ -248,8 +292,7 @@ namespace OrchestratorAgent
                 if (!string.IsNullOrWhiteSpace(parentId))
                 {
                     // R-driven bracket math with env fallbacks
-                    decimal tick = BotCore.Models.InstrumentMeta.Tick(sig.Symbol);
-                    if (tick <= 0) tick = 0.25m;
+                    // tick already computed above
                     int AbsTicks(decimal a) => (int)Math.Max(1, Math.Round(Math.Abs(a) / tick));
                     bool isSell = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase);
 
@@ -260,9 +303,9 @@ namespace OrchestratorAgent
                     int EnvInt(string key, int defVal) { try { var raw = Environment.GetEnvironmentVariable(key); return int.TryParse(raw, out var v) && v > 0 ? v : defVal; } catch { return defVal; } }
                     decimal EnvDec(string key, decimal defVal) { try { var raw = Environment.GetEnvironmentVariable(key); return decimal.TryParse(raw, out var v) ? v : defVal; } catch { return defVal; } }
 
-                    var rTp1   = EnvDec("R_MULT_TP1", 1.0m);
-                    var rTp2   = EnvDec("R_MULT_TP2", 2.0m);
-                    var beR    = EnvDec("BE_AFTER_R", 1.0m);
+                    var rTp1 = EnvDec("R_MULT_TP1", 1.0m);
+                    var rTp2 = EnvDec("R_MULT_TP2", 2.0m);
+                    var beR = EnvDec("BE_AFTER_R", 1.0m);
                     var tp1Pct = EnvDec("TP1_PCT_CLOSE", 0.50m);
                     int trailTicks = EnvInt("BRACKET_TRAIL_TICKS", 6);
 
@@ -315,7 +358,7 @@ namespace OrchestratorAgent
                     if (bracketsOk)
                     {
                         var stopPx = isSell ? sig.Entry + slTicks * tick : sig.Entry - slTicks * tick;
-                        var tgtPx  = isSell ? sig.Entry - tpTicks * tick : sig.Entry + tpTicks * tick;
+                        var tgtPx = isSell ? sig.Entry - tpTicks * tick : sig.Entry + tpTicks * tick;
                         _log.LogInformation("STOP NEW   {Stop}  ({Sl} ticks)", stopPx, slTicks);
                         _log.LogInformation("TARGET NEW {Tgt}  ({Tp} ticks)", tgtPx, tpTicks);
                     }
@@ -332,10 +375,10 @@ namespace OrchestratorAgent
                         {
                             var lot = BotCore.Models.InstrumentMeta.LotStep(sig.Symbol);
                             int tp1Qty = (int)Math.Max(0, Math.Floor(clampedSize * (double)tp1Pct));
-                            if (lot > 1) tp1Qty = tp1Qty - (tp1Qty % lot);
+                            if (lot > 1) tp1Qty -= (tp1Qty % lot);
                             if (tp1Qty > 0)
                             {
-                                _ = Task.Run(() => _partialExit!.TryScaleOutAsync(sig.Symbol, parentId!, clampedSize, sig.Entry, !isSell, tp1Ticks, tp1Qty, ct));
+                                _ = Task.Run(() => _partialExit!.TryScaleOutAsync(sig.Symbol, parentId!, clampedSize, sig.Entry, !isSell, tp1Ticks, tp1Qty, ct), ct);
                                 _log.LogInformation("[TP1] scheduled reduce-only partial qty={Qty} at {Ticks} ticks ({R}R)", tp1Qty, tp1Ticks, rTp1);
                             }
                         }
@@ -370,6 +413,7 @@ namespace OrchestratorAgent
                                     if (!didReprice && DateTime.UtcNow - t0 > repriceAt)
                                     {
                                         var newPx = (string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase)) ? price - tick : price + tick;
+                                        newPx = RoundToTick(newPx, tick);
                                         try
                                         {
                                             using var modReq = new HttpRequestMessage(HttpMethod.Post, "/orders/modify");
@@ -512,10 +556,29 @@ namespace OrchestratorAgent
             }
         }
 
+        public async Task FlattenAll(long accountId, CancellationToken ct)
+        {
+            try
+            {
+                var token = await _getJwtAsync();
+                if (string.IsNullOrWhiteSpace(token)) return;
+                using var req = new HttpRequestMessage(HttpMethod.Post, "/positions/flatten_all");
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                req.Content = new StringContent(JsonSerializer.Serialize(new { accountId }), Encoding.UTF8, "application/json");
+                using var resp = await _http.SendAsync(req, ct);
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                _log.LogInformation("[Router] FlattenAll posted: {Status} {BodyLen}", (int)resp.StatusCode, (body?.Length ?? 0));
+            }
+            catch (Exception ex)
+            {
+                try { _log.LogWarning(ex, "[Router] FlattenAll failed"); } catch { }
+            }
+        }
+
         private static string Trunc(string? s, int max = 256)
         {
             if (string.IsNullOrEmpty(s)) return string.Empty;
-            return s.Length <= max ? s : s.Substring(0, max) + "…";
+            return s.Length <= max ? s : s[..max] + "…";
         }
     }
 }

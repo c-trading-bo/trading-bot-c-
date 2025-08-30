@@ -8,9 +8,9 @@ using System.Linq;
 // This BotCore.Supervisor.StatusService is for other agents or legacy paths.
 namespace BotCore.Supervisor
 {
-    public sealed class StatusService
+    public sealed class StatusService(ILogger<StatusService> log)
     {
-        private readonly ILogger<StatusService> _log;
+        private readonly ILogger<StatusService> _log = log;
         private readonly ConcurrentDictionary<string, object> _vals = new();
         private DateTimeOffset _lastBeat = DateTimeOffset.MinValue;
         private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
@@ -18,9 +18,7 @@ namespace BotCore.Supervisor
         private string _lastSig = string.Empty;
 
         public long AccountId { get; set; }
-        public Dictionary<string,string> Contracts { get; set; } = new();
-
-        public StatusService(ILogger<StatusService> log) => _log = log;
+        public Dictionary<string, string> Contracts { get; set; } = [];
 
         public void Set(string key, object value) => _vals[key] = value;
         public T? Get<T>(string key) => _vals.TryGetValue(key, out var v) ? (T?)v : default;

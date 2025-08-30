@@ -65,9 +65,9 @@ async Task<HashSet<string>> CapsAsync(int port)
     {
         using var http = new HttpClient { BaseAddress = new Uri($"http://localhost:{port}") };
         var arr = await http.GetFromJsonAsync<string[]>("/capabilities");
-        return arr is null ? new HashSet<string>() : new HashSet<string>(arr);
+        return arr is null ? [] : [.. arr];
     }
-    catch { return new HashSet<string>(); }
+    catch { return []; }
 }
 
 var cfg = new ConfigurationBuilder()
@@ -257,7 +257,7 @@ while (true)
         {
             try
             {
-                var doc = JsonSerializer.Deserialize<Dictionary<string, string[]>>(await File.ReadAllTextAsync(featureManifest)) ?? new();
+                var doc = JsonSerializer.Deserialize<Dictionary<string, string[]>>(await File.ReadAllTextAsync(featureManifest)) ?? [];
                 if (doc.TryGetValue("required", out var req) && req != null && req.Length > 0)
                 {
                     var have = await CapsAsync(shadowPort);

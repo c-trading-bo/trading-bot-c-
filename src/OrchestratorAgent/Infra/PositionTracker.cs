@@ -46,8 +46,8 @@ namespace OrchestratorAgent.Infra
             {
                 var symbol = ReadString(je, "symbol") ?? ReadString(je, "Symbol") ?? "";
                 if (string.IsNullOrWhiteSpace(symbol)) return;
-                var qty = ReadInt(je, new[] { "qty", "quantity", "Qty", "Quantity" });
-                var avg = ReadDecimal(je, new[] { "avgPrice", "averagePrice", "AvgPrice", "AveragePrice" });
+                var qty = ReadInt(je, ["qty", "quantity", "Qty", "Quantity"]);
+                var avg = ReadDecimal(je, ["avgPrice", "averagePrice", "AvgPrice", "AveragePrice"]);
                 ApplySnapshot(symbol, qty, avg);
             }
             catch { }
@@ -60,10 +60,10 @@ namespace OrchestratorAgent.Infra
                 var symbol = ReadString(je, "symbol") ?? ReadString(je, "Symbol") ?? "";
                 if (string.IsNullOrWhiteSpace(symbol)) return;
                 var sideStr = ReadString(je, "side") ?? ReadString(je, "Side") ?? "";
-                var sideNum = ReadInt(je, new[] { "side", "Side" });
+                var sideNum = ReadInt(je, ["side", "Side"]);
                 bool isSell = sideStr.Equals("SELL", StringComparison.OrdinalIgnoreCase) || sideNum == 1;
-                var qty = Math.Abs(ReadInt(je, new[] { "qty", "quantity", "Qty", "Quantity", "size" }));
-                var price = ReadDecimal(je, new[] { "price", "avgFillPrice", "fillPrice", "limitPrice", "Price" });
+                var qty = Math.Abs(ReadInt(je, ["qty", "quantity", "Qty", "Quantity", "size"]));
+                var price = ReadDecimal(je, ["price", "avgFillPrice", "fillPrice", "limitPrice", "Price"]);
                 if (qty <= 0 || price <= 0m) return;
                 ApplyFill(symbol, isSell ? -qty : qty, price);
             }
@@ -75,7 +75,7 @@ namespace OrchestratorAgent.Infra
             try
             {
                 var symbol = ReadString(je, "symbol") ?? "";
-                var price = ReadDecimal(je, new[] { "price", "last", "tradePrice" });
+                var price = ReadDecimal(je, ["price", "last", "tradePrice"]);
                 if (string.IsNullOrWhiteSpace(symbol) || price <= 0m) return;
                 UpdateLastPrice(symbol, price);
             }
@@ -90,7 +90,7 @@ namespace OrchestratorAgent.Infra
             try
             {
                 var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
-                var list = resp?.positions ?? new List<Position>();
+                var list = resp?.positions ?? [];
                 foreach (var p in list)
                 {
                     var symbol = p.contractId ?? string.Empty; // use contractId as key
@@ -210,7 +210,7 @@ namespace OrchestratorAgent.Infra
             return null;
         }
 
-        private void RecalcUnreal(string symbol, PositionState st)
+        private static void RecalcUnreal(string symbol, PositionState st)
         {
             if (st.Qty == 0 || st.AvgPrice <= 0m || st.LastPrice <= 0m) { st.UnrealizedUsd = 0m; return; }
             var root = OrchestratorAgent.SymbolMeta.RootFromName(symbol);

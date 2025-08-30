@@ -11,12 +11,13 @@ namespace SupervisorAgent
 
         public static Report Explain(TradingProfileConfig cfg, StrategyDef def, BotCore.Models.MarketSnapshot snap)
         {
-            var checks = new List<Check>();
-
-            // Example gates — mirror your StrategyGates
-            checks.Add(new("SessionWindow",
+            var checks = new List<Check>
+            {
+                // Example gates — mirror your StrategyGates
+                new("SessionWindow",
                 string.IsNullOrWhiteSpace(def.SessionWindowEt) || TimeWindows.IsNowWithinEt(def.SessionWindowEt!, snap.UtcNow),
-                def.SessionWindowEt ?? "any"));
+                def.SessionWindowEt ?? "any")
+            };
 
             if (def.Extra.TryGetValue("filters", out var filters))
             {

@@ -107,7 +107,19 @@ namespace BotCore
             if (hub.State == HubConnectionState.Connected) return;
 
             // Fast-path: if we're Disconnected, try starting immediately (no throw if it fails).
-            // Do not call StartAsync here; rely on automatic reconnect to handle restarts
+            // If the hub hasn't started yet (Disconnected), attempt a StartAsync once to kick things off.
+            if (hub.State == HubConnectionState.Disconnected)
+            {
+                try
+                {
+                    await hub.StartAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    // Log at debug; automatic reconnect may still recover if StartAsync races
+                    log.LogDebug(ex, "Hub StartAsync failed in WaitForConnected (state={State}); will rely on reconnect.", hub.State);
+                }
+            }
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
             while (hub.State != HubConnectionState.Connected)

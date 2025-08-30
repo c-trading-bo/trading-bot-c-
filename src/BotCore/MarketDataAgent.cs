@@ -10,23 +10,18 @@ using BotCore.Models;
 
 namespace BotCore
 {
-    public class MarketDataAgent
+    public class MarketDataAgent(string jwt)
     {
-        private readonly HubConnection _hub;
+        private readonly HubConnection _hub = new HubConnectionBuilder()
+                .WithUrl("https://rtc.topstepx.com/hubs/market", o => o.AccessTokenProvider = () => Task.FromResult<string?>(jwt))
+                .WithAutomaticReconnect()
+                .Build();
         public event Action<Bar>? OnBar;
         public event Action<JsonElement>? OnQuote;
         public event Action<JsonElement>? OnTrade;
         public int BarsSeen { get; private set; }
         public int QuotesSeen { get; private set; }
         public int TradesSeen { get; private set; }
-
-        public MarketDataAgent(string jwt)
-        {
-            _hub = new HubConnectionBuilder()
-                .WithUrl("https://rtc.topstepx.com/hubs/market", o => o.AccessTokenProvider = () => Task.FromResult<string?>(jwt))
-                .WithAutomaticReconnect()
-                .Build();
-        }
 
         public async Task StartAsync(string contractId, string barTf = "1m")
         {

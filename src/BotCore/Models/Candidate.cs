@@ -18,6 +18,8 @@ namespace BotCore.Models
         public long accountId { get; set; }
         public string contractId { get; set; } = "";
         public decimal Score { get; set; } // ranking score (higher is better)
+                                           // Optional: normalized quality score [0..1] used for session gating
+        public decimal QScore { get; set; }
         public string Tag => $"{strategy_id}-{symbol}-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
     }
     public enum Side { BUY, SELL }

@@ -5,12 +5,10 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Execution
 {
-    public sealed class ShadowSink : IExecutionSink
+    public sealed class ShadowSink(string path = "logs/shadow-orders.ndjson") : IExecutionSink
     {
-        private readonly string _path;
+        private readonly string _path = path;
         private static readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
-
-        public ShadowSink(string path = "logs/shadow-orders.ndjson") => _path = path;
 
         public Task<object> HandleAsync(NewOrder o, CancellationToken ct)
         {

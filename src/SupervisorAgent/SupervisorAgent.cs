@@ -14,13 +14,13 @@ using BotCore;
 
 namespace SupervisorAgent
 {
-    public sealed class SupervisorAgent
+    public sealed class SupervisorAgent(ILogger<SupervisorAgent> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, SupervisorAgent.Config cfg)
     {
         public sealed class Config
         {
             public bool LiveTrading { get; set; } = false;
             public int BarSeconds { get; set; } = 60;
-            public string[] Symbols { get; set; } = Array.Empty<string>();
+            public string[] Symbols { get; set; } = [];
             public bool UseQuotes { get; set; } = true;
             public BracketConfig DefaultBracket { get; set; } = new();
         }
@@ -33,28 +33,15 @@ namespace SupervisorAgent
             public int TrailTicks { get; set; } = 6;
         }
 
-        private readonly ILogger<SupervisorAgent> _log;
-        private readonly HttpClient _http;
-        private readonly string _apiBase;
-        private readonly string _jwt;
-        private readonly long _accountId;
-        private readonly object _marketHub;
-        private readonly object _userHub;
-        private readonly StatusService _status;
-        private readonly Config _cfg;
-
-        public SupervisorAgent(ILogger<SupervisorAgent> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, Config cfg)
-        {
-            _log = log;
-            _http = http;
-            _apiBase = apiBase;
-            _jwt = jwt;
-            _accountId = accountId;
-            _marketHub = marketHub;
-            _userHub = userHub;
-            _status = status;
-            _cfg = cfg;
-        }
+        private readonly ILogger<SupervisorAgent> _log = log;
+        private readonly HttpClient _http = http;
+        private readonly string _apiBase = apiBase;
+        private readonly string _jwt = jwt;
+        private readonly long _accountId = accountId;
+        private readonly object _marketHub = marketHub;
+        private readonly object _userHub = userHub;
+        private readonly StatusService _status = status;
+        private readonly Config _cfg = cfg;
 
         public async Task RunAsync(CancellationToken ct)
         {
@@ -76,7 +63,7 @@ namespace SupervisorAgent
                     .GetMethods()
                     .FirstOrDefault(m => m.Name == "On" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
                 if (mi == null) return false;
-                mi.MakeGenericMethod(typeof(T)).Invoke(hub, new object[] { method, handler });
+                mi.MakeGenericMethod(typeof(T)).Invoke(hub, [method, handler]);
                 return true;
             }
 

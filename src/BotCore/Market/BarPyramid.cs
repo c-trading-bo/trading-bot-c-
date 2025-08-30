@@ -4,8 +4,8 @@ namespace BotCore.Market
 {
     public sealed class BarPyramid
     {
-        public readonly BarAggregator M1  = new(TimeSpan.FromMinutes(1));
-        public readonly BarAggregator M5  = new(TimeSpan.FromMinutes(5));
+        public readonly BarAggregator M1 = new(TimeSpan.FromMinutes(1));
+        public readonly BarAggregator M5 = new(TimeSpan.FromMinutes(5));
         public readonly BarAggregator M30 = new(TimeSpan.FromMinutes(30));
 
         public BarPyramid()

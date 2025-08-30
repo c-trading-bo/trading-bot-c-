@@ -3,12 +3,10 @@ using OrchestratorAgent.Ops;
 
 namespace OrchestratorAgent.Health
 {
-    public sealed class Autopilot
+    public sealed class Autopilot(ILogger log, ModeController mode)
     {
-        private readonly ILogger _log;
-        private readonly ModeController _mode;
-
-        public Autopilot(ILogger log, ModeController mode) { _log = log; _mode = mode; }
+        private readonly ILogger _log = log;
+        private readonly ModeController _mode = mode;
 
         public void MaybePromote((bool ok, string reason) health)
         {

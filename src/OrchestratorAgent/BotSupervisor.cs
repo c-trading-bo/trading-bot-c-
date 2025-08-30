@@ -16,14 +16,14 @@ using BotCore.Infra;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg)
     {
-        private readonly SemaphoreSlim _routeLock = new(1,1);
+        private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
         {
             public bool LiveTrading { get; set; } = false;
             public int BarSeconds { get; set; } = 60;
-            public string[] Symbols { get; set; } = Array.Empty<string>();
+            public string[] Symbols { get; set; } = [];
             public bool UseQuotes { get; set; } = true;
             public BracketConfig DefaultBracket { get; set; } = new();
         }
@@ -36,34 +36,21 @@ namespace OrchestratorAgent
             public int TrailTicks { get; set; } = 6;
         }
 
-        private readonly ILogger<BotSupervisor> _log;
-        private readonly HttpClient _http;
-        private readonly string _apiBase;
-        private readonly string _jwt;
-        private readonly long _accountId;
-        private readonly object _marketHub;
-        private readonly object _userHub;
-    private readonly StatusService _status;
-        private readonly Config _cfg;
+        private readonly ILogger<BotSupervisor> _log = log;
+        private readonly HttpClient _http = http;
+        private readonly string _apiBase = apiBase;
+        private readonly string _jwt = jwt;
+        private readonly long _accountId = accountId;
+        private readonly object _marketHub = marketHub;
+        private readonly object _userHub = userHub;
+        private readonly StatusService _status = status;
+        private readonly Config _cfg = cfg;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
         private readonly Notifier _notifier = new();
-        private readonly List<LastSignal> _recentSignals = new();
+        private readonly List<LastSignal> _recentSignals = [];
         private sealed record LastSignal(string Strategy, string Symbol, string Side, decimal Sp, decimal Tp, decimal Sl);
-
-    public BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, Config cfg)
-        {
-            _log = log;
-            _http = http;
-            _apiBase = apiBase;
-            _jwt = jwt;
-            _accountId = accountId;
-            _marketHub = marketHub;
-            _userHub = userHub;
-            _status = status;
-            _cfg = cfg;
-        }
 
         public async Task RunAsync(CancellationToken ct)
         {
@@ -86,7 +73,7 @@ namespace OrchestratorAgent
                     .FirstOrDefault(m => m.Name == "On" && m.IsGenericMethodDefinition && m.GetParameters().Length == 2);
                 if (mi == null) return false;
                 var g = mi.MakeGenericMethod(typeof(T));
-                g.Invoke(hub, new object[] { method, handler });
+                g.Invoke(hub, [method, handler]);
                 return true;
             }
 
@@ -209,9 +196,9 @@ namespace OrchestratorAgent
                     catch { }
                 }
                 // Load persisted restart-safety caches
-                foreach (var k in BotCore.Infra.Persistence.Load<System.Collections.Generic.List<string>>("recent_cids") ?? new())
+                foreach (var k in BotCore.Infra.Persistence.Load<System.Collections.Generic.List<string>>("recent_cids") ?? [])
                     _recentRoutes.TryAdd(k, DateTime.UtcNow);
-                foreach (var s in BotCore.Infra.Persistence.Load<System.Collections.Generic.List<LastSignal>>("last_signals") ?? new())
+                foreach (var s in BotCore.Infra.Persistence.Load<System.Collections.Generic.List<LastSignal>>("last_signals") ?? [])
                     BotCore.RecentSignalCache.ShouldEmit(s.Strategy, s.Symbol, s.Side, s.Sp, s.Tp, s.Sl, 0);
             }
             catch { }
@@ -240,8 +227,8 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        var item = await _routeChan.Reader.ReadAsync(ct);
-                        await Retry(() => router.RouteAsync(item.Sig, item.ContractId, ct), ct);
+                        var (Sig, ContractId) = await _routeChan.Reader.ReadAsync(ct);
+                        await Retry(() => router.RouteAsync(Sig, ContractId, ct), ct);
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception ex) { _log.LogWarning(ex, "[Supervisor] Route consumer error"); }
@@ -256,7 +243,8 @@ namespace OrchestratorAgent
                 var evt = _marketHub.GetType().GetEvent("Reconnected");
                 if (evt != null)
                 {
-                    var handler = new Func<string?, Task>(async id => {
+                    var handler = new Func<string?, Task>(async id =>
+                    {
                         _status.Set("market.state", "reconnected");
                         _reconnects.Enqueue(DateTime.UtcNow);
                         TrimWindow(_reconnects, TimeSpan.FromMinutes(5));
@@ -384,7 +372,7 @@ namespace OrchestratorAgent
                             decimal? net = null;
                             try
                             {
-                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today");
+                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct);
                                 if (j.ValueKind == System.Text.Json.JsonValueKind.Object && j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
                             }
                             catch { }
@@ -392,7 +380,7 @@ namespace OrchestratorAgent
                             {
                                 try
                                 {
-                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today");
+                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", cancellationToken: ct);
                                     if (j.ValueKind == System.Text.Json.JsonValueKind.Object)
                                     {
                                         if (j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
@@ -431,13 +419,13 @@ namespace OrchestratorAgent
                         journal.Append(s, "emitted", cid);
 
                         // Contract rollover guard
-                        if (_contractResolver.IsExpiring(s.Symbol))
+                        if (BotCore.Supervisor.ContractResolver.IsExpiring(s.Symbol))
                         {
                             _status.Set("route.paused", true);
                             _log.LogWarning("[Supervisor] {Sym} marked expiring. Pausing routes.", s.Symbol);
                             continue;
                         }
-                        if (_contractResolver.ShouldRoll(s.Symbol))
+                        if (BotCore.Supervisor.ContractResolver.ShouldRoll(s.Symbol))
                         {
                             _log.LogInformation("[Supervisor] {Sym} should roll to next front month. Switching subscriptions if supported.", s.Symbol);
                             try
@@ -445,7 +433,7 @@ namespace OrchestratorAgent
                                 var subs = _marketHub.GetType().GetMethod("SwitchFrontMonthAsync");
                                 if (subs != null)
                                 {
-                                    _ = (Task?)subs.Invoke(_marketHub, new object?[] { s.Symbol });
+                                    _ = (Task?)subs.Invoke(_marketHub, [s.Symbol]);
                                 }
                             }
                             catch { }
@@ -564,7 +552,7 @@ namespace OrchestratorAgent
                             {
                                 RecentRoutes = new Dictionary<string, DateTime>(_recentRoutes),
                                 LastBarUnix = new Dictionary<string, long>(lastBarUnix),
-                                LastCids = _recentCidBuffer.ToList()
+                                LastCids = [.. _recentCidBuffer]
                             };
                             _stateStore.Save(snap);
                             try
