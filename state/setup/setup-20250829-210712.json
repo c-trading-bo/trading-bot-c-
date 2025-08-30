@@ -1,0 +1,25 @@
+{
+  "tsUtc": "2025-08-29T21:07:12.4634991Z",
+  "apiBase": "https://api.topstepx.com",
+  "rtcBase": "",
+  "accountId": 10223789,
+  "mode": "SHADOW",
+  "liveOrders": true,
+  "autoGoLive": true,
+  "dryMin": 0,
+  "minHealthy": 3,
+  "stickyLive": true,
+  "symbols": {
+    "ES": "CON.F.US.EP.U25",
+    "NQ": "CON.F.US.ENQ.U25"
+  },
+  "env": {
+    "BOT_MODE": "DASHBOARD",
+    "SKIP_MODE_PROMPT": "1",
+    "AUTH_ALLOW": "1",
+    "APP_CONCISE_CONSOLE": "false",
+    "RUN_LEARNING": "1",
+    "INSTANT_APPLY": null,
+    "INSTANT_ALLOW_LIVE": null
+  }
+}

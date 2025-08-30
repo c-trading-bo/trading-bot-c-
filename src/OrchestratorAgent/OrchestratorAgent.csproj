@@ -7,7 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
   <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.8" />
-  <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.8" />
+  <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+  <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.19.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\BotCore\BotCore.csproj" />
@@ -16,6 +17,9 @@
   <ItemGroup>
     <Compile Include="..\SupervisorAgent\*.cs" />
     <Compile Include="..\Dashboard\DashboardModule.cs" />
+    <!-- Temporarily exclude SelfHealing files until they are restored -->
+    <Compile Remove="Infra\SelfHealing\**\*.cs" />
+    <Compile Remove="Infra\ISelfHealingAction.cs" />
   </ItemGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

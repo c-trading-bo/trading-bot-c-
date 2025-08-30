@@ -5,17 +5,12 @@ using BotCore.Models;
 
 namespace BotCore
 {
-    public sealed class BarsRegistry
+    public sealed class BarsRegistry(int maxKeep = 5000)
     {
         private readonly ConcurrentDictionary<string, List<Bar>> _bars
             = new(StringComparer.OrdinalIgnoreCase);
 
-        private readonly int _maxKeep;
-
-        public BarsRegistry(int maxKeep = 5000)
-        {
-            _maxKeep = Math.Max(100, maxKeep);
-        }
+        private readonly int _maxKeep = Math.Max(100, maxKeep);
 
         public void Append(string symbol, Bar bar)
         {
@@ -30,8 +25,8 @@ namespace BotCore
 
         public IReadOnlyList<Bar> Get(string symbol)
         {
-            if (!_bars.TryGetValue(symbol, out var list)) return Array.Empty<Bar>();
-            lock (list) { return list.ToArray(); }
+            if (!_bars.TryGetValue(symbol, out var list)) return [];
+            lock (list) { return [.. list]; }
         }
 
         public int Count(string symbol)

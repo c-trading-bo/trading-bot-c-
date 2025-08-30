@@ -9,12 +9,12 @@ namespace BotCore.Supervisor
     /// </summary>
     public sealed class ContractResolver
     {
-        public bool IsExpiring(string symbol)
+        public static bool IsExpiring(string symbol)
         {
             var v = Environment.GetEnvironmentVariable($"TOPSTEPX_EXPIRING_{symbol.ToUpperInvariant()}");
             return v == "1" || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);
         }
-        public bool ShouldRoll(string symbol)
+        public static bool ShouldRoll(string symbol)
         {
             var v = Environment.GetEnvironmentVariable($"TOPSTEPX_SHOULD_ROLL_{symbol.ToUpperInvariant()}");
             return v == "1" || string.Equals(v, "true", StringComparison.OrdinalIgnoreCase);

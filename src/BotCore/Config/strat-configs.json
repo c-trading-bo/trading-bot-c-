@@ -1,0 +1,12 @@
+{
+  "S2": [
+    {"id":"S2a","retestOffset":1,"stopR":1.2,"ibGuard":1.8,"orGuard":2.2},
+    {"id":"S2b","retestOffset":2,"stopR":1.0,"ibGuard":1.6,"orGuard":2.0}
+  ],
+  "S3": [
+    {"id":"S3a","squeeze_len":12,"squeeze_off":20,"min_volume_q":0.20,"nr_cluster_min":2},
+    {"id":"S3b","squeeze_len":16,"squeeze_off":24,"min_volume_q":0.30,"nr_cluster_min":3}
+  ],
+  "S6": [ {"id":"S6a"}, {"id":"S6b"} ],
+  "S11": [ {"id":"S11a"}, {"id":"S11b"} ]
+}

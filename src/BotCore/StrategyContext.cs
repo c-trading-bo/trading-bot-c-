@@ -6,20 +6,13 @@ using BotCore.Models;
 
 namespace BotCore
 {
-    public sealed class StrategyContext
+    public sealed class StrategyContext(int accountId,
+                           IReadOnlyDictionary<string, string> contractIds,
+                           Func<string, IReadOnlyList<Bar>> getBars)
     {
-        public int AccountId { get; }
-        public IReadOnlyDictionary<string,string> ContractIds { get; } // e.g. ES -> CON.F.US.EP.U25
-        public Func<string, IReadOnlyList<Bar>> GetBars { get; }      // pull bars for any symbol
-        public Action<string,string,string>? Log { get; set; }         // (level,strategy,message)
-
-        public StrategyContext(int accountId,
-                               IReadOnlyDictionary<string,string> contractIds,
-                               Func<string, IReadOnlyList<Bar>> getBars)
-        {
-            AccountId = accountId;
-            ContractIds = contractIds;
-            GetBars = getBars;
-        }
+        public int AccountId { get; } = accountId;
+        public IReadOnlyDictionary<string, string> ContractIds { get; } = contractIds;
+        public Func<string, IReadOnlyList<Bar>> GetBars { get; } = getBars;
+        public Action<string, string, string>? Log { get; set; }         // (level,strategy,message)
     }
 }

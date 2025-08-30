@@ -1,4 +1,0 @@
-#!/bin/sh
-# TopstepX.Bot no-op pre-commit hook
-# Ensures 'git commit' never fails when hooks are configured but missing.
-exit 0

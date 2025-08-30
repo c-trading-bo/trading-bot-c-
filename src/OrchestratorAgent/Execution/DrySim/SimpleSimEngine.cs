@@ -4,10 +4,9 @@ using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent.Execution.DrySim
 {
-    public sealed class SimpleSimEngine : ISimEngine
+    public sealed class SimpleSimEngine(PositionTracker pos) : ISimEngine
     {
-        private readonly PositionTracker _pos;
-        public SimpleSimEngine(PositionTracker pos) => _pos = pos;
+        private readonly PositionTracker _pos = pos;
 
         public Task<object> FillAsync(OrchestratorAgent.Execution.NewOrder o, decimal bid, decimal ask, decimal tick, CancellationToken ct)
         {

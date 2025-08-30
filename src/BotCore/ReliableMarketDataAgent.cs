@@ -1,4 +1,4 @@
-﻿// Agent: ReliableMarketDataAgent
+// Agent: ReliableMarketDataAgent
 // Role: Provides fault-tolerant market data streaming and recovery.
 // Integration: Used by orchestrator and strategies for robust data feeds.
 using System;
@@ -17,21 +17,16 @@ namespace BotCore
     ///  - resubscribes after automatic reconnect
     ///  - wires both "Gateway*" and plain event names
     /// </summary>
-    public sealed class ReliableMarketDataAgent : IAsyncDisposable
+    public sealed class ReliableMarketDataAgent(string jwt) : IAsyncDisposable
     {
         private HubConnection? _hub;
-        private readonly string _jwt;
+        private readonly string _jwt = jwt ?? throw new ArgumentNullException(nameof(jwt));
         private string? _contractId;
         private string? _barTf;
 
         public event Action<Bar>? OnBar;
         public event Action<JsonElement>? OnQuote;
         public event Action<JsonElement>? OnTrade;
-
-        public ReliableMarketDataAgent(string jwt)
-        {
-            _jwt = jwt ?? throw new ArgumentNullException(nameof(jwt));
-        }
 
         public async Task StartAsync(string contractId, string barTf, CancellationToken ct = default)
         {
@@ -43,7 +38,7 @@ namespace BotCore
                 {
                     o.AccessTokenProvider = () => Task.FromResult<string?>(_jwt);
                 })
-                .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30) })
+                .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30)])
                 .Build();
 
             WireHandlers(_hub);
@@ -95,14 +90,14 @@ namespace BotCore
             if (_contractId is null || _barTf is null) throw new InvalidOperationException("Call StartAsync(contractId, barTf) first.");
             await WaitForConnectedAsync(ct).ConfigureAwait(false);
 
-            await TrySendAsync("SubscribeQuote", new object?[] { _contractId }, ct);
-            await TrySendAsync("SubscribeContractQuotes", new object?[] { _contractId }, ct);
+            await TrySendAsync("SubscribeQuote", [_contractId], ct);
+            await TrySendAsync("SubscribeContractQuotes", [_contractId], ct);
 
-            await TrySendAsync("SubscribeTrade", new object?[] { _contractId }, ct);
-            await TrySendAsync("SubscribeContractTrades", new object?[] { _contractId }, ct);
+            await TrySendAsync("SubscribeTrade", [_contractId], ct);
+            await TrySendAsync("SubscribeContractTrades", [_contractId], ct);
 
-            await TrySendAsync("SubscribeBars", new object?[] { _contractId, _barTf }, ct);
-            await TrySendAsync("SubscribeContractBars", new object?[] { _contractId, _barTf }, ct);
+            await TrySendAsync("SubscribeBars", [_contractId, _barTf], ct);
+            await TrySendAsync("SubscribeContractBars", [_contractId, _barTf], ct);
 
             Console.WriteLine($"[ReliableMarketDataAgent] Subscribed to {_contractId} ({_barTf}).");
         }

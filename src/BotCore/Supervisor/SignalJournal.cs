@@ -35,7 +35,7 @@ namespace BotCore.Supervisor
 
         public void Append(BotCore.Models.Signal s, string stage, string? cid = null)
         {
-            var line = string.Join(',', new string[] {
+            var line = string.Join(',', [
                 DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
                 s.StrategyId,
                 s.Symbol,
@@ -48,7 +48,7 @@ namespace BotCore.Supervisor
                 stage,
                 cid ?? string.Empty,
                 s.Tag.Replace(',', ';')
-            });
+            ]);
             lock (_sync)
             {
                 File.AppendAllText(_path, line + Environment.NewLine, Encoding.UTF8);

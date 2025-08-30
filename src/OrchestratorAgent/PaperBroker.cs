@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace OrchestratorAgent
 {
-    internal sealed class PaperBroker
+    internal sealed class PaperBroker(SupervisorAgent.StatusService status, ILogger log)
     {
-        private readonly SupervisorAgent.StatusService _status;
-        private readonly ILogger _log;
+        private readonly SupervisorAgent.StatusService _status = status;
+        private readonly ILogger _log = log;
         private readonly ConcurrentDictionary<string, PositionState> _pos = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, PendingOrder> _pending = new(StringComparer.OrdinalIgnoreCase);
 
@@ -34,11 +34,6 @@ namespace OrchestratorAgent
             public decimal Target { get; init; }
             public string Tag { get; init; } = "";
             public DateTimeOffset Ts { get; init; }
-        }
-
-        public PaperBroker(SupervisorAgent.StatusService status, ILogger log)
-        {
-            _status = status; _log = log;
         }
 
         public Task<bool> RouteAsync(Signal sig, CancellationToken ct)

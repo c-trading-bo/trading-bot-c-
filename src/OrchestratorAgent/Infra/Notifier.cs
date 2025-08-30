@@ -10,8 +10,8 @@ namespace OrchestratorAgent.Infra
     {
         private readonly HttpClient _http = new();
         private readonly string? _url = Environment.GetEnvironmentVariable("BOT_ALERT_WEBHOOK");
-        public Task Info(string m)  => Send("INFO", m);
-        public Task Warn(string m)  => Send("WARN", m);
+        public Task Info(string m) => Send("INFO", m);
+        public Task Warn(string m) => Send("WARN", m);
         public Task Error(string m) => Send("ERROR", m);
         private async Task Send(string lvl, string m)
         {

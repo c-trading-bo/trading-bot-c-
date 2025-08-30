@@ -103,14 +103,14 @@ namespace OrchestratorAgent
             var s = contractNameOrSymbol.ToUpperInvariant();
             if (s.StartsWith("ES")) return "ES";
             if (s.StartsWith("NQ") || s.Contains("MNQ")) return "NQ";
-            return new string(s.TakeWhile(char.IsLetter).ToArray());
+            return new string([.. s.TakeWhile(char.IsLetter)]);
         }
     }
     // PURPOSE: Track positions and realized PnL per trading day from trade fills.
-    public sealed class PnLTracker
+    public sealed class PnLTracker(EvalPolicy policy)
     {
         private readonly object _lock = new();
-        private readonly EvalPolicy _policy;
+        private readonly EvalPolicy _policy = policy;
 
         private sealed class Pos
         {
@@ -120,13 +120,7 @@ namespace OrchestratorAgent
         }
 
         private readonly ConcurrentDictionary<string, Pos> _pos = new(StringComparer.OrdinalIgnoreCase);
-        private DateTimeOffset _dayStartUtc;
-
-        public PnLTracker(EvalPolicy policy)
-        {
-            _policy = policy;
-            _dayStartUtc = policy.GetTradingDayStart(DateTimeOffset.UtcNow);
-        }
+        private DateTimeOffset _dayStartUtc = policy.GetTradingDayStart(DateTimeOffset.UtcNow);
 
         public void ResetIfNewDay(DateTimeOffset nowUtc)
         {
@@ -243,16 +237,10 @@ namespace OrchestratorAgent
     }
 
     // PURPOSE: Evaluation-mode gating: session window, daily loss cap, per-symbol and total size caps.
-    public sealed class EvalGuard
+    public sealed class EvalGuard(EvalPolicy policy, PnLTracker pnl)
     {
-        private readonly EvalPolicy _policy;
-        private readonly PnLTracker _pnl;
-
-        public EvalGuard(EvalPolicy policy, PnLTracker pnl)
-        {
-            _policy = policy;
-            _pnl = pnl;
-        }
+        private readonly EvalPolicy _policy = policy;
+        private readonly PnLTracker _pnl = pnl;
 
         public bool CanOpen(string rootSymbol, int desiredQty, out string? reason)
         {
@@ -293,17 +281,11 @@ namespace OrchestratorAgent
     }
 
     // PURPOSE: Subscribe to user hub and stream trades into PnLTracker.
-    public sealed class UserHubAgent : IAsyncDisposable
+    public sealed class UserHubAgent(ILogger<UserHubAgent> log, PnLTracker pnl) : IAsyncDisposable
     {
-        private readonly ILogger<UserHubAgent> _log;
+        private readonly ILogger<UserHubAgent> _log = log;
         private HubConnection? _conn;
-        private readonly PnLTracker _pnl;
-
-        public UserHubAgent(ILogger<UserHubAgent> log, PnLTracker pnl)
-        {
-            _log = log;
-            _pnl = pnl;
-        }
+        private readonly PnLTracker _pnl = pnl;
 
         public async Task ConnectAsync(ITopstepAuth auth, int accountId, CancellationToken ct = default)
         {
@@ -323,11 +305,11 @@ namespace OrchestratorAgent
                     options.SkipNegotiation = false;
                     options.Transports = HttpTransportType.WebSockets;
                 })
-                .WithAutomaticReconnect(new[]
-                {
+                .WithAutomaticReconnect(
+                [
                     TimeSpan.Zero, TimeSpan.FromSeconds(2),
                     TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)
-                })
+                ])
                 .ConfigureLogging(logging =>
                 {
                     logging.ClearProviders();
@@ -341,6 +323,10 @@ namespace OrchestratorAgent
                         logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Warning);
                         logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Warning);
                     }
+                    // Always suppress verbose client transport logs that can echo access_token in URLs
+                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Error);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Error);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport", LogLevel.Error);
                 })
                 .Build();
 

@@ -54,7 +54,7 @@ namespace BotCore.Strategy
             if (pHi == 0m && pLo == 0m) return true; // no data → allow
             var req = Math.Max(thresh.minAtrFrac * Math.Max(tick, atr), thresh.minTicks * Math.Max(tick, 0.25m));
             if (longSide) return (price - pLo) >= req;
-            else          return (pHi - price) >= req;
+            else return (pHi - price) >= req;
         }
 
         // Z-score deceleration over last few bars: |z| decreasing toward VWAP
@@ -84,7 +84,7 @@ namespace BotCore.Strategy
             decimal adj = 0m;
             var absSlope = Math.Abs(slope5);
             if (absSlope > 0.25m) adj += 0.3m;       // strong trend on 1m EMA20 slope proxy
-            if (volz > 1.5m)        adj += 0.2m;       // high-vol regime
+            if (volz > 1.5m) adj += 0.2m;       // high-vol regime
             if (sym.Contains("NQ", StringComparison.OrdinalIgnoreCase)) adj += 0.2m; // NQ spikier
             var mins = nowLocal.Hour * 60 + nowLocal.Minute;
             if (mins >= 680 && mins <= 720) adj -= 0.1m; // ~11:20–12:00 slight relax
@@ -108,8 +108,8 @@ namespace BotCore.Strategy
             decimal lastHi = 0m, lastLo = 0m;
             for (int i = start; i < b.Count - 2; i++)
             {
-                bool swingHi = b[i].High > b[i-1].High && b[i].High > b[i-2].High && b[i].High > b[i+1].High && b[i].High > b[i+2].High;
-                bool swingLo = b[i].Low  < b[i-1].Low  && b[i].Low  < b[i-2].Low  && b[i].Low  < b[i+1].Low  && b[i].Low  < b[i+2].Low;
+                bool swingHi = b[i].High > b[i - 1].High && b[i].High > b[i - 2].High && b[i].High > b[i + 1].High && b[i].High > b[i + 2].High;
+                bool swingLo = b[i].Low < b[i - 1].Low && b[i].Low < b[i - 2].Low && b[i].Low < b[i + 1].Low && b[i].Low < b[i + 2].Low;
                 if (swingHi) lastHi = b[i].High;
                 if (swingLo) lastLo = b[i].Low;
             }
@@ -125,6 +125,26 @@ namespace BotCore.Strategy
             if (s > 1.5m)
                 s = 1.5m;
             return s;
+        }
+
+        // Compute prior-day VWAP (volume-weighted by typical price) and Close
+        public static (decimal vwap, decimal close) PriorDayVwapClose(IList<Bar> bars, DateTime nowLocal)
+        {
+            if (bars == null || bars.Count == 0) return (0m, 0m);
+            var prev = nowLocal.Date.AddDays(-1);
+            decimal wv = 0m, vol = 0m; decimal lastClose = 0m; bool seen = false;
+            for (int i = 0; i < bars.Count; i++)
+            {
+                var d = bars[i].Start.Date;
+                if (d != prev) continue;
+                seen = true;
+                var b = bars[i];
+                var tp = (b.High + b.Low + b.Close) / 3m;
+                var v = Math.Max(0, b.Volume);
+                wv += tp * v; vol += v; lastClose = b.Close;
+            }
+            if (!seen || vol <= 0m) return (0m, 0m);
+            return (wv / vol, lastClose);
         }
     }
 }

@@ -39,8 +39,8 @@ public static class DashboardModule
         app.MapGet("/stream/realtime", async (HttpContext ctx, string symbol, string res) =>
         {
             ctx.Response.Headers.CacheControl = "no-store";
-            ctx.Response.Headers.Connection   = "keep-alive";
-            ctx.Response.ContentType          = "text/event-stream";
+            ctx.Response.Headers.Connection = "keep-alive";
+            ctx.Response.ContentType = "text/event-stream";
 
             var subscription = hub.Subscribe(symbol, res);
             using var sub = subscription.sub;
@@ -83,6 +83,35 @@ public static class DashboardModule
             }
             catch { /* client disconnected */ }
         });
+
+        // metrics SSE stream for dashboard overview
+        app.MapGet("/stream/metrics", async (HttpContext ctx) =>
+        {
+            ctx.Response.Headers.CacheControl = "no-store";
+            ctx.Response.Headers.Connection = "keep-alive";
+            ctx.Response.ContentType = "text/event-stream";
+
+            var cancel = ctx.RequestAborted;
+            await ctx.Response.WriteAsync($"event: hello\ndata: {{\"ok\": true}}\n\n");
+            await ctx.Response.Body.FlushAsync();
+
+            try
+            {
+                while (!cancel.IsCancellationRequested)
+                {
+                    // Get current metrics snapshot
+                    var metrics = hub.GetMetrics();
+                    var json = JsonSerializer.Serialize(metrics);
+                    
+                    await ctx.Response.WriteAsync($"data: {json}\n\n");
+                    await ctx.Response.Body.FlushAsync();
+                    
+                    // Send metrics every 5 seconds
+                    await Task.Delay(5000, cancel);
+                }
+            }
+            catch { /* client disconnected */ }
+        });
     }
 
     private static PeriodicTimer? PeriodicTimerOrNull(TimeSpan? period)
@@ -93,25 +122,22 @@ public static class DashboardModule
 /// Keeps a rolling bar store per (symbol,res), builds 1-minute bars from ticks,
 /// fans out realtime events to SSE subscribers, and emits metrics periodically.
 /// </summary>
-public sealed class RealtimeHub : IHostedService, IDisposable
+public sealed class RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> metricsProvider) : IHostedService, IDisposable
 {
-    private readonly ILogger _log;
-    private readonly Func<MetricsSnapshot> _metrics; // provided by your bot
+    private readonly ILogger _log = log;
+    private readonly Func<MetricsSnapshot> _metrics = metricsProvider; // provided by your bot
     private readonly ConcurrentDictionary<(string sym, string res), BarStore> _stores = new();
     private readonly ConcurrentDictionary<(string sym, string res), HashSet<ChannelWriter<string>>> _subs = new();
     private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+    private readonly ConcurrentQueue<string> _recentEvents = new();
+    private const int RecentEventsMax = 200;
 
     private PeriodicTimer? _metricsTimer;
     private readonly CancellationTokenSource _cts = new();
-
-    public RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> metricsProvider)
-    {
-        _log = log;
-        _metrics = metricsProvider;
-    }
+    private string _lastAllowedKey = string.Empty; // track allowed set changes
 
     public void Dispose() => _cts.Cancel();
 
@@ -155,7 +181,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
         var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = false });
 
         var key = (symbol, res);
-        var set = _subs.GetOrAdd(key, _ => new HashSet<ChannelWriter<string>>());
+        var set = _subs.GetOrAdd(key, _ => []);
 
         lock (set) set.Add(channel.Writer);
 
@@ -176,6 +202,16 @@ public sealed class RealtimeHub : IHostedService, IDisposable
             lock (set) set.Remove(channel.Writer);
             channel.Writer.TryComplete();
         });
+
+        // Best-effort: push recent events so the UI has some context on first load
+        try
+        {
+            foreach (var evt in _recentEvents.ToArray())
+            {
+                _ = channel.Writer.WriteAsync(evt);
+            }
+        }
+        catch { }
         return (handle, channel);
     }
 
@@ -191,6 +227,19 @@ public sealed class RealtimeHub : IHostedService, IDisposable
                 while (await _metricsTimer!.WaitForNextTickAsync(_cts.Token))
                 {
                     var m = _metrics();
+                    // Detect allowed strategy set changes and emit an event
+                    try
+                    {
+                        var allowed = (m.allowedNow ?? []).OrderBy(x => x).ToArray();
+                        var key = string.Join(",", allowed);
+                        if (!string.Equals(key, _lastAllowedKey, StringComparison.Ordinal))
+                        {
+                            _lastAllowedKey = key;
+                            var pretty = allowed.Length == 0 ? "none" : string.Join(",", allowed);
+                            EmitEvent("info", $"allowed → {pretty}");
+                        }
+                    }
+                    catch { /* non-fatal */ }
                     var json = JsonSerializer.Serialize(new { type = "metrics", data = m }, _json);
                     BroadcastAll(json);
                 }
@@ -208,6 +257,10 @@ public sealed class RealtimeHub : IHostedService, IDisposable
         return Task.CompletedTask;
     }
 
+    // ---------- Get current metrics for SSE stream ----------
+    
+    public MetricsSnapshot GetMetrics() => _metrics();
+
     // ---------- internals ----------
 
     private BarStore Store(string sym, string res)
@@ -216,7 +269,7 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     private void Broadcast(string sym, string res, string json)
     {
         if (!_subs.TryGetValue((sym, res), out var set)) return;
-        ChannelWriter<string>[] writers; lock (set) writers = set.ToArray();
+        ChannelWriter<string>[] writers; lock (set) writers = [.. set];
         foreach (var w in writers) _ = w.WriteAsync(json);
     }
 
@@ -224,14 +277,32 @@ public sealed class RealtimeHub : IHostedService, IDisposable
     {
         foreach (var set in _subs.Values)
         {
-            ChannelWriter<string>[] writers; lock (set) writers = set.ToArray();
+            ChannelWriter<string>[] writers; lock (set) writers = [.. set];
             foreach (var w in writers) _ = w.WriteAsync(json);
         }
     }
 
-    private sealed class SubHandle : IDisposable
+    // ---------- Events/logs ----------
+
+    public void EmitEvent(string level, string text)
     {
-        private readonly Action _onDispose; public SubHandle(Action a) => _onDispose = a;
+        var payload = JsonSerializer.Serialize(new
+        {
+            type = "event",
+            level,
+            text,
+            ts = DateTimeOffset.Now
+        }, _json);
+
+        _recentEvents.Enqueue(payload);
+        while (_recentEvents.Count > RecentEventsMax && _recentEvents.TryDequeue(out _)) { }
+        BroadcastAll(payload);
+    }
+
+    private sealed class SubHandle(Action a) : IDisposable
+    {
+        private readonly Action _onDispose = a;
+
         public void Dispose() => _onDispose();
     }
 }
@@ -243,14 +314,12 @@ public sealed record Bar(
     decimal o, decimal h, decimal l, decimal c,
     long v);
 
-sealed class BarStore
+sealed class BarStore(string res)
 {
-    private readonly string _res; // e.g. "1" minutes
+    private readonly string _res = res; // e.g. "1" minutes
     private readonly LinkedList<Bar> _bars = new();
     private readonly object _sync = new();
     private decimal _mark;
-
-    public BarStore(string res) => _res = res;
 
     public void Seed(IEnumerable<Bar> bars)
     {
@@ -298,7 +367,7 @@ sealed class BarStore
     {
         lock (_sync)
         {
-            return _bars.Where(b => b.t >= fromUnix && b.t <= toUnix).ToArray();
+            return [.. _bars.Where(b => b.t >= fromUnix && b.t <= toUnix)];
         }
     }
 
@@ -329,4 +398,19 @@ public sealed record MetricsSnapshot(
     string userHub,
     string marketHub,
     DateTime localTime,
-    IReadOnlyList<PositionChip> positions);
+    IReadOnlyList<PositionChip> positions,
+    bool curfewNoNew = false,
+    bool dayPnlNoNew = false,
+    // Optional extras (safe defaults)
+    IReadOnlyList<string>? allowedNow = null,
+    bool learnerOn = false,
+    DateTime? learnerLastRun = null,
+    bool? learnerApplied = null,
+    string? learnerNote = null,
+    // Strategy P&L tracking
+    Dictionary<string, object>? strategyPnl = null,
+    // System health monitoring
+    string? healthStatus = null,
+    Dictionary<string, object>? healthDetails = null,
+    // Self-healing system status
+    object? selfHealingStatus = null);

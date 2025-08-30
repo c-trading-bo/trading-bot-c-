@@ -4,12 +4,10 @@ using BotCore;
 namespace OrchestratorAgent
 {
     /// <summary>Wraps your previously-added EvalPolicy/PnLTracker checks into a single gate call.</summary>
-    public sealed class EvalGates
+    public sealed class EvalGates(EvalPolicy policy, PnLTracker pnl)
     {
-        private readonly EvalPolicy _policy;
-        private readonly PnLTracker _pnl;
-
-        public EvalGates(EvalPolicy policy, PnLTracker pnl) { _policy = policy; _pnl = pnl; }
+        private readonly EvalPolicy _policy = policy;
+        private readonly PnLTracker _pnl = pnl;
 
         public bool Allow(StrategySignal sig, out string reason)
         {

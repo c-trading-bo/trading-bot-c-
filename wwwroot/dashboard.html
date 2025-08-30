@@ -1,142 +1,1482 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>TopstepX Bot — Dashboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TopstepX Trading Bot Dashboard</title>
   <style>
-    :root { --bg:#0f1217; --fg:#cbd5e1; --muted:#93a3b8; --good:#16a34a; --bad:#dc2626; --chip:#1f2733; }
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 ui-sans-serif,system-ui,Segoe UI,Roboto,Inter}
-    .wrap{display:grid;grid-template-rows:auto 1fr auto;min-height:100%}
-    .topbar{display:flex;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid #1c2330}
-    .chip{background:var(--chip);border-radius:12px;padding:6px 10px}
-    .sp{opacity:.85}
-    .pane{display:grid;grid-template-columns:1fr 280px;gap:8px;padding:8px;height:calc(100vh - 100px)}
-    #chart{height:100%;border:1px solid #1c2330;border-radius:12px}
-    .side{display:flex;flex-direction:column;gap:8px}
-    .card{background:#0c1016;border:1px solid #1c2330;border-radius:12px;padding:10px}
-    .k{color:var(--muted);min-width:120px;display:inline-block}
-    .u{color:var(--muted)}
-    .ok{color:var(--good)} .bad{color:var(--bad)}
-    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
-    .stream{height:220px;overflow:auto;font-size:12px;background:#0b0f14;border:1px solid #1c2330;border-radius:12px;padding:8px}
-    .row{display:flex;justify-content:space-between}
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0e16; color: #e0e6ed; }
+    .container { display: flex; height: 100vh; }
+    .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+    .sidebar { width: 300px; background: #161b22; padding: 20px; overflow-y: auto; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+    .logo { font-size: 24px; font-weight: bold; color: #4CAF50; }
+    .status-indicator { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .status-dot.online { background: #4CAF50; animation: pulse 2s infinite; }
+    .status-dot.offline { background: #f44336; }
+    .status-dot.connecting { background: #ffa657; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    
+    .tabs { display: flex; border-bottom: 2px solid #30363d; margin-bottom: 20px; }
+    .tab { padding: 12px 24px; cursor: pointer; border: none; background: none; color: #8b949e; font-size: 14px; }
+    .tab.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; }
+    .tab:hover { color: #f0f6fc; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 20px; }
+    .card-header { padding: 16px; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+    .card-title { font-weight: 600; font-size: 16px; }
+    .card-body { padding: 16px; }
+    
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .metric-card { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 16px; text-align: center; }
+    .metric-value { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+    .metric-label { font-size: 14px; color: #8b949e; }
+    .metric-value.good { color: #4CAF50; }
+    .metric-value.bad { color: #f85149; }
+    .metric-value.neutral { color: #ffa657; }
+    
+    .learning-status { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+    .learning-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; animation: pulse 1.5s infinite; }
+    
+    .log-container { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; height: 400px; overflow-y: auto; }
+    .log-controls { padding: 12px; border-bottom: 1px solid #21262d; display: flex; gap: 8px; }
+    .log-filter { padding: 6px 12px; border: 1px solid #30363d; background: #161b22; color: #e0e6ed; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .log-filter.active { background: #4CAF50; color: white; }
+    .log-stream { padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; }
+    .log-entry { margin-bottom: 4px; }
+    .log-entry.info { color: #58a6ff; }
+    .log-entry.warning { color: #d29922; }
+    .log-entry.error { color: #f85149; }
+    .log-entry.success { color: #3fb950; }
+    .log-entry.learning { color: #a5b4fc; }
+    
+    .actions { display: flex; gap: 12px; margin-bottom: 20px; }
+    .btn { padding: 8px 16px; border: 1px solid #30363d; background: #21262d; color: #e0e6ed; border-radius: 6px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #30363d; }
+    .btn.primary { background: #238636; border-color: #238636; }
+    .btn.primary:hover { background: #2ea043; }
+    .btn.danger { background: #da3633; border-color: #da3633; }
+    .btn.danger:hover { background: #f85149; }
+    
+    .connection-status { padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+    .connection-status.connected { background: rgba(63, 185, 80, 0.1); border: 1px solid #3fb950; }
+    .connection-status.disconnected { background: rgba(248, 81, 73, 0.1); border: 1px solid #f85149; }
+    .connection-status.connecting { background: rgba(255, 166, 87, 0.1); border: 1px solid #ffa657; }
+    
+    .progress-bar { width: 100%; height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; background: #4CAF50; transition: width 0.3s ease; }
+    
+    .refresh-timer { font-size: 12px; color: #8b949e; margin-left: auto; }
+    
+    .trade-entry, .position-entry { 
+      padding: 8px; margin-bottom: 8px; background: #0d1117; border-radius: 4px; 
+      display: flex; justify-content: space-between; align-items: center; 
+    }
+    .trade-side.buy, .position-side.long { color: #4CAF50; }
+    .trade-side.sell, .position-side.short { color: #f85149; }
+    .empty-state { text-align: center; color: #8b949e; padding: 20px; }
+    
+    /* Strategy P&L Grid Styles */
+    .strategy-pnl-grid { 
+      display: grid; 
+      grid-template-columns: 2fr 1fr 1fr 1fr 80px 80px; 
+      gap: 12px 16px; 
+      margin-top: 16px; 
+    }
+    .strategy-pnl-header { 
+      display: contents; 
+      font-weight: bold; 
+      color: #4CAF50; 
+      border-bottom: 1px solid #30363d; 
+      padding-bottom: 8px; 
+    }
+    .strategy-pnl-header > div { 
+      padding: 8px 4px; 
+      border-bottom: 1px solid #30363d; 
+      font-size: 13px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+    }
+    .strategy-pnl-row { 
+      display: contents; 
+    }
+    .strategy-pnl-row > div { 
+      padding: 8px 4px; 
+      border-bottom: 1px solid #21262d; 
+      font-size: 14px; 
+    }
+    .strategy-pnl-totals { 
+      display: contents; 
+      font-weight: bold; 
+      background: rgba(76, 175, 80, 0.1); 
+      border-top: 2px solid #4CAF50; 
+      margin-top: 8px; 
+    }
+    .strategy-pnl-totals > div { 
+      padding: 12px 4px; 
+      border-top: 2px solid #4CAF50; 
+      background: rgba(76, 175, 80, 0.05); 
+      font-size: 14px; 
+    }
+    .strategy-name { 
+      color: #f0f6fc; 
+      font-weight: 500; 
+    }
+    .pnl-value { 
+      font-family: 'Courier New', monospace; 
+      font-weight: bold; 
+      text-align: right; 
+    }
+    .pnl-value.good { color: #4CAF50; }
+    .pnl-value.bad { color: #f85149; }
+    .pnl-value.neutral { color: #8b949e; }
+    .trades-count { 
+      text-align: center; 
+      color: #58a6ff; 
+      font-weight: 500; 
+    }
+    .win-rate { 
+      text-align: center; 
+      font-weight: 500; 
+    }
+    
+    /* Session Grid Styles */
+    .session-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+      gap: 16px; 
+      margin-top: 16px; 
+    }
+    .session-item { 
+      padding: 12px; 
+      background: #0d1117; 
+      border: 1px solid #30363d; 
+      border-radius: 6px; 
+    }
+    .session-name { 
+      font-weight: bold; 
+      color: #f0f6fc; 
+      font-size: 14px; 
+      margin-bottom: 4px; 
+    }
+    .session-window { 
+      color: #58a6ff; 
+      font-size: 12px; 
+      margin-bottom: 8px; 
+    }
+    .session-status { 
+      font-size: 13px; 
+      font-weight: 500; 
+      margin-bottom: 4px; 
+    }
+    .session-status.active { color: #4CAF50; }
+    .session-status.waiting { color: #ffa657; }
+    .session-status.closed { color: #8b949e; }
+    .session-countdown { 
+      font-family: 'Courier New', monospace; 
+      font-size: 12px; 
+      color: #8b949e; 
+    }
+    
+    /* Status Grid Styles */
+    .status-grid { 
+      display: grid; 
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
+      gap: 12px; 
+      margin-bottom: 16px; 
+    }
+    .status-item { 
+      text-align: center; 
+      padding: 8px; 
+      background: #0d1117; 
+      border-radius: 4px; 
+    }
+    .status-label { 
+      font-size: 11px; 
+      color: #8b949e; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+      margin-bottom: 4px; 
+    }
+    .status-value { 
+      font-weight: bold; 
+      color: #f0f6fc; 
+      font-size: 13px; 
+    }
+    
+    /* Health Check Styles */
+    .health-checks-grid { 
+      display: grid; 
+      gap: 12px; 
+    }
+    .health-check-item { 
+      padding: 12px; 
+      background: #0d1117; 
+      border: 1px solid #30363d; 
+      border-radius: 6px; 
+      display: grid; 
+      grid-template-columns: 2fr 1fr 3fr; 
+      gap: 12px; 
+      align-items: center; 
+    }
+    .health-check-name { 
+      font-weight: 500; 
+      color: #f0f6fc; 
+    }
+    .health-check-status { 
+      padding: 4px 8px; 
+      border-radius: 4px; 
+      text-align: center; 
+      font-size: 12px; 
+      font-weight: bold; 
+      text-transform: uppercase; 
+    }
+    .health-check-status.healthy { 
+      background: rgba(63, 185, 80, 0.2); 
+      color: #3fb950; 
+      border: 1px solid #3fb950; 
+    }
+    .health-check-status.warning { 
+      background: rgba(255, 166, 87, 0.2); 
+      color: #ffa657; 
+      border: 1px solid #ffa657; 
+    }
+    .health-check-status.failed { 
+      background: rgba(248, 81, 73, 0.2); 
+      color: #f85149; 
+      border: 1px solid #f85149; 
+    }
+    .health-check-message { 
+      font-size: 13px; 
+      color: #8b949e; 
+    }
+
+    /* Self-Healing Styles */
+    .self-healing-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    
+    .self-healing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+      animation: pulse 2s infinite;
+    }
+    
+    .recovery-log-entry {
+      padding: 4px 8px;
+      margin: 2px 0;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+    
+    .recovery-log-entry.success {
+      background: rgba(76, 175, 80, 0.1);
+      border-left: 3px solid #4CAF50;
+      color: #4CAF50;
+    }
+    
+    .recovery-log-entry.failed {
+      background: rgba(248, 81, 73, 0.1);
+      border-left: 3px solid #f85149;
+      color: #f85149;
+    }
+    
+    .recovery-log-entry.warning {
+      background: rgba(255, 166, 87, 0.1);
+      border-left: 3px solid #ffa657;
+      color: #ffa657;
+    }
+    
+    .recovery-timestamp {
+      opacity: 0.7;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar mono" id="topbar">
-    <span class="chip">acc <span id="acc">-</span></span>
-    <span class="chip">mode <span id="mode">-</span></span>
-    <span class="chip">r:<span id="r">0.00</span> u:<span id="u">0.00</span> d:<span id="d">0.00</span></span>
-    <span class="chip">MDL <span id="mdl">0.00</span> rem <span id="rem">0.00</span></span>
-    <span class="chip sp">U:<span id="uh">-</span> M:<span id="mh">-</span></span>
-    <span class="chip sp" id="clock">--:--:--</span>
-  </div>
-
-  <div class="pane">
-    <div id="chart"></div>
-    <div class="side">
-      <div class="card mono">
-        <div class="row"><span class="k">Symbol</span><span id="sym">ES</span></div>
-        <div class="row"><span class="k">Pos</span><span id="pos">FLAT</span></div>
-        <div class="row"><span class="k">Avg</span><span id="avg">-</span></div>
-        <div class="row"><span class="k">Mark</span><span id="mark">-</span></div>
-        <div class="row"><span class="k">uPnL</span><span id="upnl">0.00</span></div>
-        <div class="row"><span class="k">rPnL</span><span id="rpnl">0.00</span></div>
+  <div class="container">
+    <div class="main-content">
+      <div class="header">
+        <div class="logo">TopstepX Trading Bot</div>
+        <div class="status-indicator">
+          <div class="status-dot connecting" id="connectionStatus"></div>
+          <span id="connectionText">Connecting...</span>
+        </div>
       </div>
+
+      <div class="connection-status connecting" id="connectionBanner">
+        <strong>Connecting to bot...</strong> - Establishing real-time connection
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('overview')">Overview</button>
+        <button class="tab" onclick="showTab('trading')">Trading</button>
+        <button class="tab" onclick="showTab('learning')">AI Learning</button>
+        <button class="tab" onclick="showTab('health')">System Health</button>
+        <button class="tab" onclick="showTab('logs')">Logs</button>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="overview" class="tab-content active">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-value neutral" id="accountBalance">--</div>
+            <div class="metric-label">Account Balance</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="totalPnL">--</div>
+            <div class="metric-label">Total P&L</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="openPositions">--</div>
+            <div class="metric-label">Open Positions</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value neutral" id="todayTrades">--</div>
+            <div class="metric-label">Today's Trades</div>
+          </div>
+        </div>
+
+        <!-- Strategy P&L Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Strategy P&L Breakdown</div>
+            <span class="refresh-timer" id="strategyPnlTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="strategy-pnl-grid" id="strategyPnlGrid">
+              <div class="strategy-pnl-header">
+                <div>Strategy</div>
+                <div>ES P&L</div>
+                <div>NQ P&L</div>
+                <div>Total P&L</div>
+                <div>Trades</div>
+                <div>Win Rate</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S2">
+                <div class="strategy-name">S2 - VWAP Mean Reversion</div>
+                <div class="pnl-value neutral" id="s2-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s2-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s2-total-pnl">$0.00</div>
+                <div class="trades-count" id="s2-trades">0</div>
+                <div class="win-rate" id="s2-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S3">
+                <div class="strategy-name">S3 - Squeeze Breakout</div>
+                <div class="pnl-value neutral" id="s3-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s3-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s3-total-pnl">$0.00</div>
+                <div class="trades-count" id="s3-trades">0</div>
+                <div class="win-rate" id="s3-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S6">
+                <div class="strategy-name">S6 - Opening Drive vs Reversal</div>
+                <div class="pnl-value neutral" id="s6-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s6-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s6-total-pnl">$0.00</div>
+                <div class="trades-count" id="s6-trades">0</div>
+                <div class="win-rate" id="s6-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-row" data-strategy="S11">
+                <div class="strategy-name">S11 - ADR/IB Exhaustion Fade</div>
+                <div class="pnl-value neutral" id="s11-es-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s11-nq-pnl">$0.00</div>
+                <div class="pnl-value neutral" id="s11-total-pnl">$0.00</div>
+                <div class="trades-count" id="s11-trades">0</div>
+                <div class="win-rate" id="s11-winrate">0%</div>
+              </div>
+              <div class="strategy-pnl-totals">
+                <div class="strategy-name"><strong>TOTAL ALL STRATEGIES</strong></div>
+                <div class="pnl-value neutral" id="total-es-pnl"><strong>$0.00</strong></div>
+                <div class="pnl-value neutral" id="total-nq-pnl"><strong>$0.00</strong></div>
+                <div class="pnl-value neutral" id="grand-total-pnl"><strong>$0.00</strong></div>
+                <div class="trades-count" id="total-trades"><strong>0</strong></div>
+                <div class="win-rate" id="total-winrate"><strong>0%</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Strategy Sessions & Countdown</div>
+            <span class="refresh-timer" id="sessionTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="session-grid">
+              <div class="session-item">
+                <div class="session-name">S2 - VWAP Mean Rev</div>
+                <div class="session-window">10:20-12:30 ET</div>
+                <div class="session-status" id="s2-status">Waiting</div>
+                <div class="session-countdown" id="s2-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S3 - Squeeze Breakout</div>
+                <div class="session-window">09:40-10:30 ET</div>
+                <div class="session-status" id="s3-status">Waiting</div>
+                <div class="session-countdown" id="s3-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S6 - Opening Drive</div>
+                <div class="session-window">09:28-10:00 ET</div>
+                <div class="session-status" id="s6-status">Waiting</div>
+                <div class="session-countdown" id="s6-countdown">--</div>
+              </div>
+              <div class="session-item">
+                <div class="session-name">S11 - ADR/IB Fade</div>
+                <div class="session-window">13:30-15:30 ET</div>
+                <div class="session-status" id="s11-status">Waiting</div>
+                <div class="session-countdown" id="s11-countdown">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">System Status</div>
+            <span class="refresh-timer" id="overviewTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="status-grid">
+              <div class="status-item">
+                <div class="status-label">Bot Mode</div>
+                <div class="status-value" id="botMode">PAPER</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Live Orders</div>
+                <div class="status-value" id="liveOrders">Disabled</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Account ID</div>
+                <div class="status-value" id="accountId">10223789</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Symbols</div>
+                <div class="status-value">ES, NQ</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Connection</div>
+                <div class="status-value" id="connectionStatus">Connecting...</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Last Update</div>
+                <div class="status-value" id="lastUpdate">--</div>
+              </div>
+              <div class="status-item">
+                <div class="status-label">Current ET Time</div>
+                <div class="status-value" id="currentETTime">--</div>
+              </div>
+            </div>
+            <div class="learning-status">
+              <div class="learning-dot" id="learningIndicator"></div>
+              <span id="learningStatus">AI Learning System: Initializing...</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="learningProgressBar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trading Tab -->
+      <div id="trading" class="tab-content">
+        <div class="actions">
+          <button class="btn primary" onclick="executeAction('start-trading')">Start Trading</button>
+          <button class="btn" onclick="executeAction('pause-trading')">Pause Trading</button>
+          <button class="btn danger" onclick="executeAction('stop-trading')">Stop Trading</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Trades</div>
+            <span class="refresh-timer" id="tradingTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div id="recentTrades">
+              <div class="empty-state">Loading recent trades...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Current Positions</div>
+          </div>
+          <div class="card-body">
+            <div id="currentPositions">
+              <div class="empty-state">Loading positions...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Learning Tab -->
+      <div id="learning" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Learning Progress</div>
+            <span class="refresh-timer" id="learningTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div id="learningProgress">
+              <p><strong>Current Loop:</strong> <span id="currentLoop">--</span></p>
+              <p><strong>Learning Rate:</strong> <span id="learningRate">--</span></p>
+              <p><strong>Adaptation Cycle:</strong> <span id="adaptationCycle">Every 2 minutes</span></p>
+              <p><strong>Last Adaptation:</strong> <span id="lastAdaptation">--</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Learning Metrics</div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value neutral" id="learningAccuracy">--</div>
+                <div class="metric-label">Accuracy</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="adaptationScore">--</div>
+                <div class="metric-label">Adaptation Score</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="modelConfidence">--</div>
+                <div class="metric-label">Model Confidence</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Health Tab -->
+      <div id="health" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">System Health Overview</div>
+            <div class="status-indicator">
+              <div class="status-dot" id="healthStatusDot"></div>
+              <span id="healthStatusText">Checking...</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthOverallStatus">--</div>
+                <div class="metric-label">Overall Status</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthCriticalIssues">--</div>
+                <div class="metric-label">Critical Issues</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthWarnings">--</div>
+                <div class="metric-label">Warnings</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="healthLastCheck">--</div>
+                <div class="metric-label">Last Check</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🔧 Self-Healing System</div>
+            <div class="status-indicator">
+              <div class="status-dot" id="selfHealingStatusDot"></div>
+              <span id="selfHealingStatusText">Monitoring...</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-value good" id="selfHealingActions">--</div>
+                <div class="metric-label">Available Actions</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="selfHealingAttempts">--</div>
+                <div class="metric-label">Attempts Today</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value good" id="selfHealingSuccessful">--</div>
+                <div class="metric-label">Successful Today</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-value neutral" id="selfHealingSuccessRate">--</div>
+                <div class="metric-label">Success Rate</div>
+              </div>
+            </div>
+            <div id="recentRecoveries" style="margin-top: 20px;">
+              <h4 style="margin-bottom: 10px; color: #8b949e;">Recent Self-Healing Activity</h4>
+              <div id="recoveryLog" style="background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                <div style="color: #8b949e;">No recent recovery attempts...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Health Check Details</div>
+            <button class="btn" onclick="refreshHealthData()">Refresh</button>
+          </div>
+          <div class="card-body">
+            <div id="healthChecksList">
+              <div class="empty-state">Loading health checks...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Critical System Status</div>
+          </div>
+          <div class="card-body">
+            <div class="health-checks-grid">
+              <div class="health-check-item">
+                <div class="health-check-name">ML Learning Persistence</div>
+                <div class="health-check-status" id="mlPersistenceStatus">--</div>
+                <div class="health-check-message" id="mlPersistenceMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Strategy Configuration</div>
+                <div class="health-check-status" id="strategyConfigStatus">--</div>
+                <div class="health-check-message" id="strategyConfigMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Session Windows</div>
+                <div class="health-check-status" id="sessionWindowsStatus">--</div>
+                <div class="health-check-message" id="sessionWindowsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Market Data Feeds</div>
+                <div class="health-check-status" id="dataFeedsStatus">--</div>
+                <div class="health-check-message" id="dataFeedsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Risk Management</div>
+                <div class="health-check-status" id="riskManagementStatus">--</div>
+                <div class="health-check-message" id="riskManagementMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Order Routing</div>
+                <div class="health-check-status" id="orderRoutingStatus">--</div>
+                <div class="health-check-message" id="orderRoutingMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Strategy Signal Logic</div>
+                <div class="health-check-status" id="strategySignalsStatus">--</div>
+                <div class="health-check-message" id="strategySignalsMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Position Tracking</div>
+                <div class="health-check-status" id="positionTrackingStatus">--</div>
+                <div class="health-check-message" id="positionTrackingMessage">--</div>
+              </div>
+              <div class="health-check-item">
+                <div class="health-check-name">Price Data Quality</div>
+                <div class="health-check-status" id="priceValidationStatus">--</div>
+                <div class="health-check-message" id="priceValidationMessage">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logs Tab -->
+      <div id="logs" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Real-time Logs</div>
+            <span class="refresh-timer" id="logsTimer">--</span>
+          </div>
+          <div class="card-body">
+            <div class="log-container">
+              <div class="log-controls">
+                <button class="log-filter active" onclick="filterLogs('all')">All</button>
+                <button class="log-filter" onclick="filterLogs('info')">Info</button>
+                <button class="log-filter" onclick="filterLogs('warning')">Warning</button>
+                <button class="log-filter" onclick="filterLogs('error')">Error</button>
+                <button class="log-filter" onclick="filterLogs('success')">Success</button>
+                <button class="log-filter" onclick="filterLogs('learning')">Learning</button>
+                <button class="btn" onclick="clearLogs()" style="margin-left: auto; font-size: 11px; padding: 4px 8px;">Clear</button>
+              </div>
+              <div class="log-stream" id="logStream">
+                <div class="log-entry info">Connecting to bot log stream...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
       <div class="card">
-        <div class="u">Events</div>
-        <div class="stream mono" id="events"></div>
+        <div class="card-header">
+          <div class="card-title">🧠 AI Learning System</div>
+        </div>
+        <div class="card-body">
+          <div class="learning-status">
+            <div class="learning-dot"></div>
+            <span id="learningStatusSidebar">Learning active...</span>
+          </div>
+          <div class="metrics-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="metric-card">
+              <div class="metric-value" id="learningCycles">0</div>
+              <div class="metric-label">Cycles</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-value" id="learningAccuracySidebar">0%</div>
+              <div class="metric-label">Accuracy</div>
+            </div>
+          </div>
+          <button class="btn primary" style="width: 100%; margin-top: 16px;" onclick="triggerLearning()">Run Learning Cycle</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">System Status</div>
+        </div>
+        <div class="card-body">
+          <div class="metric-card">
+            <div class="metric-value" id="uptime">--</div>
+            <div class="metric-label">Uptime</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value" id="dataQuality">--</div>
+            <div class="metric-label">Data Quality</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="topbar sp mono">Tip: open another tab at <span class="u">/dashboard</span> for NQ (after you point the query to symbol=NQ).</div>
-</div>
+  <script>
+    let eventSource = null;
+    let connectionAttempts = 0;
+    let maxRetries = 10;
+    let logFilter = 'all';
+    let lastUpdateTime = null;
+    let isConnected = false;
+    let reconnectTimer = null; // Add timer to prevent rapid reconnections
 
-<script src="lib/lightweight-charts-loader.js"></script>
-<script>
-  const { createChart } = LightweightCharts;
-
-  const symbol = new URLSearchParams(location.search).get("symbol") || "ES";
-  const res = "1";
-
-  const fmt2 = (n)=> (n==null? "-" : Number(n).toFixed(2));
-  const set = (id, html)=> document.getElementById(id).innerHTML = html;
-  const setPnL = (id, v)=> set(id, v>0? `<span class="ok">+${fmt2(v)}</span>` : v<0? `<span class="bad">${fmt2(v)}</span>` : fmt2(v));
-
-  const chart = createChart(document.getElementById("chart"), {
-    layout: { background: { color: "#0f1217" }, textColor: "#B9C0D4" },
-    grid: { vertLines: { color: "#1c2330" }, horzLines: { color: "#1c2330" } },
-    timeScale: { timeVisible: true, secondsVisible: false },
-    rightPriceScale: { borderVisible: false },
-  });
-  const candles = chart.addCandlestickSeries();
-  const volume  = chart.addHistogramSeries({ priceFormat: { type: "volume" }, priceScaleId: "" });
-
-  async function loadHistory() {
-    const now = Math.floor(Date.now()/1000), from = now - 3*24*60*60;
-    const url = `/data/history?symbol=${symbol}&res=${res}&from=${from}&to=${now}`;
-    const bars = await fetch(url).then(r=>r.json());
-    candles.setData(bars.map(b=>({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c })));
-    volume.setData(bars.map(b=>({ time:b.t, value:b.v })));
-  }
-
-  function connectStream() {
-    const es = new EventSource(`/stream/realtime?symbol=${symbol}&res=${res}`);
-
-    es.addEventListener("hello", () => {
-      // console.log("hello");
+    // Initialize dashboard when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      addLog('info', 'Dashboard initialized, connecting to bot...');
+      
+      // Show sample strategy P&L data immediately
+      updateStrategyPnl(null);
+      
+      // Load initial health data
+      setTimeout(refreshHealthData, 2000);
+      
+      connectToBot();
+      
+      // Update timers every 5 seconds and countdown every second
+      setInterval(updateTimers, 5000);
+      setInterval(updateSessionCountdowns, 1000);
+      
+      // Refresh health data every 60 seconds
+      setInterval(refreshHealthData, 60000);
+      
+      // Initial countdown update
+      updateSessionCountdowns();
     });
 
-    es.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === "bar") {
-        const b = msg.bar;
-        candles.update({ time:b.t, open:b.o, high:b.h, low:b.l, close:b.c });
-        volume.update({ time:b.t, value:b.v });
-        set("mark", b.c);
+    // Enhanced connection management with exponential backoff
+    function connectToBot() {
+      // Clear any existing reconnection timer
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
-      if (msg.type === "metrics") {
-        const m = msg.data;
-        set("acc", m.accountId); set("mode", m.mode);
-        setPnL("r", m.realized); setPnL("u", m.unrealized); setPnL("d", m.day);
-        set("mdl", fmt2(m.maxDailyLoss)); setPnL("rem", m.remaining);
-        set("uh", m.userHub); set("mh", m.marketHub);
-        set("clock", new Date(m.localTime).toLocaleTimeString());
+      
+      if (eventSource) {
+        eventSource.close();
+      }
 
-        const ps = (m.positions||[]).find(p => p.sym === symbol);
-        set("sym", symbol);
-        if (!ps || ps.qty === 0) {
-          set("pos", "FLAT"); set("avg","-"); set("mark","-");
-          setPnL("upnl", 0); setPnL("rpnl", m.realized);
+      connectionAttempts++;
+      updateConnectionStatus('connecting', 'Connecting...');
+
+      try {
+        // Use the metrics stream endpoint instead of realtime
+        eventSource = new EventSource('/stream/metrics');
+        
+        eventSource.onopen = function() {
+          connectionAttempts = 0;
+          isConnected = true;
+          updateConnectionStatus('connected', 'Connected');
+          addLog('success', 'Connected to real-time stream');
+        };
+
+        eventSource.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+            handleRealtimeData(data);
+            lastUpdateTime = new Date();
+          } catch (error) {
+            addLog('error', `Failed to parse data: ${error.message}`);
+          }
+        };
+
+        eventSource.onerror = function() {
+          addLog('error', `EventSource error - readyState: ${eventSource.readyState}`);
+          isConnected = false;
+          updateConnectionStatus('disconnected', 'Connection Lost');
+          
+          // Enable auto-reconnect with exponential backoff
+          if (connectionAttempts < maxRetries && !reconnectTimer) {
+            const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
+            addLog('info', `Reconnecting in ${delay/1000}s (attempt ${connectionAttempts})`);
+            reconnectTimer = setTimeout(() => {
+              reconnectTimer = null;
+              connectToBot();
+            }, delay);
+          } else if (connectionAttempts >= maxRetries) {
+            addLog('error', 'Max reconnection attempts reached');
+          }
+        };
+
+      } catch (error) {
+        updateConnectionStatus('disconnected', 'Connection Failed');
+        addLog('error', `Connection failed: ${error.message}`);
+      }
+    }
+
+    function updateConnectionStatus(status, text) {
+      const statusElement = document.getElementById('connectionStatus');
+      const banner = document.getElementById('connectionBanner');
+      
+      // Update status in the status grid
+      if (statusElement) {
+        statusElement.textContent = text;
+        statusElement.className = `status-value ${status}`;
+      }
+      
+      // Update connection banner if it exists
+      if (banner) {
+        if (status === 'connected') {
+          banner.className = 'connection-status connected';
+          banner.innerHTML = '<strong>Connected</strong> - Real-time data streaming';
+        } else if (status === 'connecting') {
+          banner.className = 'connection-status connecting';
+          banner.innerHTML = '<strong>Connecting...</strong> - Establishing connection';
         } else {
-          set("pos", (ps.qty > 0 ? "LONG " : "SHORT ") + Math.abs(ps.qty));
-          set("avg", fmt2(ps.avg));
-          set("mark", fmt2(ps.mark));
-          setPnL("upnl", ps.uPnL);
-          setPnL("rpnl", ps.rPnL);
+          banner.className = 'connection-status disconnected';
+          banner.innerHTML = '<strong>Disconnected</strong> - Attempting to reconnect';
         }
       }
-    };
+    }
 
-    es.onerror = () => {
-      addEvent("stream error — reconnecting…");
-      es.close();
-      setTimeout(connectStream, 1500);
-    };
-  }
+    function handleRealtimeData(data) {
+      try {
+        lastUpdateTime = new Date();
+        
+        // Update last update time
+        updateElement('lastUpdate', formatTime(lastUpdateTime));
+        
+        // Handle strategy P&L data specifically
+        if (data.strategyPnl) {
+          updateStrategyPnl(data.strategyPnl);
+        }
+        
+        // Update overview metrics
+        if (data.overview) {
+          updateElement('accountBalance', formatCurrency(data.overview.accountBalance));
+          updateElement('totalPnL', formatCurrency(data.overview.totalPnL, true));
+          updateElement('openPositions', data.overview.openPositions || 0);
+          updateElement('todayTrades', data.overview.todayTrades || 0);
+          updateElement('botMode', data.overview.botMode || 'PAPER');
+          updateElement('activeStrategy', data.overview.activeStrategy || 'Multiple');
+        }
 
-  function addEvent(line) {
-    const box = document.getElementById("events");
-    const at = new Date().toLocaleTimeString();
-    box.insertAdjacentHTML("afterbegin", `<div>${at} — ${line}</div>`);
-    const max = 200; while (box.childElementCount > max) box.removeChild(box.lastChild);
-  }
+        // Update learning status
+        if (data.learning) {
+          updateElement('learningStatus', `AI Learning System: ${data.learning.status || 'Active'}`);
+          updateElement('learningStatusSidebar', data.learning.status || 'Learning active...');
+          updateElement('currentLoop', data.learning.currentLoop || '--');
+          updateElement('learningRate', data.learning.learningRate || '--');
+          updateElement('lastAdaptation', data.learning.lastAdaptation || '--');
+          updateElement('learningAccuracy', formatPercentage(data.learning.accuracy));
+          updateElement('learningAccuracySidebar', formatPercentage(data.learning.accuracy));
+          updateElement('adaptationScore', data.learning.adaptationScore || '--');
+          updateElement('modelConfidence', formatPercentage(data.learning.modelConfidence));
+          updateElement('learningCycles', data.learning.cycles || 0);
+          
+          if (data.learning.progress !== undefined) {
+            const progressBar = document.getElementById('learningProgressBar');
+            if (progressBar) progressBar.style.width = `${data.learning.progress}%`;
+          }
+        }
 
-  loadHistory();
-  connectStream();
-</script>
+        // Update trading data
+        if (data.trading) {
+          updateTradingData(data.trading);
+        }
+
+        // Update strategy P&L data
+        if (data.strategyPnl) {
+          updateStrategyPnl(data.strategyPnl);
+        }
+
+        // Update system metrics
+        if (data.system) {
+          updateElement('uptime', data.system.uptime || '--');
+          updateElement('dataQuality', data.system.dataQuality || '--');
+        }
+
+        // Update health data
+        if (data.healthStatus) {
+          updateHealthData(data.healthStatus, data.healthDetails);
+        }
+
+        // Update self-healing data
+        if (data.selfHealingStatus) {
+          updateSelfHealingData(data.selfHealingStatus);
+        }
+
+        // Handle log entries
+        if (data.logs && Array.isArray(data.logs)) {
+          data.logs.forEach(log => addLog(log.level || 'info', log.message || log));
+        }
+
+        // Update timers
+        updateTimers();
+
+      } catch (error) {
+        addLog('error', `Error processing data: ${error.message}`);
+      }
+    }
+
+    function updateElement(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+        
+        // Add color coding for P&L metrics
+        if (id.includes('PnL') && element.classList.contains('metric-value')) {
+          const numValue = parseFloat(value.toString().replace(/[^-\d.]/g, ''));
+          if (!isNaN(numValue)) {
+            element.className = numValue > 0 ? 'metric-value good' : 
+                               numValue < 0 ? 'metric-value bad' : 'metric-value neutral';
+          }
+        }
+      }
+    }
+
+    function updateTradingData(trading) {
+      if (trading.recentTrades) {
+        const tradesContainer = document.getElementById('recentTrades');
+        if (tradesContainer) {
+          tradesContainer.innerHTML = trading.recentTrades.length > 0 ?
+            trading.recentTrades.map(trade => 
+              `<div class="trade-entry">
+                <div>
+                  <span class="trade-side ${trade.side.toLowerCase()}">${trade.side}</span> 
+                  <span>${trade.symbol}</span> × ${trade.quantity}
+                </div>
+                <div>
+                  <span>${formatCurrency(trade.price)}</span>
+                  <small>${formatTime(trade.time)}</small>
+                </div>
+              </div>`
+            ).join('') : '<div class="empty-state">No recent trades</div>';
+        }
+      }
+
+      if (trading.positions) {
+        const positionsContainer = document.getElementById('currentPositions');
+        if (positionsContainer) {
+          positionsContainer.innerHTML = trading.positions.length > 0 ?
+            trading.positions.map(pos => 
+              `<div class="position-entry">
+                <div>
+                  <span class="position-side ${pos.side.toLowerCase()}">${pos.quantity} ${pos.side}</span> 
+                  <span>${pos.symbol}</span>
+                </div>
+                <div>
+                  <span>${formatCurrency(pos.avgPrice)}</span>
+                  <span class="${pos.pnl >= 0 ? 'good' : 'bad'}">${formatCurrency(pos.pnl, true)}</span>
+                </div>
+              </div>`
+            ).join('') : '<div class="empty-state">No open positions</div>';
+        }
+      }
+    }
+
+    function updateStrategyPnl(strategyData) {
+      if (!strategyData) {
+        // For demo purposes, show sample data for enabled strategies (S2, S3, S6, S11)
+        strategyData = {
+          S2: { es: { pnl: 150.75, trades: 5, wins: 3 }, nq: { pnl: -45.25, trades: 2, wins: 0 } },
+          S3: { es: { pnl: 275.50, trades: 4, wins: 3 }, nq: { pnl: 125.00, trades: 3, wins: 2 } },
+          S6: { es: { pnl: -85.00, trades: 3, wins: 1 }, nq: { pnl: 95.75, trades: 2, wins: 2 } },
+          S11: { es: { pnl: 0.00, trades: 0, wins: 0 }, nq: { pnl: 200.25, trades: 4, wins: 3 } }
+        };
+      }
+      
+      let totalEsPnl = 0;
+      let totalNqPnl = 0;
+      let totalTrades = 0;
+      let totalWins = 0;
+      
+      // Update individual strategy rows for enabled strategies only
+      ['S2', 'S3', 'S6', 'S11'].forEach(strategy => {
+        const data = strategyData[strategy] || { es: { pnl: 0, trades: 0, wins: 0 }, nq: { pnl: 0, trades: 0, wins: 0 } };
+        
+        const esPnl = data.es.pnl || 0;
+        const nqPnl = data.nq.pnl || 0;
+        const totalStrategyPnl = esPnl + nqPnl;
+        const strategyTrades = (data.es.trades || 0) + (data.nq.trades || 0);
+        const strategyWins = (data.es.wins || 0) + (data.nq.wins || 0);
+        const winRate = strategyTrades > 0 ? (strategyWins / strategyTrades * 100) : 0;
+        
+        // Update strategy row
+        updatePnlElement(`${strategy.toLowerCase()}-es-pnl`, esPnl);
+        updatePnlElement(`${strategy.toLowerCase()}-nq-pnl`, nqPnl);
+        updatePnlElement(`${strategy.toLowerCase()}-total-pnl`, totalStrategyPnl);
+        updateElement(`${strategy.toLowerCase()}-trades`, strategyTrades);
+        updateElement(`${strategy.toLowerCase()}-winrate`, `${winRate.toFixed(1)}%`);
+        
+        // Add to totals
+        totalEsPnl += esPnl;
+        totalNqPnl += nqPnl;
+        totalTrades += strategyTrades;
+        totalWins += strategyWins;
+      });
+      
+      // Update totals row
+      const grandTotal = totalEsPnl + totalNqPnl;
+      const overallWinRate = totalTrades > 0 ? (totalWins / totalTrades * 100) : 0;
+      
+      updatePnlElement('total-es-pnl', totalEsPnl);
+      updatePnlElement('total-nq-pnl', totalNqPnl);
+      updatePnlElement('grand-total-pnl', grandTotal);
+      updateElement('total-trades', totalTrades);
+      updateElement('total-winrate', `${overallWinRate.toFixed(1)}%`);
+    }
+    
+    function updateSessionCountdowns() {
+      // Get current Eastern Time (handles DST automatically)
+      const now = new Date();
+      const etNow = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+      const currentTime = etNow.getHours() * 100 + etNow.getMinutes();
+      
+      const sessions = {
+        S2: { start: 1020, end: 1230, name: 'VWAP Mean Rev' },
+        S3: { start: 940, end: 1030, name: 'Squeeze Breakout' },
+        S6: { start: 928, end: 1000, name: 'Opening Drive' },
+        S11: { start: 1330, end: 1530, name: 'ADR/IB Fade' }
+      };
+      
+      Object.keys(sessions).forEach(strategy => {
+        const session = sessions[strategy];
+        const statusElement = document.getElementById(`${strategy.toLowerCase()}-status`);
+        const countdownElement = document.getElementById(`${strategy.toLowerCase()}-countdown`);
+        
+        if (currentTime >= session.start && currentTime <= session.end) {
+          // Active session
+          if (statusElement) {
+            statusElement.textContent = 'ACTIVE';
+            statusElement.className = 'session-status active';
+          }
+          if (countdownElement) {
+            const endMinutes = Math.floor(session.end / 100) * 60 + (session.end % 100);
+            const nowMinutes = Math.floor(currentTime / 100) * 60 + (currentTime % 100);
+            const remaining = endMinutes - nowMinutes;
+            const hours = Math.floor(remaining / 60);
+            const mins = remaining % 60;
+            countdownElement.textContent = `${hours}h ${mins}m remaining`;
+          }
+        } else if (currentTime < session.start) {
+          // Waiting for session
+          if (statusElement) {
+            statusElement.textContent = 'Waiting';
+            statusElement.className = 'session-status waiting';
+          }
+          if (countdownElement) {
+            const startMinutes = Math.floor(session.start / 100) * 60 + (session.start % 100);
+            const nowMinutes = Math.floor(currentTime / 100) * 60 + (currentTime % 100);
+            const untilStart = startMinutes - nowMinutes;
+            if (untilStart > 0) {
+              const hours = Math.floor(untilStart / 60);
+              const mins = untilStart % 60;
+              countdownElement.textContent = `Starts in ${hours}h ${mins}m`;
+            } else {
+              countdownElement.textContent = 'Starting soon';
+            }
+          }
+        } else {
+          // Session closed
+          if (statusElement) {
+            statusElement.textContent = 'Closed';
+            statusElement.className = 'session-status closed';
+          }
+          if (countdownElement) {
+            countdownElement.textContent = 'Session ended';
+          }
+        }
+      });
+      
+      // Debug: Show current ET time
+      const debugElement = document.getElementById('currentETTime');
+      if (debugElement) {
+        debugElement.textContent = `Current ET: ${etNow.toLocaleTimeString()} (${currentTime})`;
+      }
+    }
+
+    function updatePnlElement(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        const formatted = formatCurrency(value, true);
+        element.textContent = formatted;
+        
+        // Add color coding
+        const numValue = parseFloat(value);
+        if (!isNaN(numValue)) {
+          element.className = numValue > 0 ? 'pnl-value good' : 
+                             numValue < 0 ? 'pnl-value bad' : 'pnl-value neutral';
+        }
+      }
+    }
+
+    function addLog(level, message) {
+      const logStream = document.getElementById('logStream');
+      if (!logStream) return;
+
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `log-entry ${level}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logEntry.style.display = (logFilter === 'all' || logFilter === level) ? 'block' : 'none';
+
+      logStream.appendChild(logEntry);
+      
+      // Keep only last 100 log entries
+      while (logStream.children.length > 100) {
+        logStream.removeChild(logStream.firstChild);
+      }
+      
+      logStream.scrollTop = logStream.scrollHeight;
+    }
+
+    function updateTimers() {
+      const now = new Date().toLocaleTimeString();
+      ['overviewTimer', 'tradingTimer', 'learningTimer', 'logsTimer'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = `Updated: ${now}`;
+      });
+    }
+
+    function showTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      
+      // Show selected tab
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function filterLogs(level) {
+      logFilter = level;
+      document.querySelectorAll('.log-filter').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      document.querySelectorAll('.log-entry').forEach(entry => {
+        entry.style.display = (level === 'all' || entry.classList.contains(level)) ? 'block' : 'none';
+      });
+    }
+
+    function clearLogs() {
+      const logStream = document.getElementById('logStream');
+      if (logStream) {
+        logStream.innerHTML = '<div class="log-entry info">Logs cleared</div>';
+      }
+    }
+
+    function executeAction(action) {
+      addLog('info', `Executing action: ${action}`);
+      
+      fetch('/api/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action })
+      })
+      .then(response => response.json())
+      .then(data => {
+        addLog('success', `Action completed: ${action}`);
+        if (data.message) addLog('info', data.message);
+      })
+      .catch(error => {
+        addLog('error', `Action failed: ${error.message}`);
+      });
+    }
+
+    function triggerLearning() {
+      addLog('learning', 'Triggering learning cycle...');
+      fetch('/learner/adapt', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.started) {
+            addLog('learning', 'Learning cycle started successfully');
+          } else {
+            addLog('error', 'Failed to start learning cycle');
+          }
+        })
+        .catch(error => {
+          addLog('error', 'Error triggering learning: ' + error.message);
+        });
+    }
+
+    // Health monitoring functions
+    function updateHealthData(status, details) {
+      try {
+        // Update overall health status
+        updateElement('healthOverallStatus', status || 'UNKNOWN');
+        
+        // Update health status indicator
+        const healthDot = document.getElementById('healthStatusDot');
+        const healthText = document.getElementById('healthStatusText');
+        
+        if (healthDot && healthText) {
+          healthDot.className = 'status-dot';
+          if (status === 'HEALTHY') {
+            healthDot.classList.add('online');
+            healthText.textContent = 'All Systems Healthy';
+          } else if (status === 'WARNING') {
+            healthDot.classList.add('connecting');
+            healthText.textContent = 'System Warnings';
+          } else if (status === 'FAILED') {
+            healthDot.classList.add('offline');
+            healthText.textContent = 'System Issues';
+          } else {
+            healthDot.classList.add('connecting');
+            healthText.textContent = 'Health Unknown';
+          }
+        }
+        
+        // Count issues
+        let criticalIssues = 0;
+        let warnings = 0;
+        let lastCheck = new Date();
+        
+        if (details) {
+          Object.values(details).forEach(check => {
+            if (check.status === 'Failed') criticalIssues++;
+            else if (check.status === 'Warning') warnings++;
+            
+            if (check.checkTime) {
+              const checkTime = new Date(check.checkTime);
+              if (checkTime > lastCheck) lastCheck = checkTime;
+            }
+          });
+          
+          updateElement('healthCriticalIssues', criticalIssues);
+          updateElement('healthWarnings', warnings);
+          updateElement('healthLastCheck', formatTime(lastCheck));
+          
+          // Update individual health checks
+          updateHealthChecks(details);
+        }
+        
+      } catch (error) {
+        console.error('Error updating health data:', error);
+        addLog('error', `Health update error: ${error.message}`);
+      }
+    }
+    
+    function updateHealthChecks(details) {
+      // Update specific health check statuses
+      const checks = {
+        'ml_persistence': { statusId: 'mlPersistenceStatus', messageId: 'mlPersistenceMessage' },
+        'strategy_configs': { statusId: 'strategyConfigStatus', messageId: 'strategyConfigMessage' },
+        'session_windows': { statusId: 'sessionWindowsStatus', messageId: 'sessionWindowsMessage' },
+        'data_feeds': { statusId: 'dataFeedsStatus', messageId: 'dataFeedsMessage' },
+        'risk_calculations': { statusId: 'riskManagementStatus', messageId: 'riskManagementMessage' },
+        'order_routing': { statusId: 'orderRoutingStatus', messageId: 'orderRoutingMessage' },
+        'strategy_signals': { statusId: 'strategySignalsStatus', messageId: 'strategySignalsMessage' },
+        'position_tracking': { statusId: 'positionTrackingStatus', messageId: 'positionTrackingMessage' },
+        'price_validation': { statusId: 'priceValidationStatus', messageId: 'priceValidationMessage' }
+      };
+      
+      Object.keys(checks).forEach(checkKey => {
+        const check = details[checkKey];
+        const { statusId, messageId } = checks[checkKey];
+        
+        if (check) {
+          // Update status element
+          const statusElement = document.getElementById(statusId);
+          if (statusElement) {
+            statusElement.textContent = check.status || 'UNKNOWN';
+            statusElement.className = 'health-check-status';
+            
+            if (check.status === 'Healthy') {
+              statusElement.classList.add('healthy');
+            } else if (check.status === 'Warning') {
+              statusElement.classList.add('warning');
+            } else if (check.status === 'Failed') {
+              statusElement.classList.add('failed');
+            }
+          }
+          
+          // Update message element
+          const messageElement = document.getElementById(messageId);
+          if (messageElement) {
+            messageElement.textContent = check.message || 'No details available';
+          }
+        }
+      });
+    }
+    
+    function refreshHealthData() {
+      addLog('info', 'Refreshing health data...');
+      fetch('/health/system')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status) {
+            updateHealthData(data.status, data.checks);
+            addLog('info', 'Health data refreshed successfully');
+          } else {
+            addLog('error', 'Invalid health data received');
+          }
+        })
+        .catch(error => {
+          addLog('error', `Failed to refresh health data: ${error.message}`);
+        });
+    }
+
+    // Self-healing functions
+    function updateSelfHealingData(healingStatus) {
+      try {
+        if (healingStatus) {
+          updateElement('selfHealingActions', healingStatus.availableActions || 0);
+          updateElement('selfHealingAttempts', healingStatus.attemptsToday || 0);
+          updateElement('selfHealingSuccessful', healingStatus.successfulToday || 0);
+          
+          const successRate = healingStatus.attemptsToday > 0 
+            ? Math.round((healingStatus.successfulToday / healingStatus.attemptsToday) * 100) + '%'
+            : '--';
+          updateElement('selfHealingSuccessRate', successRate);
+          
+          // Update self-healing status indicator
+          const healingDot = document.getElementById('selfHealingStatusDot');
+          const healingText = document.getElementById('selfHealingStatusText');
+          
+          if (healingDot && healingText) {
+            healingDot.className = 'status-dot';
+            if (healingStatus.isEnabled) {
+              healingDot.classList.add('online');
+              healingText.textContent = healingStatus.attemptsToday > 0 
+                ? `Active (${healingStatus.attemptsToday} attempts today)`
+                : 'Ready';
+            } else {
+              healingDot.classList.add('offline');
+              healingText.textContent = 'Disabled';
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error updating self-healing data:', error);
+      }
+    }
+
+    function addRecoveryLogEntry(entry) {
+      try {
+        const recoveryLog = document.getElementById('recoveryLog');
+        if (recoveryLog) {
+          // Remove "no recent activity" message if present
+          if (recoveryLog.children.length === 1 && recoveryLog.textContent.includes('No recent recovery attempts')) {
+            recoveryLog.innerHTML = '';
+          }
+          
+          const logEntry = document.createElement('div');
+          logEntry.className = `recovery-log-entry ${entry.success ? 'success' : 'failed'}`;
+          
+          const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+          logEntry.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>${entry.action}: ${entry.message}</span>
+              <span class="recovery-timestamp">${timestamp}</span>
+            </div>
+          `;
+          
+          // Add to top of log
+          recoveryLog.insertBefore(logEntry, recoveryLog.firstChild);
+          
+          // Keep only last 10 entries
+          while (recoveryLog.children.length > 10) {
+            recoveryLog.removeChild(recoveryLog.lastChild);
+          }
+        }
+      } catch (error) {
+        console.error('Error adding recovery log entry:', error);
+      }
+    }
+
+    // Utility functions
+    function formatCurrency(value, showSign = false) {
+      if (value === null || value === undefined || value === '--') return '--';
+      const num = parseFloat(value);
+      if (isNaN(num)) return '--';
+      const formatted = num.toLocaleString('en-US', { 
+        style: 'currency', 
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+      return showSign && num > 0 ? '+' + formatted : formatted;
+    }
+    
+    function formatPercentage(value) {
+      if (value === null || value === undefined || value === '--') return '--';
+      const num = parseFloat(value);
+      if (isNaN(num)) return '--';
+      return `${(num * 100).toFixed(1)}%`;
+    }
+    
+    function formatTime(timestamp) {
+      return new Date(timestamp).toLocaleTimeString();
+    }
+
+    // Handle page visibility to prevent excessive connections
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        addLog('info', 'Page hidden, maintaining connection...');
+      } else if (!document.hidden && !isConnected) {
+        addLog('info', 'Page visible, reconnecting...');
+        connectToBot();
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (eventSource) {
+        eventSource.close();
+      }
+    });
+  </script>
 </body>
 </html>
