@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.Reflection;
+using OrchestratorAgent.ML;
 
 namespace OrchestratorAgent
 {
@@ -33,36 +34,10 @@ namespace OrchestratorAgent
         // Per-direction attempt caps (key: STRAT|SYMBOL|DIR[L|S])
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStratDir = new(StringComparer.OrdinalIgnoreCase);
 
-        // Learner status shared for dashboard endpoints/metrics
-        private static class LearnerStatus
-        {
-            private static readonly object _sync = new();
-            public static bool On { get; private set; }
-            public static DateTime? LastRunUtc { get; private set; }
-            public static bool? LastApplied { get; private set; }
-            public static string? LastNote { get; private set; }
-            public static void Update(bool on, DateTime? lastRunUtc = null, bool? lastApplied = null, string? note = null)
-            {
-                lock (_sync)
-                {
-                    On = on;
-                    if (lastRunUtc != null) LastRunUtc = lastRunUtc;
-                    if (lastApplied != null) LastApplied = lastApplied;
-                    if (note != null) LastNote = note;
-                }
-            }
-            public static (bool on, DateTime? last, bool? applied, string? note) Snapshot()
-            {
-                lock (_sync) return (On, LastRunUtc, LastApplied, LastNote);
-            }
-        }
-
         // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
         private static readonly TimeZoneInfo ET = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
         private static readonly TimeZoneInfo SD = TryFindTz("SA Western Standard Time") ?? TryFindTz("Atlantic Standard Time") ?? ET; // America/Santo_Domingo fallback
-        private static readonly string[] collection = new[] { "S2", "S3", "S6", "S11" };
-
         private static TimeZoneInfo? TryFindTz(string id) { try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch { return null; } }
         private static DateTime NowET() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ET);
         private static DateTime NowSD() => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, SD);
@@ -123,17 +98,11 @@ namespace OrchestratorAgent
                                 if (line.Length == 0 || line.StartsWith("#")) continue;
                                 var idx = line.IndexOf('=');
                                 if (idx <= 0) continue;
-                                var key = line[..idx].Trim();
-                                var val = line[(idx + 1)..].Trim();
+                                var key = line.Substring(0, idx).Trim();
+                                var val = line.Substring(idx + 1).Trim();
                                 if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
-                                    val = val[1..^1];
-                                if (!string.IsNullOrWhiteSpace(key))
-                                {
-                                    // Do not override variables already set in the process environment
-                                    var existing = Environment.GetEnvironmentVariable(key);
-                                    if (!string.IsNullOrEmpty(existing)) continue;
-                                    Environment.SetEnvironmentVariable(key, val);
-                                }
+                                    val = val.Substring(1, val.Length - 2);
+                                if (!string.IsNullOrWhiteSpace(key)) Environment.SetEnvironmentVariable(key, val);
                             }
                         }
                     }
@@ -145,29 +114,6 @@ namespace OrchestratorAgent
 
         public static async Task Main(string[] args)
         {
-            // Global exception hooks to diagnose unexpected exits
-            try
-            {
-                AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-                {
-                    try
-                    {
-                        var ex = e.ExceptionObject as Exception;
-                        Console.Error.WriteLine($"FATAL UnhandledException: {ex?.GetType().Name}: {ex?.Message}");
-                    }
-                    catch { }
-                };
-                TaskScheduler.UnobservedTaskException += (s, e) =>
-                {
-                    try
-                    {
-                        Console.Error.WriteLine($"FATAL UnobservedTaskException: {e.Exception?.GetType().Name}: {e.Exception?.Message}");
-                        e.SetObserved();
-                    }
-                    catch { }
-                };
-            }
-            catch { }
             var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
             Console.WriteLine($"[Orchestrator] Starting (urls={urls}) …");
 
@@ -290,7 +236,7 @@ namespace OrchestratorAgent
                         return jwtEnv;
                     });
                     // Simple provider for TuningRunner
-                    async Task<string> getJwt() => (await jwtCacheTune.GetAsync()) ?? string.Empty;
+                    Func<Task<string>> getJwt = async () => (await jwtCacheTune.GetAsync()) ?? string.Empty;
 
                     var symbolsCsv = Environment.GetEnvironmentVariable("TUNE_SYMBOLS")
                                       ?? Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOLS")
@@ -300,8 +246,8 @@ namespace OrchestratorAgent
                     var strategiesCsv = Environment.GetEnvironmentVariable("TUNE_STRATEGIES")
                                          ?? Environment.GetEnvironmentVariable("STRATEGIES")
                                          ?? "S2,S3,S6,S11";
-                    var symbols = symbolsCsv.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    var strategies = strategiesCsv.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var symbols = symbolsCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var strategies = strategiesCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     Console.WriteLine($"[Tune] Symbols=[{string.Join(',', symbols)}] Strategies=[{string.Join(',', strategies)}]");
 
                     var apiBaseTune = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
@@ -469,12 +415,8 @@ namespace OrchestratorAgent
             // Pre-apply Authorization if JWT is already present from .env
             try { if (!string.IsNullOrWhiteSpace(jwt)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
             // Common endpoints and primary symbol for logging and downstream services
-            var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE")
-                        ?? Environment.GetEnvironmentVariable("TOPSTEPX_API_URL")
-                        ?? "https://api.topstepx.com";
-            var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE")
-                        ?? Environment.GetEnvironmentVariable("TOPSTEPX_RTC_URL")
-                        ?? string.Empty;
+            var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? string.Empty;
             var symbol = Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
 
             log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
@@ -488,9 +430,7 @@ namespace OrchestratorAgent
             try
             {
                 string? botMode = Environment.GetEnvironmentVariable("BOT_MODE");
-                var skipPromptEnv = Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT");
                 bool skipPrompt = (Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                try { log.LogInformation("Env: BOT_MODE={BotMode} SKIP_MODE_PROMPT={Skip}", botMode, skipPromptEnv); } catch { }
                 if (!skipPrompt && !Console.IsInputRedirected)
                 {
                     while (true)
@@ -574,315 +514,6 @@ namespace OrchestratorAgent
             }
 
             var status = new StatusService(loggerFactory.CreateLogger<StatusService>()) { AccountId = accountId };
-
-            // Initialize learning system early to avoid connectivity dependency issues
-            log.LogInformation("[Startup] Initializing learning system early (before connectivity checks)...");
-            try
-            {
-                var runLearn = (Environment.GetEnvironmentVariable("RUN_LEARNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                var liveOrdersFlag = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                log.LogInformation("[Startup] RUN_LEARNING={runLearn}, LIVE_ORDERS={liveOrdersFlag}", runLearn, liveOrdersFlag);
-
-                if (runLearn)
-                {
-                    log.LogInformation("[Startup] Starting adaptive learning system (early initialization)...");
-                    log.LogInformation("[Startup] About to create background Task.Run...");
-                    var learnCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
-                    log.LogInformation("[Startup] Cancellation token created, IsCancellationRequested={isCancelled}", learnCts.Token.IsCancellationRequested);
-
-                    // Try a different approach - use ThreadPool instead of Task.Run
-                    ThreadPool.QueueUserWorkItem(state =>
-                    {
-                        try
-                        {
-                            Console.WriteLine("[CONSOLE] Learner task starting via ThreadPool...");
-                            var llog = loggerFactory.CreateLogger("Learner");
-                            Console.WriteLine("[CONSOLE] Logger created...");
-                            llog.LogInformation("[Learner] Background task STARTED via ThreadPool - about to begin initialization");
-                            Console.WriteLine("[CONSOLE] After first log message...");
-
-                            bool allowLiveInstant = (Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            bool liveNow = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            Console.WriteLine("[CONSOLE] Environment variables read...");
-
-                            LearnerStatus.Update(on: true);
-                            Console.WriteLine("[CONSOLE] LearnerStatus updated...");
-
-                            // Load persistent learning state
-                            var learningState = LearningStateManager.LoadState();
-                            var lastPractice = learningState.LastPracticeUtc;
-                            var lastPracticeLocal = lastPractice == DateTime.MinValue ? "never" : TimeZoneInfo.ConvertTimeFromUtc(lastPractice, TimeZoneInfo.Local).ToString("yyyy-MM-dd h:mm:ss tt");
-                            Console.WriteLine($"[CONSOLE] Loaded learning state: Last practice = {lastPracticeLocal}, Total cycles = {learningState.TotalLearningCycles}");
-                            
-                            var demoMode = (Environment.GetEnvironmentVariable("LEARN_DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            var minGap = demoMode ?
-                                TimeSpan.FromMinutes(2) : // Demo: 2 minute cycles 
-                                TimeSpan.FromMinutes(Math.Max(45, int.TryParse(Environment.GetEnvironmentVariable("RETUNE_INTERVAL_MIN"), out var m) ? Math.Max(15, m) : 60));
-                            llog.LogInformation("[Learner] Background loop ready (minGap={minGap}, allowLiveInstant={allowLiveInstant}, demoMode={demoMode}, lastPractice={lastPractice})", minGap, allowLiveInstant, demoMode, lastPractice);
-                            Console.WriteLine("[CONSOLE] After second log message...");
-
-                            // Wait for basic setup to complete before starting learning cycles
-                            llog.LogInformation("[Learner] Waiting 30 seconds for bot initialization to complete...");
-                            Console.WriteLine("[CONSOLE] Starting 30-second wait...");
-                            Thread.Sleep(30000); // Use Thread.Sleep instead of async Task.Delay
-                            Console.WriteLine("[CONSOLE] 30-second wait completed...");
-                            llog.LogInformation("[Learner] 30-second wait completed, starting main loop...");
-                            Console.WriteLine("[CONSOLE] About to start main learning loop...");
-
-                            var loopCount = 0;
-                            while (true) // Keep running indefinitely
-                            {
-                                try
-                                {
-                                    loopCount++;
-                                    Console.WriteLine($"[CONSOLE] === Learning Loop #{loopCount} ===");
-                                    var now = DateTime.UtcNow;
-                                    var timeSinceLastPractice = now - lastPractice;
-                                    var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.Local);
-                                    var lastPracticeLocalLoop = lastPractice == DateTime.MinValue ? "never" : TimeZoneInfo.ConvertTimeFromUtc(lastPractice, TimeZoneInfo.Local).ToString("h:mm:ss tt");
-                                    Console.WriteLine($"[CONSOLE] Current time: {nowLocal:h:mm:ss tt}, Last practice: {lastPracticeLocalLoop}, Time since: {timeSinceLastPractice}");
-                                    llog.LogInformation("[Learner] Loop iteration: lastPractice={lastPractice}, timeSince={timeSince}, minGap={minGap}",
-                                        lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("yyyy-MM-dd HH:mm:ss"),
-                                        timeSinceLastPractice, minGap);
-
-                                    if (now - lastPractice >= minGap)
-                                    {
-                                        Console.WriteLine($"[CONSOLE] *** STARTING FULL ML LEARNING CYCLE *** (gap requirement met: {timeSinceLastPractice} >= {minGap})");
-                                        llog.LogInformation("[Learner] Starting full autonomous ML learning cycle...");
-                                        
-                                        try
-                                        {
-                                            // 1. Regime Detection - Update market state
-                                            Console.WriteLine("[CONSOLE] Running RegimeEngine...");
-                                            llog.LogInformation("[ML] Regime Detection: Analyzing market state...");
-                                            var regimeEngine = new OrchestratorAgent.Execution.RegimeEngine();
-                                            var currentRegime = regimeEngine.UpdateAndInfer(0.001, 1.0, 0.5); // Using correct method name
-                                            llog.LogInformation("[ML] Current market regime: {Regime}", currentRegime);
-                                            
-                                            // 2. Bayesian Learning - Update priors with recent outcomes
-                                            Console.WriteLine("[CONSOLE] Running BayesianPriors...");
-                                            llog.LogInformation("[ML] Bayesian Learning: Updating strategy priors...");
-                                            var bayesianPriors = new OrchestratorAgent.Execution.BayesianPriors();
-                                            bayesianPriors.Observe("ES", "main", currentRegime.ToString(), "RTH", true); // Using correct method
-                                            
-                                            // 3. Drift Detection - Check for concept drift
-                                            Console.WriteLine("[CONSOLE] Running DriftDetector...");
-                                            llog.LogInformation("[ML] Drift Detection: Monitoring strategy performance...");
-                                            var driftDetector = new OrchestratorAgent.Execution.DriftDetector();
-                                            driftDetector.Update(0.001); // Update with recent signal
-                                            var isDrifting = driftDetector.IsDrifting; // Check drift status
-                                            if (isDrifting)
-                                            {
-                                                llog.LogWarning("[ML] Concept drift detected");
-                                            }
-                                            
-                                            // 4. CVaR Position Sizing - Update sizing parameters
-                                            Console.WriteLine("[CONSOLE] Running CvarSizer...");
-                                            llog.LogInformation("[ML] CVaR Sizing: Optimizing position sizes...");
-                                            var cvarSizer = new OrchestratorAgent.Execution.CvarSizer();
-                                            var optimalSize = cvarSizer.Recommend(1.0); // Using correct method
-                                            llog.LogInformation("[ML] Optimal position size multiplier: {Size}x", optimalSize);
-                                            
-                                            // 5. A/B Testing - Evaluate canary strategies
-                                            Console.WriteLine("[CONSOLE] Running CanaryAA...");
-                                            llog.LogInformation("[ML] A/B Testing: Evaluating canary strategies...");
-                                            var canaryAA = new OrchestratorAgent.Execution.CanaryAA();
-                                            var shouldPromote = canaryAA.ShouldPromote(); // Using correct method
-                                            if (shouldPromote)
-                                            {
-                                                llog.LogInformation("[ML] Canary promotion recommended");
-                                            }
-                                            
-                                            // NEW: Patch Set v2 Integration Demo - Regime-Aware Router Scoring
-                                            Console.WriteLine("[CONSOLE] Running Patch Set v2 Integration Demo...");
-                                            llog.LogInformation("[ML] Patch Set v2: Full-auto regime-aware router scoring integration...");
-                                            try
-                                            {
-                                                // Simulate regime-aware router scoring like the real router would use
-                                                var regime = currentRegime.ToString();
-                                                var session = DateTime.UtcNow.Hour >= 8 && DateTime.UtcNow.Hour <= 15 ? "RTH" : "ETH";
-                                                
-                                                // Sample posterior win-prob from hierarchical priors (Thompson sampling)
-                                                double post = bayesianPriors.Sample("S2", "a", regime, session, new Random());
-                                                
-                                                // Simulate signal quality and risk weight
-                                                double signalQuality = 1.0;
-                                                double riskWeight = 1.0;
-                                                double floor = 0.1;
-                                                double explore = 0.05;
-                                                double wLearn = 0.8;
-                                                
-                                                // Score with quality and learned weight (Patch Set v2 formula)
-                                                double score = post * signalQuality * riskWeight * (floor + (1-floor-explore)*wLearn + explore);
-                                                
-                                                // Position size via CVaR cap
-                                                double baseMult = 1.0;
-                                                double posMult = cvarSizer.Recommend(baseMult);
-                                                double sizeMinMult = 0.5;
-                                                double sizeMaxMult = 1.5;
-                                                posMult = Math.Clamp(posMult, sizeMinMult, sizeMaxMult);
-                                                
-                                                llog.LogInformation("[ML] Patch Set v2 Demo: regime={Regime} session={Session} score={Score:F3} posMult={PosMult:F2}x", 
-                                                    regime, session, score, posMult);
-                                                
-                                                // Simulate completed trade feedback to all components
-                                                bool mockTradeWin = true; // Simulate winning trade
-                                                double mockRMultiple = 1.2; // Simulate 1.2R gain
-                                                bool isShadow = canaryAA.ToShadow();
-                                                
-                                                // Feed completed trade to all learning components (Patch Set v2 integration)
-                                                bayesianPriors.Observe("S2", "a", regime, session, mockTradeWin);
-                                                cvarSizer.Observe(mockRMultiple);
-                                                canaryAA.Observe(isShadow, mockTradeWin);
-                                                
-                                                // Check drift detector
-                                                var driftSignal = Math.Abs(mockRMultiple) >= 1.0 ? 1.0 : 0.0;
-                                                var driftDetected = driftDetector.Update(driftSignal);
-                                                if (driftDetected)
-                                                {
-                                                    llog.LogWarning("[ML] Drift detected - would apply safe mode");
-                                                }
-                                                
-                                                llog.LogInformation("[ML] Patch Set v2 Demo: Trade feedback complete - all components updated");
-                                            }
-                                            catch (Exception v2Ex)
-                                            {
-                                                llog.LogWarning(v2Ex, "[ML] Patch Set v2 integration demo failed");
-                                            }
-                                            
-                                            // 6. NEW: Sentiment Analysis (Hot-loaded feature)
-                                            Console.WriteLine("[CONSOLE] Running SentimentAnalyzer...");
-                                            llog.LogInformation("[ML] Sentiment Analysis: Processing market sentiment...");
-                                            try
-                                            {
-                                                var sentimentAnalyzer = new OrchestratorAgent.Execution.SentimentAnalyzer();
-                                                // Mock news input (in production, this would connect to news feeds)
-                                                sentimentAnalyzer.UpdateSentiment("Market showing strong bullish momentum with continued gains");
-                                                var sentimentMultiplier = sentimentAnalyzer.GetSentimentMultiplier();
-                                                llog.LogInformation("[ML] Sentiment multiplier: {Multiplier}x", sentimentMultiplier);
-                                            }
-                                            catch (Exception sentEx)
-                                            {
-                                                llog.LogWarning(sentEx, "[ML] Sentiment analysis failed (hot-loaded feature)");
-                                            }
-                                            
-                                            // 7. NEWEST: Volume Analysis (Added while running!)
-                                            Console.WriteLine("[CONSOLE] Running VolumeAnalyzer...");
-                                            llog.LogInformation("[ML] Volume Analysis: Processing volume patterns...");
-                                            try
-                                            {
-                                                var volumeAnalyzer = new OrchestratorAgent.Execution.VolumeAnalyzer();
-                                                // Mock volume data (in production, this connects to real market data)
-                                                volumeAnalyzer.UpdateVolume(15000m); // Simulate volume
-                                                var volumeSignal = volumeAnalyzer.GetVolumeSignal();
-                                                var isSpike = volumeAnalyzer.IsVolumeSpike();
-                                                llog.LogInformation("[ML] Volume signal: {Signal:F2}, Spike: {IsSpike}", volumeSignal, isSpike);
-                                            }
-                                            catch (Exception volEx)
-                                            {
-                                                llog.LogWarning(volEx, "[ML] Volume analysis failed (hot-loaded feature)");
-                                            }
-                                            
-                                            // 8. NEWEST: News Intelligence Engine (Smart news trading)
-                                            Console.WriteLine("[CONSOLE] Running NewsIntelligenceEngine...");
-                                            llog.LogInformation("[ML] News Intelligence: Analyzing market news for trading opportunities...");
-                                            try
-                                            {
-                                                var newsEngine = new OrchestratorAgent.Execution.NewsIntelligenceEngine();
-                                                // Mock news updates (in production, connect to Bloomberg/Reuters feeds)
-                                                newsEngine.UpdateNewsEvent("Fed Chair signals potential policy shift amid inflation concerns", DateTime.Now);
-                                                newsEngine.UpdateNewsEvent("Strong jobs report beats expectations, markets rally", DateTime.Now.AddMinutes(-5));
-                                                
-                                                if (newsEngine.ShouldTradeOnNews(DateTime.Now, out string direction, out decimal sizeMultiplier))
-                                                {
-                                                    llog.LogInformation("[ML] News trading opportunity: {Direction} with {Size}x sizing", direction, sizeMultiplier);
-                                                }
-                                                else
-                                                {
-                                                    llog.LogInformation("[ML] No immediate news trading opportunities detected");
-                                                }
-                                            }
-                                            catch (Exception newsEx)
-                                            {
-                                                llog.LogWarning(newsEx, "[ML] News intelligence failed (hot-loaded feature)");
-                                            }
-                                            
-                                            // 6. Log comprehensive ML cycle completion and save state
-                                            lastPractice = DateTime.UtcNow;
-                                            learningState.RecordCycleCompletion();
-                                            LearningStateManager.SaveState(learningState);
-                                            Console.WriteLine($"[CONSOLE] ML cycle completed at {lastPractice:HH:mm:ss}, next cycle in {minGap}");
-                                            llog.LogInformation("[ML] Complete autonomous cycle finished at {time} - Regime:{regime}, Size:{size}x, Drift:{drift}, Canaries:{canaries}, TotalCycles:{total}",
-                                                lastPractice.ToString("yyyy-MM-dd HH:mm:ss"),
-                                                currentRegime,
-                                                optimalSize,
-                                                isDrifting ? "DETECTED" : "STABLE",
-                                                shouldPromote ? "PROMOTED" : "TESTING",
-                                                learningState.TotalLearningCycles);
-                                            
-                                            LearnerStatus.Update(on: true, lastRunUtc: DateTime.UtcNow, lastApplied: true, note: $"Full ML cycle: {currentRegime} regime, {optimalSize:F2}x size");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine($"[CONSOLE] ERROR in ML cycle: {ex.Message}");
-                                            llog.LogError(ex, "[ML] Full autonomous learning cycle failed");
-                                            LearnerStatus.Update(on: true, lastRunUtc: DateTime.UtcNow, lastApplied: false, note: $"Error: {ex.Message}");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        var timeRemaining = minGap - (now - lastPractice);
-                                        Console.WriteLine($"[CONSOLE] Waiting for next cycle - {timeRemaining} remaining");
-                                        llog.LogInformation("[Learner] Waiting for next cycle - {timeRemaining} remaining", timeRemaining);
-                                    }
-
-                                    // Sleep for shorter periods in demo mode
-                                    var sleepDuration = demoMode ? TimeSpan.FromMinutes(2) : TimeSpan.FromHours(1);
-                                    var nextCycleTime = DateTime.Now.Add(sleepDuration);
-                                    Console.WriteLine($"[CONSOLE] Next ML cycle at {nextCycleTime:HH:mm:ss} (sleeping for {sleepDuration})");
-                                    llog.LogInformation("[Learner] Next ML cycle at {nextCycleTime} (sleeping for {sleepDuration})", nextCycleTime, sleepDuration);
-                                    
-                                    // Countdown loop - show remaining time every 30 seconds
-                                    var remaining = sleepDuration;
-                                    while (remaining > TimeSpan.Zero)
-                                    {
-                                        var sleepChunk = remaining > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : remaining;
-                                        Thread.Sleep(sleepChunk);
-                                        remaining = remaining.Subtract(sleepChunk);
-                                        
-                                        if (remaining > TimeSpan.Zero)
-                                        {
-                                            if (remaining.TotalMinutes >= 1)
-                                                Console.WriteLine($"[COUNTDOWN] Next ML cycle in {remaining.TotalMinutes:F0}m {remaining.Seconds}s (at {nextCycleTime:HH:mm:ss})");
-                                            else
-                                                Console.WriteLine($"[COUNTDOWN] Next ML cycle in {remaining.TotalSeconds:F0}s (at {nextCycleTime:HH:mm:ss})");
-                                        }
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"[CONSOLE] ERROR in learning loop: {ex.Message}");
-                                    llog.LogWarning(ex, "[Learner] Learning loop error (early init mode)");
-                                    Thread.Sleep(TimeSpan.FromMinutes(5)); // Use Thread.Sleep instead of async Task.Delay
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            log.LogError(ex, "[Learner] Background task failed");
-                        }
-                    }, null);
-                    log.LogInformation("[Startup] Background ThreadPool task queued");
-                }
-                else
-                {
-                    log.LogInformation("[Startup] Learning system disabled (RUN_LEARNING={runLearn})", runLearn);
-                }
-            }
-            catch (Exception ex)
-            {
-                log.LogError(ex, "[Startup] Failed to initialize learning system");
-            }
 
             // Backfill JWT from environment if it was acquired during startup
             if (string.IsNullOrWhiteSpace(jwt))
@@ -975,15 +606,7 @@ namespace OrchestratorAgent
                     {
                         try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenNow); } catch { }
                     }
-                    try
-                    {
-                        await userHub.ConnectAsync(tokenNow!, accountId, cts.Token);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogWarning(ex, "[UserHub] Connect failed; continuing without hub. HTTP will stay up.");
-                        try { status.Set("user.state", "disconnected"); } catch { }
-                    }
+                    await userHub.ConnectAsync(tokenNow!, accountId, cts.Token);
 
                     // Resolve roots and contracts from env (with REST fallback)
                     var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
@@ -1005,11 +628,11 @@ namespace OrchestratorAgent
                     using (var m2Cts = enableNq ? CancellationTokenSource.CreateLinkedTokenSource(cts.Token) : null)
                     {
                         m1Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                        await market1.StartAsync(esContract!, m1Cts.Token, cts.Token);
+                        await market1.StartAsync(esContract!, m1Cts.Token);
                         if (enableNq && market2 != null && m2Cts != null)
                         {
                             m2Cts.CancelAfter(TimeSpan.FromSeconds(15));
-                            await market2.StartAsync(nqContract!, m2Cts.Token, cts.Token);
+                            await market2.StartAsync(nqContract!, m2Cts.Token);
                         }
                     }
                     status.Set("market.state", enableNq && market2 != null ? $"{market1.Connection.ConnectionId}|{market2.Connection.ConnectionId}" : market1.Connection.ConnectionId ?? string.Empty);
@@ -1027,8 +650,8 @@ namespace OrchestratorAgent
                         }
                         log.LogInformation("[MarketHub] Warmup: ES(Q:{Qes} B:{Bes}) NQ(Q:{Qnq} B:{Bnq})",
                             market1.HasRecentQuote(esContract!), market1.HasRecentBar(esContract!, "1m"),
-                            enableNq && market2 != null && market2.HasRecentQuote(nqContract!),
-                            enableNq && market2 != null && market2.HasRecentBar(nqContract!, "1m"));
+                            enableNq && market2 != null ? market2.HasRecentQuote(nqContract!) : false,
+                            enableNq && market2 != null ? market2.HasRecentBar(nqContract!, "1m") : false);
                     }
                     catch { }
                     // ===== Positions wiring =====
@@ -1041,7 +664,6 @@ namespace OrchestratorAgent
                     if (enableNq && !string.IsNullOrWhiteSpace(nqContract)) contractIds[nqRoot] = nqContract!;
 
                     // Subscribe to user hub events
-                    Action<string, string>? emitEvent = null; // wired after web host init
                     userHub.OnPosition += posTracker.OnPosition;
                     userHub.OnTrade += posTracker.OnTrade;
                     // Structured JSON logs per guardrails
@@ -1051,13 +673,6 @@ namespace OrchestratorAgent
                         {
                             var line = new { type = "ORDER", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
                             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
-                            try
-                            {
-                                var sym = je.TryGetProperty("symbol", out var s) ? s.GetString() : null;
-                                var status = je.TryGetProperty("status", out var st) ? st.GetString() : null;
-                                emitEvent?.Invoke("info", $"ORDER {sym ?? "?"} {status ?? ""}");
-                            }
-                            catch { }
                         }
                         catch { }
                     };
@@ -1067,14 +682,6 @@ namespace OrchestratorAgent
                         {
                             var line = new { type = "TRADE", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
                             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
-                            try
-                            {
-                                var sym = je.TryGetProperty("symbol", out var s) ? s.GetString() : null;
-                                var px = je.TryGetProperty("fillPrice", out var fp) ? fp.ToString() : null;
-                                var qty = je.TryGetProperty("qty", out var q) ? q.ToString() : null;
-                                emitEvent?.Invoke("info", $"TRADE {sym ?? "?"} {qty ?? ""} @ {px ?? ""}");
-                            }
-                            catch { }
                         }
                         catch { }
                     };
@@ -1088,21 +695,32 @@ namespace OrchestratorAgent
                     OrchestratorAgent.Health.Preflight? pfServiceRef = null;
                     OrchestratorAgent.Health.DstGuard? dstRef = null;
                     OrchestratorAgent.Ops.ModeController? modeRef = null;
-
                     OrchestratorAgent.Ops.AppState? appStateRef = null;
                     OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null;
 
                     // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
                     Dashboard.RealtimeHub? dashboardHub = null;
+                    OrchestratorAgent.ML.RlSizer? rlSizer = null;
+                    OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                         // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
-                        // Register SystemHealthMonitor
-                        webBuilder.Services.AddSingleton<SystemHealthMonitor>();
                         
-                        // Register Full Auto Scheduler as hosted service for nightly retuning
-                        webBuilder.Services.AddHostedService<OrchestratorAgent.Execution.FullAutoScheduler>();
+                        // Register RlSizer for risk-aware position sizing
+                        webBuilder.Services.AddSingleton<OrchestratorAgent.ML.RlSizer>(sp =>
+                        {
+                            var logger = sp.GetService<ILogger<OrchestratorAgent.ML.RlSizer>>();
+                            var onnxPath = Environment.GetEnvironmentVariable("RL_ONNX") ?? "models/rl/latest_rl_sizer.onnx";
+                            var actionsStr = Environment.GetEnvironmentVariable("RL_ACTIONS") ?? "0.50,0.75,1.00,1.25,1.50";
+                            var actions = actionsStr.Split(',').Select(s => float.Parse(s.Trim())).ToArray();
+                            var sampleAction = string.Equals(Environment.GetEnvironmentVariable("RL_SAMPLE_ACTION"), "1");
+                            var maxAgeMin = int.TryParse(Environment.GetEnvironmentVariable("RL_MAX_AGE_MIN"), out var age) ? age : 120;
+                            return new OrchestratorAgent.ML.RlSizer(onnxPath, actions, sampleAction, maxAgeMin, logger);
+                        });
+                        
+                        // Register SizerCanary for A/A testing RL vs baseline CVaR
+                        webBuilder.Services.AddSingleton<OrchestratorAgent.ML.SizerCanary>();
                         
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
@@ -1143,56 +761,7 @@ namespace OrchestratorAgent
                                 bool curfewNoNew = status.Get<bool?>("curfew.no_new") ?? false;
                                 bool dayPnlNoNew = status.Get<bool?>("day_pnl.no_new") ?? false;
 
-                                // Allowed strategies now (ET windows logic mirrors runtime)
-                                var etNow = NowET().TimeOfDay;
-                                var allowed = new List<string>();
-                                bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
-                                bool isNight = !isBlackout && (etNow >= TS("18:05") || etNow < TS("09:15"));
-                                if (isNight)
-                                {
-                                    if (InRange(etNow, "18:05", "02:00")) allowed.Add("S2");
-                                    else if (InRange(etNow, "02:55", "04:10")) allowed.Add("S3");
-                                }
-                                else
-                                {
-                                    if (etNow < TS("09:28")) { }
-                                    else if (InRange(etNow, "09:28", "10:00")) { allowed.Add("S6"); allowed.Add("S3"); }
-                                    else if (etNow >= TS("10:20") && etNow < TS("13:30")) { allowed.Add("S2"); }
-                                    else if (etNow >= TS("13:30")) { allowed.Add("S11"); }
-                                }
-
-                                var (lon, llast, lapplied, lnote) = LearnerStatus.Snapshot();
-                                
-                                // Get health status from SystemHealthMonitor
-                                var healthMonitor = sp.GetService<SystemHealthMonitor>();
-                                string healthStatus = "UNKNOWN";
-                                Dictionary<string, object>? healthDetails = null;
-                                if (healthMonitor != null)
-                                {
-                                    var health = healthMonitor.GetCurrentHealth();
-                                    healthStatus = health.OverallStatus.ToString().ToUpper();
-                                    healthDetails = health.Results.ToDictionary(
-                                        kv => kv.Key,
-                                        kv => (object)new { 
-                                            status = kv.Value.Status.ToString(),
-                                            message = kv.Value.Message,
-                                            checkTime = kv.Value.CheckTime
-                                        }
-                                    );
-                                }
-                                
-                                // Get strategy P&L data
-                                var strategyPnl = new Dictionary<string, object>();
-                                foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
-                                {
-                                    foreach (var symbol in new[] { "ES", "NQ" })
-                                    {
-                                        // For now, use mock data - will be replaced with real tracking
-                                        strategyPnl[$"{strategy}_{symbol}"] = new { pnl = 0.0, trades = 0 };
-                                    }
-                                }
-                                
-                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew, allowed, lon, llast, lapplied, lnote, strategyPnl, healthStatus, healthDetails);
+                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew);
                             }
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
@@ -1201,13 +770,8 @@ namespace OrchestratorAgent
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
-                        
-                        // Initialize SystemHealthMonitor
-                        var healthMonitor = web.Services.GetRequiredService<SystemHealthMonitor>();
-                        log.LogInformation("[HEALTH] System health monitoring initialized");
-                        
-                        emitEvent = (lvl, text) => { try { dashboardHub.EmitEvent(lvl, text); } catch { } };
-                        // DASHBOARD ENABLED - Health monitoring dashboard
+                        rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
+                        sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
                         web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
@@ -1215,48 +779,20 @@ namespace OrchestratorAgent
                         {
                             if (pfServiceRef is null || dstRef is null || modeRef is null)
                                 return Results.Json(new { ok = false, msg = "initializing", warn_dst = (string?)null, mode = "UNKNOWN" }, statusCode: 503);
-                            var (ok, msg) = await pfServiceRef.RunAsync(symbol, cts.Token);
+                            var res = await pfServiceRef.RunAsync(symbol, cts.Token);
                             var check = dstRef.Check();
-                            var isPaper = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            var modeStr = isPaper ? "PAPER" : (modeRef.IsLive ? "LIVE" : "SHADOW");
-                            return Results.Json(new { ok, msg, warn_dst = check.warn, mode = modeStr });
+                            var modeStr = modeRef.IsLive ? "LIVE" : "SHADOW";
+                            return Results.Json(new { ok = res.ok, msg = res.msg, warn_dst = check.warn, mode = modeStr });
                         });
                         web.MapGet("/healthz/mode", () =>
                         {
                             if (modeRef is null)
                                 return Results.Json(new { mode = "UNKNOWN", lease = (bool?)null, drain = (bool?)null }, statusCode: 503);
-                            var isPaper = (Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            return Results.Json(new { mode = isPaper ? "PAPER" : (modeRef.IsLive ? "LIVE" : "SHADOW"), lease = liveLeaseRef?.HasLease, drain = appStateRef?.DrainMode });
+                            return Results.Json(new { mode = modeRef.IsLive ? "LIVE" : "SHADOW", lease = liveLeaseRef?.HasLease, drain = appStateRef?.DrainMode });
                         });
-                        // Debug: MarketHub connection/subscription status and last data ages
-                        web.MapGet("/debug/market", () =>
+                        web.MapGet("/healthz/canary", () =>
                         {
-                            try
-                            {
-                                var esCid = esContract ?? string.Empty;
-                                var m1State = market1?.Connection?.State.ToString() ?? "null";
-                                var esQuoteAge = market1 is null || string.IsNullOrWhiteSpace(esCid) ? (double?)null : Math.Round(market1.LastQuoteSeenAge(esCid).TotalSeconds, 1);
-                                var esBarAge = market1 is null || string.IsNullOrWhiteSpace(esCid) ? (double?)null : Math.Round(market1.LastBarSeenAge(esCid).TotalSeconds, 1);
-                                var esHasRecentQuote = market1 is not null && !string.IsNullOrWhiteSpace(esCid) && market1.HasRecentQuote(esCid);
-                                var esHasRecentBar = market1 is not null && !string.IsNullOrWhiteSpace(esCid) && market1.HasRecentBar(esCid);
-
-                                string? nqCid = enableNq ? nqContract : null;
-                                var m2State = market2?.Connection?.State.ToString();
-                                var nqQuoteAge = market2 is null || string.IsNullOrWhiteSpace(nqCid) ? (double?)null : Math.Round(market2.LastQuoteSeenAge(nqCid).TotalSeconds, 1);
-                                var nqBarAge = market2 is null || string.IsNullOrWhiteSpace(nqCid) ? (double?)null : Math.Round(market2.LastBarSeenAge(nqCid).TotalSeconds, 1);
-                                var nqHasRecentQuote = market2 is not null && !string.IsNullOrWhiteSpace(nqCid) && market2.HasRecentQuote(nqCid);
-                                var nqHasRecentBar = market2 is not null && !string.IsNullOrWhiteSpace(nqCid) && market2.HasRecentBar(nqCid);
-
-                                return Results.Json(new
-                                {
-                                    es = new { contractId = esCid, state = m1State, quoteAgeSec = esQuoteAge, barAgeSec = esBarAge, hasRecentQuote = esHasRecentQuote, hasRecentBar = esHasRecentBar },
-                                    nq = enableNq ? new { contractId = nqCid, state = m2State, quoteAgeSec = nqQuoteAge, barAgeSec = nqBarAge, hasRecentQuote = nqHasRecentQuote, hasRecentBar = nqHasRecentBar } : null
-                                });
-                            }
-                            catch (Exception ex)
-                            {
-                                return Results.Json(new { error = ex.Message }, statusCode: 500);
-                            }
+                            return Results.Json(sizerCanary.GetConfig());
                         });
                         web.MapGet("/build", () =>
                         {
@@ -1272,184 +808,6 @@ namespace OrchestratorAgent
                                 startedUtc = System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()
                             };
                             return Results.Json(payload);
-                        });
-                        // Allowed strategies now (ET window-based)
-                        web.MapGet("/runtime/allowed", () =>
-                        {
-                            var etNow = NowET().TimeOfDay;
-                            var allowed = new System.Collections.Generic.List<string>();
-                            bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
-                            bool isNight = !isBlackout && (etNow >= TS("18:05") || etNow < TS("09:15"));
-                            if (isNight)
-                            {
-                                if (InRange(etNow, "18:05", "02:00")) allowed.Add("S2");
-                                else if (InRange(etNow, "02:55", "04:10")) allowed.Add("S3");
-                            }
-                            else
-                            {
-                                if (etNow < TS("09:28")) { }
-                                else if (InRange(etNow, "09:28", "10:00")) { allowed.Add("S6"); allowed.Add("S3"); }
-                                else if (etNow >= TS("10:20") && etNow < TS("13:30")) { allowed.Add("S2"); }
-                                else if (etNow >= TS("13:30")) { allowed.Add("S11"); }
-                            }
-                            return Results.Json(new { etNow = NowET(), allowed });
-                        });
-                        // Learner status snapshot
-                        web.MapGet("/learner/status", () =>
-                        {
-                            var (on, last, applied, note) = LearnerStatus.Snapshot();
-                            return Results.Json(new { on, last, applied, note });
-                        });
-                        // Learner health (simple OK+timestamp)
-                        web.MapGet("/learner/health", () => Results.Json(new { ok = true, ts = DateTime.UtcNow }));
-                        
-                        // System health monitoring endpoint
-                        web.MapGet("/health/system", () =>
-                        {
-                            try
-                            {
-                                var healthMonitor = web.Services.GetService<SystemHealthMonitor>();
-                                if (healthMonitor == null)
-                                {
-                                    return Results.Json(new { status = "UNKNOWN", message = "Health monitor not initialized" }, statusCode: 503);
-                                }
-                                
-                                var health = healthMonitor.GetCurrentHealth();
-                                var summary = new
-                                {
-                                    status = health.OverallStatus.ToString(),
-                                    timestamp = health.Timestamp,
-                                    checks = health.Results.Select(kv => new
-                                    {
-                                        name = kv.Key,
-                                        status = kv.Value.Status.ToString(),
-                                        message = kv.Value.Message,
-                                        checkTime = kv.Value.CheckTime
-                                    }).ToArray()
-                                };
-                                
-                                return Results.Json(summary);
-                            }
-                            catch (Exception ex)
-                            {
-                                return Results.Json(new { status = "FAILED", message = ex.Message }, statusCode: 500);
-                            }
-                        });
-                        // Manual: launch tuner (one-off run). Params: days (int, default 7), strats (csv), roots (csv)
-                        web.MapPost("/learner/tune", (HttpContext ctx) =>
-                                    {
-                                        try
-                                        {
-                                            int days = 7;
-                                            var qd = ctx.Request.Query["days"].FirstOrDefault();
-                                            if (!string.IsNullOrWhiteSpace(qd) && int.TryParse(qd, out var d) && d > 0) days = d;
-                                            var until = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
-                                            var since = until.AddDays(-(days - 1)).Date;
-
-                                            var rootsCsv = ctx.Request.Query["roots"].FirstOrDefault();
-                                            var stratsCsv = ctx.Request.Query["strats"].FirstOrDefault();
-                                            var roots = new System.Collections.Generic.List<string>();
-                                            if (!string.IsNullOrWhiteSpace(rootsCsv))
-                                            {
-                                                roots.AddRange(rootsCsv.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-                                            }
-                                            else
-                                            {
-                                                roots.Add(esRoot);
-                                                if (enableNq) roots.Add(nqRoot);
-                                            }
-                                            var strats = new System.Collections.Generic.List<string>();
-                                            if (!string.IsNullOrWhiteSpace(stratsCsv))
-                                                strats.AddRange(stratsCsv.Split([',', ';', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(s => s.ToUpperInvariant()));
-                                            else
-                                                strats.AddRange(collection);
-
-                                            // Fire-and-forget background run
-                                            _ = Task.Run(async () =>
-                                            {
-                                                var runLog = loggerFactory.CreateLogger("Retune");
-                                                try
-                                                {
-                                                    try { var tok = await jwtCache.GetAsync(); if (!string.IsNullOrWhiteSpace(tok)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tok); } catch { }
-                                                    var results = new System.Collections.Generic.List<object>();
-                                                    foreach (var root in roots)
-                                                    {
-                                                        if (!contractIds.TryGetValue(root, out var cid) || string.IsNullOrWhiteSpace(cid))
-                                                        { results.Add(new { root, strat = (string?)null, ok = false, error = "missing contractId" }); continue; }
-                                                        foreach (var s in strats)
-                                                        {
-                                                            try
-                                                            {
-                                                                if (s == "S2") await OrchestratorAgent.Execution.TuningRunner.RunS2Async(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, runLog, cts.Token);
-                                                                else if (s == "S3") await OrchestratorAgent.Execution.TuningRunner.RunS3Async(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, runLog, cts.Token);
-                                                                else if (s == "S6") await OrchestratorAgent.Execution.TuningRunner.RunS6Async(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, runLog, cts.Token);
-                                                                else if (s == "S11") await OrchestratorAgent.Execution.TuningRunner.RunS11Async(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, runLog, cts.Token);
-                                                                results.Add(new { root, strat = s, ok = true, error = (string?)null });
-                                                            }
-                                                            catch (Exception ex)
-                                                            {
-                                                                results.Add(new { root, strat = s, ok = false, error = ex.Message });
-                                                            }
-                                                        }
-                                                    }
-                                                    try
-                                                    {
-                                                        var pathDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning"); Directory.CreateDirectory(pathDir);
-                                                        var status = new { kind = "manual", nowUtc = DateTime.UtcNow, lookbackDays = days, since, until, roots, strats, results };
-                                                        System.IO.File.WriteAllText(Path.Combine(pathDir, "retune_status.json"), System.Text.Json.JsonSerializer.Serialize(status, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-                                                    }
-                                                    catch { }
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    try
-                                                    {
-                                                        var pathDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning"); Directory.CreateDirectory(pathDir);
-                                                        var status = new { kind = "manual", nowUtc = DateTime.UtcNow, lookbackDays = days, since, until, error = ex.Message };
-                                                        System.IO.File.WriteAllText(Path.Combine(pathDir, "retune_status.json"), System.Text.Json.JsonSerializer.Serialize(status, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-                                                    }
-                                                    catch { }
-                                                }
-                                            }, cts.Token);
-
-                                            return Results.Json(new { started = true, days, roots, strats });
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            return Results.Json(new { started = false, error = ex.Message }, statusCode: 500);
-                                        }
-                                    });
-                        // Manual: run adaptive learner once (forces RUN_LEARNING=1 for this call)
-                        web.MapPost("/learner/adapt", () =>
-                        {
-                            try
-                            {
-                                _ = Task.Run(async () =>
-                                {
-                                    var prev = Environment.GetEnvironmentVariable("RUN_LEARNING");
-                                    try { Environment.SetEnvironmentVariable("RUN_LEARNING", "1"); } catch { }
-                                    try
-                                    {
-                                        var llog = loggerFactory.CreateLogger("Learner");
-                                        await OrchestratorAgent.Execution.AdaptiveLearner.RunAsync(esRoot, llog, cts.Token);
-                                        if (enableNq) await OrchestratorAgent.Execution.AdaptiveLearner.RunAsync(nqRoot, llog, cts.Token);
-                                        LearnerStatus.Update(true, DateTime.UtcNow);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        try { LearnerStatus.Update(true, DateTime.UtcNow, lastApplied: null, note: ex.Message); } catch { }
-                                    }
-                                    finally
-                                    {
-                                        try { Environment.SetEnvironmentVariable("RUN_LEARNING", prev); } catch { }
-                                    }
-                                }, cts.Token);
-                                return Results.Json(new { started = true });
-                            }
-                            catch (Exception ex)
-                            {
-                                return Results.Json(new { started = false, error = ex.Message }, statusCode: 500);
-                            }
                         });
                         // VerifyToday summary: totals by status using today UTC window
                         web.MapGet("/verify/today", async () =>
@@ -1588,7 +946,7 @@ namespace OrchestratorAgent
                                             var pattern = $"{s}-summary-{root}-";
                                             var files = System.IO.Directory.Exists(outDir)
                                                 ? new DirectoryInfo(outDir).GetFiles("*.json").Where(f => f.Name.StartsWith(pattern, StringComparison.OrdinalIgnoreCase)).OrderByDescending(f => f.LastWriteTimeUtc).ToList()
-                                                : [];
+                                                : new System.Collections.Generic.List<FileInfo>();
                                             if (files.Count == 0) { per.Add(new { strat = s, trades = 0, netUsd = 0m, winRate = 0m }); continue; }
                                             var txt = System.IO.File.ReadAllText(files[0].FullName);
                                             using var doc = System.Text.Json.JsonDocument.Parse(txt);
@@ -1663,8 +1021,7 @@ namespace OrchestratorAgent
 
                         _ = web.RunAsync(cts.Token);
                         var firstUrl = (urls ?? "http://localhost:5000").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "http://localhost:5000";
-                        // DASHBOARD DISABLED - log.LogInformation("Dashboard available at {Url}/dashboard (health at {Url}/healthz)", firstUrl, firstUrl);
-                        log.LogInformation("Health endpoint available at {Url}/healthz (dashboard disabled)", firstUrl);
+                        log.LogInformation("Dashboard available at {Url}/dashboard (health at {Url}/healthz)", firstUrl, firstUrl);
                     }
                     catch (Exception ex)
                     {
@@ -1735,7 +1092,7 @@ namespace OrchestratorAgent
                             {
                                 var snap = posTracker.Snapshot();
                                 int qty = 0; decimal avg = 0m;
-                                if (contractIds.TryGetValue(nqRoot, out string? value) && snap.TryGetValue(value, out var nqByCid)) { qty = nqByCid.Qty; avg = nqByCid.AvgPrice; }
+                                if (contractIds.ContainsKey(nqRoot) && snap.TryGetValue(contractIds[nqRoot], out var nqByCid)) { qty = nqByCid.Qty; avg = nqByCid.AvgPrice; }
                                 else if (snap.TryGetValue(nqRoot, out var nqByRoot)) { qty = nqByRoot.Qty; avg = nqByRoot.AvgPrice; }
                                 else { qty = status.Get<int>("pos.NQ.qty"); avg = status.Get<decimal?>("pos.NQ.avg") ?? 0m; }
                                 var bpv = BotCore.Models.InstrumentMeta.BigPointValue("NQ"); if (bpv <= 0) bpv = 20m;
@@ -1835,117 +1192,37 @@ namespace OrchestratorAgent
                         catch { }
                     };
 
-                    // Background learner loop: reads recent summaries and writes TTL overrides
-                    // NOTE: Learning system now initialized early (before connectivity) to avoid dependency issues
-                    log.LogInformation("[Startup] Skipping late learning initialization (already started early)...");
-                    /*
-                    log.LogInformation("[Startup] Checking learning system configuration...");
+                    // Background learner loop (offline only): reads recent summaries and writes TTL overrides
                     try
                     {
                         var runLearn = (Environment.GetEnvironmentVariable("RUN_LEARNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                         var liveOrdersFlag = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                        log.LogInformation("[Startup] RUN_LEARNING={runLearn}, LIVE_ORDERS={liveOrdersFlag}", runLearn, liveOrdersFlag);
-                        
-                        // Always allow the learner to run (even in live); applying overrides in live remains gated below
-                        if (runLearn)
+                        if (runLearn && !liveOrdersFlag)
                         {
-                            log.LogInformation("[Startup] Starting adaptive learning system...");
                             var learnCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
                             _ = Task.Run(async () =>
                             {
                                 var llog = loggerFactory.CreateLogger("Learner");
-                                llog.LogInformation("[Learner] Adaptive Learning System started (RUN_LEARNING=1)");
-                                bool allowLiveInstant = (Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                                bool liveNow = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                                LearnerStatus.Update(on: true);
-                                
-                                // Load persistent learning state for adaptive system
-                                var learningState = LearningStateManager.LoadState();
-                                var lastPractice = learningState.LastPracticeUtc;
-                                llog.LogInformation("[Learner] Loaded adaptive learning state: Last practice = {lastPractice}, Total cycles = {total}", 
-                                    lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("yyyy-MM-dd HH:mm:ss UTC"), 
-                                    learningState.TotalLearningCycles);
-                                
-                                // For demo purposes, use shorter intervals - change back to hours for production
-                                var demoMode = (Environment.GetEnvironmentVariable("LEARN_DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                                var minGap = demoMode ? 
-                                    TimeSpan.FromMinutes(2) : // Demo: 2 minute cycles 
-                                    TimeSpan.FromMinutes(Math.Max(45, int.TryParse(Environment.GetEnvironmentVariable("RETUNE_INTERVAL_MIN"), out var m) ? Math.Max(15, m) : 60));
-                                llog.LogInformation("[Learner] Background loop ready (minGap={minGap}, allowLiveInstant={allowLiveInstant}, demoMode={demoMode})", minGap, allowLiveInstant, demoMode);
                                 while (!learnCts.IsCancellationRequested)
                                 {
-                                    // 1) Practice/backtest on a rolling 7-day window for each configured symbol
-                                    try
-                                    {
-                                        var now = DateTime.UtcNow;
-                                        var timeSinceLastPractice = now - lastPractice;
-                                        llog.LogInformation("[Learner] Loop iteration: lastPractice={lastPractice}, timeSince={timeSince}, minGap={minGap}", 
-                                            lastPractice == DateTime.MinValue ? "never" : lastPractice.ToString("yyyy-MM-dd HH:mm:ss"), 
-                                            timeSinceLastPractice, minGap);
-                                            
-                                        if (now - lastPractice >= minGap)
-                                        {
-                                            llog.LogInformation("[Learner] Starting learning cycle for {symbolCount} symbols...", contractIds.Count);
-                                            var until = DateTime.UtcNow;
-                                            var since = until.AddDays(-7);
-                                            var getJwt = new Func<Task<string>>(async () => await jwtCache.GetAsync() ?? string.Empty);
-                                            foreach (var kv in contractIds)
-                                            {
-                                                var root = kv.Key; var cid = kv.Value;
-                                                try { await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(http, getJwt, cid, root, since, until, llog, learnCts.Token); } catch { }
-                                                try { await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(http, getJwt, cid, root, since, until, llog, learnCts.Token); } catch { }
-                                                try { await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, getJwt, cid, root, "S6", since, until, llog, learnCts.Token); } catch { }
-                                                try { await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, getJwt, cid, root, "S11", since, until, llog, learnCts.Token); } catch { }
-                                            }
-                                            lastPractice = DateTime.UtcNow;
-                                            learningState.RecordCycleCompletion();
-                                            LearningStateManager.SaveState(learningState);
-                                            llog.LogInformation("[Learner] Adaptive learning cycle completed at {time}, next cycle in {minGap}, TotalCycles={total}", 
-                                                lastPractice.ToString("yyyy-MM-dd HH:mm:ss"), minGap, learningState.TotalLearningCycles);
-                                        }
-                                        else
-                                        {
-                                            var timeRemaining = minGap - (now - lastPractice);
-                                            llog.LogInformation("[Learner] Waiting for next cycle - {timeRemaining} remaining", timeRemaining);
-                                        }
-                                    }
-                                    catch (OperationCanceledException) { llog.LogInformation("[Learner] Learning cycle cancelled"); }
-                                    catch (Exception ex) { log.LogWarning(ex, "[Learn] backtest summaries failed"); }
-
-                                    // 2) Run adaptive learner to propose ParamStore overrides from recent summaries
-                                    try { 
-                                        llog.LogInformation("[Learner] Running adaptive analysis for {symbol}...", esRoot);
-                                        await OrchestratorAgent.Execution.AdaptiveLearner.RunAsync(esRoot, llog, learnCts.Token); 
-                                        LearnerStatus.Update(true, DateTime.UtcNow);
-                                        llog.LogInformation("[Learner] Adaptive analysis completed");
-                                    }
-                                    catch (OperationCanceledException) { llog.LogInformation("[Learner] Adaptive analysis cancelled"); }
+                                    try { await OrchestratorAgent.Execution.AdaptiveLearner.RunAsync(esRoot, llog, learnCts.Token); }
+                                    catch (OperationCanceledException) { }
                                     catch (Exception ex) { log.LogWarning(ex, "[Learn] loop failure"); }
-                                    
-                                    // Hourly cadence (or shorter for demo)
-                                    var sleepDuration = demoMode ? TimeSpan.FromMinutes(2) : TimeSpan.FromHours(1);
-                                    llog.LogInformation("[Learner] Sleeping for {sleepDuration} until next learning cycle...", sleepDuration);
-                                    try { await Task.Delay(sleepDuration, learnCts.Token); } catch (OperationCanceledException) { llog.LogInformation("[Learner] Sleep cancelled, exiting loop"); }
+                                    // Hourly cadence
+                                    try { await Task.Delay(TimeSpan.FromHours(1), learnCts.Token); } catch (OperationCanceledException) { }
                                     // Re-apply overrides in case a new one was written
-                                    // Safe-apply: only auto-apply in live when explicitly allowed
-                                    liveNow = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                                    allowLiveInstant = (Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                                    if (!liveNow || allowLiveInstant)
-                                    {
-                                        bool appliedAny = false;
-                                        try { if (BotCore.Config.ParamStore.ApplyS2OverrideIfPresent(esRoot, log)) appliedAny = true; } catch { }
-                                        try { if (BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log)) appliedAny = true; } catch { }
-                                        try { if (BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log)) appliedAny = true; } catch { }
-                                        try { if (BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log)) appliedAny = true; } catch { }
-                                        LearnerStatus.Update(true, DateTime.UtcNow, appliedAny, appliedAny ? "applied" : "no changes");
-                                    }
+                                    try { BotCore.Config.ParamStore.ApplyS2OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log); } catch { }
                                 }
                             }, learnCts.Token);
                         }
                     }
                     catch { }
-                    */
-                    // End of commented old learning system
 
                     // Instant-apply ParamStore watcher (offline default). Guarded by INSTANT_APPLY env.
                     OrchestratorAgent.Infra.ParamStoreWatcher? psWatcher = null;
@@ -2054,9 +1331,9 @@ namespace OrchestratorAgent
                     // Aggregators and recent bars per symbol (seed 1m from REST, roll 1m->5m->30m)
                     var barsHist = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<BotCore.Models.Bar>>
                     {
-                        [esRoot] = []
+                        [esRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>()
                     };
-                    if (enableNq) barsHist[nqRoot] = [];
+                    if (enableNq) barsHist[nqRoot] = new System.Collections.Generic.List<BotCore.Models.Bar>();
 
                     var barPyramid = new BotCore.Market.BarPyramid();
 
@@ -2075,7 +1352,7 @@ namespace OrchestratorAgent
 
                             var payload = new
                             {
-                                contractId,
+                                contractId = contractId,
                                 live = false,
                                 startTime = startUtc.ToString("o"),
                                 endTime = endUtc.ToString("o"),
@@ -2187,33 +1464,21 @@ namespace OrchestratorAgent
                                 root =>
                                 {
                                     var cid = contractIds.TryGetValue(root, out var id) ? id : string.Empty;
-                                    if (string.IsNullOrWhiteSpace(cid)) return [];
+                                    if (string.IsNullOrWhiteSpace(cid)) return Array.Empty<BotCore.Models.Bar>();
                                     // Convert Market.Bar to Models.Bar (subset fields)
                                     var m1 = barPyramid.M1.GetHistory(cid);
                                     var list = new System.Collections.Generic.List<BotCore.Models.Bar>(m1.Count);
                                     foreach (var b in m1)
-                                    {
-                                        // Normalize to UTC before constructing DateTimeOffset to avoid offset mismatch
-                                        var s = b.Start;
-                                        DateTime utc = s.Kind switch
-                                        {
-                                            DateTimeKind.Utc => s,
-                                            DateTimeKind.Local => s.ToUniversalTime(),
-                                            _ => DateTime.SpecifyKind(s, DateTimeKind.Utc)
-                                        };
-                                        long tsMs = new DateTimeOffset(utc, TimeSpan.Zero).ToUnixTimeMilliseconds();
-
                                         list.Add(new BotCore.Models.Bar
                                         {
                                             Start = b.Start,
-                                            Ts = tsMs,
+                                            Ts = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeMilliseconds(),
                                             Open = b.Open,
                                             High = b.High,
                                             Low = b.Low,
                                             Close = b.Close,
                                             Volume = (int)Math.Min(int.MaxValue, b.Volume)
                                         });
-                                    }
                                     return list;
                                 },
                                 dwell: TimeSpan.FromMinutes(dwellMin),
@@ -2246,27 +1511,15 @@ namespace OrchestratorAgent
                             cts.Token.Register(async () => { try { await guard.DisposeAsync(); } catch { } });
                         }
 
-                        // Advanced FullAutoScheduler (replaces basic nightly retuner when AUTO_RETUNE_ENABLED=1)
-                        bool autoRetuneEnabled = (Environment.GetEnvironmentVariable("AUTO_RETUNE_ENABLED") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                        if (autoRetuneEnabled)
+                        // Nightly retuner (optional; default enabled in non-live)
+                        bool retune = (Environment.GetEnvironmentVariable("RETUNE_ENABLE") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (retune)
                         {
-                            // For now, disable auto-retune due to compilation complexity
-                            var autoRetuneLog = loggerFactory.CreateLogger("AutoRetune");
-                            autoRetuneLog.LogInformation("[AutoRetune] FullAutoScheduler temporarily disabled during ML integration");
-                            // TODO: Re-enable once all ML components are stabilized
-                        }
-                        // Fallback to basic nightly retuner if advanced scheduler not enabled
-                        else
-                        {
-                            bool retune = (Environment.GetEnvironmentVariable("RETUNE_ENABLE") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            if (retune)
-                            {
-                                var retuneLog = loggerFactory.CreateLogger("Retune");
-                                var roots = new List<string> { esRoot }; if (enableNq) roots.Add(nqRoot);
-                                var retuner = new OrchestratorAgent.Execution.NightlyRetuner(retuneLog, http, async () => await jwtCache.GetAsync() ?? string.Empty, contractIds, roots, cts.Token);
-                                retuner.Start();
-                                cts.Token.Register(async () => { try { await retuner.DisposeAsync(); } catch { } });
-                            }
+                            var retuneLog = loggerFactory.CreateLogger("Retune");
+                            var roots = new List<string> { esRoot }; if (enableNq) roots.Add(nqRoot);
+                            var retuner = new OrchestratorAgent.Execution.NightlyRetuner(retuneLog, http, async () => await jwtCache.GetAsync() ?? string.Empty, contractIds, roots, cts.Token);
+                            retuner.Start();
+                            cts.Token.Register(async () => { try { await retuner.DisposeAsync(); } catch { } });
                         }
 
                         // Continuous retuner (rolling 7-day window, runs periodically; default enabled in non-live)
@@ -2283,130 +1536,66 @@ namespace OrchestratorAgent
                             cts.Token.Register(async () => { try { await cont.DisposeAsync(); } catch { } });
                         }
 
-                        // Thompson Bandit router (explore/exploit across pre-approved configs)
-                        bool canaryEnable = (Environment.GetEnvironmentVariable("BANDIT_ENABLE")
-                                             ?? Environment.GetEnvironmentVariable("CANARY_ENABLE")
-                                             ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1"))
-                                             .Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        // Bandit-style Canary selector (epsilon-greedy explore/exploit across preset bundles)
+                        bool canaryEnable = (Environment.GetEnvironmentVariable("CANARY_ENABLE") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
                         if (canaryEnable)
                         {
-                            var banditLog = loggerFactory.CreateLogger("Bandit");
-                            int loopMin = 10; try { var v = Environment.GetEnvironmentVariable("BANDIT_LOOP_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) loopMin = i; } catch { }
-                            int cooldownMin = 30; try { var v = Environment.GetEnvironmentVariable("BANDIT_COOLDOWN_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) cooldownMin = i; } catch { }
-                            int ttlHours = 2; try { var v = Environment.GetEnvironmentVariable("BANDIT_TTL_HOURS"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) ttlHours = i; } catch { }
-                            bool allowLiveBandit = (Environment.GetEnvironmentVariable("BANDIT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                            var liveOrdersOn = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                            var canLog = loggerFactory.CreateLogger("Canary");
+                            int dwellMin = 120; int windowMin = 45; decimal eps = 0.15m;
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_DWELL_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) dwellMin = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_WINDOW_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) windowMin = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_EPSILON"); if (!string.IsNullOrWhiteSpace(v) && decimal.TryParse(v, out var d) && d >= 0) eps = d; } catch { }
+                            bool allowLiveCanary = (Environment.GetEnvironmentVariable("CANARY_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
 
-                            // Load strat-configs.json (IDs + light param translation to ParamStore payloads)
-                            var stratCfgPath = "src\\BotCore\\Config\\strat-configs.json";
-                            var s2Ids = new List<string>();
-                            var s3Ids = new List<string>();
-                            var s2Payloads = new Dictionary<string, System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement>>(StringComparer.OrdinalIgnoreCase);
-                            var s3JsonById = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                            try
-                            {
-                                var json = System.IO.File.ReadAllText(stratCfgPath);
-                                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                                var root = doc.RootElement;
-                                if (root.TryGetProperty("S2", out var s2Arr) && s2Arr.ValueKind == System.Text.Json.JsonValueKind.Array)
-                                {
-                                    foreach (var el in s2Arr.EnumerateArray())
-                                    {
-                                        var s2Id = el.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? string.Empty : string.Empty;
-                                        if (string.IsNullOrWhiteSpace(s2Id)) continue;
-                                        s2Ids.Add(s2Id);
-                                        var payload = new System.Collections.Generic.Dictionary<string, System.Text.Json.JsonElement>(StringComparer.OrdinalIgnoreCase);
-                                        if (el.TryGetProperty("retestOffset", out var ro) && ro.TryGetInt32(out var i1)) payload["retest_offset_ticks"] = System.Text.Json.JsonSerializer.SerializeToElement(i1);
-                                        if (el.TryGetProperty("ibGuard", out var ib) && ib.TryGetDecimal(out var d1)) payload["ib_atr_guard_mult"] = System.Text.Json.JsonSerializer.SerializeToElement(d1);
-                                        if (el.TryGetProperty("orGuard", out var og) && og.TryGetDecimal(out var d2)) payload["or_atr_guard_mult"] = System.Text.Json.JsonSerializer.SerializeToElement(d2);
-                                        if (el.TryGetProperty("stopR", out var sr) && sr.TryGetDecimal(out var d3)) payload["stop_atr_mult"] = System.Text.Json.JsonSerializer.SerializeToElement(d3);
-                                        s2Payloads[s2Id] = payload;
-                                    }
-                                }
-                                if (root.TryGetProperty("S3", out var s3Arr) && s3Arr.ValueKind == System.Text.Json.JsonValueKind.Array)
-                                {
-                                    foreach (var el in s3Arr.EnumerateArray())
-                                    {
-                                        var s3Id = el.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? string.Empty : string.Empty;
-                                        if (string.IsNullOrWhiteSpace(s3Id)) continue;
-                                        s3Ids.Add(s3Id);
-                                        var cfg = new System.Collections.Generic.Dictionary<string, object>();
-                                        if (el.TryGetProperty("squeeze_len", out var sl) && sl.TryGetInt32(out var i2)) cfg["min_squeeze_bars"] = i2;
-                                        if (el.TryGetProperty("nr_cluster_min", out var nrc) && nrc.TryGetInt32(out var i3)) cfg["nr_cluster_min_bars"] = i3;
-                                        // default to retest entry for robustness
-                                        cfg["entry_mode"] = "retest";
-                                        var cfgJson = System.Text.Json.JsonSerializer.Serialize(cfg);
-                                        s3JsonById[s3Id] = cfgJson;
-                                    }
-                                }
-                            }
-                            catch { /* best-effort; fall back to defaults below */ }
-                            if (s2Ids.Count == 0) { s2Ids.AddRange(new[] { "S2a", "S2b" }); }
-                            if (s3Ids.Count == 0) { s3Ids.AddRange(new[] { "S3a", "S3b" }); }
-
-                            // Risk weighting by strategy (env overrides: BANDIT_W_S2, BANDIT_W_S3)
-                            double W(string strat)
+                            // Tags provider from recent 1m bars (mirror PresetSelector logic)
+                            HashSet<string> TagsFor(string root)
                             {
                                 try
                                 {
-                                    var key = $"BANDIT_W_{strat.ToUpperInvariant()}";
-                                    var raw = Environment.GetEnvironmentVariable(key);
-                                    if (!string.IsNullOrWhiteSpace(raw) && double.TryParse(raw, out var w) && w > 0) return w;
+                                    var cid = contractIds.TryGetValue(root, out var id) ? id : string.Empty;
+                                    if (string.IsNullOrWhiteSpace(cid)) return new HashSet<string>();
+                                    var m1 = barPyramid.M1.GetHistory(cid);
+                                    if (m1 == null || m1.Count < 80) return new HashSet<string>();
+                                    int n = Math.Min(120, m1.Count);
+                                    var seg = m1.Skip(m1.Count - n).ToList();
+                                    var rets = new System.Collections.Generic.List<decimal>(n - 1);
+                                    for (int i = 1; i < seg.Count; i++)
+                                    {
+                                        var prev = seg[i - 1].Close;
+                                        var curr = seg[i].Close;
+                                        if (prev > 0) rets.Add((curr - prev) / prev);
+                                    }
+                                    var mean = rets.Count > 0 ? rets.Average() : 0m;
+                                    var std = (decimal)Math.Sqrt((double)(rets.Select(r => (r - mean) * (r - mean)).DefaultIfEmpty(0m).Average()));
+                                    var tags = new HashSet<string>();
+                                    if (std < 0.0006m) tags.Add("low_vol");
+                                    else if (std > 0.0012m) tags.Add("high_vol");
+                                    else tags.Add("mid_vol");
+                                    decimal slope = 0m;
+                                    if (seg.Count > 5)
+                                    {
+                                        int m = seg.Count;
+                                        var xs = Enumerable.Range(0, m).Select(i => (decimal)i).ToArray();
+                                        var ys = seg.Select(b => b.Close).ToArray();
+                                        var xMean = xs.Average(); var yMean = ys.Average();
+                                        var num = 0m; var den = 0m;
+                                        for (int i = 0; i < m; i++) { var dx = xs[i] - xMean; num += dx * (ys[i] - yMean); den += dx * dx; }
+                                        slope = den != 0 ? num / den : 0m;
+                                    }
+                                    if (Math.Abs(slope) > 0.25m) tags.Add("trend"); else tags.Add("range");
+                                    return tags;
                                 }
-                                catch { }
-                                return strat.ToUpperInvariant() switch { "S2" => 1.0, "S3" => 0.9, _ => 0.8 };
+                                catch { return new HashSet<string>(); }
                             }
 
-                            var routerEs = new OrchestratorAgent.Execution.BanditRouter { Cooldown = TimeSpan.FromMinutes(cooldownMin) };
-                            var routerNq = new OrchestratorAgent.Execution.BanditRouter { Cooldown = TimeSpan.FromMinutes(cooldownMin) };
+                            int minPlays = 2; decimal minEps = 0.05m; double halfLife = 6d;
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_MIN_PLAYS"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i >= 0) minPlays = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_MIN_EPS"); if (!string.IsNullOrWhiteSpace(v) && decimal.TryParse(v, out var d) && d >= 0) minEps = d; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_HALF_LIFE_HOURS"); if (!string.IsNullOrWhiteSpace(v) && double.TryParse(v, out var d) && d > 0) halfLife = d; } catch { }
+                            var canary = new OrchestratorAgent.Infra.CanarySelector(canLog, TagsFor, posTracker, TimeSpan.FromMinutes(dwellMin), TimeSpan.FromMinutes(windowMin), eps, allowLiveCanary, minPlays, minEps, halfLife);
+                            canary.Start();
+                            cts.Token.Register(async () => { try { await canary.DisposeAsync(); } catch { } });
 
-                            // Background loop: pick and apply per root on cadence
-                            _ = Task.Run(async () =>
-                            {
-                                var strats = new[] { "S2", "S3" };
-                                var cfgMap = new Dictionary<string, string[]> { ["S2"] = [.. s2Ids], ["S3"] = [.. s3Ids] };
-                                while (!cts.IsCancellationRequested)
-                                {
-                                    try
-                                    {
-                                        var (sEs, cEs, _) = routerEs.Select(strats, cfgMap, W);
-                                        ApplyPick("ES", sEs, cEs);
-                                        if (enableNq)
-                                        {
-                                            var (sNq, cNq, _) = routerNq.Select(strats, cfgMap, W);
-                                            ApplyPick("NQ", sNq, cNq);
-                                        }
-                                    }
-                                    catch (Exception ex) { banditLog.LogWarning(ex, "[Bandit] loop"); }
-                                    try { await Task.Delay(TimeSpan.FromMinutes(loopMin), cts.Token); } catch { }
-                                }
-                            }, cts.Token);
-
-                            void ApplyPick(string rootSym, string strat, string cfgId)
-                            {
-                                try
-                                {
-                                    // Respect live safety by default
-                                    if (liveOrdersOn && !allowLiveBandit) { banditLog.LogDebug("[Bandit] Live mode — skip apply {Root} {Strat}/{Cfg}", rootSym, strat, cfgId); return; }
-                                    var life = TimeSpan.FromHours(Math.Max(1, ttlHours));
-                                    if (string.Equals(strat, "S2", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        if (!s2Payloads.TryGetValue(cfgId, out var payload) || payload is null) payload = [];
-                                        BotCore.Config.ParamStore.SaveS2(rootSym, payload, life);
-                                    }
-                                    else if (string.Equals(strat, "S3", StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        if (!s3JsonById.TryGetValue(cfgId, out var json) || string.IsNullOrWhiteSpace(json)) json = "{}";
-                                        BotCore.Config.ParamStore.SaveS3(rootSym, json, life);
-                                    }
-                                    try { status.Set($"bandit.choice.{rootSym}", $"{strat}:{cfgId}"); } catch { }
-                                    banditLog.LogInformation("[Bandit] Applied {Root} {Strat}/{Cfg} ttl={TTL}h", rootSym, strat, cfgId, life.TotalHours);
-                                }
-                                catch (Exception ex)
-                                {
-                                    banditLog.LogWarning(ex, "[Bandit] apply {Root} {Strat}/{Cfg}", rootSym, strat, cfgId);
-                                }
-                            }
                         }
                     }
                     catch { }
@@ -2492,24 +1681,7 @@ namespace OrchestratorAgent
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var partialExit = new OrchestratorAgent.Ops.PartialExitService(http, jwtCache.GetAsync, log);
-                    
-                    // Use SuperRouter with ML integration when ML features enabled, fallback to SimpleOrderRouter
-                    dynamic router;
-                    bool useSuperRouter = false; // Temporarily disabled during ML integration
-                    // bool useSuperRouter = (Environment.GetEnvironmentVariable("REGIME_ENABLED") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes" ||
-                    //                      (Environment.GetEnvironmentVariable("CANARY_ENABLED") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes" ||
-                    //                      (Environment.GetEnvironmentVariable("SIZE_MODE") ?? "").Equals("cvar", StringComparison.OrdinalIgnoreCase);
-                    if (useSuperRouter)
-                    {
-                        log.LogInformation("[Router] Using SuperRouter with ML integration (regime detection, A/B testing, CVaR sizing)");
-                        // router = new OrchestratorAgent.Execution.SuperRouter(http, jwtCache.GetAsync, log, live, partialExit);
-                        router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit); // Fallback during integration
-                    }
-                    else
-                    {
-                        log.LogInformation("[Router] Using SimpleOrderRouter (basic mode)");
-                        router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
-                    }
+                    var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
 
                     // Auto-switch profile by ET clock with blackout/curfew
                     try
@@ -2626,8 +1798,7 @@ namespace OrchestratorAgent
                     bool autoGoLive = (Environment.GetEnvironmentVariable("AUTO_GO_LIVE") ?? "true").Equals("true", StringComparison.OrdinalIgnoreCase)
                                    || (Environment.GetEnvironmentVariable("AUTO_GO_LIVE") ?? "0").Equals("1", StringComparison.OrdinalIgnoreCase);
                     int dryMin = int.TryParse(Environment.GetEnvironmentVariable("AUTO_DRYRUN_MINUTES"), out var dm) ? Math.Max(0, dm) : 5;
-                    var rawMin = Environment.GetEnvironmentVariable("AUTO_MIN_HEALTHY_PASSES") ?? Environment.GetEnvironmentVariable("MIN_HEALTHY");
-                    int minHealthy = int.TryParse(rawMin, out var mh) ? Math.Max(1, mh) : 3;
+                    int minHealthy = int.TryParse(Environment.GetEnvironmentVariable("AUTO_MIN_HEALTHY_PASSES"), out var mh) ? Math.Max(1, mh) : 3;
                     int demoteOnBad = int.TryParse(Environment.GetEnvironmentVariable("AUTO_DEMOTE_ON_UNHEALTHY"), out var db) ? Math.Max(1, db) : 3;
                     bool stickyLive = (Environment.GetEnvironmentVariable("AUTO_STICKY_LIVE") ?? "true").Equals("true", StringComparison.OrdinalIgnoreCase)
                                    || (Environment.GetEnvironmentVariable("AUTO_STICKY_LIVE") ?? "1").Equals("1", StringComparison.OrdinalIgnoreCase);
@@ -2650,16 +1821,9 @@ namespace OrchestratorAgent
                     {
                         var modeStr = paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW");
                         log.LogInformation("MODE => {Mode}", modeStr);
-                        // Also emit to dashboard events so it shows in all modes (LIVE/PAPER/SHADOW)
-                        try { emitEvent?.Invoke("mode", $"MODE => {modeStr}"); } catch { }
                     }
-                    // Always emit initial MODE event regardless of concise console setting
-                    LogMode();
-                    mode.OnChange += _ =>
-                    {
-                        // Single source of truth: LogMode() logs and emits dashboard event
-                        LogMode();
-                    };
+                    if (!concise) LogMode();
+                    mode.OnChange += _ => LogMode();
 
                     // One-time concise startup summary
                     try
@@ -2674,64 +1838,6 @@ namespace OrchestratorAgent
                             minHealthy,
                             stickyLive,
                             symbolsSummary);
-                        // Save a local snapshot of current setup for reference
-                        try
-                        {
-                            var snapshotDir = System.IO.Path.Combine(AppContext.BaseDirectory, "state", "setup");
-                            System.IO.Directory.CreateDirectory(snapshotDir);
-                            // Also mirror to repo root when available (more convenient to find)
-                            string? repoRoot = null;
-                            try { repoRoot = Environment.CurrentDirectory; } catch { }
-                            var snapshotDirRepo = !string.IsNullOrWhiteSpace(repoRoot)
-                                ? System.IO.Path.Combine(repoRoot, "state", "setup")
-                                : null;
-                            if (!string.IsNullOrWhiteSpace(snapshotDirRepo))
-                            {
-                                try { System.IO.Directory.CreateDirectory(snapshotDirRepo!); } catch { }
-                            }
-                            var modeStr = paperMode ? "PAPER" : (mode.IsLive ? "LIVE" : "SHADOW");
-                            var snap = new
-                            {
-                                tsUtc = DateTime.UtcNow,
-                                apiBase,
-                                rtcBase,
-                                accountId,
-                                mode = modeStr,
-                                liveOrders = live,
-                                autoGoLive,
-                                dryMin,
-                                minHealthy,
-                                stickyLive,
-                                symbols = contractIds,
-                                env = new
-                                {
-                                    BOT_MODE = Environment.GetEnvironmentVariable("BOT_MODE"),
-                                    SKIP_MODE_PROMPT = Environment.GetEnvironmentVariable("SKIP_MODE_PROMPT"),
-                                    AUTH_ALLOW = Environment.GetEnvironmentVariable("AUTH_ALLOW"),
-                                    APP_CONCISE_CONSOLE = Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE"),
-                                    RUN_LEARNING = Environment.GetEnvironmentVariable("RUN_LEARNING"),
-                                    INSTANT_APPLY = Environment.GetEnvironmentVariable("INSTANT_APPLY"),
-                                    INSTANT_ALLOW_LIVE = Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE")
-                                }
-                            };
-                            var json = System.Text.Json.JsonSerializer.Serialize(snap, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                            System.IO.File.WriteAllText(System.IO.Path.Combine(snapshotDir, "current.json"), json);
-                            if (!string.IsNullOrWhiteSpace(snapshotDirRepo))
-                            {
-                                try { System.IO.File.WriteAllText(System.IO.Path.Combine(snapshotDirRepo!, "current.json"), json); } catch { }
-                            }
-                            var stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
-                            System.IO.File.WriteAllText(System.IO.Path.Combine(snapshotDir, $"setup-{stamp}.json"), json);
-                            if (!string.IsNullOrWhiteSpace(snapshotDirRepo))
-                            {
-                                try { System.IO.File.WriteAllText(System.IO.Path.Combine(snapshotDirRepo!, $"setup-{stamp}.json"), json); } catch { }
-                            }
-                            log.LogInformation("Saved setup snapshot to state/setup (current.json and setup-{Stamp}.json)", stamp);
-                        }
-                        catch (Exception ex)
-                        {
-                            log.LogWarning(ex, "Setup snapshot failed");
-                        }
                     }
                     catch { }
 
@@ -2739,7 +1845,7 @@ namespace OrchestratorAgent
                     try
                     {
                         var esId = contractIds[esRoot];
-                        string? nqId = enableNq && contractIds.TryGetValue(nqRoot, out string? value) ? value : null;
+                        string? nqId = enableNq && contractIds.ContainsKey(nqRoot) ? contractIds[nqRoot] : null;
                         bool quotesDone = false, barsDone = false;
 
                         void TryEnablePaperRouting()
@@ -2877,10 +1983,10 @@ namespace OrchestratorAgent
                             {
                                 try
                                 {
-                                    var (ok, msg) = await pfService.RunAsync(symbol, cts.Token);
-                                    status.Set("preflight.ok", ok);
-                                    status.Set("preflight.msg", msg);
-                                    if (!ok)
+                                    var r = await pfService.RunAsync(symbol, cts.Token);
+                                    status.Set("preflight.ok", r.ok);
+                                    status.Set("preflight.msg", r.msg);
+                                    if (!r.ok)
                                     {
                                         status.Set("route.paused", true);
                                         Environment.SetEnvironmentVariable("ROUTE_PAUSE", "1");
@@ -3092,7 +2198,7 @@ namespace OrchestratorAgent
                             bool marketOk = !string.IsNullOrWhiteSpace(marketState);
 
                             // Contracts
-                            var contractsView = string.Join(", ", (status.Contracts ?? []).Select(kv => $"{kv.Key}={kv.Value}"));
+                            var contractsView = string.Join(", ", (status.Contracts ?? new System.Collections.Generic.Dictionary<string, string>()).Select(kv => $"{kv.Key}={kv.Value}"));
                             bool contractsOk = !string.IsNullOrWhiteSpace(contractsView);
 
                             // Freshness
@@ -3142,7 +2248,7 @@ namespace OrchestratorAgent
                     barPyramid.M1.OnBarClosed += async (cid, b) =>
                     {
                         // Map contractId -> root symbol
-                        string root = cid == contractIds.GetValueOrDefault(esRoot) ? esRoot : (contractIds.TryGetValue(nqRoot, out string? value) && cid == value ? nqRoot : esRoot);
+                        string root = cid == contractIds.GetValueOrDefault(esRoot) ? esRoot : (contractIds.ContainsKey(nqRoot) && cid == contractIds[nqRoot] ? nqRoot : esRoot);
                         status.Set("last.bar", DateTimeOffset.UtcNow);
                         try { status.Set($"last.bar.{cid}", DateTimeOffset.UtcNow); if (cid == contractIds[esRoot]) market1.RecordBarSeen(cid); else market2?.RecordBarSeen(cid); } catch { }
                         // Convert to unified model bar for strategies
@@ -3161,7 +2267,7 @@ namespace OrchestratorAgent
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
                         // Handoff to strategy engine (bus-equivalent)
                         log.LogDebug("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
-                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
+                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, cts.Token);
                         dataLog.LogDebug("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
                     barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
@@ -3339,13 +2445,15 @@ namespace OrchestratorAgent
                 string contractId,
                 RiskEngine risk,
                 Levels levels,
-                dynamic router,
+                SimpleOrderRouter router,
                 PaperBroker? paperBroker,
                 bool paperMode,
                 ILogger log,
                 OrchestratorAgent.Ops.AppState appState,
                 OrchestratorAgent.Ops.LiveLease liveLease,
                 SupervisorAgent.StatusService status,
+                OrchestratorAgent.ML.RlSizer? rlSizer,
+                OrchestratorAgent.ML.SizerCanary? sizerCanary,
                 CancellationToken ct)
             {
                 try
@@ -3398,18 +2506,6 @@ namespace OrchestratorAgent
                         return;
                     }
 
-                    // Master bypass: ET_NO_GUARD — trade without most guards when not in blackout windows
-                    // Blackouts: ET 16:58–18:05 and 09:15–09:23:30 are always enforced
-                    bool etNoGuard = false;
-                    try
-                    {
-                        var etT = NowET().TimeOfDay;
-                        bool etBlackout = InRange(etT, "16:58", "18:05") || InRange(etT, "09:15", "09:23:30");
-                        var v = (Environment.GetEnvironmentVariable("ET_NO_GUARD") ?? "0").Trim().ToLowerInvariant();
-                        etNoGuard = !etBlackout && (v is "1" or "true" or "yes");
-                    }
-                    catch { }
-
                     // Session filters & freeze guard
                     try
                     {
@@ -3419,13 +2515,13 @@ namespace OrchestratorAgent
                         var close = new TimeSpan(15, 0, 0);
                         bool inRth = nowCt >= open && nowCt <= close;
                         bool rthOnly = (Environment.GetEnvironmentVariable("SESSION_RTH_ONLY") ?? "false").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                        if (!etNoGuard && rthOnly && !inRth)
+                        if (rthOnly && !inRth)
                         {
                             log.LogInformation("[SKIP reason=session] {Sym} outside RTH", symbol);
                             IncVeto("session");
                             return;
                         }
-                        if (!etNoGuard && rthOnly && (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5))))
+                        if (rthOnly && (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5))))
                         {
                             log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
                             IncVeto("session_window");
@@ -3434,7 +2530,7 @@ namespace OrchestratorAgent
                         // Curfew: block new entries into U.S. open (ET 09:15–09:23)
                         try
                         {
-                            if (!etNoGuard && InRange(NowET().TimeOfDay, "09:15", "09:23:30"))
+                            if (InRange(NowET().TimeOfDay, "09:15", "09:23:30"))
                             {
                                 log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23:30 curfew active", symbol);
                                 IncVeto("curfew");
@@ -3444,13 +2540,13 @@ namespace OrchestratorAgent
                         catch { }
                         // Econ blocks (ET), format: HH:mm-HH:mm;HH:mm-HH:mm
                         var econ = Environment.GetEnvironmentVariable("ECON_BLOCKS_ET");
-                        if (!etNoGuard && !string.IsNullOrWhiteSpace(econ))
+                        if (!string.IsNullOrWhiteSpace(econ))
                         {
                             try
                             {
                                 var etTz = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
                                 var nowEt = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, etTz).TimeOfDay;
-                                foreach (var blk in econ.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                                foreach (var blk in econ.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                                 {
                                     var parts = blk.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                     if (parts.Length == 2 && TimeSpan.TryParse(parts[0], out var b) && TimeSpan.TryParse(parts[1], out var e))
@@ -3461,107 +2557,47 @@ namespace OrchestratorAgent
                             }
                             catch { }
                         }
-                        // Freeze: bypass in backtest; enforce in live/shadow with configurable max age
-                        bool btBypassFreeze = string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_QUOTE_FREEZE"), "1", StringComparison.OrdinalIgnoreCase)
-                                           || string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_QUOTE_FREEZE"), "true", StringComparison.OrdinalIgnoreCase);
-                        if (!etNoGuard && !btBypassFreeze)
+                        // Freeze: no fresh quotes for this contract in RTH
+                        var qUpd = status.Get<DateTimeOffset?>($"last.quote.updated.{contractId}") ?? status.Get<DateTimeOffset?>($"last.quote.{contractId}");
+                        if (qUpd.HasValue && (DateTimeOffset.UtcNow - qUpd.Value) > TimeSpan.FromSeconds(5))
                         {
-                            var qUpd = status.Get<DateTimeOffset?>($"last.quote.updated.{contractId}") ?? status.Get<DateTimeOffset?>($"last.quote.{contractId}");
-                            int maxMs = Math.Max(1000, int.TryParse(Environment.GetEnvironmentVariable("QUOTE_MAX_AGE_MS"), out var mx) ? mx : 3000);
-                            if (qUpd.HasValue && (DateTimeOffset.UtcNow - qUpd.Value) > TimeSpan.FromMilliseconds(maxMs))
+                            log.LogInformation("[SKIP reason=freeze] {Sym} lastQuoteAge={Age}s", symbol, (int)(DateTimeOffset.UtcNow - qUpd.Value).TotalSeconds);
+                            IncVeto("freeze");
+                            return;
+                        }
+                        // Spread guard (per-symbol defaults ES=1, NQ=2)
+                        int spreadTicks = status.Get<int>($"spread.ticks.{symbol}");
+                        int defAllow = symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
+                        int allow = defAllow;
+                        try
+                        {
+                            var o = Environment.GetEnvironmentVariable($"ALLOWED_SPREAD_{symbol.ToUpperInvariant()}_TICKS") ?? Environment.GetEnvironmentVariable("ALLOWED_SPREAD_TICKS");
+                            if (!string.IsNullOrWhiteSpace(o) && int.TryParse(o, out var v) && v > 0) allow = v;
+                        }
+                        catch { }
+                        if (spreadTicks > allow)
+                        {
+                            log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, allow);
+                            IncVeto("spread");
+                            return;
+                        }
+
+                        // News-minute gate (America/Santo_Domingo wall-time): block −2m..+3m around :00 and :30
+                        try
+                        {
+                            var nowLocal = NowSD();
+                            int m = nowLocal.Minute;
+                            int s = nowLocal.Second;
+                            bool aroundTop = m >= 58 || m <= 3;   // 58,59,0,1,2,3
+                            bool aroundHalf = (m >= 28 && m <= 33); // 28..33
+                            if (aroundTop || aroundHalf)
                             {
-                                log.LogInformation("[SKIP reason=freeze] {Sym} lastQuoteAge={Age}s", symbol, (int)(DateTimeOffset.UtcNow - qUpd.Value).TotalSeconds);
-                                IncVeto("freeze");
+                                log.LogInformation("[SKIP reason=news_minute_gate] {Sym} local={H}:{M:D2}:{S:D2}", symbol, nowLocal.Hour, m, s);
+                                IncVeto("news_minute_gate");
                                 return;
                             }
                         }
-
-                        // Session-aware spread (ES: RTH=2/ETH=3; NQ: RTH=3/ETH=4) — backtest bypass
-                        bool btBypassSpread = string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_SPREAD"), "1", StringComparison.OrdinalIgnoreCase)
-                                           || string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_SPREAD"), "true", StringComparison.OrdinalIgnoreCase);
-                        if (!etNoGuard && !btBypassSpread)
-                        {
-                            int spreadTicks = status.Get<int>($"spread.ticks.{symbol}");
-
-                            // RTH detection (CME Central Time 08:30–15:00)
-                            var cmeTz2 = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
-                            var nowCt2 = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, cmeTz2).TimeOfDay;
-                            bool inRth2 = nowCt2 >= new TimeSpan(8, 30, 0) && nowCt2 <= new TimeSpan(15, 0, 0);
-
-                            int defAllow = symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)
-                                ? (inRth2 ? 3 : 4)
-                                : (inRth2 ? 2 : 3); // ES default
-
-                            // Env overrides: SPREAD_ALLOW_{SYM}_{RTH/ETH}
-                            string key = $"SPREAD_ALLOW_{symbol.ToUpperInvariant()}_{(inRth2 ? "RTH" : "ETH")}";
-                            if (int.TryParse(Environment.GetEnvironmentVariable(key), out var envAllow) && envAllow > 0)
-                                defAllow = envAllow;
-
-                            if (spreadTicks > defAllow)
-                            {
-                                log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, defAllow);
-                                IncVeto("spread");
-                                return;
-                            }
-                        }
-
-                        // INTELLIGENT NEWS TRADING - Convert news events into profit opportunities
-                        bool btBypassNews = string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_NEWS"), "1", StringComparison.OrdinalIgnoreCase)
-                                           || string.Equals(Environment.GetEnvironmentVariable("BT_IGNORE_NEWS"), "true", StringComparison.OrdinalIgnoreCase);
-                        
-                        // Enable smart news trading (override old avoidance logic)
-                        bool smartNewsTrading = string.Equals(Environment.GetEnvironmentVariable("SMART_NEWS_TRADING"), "1", StringComparison.OrdinalIgnoreCase)
-                                               || string.Equals(Environment.GetEnvironmentVariable("SMART_NEWS_TRADING"), "true", StringComparison.OrdinalIgnoreCase);
-                        
-                        if (!etNoGuard && !btBypassNews && !smartNewsTrading)
-                        {
-                            // OLD LOGIC: Simple news avoidance (kept for compatibility)
-                            try
-                            {
-                                var nowLocal = NowSD();
-                                int m = nowLocal.Minute;
-                                int s = nowLocal.Second;
-                                bool aroundTop = m >= 58 || m <= 3;   // 58,59,0,1,2,3
-                                bool aroundHalf = (m >= 28 && m <= 33); // 28..33
-                                if (aroundTop || aroundHalf)
-                                {
-                                    log.LogInformation("[SKIP reason=news_minute_gate] {Sym} local={H}:{M:D2}:{S:D2}", symbol, nowLocal.Hour, m, s);
-                                    IncVeto("news_minute_gate");
-                                    return;
-                                }
-                            }
-                            catch { }
-                        }
-                        else if (smartNewsTrading && !etNoGuard && !btBypassNews)
-                        {
-                            // NEW LOGIC: Intelligent news trading
-                            try
-                            {
-                                var newsEngine = new OrchestratorAgent.Execution.NewsIntelligenceEngine();
-                                var nowLocal = NowSD();
-                                
-                                // Mock news input (in production, connect to real news feeds)
-                                newsEngine.UpdateNewsEvent("Fed Chair Powell signals potential rate changes ahead", nowLocal);
-                                
-                                // Check if we should trade on news
-                                if (newsEngine.ShouldTradeOnNews(nowLocal, out string tradeDirection, out decimal sizeMultiplier))
-                                {
-                                    log.LogInformation("[NEWS-OPPORTUNITY] {Sym} {Direction} trade signal with {Size}x sizing", 
-                                        symbol, tradeDirection, sizeMultiplier);
-                                    // Continue to trading logic with enhanced parameters
-                                }
-                                else if (newsEngine.IsHighNewsVolatilityTime(nowLocal))
-                                {
-                                    log.LogInformation("[NEWS-AWARENESS] {Sym} high volatility period - using enhanced risk management", symbol);
-                                    // Continue but with higher volatility awareness
-                                }
-                                // No return here - always continue to trading logic
-                            }
-                            catch (Exception ex)
-                            {
-                                log.LogWarning(ex, "[NEWS-ENGINE] Error in news analysis, falling back to standard logic");
-                            }
-                        }
+                        catch { }
                     }
                     catch { }
 
@@ -3570,12 +2606,11 @@ namespace OrchestratorAgent
                     {
                         bool skipTimeWindows = (Environment.GetEnvironmentVariable("SKIP_TIME_WINDOWS") ?? Environment.GetEnvironmentVariable("ALL_HOURS_QUALITY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                         bool skipAttemptCaps = (Environment.GetEnvironmentVariable("SKIP_ATTEMPT_CAPS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-                        if (etNoGuard) { skipTimeWindows = true; skipAttemptCaps = true; }
                         // In all-hours quality mode, restrict to the initial four strategies
-                        if (skipTimeWindows && !etNoGuard)
+                        if (skipTimeWindows)
                         {
-                            var allowedAh = new System.Collections.Generic.HashSet<string>(collection, StringComparer.OrdinalIgnoreCase);
-                            signals = [.. signals.Where(s => allowedAh.Contains(s.StrategyId))];
+                            var allowedAh = new System.Collections.Generic.HashSet<string>(new[] { "S2", "S3", "S6", "S11" }, StringComparer.OrdinalIgnoreCase);
+                            signals = signals.Where(s => allowedAh.Contains(s.StrategyId)).ToList();
                         }
                         var etNow = NowET().TimeOfDay;
                         bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
@@ -3585,7 +2620,7 @@ namespace OrchestratorAgent
                             var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             if (isNight)
                             {
-                                if (InRange(etNow, "18:05", "02:00")) allow.UnionWith(new[] { "S2" });
+                                if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
                                 else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
                             }
                             else
@@ -3598,7 +2633,7 @@ namespace OrchestratorAgent
 
                             if (allow.Count > 0)
                             {
-                                signals = [.. signals.Where(s => allow.Contains(s.StrategyId))];
+                                signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
                                 if (signals.Count == 0)
                                 {
                                     log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
@@ -3624,7 +2659,7 @@ namespace OrchestratorAgent
                         }
                         if (!skipAttemptCaps)
                         {
-                            signals = [.. signals.Where(s =>
+                            signals = signals.Where(s =>
                             {
                                 var cap = CapFor(s.StrategyId, isNight);
                                 if (cap <= 0) return false;
@@ -3645,7 +2680,7 @@ namespace OrchestratorAgent
                                     return curDir.Count < capDir;
                                 }
                                 catch { return true; }
-                            })];
+                            }).ToList();
                             if (signals.Count == 0)
                             {
                                 log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
@@ -3662,7 +2697,7 @@ namespace OrchestratorAgent
                         var etNow2 = NowET().TimeOfDay;
                         bool isBlackout2 = InRange(etNow2, "16:58", "18:05") || InRange(etNow2, "09:15", "09:23:30");
                         bool isNight2 = !isBlackout2 && (etNow2 >= TS("18:05") || etNow2 < TS("09:15"));
-                        if (!etNoGuard && isNight2 && (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) || symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)))
+                        if (isNight2 && (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) || symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)))
                         {
                             int minDepth = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 300 : 80;
                             int curDepth = 0;
@@ -3686,12 +2721,12 @@ namespace OrchestratorAgent
                         int defSpacing = isNight3 ? 120 : 45;
                         int spacingSec = defSpacing;
                         try { var s = status.Get<int>("profile.min_spacing_sec"); if (s > 0) spacingSec = s; } catch { }
-                        var list = _entriesPerHour.GetOrAdd(symbol, _ => []);
+                        var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
                         DateTime? last = null; lock (_entriesLock) { if (list.Count > 0) last = list[^1]; }
                         if (last.HasValue)
                         {
                             var age = DateTime.UtcNow - last.Value;
-                            if (!etNoGuard && age < TimeSpan.FromSeconds(spacingSec))
+                            if (age < TimeSpan.FromSeconds(spacingSec))
                             {
                                 log.LogInformation("[SKIP reason=entry_spacing] {Sym} last_entry_age={Age}s min={Min}s", symbol, (int)age.TotalSeconds, spacingSec);
                                 IncVeto("entry_spacing");
@@ -3770,11 +2805,12 @@ namespace OrchestratorAgent
 
                     // Risk scaling by window/conditions: S2 overnight 0.5x; S3 0.75x if spread>2 or volz>2.0
                     decimal riskScale = 1.0m;
+                    bool isNight4 = false;
                     try
                     {
                         var etNow4 = NowET().TimeOfDay;
                         bool isBlackout4 = InRange(etNow4, "16:58", "18:05") || InRange(etNow4, "09:15", "09:23:30");
-                        bool isNight4 = !isBlackout4 && (etNow4 >= TS("18:05") || etNow4 < TS("09:15"));
+                        isNight4 = !isBlackout4 && (etNow4 >= TS("18:05") || etNow4 < TS("09:15"));
                         if (string.Equals(chosen.StrategyId, "S2", StringComparison.OrdinalIgnoreCase) && isNight4)
                             riskScale *= 0.5m;
                         if (string.Equals(chosen.StrategyId, "S3", StringComparison.OrdinalIgnoreCase))
@@ -3808,6 +2844,56 @@ namespace OrchestratorAgent
                         }
                     }
                     catch { }
+
+                    // RL-based position sizing (if enabled and canary permits)
+                    bool rlEnabled = string.Equals(Environment.GetEnvironmentVariable("RL_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
+                    string signalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+                    bool useRlSizing = rlEnabled && rlSizer != null && rlSizer.IsLoaded && sizerCanary.ShouldUseRl(signalId);
+                    
+                    if (useRlSizing)
+                    {
+                        try
+                        {
+                            // Build feature snapshot for RL inference
+                            var featureSnapshot = new FeatureSnapshot
+                            {
+                                Symbol = symbol,
+                                Strategy = chosen.StrategyId,
+                                Session = isNight4 ? "ETH" : "RTH",
+                                Regime = "Unknown", // Could be enhanced with regime detection
+                                Timestamp = DateTime.UtcNow,
+                                Price = (float)chosen.Entry,
+                                SignalStrength = (float)Math.Min(Math.Max(chosen.ExpR, 0), 5), // Clamp to reasonable range
+                                PriorWinRate = 0.5f // Default; could be enhanced with historical data
+                            };
+
+                            // Add additional features if available
+                            try
+                            {
+                                featureSnapshot.Spread = status.Get<int>($"spread.ticks.{symbol}");
+                                featureSnapshot.Volume = status.Get<float>($"volume.{symbol}");
+                            }
+                            catch { }
+
+                            // Get RL recommendation
+                            var rlMultiplier = rlSizer.Recommend(featureSnapshot);
+                            
+                            // Apply RL multiplier, but keep it bounded and respect existing risk scale
+                            riskScale *= (decimal)Math.Max(0.1, Math.Min(rlMultiplier, 2.0)); // RL can scale 0.1x to 2.0x
+                            
+                            log.LogInformation("[RlSizer] {Symbol} {Strategy} RL multiplier: {Mult:F2}, final risk scale: {Scale:F2}, signal: {SignalId}", 
+                                symbol, chosen.StrategyId, rlMultiplier, riskScale, signalId);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogWarning(ex, "[RlSizer] RL sizing failed for {Symbol}, using baseline scale, signal: {SignalId}", symbol, signalId);
+                        }
+                    }
+                    else if (rlEnabled)
+                    {
+                        log.LogDebug("[RlSizer] Using baseline CVaR sizing for {Symbol} {Strategy}, signal: {SignalId}", 
+                            symbol, chosen.StrategyId, signalId);
+                    }
 
                     foreach (var sig in signals)
                     {
@@ -3930,7 +3016,7 @@ namespace OrchestratorAgent
                             var raw = Environment.GetEnvironmentVariable(envKey) ?? Environment.GetEnvironmentVariable("ENTRIES_PER_HOUR");
                             if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out var v) && v > 0) capPerHr = v;
                             var now = DateTime.UtcNow;
-                            var list = _entriesPerHour.GetOrAdd(symbol, _ => []);
+                            var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
                             lock (_entriesLock)
                             {
                                 list.RemoveAll(t => (now - t) > TimeSpan.FromHours(1));
@@ -4000,7 +3086,7 @@ namespace OrchestratorAgent
                             {
                                 var dir = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
                                 _lastEntryIntent[symbol] = (dir, DateTime.UtcNow);
-                                var list = _entriesPerHour.GetOrAdd(symbol, _ => []);
+                                var list = _entriesPerHour.GetOrAdd(symbol, _ => new System.Collections.Generic.List<DateTime>());
                                 lock (_entriesLock) list.Add(DateTime.UtcNow);
 
                                 var todayEt = NowET().Date;
