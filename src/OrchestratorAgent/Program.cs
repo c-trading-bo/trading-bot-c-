@@ -190,6 +190,9 @@ namespace OrchestratorAgent
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
             }
 
+            // 🌥️ Initialize RL Training (will be configured later based on credentials)
+            IDisposable? rlTrainer = null;
+
             // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login).
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"))
@@ -604,12 +607,12 @@ namespace OrchestratorAgent
                     if (!string.IsNullOrEmpty(cloudBucket))
                     {
                         log.LogInformation("🌥️ [CloudRL] Using cloud learning: {CloudBucket}", cloudBucket);
-                        using var cloudRlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
+                        rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
                     }
                     else
                     {
                         log.LogInformation("🤖 [LocalRL] Using local learning only");
-                        using var autoRlTrainer = new BotCore.AutoRlTrainer(loggerFactory.CreateLogger<BotCore.AutoRlTrainer>());
+                        rlTrainer = new BotCore.AutoRlTrainer(loggerFactory.CreateLogger<BotCore.AutoRlTrainer>());
                     }
                     
                     // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
@@ -2449,6 +2452,9 @@ namespace OrchestratorAgent
                     try { await Task.Delay(TimeSpan.FromSeconds(60), cts.Token); } catch (OperationCanceledException) { }
                 }
             }
+
+            // 🧹 Cleanup RL Trainer
+            try { rlTrainer?.Dispose(); } catch { }
 
             // Local helper runs strategies for a new bar of a symbol
             static async Task RunStrategiesFor(
