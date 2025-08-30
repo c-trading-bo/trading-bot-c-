@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """
 CVaR-PPO Trainer for Risk-Aware Position Sizing
@@ -301,7 +302,27 @@ def main():
     parser.add_argument('--hidden', type=int, default=None, help='Hidden units')
     parser.add_argument('--layers', type=int, default=None, help='Hidden layers')
     
+    # Automated mode for C# integration
+    parser.add_argument('--auto', action='store_true', 
+                       help='Automated mode - use fast settings for production')
+    parser.add_argument('--data', type=str, default=None,
+                       help='Training data CSV path (for C# automated calls)')
+    parser.add_argument('--output_model', type=str, default=None,
+                       help='Output model path (for C# automated calls)')
+    
     args = parser.parse_args()
+    
+    # Handle automated mode with fast training
+    if args.auto:
+        logger.info("🤖 AUTOMATED MODE: Using fast training settings")
+        # Override for fast automated training
+        config_overrides = {
+            'ppo_steps': 5000,  # Much faster
+            'policy_hidden': 32,  # Smaller network
+            'policy_layers': 1,   # Simpler architecture
+        }
+    else:
+        config_overrides = {}
     
     # Load hyperparameters from environment
     actions_str = args.actions or os.getenv('RL_ACTIONS', '0.50,0.75,1.00,1.25,1.50')
@@ -314,9 +335,9 @@ def main():
         'cvar_level': float(os.getenv('RL_CVAR_LEVEL', '0.95')),
         'cvar_target_r': float(os.getenv('RL_CVAR_TARGET_R', '0.75')),
         'lagrange_init': float(os.getenv('RL_LAGRANGE_INIT', '2.0')),
-        'policy_hidden': args.hidden or int(os.getenv('RL_POLICY_HIDDEN', '64')),
-        'policy_layers': args.layers or int(os.getenv('RL_POLICY_LAYERS', '2')),
-        'ppo_steps': args.steps or int(os.getenv('RL_PPO_STEPS', '50000')),
+        'policy_hidden': args.hidden or config_overrides.get('policy_hidden', int(os.getenv('RL_POLICY_HIDDEN', '64'))),
+        'policy_layers': args.layers or config_overrides.get('policy_layers', int(os.getenv('RL_POLICY_LAYERS', '2'))),
+        'ppo_steps': args.steps or config_overrides.get('ppo_steps', int(os.getenv('RL_PPO_STEPS', '50000'))),
         'ppo_lr': args.lr or float(os.getenv('RL_PPO_LR', '3e-4')),
         'ppo_clip': float(os.getenv('RL_PPO_CLIP', '0.2')),
         'ppo_gamma': float(os.getenv('RL_PPO_GAMMA', '0.99')),
@@ -326,8 +347,9 @@ def main():
     
     logger.info(f"Training configuration: {config}")
     
-    # Load data
-    data_path = Path(args.data_path)
+    # Load data - handle C# automated calls
+    data_path_str = args.data or args.data_path
+    data_path = Path(data_path_str)
     if not data_path.exists():
         logger.error(f"Data file not found: {data_path}")
         # Create dummy data for testing
@@ -359,8 +381,9 @@ def main():
     # Train policy
     policy, metrics = train_cvar_ppo(df, **config)
     
-    # Export to ONNX
-    out_path = Path(args.out_rl)
+    # Export to ONNX - handle C# automated calls
+    out_path_str = args.output_model or args.out_rl
+    out_path = Path(out_path_str)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Create dummy input for ONNX export
@@ -372,12 +395,12 @@ def main():
     with torch.no_grad():
         torch.onnx.export(
             policy,
-            dummy_input,
-            out_path,
-            input_names=env.get_feature_names(),
+            (dummy_input,),  # Fix: wrap in tuple
+            str(out_path),   # Fix: convert to string
+            input_names=['features'],
             output_names=['logits', 'value'],
             opset_version=13,
-            dynamic_axes=None
+            dynamic_axes={'features': {0: 'batch_size'}}
         )
     
     logger.info(f"Saved ONNX model to {out_path}")

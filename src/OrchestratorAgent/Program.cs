@@ -598,6 +598,20 @@ namespace OrchestratorAgent
                     });
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
+                    
+                    // 🌥️ Initialize Cloud + Local RL Training (Hybrid Mode)
+                    var cloudBucket = Environment.GetEnvironmentVariable("CLOUD_BUCKET");
+                    if (!string.IsNullOrEmpty(cloudBucket))
+                    {
+                        log.LogInformation("🌥️ [CloudRL] Using cloud learning: {CloudBucket}", cloudBucket);
+                        using var cloudRlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
+                    }
+                    else
+                    {
+                        log.LogInformation("🤖 [LocalRL] Using local learning only");
+                        using var autoRlTrainer = new BotCore.AutoRlTrainer(loggerFactory.CreateLogger<BotCore.AutoRlTrainer>());
+                    }
+                    
                     // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
                     string tokenNow = string.Empty;
                     try { tokenNow = await jwtCache.GetAsync() ?? string.Empty; } catch { tokenNow = string.Empty; }
@@ -2751,6 +2765,24 @@ namespace OrchestratorAgent
                     if (chosen is null) return;
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
 
+                    // 🧠 RL Training Data Collection
+                    try 
+                    {
+                        var rlSignalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+                        var features = BotCore.RlTrainingDataCollector.CreateFeatureSnapshot(
+                            rlSignalId, symbol, chosen.StrategyId, chosen.Entry, baselineMultiplier: 1.0m);
+                        
+                        // Populate with available market data
+                        features.SignalStrength = chosen.ExpR;
+                        
+                        // TODO: Add your indicator values here when available
+                        // features.Atr = GetAtr(symbol);
+                        // features.Rsi = GetRsi(symbol);
+                        
+                        BotCore.RlTrainingDataCollector.LogFeatures(log, features);
+                        status.Set($"rl.last_signal_id.{symbol}", rlSignalId); // Store for trade outcomes
+                    } catch (Exception ex) { log.LogDebug("RL data collection failed: {Error}", ex.Message); }
+
                     // RS leader-only arbiter (env RS_ARB/RS_ARB_LEADER_ONLY=1):
                     try
                     {
@@ -2848,7 +2880,7 @@ namespace OrchestratorAgent
                     // RL-based position sizing (if enabled and canary permits)
                     bool rlEnabled = string.Equals(Environment.GetEnvironmentVariable("RL_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
                     string signalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
-                    bool useRlSizing = rlEnabled && rlSizer != null && rlSizer.IsLoaded && sizerCanary.ShouldUseRl(signalId);
+                    bool useRlSizing = rlEnabled && rlSizer?.IsLoaded == true && sizerCanary?.ShouldUseRl(signalId) == true;
                     
                     if (useRlSizing)
                     {
@@ -2876,7 +2908,7 @@ namespace OrchestratorAgent
                             catch { }
 
                             // Get RL recommendation
-                            var rlMultiplier = rlSizer.Recommend(featureSnapshot);
+                            var rlMultiplier = rlSizer!.Recommend(featureSnapshot);
                             
                             // Apply RL multiplier, but keep it bounded and respect existing risk scale
                             riskScale *= (decimal)Math.Max(0.1, Math.Min(rlMultiplier, 2.0)); // RL can scale 0.1x to 2.0x
