@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.Reflection;
+using OrchestratorAgent.ML;
 
 namespace OrchestratorAgent
 {
@@ -30,6 +31,8 @@ namespace OrchestratorAgent
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object _entriesLock = new();
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStrat = new(StringComparer.OrdinalIgnoreCase);
+        // Per-direction attempt caps (key: STRAT|SYMBOL|DIR[L|S])
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime DayEt, int Count)> _attemptsPerStratDir = new(StringComparer.OrdinalIgnoreCase);
 
         // ET helpers for time-window checks (exact shape per spec)
         private static readonly System.Globalization.CultureInfo _inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -116,6 +119,17 @@ namespace OrchestratorAgent
 
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
+            // Guardrail: kill.txt forces DRY_RUN/PAPER and disables LIVE_ORDERS
+            try
+            {
+                if (System.IO.File.Exists("kill.txt"))
+                {
+                    Environment.SetEnvironmentVariable("LIVE_ORDERS", "0");
+                    Environment.SetEnvironmentVariable("PAPER_MODE", "1");
+                    Console.WriteLine("[Guard] kill.txt present — forcing DRY_RUN (PAPER_MODE=1, LIVE_ORDERS=0)");
+                }
+            }
+            catch { }
 
             var concise = (Environment.GetEnvironmentVariable("APP_CONCISE_CONSOLE") ?? "true").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             var loggerFactory = LoggerFactory.Create(b =>
@@ -176,16 +190,220 @@ namespace OrchestratorAgent
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
             }
 
-            // If no credentials are present, avoid long-running network calls and just exit with a clear message.
+            // 🌥️ Initialize RL Training (will be configured later based on credentials)
+            IDisposable? rlTrainer = null;
+
+            // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login).
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY"));
-            if (!hasAnyCred)
+            bool runTuneGate = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            bool authAllowGate = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            if (!hasAnyCred && !(runTuneGate && authAllowGate))
             {
                 Console.WriteLine("[Orchestrator] No credentials detected (TOPSTEPX_JWT / TOPSTEPX_USERNAME / TOPSTEPX_API_KEY). Exiting cleanly.");
                 await Task.Delay(50);
                 return;
             }
+
+            // Optional: run historical tuning and exit when requested
+            try
+            {
+                var runTune = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                if (runTune)
+                {
+                    Console.WriteLine("[Tune] RUN_TUNING=1 detected — starting tuner setup…");
+                    // Conservative HTTP timeout so we don't hang indefinitely on auth/contract calls
+                    try { http.Timeout = TimeSpan.FromSeconds(30); } catch { }
+                    // Auth like main: prefer TOPSTEPX_JWT; optionally login with AUTH_ALLOW=1 and (USERNAME, API_KEY)
+                    var authAllowedTune = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    var jwtEnv = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? Environment.GetEnvironmentVariable("JWT") ?? string.Empty;
+                    var userNameTune = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME") ?? Environment.GetEnvironmentVariable("LOGIN_USERNAME") ?? Environment.GetEnvironmentVariable("LOGIN_EMAIL") ?? Environment.GetEnvironmentVariable("USERNAME") ?? Environment.GetEnvironmentVariable("EMAIL");
+                    var apiKeyTune = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY") ?? Environment.GetEnvironmentVariable("LOGIN_KEY") ?? Environment.GetEnvironmentVariable("API_KEY");
+
+                    var jwtCacheTune = new JwtCache(async () =>
+                    {
+                        var t = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                        if (!string.IsNullOrWhiteSpace(t)) return t!;
+                        if (authAllowedTune && !string.IsNullOrWhiteSpace(userNameTune) && !string.IsNullOrWhiteSpace(apiKeyTune))
+                        {
+                            Console.WriteLine($"[Tune] Acquiring JWT via loginKey for {userNameTune}…");
+                            var authLocal = new TopstepAuthAgent(http);
+                            // Use the main CTS so Ctrl+C cancels, and avoid indefinite wait
+                            var fresh = await authLocal.GetJwtAsync(userNameTune!, apiKeyTune!, cts.Token);
+                            Environment.SetEnvironmentVariable("TOPSTEPX_JWT", fresh);
+                            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", fresh);
+                            Console.WriteLine("[Tune] JWT acquired.");
+                            return fresh;
+                        }
+                        return jwtEnv;
+                    });
+                    // Simple provider for TuningRunner
+                    Func<Task<string>> getJwt = async () => (await jwtCacheTune.GetAsync()) ?? string.Empty;
+
+                    var symbolsCsv = Environment.GetEnvironmentVariable("TUNE_SYMBOLS")
+                                      ?? Environment.GetEnvironmentVariable("TOPSTEPX_SYMBOLS")
+                                      ?? Environment.GetEnvironmentVariable("SYMBOLS")
+                                      ?? Environment.GetEnvironmentVariable("PRIMARY_SYMBOL")
+                                      ?? "ES";
+                    var strategiesCsv = Environment.GetEnvironmentVariable("TUNE_STRATEGIES")
+                                         ?? Environment.GetEnvironmentVariable("STRATEGIES")
+                                         ?? "S2,S3,S6,S11";
+                    var symbols = symbolsCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var strategies = strategiesCsv.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    Console.WriteLine($"[Tune] Symbols=[{string.Join(',', symbols)}] Strategies=[{string.Join(',', strategies)}]");
+
+                    var apiBaseTune = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                    var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBaseTune);
+                    try
+                    {
+                        Console.WriteLine("[Tune] Ensuring JWT present before contract resolution…");
+                        var tok = await jwtCacheTune.GetAsync();
+                        if (!string.IsNullOrWhiteSpace(tok)) apiClient.SetJwt(tok);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Tune] JWT acquire failed: {ex.Message}");
+                    }
+
+                    var until = DateTime.UtcNow.Date.AddDays(0).AddHours(23).AddMinutes(59);
+                    // Prefer CLI args (e.g., --days 5 or --lookback 5), then env (TUNE_LOOKBACK_DAYS, LOOKBACK_DAYS), default 5
+                    static bool TryParseDaysArg(string[] a, out int days)
+                    {
+                        days = 0;
+                        try
+                        {
+                            for (int i = 0; i < a.Length; i++)
+                            {
+                                var s = a[i] ?? string.Empty;
+                                if (s.StartsWith("--days=", StringComparison.OrdinalIgnoreCase) || s.StartsWith("--lookback=", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    var val = s.Split('=', 2)[1];
+                                    if (int.TryParse(val, out var d) && d > 0) { days = d; return true; }
+                                }
+                                if (string.Equals(s, "--days", StringComparison.OrdinalIgnoreCase) || string.Equals(s, "--lookback", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    if (i + 1 < a.Length && int.TryParse(a[i + 1], out var d) && d > 0) { days = d; return true; }
+                                }
+                            }
+                        }
+                        catch { }
+                        return false;
+                    }
+
+                    var rawTuneDays = Environment.GetEnvironmentVariable("TUNE_LOOKBACK_DAYS") ?? string.Empty;
+                    var rawLbDays = Environment.GetEnvironmentVariable("LOOKBACK_DAYS") ?? string.Empty;
+                    int lookbackDays;
+                    int cliDays = 0;
+                    if (TryParseDaysArg(args, out var parsedDays))
+                    {
+                        cliDays = parsedDays;
+                        lookbackDays = parsedDays;
+                    }
+                    else if (int.TryParse(rawTuneDays, out var lb) && lb > 0)
+                        lookbackDays = lb;
+                    else if (int.TryParse(rawLbDays, out lb) && lb > 0)
+                        lookbackDays = lb;
+                    else
+                        lookbackDays = 5;
+
+                    var since = until.AddDays(-lookbackDays);
+                    Console.WriteLine($"[Tune] Lookback selection → argsDays={(cliDays > 0 ? cliDays : 0)} TUNE_LOOKBACK_DAYS='{rawTuneDays}' LOOKBACK_DAYS='{rawLbDays}' ⇒ using {lookbackDays} days");
+                    Console.WriteLine($"[Tune] Window: {since:yyyy-MM-dd} → {until:yyyy-MM-dd} (UTC), lookbackDays={lookbackDays}");
+
+                    // Fail fast if we cannot authenticate and login is locked
+                    var tokenProbe = await jwtCacheTune.GetAsync();
+                    if (string.IsNullOrWhiteSpace(tokenProbe) && !authAllowedTune)
+                    {
+                        Console.WriteLine("[Tune] Missing TOPSTEPX_JWT and AUTH_ALLOW is disabled — cannot fetch history. Set TOPSTEPX_JWT or enable AUTH_ALLOW=1 with username+api key.");
+                        return;
+                    }
+
+                    bool summaryOnly = (Environment.GetEnvironmentVariable("TUNE_SUMMARY_ONLY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                    foreach (var sym in symbols)
+                    {
+                        var root = sym.Trim().ToUpperInvariant();
+                        string contractId = string.Empty;
+                        try
+                        {
+                            // Dynamic env var by root, e.g., TOPSTEPX_CONTRACT_ES, TOPSTEPX_CONTRACT_NQ
+                            var contractVar = $"TOPSTEPX_CONTRACT_{root}";
+                            contractId = Environment.GetEnvironmentVariable(contractVar) ?? string.Empty;
+                            Console.WriteLine($"[Tune] Resolving contractId for {root}…");
+                            if (string.IsNullOrWhiteSpace(contractId))
+                                contractId = await apiClient.ResolveContractIdAsync(root, cts.Token);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[Tune] Contract resolution failed for {root}: {ex.Message}");
+                        }
+
+                        if (string.IsNullOrWhiteSpace(contractId))
+                        { Console.WriteLine($"[Tune] Missing contractId for {root}; set TOPSTEPX_CONTRACT_{root}"); continue; }
+                        else { Console.WriteLine($"[Tune] {root} -> contractId={contractId}"); }
+
+                        foreach (var strat in strategies)
+                        {
+                            var s = strat.Trim().ToUpperInvariant();
+                            if (s == "S2")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S2 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S2 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS2Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                            else if (s == "S3")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S3 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S3 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS3Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                            else if (s == "S6")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S6 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, getJwt, contractId, root, s, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S6 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS6Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                            else if (s == "S11")
+                            {
+                                if (summaryOnly)
+                                {
+                                    Console.WriteLine($"[Backtest] Summary S11 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, getJwt, contractId, root, s, since, until, log, cts.Token);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"[Tune] Running S11 on {root}…");
+                                    await OrchestratorAgent.Execution.TuningRunner.RunS11Async(http, getJwt, contractId, root, since, until, log, cts.Token);
+                                }
+                            }
+                        }
+                    }
+                    Console.WriteLine("[Tune] Completed. Exiting.");
+                    return; // exit after tuning
+                }
+            }
+            catch { }
 
             // Load credentials (with fallbacks for common env names)
             static string? Env(string name) => Environment.GetEnvironmentVariable(name);
@@ -272,6 +490,7 @@ namespace OrchestratorAgent
             catch { }
 
             // Try to obtain JWT if not provided (runtime-locked unless AUTH_ALLOW=1)
+            var runtimeJwtAcquired = false;
             if (string.IsNullOrWhiteSpace(jwt) && !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey))
             {
                 if (authAllowed)
@@ -284,6 +503,7 @@ namespace OrchestratorAgent
                         Environment.SetEnvironmentVariable("TOPSTEPX_JWT", jwt);
                         try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
                         log.LogInformation("Obtained JWT via loginKey for {User}.", userName);
+                        runtimeJwtAcquired = true;
                     }
                     catch (Exception ex)
                     {
@@ -298,8 +518,25 @@ namespace OrchestratorAgent
 
             var status = new StatusService(loggerFactory.CreateLogger<StatusService>()) { AccountId = accountId };
 
-            if (!string.IsNullOrWhiteSpace(jwt))
+            // Backfill JWT from environment if it was acquired during startup
+            if (string.IsNullOrWhiteSpace(jwt))
             {
+                var jwtEnvNow = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? Environment.GetEnvironmentVariable("JWT");
+                if (!string.IsNullOrWhiteSpace(jwtEnvNow))
+                {
+                    jwt = jwtEnvNow;
+                    try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(jwt) || runtimeJwtAcquired || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT")))
+            {
+                if (string.IsNullOrWhiteSpace(jwt))
+                {
+                    // Backfill from env if available
+                    jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                    try { if (!string.IsNullOrWhiteSpace(jwt)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt); } catch { }
+                }
                 if (accountId <= 0)
                 {
                     log.LogWarning("TOPSTEPX_ACCOUNT_ID not set. Launching in account-discovery mode (SubscribeAccounts only). You can set the account ID later.");
@@ -364,7 +601,29 @@ namespace OrchestratorAgent
                     });
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
-                    await userHub.ConnectAsync(jwt!, accountId, cts.Token);
+                    
+                    // 🌥️ Initialize Cloud + Local RL Training (Hybrid Mode)
+                    var cloudBucket = Environment.GetEnvironmentVariable("CLOUD_BUCKET");
+                    if (!string.IsNullOrEmpty(cloudBucket))
+                    {
+                        log.LogInformation("🌥️ [CloudRL] Using cloud learning: {CloudBucket}", cloudBucket);
+                        rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
+                    }
+                    else
+                    {
+                        log.LogInformation("🤖 [LocalRL] Using local learning only");
+                        rlTrainer = new BotCore.AutoRlTrainer(loggerFactory.CreateLogger<BotCore.AutoRlTrainer>());
+                    }
+                    
+                    // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
+                    string tokenNow = string.Empty;
+                    try { tokenNow = await jwtCache.GetAsync() ?? string.Empty; } catch { tokenNow = string.Empty; }
+                    if (string.IsNullOrWhiteSpace(tokenNow) && !string.IsNullOrWhiteSpace(jwt)) tokenNow = jwt!;
+                    if (!string.IsNullOrWhiteSpace(tokenNow))
+                    {
+                        try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenNow); } catch { }
+                    }
+                    await userHub.ConnectAsync(tokenNow!, accountId, cts.Token);
 
                     // Resolve roots and contracts from env (with REST fallback)
                     var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
@@ -424,6 +683,25 @@ namespace OrchestratorAgent
                     // Subscribe to user hub events
                     userHub.OnPosition += posTracker.OnPosition;
                     userHub.OnTrade += posTracker.OnTrade;
+                    // Structured JSON logs per guardrails
+                    userHub.OnOrder += je =>
+                    {
+                        try
+                        {
+                            var line = new { type = "ORDER", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
+                            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
+                        }
+                        catch { }
+                    };
+                    userHub.OnTrade += je =>
+                    {
+                        try
+                        {
+                            var line = new { type = "TRADE", ts = DateTimeOffset.UtcNow, account = accountId, json = je };
+                            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(line));
+                        }
+                        catch { }
+                    };
                     // Feed market trades for last price updates
                     market1.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
                     if (enableNq && market2 != null) market2.OnTrade += (cid, tick) => { try { var je = System.Text.Json.JsonSerializer.SerializeToElement(new { symbol = cid, price = tick.Price }); posTracker.OnMarketTrade(je); } catch { } };
@@ -439,10 +717,28 @@ namespace OrchestratorAgent
 
                     // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
                     Dashboard.RealtimeHub? dashboardHub = null;
+                    OrchestratorAgent.ML.RlSizer? rlSizer = null;
+                    OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                         // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
+                        
+                        // Register RlSizer for risk-aware position sizing
+                        webBuilder.Services.AddSingleton<OrchestratorAgent.ML.RlSizer>(sp =>
+                        {
+                            var logger = sp.GetService<ILogger<OrchestratorAgent.ML.RlSizer>>();
+                            var onnxPath = Environment.GetEnvironmentVariable("RL_ONNX") ?? "models/rl/latest_rl_sizer.onnx";
+                            var actionsStr = Environment.GetEnvironmentVariable("RL_ACTIONS") ?? "0.50,0.75,1.00,1.25,1.50";
+                            var actions = actionsStr.Split(',').Select(s => float.Parse(s.Trim())).ToArray();
+                            var sampleAction = string.Equals(Environment.GetEnvironmentVariable("RL_SAMPLE_ACTION"), "1");
+                            var maxAgeMin = int.TryParse(Environment.GetEnvironmentVariable("RL_MAX_AGE_MIN"), out var age) ? age : 120;
+                            return new OrchestratorAgent.ML.RlSizer(onnxPath, actions, sampleAction, maxAgeMin, logger);
+                        });
+                        
+                        // Register SizerCanary for A/A testing RL vs baseline CVaR
+                        webBuilder.Services.AddSingleton<OrchestratorAgent.ML.SizerCanary>();
+                        
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
                         {
@@ -476,7 +772,13 @@ namespace OrchestratorAgent
                                 var remaining = mdl + Math.Min(0m, realized);
                                 var userHubState = "Connected"; // simplify; refine from actual hub state if desired
                                 var marketHubState = "Connected";
-                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips);
+
+                                // Flags for dashboard badges derived from status/env
+                                // (we'll extend the MetricsSnapshot to include them)
+                                bool curfewNoNew = status.Get<bool?>("curfew.no_new") ?? false;
+                                bool dayPnlNoNew = status.Get<bool?>("day_pnl.no_new") ?? false;
+
+                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew);
                             }
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
@@ -485,6 +787,8 @@ namespace OrchestratorAgent
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
+                        rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
+                        sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
                         web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
@@ -503,6 +807,10 @@ namespace OrchestratorAgent
                                 return Results.Json(new { mode = "UNKNOWN", lease = (bool?)null, drain = (bool?)null }, statusCode: 503);
                             return Results.Json(new { mode = modeRef.IsLive ? "LIVE" : "SHADOW", lease = liveLeaseRef?.HasLease, drain = appStateRef?.DrainMode });
                         });
+                        web.MapGet("/healthz/canary", () =>
+                        {
+                            return Results.Json(sizerCanary.GetConfig());
+                        });
                         web.MapGet("/build", () =>
                         {
                             var infoVer = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
@@ -518,7 +826,73 @@ namespace OrchestratorAgent
                             };
                             return Results.Json(payload);
                         });
+                        // VerifyToday summary: totals by status using today UTC window
+                        web.MapGet("/verify/today", async () =>
+                        {
+                            try
+                            {
+                                var api = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
+                                var tok = await jwtCache.GetAsync();
+                                if (!string.IsNullOrWhiteSpace(tok)) api.SetJwt(tok);
+                                var utc = DateTimeOffset.UtcNow;
+                                var start = new DateTimeOffset(utc.Year, utc.Month, utc.Day, 0, 0, 0, TimeSpan.Zero);
+                                var end = start.AddDays(1);
+                                var body = new { accountId, start = start.ToUnixTimeMilliseconds(), end = end.ToUnixTimeMilliseconds() };
+                                var orders = await api.SearchOrdersAsync(body, cts.Token);
+                                var trades = await api.SearchTradesAsync(body, cts.Token);
+                                int Count(JsonElement root, string status)
+                                {
+                                    try { if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("data", out var d)) root = d; } catch { }
+                                    int n = 0; if (root.ValueKind == JsonValueKind.Array)
+                                    {
+                                        foreach (var el in root.EnumerateArray())
+                                        {
+                                            try { if (el.TryGetProperty("status", out var s) && s.ToString().Equals(status, StringComparison.OrdinalIgnoreCase)) n++; } catch { }
+                                        }
+                                    }
+                                    return n;
+                                }
+                                var res = new
+                                {
+                                    filled = Count(orders, "FILLED"),
+                                    rejected = Count(orders, "REJECTED"),
+                                    cancelled = Count(orders, "CANCELLED") + Count(orders, "CANCELED"),
+                                    open = Count(orders, "OPEN") + Count(orders, "NEW"),
+                                    trades = trades.ValueKind == JsonValueKind.Array ? trades.GetArrayLength() : 0
+                                };
+                                return Results.Json(res);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
                         web.MapGet("/capabilities", () => Results.Json(OrchestratorAgent.Infra.Capabilities.All));
+                        // Veto counters: GET snapshot, POST clear
+                        web.MapGet("/veto", () =>
+                        {
+                            try
+                            {
+                                var map = status.Snapshot("veto.");
+                                return Results.Json(map);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
+                        web.MapPost("/veto/clear", () =>
+                        {
+                            try
+                            {
+                                var n = status.ClearByPrefix("veto.");
+                                return Results.Json(new { cleared = n });
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
                         web.MapGet("/deploy/status", () =>
                         {
                             string stateDir = Path.Combine(AppContext.BaseDirectory, "state");
@@ -528,6 +902,135 @@ namespace OrchestratorAgent
                             string readOrEmpty(string p) => System.IO.File.Exists(p) ? System.IO.File.ReadAllText(p) : "";
                             var obj = new { lastDeployed = readOrEmpty(lastPath), historyJsonl = readOrEmpty(logPath), pendingCommits = readOrEmpty(pending) };
                             return Results.Json(obj);
+                        });
+                        web.MapGet("/retune/status", () =>
+                        {
+                            try
+                            {
+                                var path = Path.Combine(AppContext.BaseDirectory, "state", "tuning", "retune_status.json");
+                                if (!System.IO.File.Exists(path)) return Results.Text("{}", "application/json");
+                                return Results.Text(System.IO.File.ReadAllText(path), "application/json");
+                            }
+                            catch (Exception ex) { return Results.Json(new { error = ex.Message }, statusCode: 500); }
+                        });
+                        // On-demand 10-day performance summary (aggregates per root across S2/S3/S6/S11)
+                        web.MapGet("/perf/summary", async (HttpContext ctx) =>
+                        {
+                            try
+                            {
+                                int days = 10;
+                                var q = ctx.Request.Query["days"].FirstOrDefault();
+                                if (!string.IsNullOrWhiteSpace(q) && int.TryParse(q, out var d) && d > 0) days = d;
+                                var until = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
+                                var since = until.AddDays(-(days - 1)).Date;
+
+                                var roots = new System.Collections.Generic.List<string> { esRoot }; if (enableNq) roots.Add(nqRoot);
+                                var strats = new[] { "S2", "S3", "S6", "S11" };
+
+                                // Ensure JWT before calling history
+                                try { var tok = await jwtCache.GetAsync(); if (!string.IsNullOrWhiteSpace(tok)) http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tok); } catch { }
+
+                                // Run summaries sequentially per root/strategy to keep load modest
+                                foreach (var root in roots)
+                                {
+                                    if (!contractIds.TryGetValue(root, out var cid) || string.IsNullOrWhiteSpace(cid)) continue;
+                                    foreach (var s in strats)
+                                    {
+                                        try
+                                        {
+                                            if (s == "S2") await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, log, cts.Token);
+                                            else if (s == "S3") await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, since, until, log, cts.Token);
+                                            else await OrchestratorAgent.Execution.TuningRunner.RunStrategySummaryAsync(http, async () => await jwtCache.GetAsync() ?? string.Empty, cid, root, s, since, until, log, cts.Token);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            log.LogWarning(ex, "[Perf] summary run failed {Root}/{Strat}", root, s);
+                                        }
+                                    }
+                                }
+
+                                // Aggregate latest results from state/backtest
+                                var outDir = Path.Combine(AppContext.BaseDirectory, "state", "backtest");
+                                var list = new System.Collections.Generic.List<object>();
+                                foreach (var root in roots)
+                                {
+                                    decimal totalUsd = 0m; int totalTrades = 0;
+                                    var per = new System.Collections.Generic.List<object>();
+                                    foreach (var s in strats)
+                                    {
+                                        try
+                                        {
+                                            var pattern = $"{s}-summary-{root}-";
+                                            var files = System.IO.Directory.Exists(outDir)
+                                                ? new DirectoryInfo(outDir).GetFiles("*.json").Where(f => f.Name.StartsWith(pattern, StringComparison.OrdinalIgnoreCase)).OrderByDescending(f => f.LastWriteTimeUtc).ToList()
+                                                : new System.Collections.Generic.List<FileInfo>();
+                                            if (files.Count == 0) { per.Add(new { strat = s, trades = 0, netUsd = 0m, winRate = 0m }); continue; }
+                                            var txt = System.IO.File.ReadAllText(files[0].FullName);
+                                            using var doc = System.Text.Json.JsonDocument.Parse(txt);
+                                            var r = doc.RootElement;
+                                            int trades = r.TryGetProperty("trades", out var tr) && tr.TryGetInt32(out var it) ? it : 0;
+                                            decimal netUsd = r.TryGetProperty("netUsd", out var nu) && nu.TryGetDecimal(out var du) ? du : 0m;
+                                            decimal winRate = r.TryGetProperty("winRate", out var wr) && wr.ValueKind == System.Text.Json.JsonValueKind.Number ? wr.GetDecimal() : 0m;
+                                            totalTrades += trades; totalUsd += netUsd;
+                                            per.Add(new { strat = s, trades, netUsd, winRate });
+                                        }
+                                        catch { per.Add(new { strat = s, trades = 0, netUsd = 0m, winRate = 0m }); }
+                                    }
+                                    list.Add(new { root, totalTrades, totalUsd, perStrategy = per });
+                                }
+
+                                var res = new { days, since, until, roots = list };
+                                return Results.Json(res);
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
+                        // Canary state endpoint for visibility (reads state/params/canary.json if present)
+                        web.MapGet("/canary/state", () =>
+                        {
+                            try
+                            {
+                                var canaryPath = Path.Combine(AppContext.BaseDirectory, "state", "params", "canary.json");
+                                if (!System.IO.File.Exists(canaryPath)) return Results.Text("{}", "application/json");
+                                var txt = System.IO.File.ReadAllText(canaryPath);
+                                return Results.Text(txt, "application/json");
+                            }
+                            catch (Exception ex)
+                            {
+                                return Results.Json(new { error = ex.Message }, statusCode: 500);
+                            }
+                        });
+                        web.MapPost("/canary/reset", () =>
+                        {
+                            try
+                            {
+                                var path = Path.Combine(AppContext.BaseDirectory, "state", "params", "canary.json");
+                                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
+                                return Results.Json(new { ok = true });
+                            }
+                            catch (Exception ex) { return Results.Json(new { ok = false, error = ex.Message }, statusCode: 500); }
+                        });
+                        web.MapPost("/canary/blacklist/clear", () =>
+                        {
+                            try
+                            {
+                                var path = Path.Combine(AppContext.BaseDirectory, "state", "params", "canary.json");
+                                if (!System.IO.File.Exists(path)) return Results.Json(new { ok = true, msg = "no state" });
+                                var json = System.IO.File.ReadAllText(path);
+                                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                                var root = doc.RootElement;
+                                var dict = new System.Text.Json.Nodes.JsonObject();
+                                foreach (var prop in root.EnumerateObject())
+                                {
+                                    if (prop.NameEquals("blacklist")) { dict["blacklist"] = new System.Text.Json.Nodes.JsonObject(); }
+                                    else dict[prop.Name] = System.Text.Json.Nodes.JsonNode.Parse(prop.Value.GetRawText());
+                                }
+                                System.IO.File.WriteAllText(path, dict.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+                                return Results.Json(new { ok = true });
+                            }
+                            catch (Exception ex) { return Results.Json(new { ok = false, error = ex.Message }, statusCode: 500); }
                         });
                         web.MapGet("/promote", () => { modeRef?.Set(OrchestratorAgent.Ops.TradeMode.Live); if (appStateRef is not null) appStateRef.DrainMode = false; return Results.Json(new { ok = true }); });
                         web.MapGet("/demote", () => { modeRef?.Set(OrchestratorAgent.Ops.TradeMode.Shadow); if (appStateRef is not null) appStateRef.DrainMode = true; return Results.Json(new { ok = true }); });
@@ -706,6 +1209,59 @@ namespace OrchestratorAgent
                         catch { }
                     };
 
+                    // Background learner loop (offline only): reads recent summaries and writes TTL overrides
+                    try
+                    {
+                        var runLearn = (Environment.GetEnvironmentVariable("RUN_LEARNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        var liveOrdersFlag = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (runLearn && !liveOrdersFlag)
+                        {
+                            var learnCts = CancellationTokenSource.CreateLinkedTokenSource(cts.Token);
+                            _ = Task.Run(async () =>
+                            {
+                                var llog = loggerFactory.CreateLogger("Learner");
+                                while (!learnCts.IsCancellationRequested)
+                                {
+                                    try { await OrchestratorAgent.Execution.AdaptiveLearner.RunAsync(esRoot, llog, learnCts.Token); }
+                                    catch (OperationCanceledException) { }
+                                    catch (Exception ex) { log.LogWarning(ex, "[Learn] loop failure"); }
+                                    // Hourly cadence
+                                    try { await Task.Delay(TimeSpan.FromHours(1), learnCts.Token); } catch (OperationCanceledException) { }
+                                    // Re-apply overrides in case a new one was written
+                                    try { BotCore.Config.ParamStore.ApplyS2OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log); } catch { }
+                                    try { BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log); } catch { }
+                                }
+                            }, learnCts.Token);
+                        }
+                    }
+                    catch { }
+
+                    // Instant-apply ParamStore watcher (offline default). Guarded by INSTANT_APPLY env.
+                    OrchestratorAgent.Infra.ParamStoreWatcher? psWatcher = null;
+                    try
+                    {
+                        bool instant = (Environment.GetEnvironmentVariable("INSTANT_APPLY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        bool allowLiveInstant = (Environment.GetEnvironmentVariable("INSTANT_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (instant)
+                        {
+                            int cdSec = 300; // default 5m
+                            var rawCd = Environment.GetEnvironmentVariable("INSTANT_APPLY_COOLDOWN_SEC");
+                            if (!string.IsNullOrWhiteSpace(rawCd) && int.TryParse(rawCd, out var v) && v > 0) cdSec = v;
+                            var paramsDir = System.IO.Path.Combine(AppContext.BaseDirectory, "state", "params");
+                            psWatcher = new OrchestratorAgent.Infra.ParamStoreWatcher(log, paramsDir, TimeSpan.FromSeconds(cdSec), allowLiveInstant);
+                            psWatcher.Start();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning(ex, "[ParamWatch] init failed");
+                    }
+
                     // Heartbeat loop (throttled inside StatusService)
                     _ = Task.Run(async () =>
                     {
@@ -715,6 +1271,13 @@ namespace OrchestratorAgent
                             try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch { }
                         }
                     }, cts.Token);
+
+                    // Dispose watcher on shutdown
+                    _ = Task.Run(async () =>
+                    {
+                        try { await Task.Delay(Timeout.InfiniteTimeSpan, cts.Token); } catch { }
+                        try { if (psWatcher != null) await psWatcher.DisposeAsync(); } catch { }
+                    });
 
                     // Publish snapshot periodically to status
                     _ = Task.Run(async () =>
@@ -877,6 +1440,183 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
+                    // Autopilot defaults (non-live): turn on instant apply, preset select, and rollback unless explicitly disabled
+                    try
+                    {
+                        var isLive = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (!isLive)
+                        {
+                            // Only set if not already configured by user
+                            void SetIfMissing(string key, string val)
+                            {
+                                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key))) Environment.SetEnvironmentVariable(key, val);
+                            }
+                            SetIfMissing("INSTANT_APPLY", "1");
+                            SetIfMissing("PRESET_SELECT", "1");
+                            SetIfMissing("ROLLBACK_ENABLE", "1");
+                            SetIfMissing("PROMOTE_TUNER", "1");
+                            SetIfMissing("CANARY_ENABLE", "1");
+                            // Continuous retune defaults
+                            SetIfMissing("RETUNE_CONTINUOUS", "1");
+                            SetIfMissing("RETUNE_LOOKBACK_DAYS", "7");
+                            SetIfMissing("RETUNE_INTERVAL_MIN", "60");
+                        }
+                    }
+                    catch { }
+
+                    // Regime-aware preset selector (optional periodic) + Rollback guard + Nightly retuner
+                    try
+                    {
+                        bool presetSel = (Environment.GetEnvironmentVariable("PRESET_SELECT") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        bool allowLivePreset = (Environment.GetEnvironmentVariable("PRESET_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        bool rbEnable = (Environment.GetEnvironmentVariable("ROLLBACK_ENABLE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (presetSel)
+                        {
+                            var presetLog = loggerFactory.CreateLogger("Preset");
+                            int dwellMin = 30; // default
+                            var rawDwell = Environment.GetEnvironmentVariable("PRESET_DWELL_MIN");
+                            if (!string.IsNullOrWhiteSpace(rawDwell) && int.TryParse(rawDwell, out var dwellOut) && dwellOut > 0) dwellMin = dwellOut;
+                            var selector = new OrchestratorAgent.Infra.PresetSelector(
+                                presetLog,
+                                root =>
+                                {
+                                    var cid = contractIds.TryGetValue(root, out var id) ? id : string.Empty;
+                                    if (string.IsNullOrWhiteSpace(cid)) return Array.Empty<BotCore.Models.Bar>();
+                                    // Convert Market.Bar to Models.Bar (subset fields)
+                                    var m1 = barPyramid.M1.GetHistory(cid);
+                                    var list = new System.Collections.Generic.List<BotCore.Models.Bar>(m1.Count);
+                                    foreach (var b in m1)
+                                        list.Add(new BotCore.Models.Bar
+                                        {
+                                            Start = b.Start,
+                                            Ts = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeMilliseconds(),
+                                            Open = b.Open,
+                                            High = b.High,
+                                            Low = b.Low,
+                                            Close = b.Close,
+                                            Volume = (int)Math.Min(int.MaxValue, b.Volume)
+                                        });
+                                    return list;
+                                },
+                                dwell: TimeSpan.FromMinutes(dwellMin),
+                                allowLive: allowLivePreset);
+
+                            _ = Task.Run(async () =>
+                            {
+                                int loopMin = 10; var rawLoop = Environment.GetEnvironmentVariable("PRESET_LOOP_MIN");
+                                if (!string.IsNullOrWhiteSpace(rawLoop) && int.TryParse(rawLoop, out var loopOut) && loopOut > 0) loopMin = loopOut;
+                                while (!cts.IsCancellationRequested)
+                                {
+                                    try { selector.EvaluateAndApply(esRoot); if (enableNq) selector.EvaluateAndApply(nqRoot); } catch (Exception ex) { presetLog.LogWarning(ex, "[Preset] loop"); }
+                                    try { await Task.Delay(TimeSpan.FromMinutes(loopMin), cts.Token); } catch { }
+                                }
+                            }, cts.Token);
+                        }
+
+                        if (rbEnable)
+                        {
+                            var rbLog = loggerFactory.CreateLogger("Rollback");
+                            int windowMin = 60; decimal dropUsd = 300m;
+                            var rawW = Environment.GetEnvironmentVariable("ROLLBACK_WINDOW_MIN");
+                            var rawD = Environment.GetEnvironmentVariable("ROLLBACK_DROP_USD");
+                            if (!string.IsNullOrWhiteSpace(rawW) && int.TryParse(rawW, out var wm) && wm > 0) windowMin = wm;
+                            if (!string.IsNullOrWhiteSpace(rawD) && decimal.TryParse(rawD, out var du) && du > 0) dropUsd = du;
+                            bool allowLiveRb = (Environment.GetEnvironmentVariable("ROLLBACK_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                            var guard = new OrchestratorAgent.Infra.AutoRollbackGuard(rbLog, posTracker, TimeSpan.FromMinutes(windowMin), dropUsd, allowLiveRb);
+                            guard.Start();
+                            // Dispose with host
+                            cts.Token.Register(async () => { try { await guard.DisposeAsync(); } catch { } });
+                        }
+
+                        // Nightly retuner (optional; default enabled in non-live)
+                        bool retune = (Environment.GetEnvironmentVariable("RETUNE_ENABLE") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (retune)
+                        {
+                            var retuneLog = loggerFactory.CreateLogger("Retune");
+                            var roots = new List<string> { esRoot }; if (enableNq) roots.Add(nqRoot);
+                            var retuner = new OrchestratorAgent.Execution.NightlyRetuner(retuneLog, http, async () => await jwtCache.GetAsync() ?? string.Empty, contractIds, roots, cts.Token);
+                            retuner.Start();
+                            cts.Token.Register(async () => { try { await retuner.DisposeAsync(); } catch { } });
+                        }
+
+                        // Continuous retuner (rolling 7-day window, runs periodically; default enabled in non-live)
+                        bool contRetune = (Environment.GetEnvironmentVariable("RETUNE_CONTINUOUS") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (contRetune)
+                        {
+                            var contLog = loggerFactory.CreateLogger("Retune");
+                            var roots = new List<string> { esRoot }; if (enableNq) roots.Add(nqRoot);
+                            int lbDays = 7; var rawLb = Environment.GetEnvironmentVariable("RETUNE_LOOKBACK_DAYS"); if (!string.IsNullOrWhiteSpace(rawLb) && int.TryParse(rawLb, out var d) && d > 0) lbDays = d;
+                            int minutes = 60; var rawInt = Environment.GetEnvironmentVariable("RETUNE_INTERVAL_MIN"); if (!string.IsNullOrWhiteSpace(rawInt) && int.TryParse(rawInt, out var m) && m > 0) minutes = m;
+                            bool allowLiveCont = (Environment.GetEnvironmentVariable("RETUNE_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                            var cont = new OrchestratorAgent.Execution.ContinuousRetuner(contLog, http, async () => await jwtCache.GetAsync() ?? string.Empty, contractIds, roots, TimeSpan.FromMinutes(minutes), lbDays, allowLiveCont, cts.Token);
+                            cont.Start();
+                            cts.Token.Register(async () => { try { await cont.DisposeAsync(); } catch { } });
+                        }
+
+                        // Bandit-style Canary selector (epsilon-greedy explore/exploit across preset bundles)
+                        bool canaryEnable = (Environment.GetEnvironmentVariable("CANARY_ENABLE") ?? (Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1" ? "0" : "1")).Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (canaryEnable)
+                        {
+                            var canLog = loggerFactory.CreateLogger("Canary");
+                            int dwellMin = 120; int windowMin = 45; decimal eps = 0.15m;
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_DWELL_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) dwellMin = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_WINDOW_MIN"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i > 0) windowMin = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_EPSILON"); if (!string.IsNullOrWhiteSpace(v) && decimal.TryParse(v, out var d) && d >= 0) eps = d; } catch { }
+                            bool allowLiveCanary = (Environment.GetEnvironmentVariable("CANARY_ALLOW_LIVE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+
+                            // Tags provider from recent 1m bars (mirror PresetSelector logic)
+                            HashSet<string> TagsFor(string root)
+                            {
+                                try
+                                {
+                                    var cid = contractIds.TryGetValue(root, out var id) ? id : string.Empty;
+                                    if (string.IsNullOrWhiteSpace(cid)) return new HashSet<string>();
+                                    var m1 = barPyramid.M1.GetHistory(cid);
+                                    if (m1 == null || m1.Count < 80) return new HashSet<string>();
+                                    int n = Math.Min(120, m1.Count);
+                                    var seg = m1.Skip(m1.Count - n).ToList();
+                                    var rets = new System.Collections.Generic.List<decimal>(n - 1);
+                                    for (int i = 1; i < seg.Count; i++)
+                                    {
+                                        var prev = seg[i - 1].Close;
+                                        var curr = seg[i].Close;
+                                        if (prev > 0) rets.Add((curr - prev) / prev);
+                                    }
+                                    var mean = rets.Count > 0 ? rets.Average() : 0m;
+                                    var std = (decimal)Math.Sqrt((double)(rets.Select(r => (r - mean) * (r - mean)).DefaultIfEmpty(0m).Average()));
+                                    var tags = new HashSet<string>();
+                                    if (std < 0.0006m) tags.Add("low_vol");
+                                    else if (std > 0.0012m) tags.Add("high_vol");
+                                    else tags.Add("mid_vol");
+                                    decimal slope = 0m;
+                                    if (seg.Count > 5)
+                                    {
+                                        int m = seg.Count;
+                                        var xs = Enumerable.Range(0, m).Select(i => (decimal)i).ToArray();
+                                        var ys = seg.Select(b => b.Close).ToArray();
+                                        var xMean = xs.Average(); var yMean = ys.Average();
+                                        var num = 0m; var den = 0m;
+                                        for (int i = 0; i < m; i++) { var dx = xs[i] - xMean; num += dx * (ys[i] - yMean); den += dx * dx; }
+                                        slope = den != 0 ? num / den : 0m;
+                                    }
+                                    if (Math.Abs(slope) > 0.25m) tags.Add("trend"); else tags.Add("range");
+                                    return tags;
+                                }
+                                catch { return new HashSet<string>(); }
+                            }
+
+                            int minPlays = 2; decimal minEps = 0.05m; double halfLife = 6d;
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_MIN_PLAYS"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var i) && i >= 0) minPlays = i; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_MIN_EPS"); if (!string.IsNullOrWhiteSpace(v) && decimal.TryParse(v, out var d) && d >= 0) minEps = d; } catch { }
+                            try { var v = Environment.GetEnvironmentVariable("CANARY_HALF_LIFE_HOURS"); if (!string.IsNullOrWhiteSpace(v) && double.TryParse(v, out var d) && d > 0) halfLife = d; } catch { }
+                            var canary = new OrchestratorAgent.Infra.CanarySelector(canLog, TagsFor, posTracker, TimeSpan.FromMinutes(dwellMin), TimeSpan.FromMinutes(windowMin), eps, allowLiveCanary, minPlays, minEps, halfLife);
+                            canary.Start();
+                            cts.Token.Register(async () => { try { await canary.DisposeAsync(); } catch { } });
+
+                        }
+                    }
+                    catch { }
+
                     // Seed dashboard history once (540 1m bars)
                     try
                     {
@@ -978,9 +1718,10 @@ namespace OrchestratorAgent
                         try { status.Set("profile.buffers.NQ", activeProfile.Buffers?.NQ_Ticks ?? 0); } catch { }
                         try { status.Set("profile.min_spacing_sec", activeProfile.GlobalFilters?.MinSecondsBetweenEntries ?? (isNight ? 120 : 45)); } catch { }
                         // Apply S2 runtime config from profile if present
-                        try {
+                        try
+                        {
                             var s2def = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
-                            if (s2def is not null) 
+                            if (s2def is not null)
                             {
                                 BotCore.Strategy.S2RuntimeConfig.ApplyFrom(s2def);
                                 // Log Patch B S2 config for observability
@@ -995,19 +1736,48 @@ namespace OrchestratorAgent
                                     BotCore.Strategy.S2RuntimeConfig.RollWeekSigmaBump,
                                     BotCore.Strategy.S2RuntimeConfig.PriorDayVwapVeto,
                                     BotCore.Strategy.S2RuntimeConfig.PriorDayCloseVeto);
+                                // Apply ParamStore override if available (TTL-guarded, offline managed)
+                                try
+                                {
+                                    var applied = BotCore.Config.ParamStore.ApplyS2OverrideIfPresent(esRoot, log);
+                                    if (applied) status.Set("profile.override.s2", true);
+                                }
+                                catch { }
+                                // Apply overrides for other strategies if present
+                                try { if (BotCore.Config.ParamStore.ApplyS3OverrideIfPresent(esRoot, log)) status.Set("profile.override.s3", true); } catch { }
+                                try { if (BotCore.Config.ParamStore.ApplyS6OverrideIfPresent(esRoot, log)) status.Set("profile.override.s6", true); } catch { }
+                                try { if (BotCore.Config.ParamStore.ApplyS11OverrideIfPresent(esRoot, log)) status.Set("profile.override.s11", true); } catch { }
                             }
-                        } catch { }
+                        }
+                        catch { }
 
-                        // optional: if curfew, disable entries & flatten; auto-clear at 09:28
-                        if (InRange(et, "09:15", "09:23:30"))
+                        // optional: if curfew configured in S2 profile, enforce no-new and flatten
+                        var s2 = activeProfile.Strategies?.FirstOrDefault(s => string.Equals(s.Id, "S2", StringComparison.OrdinalIgnoreCase));
+                        string noNew = string.Empty, forceFlat = string.Empty;
+                        try
+                        {
+                            if (s2 != null && s2.Extra.TryGetValue("curfew", out var cf) && cf.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            {
+                                if (cf.TryGetProperty("no_new_hhmm", out var nn) && nn.ValueKind == System.Text.Json.JsonValueKind.String) noNew = nn.GetString() ?? string.Empty;
+                                if (cf.TryGetProperty("force_flat_hhmm", out var ff) && ff.ValueKind == System.Text.Json.JsonValueKind.String) forceFlat = ff.GetString() ?? string.Empty;
+                            }
+                        }
+                        catch { }
+                        if (!string.IsNullOrWhiteSpace(noNew) && TimeSpan.TryParse(noNew, out var nnTs) && et >= nnTs && et < TS("09:28"))
                         {
                             try { router.DisableAllEntries(); } catch { }
-                            try { await router.CloseAll("CurfewIntoRTH", CancellationToken.None); } catch { }
-                            log.LogInformation("[Curfew] ET 09:15–09:23:30 — entries disabled and flatten requested.");
+                            try { status.Set("curfew.no_new", true); } catch { }
+                            log.LogInformation("[Curfew] No-new active from {NoNew} — entries disabled.", noNew);
+                        }
+                        if (!string.IsNullOrWhiteSpace(forceFlat) && TimeSpan.TryParse(forceFlat, out var ffTs) && et >= ffTs && et < TS("09:28"))
+                        {
+                            try { await router.CloseAll("CurfewForceFlat", CancellationToken.None); } catch { }
+                            log.LogInformation("[Curfew] Force-flat at {Force}", forceFlat);
                         }
                         else if (et >= TS("09:28"))
                         {
                             try { router.EnableAllEntries(); } catch { }
+                            try { status.Set("curfew.no_new", false); } catch { }
                             log.LogInformation("[Curfew] Cleared at 09:28 ET — entries re-enabled.");
                         }
                     }
@@ -1514,7 +2284,7 @@ namespace OrchestratorAgent
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
                         // Handoff to strategy engine (bus-equivalent)
                         log.LogDebug("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
-                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, cts.Token);
+                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, cts.Token);
                         dataLog.LogDebug("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
                     barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
@@ -1683,6 +2453,9 @@ namespace OrchestratorAgent
                 }
             }
 
+            // 🧹 Cleanup RL Trainer
+            try { rlTrainer?.Dispose(); } catch { }
+
             // Local helper runs strategies for a new bar of a symbol
             static async Task RunStrategiesFor(
                 string symbol,
@@ -1699,12 +2472,42 @@ namespace OrchestratorAgent
                 OrchestratorAgent.Ops.AppState appState,
                 OrchestratorAgent.Ops.LiveLease liveLease,
                 SupervisorAgent.StatusService status,
+                OrchestratorAgent.ML.RlSizer? rlSizer,
+                OrchestratorAgent.ML.SizerCanary? sizerCanary,
                 CancellationToken ct)
             {
                 try
                 {
                     // Keep a reasonable history window
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
+
+                    // Local helpers: veto counters and simple RS momentum
+                    void IncVeto(string reason)
+                    {
+                        try
+                        {
+                            var baseKey = $"veto.{reason}";
+                            var total = status.Get<int>(baseKey);
+                            status.Set(baseKey, total + 1);
+                            var symKey = $"{baseKey}.{symbol.ToUpperInvariant()}";
+                            var by = status.Get<int>(symKey);
+                            status.Set(symKey, by + 1);
+                        }
+                        catch { }
+                    }
+
+                    static decimal ComputeMomentum(IReadOnlyList<BotCore.Models.Bar> bars, int look)
+                    {
+                        if (bars == null || bars.Count < look + 1) return 0m;
+                        decimal sum = 0m;
+                        int start = Math.Max(1, bars.Count - look);
+                        for (int i = start; i < bars.Count; i++)
+                        {
+                            var p0 = bars[i - 1].Close; var p1 = bars[i].Close;
+                            if (p0 != 0m) sum += (p1 - p0) / p0;
+                        }
+                        return sum;
+                    }
 
 
                     // Build a minimal env
@@ -1735,11 +2538,13 @@ namespace OrchestratorAgent
                         if (rthOnly && !inRth)
                         {
                             log.LogInformation("[SKIP reason=session] {Sym} outside RTH", symbol);
+                            IncVeto("session");
                             return;
                         }
                         if (rthOnly && (nowCt < open.Add(TimeSpan.FromMinutes(3)) || nowCt > close.Subtract(TimeSpan.FromMinutes(5))))
                         {
                             log.LogInformation("[SKIP reason=session_window] {Sym} warmup/cooldown window", symbol);
+                            IncVeto("session_window");
                             return;
                         }
                         // Curfew: block new entries into U.S. open (ET 09:15–09:23)
@@ -1748,6 +2553,7 @@ namespace OrchestratorAgent
                             if (InRange(NowET().TimeOfDay, "09:15", "09:23:30"))
                             {
                                 log.LogInformation("[SKIP reason=curfew] {Sym} ET 09:15–09:23:30 curfew active", symbol);
+                                IncVeto("curfew");
                                 return;
                             }
                         }
@@ -1765,7 +2571,7 @@ namespace OrchestratorAgent
                                     var parts = blk.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                     if (parts.Length == 2 && TimeSpan.TryParse(parts[0], out var b) && TimeSpan.TryParse(parts[1], out var e))
                                     {
-                                        if (nowEt >= b && nowEt <= e) { log.LogInformation("[SKIP reason=econ] {Sym} in econ block {Blk}", symbol, blk); return; }
+                                        if (nowEt >= b && nowEt <= e) { log.LogInformation("[SKIP reason=econ] {Sym} in econ block {Blk}", symbol, blk); IncVeto("econ"); return; }
                                     }
                                 }
                             }
@@ -1776,6 +2582,7 @@ namespace OrchestratorAgent
                         if (qUpd.HasValue && (DateTimeOffset.UtcNow - qUpd.Value) > TimeSpan.FromSeconds(5))
                         {
                             log.LogInformation("[SKIP reason=freeze] {Sym} lastQuoteAge={Age}s", symbol, (int)(DateTimeOffset.UtcNow - qUpd.Value).TotalSeconds);
+                            IncVeto("freeze");
                             return;
                         }
                         // Spread guard (per-symbol defaults ES=1, NQ=2)
@@ -1791,6 +2598,7 @@ namespace OrchestratorAgent
                         if (spreadTicks > allow)
                         {
                             log.LogInformation("[SKIP reason=spread] {Sym} spread={S}t allow={A}t", symbol, spreadTicks, allow);
+                            IncVeto("spread");
                             return;
                         }
 
@@ -1805,6 +2613,7 @@ namespace OrchestratorAgent
                             if (aroundTop || aroundHalf)
                             {
                                 log.LogInformation("[SKIP reason=news_minute_gate] {Sym} local={H}:{M:D2}:{S:D2}", symbol, nowLocal.Hour, m, s);
+                                IncVeto("news_minute_gate");
                                 return;
                             }
                         }
@@ -1812,61 +2621,92 @@ namespace OrchestratorAgent
                     }
                     catch { }
 
-                    // ET strategy windows + per-strategy attempt caps
+                    // ET strategy windows + per-strategy attempt caps (can be disabled via env for all-hours quality-first)
                     try
                     {
+                        bool skipTimeWindows = (Environment.GetEnvironmentVariable("SKIP_TIME_WINDOWS") ?? Environment.GetEnvironmentVariable("ALL_HOURS_QUALITY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        bool skipAttemptCaps = (Environment.GetEnvironmentVariable("SKIP_ATTEMPT_CAPS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        // In all-hours quality mode, restrict to the initial four strategies
+                        if (skipTimeWindows)
+                        {
+                            var allowedAh = new System.Collections.Generic.HashSet<string>(new[] { "S2", "S3", "S6", "S11" }, StringComparer.OrdinalIgnoreCase);
+                            signals = signals.Where(s => allowedAh.Contains(s.StrategyId)).ToList();
+                        }
                         var etNow = NowET().TimeOfDay;
                         bool isBlackout = InRange(etNow, "16:58", "18:05") || InRange(etNow, "09:15", "09:23:30");
                         bool isNight = !isBlackout && (etNow >= TS("18:05") || etNow < TS("09:15"));
-                        var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                        if (isNight)
+                        if (!skipTimeWindows)
                         {
-                            if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
-                            else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
-                        }
-                        else
-                        {
-                            if (etNow < TS("09:28")) { /* none allowed before 09:28 */ }
-                            else if (InRange(etNow, "09:28", "10:00")) allow.UnionWith(new[] { "S6", "S3" });
-                            else if (etNow >= TS("10:20") && etNow < TS("13:30")) allow.UnionWith(new[] { "S2" });
-                            else if (etNow >= TS("13:30")) allow.UnionWith(new[] { "S11" });
-                        }
-
-                        if (allow.Count > 0)
-                        {
-                            signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
-                            if (signals.Count == 0)
+                            var allow = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            if (isNight)
                             {
-                                log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
+                                if (InRange(etNow, "20:00", "02:00")) allow.UnionWith(new[] { "S2" });
+                                else if (InRange(etNow, "02:55", "04:10")) allow.UnionWith(new[] { "S3" });
+                            }
+                            else
+                            {
+                                if (etNow < TS("09:28")) { /* none allowed before 09:28 */ }
+                                else if (InRange(etNow, "09:28", "10:00")) allow.UnionWith(new[] { "S6", "S3" });
+                                else if (etNow >= TS("10:20") && etNow < TS("13:30")) allow.UnionWith(new[] { "S2" });
+                                else if (etNow >= TS("13:30")) allow.UnionWith(new[] { "S11" });
+                            }
+
+                            if (allow.Count > 0)
+                            {
+                                signals = signals.Where(s => allow.Contains(s.StrategyId)).ToList();
+                                if (signals.Count == 0)
+                                {
+                                    log.LogInformation("[SKIP reason=time_window] {Sym} no strategies allowed in this ET window", symbol);
+                                    IncVeto("time_window");
+                                    return;
+                                }
+                            }
+                            else
+                            {
+                                log.LogInformation("[SKIP reason=time_window] {Sym} no entries in this ET window", symbol);
+                                IncVeto("time_window");
                                 return;
                             }
-                        }
-                        else
-                        {
-                            log.LogInformation("[SKIP reason=time_window] {Sym} no entries in this ET window", symbol);
-                            return;
                         }
 
                         int CapFor(string id, bool night) => night ? ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase)) ? 1 : 0)
                                                                      : ((string.Equals(id, "S2", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S3", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S6", StringComparison.OrdinalIgnoreCase) || string.Equals(id, "S11", StringComparison.OrdinalIgnoreCase)) ? 2 : 0);
-                        signals = signals.Where(s =>
+                        // Per-direction caps: same as above by default; can tune via env later
+                        int CapForDir(string id, bool night, int dir)
                         {
-                            var cap = CapFor(s.StrategyId, isNight);
-                            if (cap <= 0) return false;
-                            try
+                            var baseCap = CapFor(id, night);
+                            return baseCap; // symmetric L/S for now
+                        }
+                        if (!skipAttemptCaps)
+                        {
+                            signals = signals.Where(s =>
                             {
-                                var todayEt = NowET().Date;
-                                var key = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
-                                var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
-                                if (cur.DayEt != todayEt) cur = (todayEt, 0);
-                                return cur.Count < cap;
+                                var cap = CapFor(s.StrategyId, isNight);
+                                if (cap <= 0) return false;
+                                try
+                                {
+                                    var todayEt = NowET().Date;
+                                    var key = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
+                                    var cur = _attemptsPerStrat.GetOrAdd(key, _ => (todayEt, 0));
+                                    if (cur.DayEt != todayEt) cur = (todayEt, 0);
+                                    if (cur.Count >= cap) return false;
+
+                                    // Check per-direction as well
+                                    int dir = string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                                    var keyDir = $"{s.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}|{(dir > 0 ? "L" : "S")}";
+                                    var capDir = CapForDir(s.StrategyId, isNight, dir);
+                                    var curDir = _attemptsPerStratDir.GetOrAdd(keyDir, _ => (todayEt, 0));
+                                    if (curDir.DayEt != todayEt) curDir = (todayEt, 0);
+                                    return curDir.Count < capDir;
+                                }
+                                catch { return true; }
+                            }).ToList();
+                            if (signals.Count == 0)
+                            {
+                                log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
+                                IncVeto("attempt_cap");
+                                return;
                             }
-                            catch { return true; }
-                        }).ToList();
-                        if (signals.Count == 0)
-                        {
-                            log.LogInformation("[SKIP reason=attempt_cap] {Sym} attempts cap hit", symbol);
-                            return;
                         }
                     }
                     catch { }
@@ -1885,6 +2725,7 @@ namespace OrchestratorAgent
                             if (curDepth < minDepth)
                             {
                                 log.LogInformation("[SKIP reason=depth_min] {Sym} top-of-book={Depth} min={Min}", symbol, curDepth, minDepth);
+                                IncVeto("depth_min");
                                 return;
                             }
                         }
@@ -1908,6 +2749,7 @@ namespace OrchestratorAgent
                             if (age < TimeSpan.FromSeconds(spacingSec))
                             {
                                 log.LogInformation("[SKIP reason=entry_spacing] {Sym} last_entry_age={Age}s min={Min}s", symbol, (int)age.TotalSeconds, spacingSec);
+                                IncVeto("entry_spacing");
                                 return;
                             }
                         }
@@ -1929,6 +2771,59 @@ namespace OrchestratorAgent
                     if (chosen is null) return;
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
 
+                    // 🧠 RL Training Data Collection
+                    try 
+                    {
+                        var rlSignalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+                        var features = BotCore.RlTrainingDataCollector.CreateFeatureSnapshot(
+                            rlSignalId, symbol, chosen.StrategyId, chosen.Entry, baselineMultiplier: 1.0m);
+                        
+                        // Populate with available market data
+                        features.SignalStrength = chosen.ExpR;
+                        
+                        // TODO: Add your indicator values here when available
+                        // features.Atr = GetAtr(symbol);
+                        // features.Rsi = GetRsi(symbol);
+                        
+                        BotCore.RlTrainingDataCollector.LogFeatures(log, features);
+                        status.Set($"rl.last_signal_id.{symbol}", rlSignalId); // Store for trade outcomes
+                    } catch (Exception ex) { log.LogDebug("RL data collection failed: {Error}", ex.Message); }
+
+                    // RS leader-only arbiter (env RS_ARB/RS_ARB_LEADER_ONLY=1):
+                    try
+                    {
+                        bool rsEnable = (Environment.GetEnvironmentVariable("RS_ARB") ?? Environment.GetEnvironmentVariable("RS_ARB_LEADER_ONLY") ?? "1").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+                        if (rsEnable && (symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) || symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            int look = 30; try { var v = Environment.GetEnvironmentVariable("RS_LOOKBACK"); if (!string.IsNullOrWhiteSpace(v) && int.TryParse(v, out var l) && l > 5) look = l; } catch { }
+                            var momThis = ComputeMomentum(history, look);
+                            status.Set($"rs.mom.{symbol.ToUpperInvariant()}", momThis);
+                            status.Set($"rs.updated.{symbol.ToUpperInvariant()}", DateTimeOffset.UtcNow);
+                            var other = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? "NQ" : "ES";
+                            var momOther = status.Get<decimal?>($"rs.mom.{other}") ?? 0m;
+                            var updatedOther = status.Get<DateTimeOffset?>($"rs.updated.{other}") ?? DateTimeOffset.MinValue;
+                            if (updatedOther != DateTimeOffset.MinValue && (DateTimeOffset.UtcNow - updatedOther) < TimeSpan.FromMinutes(2))
+                            {
+                                var absThis = Math.Abs(momThis); var absOther = Math.Abs(momOther);
+                                decimal minDiff = 0.0003m; try { var d = Environment.GetEnvironmentVariable("RS_MIN_DIFF"); if (!string.IsNullOrWhiteSpace(d) && decimal.TryParse(d, out var dv)) minDiff = dv; } catch { }
+                                if (Math.Abs(absThis - absOther) >= minDiff)
+                                {
+                                    var leader = absThis >= absOther ? symbol.ToUpperInvariant() : other;
+                                    var dir = (absThis >= absOther ? momThis : momOther) >= 0m ? 1 : -1;
+                                    bool sideOk = (dir > 0 && string.Equals(chosen.Side, "BUY", StringComparison.OrdinalIgnoreCase)) || (dir < 0 && string.Equals(chosen.Side, "SELL", StringComparison.OrdinalIgnoreCase));
+                                    bool symOk = string.Equals(symbol, leader, StringComparison.OrdinalIgnoreCase);
+                                    if (!(sideOk && symOk))
+                                    {
+                                        log.LogInformation("[SKIP reason=rs_leader] {Sym} leader={Leader} dir={Dir} side={Side}", symbol, leader, dir > 0 ? "UP" : "DOWN", chosen.Side);
+                                        IncVeto("rs_leader");
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+
                     // Per-symbol single-position rule with flip eligibility (S6 only, opposite side, ExpR ≥ 1.25)
                     try
                     {
@@ -1948,11 +2843,12 @@ namespace OrchestratorAgent
 
                     // Risk scaling by window/conditions: S2 overnight 0.5x; S3 0.75x if spread>2 or volz>2.0
                     decimal riskScale = 1.0m;
+                    bool isNight4 = false;
                     try
                     {
                         var etNow4 = NowET().TimeOfDay;
                         bool isBlackout4 = InRange(etNow4, "16:58", "18:05") || InRange(etNow4, "09:15", "09:23:30");
-                        bool isNight4 = !isBlackout4 && (etNow4 >= TS("18:05") || etNow4 < TS("09:15"));
+                        isNight4 = !isBlackout4 && (etNow4 >= TS("18:05") || etNow4 < TS("09:15"));
                         if (string.Equals(chosen.StrategyId, "S2", StringComparison.OrdinalIgnoreCase) && isNight4)
                             riskScale *= 0.5m;
                         if (string.Equals(chosen.StrategyId, "S3", StringComparison.OrdinalIgnoreCase))
@@ -1986,6 +2882,56 @@ namespace OrchestratorAgent
                         }
                     }
                     catch { }
+
+                    // RL-based position sizing (if enabled and canary permits)
+                    bool rlEnabled = string.Equals(Environment.GetEnvironmentVariable("RL_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
+                    string signalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+                    bool useRlSizing = rlEnabled && rlSizer?.IsLoaded == true && sizerCanary?.ShouldUseRl(signalId) == true;
+                    
+                    if (useRlSizing)
+                    {
+                        try
+                        {
+                            // Build feature snapshot for RL inference
+                            var featureSnapshot = new FeatureSnapshot
+                            {
+                                Symbol = symbol,
+                                Strategy = chosen.StrategyId,
+                                Session = isNight4 ? "ETH" : "RTH",
+                                Regime = "Unknown", // Could be enhanced with regime detection
+                                Timestamp = DateTime.UtcNow,
+                                Price = (float)chosen.Entry,
+                                SignalStrength = (float)Math.Min(Math.Max(chosen.ExpR, 0), 5), // Clamp to reasonable range
+                                PriorWinRate = 0.5f // Default; could be enhanced with historical data
+                            };
+
+                            // Add additional features if available
+                            try
+                            {
+                                featureSnapshot.Spread = status.Get<int>($"spread.ticks.{symbol}");
+                                featureSnapshot.Volume = status.Get<float>($"volume.{symbol}");
+                            }
+                            catch { }
+
+                            // Get RL recommendation
+                            var rlMultiplier = rlSizer!.Recommend(featureSnapshot);
+                            
+                            // Apply RL multiplier, but keep it bounded and respect existing risk scale
+                            riskScale *= (decimal)Math.Max(0.1, Math.Min(rlMultiplier, 2.0)); // RL can scale 0.1x to 2.0x
+                            
+                            log.LogInformation("[RlSizer] {Symbol} {Strategy} RL multiplier: {Mult:F2}, final risk scale: {Scale:F2}, signal: {SignalId}", 
+                                symbol, chosen.StrategyId, rlMultiplier, riskScale, signalId);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogWarning(ex, "[RlSizer] RL sizing failed for {Symbol}, using baseline scale, signal: {SignalId}", symbol, signalId);
+                        }
+                    }
+                    else if (rlEnabled)
+                    {
+                        log.LogDebug("[RlSizer] Using baseline CVaR sizing for {Symbol} {Strategy}, signal: {SignalId}", 
+                            symbol, chosen.StrategyId, signalId);
+                    }
 
                     foreach (var sig in signals)
                     {
@@ -2025,6 +2971,7 @@ namespace OrchestratorAgent
                             if (room <= 0)
                             {
                                 log.LogInformation("[SKIP reason=global_cap] {Sym} total={Total} cap={Cap}", symbol, total, gcap);
+                                IncVeto("global_cap");
                                 continue;
                             }
                             if (toRoute.Size > room) toRoute = toRoute with { Size = room };
@@ -2042,7 +2989,7 @@ namespace OrchestratorAgent
                             {
                                 var net = status.Get<int>($"pos.{symbol}.qty");
                                 int room = Math.Max(0, maxNet - Math.Abs(net));
-                                if (room <= 0) { log.LogInformation("[SKIP reason=max_net] {Sym} net={Net} cap={Cap}", symbol, net, maxNet); return; }
+                                if (room <= 0) { log.LogInformation("[SKIP reason=max_net] {Sym} net={Net} cap={Cap}", symbol, net, maxNet); IncVeto("max_net"); return; }
                                 if (toRoute.Size > room) { toRoute = toRoute with { Size = room }; }
                             }
                         }
@@ -2089,6 +3036,7 @@ namespace OrchestratorAgent
                                     if (sig.ExpR < minExpr)
                                     {
                                         log.LogInformation("[SKIP reason=dd_proximity] {Sym} expR={R} min={Min}", symbol, sig.ExpR, minExpr);
+                                        IncVeto("dd_proximity");
                                         continue;
                                     }
                                     toRoute = toRoute with { Size = half };
@@ -2113,6 +3061,7 @@ namespace OrchestratorAgent
                                 if (list.Count >= capPerHr)
                                 {
                                     log.LogInformation("[SKIP reason=entries_per_hour] {Sym} cap={Cap}", symbol, capPerHr);
+                                    IncVeto("entries_per_hour");
                                     continue;
                                 }
                             }
@@ -2133,6 +3082,40 @@ namespace OrchestratorAgent
                         }
                         catch { }
 
+                        // Day PnL kill (in R units) as no-new gate for S2
+                        try
+                        {
+                            if (string.Equals(sig.StrategyId, "S2", StringComparison.OrdinalIgnoreCase) && sig.Stop != 0 && sig.Entry != 0)
+                            {
+                                decimal rpt = risk.cfg.risk_per_trade > 0 ? risk.cfg.risk_per_trade : 0m;
+                                var dayUsd = status.Get<decimal?>("pnl.net") ?? 0m;
+                                if (rpt > 0m)
+                                {
+                                    var dayR = dayUsd / rpt;
+                                    var stopGain = BotCore.Strategy.S2RuntimeConfig.DayPnlStopGainR;
+                                    var stopLoss = BotCore.Strategy.S2RuntimeConfig.DayPnlStopLossR;
+                                    var enabled = BotCore.Strategy.S2RuntimeConfig.DayPnlKillEnabled && (stopGain != 0m || stopLoss != 0m);
+                                    if (enabled)
+                                    {
+                                        if (stopGain > 0m && dayR >= stopGain)
+                                        {
+                                            try { status.Set("day_pnl.no_new", true); } catch { }
+                                            log.LogInformation("[SKIP reason=day_pnl_gain] {Sym} dayR={DayR:F2} \u2265 {StopR:F2}", symbol, dayR, stopGain);
+                                            continue;
+                                        }
+                                        if (stopLoss < 0m && dayR <= stopLoss)
+                                        {
+                                            try { status.Set("day_pnl.no_new", true); } catch { }
+                                            log.LogInformation("[SKIP reason=day_pnl_loss] {Sym} dayR={DayR:F2} \u2264 {StopR:F2}", symbol, dayR, stopLoss);
+                                            continue;
+                                        }
+                                        try { status.Set("day_pnl.no_new", false); } catch { }
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+
                         var routed = await router.RouteAsync(toRoute, ct);
                         if (routed)
                         {
@@ -2146,7 +3129,12 @@ namespace OrchestratorAgent
 
                                 var todayEt = NowET().Date;
                                 var key = $"{sig.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}";
-                                var cur = _attemptsPerStrat.AddOrUpdate(key,
+                                _ = _attemptsPerStrat.AddOrUpdate(key,
+                                    addValueFactory: _ => (todayEt, 1),
+                                    updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
+                                int dir2 = string.Equals(sig.Side, "SELL", StringComparison.OrdinalIgnoreCase) ? -1 : 1;
+                                var keyDir = $"{sig.StrategyId.ToUpperInvariant()}|{symbol.ToUpperInvariant()}|{(dir2 > 0 ? "L" : "S")}";
+                                _ = _attemptsPerStratDir.AddOrUpdate(keyDir,
                                     addValueFactory: _ => (todayEt, 1),
                                     updateValueFactory: (_, oldVal) => oldVal.DayEt == todayEt ? (oldVal.DayEt, oldVal.Count + 1) : (todayEt, 1));
                             }

@@ -7,11 +7,11 @@ namespace BotCore
     public sealed class StrategySignal
     {
         public string Strategy { get; init; } = "";
-        public string Symbol   { get; init; } = "";
+        public string Symbol { get; init; } = "";
         public SignalSide Side { get; init; } = SignalSide.Flat;
-        public int Size        { get; init; } = 1;
+        public int Size { get; init; } = 1;
         public decimal? LimitPrice { get; init; } // optional; null means use market/last
-        public string? Note    { get; init; }
+        public string? Note { get; init; }
         public string? ClientOrderId { get; init; }
     }
 }

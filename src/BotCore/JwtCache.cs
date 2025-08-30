@@ -5,13 +5,11 @@ using System.Threading.Tasks;
 
 namespace BotCore
 {
-    public sealed class JwtCache
+    public sealed class JwtCache(Func<Task<string>> acquire)
     {
-        private readonly Func<Task<string>> _acquire;
+        private readonly Func<Task<string>> _acquire = acquire;
         private string? _token;
         private DateTimeOffset _exp;
-
-        public JwtCache(Func<Task<string>> acquire) => _acquire = acquire;
 
         public async Task<string?> GetAsync()
         {

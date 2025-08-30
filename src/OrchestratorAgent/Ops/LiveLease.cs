@@ -27,7 +27,7 @@ namespace OrchestratorAgent.Ops
                 _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 var bytes = Encoding.UTF8.GetBytes(HolderId);
                 _stream.SetLength(0);
-                await _stream.WriteAsync(bytes, 0, bytes.Length);
+                await _stream.WriteAsync(bytes);
                 await _stream.FlushAsync();
                 return true;
             }

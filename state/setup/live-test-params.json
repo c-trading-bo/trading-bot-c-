@@ -1,0 +1,10 @@
+{
+  "testFeatureEnabled": true,
+  "riskMultiplier": 1.25,
+  "newStrategyWeight": 0.35,
+  "sentimentAnalysisEnabled": true,
+  "marketRegimeDetection": true,
+  "adaptiveLearningRate": 0.002,
+  "timestamp": "2025-08-29T00:00:00Z",
+  "addedWhileRunning": "This parameter was added WITHOUT stopping the bot!"
+}

@@ -1,0 +1,84 @@
+{
+  "Timestamp": "2025-08-29T17:09:20.9896493Z",
+  "Results": {
+    "ml_persistence": {
+      "Status": 0,
+      "Message": "ML persistence working - 1 cycles completed",
+      "Details": "Last updated: 2025-08-29 16:03:53 UTC",
+      "CheckTime": "2025-08-29T17:09:20.9922908Z"
+    },
+    "ml_cycles": {
+      "Status": 0,
+      "Message": "ML cycles on schedule - next in -5 minutes",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:20.9949667Z"
+    },
+    "strategy_configs": {
+      "Status": 0,
+      "Message": "All 4 expected strategies (S2, S3, S6, S11) enabled",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:20.9989674Z"
+    },
+    "session_windows": {
+      "Status": 0,
+      "Message": "Session windows calculated correctly - 0 active, 1 upcoming",
+      "Details": "Current ET: 13:09 (1309)",
+      "CheckTime": "2025-08-29T17:09:21.0059695Z"
+    },
+    "timezone_logic": {
+      "Status": 0,
+      "Message": "Timezone logic working - UTC: 17:09, ET: 13:09",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.0066611Z"
+    },
+    "position_limits": {
+      "Status": 0,
+      "Message": "Position limits calculated correctly for all test scenarios",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.0086206Z"
+    },
+    "risk_calculations": {
+      "Status": 0,
+      "Message": "Risk calculations validated - all R-multiple tests passed",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.010743Z"
+    },
+    "data_feeds": {
+      "Status": 0,
+      "Message": "Market data feeds are current and healthy",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.0113967Z"
+    },
+    "connectivity": {
+      "Status": 0,
+      "Message": "All connections are stable and authenticated",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.0118683Z"
+    },
+    "order_routing": {
+      "Status": 0,
+      "Message": "Order routing validated in PAPER mode - all tests passed",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.020795Z"
+    },
+    "strategy_signals": {
+      "Status": 0,
+      "Message": "Strategy signal logic validated - 3 test scenarios passed",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.1708645Z"
+    },
+    "position_tracking": {
+      "Status": 2,
+      "Message": "Position tracking calculations failed",
+      "Details": "Long ES position with 10 point gain: expected $250, calculated $2500; Short NQ position with 10 point gain: expected $400, calculated $2000",
+      "CheckTime": "2025-08-29T17:09:21.1725815Z"
+    },
+    "price_validation": {
+      "Status": 0,
+      "Message": "Price data validated - all quality checks passed",
+      "Details": "",
+      "CheckTime": "2025-08-29T17:09:21.1753238Z"
+    }
+  },
+  "OverallStatus": 2
+}

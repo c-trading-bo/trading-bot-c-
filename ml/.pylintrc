@@ -1,0 +1,20 @@
+[MASTER]
+extension-pkg-whitelist=numpy,pandas,torch
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    import-error,
+    no-name-in-module,
+    unresolved-import,
+    too-few-public-methods,
+    invalid-name
+
+[BASIC]
+good-names=i,j,k,v,a,R,r,df,x,y,n
+
+[DESIGN]
+max-args=10
+max-attributes=15

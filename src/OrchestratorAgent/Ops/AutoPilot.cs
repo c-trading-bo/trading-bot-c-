@@ -12,22 +12,16 @@ namespace OrchestratorAgent.Ops
     }
     public interface INotifier { Task Info(string m); Task Warn(string m); Task Error(string m); }
 
-    public sealed class AutoPilot
+    public sealed class AutoPilot(Preflight pf, ModeController mode, IStats stats, INotifier notify,
+        string symbol, int minHealthyPasses, int demoteOnUnhealthy, TimeSpan minDryRun)
     {
-        private readonly Preflight _pf;
-        private readonly ModeController _mode;
-        private readonly IStats _stats;
-        private readonly INotifier _notify;
-        private readonly string _symbol;
-        private readonly int _minHealthy, _demoteOnUnhealthy;
-        private readonly TimeSpan _minDryRun;
-
-        public AutoPilot(Preflight pf, ModeController mode, IStats stats, INotifier notify,
-            string symbol, int minHealthyPasses, int demoteOnUnhealthy, TimeSpan minDryRun)
-        {
-            _pf = pf; _mode = mode; _stats = stats; _notify = notify; _symbol = symbol;
-            _minHealthy = minHealthyPasses; _demoteOnUnhealthy = demoteOnUnhealthy; _minDryRun = minDryRun;
-        }
+        private readonly Preflight _pf = pf;
+        private readonly ModeController _mode = mode;
+        private readonly IStats _stats = stats;
+        private readonly INotifier _notify = notify;
+        private readonly string _symbol = symbol;
+        private readonly int _minHealthy = minHealthyPasses, _demoteOnUnhealthy = demoteOnUnhealthy;
+        private readonly TimeSpan _minDryRun = minDryRun;
 
         public async Task RunAsync(CancellationToken ct)
         {

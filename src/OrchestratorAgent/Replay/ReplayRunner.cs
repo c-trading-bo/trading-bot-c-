@@ -5,16 +5,15 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-public sealed class ReplayRunner
+public sealed class ReplayRunner(Action<ReplayRunner.TradeTick> onTick)
 {
-    private readonly Action<TradeTick> _onTick;
-    public ReplayRunner(Action<TradeTick> onTick) { _onTick = onTick; }
+    private readonly Action<TradeTick> _onTick = onTick;
 
     public async Task RunAsync(string file, TimeSpan? maxDuration, CancellationToken ct)
     {
         if (!File.Exists(file)) return;
         var text = await File.ReadAllTextAsync(file, ct);
-        var ticks = JsonSerializer.Deserialize<List<TradeTick>>(text) ?? new();
+        var ticks = JsonSerializer.Deserialize<List<TradeTick>>(text) ?? [];
         var start = DateTime.UtcNow;
         foreach (var t in ticks)
         {

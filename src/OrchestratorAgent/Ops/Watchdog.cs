@@ -5,13 +5,10 @@ using System.Threading.Tasks;
 
 namespace OrchestratorAgent.Ops
 {
-    public sealed class Watchdog
+    public sealed class Watchdog(int maxMb, int maxThreads, int periodSec, Func<Task> persistState)
     {
-        private readonly int _maxMb, _maxThreads, _periodSec;
-        private readonly Func<Task> _persist;
-
-        public Watchdog(int maxMb, int maxThreads, int periodSec, Func<Task> persistState)
-        { _maxMb = maxMb; _maxThreads = maxThreads; _periodSec = periodSec; _persist = persistState; }
+        private readonly int _maxMb = maxMb, _maxThreads = maxThreads, _periodSec = periodSec;
+        private readonly Func<Task> _persist = persistState;
 
         public async Task RunLoopAsync(CancellationToken ct)
         {

@@ -3,13 +3,9 @@ using System.Text.Json;
 
 namespace BotCore.Supervisor
 {
-    public sealed class StateStore
+    public sealed class StateStore(string? path = null)
     {
-        private readonly string _path;
-        public StateStore(string? path = null)
-        {
-            _path = path ?? Path.Combine(AppContext.BaseDirectory, "bot_state.json");
-        }
+        private readonly string _path = path ?? Path.Combine(AppContext.BaseDirectory, "bot_state.json");
 
         public sealed class Snapshot
         {

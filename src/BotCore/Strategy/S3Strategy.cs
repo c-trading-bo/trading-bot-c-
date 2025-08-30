@@ -11,25 +11,90 @@ namespace BotCore.Strategy
 {
     public static class S3Strategy
     {
+        private static bool BtBypass(string gate)
+        {
+            string k = gate switch { "news" => "BT_IGNORE_NEWS", "spread" => "BT_IGNORE_SPREAD", _ => string.Empty };
+            if (string.IsNullOrEmpty(k)) return false;
+            var v = Environment.GetEnvironmentVariable(k);
+            return v is not null && (v.Equals("1", StringComparison.OrdinalIgnoreCase) || v.Equals("true", StringComparison.OrdinalIgnoreCase));
+        }
         // S3 state and constants
         private static readonly ConcurrentDictionary<string, SegmentState> _segState = new(StringComparer.OrdinalIgnoreCase);
         private static readonly ConcurrentDictionary<(string Sym, DateOnly Day, string Sess, Side Side), int> _attempts = new();
         private static readonly TimeSpan OvernightWinStart = new(2, 55, 0);
-        private static readonly TimeSpan OvernightWinEnd   = new(4, 10, 0);
+        private static readonly TimeSpan OvernightWinEnd = new(4, 10, 0);
+        private static readonly TimeZoneInfo Et = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+
+        // Optional: debug counters to understand why entries are rejected in backtests
+        private static readonly ConcurrentDictionary<string, int> _rejects = new(StringComparer.OrdinalIgnoreCase);
+        private static bool DebugOn
+        {
+            get
+            {
+                var v = Environment.GetEnvironmentVariable("S3_DEBUG_REASONS") ?? string.Empty;
+                return v.Equals("1", StringComparison.OrdinalIgnoreCase) || v.Equals("true", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        private static void Reject(string key)
+        {
+            if (!DebugOn) return;
+            _rejects.AddOrUpdate(key, 1, static (_, c) => c + 1);
+        }
+        public static void ResetDebugCounters() => _rejects.Clear();
+        public static IReadOnlyDictionary<string, int> GetDebugCounters() => new Dictionary<string, int>(_rejects);
 
         public static List<Candidate> S3(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
             var lst = new List<Candidate>();
             if (bars is null || bars.Count < 80) return lst; // need enough for pre-squeeze, TF2 agg, etc.
+            // Normalize bar timestamps to ET for all session/time-of-day logic (bars arrive as UTC)
+            static DateTime ToEt(Bar b)
+            {
+                try
+                {
+                    DateTime utc = b.Ts > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(b.Ts).UtcDateTime
+                        : (b.Start.Kind == DateTimeKind.Utc ? b.Start : DateTime.SpecifyKind(b.Start, DateTimeKind.Utc));
+                    return TimeZoneInfo.ConvertTimeFromUtc(utc, Et);
+                }
+                catch { return b.Start; }
+            }
+            var barsEt = new List<Bar>(bars.Count);
+            foreach (var b in bars)
+            {
+                barsEt.Add(new Bar
+                {
+                    Start = ToEt(b),
+                    Ts = b.Ts,
+                    Symbol = b.Symbol,
+                    Open = b.Open,
+                    High = b.High,
+                    Low = b.Low,
+                    Close = b.Close,
+                    Volume = b.Volume
+                });
+            }
+            bars = barsEt;
 
             var cfg = S3RuntimeConfig.Instance;
             var last = bars[^1];
 
-            // News block
-            if (InNewsWindow(last.Start, cfg.NewsOnMinutes, cfg.NewsBlockBeforeMin, cfg.NewsBlockAfterMin)) return lst;
+            // News block (bypass in backtest)
+            if (!BtBypass("news"))
+            {
+                if (InNewsWindow(last.Start, cfg.NewsOnMinutes, cfg.NewsBlockBeforeMin, cfg.NewsBlockAfterMin))
+                {
+                    Reject("news_window");
+                    return lst;
+                }
+            }
 
             // Volume gate
-            if (last.Volume < cfg.MinVolume) return lst;
+            if (last.Volume < cfg.MinVolume)
+            {
+                Reject("min_volume");
+                return lst;
+            }
 
             // Spread gate (optional provider)
             var spread = AllStrategies.ExternalSpreadTicks?.Invoke(symbol);
@@ -47,16 +112,24 @@ namespace BotCore.Strategy
                 if (ov.BreakQ_MinClosePos.HasValue) localBreakQ_MinClosePos = ov.BreakQ_MinClosePos.Value;
                 if (ov.BreakQ_MaxOppWick.HasValue) localBreakQ_MaxOppWick = ov.BreakQ_MaxOppWick.Value;
             }
-            if (spread.HasValue)
+            if (!BtBypass("spread") && spread.HasValue)
             {
                 var spreadCap = symbol.Contains("NQ", StringComparison.OrdinalIgnoreCase) ? Math.Max(localMaxSpread, 3) : localMaxSpread;
-                if (spread.Value > spreadCap) return lst;
+                if (spread.Value > spreadCap)
+                {
+                    Reject("spread_cap");
+                    return lst;
+                }
             }
 
             // VolZ regime gate if available
             if (env.volz.HasValue)
             {
-                if (env.volz.Value < cfg.VolZMin || env.volz.Value > cfg.VolZMax) return lst;
+                if (env.volz.Value < cfg.VolZMin || env.volz.Value > cfg.VolZMax)
+                {
+                    Reject("volz_regime");
+                    return lst;
+                }
             }
 
             // Indicator bases on TF1 (1m)
@@ -93,11 +166,18 @@ namespace BotCore.Strategy
             bool hasNrCluster = HasNarrowRangeCluster(bars, cfg.PreSqueezeLookback, cfg.NrClusterRatio, localNrClusterMinBars);
 
             bool squeezeArmed = (squeezeOnTTM || squeezeOnRank) && squeezeRun >= cfg.MinSqueezeBars && hasNrCluster && widthSlopeOk;
-            if (!squeezeArmed) return lst;
+            if (!squeezeArmed)
+            {
+                if (!squeezeOnTTM && !squeezeOnRank) Reject("squeeze_off");
+                if (squeezeRun < cfg.MinSqueezeBars) Reject("squeeze_len");
+                if (!hasNrCluster) Reject("nr_cluster");
+                if (!widthSlopeOk) Reject("width_slope");
+                return lst;
+            }
 
             // TF2 slope bias via 5m aggregation
             var bars5 = Aggregate(bars, 5);
-            var ema20_5 = EMA(bars5.Select(b => b.Close).ToArray(), 20);
+            var ema20_5 = EMA([.. bars5.Select(b => b.Close)], 20);
             var slope5 = LinearSlope(ema20_5, Math.Min(5, ema20_5.Length));
             bool biasUp = slope5 > cfg.MinSlopeTf2;
             bool biasDn = slope5 < -cfg.MinSlopeTf2;
@@ -123,7 +203,7 @@ namespace BotCore.Strategy
                     var (orh, orl) = InitialBalance(bars, orStart, orEnd);
                     if (cfg.OrAvoidBreakInto.Equals("opposite", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (last.Close < orl && bbUp > orl) return lst;
+                        if (last.Close < orl && bbUp > orl) { Reject("or_guard"); return lst; }
                         if (last.Close > orh && bbDn < orh) return lst;
                     }
                 }
@@ -137,7 +217,7 @@ namespace BotCore.Strategy
                 var (ibh, ibl) = InitialBalance(bars, ibStart, ibEnd);
                 if (ibh > 0 && ibl > 0 && cfg.IbAvoidBreakInto.Equals("opposite", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (last.Close < ibl && bbUp > ibl) return lst;
+                    if (last.Close < ibl && bbUp > ibl) { Reject("ib_guard"); return lst; }
                     if (last.Close > ibh && bbDn < ibh) return lst;
                 }
             }
@@ -146,7 +226,7 @@ namespace BotCore.Strategy
             if (cfg.RollEnabled && IsWithinRollWindow(last.Start.Date, cfg.RollDaysBefore, cfg.RollDaysAfter))
             {
                 rankThresh = Math.Max(0.05m, rankThresh - cfg.RollRankTighten);
-                if (!(widthRank <= rankThresh)) return lst; // re-check if adapting tightened threshold disqualifies
+                if (!(widthRank <= rankThresh)) { Reject("roll_tighten"); return lst; } // re-check if adapting tightened threshold disqualifies
             }
 
             // RS filter (optional, needs ExternalGetBars)
@@ -158,20 +238,20 @@ namespace BotCore.Strategy
                     var peerBars = AllStrategies.ExternalGetBars(peer!);
                     if (peerBars != null && peerBars.Count >= cfg.RsWindowBars + 2)
                     {
-                        var rs = RelativeStrength(bars, peerBars.ToList(), cfg.RsWindowBars);
+                        var rs = RelativeStrength(bars, [.. peerBars], cfg.RsWindowBars);
                         if (cfg.RsDirectionalOnly)
                         {
-                            if (biasUp && rs < cfg.RsThreshold) return lst;
-                            if (biasDn && rs > -cfg.RsThreshold) return lst;
+                            if (biasUp && rs < cfg.RsThreshold) { Reject("rs_filter"); return lst; }
+                            if (biasDn && rs > -cfg.RsThreshold) { Reject("rs_filter"); return lst; }
                         }
-                        else if (Math.Abs(rs) < cfg.RsThreshold) return lst;
+                        else if (Math.Abs(rs) < cfg.RsThreshold) { Reject("rs_filter"); return lst; }
                     }
                 }
             }
 
             // Impulse
             var impulseScore = ImpulseScore(bars, 3) / boxW;
-            if (impulseScore < cfg.ImpulseScoreMin) return lst;
+            if (impulseScore < cfg.ImpulseScoreMin) { Reject("impulse_low"); return lst; }
 
             // Buffers
             decimal buf = cfg.ConfirmBreakAtrMult * atr;
@@ -179,7 +259,7 @@ namespace BotCore.Strategy
             if (InOvernightWindow(last.Start.TimeOfDay)) buf += cfg.OvernightBufferAdd * atr;
 
             // Break bar quality (apply instrument overrides if any)
-            if (!BreakBarQualityOk(last, localBreakQ_MinClosePos, localBreakQ_MaxOppWick, out var barq)) return lst;
+            if (!BreakBarQualityOk(last, localBreakQ_MinClosePos, localBreakQ_MaxOppWick, out var barq)) { Reject("break_bar_quality"); return lst; }
 
             // Anchored VWAP from segment start
             var segAnchor = bars[Math.Max(0, segStartIdx)].Start;
@@ -191,11 +271,11 @@ namespace BotCore.Strategy
 
             // Breakout detection (allow kc bands if biased)
             bool brokeUp = last.High > boxHi + buf || (biasUp && last.Close > kcUp + buf);
-            bool brokeDn = last.Low  < boxLo - buf || (biasDn && last.Close < kcDn - buf);
+            bool brokeDn = last.Low < boxLo - buf || (biasDn && last.Close < kcDn - buf);
 
             // Early invalidate tick
             st.TickInvalidate(bars, mid, boxHi, boxLo, cfg.EarlyInvalidateBars);
-            if (st.IsInvalid) return lst;
+            if (st.IsInvalid) { Reject("early_invalidate"); return lst; }
 
             var px = last.Close;
             var tick = AllStrategies.ExternalTickSize?.Invoke(symbol) ?? GuessTickSize(symbol);
@@ -207,7 +287,7 @@ namespace BotCore.Strategy
                 if (cfg.EntryMode.Equals("retest", StringComparison.OrdinalIgnoreCase))
                 {
                     var backoff = cfg.RetestBackoffTicks * tick;
-                    if (!DidThrowback(bars, boxHi, true, cfg.RetestBars, backoff)) return lst;
+                    if (!DidThrowback(bars, boxHi, true, cfg.RetestBars, backoff)) { Reject("retest_throwback_long"); return lst; }
                     entry = Math.Max(px, boxHi - backoff);
                 }
                 else // breakstop
@@ -215,11 +295,11 @@ namespace BotCore.Strategy
                     entry = Math.Max(px, Math.Max(last.High + tick, boxHi + buf));
                 }
                 if (entry <= 0) return lst;
-                if (!HoldsAroundVwap(bars, segVwap, true, 2)) return lst;
+                if (!HoldsAroundVwap(bars, segVwap, true, 2)) { Reject("vwap_hold_long"); return lst; }
 
                 var isl = Math.Min(boxLo - cfg.StopAtrMult * atr, SwingLow(bars, 5));
                 var r = entry - isl;
-                if (r <= 0) return lst;
+                if (r <= 0) { Reject("risk_nonpos_long"); return lst; }
                 var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
                 var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, true, expF);
                 AllStrategies.add_cand(lst, "S3", symbol, "BUY", entry, isl, t1, env, risk);
@@ -234,19 +314,19 @@ namespace BotCore.Strategy
                 if (cfg.EntryMode.Equals("retest", StringComparison.OrdinalIgnoreCase))
                 {
                     var backoff = cfg.RetestBackoffTicks * tick;
-                    if (!DidThrowback(bars, boxLo, false, cfg.RetestBars, backoff)) return lst;
+                    if (!DidThrowback(bars, boxLo, false, cfg.RetestBars, backoff)) { Reject("retest_throwback_short"); return lst; }
                     entry = Math.Min(px, boxLo + backoff);
                 }
                 else
                 {
                     entry = Math.Min(px, Math.Min(last.Low - tick, boxLo - buf));
                 }
-                if (entry <= 0) return lst;
-                if (!HoldsAroundVwap(bars, segVwap, false, 2)) return lst;
+                if (entry <= 0) { Reject("entry_nonpos_short"); return lst; }
+                if (!HoldsAroundVwap(bars, segVwap, false, 2)) { Reject("vwap_hold_short"); return lst; }
 
                 var ish = Math.Max(boxHi + cfg.StopAtrMult * atr, SwingHigh(bars, 5));
                 var r = ish - entry;
-                if (r <= 0) return lst;
+                if (r <= 0) { Reject("risk_nonpos_short"); return lst; }
                 var expF = ExpectedExpansionFactor(bars, Math.Max(60, cfg.PreSqueezeLookback), boxW, cfg.ExpansionQuantile);
                 var (t1, _) = Targets(cfg, symbol, last.Start, r, entry, boxW, false, expF);
                 AllStrategies.add_cand(lst, "S3", symbol, "SELL", entry, ish, t1, env, risk,
@@ -254,6 +334,10 @@ namespace BotCore.Strategy
                 st.MarkFilled(segStartIdx, Side.SELL, last.Start);
                 RegisterAttempt(symbol, session, Side.SELL);
             }
+
+            // Attempt caps blocked a side?
+            if (brokeUp && !CanAttempt(symbol, session, Side.BUY, cap)) Reject("attempt_cap_long");
+            if (brokeDn && !CanAttempt(symbol, session, Side.SELL, cap)) Reject("attempt_cap_short");
 
             return lst;
         }
@@ -275,7 +359,7 @@ namespace BotCore.Strategy
         }
         private static decimal[] EMA(decimal[] x, int n)
         {
-            if (x.Length == 0) return Array.Empty<decimal>();
+            if (x.Length == 0) return [];
             var a = 2m / (n + 1);
             var y = new decimal[x.Length];
             y[0] = x[0];
@@ -367,7 +451,7 @@ namespace BotCore.Strategy
                 var arr = closes.Take(i + 1).ToArray();
                 var ema = EMA(arr, kcEma); var mid = ema[^1];
                 var sd = Stdev(arr, bbLen); var bbUp = mid + bbMult * sd; var bbDn = mid - bbMult * sd;
-                var atr = ATR(bars.Take(i + 1).ToList(), kcAtrLen);
+                var atr = ATR([.. bars.Take(i + 1)], kcAtrLen);
                 var kcUp = mid + kcMult * atr; var kcDn = mid - kcMult * atr;
                 bool squeeze = bbUp <= kcUp && bbDn >= kcDn;
                 if (squeeze) run++; else break;
@@ -383,7 +467,7 @@ namespace BotCore.Strategy
                 var arr = closes.Take(i + 1).ToArray();
                 var ema = EMA(arr, kcEma); var mid = ema[^1];
                 var sd = Stdev(arr, bbLen); var bbUp = mid + bbMult * sd; var bbDn = mid - bbMult * sd;
-                var atr = ATR(bars.Take(i + 1).ToList(), kcAtrLen); var kcUp = mid + kcMult * atr; var kcLo = mid - kcMult * atr;
+                var atr = ATR([.. bars.Take(i + 1)], kcAtrLen); var kcUp = mid + kcMult * atr; var kcLo = mid - kcMult * atr;
                 bool squeeze = bbUp <= kcUp && bbDn >= kcLo;
                 if (squeeze) start = i; else if (start != end) break;
             }
@@ -397,7 +481,7 @@ namespace BotCore.Strategy
         }
         private static List<Bar> Aggregate(IList<Bar> bars, int n)
         {
-            if (bars == null || bars.Count == 0 || n <= 1) return bars?.ToList() ?? new List<Bar>();
+            if (bars == null || bars.Count == 0 || n <= 1) return bars?.ToList() ?? [];
             var res = new List<Bar>();
             int i = 0;
             while (i < bars.Count)
@@ -599,7 +683,7 @@ namespace BotCore.Strategy
                 public decimal? BreakQ_MinClosePos { get; init; }
                 public decimal? BreakQ_MaxOppWick { get; init; }
             }
-            private static Dictionary<string, InstrumentOverride> _instrumentOverrides = new(StringComparer.OrdinalIgnoreCase);
+            private static readonly Dictionary<string, InstrumentOverride> _instrumentOverrides = new(StringComparer.OrdinalIgnoreCase);
             public static bool TryGetOverride(string sym, out InstrumentOverride? ov) => _instrumentOverrides.TryGetValue(sym, out ov);
             public int BbLen { get; init; } = 20;
             public decimal BbMult { get; init; } = 2.0m;
@@ -640,7 +724,7 @@ namespace BotCore.Strategy
             public int RsWindowBars { get; init; } = 60;
             public decimal RsThreshold { get; init; } = 0.10m;
             public bool RsDirectionalOnly { get; init; } = true;
-            public Dictionary<string,string> Peers { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+            public Dictionary<string, string> Peers { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
             public bool RollEnabled { get; init; } = true;
             public int RollDaysBefore { get; init; } = 2;
@@ -660,7 +744,7 @@ namespace BotCore.Strategy
             public int MaxSpreadTicks { get; init; } = 2;
             public int NewsBlockBeforeMin { get; init; } = 2;
             public int NewsBlockAfterMin { get; init; } = 3;
-            public int[] NewsOnMinutes { get; init; } = new[] { 0, 30 };
+            public int[] NewsOnMinutes { get; init; } = [0, 30];
 
             public int AttemptCapRTH { get; init; } = 2;
             public int AttemptCapOvernight { get; init; } = 1;
@@ -691,7 +775,7 @@ namespace BotCore.Strategy
                     if (!string.IsNullOrWhiteSpace(envPath)) candidates.Add(envPath!);
 
                     // 2) Probe from BaseDirectory and CurrentDirectory walking up for common repo layouts
-                    string[] bases = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() };
+                    string[] bases = [AppContext.BaseDirectory, Directory.GetCurrentDirectory()];
                     foreach (var b in bases.Distinct())
                     {
                         var dir = new DirectoryInfo(b);
@@ -721,12 +805,12 @@ namespace BotCore.Strategy
                         // Nested helpers
                         static int[] GetIntArray(JsonElement e)
                         {
-                            if (e.ValueKind != JsonValueKind.Array) return Array.Empty<int>();
+                            if (e.ValueKind != JsonValueKind.Array) return [];
                             var list = new List<int>();
                             foreach (var it in e.EnumerateArray()) if (it.TryGetInt32(out var v)) list.Add(v);
-                            return list.ToArray();
+                            return [.. list];
                         }
-                        var peers = new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+                        var peers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                         if (s3.TryGetProperty("rs_filter", out var rsNode) && rsNode.ValueKind == JsonValueKind.Object)
                         {
                             if (rsNode.TryGetProperty("peers", out var pe) && pe.ValueKind == JsonValueKind.Object)
@@ -788,7 +872,7 @@ namespace BotCore.Strategy
                             AttemptCapRTH = s3.TryGetProperty("attempt_cap", out var ac) && ac.TryGetProperty("RTH", out var rth) && rth.TryGetInt32(out var iac1) ? iac1 : 2,
                             AttemptCapOvernight = s3.TryGetProperty("attempt_cap", out var ac2) && ac2.TryGetProperty("overnight", out var on) && on.TryGetInt32(out var iac2) ? iac2 : 1,
                             WidthRankEnter = s3.TryGetProperty("width_rank_enter", out var wr) && wr.TryGetDecimal(out var dwr) ? dwr : 0.15m,
-                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind == JsonValueKind.False ? false : true),
+                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind != JsonValueKind.False),
                             NrClusterRatio = s3.TryGetProperty("nr_cluster_ratio", out var nrr) && nrr.TryGetDecimal(out var dnrr) ? dnrr : 0.60m,
                             NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb) && nrb.TryGetInt32(out var inrb) ? inrb : 5,
                             WidthSlopeDownBars = s3.TryGetProperty("width_slope_down_bars", out var wsb) && wsb.TryGetInt32(out var iwsb) ? iwsb : 8,
@@ -836,6 +920,100 @@ namespace BotCore.Strategy
                 catch { }
                 return new S3RuntimeConfig();
             }
+
+            // Internal override for tuning: apply a JSON blob shaped like S3-StrategyConfig.json
+            public static void OverrideFromJson(string json)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("Strategies", out var arr) && arr.ValueKind == JsonValueKind.Array && arr.GetArrayLength() > 0)
+                    {
+                        // Reuse loader by writing temp file content into a new config instance
+                        var cfg = _instance ?? new S3RuntimeConfig();
+                        // Simple approach: write json to a temp file and reuse parsing path is overkill; instead re-map a subset
+                        var s3 = arr[0];
+                        var peers = cfg.Peers;
+                        if (s3.TryGetProperty("rs_filter", out var rsNode) && rsNode.ValueKind == JsonValueKind.Object)
+                        {
+                            if (rsNode.TryGetProperty("peers", out var pe) && pe.ValueKind == JsonValueKind.Object)
+                            {
+                                peers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                                foreach (var kv in pe.EnumerateObject()) peers[kv.Name] = kv.Value.GetString() ?? "";
+                            }
+                        }
+                        _instance = new S3RuntimeConfig
+                        {
+                            BbLen = s3.TryGetProperty("bb_len", out var v1) && v1.TryGetInt32(out var i1) ? i1 : cfg.BbLen,
+                            BbMult = s3.TryGetProperty("bb_mult", out var v2) && v2.TryGetDecimal(out var d2) ? d2 : cfg.BbMult,
+                            KcEma = s3.TryGetProperty("kc_ema", out var v3) && v3.TryGetInt32(out var i3) ? i3 : cfg.KcEma,
+                            KcAtrLen = s3.TryGetProperty("kc_atr_len", out var v4) && v4.TryGetInt32(out var i4) ? i4 : cfg.KcAtrLen,
+                            KcMult = s3.TryGetProperty("kc_mult", out var v5) && v5.TryGetDecimal(out var d5) ? d5 : cfg.KcMult,
+                            AtrLen = s3.TryGetProperty("atr_len", out var v6) && v6.TryGetInt32(out var i6) ? i6 : cfg.AtrLen,
+                            MinSqueezeBars = s3.TryGetProperty("min_squeeze_bars", out var v7) && v7.TryGetInt32(out var i7) ? i7 : cfg.MinSqueezeBars,
+                            PreSqueezeLookback = s3.TryGetProperty("pre_squeeze_lookback", out var v8) && v8.TryGetInt32(out var i8) ? i8 : cfg.PreSqueezeLookback,
+                            ConfirmBreakAtrMult = s3.TryGetProperty("confirm_break_mult", out var v9) && v9.TryGetDecimal(out var d9) ? d9 : cfg.ConfirmBreakAtrMult,
+                            StopAtrMult = s3.TryGetProperty("stop_atr_mult", out var v10) && v10.TryGetDecimal(out var d10) ? d10 : cfg.StopAtrMult,
+                            TargetR1 = s3.TryGetProperty("target_r1", out var v11) && v11.TryGetDecimal(out var d11) ? d11 : cfg.TargetR1,
+                            TargetR2 = s3.TryGetProperty("target_r2", out var v11b) && v11b.TryGetDecimal(out var d11b) ? d11b : cfg.TargetR2,
+                            MinVolume = s3.TryGetProperty("min_volume", out var v12) && v12.TryGetInt32(out var i12) ? i12 : cfg.MinVolume,
+                            MaxSpreadTicks = s3.TryGetProperty("max_spread_ticks", out var v13) && v13.TryGetInt32(out var i13) ? i13 : cfg.MaxSpreadTicks,
+                            AttemptCapRTH = s3.TryGetProperty("attempt_cap", out var ac) && ac.TryGetProperty("RTH", out var rth) && rth.TryGetInt32(out var iac1) ? iac1 : cfg.AttemptCapRTH,
+                            AttemptCapOvernight = s3.TryGetProperty("attempt_cap", out var ac2) && ac2.TryGetProperty("overnight", out var on) && on.TryGetInt32(out var iac2) ? iac2 : cfg.AttemptCapOvernight,
+                            WidthRankEnter = s3.TryGetProperty("width_rank_enter", out var wr) && wr.TryGetDecimal(out var dwr) ? dwr : cfg.WidthRankEnter,
+                            HourlyRankAdapt = s3.TryGetProperty("hourly_rank_adapt", out var hra) && hra.ValueKind == JsonValueKind.True || (hra.ValueKind != JsonValueKind.False && cfg.HourlyRankAdapt),
+                            NrClusterRatio = s3.TryGetProperty("nr_cluster_ratio", out var nrr) && nrr.TryGetDecimal(out var dnrr) ? dnrr : cfg.NrClusterRatio,
+                            NrClusterMinBars = s3.TryGetProperty("nr_cluster_min_bars", out var nrb) && nrb.TryGetInt32(out var inrb) ? inrb : cfg.NrClusterMinBars,
+                            WidthSlopeDownBars = s3.TryGetProperty("width_slope_down_bars", out var wsb) && wsb.TryGetInt32(out var iwsb) ? iwsb : cfg.WidthSlopeDownBars,
+                            WidthSlopeTol = s3.TryGetProperty("width_slope_tol", out var wst) && wst.TryGetDecimal(out var dwst) ? dwst : cfg.WidthSlopeTol,
+                            ContraBufferMult = s3.TryGetProperty("contra_buffer_mult", out var cb) && cb.TryGetDecimal(out var dcb) ? dcb : cfg.ContraBufferMult,
+                            OvernightBufferAdd = s3.TryGetProperty("overnight_buffer_add", out var oba) && oba.TryGetDecimal(out var doba) ? doba : cfg.OvernightBufferAdd,
+                            EntryMode = s3.TryGetProperty("entry_mode", out var em) && em.ValueKind == JsonValueKind.String ? (em.GetString() ?? cfg.EntryMode) : cfg.EntryMode,
+                            RetestBars = s3.TryGetProperty("retest_bars", out var rbs) && rbs.TryGetInt32(out var irbs) ? irbs : cfg.RetestBars,
+                            RetestBackoffTicks = s3.TryGetProperty("retest_backoff_ticks", out var rbt) && rbt.TryGetInt32(out var irbt) ? irbt : cfg.RetestBackoffTicks,
+                            OrGuardEnabled = s3.TryGetProperty("or_guard", out var org) && org.TryGetProperty("enabled", out var oge) && oge.ValueKind == JsonValueKind.True,
+                            OrMinutes = s3.TryGetProperty("or_guard", out var org2) && org2.TryGetProperty("minutes", out var ogm) && ogm.TryGetInt32(out var iogm) ? iogm : cfg.OrMinutes,
+                            OrAvoidBreakInto = s3.TryGetProperty("or_guard", out var org3) && org3.TryGetProperty("avoid_break_into", out var abi) && abi.ValueKind == JsonValueKind.String ? (abi.GetString() ?? cfg.OrAvoidBreakInto) : cfg.OrAvoidBreakInto,
+                            RsEnabled = s3.TryGetProperty("rs_filter", out var rsA) && rsA.TryGetProperty("enabled", out var rse) && rse.ValueKind == JsonValueKind.True,
+                            RsWindowBars = s3.TryGetProperty("rs_filter", out var rsB) && rsB.TryGetProperty("window_bars", out var rwb) && rwb.TryGetInt32(out var irwb) ? irwb : cfg.RsWindowBars,
+                            RsThreshold = s3.TryGetProperty("rs_filter", out var rsC) && rsC.TryGetProperty("threshold", out var rst) && rst.TryGetDecimal(out var drst) ? drst : cfg.RsThreshold,
+                            RsDirectionalOnly = s3.TryGetProperty("rs_filter", out var rsD) && rsD.TryGetProperty("directional_only", out var rdo) && rdo.ValueKind == JsonValueKind.True,
+                            Peers = peers,
+                            RollEnabled = s3.TryGetProperty("roll_guard", out var rg) && rg.TryGetProperty("enabled", out var rge) && rge.ValueKind == JsonValueKind.True,
+                            RollDaysBefore = s3.TryGetProperty("roll_guard", out var rg2) && rg2.TryGetProperty("days_before", out var rdb) && rdb.TryGetInt32(out var irdb) ? irdb : cfg.RollDaysBefore,
+                            RollDaysAfter = s3.TryGetProperty("roll_guard", out var rg3) && rg3.TryGetProperty("days_after", out var rda) && rda.TryGetInt32(out var irda) ? irda : cfg.RollDaysAfter,
+                            RollRankTighten = s3.TryGetProperty("roll_guard", out var rg4) && rg4.TryGetProperty("rank_tighten", out var rrt) && rrt.TryGetDecimal(out var drrt) ? drrt : cfg.RollRankTighten,
+                            BreakQ_MinClosePos = s3.TryGetProperty("break_bar_quality", out var bbq) && bbq.TryGetProperty("min_close_pos", out var mcp) && mcp.TryGetDecimal(out var dmcp) ? dmcp : cfg.BreakQ_MinClosePos,
+                            BreakQ_MaxOppWick = s3.TryGetProperty("break_bar_quality", out var bbq2) && bbq2.TryGetProperty("max_opp_wick", out var mow) && mow.TryGetDecimal(out var dmow) ? dmow : cfg.BreakQ_MaxOppWick,
+                            ValidityBars = s3.TryGetProperty("validity_bars", out var vb) && vb.TryGetInt32(out var ivb) ? ivb : cfg.ValidityBars,
+                            CooldownBars = s3.TryGetProperty("cooldown_bars", out var cb2) && cb2.TryGetInt32(out var icb) ? icb : cfg.CooldownBars,
+                            MaxBarsInTrade = s3.TryGetProperty("max_bars_in_trade", out var mb) && mb.TryGetInt32(out var imb) ? imb : cfg.MaxBarsInTrade,
+                            TrailAtrMult = s3.TryGetProperty("trail_atr_mult", out var tam) && tam.TryGetDecimal(out var dtam) ? dtam : cfg.TrailAtrMult,
+                            NewsBlockBeforeMin = s3.TryGetProperty("news_block", out var nb) && nb.TryGetProperty("minutes_before", out var nbB) && nbB.TryGetInt32(out var inbB) ? inbB : cfg.NewsBlockBeforeMin,
+                            NewsBlockAfterMin = s3.TryGetProperty("news_block", out var nb2) && nb2.TryGetProperty("minutes_after", out var nbA) && nbA.TryGetInt32(out var inbA) ? inbA : cfg.NewsBlockAfterMin,
+                            NewsOnMinutes = s3.TryGetProperty("news_block", out var nb3) && nb3.TryGetProperty("on_minutes", out var onm) && onm.ValueKind == JsonValueKind.Array ? [.. onm.EnumerateArray().Where(e => e.TryGetInt32(out _)).Select(e => e.GetInt32())] : cfg.NewsOnMinutes,
+                            OnePerSegment = s3.TryGetProperty("one_per_segment", out var ops) && ops.ValueKind == JsonValueKind.True,
+                            SegmentCooldownMinutes = s3.TryGetProperty("segment_cooldown_minutes", out var scm) && scm.TryGetInt32(out var iscm) ? iscm : cfg.SegmentCooldownMinutes,
+                            EarlyInvalidateBars = s3.TryGetProperty("early_invalidate_bars", out var eib) && eib.TryGetInt32(out var ieib) ? ieib : cfg.EarlyInvalidateBars,
+                            ImpulseScoreMin = s3.TryGetProperty("impulse_score_min", out var ism) && ism.TryGetDecimal(out var dism) ? dism : cfg.ImpulseScoreMin,
+                            TargetsMode = s3.TryGetProperty("targets_mode", out var tm) && tm.ValueKind == JsonValueKind.String ? (tm.GetString() ?? cfg.TargetsMode) : cfg.TargetsMode,
+                            ExpansionQuantile = s3.TryGetProperty("expansion_quantile", out var eq) && eq.TryGetDecimal(out var deq) ? deq : cfg.ExpansionQuantile,
+                            GivebackAfterT1R = s3.TryGetProperty("giveback_after_t1_R", out var gb) && gb.TryGetDecimal(out var dgb) ? dgb : cfg.GivebackAfterT1R,
+                            MinSlopeTf2 = s3.TryGetProperty("min_slope_tf2", out var ms) && ms.TryGetDecimal(out var dms) ? dms : cfg.MinSlopeTf2,
+                            VolZMin = s3.TryGetProperty("volz", out var vz) && vz.TryGetProperty("min", out var vmin) && vmin.TryGetDecimal(out var dvmin) ? dvmin : cfg.VolZMin,
+                            VolZMax = s3.TryGetProperty("volz", out var vz2) && vz2.TryGetProperty("max", out var vmax) && vmax.TryGetDecimal(out var dvmax) ? dvmax : cfg.VolZMax,
+                        };
+                    }
+                }
+                catch { /* keep prior config on parse errors */ }
+            }
+        }
+
+        // Public shim for tuning to apply a JSON override at runtime
+        public static void ApplyTuningJson(string json)
+        {
+            S3RuntimeConfig.OverrideFromJson(json);
         }
     }
 }

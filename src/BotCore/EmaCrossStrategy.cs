@@ -8,13 +8,12 @@ namespace BotCore
         public static int TrySignal(IReadOnlyList<Bar> bars, int fast = 8, int slow = 21)
         {
             if (bars.Count < Math.Max(fast, slow) + 2) return 0;
-
-            decimal emaFastPrev = 0, emaSlowPrev = 0, emaFast = 0, emaSlow = 0;
+            decimal emaFastPrev = 0, emaSlowPrev = 0;
             var alphaF = 2m / (fast + 1);
             var alphaS = 2m / (slow + 1);
-
+            decimal emaSlow;
             // initialize with the first close
-            emaFast = emaSlow = bars[0].Close;
+            decimal emaFast = emaSlow = bars[0].Close;
 
             for (int i = 1; i < bars.Count; i++)
             {
@@ -25,7 +24,7 @@ namespace BotCore
                 emaSlow = alphaS * c + (1 - alphaS) * emaSlow;
             }
 
-            var prevCrossUp   = emaFastPrev <= emaSlowPrev && emaFast > emaSlow;
+            var prevCrossUp = emaFastPrev <= emaSlowPrev && emaFast > emaSlow;
             var prevCrossDown = emaFastPrev >= emaSlowPrev && emaFast < emaSlow;
 
             if (prevCrossUp) return +1;

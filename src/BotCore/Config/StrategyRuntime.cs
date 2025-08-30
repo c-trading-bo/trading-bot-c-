@@ -6,11 +6,10 @@ namespace BotCore.Config;
 // Deprecated: Use BotCore.Models.MarketSnapshot instead
 // public sealed class MarketSnapshot { /* removed */ }
 
-public static class TimeWindows
+public static partial class TimeWindows
 {
     private static readonly TimeZoneInfo Et = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
-    private static readonly Regex Range = new(@"^(?<s>\d{2}:\d{2})-(?<e>\d{2}:\d{2})$",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+    private static readonly Regex Range = MyRegex();
 
     public static bool IsNowWithinEt(string windowEt, DateTime utcNow)
     {
@@ -22,4 +21,7 @@ public static class TimeWindows
         return start <= end ? (local >= start && local <= end)
                             : (local >= start || local <= end);
     }
+
+    [GeneratedRegex(@"^(?<s>\d{2}:\d{2})-(?<e>\d{2}:\d{2})$", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex MyRegex();
 }

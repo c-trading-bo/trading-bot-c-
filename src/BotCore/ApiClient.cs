@@ -5,21 +5,12 @@ using Microsoft.Extensions.Logging;
 
 namespace BotCore
 {
-    public sealed class ApiClient
+    public sealed class ApiClient(HttpClient http, ILogger<ApiClient> log, string apiBase)
     {
-    private readonly HttpClient _http;
-    private readonly ILogger<ApiClient> _log;
-    private readonly string _apiBase;
-    private string? _jwt;
-
-        public ApiClient(HttpClient http, ILogger<ApiClient> log, string apiBase)
-        {
-            _http = http;
-            _log = log;
-            _apiBase = apiBase;
-            // Do not modify HttpClient.BaseAddress here because it may have already sent requests.
-            // We compose absolute URLs via the _apiBase field in U(path).
-        }
+        private readonly HttpClient _http = http;
+        private readonly ILogger<ApiClient> _log = log;
+        private readonly string _apiBase = apiBase;
+        private string? _jwt;
 
         public void SetJwt(string jwt)
         {
@@ -27,12 +18,12 @@ namespace BotCore
             _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
         }
 
-        #nullable enable
+#nullable enable
         private sealed record AvailableReq(bool live);
         private sealed record ContractDto(string id, string name, string? description, string symbolId, bool activeContract);
         private sealed record AvailableResp(List<ContractDto>? contracts, bool success, int errorCode, string? errorMessage);
 
-        private static readonly Dictionary<string,string> SymbolRootToSymbolId = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> SymbolRootToSymbolId = new(StringComparer.OrdinalIgnoreCase)
         {
             ["ES"] = "F.US.EP",   // E-mini S&P 500
             ["NQ"] = "F.US.ENQ",  // E-mini NASDAQ-100
@@ -44,13 +35,11 @@ namespace BotCore
         public async Task<string> ResolveContractIdAsync(string root, CancellationToken ct = default)
         {
             // 1) Try AVAILABLE (eval = live:false)
-            var id = await TryResolveViaAvailableAsync(root, live:false, ct);
-            if (id is null)
-                id = await TryResolveViaAvailableAsync(root, live:true, ct); // safety fallback
+            var id = await TryResolveViaAvailableAsync(root, live: false, ct);
+            id ??= await TryResolveViaAvailableAsync(root, live: true, ct); // safety fallback
 
             // 2) Fallback to SEARCH if still nothing
-            if (id is null)
-                id = await TryResolveViaSearchAsync(root, live:false, ct) ?? await TryResolveViaSearchAsync(root, live:true, ct);
+            id ??= await TryResolveViaSearchAsync(root, live: false, ct) ?? await TryResolveViaSearchAsync(root, live: true, ct);
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new InvalidOperationException($"No contractId found for symbol: {root}");
@@ -74,7 +63,7 @@ namespace BotCore
                 }
 
                 var data = JsonSerializer.Deserialize<AvailableResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                var list = data?.contracts ?? new();
+                var list = data?.contracts ?? [];
 
                 // Filter by symbolId if we know it; prefer active front-month (name like ES?U5 / NQ?U5)
                 IEnumerable<ContractDto> pool = string.IsNullOrWhiteSpace(wantedSymbolId)
@@ -117,7 +106,7 @@ namespace BotCore
                 }
 
                 var data = JsonSerializer.Deserialize<SearchResp>(body, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                var list = data?.contracts ?? new();
+                var list = data?.contracts ?? [];
 
                 // Prefer ES*/NQ* exact/starts-with, active first
                 var pick = list
@@ -147,6 +136,15 @@ namespace BotCore
         public async Task<JsonElement> SearchOrdersAsync(object body, CancellationToken ct)
         {
             using var resp = await _http.PostAsJsonAsync(U("/api/Order/search"), body, ct);
+            resp.EnsureSuccessStatusCode();
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            return json;
+        }
+
+        // Search for trades via REST
+        public async Task<JsonElement> SearchTradesAsync(object body, CancellationToken ct)
+        {
+            using var resp = await _http.PostAsJsonAsync(U("/api/Trade/search"), body, ct);
             resp.EnsureSuccessStatusCode();
             var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
             return json;
@@ -183,7 +181,7 @@ namespace BotCore
         public async Task<List<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)
         {
             var resp = await PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
-            return resp?.positions ?? new();
+            return resp?.positions ?? [];
         }
 
         // Legacy one kept for backward-compat if any call sites still expect bare arrays

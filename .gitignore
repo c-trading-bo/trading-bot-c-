@@ -4,3 +4,37 @@ obj/
 **/*.suo
 .vscode/
 .env.local
+# Ignore accidentally embedded repos
+trading-bot-c-/
+trading-bot-c--1/
+
+# Extra build outputs
+**/bin/
+**/obj/
+
+# Logs/temp/state
+*.log
+logs/
+journal/
+state/backtest/
+state/tuning/*.tmp
+
+# Python virtual environments and cache
+ml/rl_env/
+ml/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+
+# Python test files (temporary)
+test_rl_env.py
+
+# VS Code Python settings
+.python-version
+
+# OS
+.DS_Store
+Thumbs.db

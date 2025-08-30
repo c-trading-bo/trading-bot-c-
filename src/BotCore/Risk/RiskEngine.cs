@@ -4,7 +4,7 @@ namespace BotCore.Risk
     {
         public RiskConfig cfg { get; set; } = new RiskConfig();
 
-        public decimal ComputeRisk(decimal entry, decimal stop, decimal target, bool isLong)
+        public static decimal ComputeRisk(decimal entry, decimal stop, decimal target, bool isLong)
         {
             var risk = isLong ? entry - stop : stop - entry;
             var reward = isLong ? target - entry : entry - target;
@@ -12,7 +12,7 @@ namespace BotCore.Risk
             return reward / risk;
         }
 
-        public decimal size_for(decimal riskPerTrade, decimal dist, decimal pointValue)
+        public static decimal size_for(decimal riskPerTrade, decimal dist, decimal pointValue)
         {
             if (dist <= 0 || pointValue <= 0) return 0m;
             return Math.Floor(riskPerTrade / (dist * pointValue));

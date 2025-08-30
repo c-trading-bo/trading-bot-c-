@@ -24,7 +24,7 @@ namespace BotCore
 
     public sealed class FootprintBarAggregator
     {
-        private readonly Dictionary<string, (DateTimeOffset bucket, FootprintBar bar)> _state = new();
+        private readonly Dictionary<string, (DateTimeOffset bucket, FootprintBar bar)> _state = [];
         public event Action<string, string, FootprintBar>? BarClosed;
 
         public void OnTrade(string contractId, string symbolId, DateTimeOffset tsUtc, decimal px, decimal vol, int side)

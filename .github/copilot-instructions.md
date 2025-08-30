@@ -1,27 +1,31 @@
 ## Agent Rules & Eval Defaults
 
 ### Eval Defaults
+
 - Prefer MES/MNQ on SIM.
 - Use /Contract/available { live:false }; fall back to search.
 - Only flip to EXECUTE after BarsSeen >= 10, hubs up, canTrade, contractId != null.
 
 ### Quick Loop
+
 - Run (DRY_RUN) while iterating.
 - Run (AUTO_EXECUTE) to verify flip under prechecks.
 - Paste errors, apply patch based on agent brief, run again.
 
 ### Builder Agent Usage
+
 - Use scripts/agents/api-client.md to update Core/Api/ApiClient.cs.
 - Use scripts/agents/market-hub.md to improve UserHubClient & MarketHubClient.
 - Use scripts/agents/verifier.md to add VerifyTodayAsync and print totals by status.
 
 ### Guardrails
+
 - No LLM/agent in the order path. Trading loop stays pure C#.
 - DRY_RUN precedence; AUTO_EXECUTE flips only after all prechecks.
 - Order evidence: require orderId + GatewayUserTrade (or Trade/search row).
 - Risk/tick rules: ES/MES round to 0.25, print two decimals, reject risk ≤ 0.
 - kill.txt always forces DRY_RUN.
-Project
+  Project
 
 Goal: Turn strategy signals into safe, verifiable TopstepX orders and portfolio state.
 
@@ -38,6 +42,7 @@ Market Hub (SignalR): https://rtc.topstepx.com/hubs/market
 Guardrails (always follow)
 
 No fills without proof. Before saying “filled”, require at least one of:
+
 - orderId returned by the place-order call and
 - a fill event from the User Hub (see Events) or
 - Trade search shows an execution.
@@ -76,8 +81,8 @@ using System.Globalization;
 
 public static class Px
 {
-    public const decimal ES_TICK = 0.25m;
-    private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
+public const decimal ES_TICK = 0.25m;
+private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
     public static decimal RoundToTick(decimal price, decimal tick = ES_TICK) =>
         Math.Round(price / tick, 0, MidpointRounding.AwayFromZero) * tick;
@@ -91,6 +96,7 @@ public static class Px
         if (risk <= 0 || reward < 0) return 0m;
         return reward / risk;
     }
+
 }
 
 SignalR (User Hub) — canonical wiring
@@ -98,8 +104,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 public sealed class UserHubClient : IAsyncDisposable
 {
-    private readonly HubConnection _hub;
-    private bool _wired;
+private readonly HubConnection \_hub;
+private bool \_wired;
 
     public UserHubClient(string jwt)
     {
@@ -123,12 +129,13 @@ public sealed class UserHubClient : IAsyncDisposable
     }
 
     public async ValueTask DisposeAsync() => await _hub.DisposeAsync();
+
 }
 
 REST — skeletons (fill fields per API docs)
 public sealed class GatewayClient
 {
-    private readonly HttpClient _http;
+private readonly HttpClient \_http;
 
     public GatewayClient(HttpClient http)
     {
@@ -156,6 +163,7 @@ public sealed class GatewayClient
         resp.EnsureSuccessStatusCode();
         return (await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct)).GetProperty("data");
     }
+
 }
 
 Order flow contract (what to generate)
@@ -181,21 +189,30 @@ Testing: fake the HTTP and Hub with interfaces; unit-test rounding + R-multiple 
 Do/Don’t quick list
 ✅ Prefer decimal everywhere for prices/qty.
 ✅ One HttpClient reused; set DefaultRequestHeaders.Authorization = Bearer {JWT}.
-✅ One-time event wiring (_wired guard).
+✅ One-time event wiring (\_wired guard).
 ❌ Don’t print raw tokens or full exceptions with secrets.
 ❌ Don’t claim fills without orderId + fill evidence.
 ❌ Don’t send orders from VPN/VPS/remote environments.
 
 Keep this file concise and link deeper docs. Copilot reads this on every chat. Add any new rules/API specifics here as you refine the bot.
 
+Quickfix — Dashboard/HTTP not loading
+
+- Ensure ASPNETCORE_URLS is a single port (prefer http://localhost:5050) and that no other process is listening.
+- Kill stale listeners:
+  - PowerShell: Get-NetTCPConnection -LocalPort 5050 -State Listen | Select -Expand OwningProcess -Unique | % { Stop-Process -Id $\_ -Force }
+- Disable quick-exit: BOT_QUICK_EXIT=0 (otherwise the process exits and the port closes).
+- Mode selection precedence: launcher sets BOT_MODE and SKIP_MODE_PROMPT=1; the app’s .env loader must NOT overwrite existing env vars. If missing, implement this guard before setting env from .env.
+- Health probes: http://localhost:5050/healthz and /healthz/mode should respond once listening.
+
 Developer guardrails (process & Git)
 
 - Branch workflow: create a disposable branch per task and push upstream, e.g.:
-    - git switch -c agent/feat-short-desc
-    - git push -u origin HEAD
+  - git switch -c agent/feat-short-desc
+  - git push -u origin HEAD
 - Protect main: only merge via PR; ask for minimal patches, not rewrites.
-- Patch mode prompt: “Make the smallest possible change. Return a unified diff only (no full files). Keep signatures/exports stable. Don’t touch .env, settings.json, keys/*.”
-- Do-not-touch: .env, secrets, keys, CI YAML, versioning, risk controls, auth/login code (TopstepAuthAgent, JwtCache, any Auth/* folder).
+- Patch mode prompt: “Make the smallest possible change. Return a unified diff only (no full files). Keep signatures/exports stable. Don’t touch .env, settings.json, keys/\*.”
+- Do-not-touch: .env, secrets, keys, CI YAML, versioning, risk controls, auth/login code (TopstepAuthAgent, JwtCache, any Auth/\* folder).
 - Pre-commit gate: use .pre-commit-config.yaml to run dotnet format/build/test and block protected files.
 - Approvals: require confirmation for file writes and terminal commands when using local agents; propose a plan before executing.
 - Review hunks: stage with git add -p and verify with git diff --staged before committing.
