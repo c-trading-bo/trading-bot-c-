@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: '0 */6 * * *'  # Every 6 hours
   workflow_dispatch:       # Manual trigger
+  push:                    # Also run on any push
+    branches: ['*']        # Run on any branch
 
 jobs:
   cloud-training:
