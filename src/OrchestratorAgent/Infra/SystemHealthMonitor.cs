@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using OrchestratorAgent.Infra.HealthChecks;
 
 namespace OrchestratorAgent.Infra;
 
@@ -14,6 +15,7 @@ public class SystemHealthMonitor
     private readonly List<IHealthCheck> _discoveredChecks = new();
     private readonly Timer _healthCheckTimer;
     private SystemHealthSnapshot _lastSnapshot = new();
+    private readonly object _lockObject = new(); // Thread safety lock
     
     public SystemHealthMonitor(ILogger<SystemHealthMonitor> logger, IServiceProvider serviceProvider)
     {
@@ -179,16 +181,38 @@ public class SystemHealthMonitor
                     CheckFunction = () => ConvertHealthCheckResult(healthCheck).Result,
                     CriticalLevel = HealthLevel.Medium
                 };
-                _healthChecks[healthCheck.Name] = legacyCheck;
+                
+                lock (_lockObject)
+                {
+                    _healthChecks[healthCheck.Name] = legacyCheck;
+                }
+            }
+
+            // Add the Universal Auto-Discovery Health Check - monitors ALL new features automatically
+            var universalDiscovery = new HealthChecks.UniversalAutoDiscoveryHealthCheck(
+                _serviceProvider.GetRequiredService<ILogger<HealthChecks.UniversalAutoDiscoveryHealthCheck>>(),
+                _serviceProvider);
+                
+            var universalCheck = new HealthCheck
+            {
+                Name = "Universal Auto-Discovery Monitor",
+                Description = "Automatically discovers and monitors ALL new features, components, and systems without manual intervention",
+                CheckFunction = () => ConvertHealthCheckResult(universalDiscovery).Result,
+                CriticalLevel = HealthLevel.Critical  // Critical because it monitors everything
+            };
+            
+            lock (_lockObject)
+            {
+                _healthChecks["universal_auto_discovery"] = universalCheck;
             }
             
-            _logger.LogInformation("[HEALTH] Discovered and registered {Count} new health checks", discoveredChecks.Count);
+            _logger.LogInformation("[HEALTH] Discovered and registered {Count} health checks + Universal Auto-Discovery Monitor", discoveredChecks.Count);
             
             // Check for unmonitored features
             var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync();
             if (unmonitored.Count > 0)
             {
-                _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features: {Features}", 
+                _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features (will be auto-monitored by Universal Discovery): {Features}", 
                     unmonitored.Count, string.Join(", ", unmonitored));
             }
         }
@@ -246,7 +270,14 @@ public class SystemHealthMonitor
                 Results = new Dictionary<string, HealthResult>()
             };
             
-            foreach (var (key, check) in _healthChecks)
+            // Create a thread-safe snapshot of health checks to avoid concurrent modification
+            Dictionary<string, HealthCheck> healthCheckSnapshot;
+            lock (_lockObject)
+            {
+                healthCheckSnapshot = new Dictionary<string, HealthCheck>(_healthChecks);
+            }
+            
+            foreach (var (key, check) in healthCheckSnapshot)
             {
                 try
                 {

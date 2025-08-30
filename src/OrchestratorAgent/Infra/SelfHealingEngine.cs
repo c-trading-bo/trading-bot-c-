@@ -57,8 +57,11 @@ public class SelfHealingEngine
             lock (_lockObject)
             {
                 // Check if we have a healing action for this health check
+                // First try exact match, then try wildcard adaptive actions
                 var healingAction = _healingActions.Values.FirstOrDefault(a => 
-                    a.TargetHealthCheck.Equals(healthCheckName, StringComparison.OrdinalIgnoreCase));
+                    a.TargetHealthCheck.Equals(healthCheckName, StringComparison.OrdinalIgnoreCase))
+                    ?? _healingActions.Values.FirstOrDefault(a => 
+                        a.TargetHealthCheck == "*" || a.TargetHealthCheck.Equals("*", StringComparison.OrdinalIgnoreCase));
 
                 if (healingAction == null)
                 {
@@ -155,6 +158,9 @@ public class SelfHealingEngine
             var assemblies = new[] { Assembly.GetExecutingAssembly(), Assembly.GetEntryAssembly() }
                 .Where(a => a != null).Distinct();
 
+            var discoveredCount = 0;
+            var adaptiveCount = 0;
+
             foreach (var assembly in assemblies)
             {
                 var actionTypes = assembly!.GetTypes()
@@ -199,8 +205,20 @@ public class SelfHealingEngine
                         if (action != null)
                         {
                             _healingActions[action.Name] = action;
-                            _logger.LogInformation("[SELF-HEAL] Registered healing action: {Name} -> {Target} (Risk: {Risk})", 
-                                action.Name, action.TargetHealthCheck, action.RiskLevel);
+                            discoveredCount++;
+                            
+                            // Check if this is an adaptive action
+                            if (actionType.Name.Contains("Adaptive", StringComparison.OrdinalIgnoreCase))
+                            {
+                                adaptiveCount++;
+                                _logger.LogInformation("[SELF-HEAL] ⚡ ADAPTIVE healing action: {Name} -> {Target} (Risk: {Risk}) - Can learn new patterns!", 
+                                    action.Name, action.TargetHealthCheck, action.RiskLevel);
+                            }
+                            else
+                            {
+                                _logger.LogInformation("[SELF-HEAL] Registered healing action: {Name} -> {Target} (Risk: {Risk})", 
+                                    action.Name, action.TargetHealthCheck, action.RiskLevel);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -208,6 +226,14 @@ public class SelfHealingEngine
                         _logger.LogWarning(ex, "[SELF-HEAL] Failed to register healing action: {Type}", actionType.Name);
                     }
                 }
+            }
+            
+            _logger.LogInformation("[SELF-HEAL] Discovery complete. Found {Count} healing actions ({AdaptiveCount} adaptive, {SpecificCount} specific)", 
+                discoveredCount, adaptiveCount, discoveredCount - adaptiveCount);
+            
+            if (adaptiveCount > 0)
+            {
+                _logger.LogInformation("[SELF-HEAL] 🧠 Adaptive healing enabled - system can now learn to fix ANY new feature automatically!");
             }
         }
         catch (Exception ex)

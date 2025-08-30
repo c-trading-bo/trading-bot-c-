@@ -18,6 +18,7 @@ public class MLLearningRecoveryAction : ISelfHealingAction
 {
     private readonly ILogger<MLLearningRecoveryAction>? _logger;
     private static readonly string RepairMemoryFile = "state/ml_repair_history.json";
+    private const string StateDirectory = "state";
 
     // Parameterless constructor for auto-discovery
     public MLLearningRecoveryAction() : this(null) { }
@@ -53,30 +54,11 @@ public class MLLearningRecoveryAction : ISelfHealingAction
             }
 
             // Step 1: Safe directory check and creation
-            var stateDir = "state";
-            if (!Directory.Exists(stateDir))
-            {
-                Directory.CreateDirectory(stateDir);
-                actionsPerformed.Add("Created missing state directory");
-                _logger?.LogInformation("[SELF-HEAL] Created missing state directory");
-            }
+            await EnsureStateDirectoryExists(actionsPerformed);
 
             // Step 2: Backup existing state before any changes
-            var stateFile = Path.Combine(stateDir, "learning_state.json");
-            var backupFile = Path.Combine(stateDir, $"learning_state_backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-            
-            if (File.Exists(stateFile))
-            {
-                try
-                {
-                    File.Copy(stateFile, backupFile);
-                    actionsPerformed.Add($"Created safety backup: {Path.GetFileName(backupFile)}");
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogWarning("[SELF-HEAL] Could not create backup: {Error}", ex.Message);
-                }
-            }
+            var stateFile = Path.Combine(StateDirectory, "learning_state.json");
+            await CreateBackupIfNeeded(stateFile, actionsPerformed);
 
             // Step 3: Intelligent state file repair
             if (!File.Exists(stateFile) || string.IsNullOrWhiteSpace(await File.ReadAllTextAsync(stateFile, cancellationToken)))
@@ -87,19 +69,19 @@ public class MLLearningRecoveryAction : ISelfHealingAction
                     .OrderByDescending(r => r.Timestamp)
                     .FirstOrDefault();
 
-                string defaultState;
+                string stateToWrite;
                 if (lastSuccessfulState != null && lastSuccessfulState.RepairData.TryGetValue("restored_state", out var restoredState))
                 {
-                    defaultState = restoredState.ToString() ?? GetDefaultLearningState();
+                    stateToWrite = restoredState.ToString() ?? DefaultLearningState;
                     actionsPerformed.Add("Applied learned state pattern from repair memory");
                 }
                 else
                 {
-                    defaultState = GetDefaultLearningState();
+                    stateToWrite = DefaultLearningState;
                     actionsPerformed.Add("Used default state pattern");
                 }
                 
-                await File.WriteAllTextAsync(stateFile, defaultState, cancellationToken);
+                await File.WriteAllTextAsync(RepairMemoryFile, stateToWrite, cancellationToken: cancellationToken);
                 actionsPerformed.Add("Created/repaired learning state file with intelligent defaults");
             }
 
@@ -108,7 +90,7 @@ public class MLLearningRecoveryAction : ISelfHealingAction
             if (!IsValidLearningState(stateContent))
             {
                 // Try to preserve existing data while fixing format
-                var repairedState = await RepairStateFormatAsync(stateContent, cancellationToken);
+                var repairedState = await RepairStateFormatAsync(stateContent);
                 await File.WriteAllTextAsync(stateFile, repairedState, cancellationToken);
                 actionsPerformed.Add("Repaired corrupted learning state format while preserving data");
             }
@@ -118,6 +100,7 @@ public class MLLearningRecoveryAction : ISelfHealingAction
             var isRepaired = IsValidLearningState(finalState);
 
             // Record this repair attempt in memory for future improvements
+            var backupFile = Path.Combine("state", $"learning_state_backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             await SaveRepairHistoryAsync(new RepairRecord
             {
                 Timestamp = DateTime.UtcNow,
@@ -171,15 +154,43 @@ public class MLLearningRecoveryAction : ISelfHealingAction
         }
     }
 
-    private static string GetDefaultLearningState()
-    {
-        return """
+    private const string DefaultLearningState = """
         {
             "lastPractice": "1900-01-01T00:00:00Z",
             "totalLearningCycles": 0,
             "lastSaved": "1900-01-01T00:00:00Z"
         }
         """;
+
+    private Task EnsureStateDirectoryExists(List<string> actionsPerformed)
+    {
+        var stateDir = StateDirectory;
+        if (!Directory.Exists(stateDir))
+        {
+            Directory.CreateDirectory(stateDir);
+            actionsPerformed.Add("Created missing state directory");
+            _logger?.LogInformation("[SELF-HEAL] Created missing state directory");
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task CreateBackupIfNeeded(string stateFile, List<string> actionsPerformed)
+    {
+        var backupFile = Path.Combine(StateDirectory, $"learning_state_backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+        
+        if (File.Exists(stateFile))
+        {
+            try
+            {
+                File.Copy(stateFile, backupFile);
+                actionsPerformed.Add($"Created safety backup: {Path.GetFileName(backupFile)}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[SELF-HEAL] Could not create backup: {Error}", ex.Message);
+            }
+        }
+        return Task.CompletedTask;
     }
 
     private static bool IsValidLearningState(string content)
@@ -196,10 +207,10 @@ public class MLLearningRecoveryAction : ISelfHealingAction
         }
     }
 
-    private static async Task<string> RepairStateFormatAsync(string content, CancellationToken cancellationToken)
+    private static Task<string> RepairStateFormatAsync(string content)
     {
         // Try to extract useful data from corrupted state
-        var defaultState = GetDefaultLearningState();
+        var defaultState = DefaultLearningState;
         
         // Look for patterns that might indicate valid data
         if (content.Contains("totalLearningCycles"))
@@ -210,14 +221,13 @@ public class MLLearningRecoveryAction : ISelfHealingAction
                 var cycleMatch = System.Text.RegularExpressions.Regex.Match(content, @"totalLearningCycles[""':\s]*(\d+)");
                 if (cycleMatch.Success && int.TryParse(cycleMatch.Groups[1].Value, out var cycles))
                 {
-                    var stateObj = JsonDocument.Parse(defaultState);
                     var newState = new
                     {
                         lastPractice = "1900-01-01T00:00:00Z",
                         totalLearningCycles = cycles,
                         lastSaved = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
                     };
-                    return JsonSerializer.Serialize(newState, new JsonSerializerOptions { WriteIndented = true });
+                    return Task.FromResult(JsonSerializer.Serialize(newState, new JsonSerializerOptions { WriteIndented = true }));
                 }
             }
             catch
@@ -226,7 +236,7 @@ public class MLLearningRecoveryAction : ISelfHealingAction
             }
         }
 
-        return defaultState;
+        return Task.FromResult(defaultState);
     }
 
     private static async Task<List<RepairRecord>> LoadRepairHistoryAsync(CancellationToken cancellationToken)
@@ -282,7 +292,6 @@ public class MLLearningRecoveryAction : ISelfHealingAction
 public class StrategyConfigRecoveryAction : ISelfHealingAction
 {
     private readonly ILogger<StrategyConfigRecoveryAction>? _logger;
-    private static readonly string RepairMemoryFile = "state/strategy_repair_history.json";
 
     // Parameterless constructor for auto-discovery
     public StrategyConfigRecoveryAction() : this(null) { }
@@ -311,100 +320,16 @@ public class StrategyConfigRecoveryAction : ISelfHealingAction
             var backupDir = Path.Combine(configDir, "backups");
 
             // Step 1: Create backup directory if needed
-            if (!Directory.Exists(backupDir))
-            {
-                Directory.CreateDirectory(backupDir);
-                actionsPerformed.Add("Created config backup directory");
-            }
+            await CreateBackupDirectoryIfNeeded(backupDir, actionsPerformed);
 
             // Step 2: Safety check - backup all existing configs before any changes
-            if (Directory.Exists(configDir))
-            {
-                var backupConfigFiles = Directory.GetFiles(configDir, "*.json");
-                var backupTimestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-                
-                foreach (var configFile in backupConfigFiles)
-                {
-                    try
-                    {
-                        var fileName = Path.GetFileName(configFile);
-                        var backupPath = Path.Combine(backupDir, $"{Path.GetFileNameWithoutExtension(fileName)}_{backupTimestamp}.json");
-                        File.Copy(configFile, backupPath, true);
-                        actionsPerformed.Add($"Backed up {fileName}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning("[SELF-HEAL] Could not backup {File}: {Error}", configFile, ex.Message);
-                    }
-                }
-            }
+            await BackupExistingConfigs(configDir, backupDir, actionsPerformed);
 
             // Step 3: Validate and repair config files (READ-ONLY validation)
-            var configFiles = Directory.GetFiles(configDir, "*.json");
-            var validConfigs = 0;
-            var corruptedConfigs = new List<string>();
-
-            foreach (var configFile in configFiles)
-            {
-                try
-                {
-                    var content = await File.ReadAllTextAsync(configFile, cancellationToken);
-                    
-                    // Basic safety checks without modification
-                    if (string.IsNullOrWhiteSpace(content))
-                    {
-                        corruptedConfigs.Add($"{Path.GetFileName(configFile)} (empty)");
-                        continue;
-                    }
-
-                    if (!IsValidJson(content))
-                    {
-                        corruptedConfigs.Add($"{Path.GetFileName(configFile)} (invalid JSON)");
-                        continue;
-                    }
-
-                    // Check for essential strategy fields (non-destructive)
-                    if (!content.Contains("maxTrades") || !content.Contains("entryMode"))
-                    {
-                        corruptedConfigs.Add($"{Path.GetFileName(configFile)} (missing fields)");
-                        continue;
-                    }
-
-                    validConfigs++;
-                    actionsPerformed.Add($"Validated {Path.GetFileName(configFile)}");
-                }
-                catch (Exception ex)
-                {
-                    _logger?.LogError(ex, "[SELF-HEAL] Failed to validate config file: {File}", configFile);
-                    corruptedConfigs.Add($"{Path.GetFileName(configFile)} (read error: {ex.Message})");
-                }
-            }
+            var (validConfigs, corruptedConfigs) = await ValidateConfigFiles(configDir, actionsPerformed, cancellationToken);
 
             // Step 4: Report findings without making dangerous changes
-            if (corruptedConfigs.Any())
-            {
-                var corruptedList = string.Join(", ", corruptedConfigs);
-                _logger?.LogWarning("[SELF-HEAL] Found corrupted configs requiring manual attention: {Configs}", corruptedList);
-                
-                return new RecoveryResult
-                {
-                    Success = false,
-                    Message = $"Strategy config issues detected - MANUAL INTERVENTION REQUIRED for: {corruptedList}. Backups created for safety.",
-                    ActionsPerformed = actionsPerformed.ToArray(),
-                    Duration = DateTime.UtcNow - startTime,
-                    RequiresManualIntervention = true
-                };
-            }
-
-            _logger?.LogInformation("[SELF-HEAL] Strategy config recovery completed - all configs valid");
-            
-            return new RecoveryResult
-            {
-                Success = true,
-                Message = $"Strategy config recovery completed - validated {validConfigs} configs successfully",
-                ActionsPerformed = actionsPerformed.ToArray(),
-                Duration = DateTime.UtcNow - startTime
-            };
+            return CreateConfigRecoveryResult(validConfigs, corruptedConfigs, actionsPerformed, startTime);
         }
         catch (Exception ex)
         {
@@ -419,6 +344,111 @@ public class StrategyConfigRecoveryAction : ISelfHealingAction
                 RequiresManualIntervention = true
             };
         }
+    }
+
+    private static Task CreateBackupDirectoryIfNeeded(string backupDir, List<string> actionsPerformed)
+    {
+        if (!Directory.Exists(backupDir))
+        {
+            Directory.CreateDirectory(backupDir);
+            actionsPerformed.Add("Created config backup directory");
+        }
+        return Task.CompletedTask;
+    }
+
+    private async Task BackupExistingConfigs(string configDir, string backupDir, List<string> actionsPerformed)
+    {
+        if (!Directory.Exists(configDir)) return;
+
+        var backupConfigFiles = Directory.GetFiles(configDir, "*.json");
+        var backupTimestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        
+        foreach (var configFile in backupConfigFiles)
+        {
+            try
+            {
+                var fileName = Path.GetFileName(configFile);
+                var backupPath = Path.Combine(backupDir, $"{Path.GetFileNameWithoutExtension(fileName)}_{backupTimestamp}.json");
+                File.Copy(configFile, backupPath, true);
+                actionsPerformed.Add($"Backed up {fileName}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[SELF-HEAL] Could not backup {File}: {Error}", configFile, ex.Message);
+            }
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task<(int ValidConfigs, List<string> CorruptedConfigs)> ValidateConfigFiles(string configDir, List<string> actionsPerformed, CancellationToken cancellationToken)
+    {
+        var configFiles = Directory.GetFiles(configDir, "*.json");
+        var validConfigs = 0;
+        var corruptedConfigs = new List<string>();
+
+        foreach (var configFile in configFiles)
+        {
+            try
+            {
+                var content = await File.ReadAllTextAsync(configFile, cancellationToken);
+                
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    corruptedConfigs.Add($"{Path.GetFileName(configFile)} (empty)");
+                    continue;
+                }
+
+                if (!IsValidJson(content))
+                {
+                    corruptedConfigs.Add($"{Path.GetFileName(configFile)} (invalid JSON)");
+                    continue;
+                }
+
+                if (!content.Contains("maxTrades") || !content.Contains("entryMode"))
+                {
+                    corruptedConfigs.Add($"{Path.GetFileName(configFile)} (missing fields)");
+                    continue;
+                }
+
+                validConfigs++;
+                actionsPerformed.Add($"Validated {Path.GetFileName(configFile)}");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "[SELF-HEAL] Failed to validate config file: {File}", configFile);
+                corruptedConfigs.Add($"{Path.GetFileName(configFile)} (read error: {ex.Message})");
+            }
+        }
+
+        return (validConfigs, corruptedConfigs);
+    }
+
+    private RecoveryResult CreateConfigRecoveryResult(int validConfigs, List<string> corruptedConfigs, List<string> actionsPerformed, DateTime startTime)
+    {
+        if (corruptedConfigs.Any())
+        {
+            var corruptedList = string.Join(", ", corruptedConfigs);
+            _logger?.LogWarning("[SELF-HEAL] Found corrupted configs requiring manual attention: {Configs}", corruptedList);
+            
+            return new RecoveryResult
+            {
+                Success = false,
+                Message = $"Strategy config issues detected - MANUAL INTERVENTION REQUIRED for: {corruptedList}. Backups created for safety.",
+                ActionsPerformed = actionsPerformed.ToArray(),
+                Duration = DateTime.UtcNow - startTime,
+                RequiresManualIntervention = true
+            };
+        }
+
+        _logger?.LogInformation("[SELF-HEAL] Strategy config recovery completed - all configs valid");
+        
+        return new RecoveryResult
+        {
+            Success = true,
+            Message = $"Strategy config recovery completed - validated {validConfigs} configs successfully",
+            ActionsPerformed = actionsPerformed.ToArray(),
+            Duration = DateTime.UtcNow - startTime
+        };
     }
 
     private static bool IsValidJson(string content)
@@ -443,6 +473,14 @@ public class StrategyConfigRecoveryAction : ISelfHealingAction
 public class ConnectivityRecoveryAction : ISelfHealingAction
 {
     private readonly ILogger<ConnectivityRecoveryAction>? _logger;
+    
+    // Constants for connectivity testing
+    // SonarQube S1075: These URLs are intentionally hardcoded for connectivity testing
+    // External connectivity test endpoints - hardcoded by design for reliability testing
+#pragma warning disable S1075 // URIs should not be hardcoded
+    private const string TestConnectivityUrl = "https://www.google.com";
+    private const string ApiConnectivityUrl = "https://api.topstepx.com";
+#pragma warning restore S1075
 
     // Parameterless constructor for auto-discovery
     public ConnectivityRecoveryAction() : this(null) { }
@@ -525,7 +563,7 @@ public class ConnectivityRecoveryAction : ISelfHealingAction
         // Test 1: Basic internet connectivity
         try
         {
-            var response = await httpClient.GetAsync("https://www.google.com", cancellationToken);
+            var response = await httpClient.GetAsync(TestConnectivityUrl, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
                 results.Add("✓ Basic internet connectivity: WORKING");
@@ -543,7 +581,7 @@ public class ConnectivityRecoveryAction : ISelfHealingAction
         // Test 2: TopstepX API endpoint
         try
         {
-            var response = await httpClient.GetAsync("https://api.topstepx.com", cancellationToken);
+            var response = await httpClient.GetAsync(ApiConnectivityUrl, cancellationToken);
             results.Add($"✓ TopstepX API reachable (status: {response.StatusCode})");
         }
         catch (Exception ex)
@@ -581,10 +619,10 @@ public class ConnectivityRecoveryAction : ISelfHealingAction
 public class PositionTrackingRecoveryAction : ISelfHealingAction
 {
     private readonly ILogger<PositionTrackingRecoveryAction>? _logger;
-    
+
     // Parameterless constructor for auto-discovery
     public PositionTrackingRecoveryAction() : this(null) { }
-    
+
     public PositionTrackingRecoveryAction(ILogger<PositionTrackingRecoveryAction>? logger)
     {
         _logger = logger;
@@ -596,7 +634,7 @@ public class PositionTrackingRecoveryAction : ISelfHealingAction
     public RecoveryRiskLevel RiskLevel => RecoveryRiskLevel.Low;
     public int MaxAttemptsPerDay => 10;
 
-    public async Task<RecoveryResult> ExecuteRecoveryAsync(HealthCheckResult healthCheckResult, CancellationToken cancellationToken = default)
+    public Task<RecoveryResult> ExecuteRecoveryAsync(HealthCheckResult healthCheckResult, CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
         var actionsPerformed = new List<string>();
@@ -632,7 +670,7 @@ public class PositionTrackingRecoveryAction : ISelfHealingAction
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning("[SELF-HEAL] Could not backup position file {File}: {Error}", file, ex.Message);
+                        _logger?.LogWarning(ex, "[SELF-HEAL] Could not backup position file {File}: {Error}", file, ex.Message);
                     }
                 }
 
@@ -646,7 +684,7 @@ public class PositionTrackingRecoveryAction : ISelfHealingAction
                     }
                     catch (Exception ex)
                     {
-                        _logger?.LogWarning("[SELF-HEAL] Could not delete position file {File}: {Error}", file, ex.Message);
+                        _logger?.LogWarning(ex, "[SELF-HEAL] Could not delete position file {File}: {Error}", file, ex.Message);
                         actionsPerformed.Add($"Failed to clear {Path.GetFileName(file)}: {ex.Message}");
                     }
                 }
@@ -662,26 +700,26 @@ public class PositionTrackingRecoveryAction : ISelfHealingAction
 
             _logger?.LogInformation("[SELF-HEAL] Position tracking recovery completed successfully");
             
-            return new RecoveryResult
+            return Task.FromResult(new RecoveryResult
             {
                 Success = true,
                 Message = $"Position tracking recovery successful - performed {actionsPerformed.Count} safe operations with full backup",
                 ActionsPerformed = actionsPerformed.ToArray(),
                 Duration = DateTime.UtcNow - startTime
-            };
+            });
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[SELF-HEAL] Position tracking recovery failed");
             
-            return new RecoveryResult
+            return Task.FromResult(new RecoveryResult
             {
                 Success = false,
                 Message = $"Position tracking recovery failed: {ex.Message} - MANUAL INTERVENTION REQUIRED",
                 ActionsPerformed = actionsPerformed.ToArray(),
                 Duration = DateTime.UtcNow - startTime,
                 RequiresManualIntervention = true
-            };
+            });
         }
     }
 }

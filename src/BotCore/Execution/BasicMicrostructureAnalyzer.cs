@@ -281,7 +281,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
             RiskAssessment = risk,
             EstimatedFillTime = orderType == OrderType.Market 
                 ? TimeSpan.FromSeconds(1)
-                : TimeSpan.FromMinutes(5 / Math.Max(0.1m, fillProb))
+                : TimeSpan.FromMinutes((double)(5 / Math.Max(0.1m, fillProb)))
         };
     }
 

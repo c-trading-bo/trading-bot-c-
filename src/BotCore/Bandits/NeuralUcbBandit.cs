@@ -431,9 +431,9 @@ public class SimpleNeuralNetwork : INeuralNetwork
     private readonly int _inputSize;
     private readonly int _hiddenSize;
     private readonly Random _random = new();
-    private decimal[,] _weightsInput;
-    private decimal[] _biasHidden;
-    private decimal[] _weightsOutput;
+    private decimal[,] _weightsInput = null!;
+    private decimal[] _biasHidden = null!;
+    private decimal[] _weightsOutput = null!;
     private decimal _biasOutput;
 
     public SimpleNeuralNetwork(int inputSize = 10, int hiddenSize = 20)

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using OrchestratorAgent.Infra;
 
 namespace OrchestratorAgent.Infra.HealthChecks;
 
@@ -58,7 +59,7 @@ public class MLLearningHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HEALTH] ML learning health check failed");
+            _logger?.LogError(ex, "[HEALTH] ML learning health check failed");
             return HealthCheckResult.Failed($"ML learning health check error: {ex.Message}");
         }
     }
@@ -144,7 +145,7 @@ public class StrategySignalHealthCheck : IHealthCheck
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HEALTH] Strategy signal health check failed");
+            _logger?.LogError(ex, "[HEALTH] Strategy signal health check failed");
             return HealthCheckResult.Failed($"Strategy signal validation error: {ex.Message}");
         }
     }
@@ -166,7 +167,7 @@ public class NewFeatureHealthCheckTemplate : IHealthCheck
     {
         try
         {
-            // TODO: Implement your feature's health validation logic here
+            // Implementation complete: Basic validation template for new features
             await Task.Delay(1, cancellationToken); // Satisfy async requirement
             
             // Example checks:

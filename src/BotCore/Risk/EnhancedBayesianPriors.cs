@@ -45,18 +45,25 @@ public class EnhancedBayesianPriors : IBayesianPriors
             }
 
             var posterior = _priors[key];
-            var shrinkageEstimate = ApplyShrinkage(strategy, config, regime, session, posterior);
+            var shrunkPosterior = ApplyShrinkage(strategy, config, regime, session, posterior);
+            
+            // Create shrinkage estimate for calculations
+            var shrinkageEstimate = new ShrinkageEstimate(
+                shrunkPosterior.Alpha,
+                shrunkPosterior.Beta,
+                BayesianCalculationExtensions.CalculateShrinkageFactor(shrunkPosterior)
+            );
 
             return new BayesianEstimate
             {
-                Mean = shrinkageEstimate.Mean,
-                Variance = shrinkageEstimate.Variance,
-                CredibleInterval = CalculateCredibleInterval(shrinkageEstimate, 0.95m),
-                EffectiveSampleSize = CalculateEffectiveSampleSize(shrinkageEstimate),
-                UncertaintyLevel = CalculateUncertainty(shrinkageEstimate),
+                Mean = shrinkageEstimate.CalculateMean(),
+                Variance = shrinkageEstimate.CalculateVariance(),
+                CredibleInterval = CalculateCredibleInterval(shrunkPosterior, 0.95m),
+                EffectiveSampleSize = CalculateEffectiveSampleSize(shrunkPosterior),
+                UncertaintyLevel = CalculateUncertainty(shrunkPosterior),
                 IsReliable = shrinkageEstimate.Alpha + shrinkageEstimate.Beta > 20, // Sufficient data
-                ShrinkageFactor = shrinkageEstimate.ShrinkageFactor,
-                LastUpdated = posterior.LastUpdated
+                ShrinkageFactor = shrinkageEstimate.Shrinkage,
+                LastUpdated = shrunkPosterior.LastUpdated
             };
         }
     }
@@ -190,7 +197,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         // Calculate shrinkage strength based on local data quality
         var localN = localPosterior.Alpha + localPosterior.Beta;
         var shrinkageStrength = _shrinkageConfig.BaseShrinkage * 
-                               (decimal)Math.Exp(-(double)localN / _shrinkageConfig.ShrinkageDecay);
+                               (decimal)Math.Exp(-(double)localN / (double)_shrinkageConfig.ShrinkageDecay);
 
         shrinkageStrength = Math.Min(0.8m, Math.Max(0.05m, shrinkageStrength));
 
@@ -472,4 +479,38 @@ public interface IBayesianPriors
         CancellationToken ct = default);
 
     Task<Dictionary<string, BayesianEstimate>> GetAllPriorsAsync(CancellationToken ct = default);
+}
+
+/// <summary>
+/// James-Stein shrinkage estimate for Bayesian calculations
+/// </summary>
+public record ShrinkageEstimate(decimal Alpha, decimal Beta, decimal Shrinkage)
+{
+    public decimal Mean => Alpha / (Alpha + Beta);
+    public decimal Variance => (Alpha * Beta) / ((Alpha + Beta) * (Alpha + Beta) * (Alpha + Beta + 1));
+}
+
+/// <summary>
+/// Helper extension methods for Bayesian calculations
+/// </summary>
+public static class BayesianCalculationExtensions
+{
+    // Helper methods for calculations
+    public static decimal CalculateMean(this ShrinkageEstimate estimate)
+    {
+        return estimate.Alpha / (estimate.Alpha + estimate.Beta);
+    }
+
+    public static decimal CalculateVariance(this ShrinkageEstimate estimate)
+    {
+        var total = estimate.Alpha + estimate.Beta;
+        return (estimate.Alpha * estimate.Beta) / (total * total * (total + 1));
+    }
+    
+    public static decimal CalculateShrinkageFactor(BayesianPosterior posterior)
+    {
+        // Simple shrinkage factor based on sample size
+        var n = posterior.Alpha + posterior.Beta;
+        return Math.Min(0.9m, Math.Max(0.1m, 1.0m / (1.0m + n / 10.0m)));
+    }
 }

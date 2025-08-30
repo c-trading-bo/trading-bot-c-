@@ -693,6 +693,63 @@ namespace OrchestratorAgent
                                                 llog.LogInformation("[ML] Canary promotion recommended");
                                             }
                                             
+                                            // NEW: Patch Set v2 Integration Demo - Regime-Aware Router Scoring
+                                            Console.WriteLine("[CONSOLE] Running Patch Set v2 Integration Demo...");
+                                            llog.LogInformation("[ML] Patch Set v2: Full-auto regime-aware router scoring integration...");
+                                            try
+                                            {
+                                                // Simulate regime-aware router scoring like the real router would use
+                                                var regime = currentRegime.ToString();
+                                                var session = DateTime.UtcNow.Hour >= 8 && DateTime.UtcNow.Hour <= 15 ? "RTH" : "ETH";
+                                                
+                                                // Sample posterior win-prob from hierarchical priors (Thompson sampling)
+                                                double post = bayesianPriors.Sample("S2", "a", regime, session, new Random());
+                                                
+                                                // Simulate signal quality and risk weight
+                                                double signalQuality = 1.0;
+                                                double riskWeight = 1.0;
+                                                double floor = 0.1;
+                                                double explore = 0.05;
+                                                double wLearn = 0.8;
+                                                
+                                                // Score with quality and learned weight (Patch Set v2 formula)
+                                                double score = post * signalQuality * riskWeight * (floor + (1-floor-explore)*wLearn + explore);
+                                                
+                                                // Position size via CVaR cap
+                                                double baseMult = 1.0;
+                                                double posMult = cvarSizer.Recommend(baseMult);
+                                                double sizeMinMult = 0.5;
+                                                double sizeMaxMult = 1.5;
+                                                posMult = Math.Clamp(posMult, sizeMinMult, sizeMaxMult);
+                                                
+                                                llog.LogInformation("[ML] Patch Set v2 Demo: regime={Regime} session={Session} score={Score:F3} posMult={PosMult:F2}x", 
+                                                    regime, session, score, posMult);
+                                                
+                                                // Simulate completed trade feedback to all components
+                                                bool mockTradeWin = true; // Simulate winning trade
+                                                double mockRMultiple = 1.2; // Simulate 1.2R gain
+                                                bool isShadow = canaryAA.ToShadow();
+                                                
+                                                // Feed completed trade to all learning components (Patch Set v2 integration)
+                                                bayesianPriors.Observe("S2", "a", regime, session, mockTradeWin);
+                                                cvarSizer.Observe(mockRMultiple);
+                                                canaryAA.Observe(isShadow, mockTradeWin);
+                                                
+                                                // Check drift detector
+                                                var driftSignal = Math.Abs(mockRMultiple) >= 1.0 ? 1.0 : 0.0;
+                                                var driftDetected = driftDetector.Update(driftSignal);
+                                                if (driftDetected)
+                                                {
+                                                    llog.LogWarning("[ML] Drift detected - would apply safe mode");
+                                                }
+                                                
+                                                llog.LogInformation("[ML] Patch Set v2 Demo: Trade feedback complete - all components updated");
+                                            }
+                                            catch (Exception v2Ex)
+                                            {
+                                                llog.LogWarning(v2Ex, "[ML] Patch Set v2 integration demo failed");
+                                            }
+                                            
                                             // 6. NEW: Sentiment Analysis (Hot-loaded feature)
                                             Console.WriteLine("[CONSOLE] Running SentimentAnalyzer...");
                                             llog.LogInformation("[ML] Sentiment Analysis: Processing market sentiment...");
@@ -1043,6 +1100,9 @@ namespace OrchestratorAgent
                         // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
                         // Register SystemHealthMonitor
                         webBuilder.Services.AddSingleton<SystemHealthMonitor>();
+                        
+                        // Register Full Auto Scheduler as hosted service for nightly retuning
+                        webBuilder.Services.AddHostedService<OrchestratorAgent.Execution.FullAutoScheduler>();
                         
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>

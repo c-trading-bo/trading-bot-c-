@@ -1,7 +1,7 @@
 {
-  "tsUtc": "2025-08-30T02:04:13.4705938Z",
+  "tsUtc": "2025-08-29T20:58:33.2540828Z",
   "apiBase": "https://api.topstepx.com",
-  "rtcBase": "https://rtc.topstepx.com",
+  "rtcBase": "",
   "accountId": 10223789,
   "mode": "PAPER",
   "liveOrders": false,
@@ -20,6 +20,6 @@
     "APP_CONCISE_CONSOLE": "false",
     "RUN_LEARNING": "1",
     "INSTANT_APPLY": "1",
-    "INSTANT_ALLOW_LIVE": "0"
+    "INSTANT_ALLOW_LIVE": null
   }
 }

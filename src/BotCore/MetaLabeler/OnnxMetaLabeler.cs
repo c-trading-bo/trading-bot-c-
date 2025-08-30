@@ -49,6 +49,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
     {
         try
         {
+            await Task.Delay(1, ct); // Satisfy async requirement
             // Prepare features for ONNX model
             var features = PrepareFeatures(signal, marketContext);
             
