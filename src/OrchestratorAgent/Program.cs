@@ -607,7 +607,7 @@ namespace OrchestratorAgent
                     if (!string.IsNullOrEmpty(cloudBucket))
                     {
                         log.LogInformation("🌥️ [CloudRL] Using cloud learning: {CloudBucket}", cloudBucket);
-                        rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
+                        rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>());
                     }
                     else
                     {

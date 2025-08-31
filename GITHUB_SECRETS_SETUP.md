@@ -1,24 +1,102 @@
-# 🔐 GitHub Secrets Setup Guide
+# GitHub Repository Secrets Configuration
+## 24/7 Cloud Learning Pipeline Setup
 
-## **Required Secrets for Cloud Learning**
+### Required Secrets
 
-Go to your GitHub repository: `https://github.com/kevinsuero072897-collab/trading-bot-c-/settings/secrets/actions`
+You need to configure the following secrets in your GitHub repository:
 
-Add these secrets:
+**Repository Settings > Secrets and variables > Actions > New repository secret**
 
-### **AWS Credentials:**
+#### 1. AWS Credentials & Configuration
 ```
-Name: AWS_ACCESS_KEY_ID
-Value: [Your AWS Access Key]
+AWS_ACCESS_KEY_ID
+Value: [Your AWS access key from IAM user/role]
 
-Name: AWS_SECRET_ACCESS_KEY  
-Value: [Your AWS Secret Key]
+AWS_SECRET_ACCESS_KEY  
+Value: [Your AWS secret access key]
 
-Name: CLOUD_BUCKET
-Value: [Your S3 bucket name, e.g., trading-bot-ml-kevin]
+AWS_REGION
+Value: us-east-1 (or your preferred region)
 ```
 
-### **How to get AWS credentials:**
+#### 2. S3 Storage Configuration
+```
+S3_BUCKET
+Value: [Your S3 bucket name, e.g., "topstep-bot-ml-models"]
+
+CDN_BASE_URL
+Value: [CloudFront or S3 public URL, e.g., "https://d1234567890.cloudfront.net"]
+```
+
+#### 3. Security (HMAC Manifest Signing)
+```
+MANIFEST_HMAC_KEY
+Value: [Generate a random 64-char hex string for manifest integrity]
+```
+### AWS Setup Requirements
+
+#### S3 Bucket Policy (Replace `your-bucket-name`)
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowGitHubActions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::YOUR-ACCOUNT-ID:user/github-actions-user"
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    },
+    {
+      "Sid": "AllowPublicRead",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::your-bucket-name/models/*"
+    }
+  ]
+}
+```
+
+#### IAM User Policy for GitHub Actions
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::your-bucket-name",
+        "arn:aws:s3:::your-bucket-name/*"
+      ]
+    }
+  ]
+}
+```
+
+### Generate HMAC Key
+```bash
+# Generate secure 64-character hex key
+openssl rand -hex 32
+```
+
+### How to get AWS credentials:
 
 1. **Log into AWS Console**: https://aws.amazon.com/console/
 2. **Go to IAM**: Search for "IAM" in the top search bar
@@ -34,7 +112,7 @@ Value: [Your S3 bucket name, e.g., trading-bot-ml-kevin]
    - Copy **Secret Access Key**
    - ⚠️ **Save these immediately - you can't see the secret again!**
 
-### **Test Your Setup:**
+### Test Your Setup:
 
 1. **Push your code**: 
    ```bash
@@ -45,8 +123,23 @@ Value: [Your S3 bucket name, e.g., trading-bot-ml-kevin]
 
 2. **Trigger manual training**:
    - Go to: `Actions` tab in your GitHub repo
-   - Click: `Cloud ML Training Pipeline`
+   - Click: `24/7 Continuous ML/RL Training`
    - Click: `Run workflow` → `Run workflow`
+
+### Security Notes
+- Never commit AWS credentials to code
+- Use IAM least-privilege principle  
+- Monitor S3 costs and set up billing alerts
+- Rotate HMAC key periodically
+
+### Pipeline Features
+The pipeline will run every 30 minutes and automatically:
+1. Download training data from S3
+2. Train 3 ML models (meta classifier, execution predictor, RL sizer)  
+3. Convert to ONNX format for fast inference
+4. Upload to versioned S3 paths
+5. Generate and sign secure manifest with HMAC
+6. Publish to CDN for bot consumption via ModelUpdaterService
 
 3. **Check logs**:
    - Watch the workflow run in real-time

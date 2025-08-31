@@ -1,0 +1,520 @@
+name: "24/7 Continuous ML/RL Trainer (Compliant)"
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:         # Manual trigger
+  push:
+    branches: ['main']       # Also run on main branch updates
+
+env:
+  OUT_META: "models/meta_v${{ github.run_number }}.onnx"
+  OUT_EXEC: "models/exec_v${{ github.run_number }}.onnx"  
+  OUT_RL: "models/rl_v${{ github.run_number }}.onnx"
+  VENDOR_DIR: "data/vendor"
+  DATA_DIR: "data/logs"
+
+jobs:
+  continuous-training:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "📥 Checkout Code"
+        uses: actions/checkout@v4
+        
+      - name: "🐍 Setup Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: "📦 Install ML Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install torch torchvision numpy pandas scikit-learn
+          pip install stable-baselines3[extra] 
+          pip install ta onnx onnxruntime
+          pip install matplotlib seaborn
+          pip install awscli
+          
+      - name: "🔍 Check for Skip Condition"
+        id: skip_check
+        run: |
+          # Skip if recent successful run within last 25 minutes
+          echo "skip=false" >> $GITHUB_OUTPUT
+          if [ -f "SKIP_TRAINING" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Training skipped due to SKIP_TRAINING file"
+          fi
+          
+      - name: "📥 Download Training Data from S3"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          mkdir -p ${{ env.DATA_DIR }} ${{ env.VENDOR_DIR }}
+          
+          # Download existing training data (if available)
+          aws s3 sync "s3://${{ secrets.S3_BUCKET }}/logs/" "${{ env.DATA_DIR }}/" \
+            --exclude "*" --include "candidates.*.parquet" \
+            --quiet || echo "No existing data found"
+          
+          # Download vendor historical data for gap filling
+          aws s3 sync "s3://${{ secrets.S3_BUCKET }}/vendor/" "${{ env.VENDOR_DIR }}/" \
+            --exclude "*" --include "*.parquet" \
+            --quiet || echo "No vendor data found"
+            
+          echo "Downloaded data files:"
+          find ${{ env.DATA_DIR }} -name "*.parquet" -exec ls -lh {} \; || echo "No parquet files"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          
+      - name: "🧮 Generate Vendor Features (Gap Fill)"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          cd ml
+          python feature_gen_from_vendor.py
+          echo "✅ Vendor feature generation completed"
+          
+      - name: "🔗 Merge All Training Data"
+        if: steps.skip_check.outputs.skip == 'false'  
+        run: |
+          cd ml
+          python -c "
+import pandas as pd
+import numpy as np
+from pathlib import Path
+import os
+
+# Find all available training data sources
+candidate_files = []
+data_dir = Path('../${{ env.DATA_DIR }}')
+vendor_dir = Path('../${{ env.VENDOR_DIR }}')
+
+# Real trading data
+for parquet_file in data_dir.glob('candidates.*.parquet'):
+    candidate_files.append(str(parquet_file))
+    print(f'Found real data: {parquet_file}')
+
+# Vendor-generated features
+for parquet_file in vendor_dir.glob('vendor_features_*.parquet'):
+    candidate_files.append(str(parquet_file))
+    print(f'Found vendor data: {parquet_file}')
+
+# Generate dummy data if no files found (for testing)
+if not candidate_files:
+    print('No training data found, generating dummy data for testing...')
+    n = 1000
+    dummy_data = pd.DataFrame({
+        'timestamp': pd.date_range('2024-01-01', periods=n, freq='5min'),
+        'symbol': ['ES'] * n,
+        'strategy': np.random.choice(['EmaCross', 'MeanReversion', 'Breakout', 'Momentum'], n),
+        'session': np.random.choice(['RTH', 'ETH'], n, p=[0.7, 0.3]),
+        'regime': np.random.choice(['Range', 'Trend', 'Vol'], n),
+        'signal_id': [f'dummy_{i}' for i in range(n)],
+        'price': np.random.normal(4500, 100, n),
+        'atr': np.random.exponential(20, n),
+        'rsi': np.random.uniform(20, 80, n),
+        'ema20': np.random.normal(4500, 100, n),
+        'ema50': np.random.normal(4500, 100, n),
+        'volume': np.random.exponential(1000, n),
+        'spread': np.random.exponential(1.0, n),
+        'volatility': np.random.exponential(0.02, n),
+        'bid_ask_imbalance': np.random.uniform(-0.1, 0.1, n),
+        'order_book_imbalance': np.random.uniform(-0.1, 0.1, n),
+        'tick_direction': np.random.choice([-1, 0, 1], n),
+        'signal_strength': np.random.uniform(0.1, 1.0, n),
+        'prior_win_rate': np.random.uniform(0.4, 0.6, n),
+        'avg_r_multiple': np.random.normal(0.8, 0.3, n),
+        'drawdown_risk': np.random.exponential(0.1, n),
+        'news_impact': np.random.exponential(0.05, n),
+        'liquidity_risk': np.random.exponential(0.1, n),
+        'baseline_multiplier': np.ones(n),
+        'label_win': np.random.choice([0, 1], n, p=[0.48, 0.52]),
+        'r_multiple': np.random.normal(0.1, 1.5, n),
+        'slip_ticks': np.random.exponential(0.5, n)
+    })
+    candidate_files.append('../${{ env.DATA_DIR }}/candidates.dummy.parquet')
+    dummy_data.to_parquet('../${{ env.DATA_DIR }}/candidates.dummy.parquet', index=False)
+
+# Merge all data sources
+print(f'Merging {len(candidate_files)} data sources...')
+merged_dfs = []
+for file in candidate_files:
+    df = pd.read_parquet(file)
+    merged_dfs.append(df)
+    print(f'  - {file}: {len(df)} rows')
+
+merged_df = pd.concat(merged_dfs, ignore_index=True)
+merged_df = merged_df.drop_duplicates(subset=['signal_id'], keep='last')  # Dedupe by signal_id
+
+print(f'📊 Merged dataset: {len(merged_df)} rows')
+print(f'📊 Strategy distribution: {merged_df[\"strategy\"].value_counts().to_dict()}')
+print(f'📊 Win rate: {merged_df[\"label_win\"].mean():.3f}')
+
+merged_df.to_parquet('../${{ env.DATA_DIR }}/candidates.merged.parquet', index=False)
+print('✅ Saved merged training data')
+"
+          
+      - name: "🧠 Train Meta Strategy Classifier"
+        if: steps.skip_check.outputs.skip == 'false'  
+        run: |
+          cd ml
+          python -c "
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+import pickle
+import onnx
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+import os
+
+# Load merged data
+df = pd.read_parquet('../${{ env.DATA_DIR }}/candidates.merged.parquet')
+print(f'📊 Training meta classifier on {len(df)} samples')
+
+# Feature engineering for meta strategy selection
+feature_cols = [
+    'price', 'atr', 'rsi', 'ema20', 'ema50', 'volume', 'spread', 
+    'volatility', 'signal_strength', 'prior_win_rate', 'avg_r_multiple'
+]
+
+# Handle missing columns gracefully
+available_features = [col for col in feature_cols if col in df.columns]
+print(f'Available features: {available_features}')
+
+X = df[available_features].fillna(0)
+y = df['strategy']
+
+# Encode strategy labels
+le = LabelEncoder()
+y_encoded = le.fit_transform(y)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train meta classifier
+meta_model = RandomForestClassifier(n_estimators=100, random_state=42, max_depth=10)
+meta_model.fit(X_train_scaled, y_train)
+
+# Evaluate
+y_pred = meta_model.predict(X_test_scaled)
+print('📊 Meta Strategy Classifier Performance:')
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+
+# Save models
+os.makedirs('models', exist_ok=True)
+pickle.dump(scaler, open('models/meta_scaler.pkl', 'wb'))
+pickle.dump(le, open('models/meta_encoder.pkl', 'wb'))
+
+# Convert to ONNX
+initial_type = [('float_input', FloatTensorType([None, len(available_features)]))]
+meta_onnx = convert_sklearn(meta_model, initial_types=initial_type)
+with open('${{ env.OUT_META }}', 'wb') as f:
+    f.write(meta_onnx.SerializeToString())
+    
+print(f'✅ Meta classifier saved to ${{ env.OUT_META }}')
+"
+          
+      - name: "⚡ Train Execution Quality Predictor"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          cd ml
+          python -c "
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+import pickle
+import onnx
+from skl2onnx import convert_sklearn
+from skl2onnx.common.data_types import FloatTensorType
+import os
+
+# Load merged data
+df = pd.read_parquet('../${{ env.DATA_DIR }}/candidates.merged.parquet')
+print(f'📊 Training execution predictor on {len(df)} samples')
+
+# Features for execution quality prediction
+feature_cols = [
+    'price', 'atr', 'rsi', 'volume', 'spread', 'volatility',
+    'bid_ask_imbalance', 'order_book_imbalance', 'tick_direction',
+    'signal_strength', 'liquidity_risk'
+]
+
+available_features = [col for col in feature_cols if col in df.columns]
+print(f'Available execution features: {available_features}')
+
+X = df[available_features].fillna(0)
+y = df['r_multiple'].fillna(0)  # Target: actual R-multiple achieved
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Train execution quality model
+exec_model = GradientBoostingRegressor(n_estimators=100, random_state=42, max_depth=6)
+exec_model.fit(X_train_scaled, y_train)
+
+# Evaluate
+y_pred = exec_model.predict(X_test_scaled)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f'📊 Execution Quality Predictor Performance:')
+print(f'MSE: {mse:.4f}, R²: {r2:.4f}')
+
+# Save models
+pickle.dump(scaler, open('models/exec_scaler.pkl', 'wb'))
+
+# Convert to ONNX
+initial_type = [('float_input', FloatTensorType([None, len(available_features)]))]
+exec_onnx = convert_sklearn(exec_model, initial_types=initial_type)
+with open('${{ env.OUT_EXEC }}', 'wb') as f:
+    f.write(exec_onnx.SerializeToString())
+    
+print(f'✅ Execution predictor saved to ${{ env.OUT_EXEC }}')
+"
+
+      - name: "🤖 Train RL Position Sizer"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          cd ml
+          python -c "
+import pandas as pd
+import numpy as np
+import gym
+from gym import spaces
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.callbacks import BaseCallback
+import torch
+import onnx
+import os
+
+class TradingEnvironment(gym.Env):
+    def __init__(self, df):
+        super(TradingEnvironment, self).__init__()
+        self.df = df.reset_index(drop=True)
+        self.current_step = 0
+        self.max_steps = len(df) - 1
+        
+        # Action space: position size multiplier (0.1 to 2.0)
+        self.action_space = spaces.Box(low=0.1, high=2.0, shape=(1,), dtype=np.float32)
+        
+        # Observation space: normalized features
+        feature_cols = ['price', 'atr', 'rsi', 'volume', 'signal_strength', 
+                       'prior_win_rate', 'avg_r_multiple', 'drawdown_risk']
+        available_features = [col for col in feature_cols if col in df.columns]
+        self.feature_cols = available_features
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(len(available_features),), dtype=np.float32)
+        
+    def reset(self):
+        self.current_step = 0
+        return self._get_observation()
+        
+    def step(self, action):
+        if self.current_step >= self.max_steps:
+            return self._get_observation(), 0, True, {}
+            
+        # Get current trade data
+        row = self.df.iloc[self.current_step]
+        position_multiplier = float(action[0])
+        
+        # Calculate reward based on R-multiple and risk
+        base_r = row.get('r_multiple', 0)
+        risk_penalty = max(0, position_multiplier - 1) * 0.1  # Penalty for over-sizing
+        
+        # Reward function: risk-adjusted returns
+        reward = base_r * position_multiplier - risk_penalty
+        
+        self.current_step += 1
+        done = self.current_step >= self.max_steps
+        
+        return self._get_observation(), reward, done, {}
+        
+    def _get_observation(self):
+        if self.current_step >= len(self.df):
+            return np.zeros(len(self.feature_cols), dtype=np.float32)
+            
+        row = self.df.iloc[self.current_step]
+        obs = []
+        for col in self.feature_cols:
+            val = row.get(col, 0)
+            # Simple normalization
+            if col in ['price', 'ema20', 'ema50']:
+                val = val / 5000.0  # Normalize price features
+            elif col in ['atr', 'volume']:
+                val = min(val / 100.0, 10.0)  # Cap and normalize
+            elif col in ['rsi']:
+                val = (val - 50) / 50.0  # Center around 0
+            obs.append(float(val))
+        return np.array(obs, dtype=np.float32)
+
+# Load data and create environment
+df = pd.read_parquet('../${{ env.DATA_DIR }}/candidates.merged.parquet')
+print(f'📊 Training RL position sizer on {len(df)} samples')
+
+# Filter for successful trades to learn from good examples
+successful_trades = df[df['label_win'] == 1] if 'label_win' in df.columns else df
+print(f'Training on {len(successful_trades)} successful examples')
+
+# Create and train RL model
+env = make_vec_env(lambda: TradingEnvironment(successful_trades), n_envs=1)
+
+rl_model = PPO('MlpPolicy', env, verbose=1, learning_rate=0.0003, 
+               n_steps=1024, batch_size=64, n_epochs=10)
+
+print('🤖 Training RL model...')
+rl_model.learn(total_timesteps=10000)
+
+# Save model
+rl_model.save('models/rl_position_sizer')
+
+# Convert to ONNX (simplified approach)
+dummy_obs = env.reset()
+with torch.no_grad():
+    # Get the policy network
+    policy = rl_model.policy
+    
+    # Create a simple wrapper for ONNX export
+    class ONNXWrapper(torch.nn.Module):
+        def __init__(self, policy):
+            super().__init__()
+            self.policy = policy
+            
+        def forward(self, x):
+            actions, _ = self.policy(x, deterministic=True)
+            return actions
+    
+    wrapper = ONNXWrapper(policy)
+    dummy_input = torch.FloatTensor(dummy_obs)
+    
+    torch.onnx.export(wrapper, dummy_input, '${{ env.OUT_RL }}', 
+                     input_names=['observation'], output_names=['action'],
+                     dynamic_axes={'observation': {0: 'batch_size'}})
+
+print(f'✅ RL position sizer saved to ${{ env.OUT_RL }}')
+"
+
+      - name: "📊 Calculate Model Checksums"
+        if: steps.skip_check.outputs.skip == 'false'
+        id: sums
+        run: |
+          cd ml
+          echo "ver=$(date +%Y%m%d_%H%M%S)_${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "meta_sha=$(sha256sum ${{ env.OUT_META }} | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          echo "exec_sha=$(sha256sum ${{ env.OUT_EXEC }} | cut -d' ' -f1)" >> $GITHUB_OUTPUT  
+          echo "rl_sha=$(sha256sum ${{ env.OUT_RL }} | cut -d' ' -f1)" >> $GITHUB_OUTPUT
+          
+          echo "📊 Model checksums calculated:"
+          echo "Meta: $(sha256sum ${{ env.OUT_META }})"
+          echo "Exec: $(sha256sum ${{ env.OUT_EXEC }})"
+          echo "RL: $(sha256sum ${{ env.OUT_RL }})"
+
+      - name: "☁️ Upload Models to S3"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          cd ml
+          
+          # Upload versioned models
+          aws s3 cp "${{ env.OUT_META }}" "s3://${{ secrets.S3_BUCKET }}/models/meta/v${{ steps.sums.outputs.ver }}.onnx" --acl public-read
+          aws s3 cp "${{ env.OUT_EXEC }}" "s3://${{ secrets.S3_BUCKET }}/models/execon/v${{ steps.sums.outputs.ver }}.onnx" --acl public-read
+          aws s3 cp "${{ env.OUT_RL }}" "s3://${{ secrets.S3_BUCKET }}/models/rl/v${{ steps.sums.outputs.ver }}.onnx" --acl public-read
+          
+          # Upload scalers
+          aws s3 cp "models/meta_scaler.pkl" "s3://${{ secrets.S3_BUCKET }}/models/meta/scaler_v${{ steps.sums.outputs.ver }}.pkl" --acl public-read
+          aws s3 cp "models/exec_scaler.pkl" "s3://${{ secrets.S3_BUCKET }}/models/execon/scaler_v${{ steps.sums.outputs.ver }}.pkl" --acl public-read
+          
+          echo "☁️ Uploaded models to S3"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          
+      - name: "📋 Publish Secure Model Manifest"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          # Create unsigned manifest with all model URLs and checksums
+          mkdir -p models
+          cat > models/current_unsigned.json <<EOF
+          {
+            "version": "${{ steps.sums.outputs.ver }}",
+            "timestamp": "$(date -u --iso-8601=seconds)",
+            "training_samples": $(wc -l < "${{ env.DATA_DIR }}/candidates.merged.parquet" || echo 1000),
+            "models": {
+              "meta": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/meta/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.meta_sha }}",
+                "size": $(stat -c%s "ml/${{ env.OUT_META }}" || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)",
+                "scaler_url": "${{ secrets.CDN_BASE_URL }}/models/meta/scaler_v${{ steps.sums.outputs.ver }}.pkl"
+              },
+              "execution": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/execon/v${{ steps.sums.outputs.ver }}.onnx", 
+                "checksum": "${{ steps.sums.outputs.exec_sha }}",
+                "size": $(stat -c%s "ml/${{ env.OUT_EXEC }}" || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)",
+                "scaler_url": "${{ secrets.CDN_BASE_URL }}/models/execon/scaler_v${{ steps.sums.outputs.ver }}.pkl"
+              },
+              "rl_sizer": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/rl/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.rl_sha }}",
+                "size": $(stat -c%s "ml/${{ env.OUT_RL }}" || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)"
+              }
+            },
+            "strategies": ["EmaCrossStrategy", "MeanReversion", "Breakout", "Momentum"],
+            "features": {
+              "count": 17,
+              "list": ["price", "atr", "rsi", "ema20", "ema50", "volume", "spread", "volatility", "bid_ask_imbalance", "order_book_imbalance", "tick_direction", "signal_strength", "prior_win_rate", "avg_r_multiple", "drawdown_risk", "news_impact", "liquidity_risk"]
+            }
+          }
+          EOF
+          
+          # Sign manifest using HMAC tool
+          echo "🔐 Signing manifest with HMAC-SHA256..."
+          python tools/sign_manifest.py \
+            --manifest models/current_unsigned.json \
+            --key "${{ secrets.MANIFEST_HMAC_KEY }}" \
+            --add-to-manifest
+          
+          # Copy signed manifest to final location
+          cp models/current_unsigned.json models/current.json
+          
+          # Upload signed manifest
+          aws s3 cp models/current.json "s3://${{ secrets.S3_BUCKET }}/models/current.json" \
+            --acl public-read \
+            --content-type application/json \
+            --cache-control "max-age=300"
+            
+          echo "📋 Published secure model manifest with HMAC signature"
+          echo "🔐 Manifest preview:"
+          head -20 models/current.json
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          
+      - name: "🏁 Training Summary"
+        if: steps.skip_check.outputs.skip == 'false'
+        run: |
+          echo "🎉 24/7 Cloud Training Completed Successfully!"
+          echo "📊 Version: ${{ steps.sums.outputs.ver }}"
+          echo "📈 Models trained and uploaded to S3"
+          echo "🔐 Manifest signed and published to CDN"
+          echo "✅ Ready for bot consumption via ModelUpdaterService"

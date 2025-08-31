@@ -30,9 +30,9 @@ public sealed class AutoRlTrainer : IDisposable
         Directory.CreateDirectory(_dataDir);
         Directory.CreateDirectory(_modelDir);
         
-        // Check every 6 hours for training opportunities
-        _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, TimeSpan.FromHours(6));
-        _log.LogInformation("[AutoRlTrainer] Started - checking every 6 hours for training data");
+        // Check every 30 minutes for training opportunities
+        _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, TimeSpan.FromMinutes(30));
+        _log.LogInformation("[AutoRlTrainer] Started - checking every 30 minutes for training data");
     }
 
     private string FindPythonExecutable()
@@ -124,7 +124,7 @@ public sealed class AutoRlTrainer : IDisposable
         if (File.Exists(latestModelPath))
         {
             var lastTrained = File.GetLastWriteTimeUtc(latestModelPath);
-            if (DateTime.UtcNow - lastTrained < TimeSpan.FromDays(3))
+            if (DateTime.UtcNow - lastTrained < TimeSpan.FromHours(12))
             {
                 _log.LogDebug("[AutoRlTrainer] Model recent: {Age:F1} hours, waiting", 
                     (DateTime.UtcNow - lastTrained).TotalHours);
