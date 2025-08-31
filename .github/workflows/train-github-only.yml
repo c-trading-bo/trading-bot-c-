@@ -29,7 +29,7 @@ jobs:
       - name: "📦 Install Dependencies"
         run: |
           pip install --upgrade pip
-          pip install torch numpy pandas scikit-learn onnx skl2onnx
+          pip install torch numpy pandas scikit-learn onnx skl2onnx packaging
 
       - name: "📊 Generate Training Data"
         run: |
