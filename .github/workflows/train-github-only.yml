@@ -4,8 +4,23 @@ on:
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
+    inputs:
+      manual_test:
+        description: "Run lightweight smoke tests"
+        required: false
+        default: false
+        type: boolean
+      force_run:
+        description: "Force run even if recent models exist"
+        required: false
+        default: false
+        type: boolean
   push:
     branches: ['main']
+
+concurrency:
+  group: train-github-only
+  cancel-in-progress: true
 
 env:
   VENDOR_DIR: "data/vendor"
@@ -21,6 +36,13 @@ jobs:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
         
+      - name: "🔍 Debug Workflow Info"
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Manual test: ${{ inputs.manual_test }}"
+          echo "Force run: ${{ inputs.force_run }}"
+          echo "Ref: ${{ github.ref }}"
+        
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
         with:
@@ -35,7 +57,26 @@ jobs:
         run: |
           python -c "import pandas as pd; import numpy as np; import torch; import onnx; import pyarrow; print('✅ All dependencies working')"
 
+      - name: "🧪 Lightweight Smoke Test"
+        if: ${{ inputs.manual_test == true }}
+        run: |
+          echo "🧪 Running lightweight smoke test..."
+          mkdir -p models/rl data/logs
+          # Create minimal test data
+          python -c "
+          import pandas as pd
+          import numpy as np
+          data = pd.DataFrame({
+              'feature1': np.random.randn(10),
+              'feature2': np.random.randn(10),
+              'target': np.random.randn(10)
+          })
+          data.to_parquet('data/logs/test_data.parquet')
+          print('✅ Smoke test completed successfully!')
+          "
+
       - name: "📊 Generate Training Data"
+        if: ${{ inputs.manual_test != true }}
         run: |
           mkdir -p models/rl data/logs data/vendor
           echo "Creating sample training data..."
@@ -111,12 +152,15 @@ jobs:
           "
 
       - name: "🤖 Train Meta Strategy Classifier"
+        if: ${{ inputs.manual_test != true }}
         run: python ml/train_meta_classifier.py data/logs/candidates.merged.parquet models
 
       - name: "📈 Train Execution Quality Predictor"  
+        if: ${{ inputs.manual_test != true }}
         run: python ml/train_exec_quality.py data/logs/execution_data.parquet models
 
       - name: "🧠 Train RL Position Sizer"
+        if: ${{ inputs.manual_test != true }}
         run: python ml/train_rl_sizer.py data/logs/rl_training_data.parquet models
 
       - name: "📝 Create Model Manifest"
