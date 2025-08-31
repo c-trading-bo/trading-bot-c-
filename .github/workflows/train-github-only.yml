@@ -254,12 +254,11 @@ jobs:
           echo "Training advanced CVaR-PPO RL agent..."
           cd ml/rl
           python train_cvar_ppo.py \
-            --data ../../data/logs/cvar_training_data.parquet \
-            --episodes 1000 \
+            --data-path ../../data/logs/cvar_training_data.parquet \
+            --steps 1000 \
             --lr 3e-4 \
-            --cvar_alpha 0.05 \
-            --risk_penalty 0.1 \
-            --save_dir ../../models/rl
+            --auto \
+            --out-rl ../../models/rl/cvar_ppo_agent.onnx
 
       - name: "🔧 Feature Engineering & Model Optimization"
         if: ${{ inputs.manual_test != true }}
