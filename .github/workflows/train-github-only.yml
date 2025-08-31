@@ -30,6 +30,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install torch numpy pandas scikit-learn onnx skl2onnx packaging pyarrow
+          
+      - name: "🔍 Test Dependencies"  
+        run: |
+          python -c "import pandas as pd; import numpy as np; import torch; import onnx; import pyarrow; print('✅ All dependencies working')"
 
       - name: "📊 Generate Training Data"
         run: |
