@@ -603,17 +603,9 @@ namespace OrchestratorAgent
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
                     
                     // 🌥️ Initialize Cloud + Local RL Training (Hybrid Mode)
-                    var cloudBucket = Environment.GetEnvironmentVariable("CLOUD_BUCKET");
-                    if (!string.IsNullOrEmpty(cloudBucket))
-                    {
-                        log.LogInformation("🌥️ [CloudRL] Using cloud learning: {CloudBucket}", cloudBucket);
-                        rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>(), cloudBucket);
-                    }
-                    else
-                    {
-                        log.LogInformation("🤖 [LocalRL] Using local learning only");
-                        rlTrainer = new BotCore.AutoRlTrainer(loggerFactory.CreateLogger<BotCore.AutoRlTrainer>());
-                    }
+                    // Enable GitHub-based cloud learning automatically
+                    log.LogInformation("🌥️ [CloudRL] Using GitHub Releases for cloud learning");
+                    rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>());
                     
                     // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
                     string tokenNow = string.Empty;
