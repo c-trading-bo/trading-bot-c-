@@ -38,17 +38,90 @@ public sealed class CloudRlTrainer : IDisposable
         _log.LogInformation("[CloudRlTrainer] Started - checking for updates every {Interval}", pollInterval);
     }
 
-    private void CheckForUpdatesCallback(object? state)
+    private async void CheckForUpdatesCallback(object? state)
     {
         try
         {
-            _log.LogDebug("[CloudRlTrainer] Checking for model updates...");
-            // In a real implementation, this would download new models from cloud storage
-            // For now, just log that we're checking
+            _log.LogInformation("[CloudRlTrainer] Checking GitHub Releases for new models...");
+            await CheckGitHubReleasesAsync();
         }
         catch (Exception ex)
         {
             _log.LogError(ex, "[CloudRlTrainer] Error checking for updates");
+        }
+    }
+
+    private async Task CheckGitHubReleasesAsync()
+    {
+        try
+        {
+            // Check GitHub API for latest release
+            var apiUrl = "https://api.github.com/repos/kevinsuero072897-collab/trading-bot-c-/releases/latest";
+            _http.DefaultRequestHeaders.UserAgent.ParseAdd("TradingBot/1.0");
+            
+            var response = await _http.GetStringAsync(apiUrl);
+            var release = JsonSerializer.Deserialize<JsonElement>(response);
+            
+            if (release.TryGetProperty("tag_name", out var tagElement))
+            {
+                var latestTag = tagElement.GetString();
+                var lastCheckFile = Path.Combine(_modelDir, "last_github_check.txt");
+                
+                string? lastCheckedTag = null;
+                if (File.Exists(lastCheckFile))
+                {
+                    lastCheckedTag = await File.ReadAllTextAsync(lastCheckFile);
+                }
+                
+                if (latestTag != lastCheckedTag)
+                {
+                    _log.LogInformation("[CloudRlTrainer] New models available: {Tag}", latestTag);
+                    await DownloadLatestModelsAsync(release);
+                    await File.WriteAllTextAsync(lastCheckFile, latestTag);
+                }
+                else
+                {
+                    _log.LogDebug("[CloudRlTrainer] Models up to date: {Tag}", latestTag);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogWarning(ex, "[CloudRlTrainer] Failed to check GitHub releases");
+        }
+    }
+
+    private async Task DownloadLatestModelsAsync(JsonElement release)
+    {
+        try
+        {
+            if (!release.TryGetProperty("assets", out var assetsElement)) return;
+            
+            foreach (var asset in assetsElement.EnumerateArray())
+            {
+                if (!asset.TryGetProperty("name", out var nameElement)) continue;
+                var assetName = nameElement.GetString();
+                
+                if (assetName?.EndsWith(".tar.gz") == true)
+                {
+                    if (!asset.TryGetProperty("browser_download_url", out var urlElement)) continue;
+                    var downloadUrl = urlElement.GetString();
+                    
+                    _log.LogInformation("[CloudRlTrainer] Downloading models: {AssetName}", assetName);
+                    
+                    var modelBytes = await _http.GetByteArrayAsync(downloadUrl);
+                    var tempFile = Path.Combine(_modelDir, assetName);
+                    await File.WriteAllBytesAsync(tempFile, modelBytes);
+                    
+                    // Extract the tar.gz file (simplified - in production use a proper library)
+                    _log.LogInformation("[CloudRlTrainer] Downloaded {Bytes} bytes to {File}", modelBytes.Length, tempFile);
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "[CloudRlTrainer] Failed to download models");
         }
     }
 
