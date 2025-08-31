@@ -85,20 +85,25 @@ jobs:
           df_exec.to_parquet('data/logs/execution_data.parquet', index=False)
           print(f'Generated execution quality data: {len(df_exec)} samples')
           
-          # Generate RL training data
+          # Generate RL position sizing data  
           rl_data = []
-          for i in range(200):
+          for i in range(500):
+              r_mult = random.uniform(-2, 3)
               rl_data.append({
-                  'state': [random.uniform(-1, 1) for _ in range(10)],
-                  'action': random.choice([0, 1, 2]),  # 0=hold, 1=buy, 2=sell
-                  'reward': random.uniform(-1, 1),
-                  'next_state': [random.uniform(-1, 1) for _ in range(10)],
-                  'done': random.choice([True, False])
+                  'price': 4500 + random.uniform(-100, 100),
+                  'atr': random.uniform(10, 50),
+                  'rsi': random.uniform(20, 80),
+                  'volume': random.randint(100, 1000),
+                  'signal_strength': random.uniform(0, 1),
+                  'prior_win_rate': random.uniform(0.3, 0.7),
+                  'avg_r_multiple': random.uniform(-0.5, 2.0),
+                  'drawdown_risk': random.uniform(0, 0.5),
+                  'r_multiple': r_mult  # target variable
               })
           
-          with open('data/logs/rl_training_data.json', 'w') as f:
-              json.dump(rl_data, f)
-          print(f'Generated RL training data: {len(rl_data)} samples')
+          df_rl = pd.DataFrame(rl_data)
+          df_rl.to_parquet('data/logs/rl_training_data.parquet', index=False)
+          print(f'Generated RL training data: {len(df_rl)} samples')
           "
 
       - name: "🤖 Train Meta Strategy Classifier"
@@ -108,7 +113,7 @@ jobs:
         run: python ml/train_exec_quality.py data/logs/execution_data.parquet models
 
       - name: "🧠 Train RL Position Sizer"
-        run: python ml/train_rl_sizer.py data/logs/rl_training_data.json models
+        run: python ml/train_rl_sizer.py data/logs/rl_training_data.parquet models
 
       - name: "📝 Create Model Manifest"
         run: |
