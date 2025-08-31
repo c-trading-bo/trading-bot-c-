@@ -29,7 +29,7 @@ jobs:
       - name: "📦 Install Dependencies"
         run: |
           pip install --upgrade pip
-          pip install torch numpy pandas scikit-learn onnx skl2onnx packaging
+          pip install torch numpy pandas scikit-learn onnx skl2onnx packaging pyarrow
 
       - name: "📊 Generate Training Data"
         run: |
@@ -38,33 +38,77 @@ jobs:
           python -c "
           import json
           import random
+          import pandas as pd
           from datetime import datetime, timedelta
           
-          # Generate sample market data
-          data = []
+          # Generate sample market data for meta classifier
+          meta_data = []
           for i in range(1000):
-              data.append({
+              meta_data.append({
                   'timestamp': (datetime.now() - timedelta(hours=i)).isoformat(),
                   'symbol': 'ES' if i % 2 == 0 else 'NQ',
                   'price': 4500 + random.uniform(-100, 100),
+                  'atr': random.uniform(10, 50),
+                  'rsi': random.uniform(20, 80),
+                  'ema20': 4500 + random.uniform(-50, 50),
+                  'ema50': 4500 + random.uniform(-100, 100),
                   'volume': random.randint(100, 1000),
+                  'spread': random.uniform(0.25, 2.0),
+                  'volatility': random.uniform(0.1, 0.5),
+                  'signal_strength': random.uniform(0, 1),
+                  'prior_win_rate': random.uniform(0.3, 0.7),
+                  'avg_r_multiple': random.uniform(-0.5, 2.0),
+                  'strategy': random.choice(['EMA_CROSS', 'RSI_MEAN_REVERT', 'MOMENTUM']),
                   'r_multiple': random.uniform(-2, 3),
                   'win': random.choice([True, False])
               })
           
-          with open('data/logs/sample_training_data.json', 'w') as f:
-              json.dump(data, f)
-          print(f'Generated {len(data)} training samples')
+          # Save as parquet for meta classifier
+          df_meta = pd.DataFrame(meta_data)
+          df_meta.to_parquet('data/logs/candidates.merged.parquet', index=False)
+          print(f'Generated meta classifier data: {len(df_meta)} samples')
+          
+          # Generate execution quality data
+          exec_data = []
+          for i in range(500):
+              exec_data.append({
+                  'entry_price': 4500 + random.uniform(-100, 100),
+                  'exit_price': 4500 + random.uniform(-100, 100),
+                  'volume': random.randint(1, 10),
+                  'time_in_trade': random.randint(1, 60),
+                  'spread': random.uniform(0.25, 2.0),
+                  'slippage': random.uniform(0, 1.0),
+                  'execution_quality': random.uniform(0, 1)
+              })
+          
+          df_exec = pd.DataFrame(exec_data)
+          df_exec.to_parquet('data/logs/execution_data.parquet', index=False)
+          print(f'Generated execution quality data: {len(df_exec)} samples')
+          
+          # Generate RL training data
+          rl_data = []
+          for i in range(200):
+              rl_data.append({
+                  'state': [random.uniform(-1, 1) for _ in range(10)],
+                  'action': random.choice([0, 1, 2]),  # 0=hold, 1=buy, 2=sell
+                  'reward': random.uniform(-1, 1),
+                  'next_state': [random.uniform(-1, 1) for _ in range(10)],
+                  'done': random.choice([True, False])
+              })
+          
+          with open('data/logs/rl_training_data.json', 'w') as f:
+              json.dump(rl_data, f)
+          print(f'Generated RL training data: {len(rl_data)} samples')
           "
 
       - name: "🤖 Train Meta Strategy Classifier"
-        run: python ml/train_meta_classifier.py
+        run: python ml/train_meta_classifier.py data/logs/candidates.merged.parquet models
 
       - name: "📈 Train Execution Quality Predictor"  
-        run: python ml/train_exec_quality.py
+        run: python ml/train_exec_quality.py data/logs/execution_data.parquet models
 
       - name: "🧠 Train RL Position Sizer"
-        run: python ml/train_rl_sizer.py
+        run: python ml/train_rl_sizer.py data/logs/rl_training_data.json models
 
       - name: "📝 Create Model Manifest"
         run: |
