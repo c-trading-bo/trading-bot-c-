@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # GitHub Repository Secrets Configuration
 ## 24/7 Cloud Learning Pipeline Setup
 
@@ -97,6 +98,29 @@ openssl rand -hex 32
 ```
 
 ### How to get AWS credentials:
+=======
+# 🔐 GitHub Secrets Setup Guide
+
+## **Required Secrets for Cloud Learning**
+
+Go to your GitHub repository: `https://github.com/kevinsuero072897-collab/trading-bot-c-/settings/secrets/actions`
+
+Add these secrets:
+
+### **AWS Credentials:**
+```
+Name: AWS_ACCESS_KEY_ID
+Value: [Your AWS Access Key]
+
+Name: AWS_SECRET_ACCESS_KEY  
+Value: [Your AWS Secret Key]
+
+Name: CLOUD_BUCKET
+Value: [Your S3 bucket name, e.g., trading-bot-ml-kevin]
+```
+
+### **How to get AWS credentials:**
+>>>>>>> origin/main
 
 1. **Log into AWS Console**: https://aws.amazon.com/console/
 2. **Go to IAM**: Search for "IAM" in the top search bar
@@ -112,7 +136,11 @@ openssl rand -hex 32
    - Copy **Secret Access Key**
    - ⚠️ **Save these immediately - you can't see the secret again!**
 
+<<<<<<< HEAD
 ### Test Your Setup:
+=======
+### **Test Your Setup:**
+>>>>>>> origin/main
 
 1. **Push your code**: 
    ```bash
@@ -123,6 +151,7 @@ openssl rand -hex 32
 
 2. **Trigger manual training**:
    - Go to: `Actions` tab in your GitHub repo
+<<<<<<< HEAD
    - Click: `24/7 Continuous ML/RL Training`
    - Click: `Run workflow` → `Run workflow`
 
@@ -141,6 +170,11 @@ The pipeline will run every 30 minutes and automatically:
 5. Generate and sign secure manifest with HMAC
 6. Publish to CDN for bot consumption via ModelUpdaterService
 
+=======
+   - Click: `Cloud ML Training Pipeline`
+   - Click: `Run workflow` → `Run workflow`
+
+>>>>>>> origin/main
 3. **Check logs**:
    - Watch the workflow run in real-time
    - Should see: "🎯 Cloud training completed successfully!"
