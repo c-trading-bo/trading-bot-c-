@@ -210,8 +210,11 @@ jobs:
       - name: "📦 Package Models"
         run: |
           cd models
-          tar -czf ml-models-$(date +%Y%m%d-%H%M%S).tar.gz rl/ manifest.json
-          echo "MODEL_PACKAGE=$(ls ml-models-*.tar.gz)" >> $GITHUB_ENV
+          timestamp=$(date +%Y%m%d-%H%M%S)
+          tar -czf ml-models-${timestamp}.tar.gz rl/ manifest.json
+          echo "MODEL_PACKAGE=ml-models-${timestamp}.tar.gz" >> $GITHUB_ENV
+          echo "RELEASE_TAG=models-v${timestamp}" >> $GITHUB_ENV
+          echo "RELEASE_DATE=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
 
       - name: "🚀 Create GitHub Release"
         uses: actions/create-release@v1
@@ -219,12 +222,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: models-v$(date +%Y%m%d-%H%M%S)
-          release_name: "AI Models $(date +'%Y-%m-%d %H:%M')"
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: "AI Models ${{ env.RELEASE_DATE }}"
           body: |
             🤖 **Automated ML/RL Model Release**
             
-            **Training Completed**: $(date)
+            **Training Completed**: ${{ env.RELEASE_DATE }}
             **Models Included**:
             - Meta Strategy Classifier (ONNX)
             - Execution Quality Predictor (ONNX)  
