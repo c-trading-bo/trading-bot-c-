@@ -35,12 +35,25 @@ def main():
     df = pd.read_parquet(data_file)
     print(f'📊 Training RL position sizer on {len(df)} samples')
 
-    # Prepare features
-    feature_cols = ['price', 'atr', 'rsi', 'volume', 'signal_strength', 'prior_win_rate', 'avg_r_multiple', 'drawdown_risk']
+    # Display symbol distribution if available
+    if 'symbol' in df.columns:
+        symbol_dist = df['symbol'].value_counts()
+        print(f'📊 Symbol distribution: {symbol_dist.to_dict()}')
+        
+        # Add symbol-specific features
+        df['is_es'] = (df['symbol'] == 'ES').astype(float)
+        df['is_nq'] = (df['symbol'] == 'NQ').astype(float)
+    else:
+        # Fallback if no symbol column
+        df['is_es'] = 1.0
+        df['is_nq'] = 0.0
+
+    # Prepare features (now symbol-aware)
+    feature_cols = ['price', 'atr', 'rsi', 'volume', 'signal_strength', 'prior_win_rate', 'avg_r_multiple', 'drawdown_risk', 'is_es', 'is_nq']
     available_features = [col for col in feature_cols if col in df.columns]
 
     if not available_features:
-        available_features = ['price', 'atr', 'rsi']  # Fallback
+        available_features = ['price', 'atr', 'rsi', 'is_es', 'is_nq']  # Fallback with symbol features
 
     X = df[available_features].fillna(0).values.astype('float32')
     y = df.get('r_multiple', pd.Series([0.1] * len(df))).fillna(0).values.astype('float32')

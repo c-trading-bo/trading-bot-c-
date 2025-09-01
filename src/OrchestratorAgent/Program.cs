@@ -190,8 +190,9 @@ namespace OrchestratorAgent
                 try { cts.CancelAfter(TimeSpan.FromSeconds(5)); } catch { }
             }
 
-            // 🌥️ Initialize RL Training (will be configured later based on credentials)
-            IDisposable? rlTrainer = null;
+            // 🌥️ Initialize Cloud Learning (100% cloud-based, no local training)
+            IDisposable? cloudModelDownloader = null;
+            IDisposable? cloudDataUploader = null;
 
             // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login).
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
@@ -602,10 +603,15 @@ namespace OrchestratorAgent
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
                     
-                    // 🌥️ Initialize Cloud + Local RL Training (Hybrid Mode)
-                    // Enable GitHub-based cloud learning automatically
-                    log.LogInformation("🌥️ [CloudRL] Using GitHub Releases for cloud learning");
-                    rlTrainer = new BotCore.CloudRlTrainer(loggerFactory.CreateLogger<BotCore.CloudRlTrainer>());
+                    // 🌥️ Initialize 100% Cloud-Based Learning (No Local Training)
+                    // Enable cloud model downloads for latest trained models
+                    log.LogInformation("🌥️ [CloudLearning] Initializing 100% cloud-based learning - no local training required");
+                    cloudModelDownloader = new BotCore.CloudRlTrainerEnhanced(loggerFactory.CreateLogger<BotCore.CloudRlTrainerEnhanced>());
+                    
+                    // Enable cloud data upload so training data reaches cloud training pipeline  
+                    cloudDataUploader = new BotCore.CloudDataUploader(loggerFactory.CreateLogger<BotCore.CloudDataUploader>());
+                    
+                    log.LogInformation("🌥️ [CloudLearning] Bot configured for trading-only operation - all learning happens in cloud every 30 minutes");
                     
                     // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
                     string tokenNow = string.Empty;
@@ -2445,8 +2451,9 @@ namespace OrchestratorAgent
                 }
             }
 
-            // 🧹 Cleanup RL Trainer
-            try { rlTrainer?.Dispose(); } catch { }
+            // 🧹 Cleanup Cloud Learning Components  
+            try { cloudModelDownloader?.Dispose(); } catch { }
+            try { cloudDataUploader?.Dispose(); } catch { }
 
             // Local helper runs strategies for a new bar of a symbol
             static async Task RunStrategiesFor(

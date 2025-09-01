@@ -47,6 +47,10 @@ namespace OrchestratorAgent.ML
         public float NewsImpact { get; set; }
         public float LiquidityRisk { get; set; }
         
+        // Symbol-specific features for multi-symbol learning
+        public float IsES => Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 1.0f : 0.0f;
+        public float IsNQ => Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 1.0f : 0.0f;
+        
         public FeatureSnapshot()
         {
             // Initialize with default feature values
@@ -67,6 +71,9 @@ namespace OrchestratorAgent.ML
             AddFeature("drawdown_risk", 0f);
             AddFeature("news_impact", 0f);
             AddFeature("liquidity_risk", 0f);
+            // Symbol-specific features
+            AddFeature("is_es", 0f);
+            AddFeature("is_nq", 0f);
         }
         
         public void AddFeature(string name, float value)
@@ -96,6 +103,10 @@ namespace OrchestratorAgent.ML
             dict["drawdown_risk"] = DrawdownRisk;
             dict["news_impact"] = NewsImpact;
             dict["liquidity_risk"] = LiquidityRisk;
+            
+            // Add symbol-specific features
+            dict["is_es"] = IsES;
+            dict["is_nq"] = IsNQ;
             
             return dict;
         }

@@ -46,6 +46,12 @@ namespace BotCore
             public decimal NewsImpact { get; set; }
             public decimal LiquidityRisk { get; set; }
             
+            // Symbol-specific features for multi-symbol learning
+            public bool IsES => Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase);
+            public bool IsNQ => Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase);
+            public decimal TickSize => BotCore.Models.InstrumentMeta.Tick(Symbol);
+            public decimal BigPointValue => BotCore.Models.InstrumentMeta.BigPointValue(Symbol);
+            
             // Position sizing decision (what we're learning)
             public decimal BaselineMultiplier { get; set; } = 1.0m;
             public decimal? ActualMultiplier { get; set; }
@@ -87,7 +93,8 @@ namespace BotCore
                     WriteIndented = false 
                 });
                 
-                var fileName = $"features_{DateTime.UtcNow:yyyyMMdd}.jsonl";
+                // Create symbol-specific files for better organization
+                var fileName = $"features_{features.Symbol.ToLowerInvariant()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
                 
                 lock (FileLock)
@@ -95,11 +102,12 @@ namespace BotCore
                     File.AppendAllText(filePath, json + Environment.NewLine);
                 }
                 
-                log.LogDebug("[RL] Logged features for signal {SignalId}", features.SignalId);
+                log.LogDebug("[RL-{Symbol}] Logged features for signal {SignalId}", 
+                    features.Symbol, features.SignalId);
             }
             catch (Exception ex)
             {
-                log.LogError(ex, "[RL] Failed to log feature snapshot");
+                log.LogError(ex, "[RL-{Symbol}] Failed to log feature snapshot", features?.Symbol ?? "Unknown");
             }
         }
 
@@ -115,7 +123,9 @@ namespace BotCore
                     WriteIndented = false 
                 });
                 
-                var fileName = $"outcomes_{DateTime.UtcNow:yyyyMMdd}.jsonl";
+                // Create symbol-specific outcome files
+                var symbol = ExtractSymbolFromSignalId(outcome.SignalId);
+                var fileName = $"outcomes_{symbol.ToLowerInvariant()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
                 
                 lock (FileLock)
@@ -123,13 +133,30 @@ namespace BotCore
                     File.AppendAllText(filePath, json + Environment.NewLine);
                 }
                 
-                log.LogDebug("[RL] Logged outcome for signal {SignalId}: R={R:F2}", 
-                    outcome.SignalId, outcome.RMultiple);
+                log.LogDebug("[RL-{Symbol}] Logged outcome for signal {SignalId}: R={R:F2}", 
+                    symbol, outcome.SignalId, outcome.RMultiple);
             }
             catch (Exception ex)
             {
                 log.LogError(ex, "[RL] Failed to log trade outcome");
             }
+        }
+
+        /// <summary>
+        /// Extract symbol from signal ID (format: SYMBOL_STRATEGY_TIMESTAMP)
+        /// </summary>
+        private static string ExtractSymbolFromSignalId(string signalId)
+        {
+            if (string.IsNullOrEmpty(signalId)) return "unknown";
+            
+            var parts = signalId.Split('_');
+            if (parts.Length > 0 && (parts[0].Equals("ES", StringComparison.OrdinalIgnoreCase) || 
+                                     parts[0].Equals("NQ", StringComparison.OrdinalIgnoreCase)))
+            {
+                return parts[0].ToUpperInvariant();
+            }
+            
+            return "unknown";
         }
 
         /// <summary>
@@ -142,6 +169,10 @@ namespace BotCore
             decimal price,
             decimal baselineMultiplier = 1.0m)
         {
+            // Symbol-specific defaults
+            var isES = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase);
+            var defaultSpread = isES ? 0.25m : 0.25m; // Both ES and NQ have 0.25 tick size
+            
             return new FeatureSnapshot
             {
                 Timestamp = DateTime.UtcNow,
@@ -159,7 +190,7 @@ namespace BotCore
                 Ema20 = price,
                 Ema50 = price,
                 Volume = 0m,
-                Spread = 0.25m,
+                Spread = defaultSpread,
                 Volatility = 0m,
                 BidAskImbalance = 0m,
                 OrderBookImbalance = 0m,
