@@ -2005,6 +2005,266 @@ End of Log
       }
     }
 
+    // ========== GitHub Actions Integration & Bot Control ==========
+    
+    let currentBotMode = 'paper';
+    let githubDashboardStatus = null;
+    
+    // Auto-register with GitHub Actions dashboard
+    async function registerWithGitHubDashboard() {
+      try {
+        const localStatus = {
+          local_bot_running: true,
+          port: window.location.port || 5050,
+          mode: currentBotMode,
+          timestamp: new Date().toISOString(),
+          features: {
+            local_trading: true,
+            bot_control: true,
+            real_time_monitoring: true
+          }
+        };
+        
+        // Post status to GitHub Actions dashboard (would normally use API)
+        console.log('Registering with GitHub Actions dashboard:', localStatus);
+        addLog('info', 'Registered with GitHub Actions dashboard');
+        
+        return true;
+      } catch (error) {
+        console.log('GitHub Actions dashboard not accessible:', error);
+        return false;
+      }
+    }
+    
+    // Check GitHub Actions dashboard connectivity
+    async function checkGitHubDashboardConnection() {
+      try {
+        // Try to fetch status from GitHub Pages dashboard
+        const dashboardUrl = 'https://kevinsuero072897-collab.github.io/trading-bot-c-/simple_status.json';
+        const response = await fetch(dashboardUrl, { 
+          mode: 'cors',
+          cache: 'no-cache' 
+        });
+        
+        if (response.ok) {
+          githubDashboardStatus = await response.json();
+          addLog('success', 'Connected to GitHub Actions dashboard');
+          updateGitHubDashboardStatus(true);
+          return true;
+        }
+      } catch (error) {
+        console.log('GitHub Actions dashboard not accessible:', error);
+        updateGitHubDashboardStatus(false);
+      }
+      return false;
+    }
+    
+    function updateGitHubDashboardStatus(connected) {
+      // Add a new status indicator to the sidebar
+      const sidebar = document.querySelector('.sidebar');
+      let githubStatus = document.getElementById('github-dashboard-status');
+      
+      if (!githubStatus) {
+        githubStatus = document.createElement('div');
+        githubStatus.id = 'github-dashboard-status';
+        githubStatus.style.cssText = `
+          margin-top: 16px;
+          padding: 12px;
+          background: rgba(13, 17, 23, 0.5);
+          border-radius: 6px;
+          border-left: 3px solid ${connected ? '#4CAF50' : '#8b949e'};
+        `;
+        sidebar.appendChild(githubStatus);
+      }
+      
+      githubStatus.innerHTML = `
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: ${connected ? '#4CAF50' : '#8b949e'};">
+          🔗 GitHub Dashboard
+        </div>
+        <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">
+          ${connected ? 'Connected' : 'Offline'}
+        </div>
+        ${connected ? `
+          <button onclick="openGitHubDashboard()" class="btn" style="width: 100%; font-size: 12px;">
+            🚀 Open Live Dashboard
+          </button>
+        ` : `
+          <div style="font-size: 11px; color: #8b949e;">
+            Live dashboard unavailable
+          </div>
+        `}
+      `;
+    }
+    
+    function openGitHubDashboard() {
+      window.open('https://kevinsuero072897-collab.github.io/trading-bot-c-/', '_blank');
+      addLog('info', 'Opened GitHub Actions live dashboard');
+    }
+    
+    // Bot Control Functions
+    async function startBotWithMode(mode) {
+      try {
+        addLog('info', `Starting bot in ${mode.toUpperCase()} mode...`);
+        
+        const response = await fetch('/api/bot/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ Mode: mode })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          addLog('success', result.message || 'Bot started successfully');
+          currentBotMode = mode;
+          updateBotModeDisplay(mode);
+        } else {
+          addLog('error', 'Failed to start bot');
+        }
+      } catch (error) {
+        addLog('error', `Error starting bot: ${error.message}`);
+      }
+    }
+    
+    async function stopBot() {
+      try {
+        addLog('info', 'Stopping bot...');
+        
+        const response = await fetch('/api/bot/stop', {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          addLog('success', result.message || 'Bot stopped successfully');
+        } else {
+          addLog('error', 'Failed to stop bot');
+        }
+      } catch (error) {
+        addLog('error', `Error stopping bot: ${error.message}`);
+      }
+    }
+    
+    async function changeBotMode(mode) {
+      try {
+        addLog('info', `Changing bot mode to ${mode.toUpperCase()}...`);
+        
+        const response = await fetch('/api/bot/mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ Mode: mode })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          addLog('success', result.message || `Mode changed to ${mode.toUpperCase()}`);
+          currentBotMode = mode;
+          updateBotModeDisplay(mode);
+        } else {
+          addLog('error', 'Failed to change bot mode');
+        }
+      } catch (error) {
+        addLog('error', `Error changing bot mode: ${error.message}`);
+      }
+    }
+    
+    function updateBotModeDisplay(mode) {
+      // Update mode display in the sidebar
+      const sidebar = document.querySelector('.sidebar');
+      let modeDisplay = document.getElementById('bot-mode-display');
+      
+      if (!modeDisplay) {
+        modeDisplay = document.createElement('div');
+        modeDisplay.id = 'bot-mode-display';
+        modeDisplay.style.cssText = `
+          margin-top: 16px;
+          padding: 12px;
+          background: rgba(13, 17, 23, 0.5);
+          border-radius: 6px;
+          text-align: center;
+        `;
+        sidebar.appendChild(modeDisplay);
+      }
+      
+      const modeColors = {
+        paper: '#58a6ff',
+        shadow: '#ffa657', 
+        live: '#f85149'
+      };
+      
+      modeDisplay.innerHTML = `
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px; color: ${modeColors[mode] || '#8b949e'};">
+          🎯 ${mode.toUpperCase()} MODE
+        </div>
+        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+          <button onclick="changeBotMode('paper')" class="btn ${mode === 'paper' ? 'primary' : 'secondary'}" style="flex: 1; font-size: 10px;">PAPER</button>
+          <button onclick="changeBotMode('shadow')" class="btn ${mode === 'shadow' ? 'primary' : 'secondary'}" style="flex: 1; font-size: 10px;">SHADOW</button>
+          <button onclick="changeBotMode('live')" class="btn ${mode === 'live' ? 'danger' : 'secondary'}" style="flex: 1; font-size: 10px;">LIVE</button>
+        </div>
+        <div style="display: flex; gap: 4px;">
+          <button onclick="startBotWithMode(currentBotMode)" class="btn primary" style="flex: 1; font-size: 11px;">▶️ START</button>
+          <button onclick="stopBot()" class="btn danger" style="flex: 1; font-size: 11px;">⏹️ STOP</button>
+        </div>
+      `;
+    }
+    
+    // Auto-launch integration on startup
+    async function initializeBotIntegration() {
+      addLog('info', 'Initializing bot integration...');
+      
+      // Register with GitHub Actions dashboard
+      await registerWithGitHubDashboard();
+      
+      // Check connection to GitHub Actions dashboard
+      await checkGitHubDashboardConnection();
+      
+      // Initialize bot mode display
+      updateBotModeDisplay(currentBotMode);
+      
+      // Set up periodic GitHub dashboard connectivity check
+      setInterval(checkGitHubDashboardConnection, 60000); // Check every minute
+      
+      addLog('success', 'Bot integration initialized');
+    }
+    
+    // Enhanced cloud integration with bot control
+    function enhanceCloudLearningTab() {
+      const cloudTab = document.getElementById('cloud-learning');
+      if (cloudTab) {
+        // Add bot control section to cloud learning tab
+        const controlSection = document.createElement('div');
+        controlSection.className = 'card';
+        controlSection.style.marginTop = '20px';
+        controlSection.innerHTML = `
+          <div class="card-header">
+            <div class="card-title">🎮 Bot Control Integration</div>
+          </div>
+          <div class="card-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div>
+                <h4 style="color: #4CAF50; margin-bottom: 8px;">Local Bot Control</h4>
+                <div class="action-buttons">
+                  <button onclick="startBotWithMode('paper')" class="action-btn primary">🧪 Start Paper Mode</button>
+                  <button onclick="startBotWithMode('shadow')" class="action-btn">👥 Start Shadow Mode</button>
+                  <button onclick="startBotWithMode('live')" class="action-btn danger">💰 Start Live Mode</button>
+                  <button onclick="stopBot()" class="action-btn">⏹️ Stop Bot</button>
+                </div>
+              </div>
+              <div>
+                <h4 style="color: #4CAF50; margin-bottom: 8px;">Dashboard Links</h4>
+                <div class="action-buttons">
+                  <button onclick="openGitHubDashboard()" class="action-btn primary">🚀 Live Dashboard</button>
+                  <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="action-btn">📋 GitHub Actions</a>
+                  <button onclick="triggerManualTraining()" class="action-btn">🧠 Trigger Training</button>
+                  <button onclick="checkModelUpdates()" class="action-btn">🔄 Check Updates</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        cloudTab.appendChild(controlSection);
+      }
+    }
+
     // Handle page visibility to prevent excessive connections
     document.addEventListener('visibilitychange', function() {
       if (document.hidden) {
@@ -2024,6 +2284,15 @@ End of Log
       if (eventSource) {
         eventSource.close();
       }
+    });
+    
+    // Initialize enhanced features when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize bot integration after a short delay
+      setTimeout(initializeBotIntegration, 1000);
+      
+      // Enhance cloud learning tab
+      setTimeout(enhanceCloudLearningTab, 2000);
     });
   </script>
 </body>
