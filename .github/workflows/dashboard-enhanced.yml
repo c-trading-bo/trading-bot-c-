@@ -1,0 +1,379 @@
+name: "📊 Enhanced Dashboard Monitor"
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Every 5 minutes
+  workflow_dispatch:        # Manual trigger
+  push:
+    branches: ['main']
+
+env:
+  DASHBOARD_DATA_DIR: "dashboard-data"
+
+jobs:
+  dashboard-monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "📥 Checkout Code"
+        uses: actions/checkout@v4
+        
+      - name: "🐍 Setup Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: "📦 Install Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas matplotlib seaborn plotly
+          pip install awscli boto3 python-dateutil
+          
+      - name: "📊 Generate Dashboard Data"
+        run: |
+          mkdir -p ${{ env.DASHBOARD_DATA_DIR }}
+          
+          # Create dashboard monitoring script
+          cat > monitor_dashboard.py << 'EOF'
+          import json
+          import requests
+          import datetime
+          import os
+          from pathlib import Path
+          
+          def get_workflow_runs():
+              """Get recent workflow runs for monitoring"""
+              try:
+                  # GitHub API to get workflow runs
+                  headers = {
+                      'Accept': 'application/vnd.github.v3+json',
+                      'Authorization': f'token ${{ secrets.GITHUB_TOKEN }}'
+                  }
+                  
+                  repo = '${{ github.repository }}'
+                  url = f'https://api.github.com/repos/{repo}/actions/runs'
+                  
+                  response = requests.get(url, headers=headers, params={'per_page': 50})
+                  if response.status_code == 200:
+                      return response.json()
+                  else:
+                      print(f"Failed to get workflow runs: {response.status_code}")
+                      return None
+              except Exception as e:
+                  print(f"Error getting workflow runs: {e}")
+                  return None
+          
+          def analyze_training_performance():
+              """Analyze training workflow performance"""
+              runs_data = get_workflow_runs()
+              if not runs_data:
+                  return {}
+              
+              training_runs = []
+              for run in runs_data.get('workflow_runs', []):
+                  if 'train' in run['name'].lower() or 'ml' in run['name'].lower():
+                      training_runs.append({
+                          'id': run['id'],
+                          'name': run['name'],
+                          'status': run['status'],
+                          'conclusion': run['conclusion'],
+                          'created_at': run['created_at'],
+                          'updated_at': run['updated_at'],
+                          'run_number': run['run_number']
+                      })
+              
+              # Calculate metrics
+              total_runs = len(training_runs)
+              successful_runs = len([r for r in training_runs if r['conclusion'] == 'success'])
+              failed_runs = len([r for r in training_runs if r['conclusion'] == 'failure'])
+              
+              success_rate = (successful_runs / total_runs * 100) if total_runs > 0 else 0
+              
+              return {
+                  'total_runs': total_runs,
+                  'successful_runs': successful_runs,
+                  'failed_runs': failed_runs,
+                  'success_rate': round(success_rate, 2),
+                  'recent_runs': training_runs[:10],
+                  'last_updated': datetime.datetime.utcnow().isoformat()
+              }
+          
+          def generate_status_summary():
+              """Generate overall status summary"""
+              training_data = analyze_training_performance()
+              
+              # Determine overall health
+              success_rate = training_data.get('success_rate', 0)
+              if success_rate >= 80:
+                  health_status = 'HEALTHY'
+                  health_color = 'green'
+              elif success_rate >= 60:
+                  health_status = 'WARNING'
+                  health_color = 'yellow'
+              else:
+                  health_status = 'CRITICAL'
+                  health_color = 'red'
+              
+              return {
+                  'health_status': health_status,
+                  'health_color': health_color,
+                  'training_performance': training_data,
+                  'timestamp': datetime.datetime.utcnow().isoformat(),
+                  'monitoring_active': True
+              }
+          
+          def save_dashboard_data():
+              """Save all dashboard data to files"""
+              summary = generate_status_summary()
+              
+              # Save summary
+              with open('${{ env.DASHBOARD_DATA_DIR }}/status_summary.json', 'w') as f:
+                  json.dump(summary, f, indent=2)
+              
+              # Save badge data
+              badge_data = {
+                  'schemaVersion': 1,
+                  'label': 'Bot Learning',
+                  'message': summary['health_status'],
+                  'color': summary['health_color']
+              }
+              
+              with open('${{ env.DASHBOARD_DATA_DIR }}/status_badge.json', 'w') as f:
+                  json.dump(badge_data, f, indent=2)
+              
+              print("✅ Dashboard data generated successfully")
+              print(f"Status: {summary['health_status']}")
+              print(f"Training Success Rate: {summary['training_performance']['success_rate']}%")
+          
+          if __name__ == "__main__":
+              save_dashboard_data()
+          EOF
+          
+          # Run the monitoring script
+          python monitor_dashboard.py
+          
+      - name: "☁️ Upload Dashboard Data to S3"
+        if: env.AWS_ACCESS_KEY_ID != ''
+        run: |
+          # Upload dashboard data to S3 for web access
+          aws s3 sync ${{ env.DASHBOARD_DATA_DIR }}/ "s3://${{ secrets.S3_BUCKET }}/dashboard/" \
+            --acl public-read \
+            --cache-control "max-age=60" \
+            --exclude "*" --include "*.json" || echo "S3 upload optional"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          
+      - name: "📈 Generate Performance Charts"
+        run: |
+          # Create performance visualization script
+          cat > generate_charts.py << 'EOF'
+          import json
+          import matplotlib.pyplot as plt
+          import pandas as pd
+          from datetime import datetime, timedelta
+          import os
+          
+          # Set non-interactive backend
+          plt.switch_backend('Agg')
+          
+          def create_training_chart():
+              """Create training performance chart"""
+              try:
+                  with open('${{ env.DASHBOARD_DATA_DIR }}/status_summary.json', 'r') as f:
+                      data = json.load(f)
+                  
+                  training_data = data.get('training_performance', {})
+                  recent_runs = training_data.get('recent_runs', [])
+                  
+                  if not recent_runs:
+                      print("No training data available for chart")
+                      return
+                  
+                  # Create success/failure chart
+                  fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+                  fig.patch.set_facecolor('#0a0e16')
+                  
+                  # Success rate pie chart
+                  success_rate = training_data.get('success_rate', 0)
+                  failure_rate = 100 - success_rate
+                  
+                  ax1.pie([success_rate, failure_rate], 
+                         labels=['Success', 'Failure'],
+                         colors=['#4CAF50', '#f44336'],
+                         autopct='%1.1f%%',
+                         startangle=90)
+                  ax1.set_title('Training Success Rate', color='white', fontsize=14)
+                  ax1.set_facecolor('#0a0e16')
+                  
+                  # Recent runs timeline
+                  run_numbers = [r['run_number'] for r in recent_runs[:10]]
+                  statuses = ['success' if r['conclusion'] == 'success' else 'failure' for r in recent_runs[:10]]
+                  colors = ['#4CAF50' if s == 'success' else '#f44336' for s in statuses]
+                  
+                  ax2.bar(run_numbers, [1]*len(run_numbers), color=colors)
+                  ax2.set_title('Recent Training Runs', color='white', fontsize=14)
+                  ax2.set_xlabel('Run Number', color='white')
+                  ax2.set_ylabel('Status', color='white')
+                  ax2.set_facecolor('#0a0e16')
+                  ax2.tick_params(colors='white')
+                  
+                  plt.tight_layout()
+                  plt.savefig('${{ env.DASHBOARD_DATA_DIR }}/training_chart.png', 
+                             facecolor='#0a0e16', dpi=150, bbox_inches='tight')
+                  plt.close()
+                  
+                  print("✅ Training performance chart generated")
+                  
+              except Exception as e:
+                  print(f"Error generating chart: {e}")
+          
+          if __name__ == "__main__":
+              create_training_chart()
+          EOF
+          
+          python generate_charts.py
+          
+      - name: "🔄 Update GitHub Pages Data"
+        run: |
+          # Create a simple HTML dashboard page
+          mkdir -p docs
+          
+          cat > docs/monitoring.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Trading Bot - Cloud Monitoring</title>
+              <style>
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                      background: #0a0e16; 
+                      color: #e0e6ed; 
+                      margin: 0; 
+                      padding: 20px; 
+                  }
+                  .container { max-width: 1200px; margin: 0 auto; }
+                  .header { text-align: center; margin-bottom: 40px; }
+                  .status-card { 
+                      background: #161b22; 
+                      border: 1px solid #30363d; 
+                      border-radius: 8px; 
+                      padding: 20px; 
+                      margin-bottom: 20px; 
+                  }
+                  .metric { 
+                      display: inline-block; 
+                      margin: 10px 20px; 
+                      text-align: center; 
+                  }
+                  .metric-value { 
+                      font-size: 24px; 
+                      font-weight: bold; 
+                      color: #4CAF50; 
+                  }
+                  .metric-label { 
+                      font-size: 14px; 
+                      color: #8b949e; 
+                  }
+                  .chart-container { text-align: center; margin: 20px 0; }
+                  .status-healthy { color: #4CAF50; }
+                  .status-warning { color: #ffa657; }
+                  .status-critical { color: #f44336; }
+              </style>
+              <script>
+                  async function loadDashboardData() {
+                      try {
+                          const response = await fetch('https://d1234567890abcdef.cloudfront.net/dashboard/status_summary.json');
+                          if (response.ok) {
+                              const data = await response.json();
+                              updateDashboard(data);
+                          }
+                      } catch (error) {
+                          console.log('Using static data - CDN not available');
+                      }
+                  }
+                  
+                  function updateDashboard(data) {
+                      const training = data.training_performance || {};
+                      
+                      document.getElementById('health-status').textContent = data.health_status || 'UNKNOWN';
+                      document.getElementById('health-status').className = `status-${(data.health_color || 'gray').toLowerCase()}`;
+                      
+                      document.getElementById('success-rate').textContent = training.success_rate + '%' || '0%';
+                      document.getElementById('total-runs').textContent = training.total_runs || '0';
+                      document.getElementById('last-updated').textContent = new Date(data.timestamp).toLocaleString();
+                  }
+                  
+                  window.addEventListener('load', loadDashboardData);
+                  setInterval(loadDashboardData, 60000); // Refresh every minute
+              </script>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🤖 Trading Bot - Cloud Learning Monitor</h1>
+                      <p>24/7 Autonomous Learning Pipeline Status</p>
+                  </div>
+                  
+                  <div class="status-card">
+                      <h2>🎯 Overall Health</h2>
+                      <div class="metric">
+                          <div class="metric-value" id="health-status">LOADING...</div>
+                          <div class="metric-label">System Status</div>
+                      </div>
+                      <div class="metric">
+                          <div class="metric-value" id="success-rate">--%</div>
+                          <div class="metric-label">Training Success Rate</div>
+                      </div>
+                      <div class="metric">
+                          <div class="metric-value" id="total-runs">--</div>
+                          <div class="metric-label">Total Runs</div>
+                      </div>
+                  </div>
+                  
+                  <div class="status-card">
+                      <h2>📊 Performance Charts</h2>
+                      <div class="chart-container">
+                          <img src="https://d1234567890abcdef.cloudfront.net/dashboard/training_chart.png" 
+                               alt="Training Performance Chart" style="max-width: 100%; height: auto;">
+                      </div>
+                  </div>
+                  
+                  <div class="status-card">
+                      <h2>🔗 Quick Links</h2>
+                      <p><a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank">📋 GitHub Actions</a></p>
+                      <p><a href="http://localhost:5050/dashboard" target="_blank">💻 Local Dashboard</a></p>
+                      <p><a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/releases" target="_blank">📦 Model Releases</a></p>
+                  </div>
+                  
+                  <div class="status-card">
+                      <p><small>Last Updated: <span id="last-updated">--</span></small></p>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+          
+      - name: "📋 Summary Report"
+        run: |
+          echo "📊 Dashboard Monitor Completed"
+          echo "================================"
+          
+          if [ -f "${{ env.DASHBOARD_DATA_DIR }}/status_summary.json" ]; then
+              echo "✅ Status data generated"
+              cat ${{ env.DASHBOARD_DATA_DIR }}/status_summary.json | python -m json.tool | head -20
+          fi
+          
+          if [ -f "${{ env.DASHBOARD_DATA_DIR }}/training_chart.png" ]; then
+              echo "✅ Performance chart generated"
+              ls -lh ${{ env.DASHBOARD_DATA_DIR }}/training_chart.png
+          fi
+          
+          echo ""
+          echo "🔗 Monitoring URLs:"
+          echo "📊 Cloud Dashboard: https://kevinsuero072897-collab.github.io/trading-bot-c-/monitoring.html"
+          echo "💻 Local Dashboard: http://localhost:5050/dashboard"
+          echo "📋 GitHub Actions: https://github.com/kevinsuero072897-collab/trading-bot-c-/actions"
