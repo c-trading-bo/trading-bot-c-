@@ -56,8 +56,8 @@ def train_meta_classifier(data_file='../data/logs/candidates.merged.parquet', ou
 
     # Scale features
     scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    x_train_scaled = scaler.fit_transform(X_train)
+    x_test_scaled = scaler.transform(X_test)
 
     # Train meta classifier
     meta_model = RandomForestClassifier(
@@ -67,10 +67,10 @@ def train_meta_classifier(data_file='../data/logs/candidates.merged.parquet', ou
         min_samples_split=5,
         min_samples_leaf=2
     )
-    meta_model.fit(X_train_scaled, y_train)
+    meta_model.fit(x_train_scaled, y_train)
 
     # Evaluate
-    y_pred = meta_model.predict(X_test_scaled)
+    y_pred = meta_model.predict(x_test_scaled)
     print('📊 Meta Strategy Classifier Performance:')
     print(classification_report(y_test, y_pred, target_names=le.classes_))
     
@@ -95,7 +95,12 @@ def train_meta_classifier(data_file='../data/logs/candidates.merged.parquet', ou
     try:
         meta_onnx = convert_sklearn(meta_model, initial_types=initial_type)
         with open(output_file, 'wb') as f:
-            f.write(meta_onnx.SerializeToString())
+            # convert_sklearn returns a tuple (ModelProto, Topology), we want the ModelProto
+            if isinstance(meta_onnx, tuple):
+                model_proto = meta_onnx[0]
+            else:
+                model_proto = meta_onnx
+            f.write(model_proto.SerializeToString())
         print(f'✅ Meta classifier saved to {output_file}')
     except Exception as e:
         print(f'ERROR converting to ONNX: {e}')

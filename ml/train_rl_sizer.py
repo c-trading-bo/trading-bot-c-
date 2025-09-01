@@ -46,22 +46,22 @@ def main():
     y = df.get('r_multiple', pd.Series([0.1] * len(df))).fillna(0).values.astype('float32')
 
     # Normalize features
-    X_mean = X.mean(axis=0)
-    X_std = X.std(axis=0) + 1e-8
-    X_norm = (X - X_mean) / X_std
+    x_mean = X.mean(axis=0)
+    x_std = X.std(axis=0) + 1e-8
+    x_norm = (X - x_mean) / x_std
 
     # Simple training
     model = PositionSizer(len(available_features))
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)  # Add weight_decay
     criterion = nn.MSELoss()
 
-    X_tensor = torch.FloatTensor(X_norm)
+    x_tensor = torch.FloatTensor(x_norm)
     y_tensor = torch.FloatTensor(y).unsqueeze(1)
 
     print('🤖 Training RL model...')
     for epoch in range(100):
         optimizer.zero_grad()
-        outputs = model(X_tensor)
+        outputs = model(x_tensor)
         loss = criterion(outputs, y_tensor)
         loss.backward()
         optimizer.step()
@@ -75,12 +75,12 @@ def main():
 
     # Save normalization parameters
     import numpy as np
-    np.save(f'{models_dir}/rl_X_mean.npy', X_mean)
-    np.save(f'{models_dir}/rl_X_std.npy', X_std)
+    np.save(f'{models_dir}/rl_X_mean.npy', x_mean)
+    np.save(f'{models_dir}/rl_X_std.npy', x_std)
 
     # Export to ONNX
     dummy_input = torch.randn(1, len(available_features))
-    torch.onnx.export(model, dummy_input, f'{models_dir}/rl_model.onnx', 
+    torch.onnx.export(model, (dummy_input,), f'{models_dir}/rl_model.onnx',  # Pass as tuple
                      input_names=['observation'], output_names=['position_size'],
                      dynamic_axes={'observation': {0: 'batch_size'}})
 
