@@ -194,17 +194,27 @@ namespace OrchestratorAgent
             IDisposable? cloudModelDownloader = null;
             IDisposable? cloudDataUploader = null;
 
-            // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login).
+            // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login) or DEMO_MODE is enabled.
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"))
                           || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY"));
             bool runTuneGate = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             bool authAllowGate = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-            if (!hasAnyCred && !(runTuneGate && authAllowGate))
+            bool demoMode = (Environment.GetEnvironmentVariable("DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
+            
+            if (!hasAnyCred && !(runTuneGate && authAllowGate) && !demoMode)
             {
                 Console.WriteLine("[Orchestrator] No credentials detected (TOPSTEPX_JWT / TOPSTEPX_USERNAME / TOPSTEPX_API_KEY). Exiting cleanly.");
+                Console.WriteLine("[Orchestrator] Set DEMO_MODE=1 to run in demonstration mode without credentials.");
                 await Task.Delay(50);
                 return;
+            }
+            
+            if (demoMode)
+            {
+                Console.WriteLine("[Orchestrator] 🧪 Starting in DEMO MODE - No real trading, dashboard only");
+                Environment.SetEnvironmentVariable("PAPER_MODE", "1");
+                Environment.SetEnvironmentVariable("LIVE_ORDERS", "0");
             }
 
             // Optional: run historical tuning and exit when requested
@@ -2443,6 +2453,19 @@ namespace OrchestratorAgent
                 {
                     log.LogWarning("Missing TOPSTEPX_JWT. Quick-exit mode: waiting 2s to verify launch then exiting.");
                     try { await Task.Delay(TimeSpan.FromSeconds(2), cts.Token); } catch (OperationCanceledException) { }
+                }
+                else if (demoMode)
+                {
+                    log.LogInformation("🧪 DEMO MODE: Dashboard running indefinitely without credentials. Press Ctrl+C to stop.");
+                    // In demo mode, keep the dashboard running indefinitely
+                    try 
+                    { 
+                        await Task.Delay(Timeout.Infinite, cts.Token); 
+                    } 
+                    catch (OperationCanceledException) 
+                    { 
+                        log.LogInformation("Demo mode stopped by user.");
+                    }
                 }
                 else
                 {
