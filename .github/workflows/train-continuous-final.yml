@@ -10,6 +10,7 @@ on:
 env:
   VENDOR_DIR: "data/vendor"
   DATA_DIR: "data/logs"
+  SYMBOLS: "ES,NQ"  # Train on both ES and NQ symbols
 
 jobs:
   continuous-training:
@@ -57,7 +58,7 @@ jobs:
         if: steps.skip_check.outputs.skip == 'false'
         run: |
           cd ml
-          python feature_gen_from_vendor.py
+          SYMBOLS="${{ env.SYMBOLS }}" python feature_gen_from_vendor.py
           
       - name: "🔗 Merge Training Data"
         if: steps.skip_check.outputs.skip == 'false'  

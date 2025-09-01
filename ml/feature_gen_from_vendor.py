@@ -252,7 +252,7 @@ class VendorFeatureGenerator:
                 # Create candidate record
                 candidate = {
                     'timestamp': bar['timestamp'],
-                    'symbol': 'ES',
+                    'symbol': symbol,  # Use actual symbol parameter instead of hardcoded 'ES'
                     'strategy': signal['strategy'],
                     'session': session,
                     'regime': bar['regime'],
@@ -409,20 +409,54 @@ class VendorFeatureGenerator:
             return False
 
 
+import pandas as pd
+
 def main():
     """CLI entry point."""
     vendor_dir = os.getenv('VENDOR_DIR', 'data/vendor')
     output_path = os.getenv('OUT_PATH', 'data/logs/candidates.vendor.parquet')
-    symbol = os.getenv('SYMBOL', 'ES')
+    symbols_env = os.getenv('SYMBOLS', 'ES,NQ')  # Support multiple symbols
     
-    generator = VendorFeatureGenerator(vendor_dir, output_path)
-    success = generator.generate(symbol)
+    # Parse symbols from environment
+    symbols = [s.strip() for s in symbols_env.split(',') if s.strip()]
+    if not symbols:
+        symbols = ['ES']  # Fallback
     
-    if success:
-        logger.info("🎯 Vendor feature generation completed successfully")
+    logger.info(f"🚀 Generating features for symbols: {symbols}")
+    
+    all_candidates = []
+    for symbol in symbols:
+        logger.info(f"📊 Processing symbol: {symbol}")
+        symbol_output = output_path.replace('.parquet', f'.{symbol.lower()}.parquet')
+        generator = VendorFeatureGenerator(vendor_dir, symbol_output)
+        success = generator.generate(symbol)
+        
+        if success:
+            # Load the generated data to combine later
+            try:
+                df = pd.read_parquet(symbol_output)
+                all_candidates.append(df)
+                logger.info(f"✅ {symbol}: Generated {len(df)} candidates")
+            except Exception as ex:
+                logger.warning(f"Failed to load {symbol} data: {ex}")
+        else:
+            logger.warning(f"❌ {symbol}: Feature generation failed")
+    
+    # Combine all symbols into final output
+    if all_candidates:
+        combined_df = pd.concat(all_candidates, ignore_index=True)
+        combined_df.to_parquet(output_path, index=False)
+        logger.info(f"🎯 Combined {len(combined_df)} candidates from {len(all_candidates)} symbols")
+        logger.info(f"📁 Final output: {output_path}")
+        
+        # Symbol distribution summary
+        if 'symbol' in combined_df.columns:
+            symbol_dist = combined_df['symbol'].value_counts().to_dict()
+            logger.info(f"📊 Final symbol distribution: {symbol_dist}")
+        
         sys.exit(0)
     else:
-        logger.error("❌ Vendor feature generation failed")
+        logger.error("❌ No successful feature generation for any symbol")
         sys.exit(1)
 
 
