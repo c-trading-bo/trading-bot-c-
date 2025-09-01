@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using BotCore.Models;
 using BotCore.Risk;
+using Microsoft.Extensions.Logging;
 
 namespace BotCore.Strategy
 {
@@ -913,6 +914,34 @@ namespace BotCore.Strategy
                 QScore = qScore
             };
             lst.Add(c);
+            
+            // **ML/RL Integration**: Log signal for training data collection
+            try
+            {
+                // Get bars for technical indicator calculation - this would need to be passed in ideally
+                // For now, create minimal data for logging
+                var bars = new List<Bar>(); // TODO: Get actual bars from context
+                
+                StrategyMlIntegration.LogStrategySignal(
+                    // Use a simple console logger for now - in production this would be injected
+                    new Microsoft.Extensions.Logging.Abstractions.NullLogger<object>(),
+                    sid,
+                    symbol,
+                    c.side,
+                    entry,
+                    stop,
+                    t1,
+                    score,
+                    qScore,
+                    bars,
+                    $"{sid}-{symbol}-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                );
+            }
+            catch (Exception ex)
+            {
+                // Don't let ML logging break strategy execution
+                Console.WriteLine($"[ML-Integration] Failed to log signal for {sid}: {ex.Message}");
+            }
         }
     }
 }

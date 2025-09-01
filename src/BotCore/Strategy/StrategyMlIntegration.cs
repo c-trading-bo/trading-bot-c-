@@ -400,6 +400,16 @@ namespace BotCore.Strategy
             return upBars / 10m;
         }
 
+        /// <summary>
+        /// Get the ML strategy type for a given strategy ID (S1-S14)
+        /// </summary>
+        public static MultiStrategyRlCollector.StrategyType GetStrategyType(string strategyId)
+        {
+            return StrategyTypeMapping.TryGetValue(strategyId, out var strategyType) 
+                ? strategyType 
+                : MultiStrategyRlCollector.StrategyType.Breakout; // Default fallback
+        }
+
         #endregion
     }
 }

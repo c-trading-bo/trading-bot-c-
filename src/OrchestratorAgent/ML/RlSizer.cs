@@ -327,6 +327,15 @@ namespace OrchestratorAgent.ML
             return probs.Length - 1;
         }
         
+        /// <summary>
+        /// Predict position size multiplier for a given feature snapshot
+        /// </summary>
+        public decimal PredictPositionMultiplier(FeatureSnapshot snapshot)
+        {
+            var recommendation = Recommend(snapshot);
+            return (decimal)recommendation;
+        }
+        
         public void Dispose()
         {
             _session?.Dispose();
