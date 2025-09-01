@@ -1,0 +1,22 @@
+name: Social Momentum Analysis
+on:
+  schedule:
+    - cron: '*/30 9-15 * * 1-5'  # Every 30 min RTH (9 AM - 3 PM UTC, Mon-Fri)
+  workflow_dispatch:
+
+jobs:
+  social_momentum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/social_momentum.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update social momentum analysis"
+          git push

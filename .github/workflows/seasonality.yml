@@ -1,0 +1,22 @@
+name: Seasonality Patterns Analysis
+on:
+  schedule:
+    - cron: '0 11 * * 1'  # Mondays 11:00 UTC
+  workflow_dispatch:
+
+jobs:
+  seasonality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/seasonality_patterns.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update seasonality patterns analysis"
+          git push
