@@ -1,0 +1,8 @@
+# News Data
+
+GDELT news sentiment analysis data collected every 5 minutes during market hours.
+
+Files generated:
+- `news_YYYYMMDD_HHMMSS.json` - Raw news items
+- `analysis_YYYYMMDD_HHMMSS.json` - Sentiment analysis
+- `latest_analysis.json` - Latest analysis for consumption
