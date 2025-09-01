@@ -1,0 +1,22 @@
+name: Rebalancing Flows Analysis
+on:
+  schedule:
+    - cron: '0 19 25-31 * *'  # Month-end 19:00 UTC (25th-31st)
+  workflow_dispatch:
+
+jobs:
+  rebalancing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/rebalancing_flows.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update rebalancing flows analysis"
+          git push

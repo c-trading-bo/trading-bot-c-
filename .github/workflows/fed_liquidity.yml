@@ -1,0 +1,22 @@
+name: Fed Liquidity Analysis
+on:
+  schedule:
+    - cron: '0 21 * * 4'  # Thursdays 21:00 UTC
+  workflow_dispatch:
+
+jobs:
+  fed_liquidity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/fed_liquidity.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update Fed liquidity analysis"
+          git push
