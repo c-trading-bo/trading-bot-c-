@@ -19,10 +19,10 @@ namespace BotCore
     public sealed class AutoRlTrainer : IDisposable
     {
         private readonly ILogger _log;
-        private readonly Timer _timer;
-        private readonly string _dataDir;
-        private readonly string _modelDir;
-        private readonly string _pythonScriptDir;
+        private readonly Timer? _timer;
+        private readonly string? _dataDir;
+        private readonly string? _modelDir;
+        private readonly string? _pythonScriptDir;
         private bool _disposed;
         private DateTime _lastTrainingAttempt = DateTime.MinValue;
         private int _consecutiveFailures = 0;
@@ -39,6 +39,12 @@ namespace BotCore
             
             // Don't start the timer - this component is deprecated
             _log.LogInformation("[AutoRlTrainer] Local training disabled - all learning now happens in cloud every 30 minutes");
+            
+            // Initialize as null since this is deprecated
+            _timer = null;
+            _dataDir = null;
+            _modelDir = null;
+            _pythonScriptDir = null;
         }
 
         private async void CheckAndTrain(object? state)
@@ -81,7 +87,10 @@ namespace BotCore
         {
             try
             {
-                var files = Directory.GetFiles(_dataDir, "*.jsonl");
+                var dataDir = _dataDir ?? "data";
+                if (!Directory.Exists(dataDir)) return false;
+                
+                var files = Directory.GetFiles(dataDir, "*.jsonl");
                 if (!files.Any()) return false;
 
                 // Check if we have data spanning at least MinTrainingDays
@@ -117,7 +126,7 @@ namespace BotCore
             await DeployModelAsync(modelFile);
         }
 
-        private async Task<string> ExportTrainingDataAsync()
+        private Task<string> ExportTrainingDataAsync()
         {
             try
             {
@@ -125,7 +134,7 @@ namespace BotCore
                 var startDate = endDate.AddDays(-30); // Export last 30 days
                 
                 var fileName = $"training_data_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.csv";
-                var csvPath = Path.Combine(_dataDir, fileName);
+                var csvPath = Path.Combine(_dataDir ?? "data", fileName);
 
                 // Use MultiStrategyRlCollector to export data for all strategies
                 var strategies = new[] { 
@@ -155,7 +164,7 @@ namespace BotCore
                 if (!hasData)
                 {
                     _log.LogWarning("[AutoRlTrainer] No training data exported for any strategy");
-                    return string.Empty;
+                    return Task.FromResult(string.Empty);
                 }
 
                 var fileInfo = new FileInfo(csvPath);
@@ -163,15 +172,15 @@ namespace BotCore
                 {
                     _log.LogInformation("[AutoRlTrainer] Exported training data: {File} ({Size:F1} KB)", 
                         fileName, fileInfo.Length / 1024.0);
-                    return csvPath;
+                    return Task.FromResult(csvPath);
                 }
 
-                return string.Empty;
+                return Task.FromResult(string.Empty);
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "[AutoRlTrainer] Failed to export training data");
-                return string.Empty;
+                return Task.FromResult(string.Empty);
             }
         }
 
@@ -179,7 +188,8 @@ namespace BotCore
         {
             try
             {
-                var pythonScript = Path.Combine(_pythonScriptDir, "train_cvar_ppo.py");
+                var pythonScriptDir = _pythonScriptDir ?? "ml";
+                var pythonScript = Path.Combine(pythonScriptDir, "train_cvar_ppo.py");
                 if (!File.Exists(pythonScript))
                 {
                     _log.LogError("[AutoRlTrainer] Python training script not found: {Script}", pythonScript);
@@ -188,7 +198,8 @@ namespace BotCore
 
                 var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 var modelFileName = $"rl_sizer_{timestamp}.onnx";
-                var modelPath = Path.Combine(_modelDir, modelFileName);
+                var modelDir = _modelDir ?? "models";
+                var modelPath = Path.Combine(modelDir, modelFileName);
 
                 var processInfo = new ProcessStartInfo
                 {
@@ -235,17 +246,17 @@ namespace BotCore
             }
         }
 
-        private async Task DeployModelAsync(string modelPath)
+        private Task DeployModelAsync(string modelPath)
         {
             try
             {
-                var latestModelPath = Path.Combine(_modelDir, "latest_rl_sizer.onnx");
+                var latestModelPath = Path.Combine(_modelDir ?? "models", "latest_rl_sizer.onnx");
                 
                 // Backup existing model
                 if (File.Exists(latestModelPath))
                 {
                     var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                    var backupPath = Path.Combine(_modelDir, $"backup_rl_sizer_{timestamp}.onnx");
+                    var backupPath = Path.Combine(_modelDir ?? "models", $"backup_rl_sizer_{timestamp}.onnx");
                     File.Move(latestModelPath, backupPath);
                     _log.LogInformation("[AutoRlTrainer] Backed up existing model: {Backup}", Path.GetFileName(backupPath));
                 }
@@ -255,7 +266,9 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Model deployed: {Model}", Path.GetFileName(latestModelPath));
 
                 // Cleanup old backups (keep last 5)
-                await CleanupOldBackupsAsync();
+                CleanupOldBackups();
+                
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
@@ -264,11 +277,14 @@ namespace BotCore
             }
         }
 
-        private async Task CleanupOldBackupsAsync()
+        private void CleanupOldBackups()
         {
             try
             {
-                var backupFiles = Directory.GetFiles(_modelDir, "backup_rl_sizer_*.onnx")
+                var modelDir = _modelDir ?? "models";
+                if (!Directory.Exists(modelDir)) return;
+                
+                var backupFiles = Directory.GetFiles(modelDir, "backup_rl_sizer_*.onnx")
                     .Select(f => new FileInfo(f))
                     .OrderByDescending(f => f.CreationTime)
                     .Skip(5) // Keep last 5 backups

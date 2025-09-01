@@ -289,7 +289,7 @@ namespace BotCore
             }
         }
 
-        private async Task CleanupOldFilesAsync()
+        private Task CleanupOldFilesAsync()
         {
             try
             {
@@ -310,6 +310,8 @@ namespace BotCore
             {
                 _log.LogWarning(ex, "[CloudDataUploader] Error cleaning up old files");
             }
+            
+            return Task.CompletedTask;
         }
     }
 }

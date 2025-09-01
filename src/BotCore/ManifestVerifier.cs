@@ -84,7 +84,7 @@ namespace BotCore
             }
             
             // Remove signature field and return clean manifest
-            var dict = new Dictionary<string, object>();
+            var dict = new Dictionary<string, object?>();
             
             foreach (var prop in jsonDoc.RootElement.EnumerateObject())
             {
@@ -101,7 +101,7 @@ namespace BotCore
         /// <summary>
         /// Convert JsonElement to object for dictionary creation.
         /// </summary>
-        private static object JsonElementToObject(JsonElement element)
+        private static object? JsonElementToObject(JsonElement element)
         {
             return element.ValueKind switch
             {
@@ -146,7 +146,7 @@ namespace BotCore
         /// </summary>
         /// <param name="manifestJson">Manifest JSON string</param>
         /// <returns>Signature value or null if not found</returns>
-        public static string ExtractSignatureFromManifest(string manifestJson)
+        public static string? ExtractSignatureFromManifest(string manifestJson)
         {
             try
             {
