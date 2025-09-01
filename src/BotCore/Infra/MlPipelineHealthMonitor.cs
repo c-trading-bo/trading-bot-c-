@@ -295,7 +295,7 @@ namespace BotCore.Infra
             }
         }
 
-        private async Task RestoreModelFromBackupAsync()
+        private Task RestoreModelFromBackupAsync()
         {
             try
             {
@@ -315,10 +315,12 @@ namespace BotCore.Infra
                 {
                     _log.LogWarning("[ML-Health] No backup models available for restoration");
                 }
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "[ML-Health] Failed to restore model from backup");
+                return Task.CompletedTask;
             }
         }
 

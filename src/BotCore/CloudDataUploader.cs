@@ -289,7 +289,7 @@ namespace BotCore
             }
         }
 
-        private async Task CleanupOldFilesAsync()
+        private Task CleanupOldFilesAsync()
         {
             try
             {
@@ -305,10 +305,12 @@ namespace BotCore
                         _log.LogDebug("[CloudDataUploader] Cleaned up old uploaded file: {File}", Path.GetFileName(file));
                     }
                 }
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[CloudDataUploader] Error cleaning up old files");
+                _log.LogWarning(ex, "[CloudDataUploader] Failed to cleanup old files");
+                return Task.CompletedTask;
             }
         }
     }

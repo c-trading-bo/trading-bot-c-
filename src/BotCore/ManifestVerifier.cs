@@ -101,7 +101,7 @@ namespace BotCore
         /// <summary>
         /// Convert JsonElement to object for dictionary creation.
         /// </summary>
-        private static object JsonElementToObject(JsonElement element)
+        private static object? JsonElementToObject(JsonElement element)
         {
             return element.ValueKind switch
             {
@@ -146,7 +146,7 @@ namespace BotCore
         /// </summary>
         /// <param name="manifestJson">Manifest JSON string</param>
         /// <returns>Signature value or null if not found</returns>
-        public static string ExtractSignatureFromManifest(string manifestJson)
+        public static string? ExtractSignatureFromManifest(string manifestJson)
         {
             try
             {
@@ -155,7 +155,7 @@ namespace BotCore
                 if (jsonDoc.RootElement.TryGetProperty("signature", out var sigElement) &&
                     sigElement.TryGetProperty("value", out var valueElement))
                 {
-                    return valueElement.GetString();
+                    return valueElement.GetString() ?? string.Empty;
                 }
                 
                 return null;

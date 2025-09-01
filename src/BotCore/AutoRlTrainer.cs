@@ -19,10 +19,10 @@ namespace BotCore
     public sealed class AutoRlTrainer : IDisposable
     {
         private readonly ILogger _log;
-        private readonly Timer _timer;
-        private readonly string _dataDir;
-        private readonly string _modelDir;
-        private readonly string _pythonScriptDir;
+        private readonly Timer? _timer;
+        private readonly string? _dataDir;
+        private readonly string? _modelDir;
+        private readonly string? _pythonScriptDir;
         private bool _disposed;
         private DateTime _lastTrainingAttempt = DateTime.MinValue;
         private int _consecutiveFailures = 0;
@@ -117,7 +117,9 @@ namespace BotCore
             await DeployModelAsync(modelFile);
         }
 
+        #pragma warning disable CS1998 // Async method lacks 'await' operators
         private async Task<string> ExportTrainingDataAsync()
+        #pragma warning restore CS1998
         {
             try
             {
@@ -264,7 +266,9 @@ namespace BotCore
             }
         }
 
+        #pragma warning disable CS1998 // Async method lacks 'await' operators
         private async Task CleanupOldBackupsAsync()
+        #pragma warning restore CS1998
         {
             try
             {
