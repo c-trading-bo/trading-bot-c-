@@ -251,7 +251,7 @@ jobs:
       - name: "🎯 Train CVaR-PPO Advanced RL Agent"
         if: ${{ inputs.manual_test != true }}
         run: |
-          echo "Training advanced CVaR-PPO RL agent..."
+          echo "Training advanced CVaR-PPO RL agent with corrected arguments..."
           cd ml/rl
           python train_cvar_ppo.py \
             --data-path ../../data/logs/cvar_training_data.parquet \
