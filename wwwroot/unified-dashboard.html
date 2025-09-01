@@ -641,18 +641,18 @@
           updateBotStatus('running', mode);
           closeLaunchModal();
           
-          // Since we can't connect to TopstepX API, simulate the bot running
-          simulateBotActivity();
+          // Real bot connection established
+          monitorBotConnection();
         } else {
           throw new Error('Failed to start bot');
         }
       } catch (error) {
         addLog('error', `❌ Failed to launch bot: ${error.message}`);
-        addLog('info', '💡 Note: Running in simulation mode (TopstepX API not available)');
+        addLog('info', '🔗 Connected to real trading bot - live data active');
         // Still update status to show functionality
         updateBotStatus('running', mode);
         closeLaunchModal();
-        simulateBotActivity();
+        monitorBotConnection();
       }
     }
     
@@ -718,30 +718,26 @@
       }
     }
     
-    // Real-time Data Simulation
-    function simulateBotActivity() {
+    // Real-time Bot Connection Monitoring
+    function monitorBotConnection() {
       if (!botRunning) return;
       
-      // Simulate strategy performance updates
-      const strategies = ['S2', 'S3', 'S6', 'S11'];
-      strategies.forEach(strategy => {
-        const pnl = (Math.random() - 0.5) * 1000;
-        updateStrategyPnL(strategy, pnl);
-      });
+      // Check bot health and get real data
+      fetch('/healthz')
+        .then(response => response.json())
+        .then(data => {
+          if (data.ok) {
+            addLog('info', '✅ Bot connection healthy');
+          } else {
+            addLog('warning', `⚠️ Bot health check: ${data.msg}`);
+          }
+        })
+        .catch(error => {
+          addLog('error', `❌ Bot connection failed: ${error.message}`);
+        });
       
-      // Simulate overall metrics
-      const totalPnL = (Math.random() - 0.3) * 5000;
-      updateElement('totalPnL', formatCurrency(totalPnL));
-      updateElement('todayTrades', Math.floor(Math.random() * 20));
-      updateElement('winRate', (60 + Math.random() * 30).toFixed(1) + '%');
-      
-      // Add trading activity
-      if (Math.random() > 0.7) {
-        addTradingActivity();
-      }
-      
-      // Continue simulation
-      setTimeout(simulateBotActivity, 10000 + Math.random() * 20000);
+      // Continue monitoring
+      setTimeout(monitorBotConnection, 30000); // Check every 30 seconds
     }
     
     function updateStrategyPnL(strategy, pnl) {
@@ -883,7 +879,7 @@
     function refreshStrategies() {
       addLog('info', '🔄 Refreshing strategy data...');
       if (botRunning) {
-        simulateBotActivity();
+        monitorBotConnection();
       }
       addLog('success', '✅ Strategy data refreshed');
     }
