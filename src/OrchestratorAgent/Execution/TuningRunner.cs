@@ -34,7 +34,7 @@ public static class TuningRunner
         try
         {
             if (string.IsNullOrWhiteSpace(raw)) return defaults;
-            var parts = raw.Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split(new char[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var list = new List<decimal>(parts.Length);
             foreach (var p in parts)
             {
@@ -51,7 +51,7 @@ public static class TuningRunner
         try
         {
             if (string.IsNullOrWhiteSpace(raw)) return defaults;
-            var parts = raw.Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var parts = raw.Split(new char[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var list = new List<int>(parts.Length);
             foreach (var p in parts)
             {

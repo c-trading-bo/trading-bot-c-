@@ -1,0 +1,307 @@
+using Microsoft.Extensions.Logging;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
+using System.Globalization;
+
+namespace BotCore
+{
+    /// <summary>
+    /// Local automated RL trainer that runs every 6 hours to check for training data,
+    /// export it, train new models via Python, and deploy them hot.
+    /// Works alongside CloudRlTrainerEnhanced for 24/7 learning.
+    /// </summary>
+    public sealed class AutoRlTrainer : IDisposable
+    {
+        private readonly ILogger _log;
+        private readonly Timer _timer;
+        private readonly string _dataDir;
+        private readonly string _modelDir;
+        private readonly string _pythonScriptDir;
+        private bool _disposed;
+        private DateTime _lastTrainingAttempt = DateTime.MinValue;
+        private int _consecutiveFailures = 0;
+
+        private const int MaxConsecutiveFailures = 3;
+        private const int MinTrainingDays = 7;
+
+        public AutoRlTrainer(ILogger logger)
+        {
+            _log = logger;
+            _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
+            _modelDir = Path.Combine(AppContext.BaseDirectory, "models", "rl");
+            _pythonScriptDir = Path.Combine(AppContext.BaseDirectory, "ml", "rl");
+
+            Directory.CreateDirectory(_dataDir);
+            Directory.CreateDirectory(_modelDir);
+
+            // Check every 6 hours for training opportunities
+            var interval = TimeSpan.FromHours(6);
+            _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, interval);
+            
+            _log.LogInformation("[AutoRlTrainer] Started - checking every {Interval} for training data", interval);
+        }
+
+        private async void CheckAndTrain(object? state)
+        {
+            try
+            {
+                // Prevent too frequent attempts if failures occur
+                if (_consecutiveFailures >= MaxConsecutiveFailures)
+                {
+                    var backoffHours = Math.Pow(2, _consecutiveFailures - MaxConsecutiveFailures) * 6;
+                    if (DateTime.UtcNow - _lastTrainingAttempt < TimeSpan.FromHours(backoffHours))
+                    {
+                        _log.LogWarning("[AutoRlTrainer] Backing off training attempts due to {Failures} consecutive failures", _consecutiveFailures);
+                        return;
+                    }
+                }
+
+                _lastTrainingAttempt = DateTime.UtcNow;
+
+                if (!HasSufficientTrainingData())
+                {
+                    _log.LogDebug("[AutoRlTrainer] Insufficient training data - need {MinDays}+ days", MinTrainingDays);
+                    return;
+                }
+
+                _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
+                await RunTrainingPipelineAsync();
+                
+                _consecutiveFailures = 0;
+                _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
+            }
+            catch (Exception ex)
+            {
+                _consecutiveFailures++;
+                _log.LogError(ex, "[AutoRlTrainer] Training failed (attempt {Failures}/{Max})", _consecutiveFailures, MaxConsecutiveFailures);
+            }
+        }
+
+        private bool HasSufficientTrainingData()
+        {
+            try
+            {
+                var files = Directory.GetFiles(_dataDir, "*.jsonl");
+                if (!files.Any()) return false;
+
+                // Check if we have data spanning at least MinTrainingDays
+                var oldestFile = files.Min(f => File.GetCreationTime(f));
+                var dataSpan = DateTime.Now - oldestFile;
+                
+                return dataSpan.TotalDays >= MinTrainingDays;
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "[AutoRlTrainer] Error checking training data sufficiency");
+                return false;
+            }
+        }
+
+        private async Task RunTrainingPipelineAsync()
+        {
+            // Step 1: Export training data
+            var csvFile = await ExportTrainingDataAsync();
+            if (string.IsNullOrEmpty(csvFile))
+            {
+                throw new InvalidOperationException("Failed to export training data");
+            }
+
+            // Step 2: Train new model via Python
+            var modelFile = await TrainModelAsync(csvFile);
+            if (string.IsNullOrEmpty(modelFile))
+            {
+                throw new InvalidOperationException("Failed to train new model");
+            }
+
+            // Step 3: Deploy model hot
+            await DeployModelAsync(modelFile);
+        }
+
+        private async Task<string> ExportTrainingDataAsync()
+        {
+            try
+            {
+                var endDate = DateTime.UtcNow;
+                var startDate = endDate.AddDays(-30); // Export last 30 days
+                
+                var fileName = $"training_data_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.csv";
+                var csvPath = Path.Combine(_dataDir, fileName);
+
+                // Use MultiStrategyRlCollector to export data for all strategies
+                var strategies = new[] { 
+                    MultiStrategyRlCollector.StrategyType.EmaCross,
+                    MultiStrategyRlCollector.StrategyType.MeanReversion,
+                    MultiStrategyRlCollector.StrategyType.Breakout,
+                    MultiStrategyRlCollector.StrategyType.Momentum
+                };
+
+                bool hasData = false;
+                foreach (var strategy in strategies)
+                {
+                    try
+                    {
+                        var strategyData = MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate);
+                        if (!string.IsNullOrEmpty(strategyData))
+                        {
+                            hasData = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "[AutoRlTrainer] Failed to export data for strategy {Strategy}", strategy);
+                    }
+                }
+
+                if (!hasData)
+                {
+                    _log.LogWarning("[AutoRlTrainer] No training data exported for any strategy");
+                    return string.Empty;
+                }
+
+                var fileInfo = new FileInfo(csvPath);
+                if (fileInfo.Exists)
+                {
+                    _log.LogInformation("[AutoRlTrainer] Exported training data: {File} ({Size:F1} KB)", 
+                        fileName, fileInfo.Length / 1024.0);
+                    return csvPath;
+                }
+
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "[AutoRlTrainer] Failed to export training data");
+                return string.Empty;
+            }
+        }
+
+        private async Task<string> TrainModelAsync(string csvFile)
+        {
+            try
+            {
+                var pythonScript = Path.Combine(_pythonScriptDir, "train_cvar_ppo.py");
+                if (!File.Exists(pythonScript))
+                {
+                    _log.LogError("[AutoRlTrainer] Python training script not found: {Script}", pythonScript);
+                    return string.Empty;
+                }
+
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                var modelFileName = $"rl_sizer_{timestamp}.onnx";
+                var modelPath = Path.Combine(_modelDir, modelFileName);
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "python",
+                    Arguments = $"\"{pythonScript}\" --auto --input \"{csvFile}\" --output \"{modelPath}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = Path.GetDirectoryName(pythonScript)
+                };
+
+                _log.LogInformation("[AutoRlTrainer] Training: {Command} {Args}", processInfo.FileName, processInfo.Arguments);
+
+                using var process = Process.Start(processInfo);
+                if (process == null)
+                {
+                    throw new InvalidOperationException("Failed to start Python training process");
+                }
+
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode == 0 && File.Exists(modelPath))
+                {
+                    _log.LogInformation("[AutoRlTrainer] Training successful: {Model}", modelFileName);
+                    if (!string.IsNullOrEmpty(output))
+                    {
+                        _log.LogDebug("[AutoRlTrainer] Training output: {Output}", output);
+                    }
+                    return modelPath;
+                }
+                else
+                {
+                    _log.LogError("[AutoRlTrainer] Training failed (exit code {ExitCode}): {Error}", process.ExitCode, error);
+                    return string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "[AutoRlTrainer] Error running training script");
+                return string.Empty;
+            }
+        }
+
+        private async Task DeployModelAsync(string modelPath)
+        {
+            try
+            {
+                var latestModelPath = Path.Combine(_modelDir, "latest_rl_sizer.onnx");
+                
+                // Backup existing model
+                if (File.Exists(latestModelPath))
+                {
+                    var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                    var backupPath = Path.Combine(_modelDir, $"backup_rl_sizer_{timestamp}.onnx");
+                    File.Move(latestModelPath, backupPath);
+                    _log.LogInformation("[AutoRlTrainer] Backed up existing model: {Backup}", Path.GetFileName(backupPath));
+                }
+
+                // Deploy new model atomically
+                File.Copy(modelPath, latestModelPath, true);
+                _log.LogInformation("[AutoRlTrainer] Model deployed: {Model}", Path.GetFileName(latestModelPath));
+
+                // Cleanup old backups (keep last 5)
+                await CleanupOldBackupsAsync();
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "[AutoRlTrainer] Failed to deploy model");
+                throw;
+            }
+        }
+
+        private async Task CleanupOldBackupsAsync()
+        {
+            try
+            {
+                var backupFiles = Directory.GetFiles(_modelDir, "backup_rl_sizer_*.onnx")
+                    .Select(f => new FileInfo(f))
+                    .OrderByDescending(f => f.CreationTime)
+                    .Skip(5) // Keep last 5 backups
+                    .ToList();
+
+                foreach (var file in backupFiles)
+                {
+                    file.Delete();
+                    _log.LogDebug("[AutoRlTrainer] Cleaned up old backup: {File}", file.Name);
+                }
+
+                if (backupFiles.Any())
+                {
+                    _log.LogInformation("[AutoRlTrainer] Cleaned up {Count} old backup(s)", backupFiles.Count);
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[AutoRlTrainer] Failed to cleanup old backups");
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            _timer?.Dispose();
+            _log.LogInformation("[AutoRlTrainer] Stopped");
+        }
+    }
+}
