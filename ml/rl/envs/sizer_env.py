@@ -121,7 +121,8 @@ class SizerEnv:
     
     def sample_action(self) -> int:
         """Sample random action for exploration."""
-        return np.random.randint(0, self.act_dim)
+        rng = np.random.default_rng(42)  # Use fixed seed for reproducibility
+        return int(rng.integers(0, self.act_dim))  # Convert to int
 
 
 # Helper function for CVaR calculation
@@ -148,30 +149,30 @@ def cvar_tail(returns: np.ndarray, alpha: float = 0.95) -> float:
     
     # CVaR is mean of worst (1-alpha)% returns
     if tail_index == 0:
-        return sorted_returns[0]
+        return float(sorted_returns[0])  # Convert to float
     else:
-        return np.mean(sorted_returns[:tail_index])
+        return float(np.mean(sorted_returns[:tail_index]))  # Convert to float
 
 
 if __name__ == "__main__":
     # Test environment with dummy data
     import pandas as pd
     
-    # Create test data
-    np.random.seed(42)
+    # Create test data  
+    rng = np.random.default_rng(42)  # Use modern numpy random generator
     n_samples = 100
     
     test_data = pd.DataFrame({
         'timestamp': pd.date_range('2024-01-01', periods=n_samples, freq='1H'),
         'symbol': ['ES'] * n_samples,
-        'session': np.random.choice(['RTH', 'ETH'], n_samples),
-        'regime': np.random.choice(['Range', 'Trend', 'Vol'], n_samples),
-        'R_multiple': np.random.normal(0.1, 1.5, n_samples),
-        'slip_ticks': np.random.exponential(0.5, n_samples),
-        'feature_1': np.random.normal(0, 1, n_samples),
-        'feature_2': np.random.normal(0, 1, n_samples),
-        'feature_3': np.random.uniform(-1, 1, n_samples),
-        'label_win': np.random.choice([0, 1], n_samples)
+        'session': rng.choice(['RTH', 'ETH'], n_samples),
+        'regime': rng.choice(['Range', 'Trend', 'Vol'], n_samples),
+        'R_multiple': rng.normal(0.1, 1.5, n_samples),
+        'slip_ticks': rng.exponential(0.5, n_samples),
+        'feature_1': rng.normal(0, 1, n_samples),
+        'feature_2': rng.normal(0, 1, n_samples),
+        'feature_3': rng.uniform(-1, 1, n_samples),
+        'label_win': rng.choice([0, 1], n_samples)
     })
     
     # Test environment
@@ -198,6 +199,7 @@ if __name__ == "__main__":
     print(f"Total reward: {total_reward:.3f}")
     
     # Test CVaR calculation
-    test_returns = np.random.normal(-0.1, 2.0, 1000)
+    rng = np.random.default_rng(42)
+    test_returns = rng.normal(-0.1, 2.0, 1000)
     cvar_95 = cvar_tail(test_returns, 0.95)
     print(f"CVaR@95%: {cvar_95:.3f}")
