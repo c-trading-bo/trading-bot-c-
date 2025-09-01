@@ -10,10 +10,12 @@ using System.Globalization;
 namespace BotCore
 {
     /// <summary>
-    /// Local automated RL trainer that runs every 6 hours to check for training data,
-    /// export it, train new models via Python, and deploy them hot.
-    /// Works alongside CloudRlTrainerEnhanced for 24/7 learning.
+    /// DEPRECATED: Local automated RL trainer - replaced by 100% cloud-based learning.
+    /// This component is no longer used as all training now happens in the cloud via GitHub Actions.
+    /// The bot only needs to run for trading, not for learning.
+    /// Use CloudDataUploader + CloudRlTrainerEnhanced for cloud-based learning instead.
     /// </summary>
+    [Obsolete("Local training is deprecated. Use 100% cloud-based learning instead.", false)]
     public sealed class AutoRlTrainer : IDisposable
     {
         private readonly ILogger _log;
@@ -31,18 +33,12 @@ namespace BotCore
         public AutoRlTrainer(ILogger logger)
         {
             _log = logger;
-            _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
-            _modelDir = Path.Combine(AppContext.BaseDirectory, "models", "rl");
-            _pythonScriptDir = Path.Combine(AppContext.BaseDirectory, "ml", "rl");
-
-            Directory.CreateDirectory(_dataDir);
-            Directory.CreateDirectory(_modelDir);
-
-            // Check every 6 hours for training opportunities
-            var interval = TimeSpan.FromHours(6);
-            _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, interval);
             
-            _log.LogInformation("[AutoRlTrainer] Started - checking every {Interval} for training data", interval);
+            // Log deprecation warning
+            _log.LogWarning("[AutoRlTrainer] DEPRECATED: Local training is disabled in favor of 100% cloud-based learning. Use CloudDataUploader + CloudRlTrainerEnhanced instead.");
+            
+            // Don't start the timer - this component is deprecated
+            _log.LogInformation("[AutoRlTrainer] Local training disabled - all learning now happens in cloud every 30 minutes");
         }
 
         private async void CheckAndTrain(object? state)

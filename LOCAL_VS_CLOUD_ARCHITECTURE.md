@@ -2,9 +2,9 @@
 
 ## 📋 Overview
 
-Your trading bot uses a **hybrid architecture** that combines local execution for speed with cloud learning for continuous improvement. Here's exactly what runs where and why.
+Your trading bot uses **100% cloud-based learning** combined with local execution for optimal performance. You only need to run the bot when actively trading - all learning happens automatically in the cloud.
 
-## 🏠 **What Stays LOCAL (Real-Time Execution)**
+## 🏠 **What Stays LOCAL (Real-Time Execution Only)**
 
 ### ⚡ **Trading Engine & Execution**
 - **Order placement and management** - Must stay local for millisecond latency
@@ -18,19 +18,21 @@ Your trading bot uses a **hybrid architecture** that combines local execution fo
 - **Strategy selection** - Meta-classifier for strategy prioritization
 - **Execution quality prediction** - Risk-adjusted sizing based on market conditions
 
-### 📊 **Data Collection**
+### 📊 **Data Collection & Upload**
 - **Feature snapshots** - Market data at signal generation time
 - **Trade outcomes** - Performance tracking for feedback loops
 - **Symbol-specific data** - Both ES and NQ training data collection
+- **Automatic cloud upload** - Training data uploaded to S3 every 15 minutes
 
 **Why Local?** 
 - ⚡ **Speed**: Sub-millisecond decision making
 - 🔒 **Reliability**: No network dependencies for critical operations
 - 💰 **Cost**: No compute charges for real-time operations
+- 🎯 **Focus**: Bot only runs when actively trading, not 24/7 for learning
 
 ---
 
-## ☁️ **What Runs in CLOUD (24/7 Learning)**
+## ☁️ **What Runs in CLOUD (100% Learning Pipeline)**
 
 ### 🤖 **Model Training Pipeline**
 - **Feature engineering** - Advanced technical indicators and market regime detection
@@ -39,7 +41,8 @@ Your trading bot uses a **hybrid architecture** that combines local execution fo
 - **Cross-validation** - Robust model validation across time periods
 - **Hyperparameter optimization** - Automated tuning for best performance
 
-### 🔄 **Continuous Learning (Every 30 Minutes)**
+### 🔄 **Continuous Learning (Every 30 Minutes, 24/7)**
+- **Automatic data ingestion** - Pulls training data uploaded from all bot instances
 - **Data merging** - Combines real trading data + vendor data + synthetic data
 - **Multi-strategy training** - EmaCross, MeanReversion, Breakout, Momentum
 - **Multi-symbol learning** - Both ES and NQ symbol-specific optimization
@@ -53,25 +56,26 @@ Your trading bot uses a **hybrid architecture** that combines local execution fo
 
 **Why Cloud?**
 - 🚀 **Power**: GPU acceleration for complex training
-- 📈 **Scale**: Handle massive datasets
+- 📈 **Scale**: Handle massive datasets from multiple bot instances
 - 🔄 **Availability**: 24/7 training even when local bot is offline
 - 💡 **Intelligence**: Advanced ML algorithms that require significant compute
+- 🎯 **Efficiency**: No need to run bot 24/7 just for learning
 
 ---
 
 ## 🔄 **How They Work Together**
 
 ### **Data Flow: Local → Cloud**
-1. **Local bot** generates trading signals and collects features
+1. **Local bot** generates trading signals and collects features during active trading
 2. **Training data** logged to symbol-specific files (`features_es_*.jsonl`, `features_nq_*.jsonl`)
 3. **Trade outcomes** recorded for performance feedback
-4. **GitHub Actions** syncs data to cloud storage every 30 minutes
-5. **Cloud training** processes combined datasets from all sources
+4. **CloudDataUploader** converts JSONL to parquet and uploads to S3 every 15 minutes
+5. **GitHub Actions** processes uploaded data in cloud training pipeline every 30 minutes
 
 ### **Model Flow: Cloud → Local**
-1. **Cloud training** produces optimized ONNX models
+1. **Cloud training** produces optimized ONNX models every 30 minutes
 2. **Models uploaded** to S3 with cryptographic signatures
-3. **Local bot** automatically downloads new models via `CloudRlTrainerEnhanced`
+3. **CloudRlTrainerEnhanced** automatically downloads new models via manifest checking
 4. **Hot swapping** - Models updated without restarting bot
 5. **Performance monitoring** - Tracks improvement from new models
 
@@ -107,9 +111,15 @@ Your bot is continuously learning and improving these strategies on **both ES an
 TOPSTEPX_ENABLE_NQ=1
 SYMBOLS=ES,NQ
 
-# Cloud learning integration  
+# Cloud learning integration (download models, upload data)
 RL_ENABLED=1
 MODEL_POLL_SEC=7200  # Check for new models every 2 hours
+
+# S3 configuration for data upload
+S3_BUCKET=your-training-data-bucket
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
 
 # Model paths
 RL_ONNX=models/rl/latest_rl_sizer.onnx
@@ -135,10 +145,12 @@ MANIFEST_HMAC_KEY     # Security
 
 ### **Learning Indicators:**
 - ✅ New models deployed every 30 minutes (when data available)
+- ✅ Training data automatically uploaded every 15 minutes
 - ✅ Symbol distribution shows both ES and NQ data
 - ✅ Strategy performance tracked per symbol
 - ✅ Position sizing adapts to market conditions
 - ✅ Risk-adjusted returns improve over time
+- ✅ No local training required - 100% cloud-based
 
 ### **Performance Tracking:**
 - 📊 **Win Rate**: % of profitable trades per strategy/symbol
@@ -151,12 +163,13 @@ MANIFEST_HMAC_KEY     # Security
 
 ## 🚀 **Quick Verification Checklist**
 
-To verify your bot is learning continuously on both symbols:
+To verify your bot is learning continuously with 100% cloud-based training:
 
-1. **Check GitHub Actions**: [Repository → Actions] - Should show runs every 30 minutes
-2. **Verify Symbol Data**: Log files should show both ES and NQ features
+1. **Check GitHub Actions**: [Repository → Actions] - Should show training runs every 30 minutes
+2. **Verify Data Upload**: Check S3 bucket for uploaded training data (parquet files)
 3. **Monitor Model Updates**: Check `models/` directory for new ONNX files
 4. **Trading Activity**: Both symbols should show active signal generation
 5. **Performance Metrics**: `/verify/today` should show activity on both symbols
+6. **No Local Training**: AutoRlTrainer should show "DEPRECATED" warnings if enabled
 
-Your bot is now a **learning machine** that gets smarter every 30 minutes! 🧠⚡
+**🎯 Key Benefit**: Your bot only needs to run during trading hours. All learning happens automatically in the cloud! 🌥️⚡
