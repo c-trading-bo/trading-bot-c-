@@ -30,35 +30,36 @@ def merge_training_data(data_dir='../data/logs', vendor_dir='../data/vendor'):
     # Generate dummy data if no files found (for testing)
     if not candidate_files:
         print('No training data found, generating dummy data for testing...')
+        rng = np.random.default_rng(42)  # Modern random generator
         n = 1000
         dummy_data = pd.DataFrame({
             'timestamp': pd.date_range('2024-01-01', periods=n, freq='5min'),
             'symbol': ['ES'] * n,
-            'strategy': np.random.choice(['EmaCross', 'MeanReversion', 'Breakout', 'Momentum'], n),
-            'session': np.random.choice(['RTH', 'ETH'], n, p=[0.7, 0.3]),
-            'regime': np.random.choice(['Range', 'Trend', 'Vol'], n),
+            'strategy': rng.choice(['EmaCross', 'MeanReversion', 'Breakout', 'Momentum'], n),
+            'session': rng.choice(['RTH', 'ETH'], n, p=[0.7, 0.3]),
+            'regime': rng.choice(['Range', 'Trend', 'Vol'], n),
             'signal_id': [f'dummy_{i}' for i in range(n)],
-            'price': np.random.normal(4500, 100, n),
-            'atr': np.random.exponential(20, n),
-            'rsi': np.random.uniform(20, 80, n),
-            'ema20': np.random.normal(4500, 100, n),
-            'ema50': np.random.normal(4500, 100, n),
-            'volume': np.random.exponential(1000, n),
-            'spread': np.random.exponential(1.0, n),
-            'volatility': np.random.exponential(0.02, n),
-            'bid_ask_imbalance': np.random.uniform(-0.1, 0.1, n),
-            'order_book_imbalance': np.random.uniform(-0.1, 0.1, n),
-            'tick_direction': np.random.choice([-1, 0, 1], n),
-            'signal_strength': np.random.uniform(0.1, 1.0, n),
-            'prior_win_rate': np.random.uniform(0.4, 0.6, n),
-            'avg_r_multiple': np.random.normal(0.8, 0.3, n),
-            'drawdown_risk': np.random.exponential(0.1, n),
-            'news_impact': np.random.exponential(0.05, n),
-            'liquidity_risk': np.random.exponential(0.1, n),
+            'price': rng.normal(4500, 100, n),
+            'atr': rng.exponential(20, n),
+            'rsi': rng.uniform(20, 80, n),
+            'ema20': rng.normal(4500, 100, n),
+            'ema50': rng.normal(4500, 100, n),
+            'volume': rng.exponential(1000, n),
+            'spread': rng.exponential(1.0, n),
+            'volatility': rng.exponential(0.02, n),
+            'bid_ask_imbalance': rng.uniform(-0.1, 0.1, n),
+            'order_book_imbalance': rng.uniform(-0.1, 0.1, n),
+            'tick_direction': rng.choice([-1, 0, 1], n),
+            'signal_strength': rng.uniform(0.1, 1.0, n),
+            'prior_win_rate': rng.uniform(0.4, 0.6, n),
+            'avg_r_multiple': rng.normal(0.8, 0.3, n),
+            'drawdown_risk': rng.exponential(0.1, n),
+            'news_impact': rng.exponential(0.05, n),
+            'liquidity_risk': rng.exponential(0.1, n),
             'baseline_multiplier': np.ones(n),
-            'label_win': np.random.choice([0, 1], n, p=[0.48, 0.52]),
-            'r_multiple': np.random.normal(0.1, 1.5, n),
-            'slip_ticks': np.random.exponential(0.5, n)
+            'label_win': rng.choice([0, 1], n, p=[0.48, 0.52]),
+            'r_multiple': rng.normal(0.1, 1.5, n),
+            'slip_ticks': rng.exponential(0.5, n)
         })
         
         dummy_file = data_dir / 'candidates.dummy.parquet'

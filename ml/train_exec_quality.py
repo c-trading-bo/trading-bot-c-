@@ -54,19 +54,19 @@ def main():
 
     # Scale features
     scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
+    x_train_scaled = scaler.fit_transform(X_train)
+    x_test_scaled = scaler.transform(X_test)
 
     # Train execution quality model
     exec_model = GradientBoostingRegressor(n_estimators=100, random_state=42, max_depth=6)
-    exec_model.fit(X_train_scaled, y_train)
+    exec_model.fit(x_train_scaled, y_train)
 
     # Evaluate
-    y_pred = exec_model.predict(X_test_scaled)
+    y_pred = exec_model.predict(x_test_scaled)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
 
-    print(f'📊 Execution Quality Predictor Performance:')
+    print('📊 Execution Quality Predictor Performance:')  # Remove f-string formatting
     print(f'MSE: {mse:.4f}, R²: {r2:.4f}')
 
     # Save models
@@ -79,7 +79,12 @@ def main():
             initial_type = [('float_input', FloatTensorType([None, len(available_features)]))]
             exec_onnx = convert_sklearn(exec_model, initial_types=initial_type)
             with open(f'{models_dir}/exec_model.onnx', 'wb') as f:
-                f.write(exec_onnx.SerializeToString())
+                # convert_sklearn returns a tuple (ModelProto, Topology), we want the ModelProto
+                if isinstance(exec_onnx, tuple):
+                    model_proto = exec_onnx[0]
+                else:
+                    model_proto = exec_onnx
+                f.write(model_proto.SerializeToString())
             print('✅ Execution predictor saved to exec_model.onnx')
         except Exception as e:
             print(f"ONNX conversion failed: {e}")

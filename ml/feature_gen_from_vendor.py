@@ -17,17 +17,25 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
-import ta
-from ta.volatility import AverageTrueRange, BollingerBands
-from ta.momentum import RSIIndicator, StochasticOscillator
-from ta.trend import EMAIndicator, SMAIndicator
+
+# Set up logging first
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Optional TA-Lib imports - graceful fallback if not available
+try:
+    import ta
+    from ta.volatility import AverageTrueRange, BollingerBands
+    from ta.momentum import RSIIndicator, StochasticOscillator
+    from ta.trend import EMAIndicator, SMAIndicator
+    TA_AVAILABLE = True
+except ImportError:
+    TA_AVAILABLE = False
+    logger.warning("TA-Lib not available, using simplified indicators")
 
 # Suppress warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 
 class VendorFeatureGenerator:
@@ -135,7 +143,7 @@ class VendorFeatureGenerator:
             df['regime'] = 'Range'  # Default fallback
             return df
     
-    def generate_synthetic_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+    def generate_synthetic_signals(self, df: pd.DataFrame) -> List[Dict]:
         """Generate synthetic trading signals for 4 strategies."""
         signals = []
         
@@ -212,6 +220,7 @@ class VendorFeatureGenerator:
     def create_training_candidates(self, df: pd.DataFrame, signals: List[Dict]) -> pd.DataFrame:
         """Create candidate training records matching real data format."""
         candidates = []
+        rng = np.random.default_rng(42)  # Create random generator
         
         for signal in signals:
             try:
@@ -260,8 +269,8 @@ class VendorFeatureGenerator:
                     'volume': float(bar['volume']) if pd.notna(bar['volume']) else 1000.0,
                     'spread': float(bar['spread_estimate']) if pd.notna(bar['spread_estimate']) else 1.0,
                     'volatility': float(bar['vol_rolling']) if pd.notna(bar['vol_rolling']) else 0.01,
-                    'bid_ask_imbalance': float(np.random.uniform(-0.1, 0.1)),  # Synthetic
-                    'order_book_imbalance': float(np.random.uniform(-0.1, 0.1)),  # Synthetic
+                    'bid_ask_imbalance': float(rng.uniform(-0.1, 0.1)),  # Synthetic
+                    'order_book_imbalance': float(rng.uniform(-0.1, 0.1)),  # Synthetic
                     'tick_direction': float(bar['tick_direction']) if pd.notna(bar['tick_direction']) else 0.0,
                     
                     # Strategy-specific
@@ -299,6 +308,7 @@ class VendorFeatureGenerator:
     def _determine_outcome(self, df: pd.DataFrame, start_idx: int, entry: float, stop: float, target: float, side: str) -> Dict:
         """Determine trade outcome using triple barrier method."""
         outcome = {'win': 0, 'r_multiple': 0.0, 'slip_ticks': 0.1}
+        rng = np.random.default_rng(42)  # Create random generator for this method
         
         try:
             max_bars = min(100, len(df) - start_idx - 1)
@@ -313,30 +323,30 @@ class VendorFeatureGenerator:
                     if bar['low'] <= stop:
                         outcome['win'] = 0
                         outcome['r_multiple'] = (stop - entry) / abs(entry - stop)  # Should be -1.0
-                        outcome['slip_ticks'] = np.random.exponential(0.5)
+                        outcome['slip_ticks'] = rng.exponential(0.5)
                         break
                     # Check target hit
                     elif bar['high'] >= target:
                         outcome['win'] = 1
                         outcome['r_multiple'] = (target - entry) / abs(entry - stop)  # Should be ~1.5
-                        outcome['slip_ticks'] = np.random.exponential(0.3)
+                        outcome['slip_ticks'] = rng.exponential(0.3)
                         break
                 else:  # SELL
                     # Check stop hit
                     if bar['high'] >= stop:
                         outcome['win'] = 0
                         outcome['r_multiple'] = (entry - stop) / abs(entry - stop)  # Should be -1.0
-                        outcome['slip_ticks'] = np.random.exponential(0.5) 
+                        outcome['slip_ticks'] = rng.exponential(0.5) 
                         break
                     # Check target hit
                     elif bar['low'] <= target:
                         outcome['win'] = 1
                         outcome['r_multiple'] = (entry - target) / abs(entry - stop)  # Should be ~1.5
-                        outcome['slip_ticks'] = np.random.exponential(0.3)
+                        outcome['slip_ticks'] = rng.exponential(0.3)
                         break
             
             # If no stop or target hit, use time-based exit
-            if outcome['r_multiple'] == 0.0:
+            if abs(outcome['r_multiple']) < 1e-6:  # Check for near-zero instead of exact equality
                 final_bar = df.iloc[start_idx + max_bars]
                 exit_price = final_bar['close']
                 
@@ -348,7 +358,7 @@ class VendorFeatureGenerator:
                 risk = abs(entry - stop)
                 outcome['r_multiple'] = pnl / risk if risk > 0 else 0.0
                 outcome['win'] = 1 if pnl > 0 else 0
-                outcome['slip_ticks'] = np.random.exponential(0.4)
+                outcome['slip_ticks'] = rng.exponential(0.4)
                 
         except Exception as ex:
             logger.warning(f"Failed to determine outcome: {ex}")
@@ -374,7 +384,7 @@ class VendorFeatureGenerator:
             
             # Generate signals
             signals = self.generate_synthetic_signals(df)
-            if not signals:
+            if len(signals) == 0:  # Check length instead of boolean
                 logger.warning("No signals generated")
                 return False
             
