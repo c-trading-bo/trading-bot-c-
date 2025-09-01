@@ -78,6 +78,22 @@ function Write-Info {
     Write-ColorOutput "ℹ️  $Message" "Blue"
 }
 
+# Registration function for GitHub Actions dashboard
+function RegisterWithGitHubDashboard {
+    param([hashtable]$Data)
+    
+    Write-Info "Preparing GitHub Actions dashboard registration..."
+    
+    # In a real implementation, this would make HTTP calls to GitHub API
+    # For now, we just validate the data structure
+    if ($Data.local_bot_running -and $Data.mode -and $Data.port) {
+        Write-Success "Registration data validated"
+        return $true
+    } else {
+        throw "Invalid registration data"
+    }
+}
+
 # Main launcher function
 function Start-TradingBot {
     Write-Header "🤖 Enhanced Trading Bot Launcher"
@@ -150,6 +166,9 @@ function Start-TradingBot {
                     multi_mode_support = $true
                 }
             }
+            
+            # Call the registerWithGitHubDashboard function
+            RegisterWithGitHubDashboard -Data $registrationData
             
             # In a real implementation, this would POST to GitHub Actions API
             Write-Success "Registration data prepared for GitHub Actions dashboard"
