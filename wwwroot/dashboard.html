@@ -1343,56 +1343,56 @@
         reconnectTimer = null;
       }
       
-      if (eventSource) {
-        eventSource.close();
-      }
-
       connectionAttempts++;
       updateConnectionStatus('connecting', 'Connecting...');
 
-      try {
-        // Use the metrics stream endpoint instead of realtime
-        eventSource = new EventSource('/stream/metrics');
-        
-        eventSource.onopen = function() {
-          connectionAttempts = 0;
-          isConnected = true;
-          updateConnectionStatus('connected', 'Connected');
-          addLog('success', 'Connected to real-time stream');
-        };
+      // Use polling instead of EventSource for more reliable connection
+      startPolling();
+    }
 
-        eventSource.onmessage = function(event) {
-          try {
-            const data = JSON.parse(event.data);
+    function startPolling() {
+      async function pollMetrics() {
+        try {
+          const response = await fetch('/api/metrics');
+          if (response.ok) {
+            const data = await response.json();
+            connectionAttempts = 0;
+            isConnected = true;
+            updateConnectionStatus('connected', 'Connected');
             handleRealtimeData(data);
             lastUpdateTime = new Date();
-          } catch (error) {
-            addLog('error', `Failed to parse data: ${error.message}`);
+          } else {
+            throw new Error(`HTTP ${response.status}`);
           }
-        };
-
-        eventSource.onerror = function() {
-          addLog('error', `EventSource error - readyState: ${eventSource.readyState}`);
+        } catch (error) {
+          console.error('Polling error:', error);
           isConnected = false;
           updateConnectionStatus('disconnected', 'Connection Lost');
+          addLog('error', `Failed to fetch metrics: ${error.message}`);
           
           // Enable auto-reconnect with exponential backoff
-          if (connectionAttempts < maxRetries && !reconnectTimer) {
+          if (connectionAttempts < maxRetries) {
+            connectionAttempts++;
             const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
             addLog('info', `Reconnecting in ${delay/1000}s (attempt ${connectionAttempts})`);
             reconnectTimer = setTimeout(() => {
               reconnectTimer = null;
-              connectToBot();
+              pollMetrics();
             }, delay);
-          } else if (connectionAttempts >= maxRetries) {
+          } else {
             addLog('error', 'Max reconnection attempts reached');
           }
-        };
-
-      } catch (error) {
-        updateConnectionStatus('disconnected', 'Connection Failed');
-        addLog('error', `Connection failed: ${error.message}`);
+          return;
+        }
+        
+        // Schedule next poll
+        if (isConnected) {
+          setTimeout(pollMetrics, 2000); // Poll every 2 seconds
+        }
       }
+      
+      // Start polling immediately
+      pollMetrics();
     }
 
     function updateConnectionStatus(status, text) {
@@ -1814,62 +1814,10 @@
         // Store for comparison
         lastMetricsSnapshot[id] = value;
       }
+    } catch (error) {
+      console.error('Error handling realtime data:', error);
     }
-
-    // Enhanced handleRealtimeData with better visual feedback
-    function handleRealtimeData(data) {
-      try {
-        lastUpdateTime = new Date();
-        updateElement('lastUpdate', formatTime(lastUpdateTime));
-        
-        // Handle strategy P&L data specifically with animations
-        if (data.strategyPnl) {
-          updateStrategyPnl(data.strategyPnl);
-        }
-        
-        // Update overview metrics with enhanced visual feedback
-        if (data.overview) {
-          updateElementWithTrend('accountBalance', formatCurrency(data.overview.accountBalance));
-          updateElementWithTrend('totalPnL', formatCurrency(data.overview.totalPnL, true));
-          updateElement('openPositions', data.overview.openPositions || 0);
-          updateElement('todayTrades', data.overview.todayTrades || 0);
-          updateElement('botMode', data.overview.botMode || 'PAPER');
-          updateElement('activeStrategy', data.overview.activeStrategy || 'Multiple');
-        }
-
-        // Enhanced learning status with progress tracking
-        if (data.learning) {
-          updateLearningStatusEnhanced(data.learning);
-        }
-
-        // Update trading data with visual enhancements
-        if (data.trading) {
-          updateTradingDataEnhanced(data.trading);
-        }
-
-        // Update system metrics with health indicators
-        if (data.system) {
-          updateSystemMetricsEnhanced(data.system);
-        }
-
-        // Update health data with visual status indicators
-        if (data.healthStatus) {
-          updateHealthDataEnhanced(data.healthStatus, data.healthDetails);
-        }
-
-        // Enhanced log handling with categorization
-        if (data.logs && Array.isArray(data.logs)) {
-          data.logs.forEach(log => addLogEnhanced(log.level || 'info', log.message || log));
-        }
-
-        // Update all timers and indicators
-        updateTimers();
-        updateLiveStatusIndicators();
-
-      } catch (error) {
-        addLog('error', `Error processing data: ${error.message}`);
-      }
-    }
+  }
 
     // Enhanced update with trend indicators
     function updateElementWithTrend(id, value) {
