@@ -127,6 +127,18 @@ namespace BotCore
             public decimal OptimalMultiplier { get; set; } = 1.0m; // ML predicted
             public decimal ActualMultiplier { get; set; } = 1.0m; // What was used
             public decimal ConfidenceScore { get; set; } = 0.5m;
+            
+            // === Additional Integration Properties ===
+            public decimal RiskPerShare { get; set; }
+            public decimal RewardRisk { get; set; }
+            public string Side { get; set; } = "";
+            public string StrategyId { get; set; } = "";
+            public decimal Score { get; set; }
+            public decimal QScore { get; set; }
+            public decimal Ema8 { get; set; }
+            public decimal Ema21 { get; set; }
+            public decimal MomentumStrength { get; set; }
+            public decimal DistanceFromVwap { get; set; }
         }
 
         public class EnhancedTradeOutcome
@@ -151,6 +163,10 @@ namespace BotCore
             public decimal PostTradeDrawdown { get; set; }
             public decimal PositionSizeUsed { get; set; }
             public decimal VolatilityAdjustment { get; set; }
+            
+            // === Additional Integration Properties ===
+            public decimal ActualPnl { get; set; }
+            public int HoldingTimeMinutes { get; set; }
         }
 
         private static readonly string DataPath = Path.Combine("data", "rl_training");
@@ -376,7 +392,7 @@ namespace BotCore
 
         #region Private Helper Methods
 
-        private static ComprehensiveFeatures CreateBaseFeatures(string signalId, string symbol, StrategyType strategy, decimal price)
+        public static ComprehensiveFeatures CreateBaseFeatures(string signalId, string symbol, StrategyType strategy, decimal price)
         {
             return new ComprehensiveFeatures
             {
@@ -524,6 +540,57 @@ namespace BotCore
                 return (int)(marketClose - currentTime).TotalMinutes;
             
             return -1; // After market close
+        }
+
+        /// <summary>
+        /// Log trade outcome for feedback loop and performance tracking
+        /// </summary>
+        public static void LogTradeOutcome(ILogger log, EnhancedTradeOutcome outcome)
+        {
+            try
+            {
+                lock (FileLock)
+                {
+                    // Add to recent trades for strategy performance tracking
+                    if (RecentTrades.TryGetValue(outcome.Strategy, out var trades))
+                    {
+                        trades.Add(outcome);
+                        
+                        // Keep only last 100 trades per strategy
+                        if (trades.Count > 100)
+                        {
+                            trades.RemoveAt(0);
+                        }
+                    }
+
+                    // Log outcome to file
+                    var fileName = $"trade_outcomes_{DateTime.UtcNow:yyyyMMdd}.jsonl";
+                    var filePath = Path.Combine(DataPath, fileName);
+
+                    var outcomeRecord = new
+                    {
+                        timestamp = DateTime.UtcNow,
+                        signalId = outcome.SignalId,
+                        strategy = outcome.Strategy.ToString(),
+                        exitTime = outcome.ExitTime,
+                        actualPnl = outcome.ActualPnl,
+                        actualRMultiple = outcome.ActualRMultiple,
+                        isWin = outcome.IsWin,
+                        exitReason = outcome.ExitReason,
+                        holdingTimeMinutes = outcome.HoldingTimeMinutes
+                    };
+
+                    var json = JsonSerializer.Serialize(outcomeRecord);
+                    File.AppendAllText(filePath, json + Environment.NewLine);
+                }
+
+                log.LogDebug("[RL-{Strategy}] Logged trade outcome for signal {SignalId}: {Result}",
+                    outcome.Strategy, outcome.SignalId, outcome.IsWin ? "WIN" : "LOSS");
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[RL-{Strategy}] Failed to log trade outcome", outcome.Strategy);
+            }
         }
 
         #endregion
