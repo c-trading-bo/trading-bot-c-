@@ -34,7 +34,7 @@ def merge_training_data(data_dir='../data/logs', vendor_dir='../data/vendor'):
         n = 1000
         dummy_data = pd.DataFrame({
             'timestamp': pd.date_range('2024-01-01', periods=n, freq='5min'),
-            'symbol': ['ES'] * n,
+            'symbol': rng.choice(['ES', 'NQ'], n, p=[0.6, 0.4]),  # Both ES and NQ symbols
             'strategy': rng.choice(['EmaCross', 'MeanReversion', 'Breakout', 'Momentum'], n),
             'session': rng.choice(['RTH', 'ETH'], n, p=[0.7, 0.3]),
             'regime': rng.choice(['Range', 'Trend', 'Vol'], n),
@@ -93,6 +93,10 @@ def merge_training_data(data_dir='../data/logs', vendor_dir='../data/vendor'):
 
     print(f'📊 Merged dataset: {len(merged_df)} rows (from {total_rows} total)')
     
+    
+    if 'symbol' in merged_df.columns:
+        print(f'📊 Symbol distribution: {merged_df["symbol"].value_counts().to_dict()}')
+        
     if 'strategy' in merged_df.columns:
         print(f'📊 Strategy distribution: {merged_df["strategy"].value_counts().to_dict()}')
     
