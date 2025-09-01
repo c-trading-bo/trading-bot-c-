@@ -1,0 +1,7 @@
+# Trading Signals
+
+Generated trading signals for bot consumption.
+
+Files generated:
+- `signals_YYYYMMDD_HHMMSS.json` - Timestamped signals
+- `latest.json` - Latest signals for bot consumption (main file)

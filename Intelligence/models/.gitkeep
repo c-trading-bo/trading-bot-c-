@@ -1,0 +1,9 @@
+# ML Models
+
+Trained machine learning models for signal generation.
+
+Files generated:
+- `regime_model.joblib` - Latest trained model
+- `feature_scaler.joblib` - Feature scaling parameters
+- `model_metadata.json` - Model training metadata
+- Versioned copies with timestamps
