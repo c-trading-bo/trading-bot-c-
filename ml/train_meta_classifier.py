@@ -94,6 +94,9 @@ def train_meta_classifier(data_file='../data/logs/candidates.merged.parquet', ou
     
     try:
         meta_onnx = convert_sklearn(meta_model, initial_types=initial_type)
+        # Handle both tuple and direct ModelProto returns from convert_sklearn
+        if isinstance(meta_onnx, tuple):
+            meta_onnx = meta_onnx[0]  # Extract ModelProto from tuple
         with open(output_file, 'wb') as f:
             f.write(meta_onnx.SerializeToString())
         print(f'✅ Meta classifier saved to {output_file}')

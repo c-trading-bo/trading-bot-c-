@@ -78,6 +78,9 @@ def main():
         try:
             initial_type = [('float_input', FloatTensorType([None, len(available_features)]))]
             exec_onnx = convert_sklearn(exec_model, initial_types=initial_type)
+            # Handle both tuple and direct ModelProto returns from convert_sklearn
+            if isinstance(exec_onnx, tuple):
+                exec_onnx = exec_onnx[0]  # Extract ModelProto from tuple
             with open(f'{models_dir}/exec_model.onnx', 'wb') as f:
                 f.write(exec_onnx.SerializeToString())
             print('✅ Execution predictor saved to exec_model.onnx')

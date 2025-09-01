@@ -189,14 +189,14 @@ def train_cvar_ppo(
                 # Store experience
                 buffer.store(
                     obs.copy(),
-                    action.item(),
+                    int(action.item()),
                     0.0,  # Will be filled after step
                     value.item(),
                     log_prob.item()
                 )
                 
                 # Take environment step
-                obs, reward, done, info = env.step(action.item())
+                obs, reward, done, info = env.step(int(action.item()))
                 episode_rewards.append(reward)
                 
                 # Update reward in buffer
@@ -214,7 +214,7 @@ def train_cvar_ppo(
         episode_return = sum(episode_rewards)
         
         # Compute CVaR of this episode
-        episode_cvar = cvar_tail(episode_rewards, cvar_level)
+        episode_cvar = cvar_tail(np.array(episode_rewards), cvar_level)
         
         # Policy update
         policy.train()
