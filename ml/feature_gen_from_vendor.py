@@ -409,7 +409,6 @@ class VendorFeatureGenerator:
             return False
 
 
-import pandas as pd
 
 def main():
     """CLI entry point."""
