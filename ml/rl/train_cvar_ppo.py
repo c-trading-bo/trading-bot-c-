@@ -115,8 +115,6 @@ def compute_gae(rewards: np.ndarray, values: np.ndarray, gamma: float = 0.99, la
 def train_cvar_ppo(
     df: pd.DataFrame,
     actions: Tuple[float, ...] = (0.5, 0.75, 1.0, 1.25, 1.5),
-    test_forward_days: int = 5,
-    embargo_bars: int = 60,
     cvar_level: float = 0.95,
     cvar_target_r: float = 0.75,
     lagrange_init: float = 2.0,
@@ -151,7 +149,7 @@ def train_cvar_ppo(
     
     # Initialize policy
     policy = Policy(env.obs_dim, env.act_dim, policy_hidden, policy_layers).to(device)
-    optimizer = optim.Adam(policy.parameters(), lr=ppo_lr)
+    optimizer = optim.Adam(policy.parameters(), lr=ppo_lr, weight_decay=1e-5)  # Add weight_decay
     
     # Lagrange multiplier for CVaR constraint
     lagrange_mult = lagrange_init
@@ -189,14 +187,14 @@ def train_cvar_ppo(
                 # Store experience
                 buffer.store(
                     obs.copy(),
-                    action.item(),
+                    int(action.item()),  # Convert to int for buffer
                     0.0,  # Will be filled after step
                     value.item(),
                     log_prob.item()
                 )
                 
                 # Take environment step
-                obs, reward, done, info = env.step(action.item())
+                obs, reward, done, _ = env.step(int(action.item()))  # Convert to int for env, ignore info
                 episode_rewards.append(reward)
                 
                 # Update reward in buffer
@@ -214,7 +212,7 @@ def train_cvar_ppo(
         episode_return = sum(episode_rewards)
         
         # Compute CVaR of this episode
-        episode_cvar = cvar_tail(episode_rewards, cvar_level)
+        episode_cvar = cvar_tail(np.array(episode_rewards), cvar_level)  # Convert to numpy array
         
         # Policy update
         policy.train()
@@ -330,8 +328,6 @@ def main():
     
     config = {
         'actions': actions,
-        'test_forward_days': int(os.getenv('RL_TEST_FORWARD_DAYS', '5')),
-        'embargo_bars': int(os.getenv('RL_EMBARGO_BARS', '60')),
         'cvar_level': float(os.getenv('RL_CVAR_LEVEL', '0.95')),
         'cvar_target_r': float(os.getenv('RL_CVAR_TARGET_R', '0.75')),
         'lagrange_init': float(os.getenv('RL_LAGRANGE_INIT', '2.0')),
@@ -354,20 +350,20 @@ def main():
         logger.error(f"Data file not found: {data_path}")
         # Create dummy data for testing
         logger.info("Creating dummy data for testing...")
-        np.random.seed(42)
+        rng = np.random.default_rng(42)  # Define rng variable
         n_samples = 1000
         
         dummy_data = pd.DataFrame({
             'timestamp': pd.date_range('2024-01-01', periods=n_samples, freq='1H'),
             'symbol': ['ES'] * n_samples,
-            'session': np.random.choice(['RTH', 'ETH'], n_samples),
-            'regime': np.random.choice(['Range', 'Trend', 'Vol'], n_samples),
-            'R_multiple': np.random.normal(0.1, 1.5, n_samples),
-            'slip_ticks': np.random.exponential(0.5, n_samples),
-            'feature_1': np.random.normal(0, 1, n_samples),
-            'feature_2': np.random.normal(0, 1, n_samples),
-            'feature_3': np.random.uniform(-1, 1, n_samples),
-            'label_win': np.random.choice([0, 1], n_samples)
+            'session': rng.choice(['RTH', 'ETH'], n_samples),
+            'regime': rng.choice(['Range', 'Trend', 'Vol'], n_samples),
+            'R_multiple': rng.normal(0.1, 1.5, n_samples),
+            'slip_ticks': rng.exponential(0.5, n_samples),
+            'feature_1': rng.normal(0, 1, n_samples),
+            'feature_2': rng.normal(0, 1, n_samples),
+            'feature_3': rng.uniform(-1, 1, n_samples),
+            'label_win': rng.choice([0, 1], n_samples)
         })
         
         # Ensure directory exists
