@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-09-02T17:00:21.079317",
+  "data_points": 1000,
+  "epochs_trained": 5,
+  "learning_rate": 0.001,
+  "final_cvar": -0.021764399403568082,
+  "var_level": -0.017493275386880926,
+  "mean_return": 0.0007071843143615256,
+  "volatility": 0.010454886640868534,
+  "sharpe_ratio": 0.06764150953077924,
+  "max_drawdown": 0.007134429436683953,
+  "status": "trained_successfully"
+}
