@@ -23,10 +23,15 @@ env:
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            persist-credentials: true
+            fetch-depth: 0
         
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
@@ -35,8 +40,8 @@ jobs:
           
       - name: "📦 Install Dependencies"
         run: |
-          pip install --upgrade pip
-          pip install requests pandas python-dateutil
+          pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+          pip install --retry-delays 1,2,3 --timeout 60 requests pandas python-dateutil
           
       - name: "🔍 Generate Live Dashboard Data"
         run: |
@@ -938,6 +943,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: build-dashboard
     steps:
       - name: "🚀 Deploy to GitHub Pages"

@@ -1,0 +1,16 @@
+{
+  "data_source": "Intelligence/data/training/test_data.csv",
+  "rows": 1000,
+  "columns": [
+    "price",
+    "volume",
+    "returns",
+    "volatility",
+    "timestamp"
+  ],
+  "date_range": {
+    "start": "2024-01-01T00:00:00",
+    "end": "2024-01-04T11:15:00"
+  },
+  "created": "2025-09-02T17:00:21.080586"
+}

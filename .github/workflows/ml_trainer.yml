@@ -6,14 +6,24 @@ on:
     - cron: '0 7 * * *'
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   train-models:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
       
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -22,8 +32,8 @@ jobs:
         
     - name: Install ML dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pandas numpy scikit-learn xgboost lightgbm joblib
+        python -m pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn xgboost lightgbm joblib
         
     - name: Build features from raw data
       run: |
@@ -31,7 +41,7 @@ jobs:
         
     - name: Train ML models
       run: |
-        python Intelligence/scripts/train_models.py
+        python Intelligence/scripts/train_models.py --save_dir models/models/
         
     - name: Upload trained models
       uses: actions/upload-artifact@v4
@@ -42,8 +52,14 @@ jobs:
         
     - name: Commit models and features (if changes)
       run: |
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git config --local user.email "action@github.com"
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git config --local user.name "GitHub Action"
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git add Intelligence/data/features/ Intelligence/models/
         git diff --staged --quiet || git commit -m "Intelligence: Update ML models and features [$(date '+%Y-%m-%d %H:%M:%S')]"
-        git push
+        git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
