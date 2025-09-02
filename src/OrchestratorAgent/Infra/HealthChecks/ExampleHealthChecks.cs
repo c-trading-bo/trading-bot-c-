@@ -49,7 +49,7 @@ public class MLLearningHealthCheck : IHealthCheck
             // Test that learning cycles are incrementing
             var lastModified = System.IO.File.GetLastWriteTimeUtc(stateFile);
             var timeSinceLastUpdate = DateTime.UtcNow - lastModified;
-            
+
             if (timeSinceLastUpdate > TimeSpan.FromHours(2))
             {
                 return HealthCheckResult.Warning($"ML learning state hasn't been updated in {timeSinceLastUpdate.TotalHours:F1} hours");
@@ -169,16 +169,16 @@ public class NewFeatureHealthCheckTemplate : IHealthCheck
         {
             // Implementation complete: Basic validation template for new features
             await Task.Delay(1, cancellationToken); // Satisfy async requirement
-            
+
             // Example checks:
             // 1. Validate configuration is loaded correctly
             // 2. Test core functionality with mock data
             // 3. Check file permissions and dependencies
             // 4. Verify mathematical calculations
             // 5. Test error handling paths
-            
+
             // Always test the actual behavior, not just existence!
-            
+
             return HealthCheckResult.Healthy("Feature is working correctly");
         }
         catch (Exception ex)

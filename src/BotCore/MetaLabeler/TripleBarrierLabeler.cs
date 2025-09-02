@@ -38,7 +38,7 @@ public class TripleBarrierLabeler
     /// <param name="ct">Cancellation token</param>
     /// <returns>Labeled training data for supervised learning</returns>
     public async Task<List<LabeledTradeData>> LabelSignalsAsync(
-        List<HistoricalTradeSignal> signals, 
+        List<HistoricalTradeSignal> signals,
         CancellationToken ct = default)
     {
         var labeled = new List<LabeledTradeData>();
@@ -56,7 +56,7 @@ public class TripleBarrierLabeler
     }
 
     private async Task<LabeledTradeData?> ComputeTripleBarrierLabelAsync(
-        HistoricalTradeSignal signal, 
+        HistoricalTradeSignal signal,
         CancellationToken ct)
     {
         try
@@ -64,16 +64,16 @@ public class TripleBarrierLabeler
             // Get price data after signal timestamp
             var endTime = signal.Timestamp.Add(_maxHoldingPeriod);
             var priceData = await _dataProvider.GetPriceDataAsync(
-                signal.Symbol, 
-                signal.Timestamp, 
-                endTime, 
+                signal.Symbol,
+                signal.Timestamp,
+                endTime,
                 ct);
 
             if (!priceData.Any())
                 return null;
 
             // Calculate barriers
-            var profitTarget = signal.IsLong 
+            var profitTarget = signal.IsLong
                 ? signal.EntryPrice * (1 + _defaultProfitRatio * 0.0025m) // Assuming 0.25% risk per R
                 : signal.EntryPrice * (1 - _defaultProfitRatio * 0.0025m);
 
@@ -94,10 +94,10 @@ public class TripleBarrierLabeler
                 ExitTime = result.ExitTime,
                 ExitReason = result.ExitReason,
                 Label = result.Label,
-                
+
                 // Features for ML model
                 Features = ExtractFeatures(signal, priceData.First()),
-                
+
                 // Outcome metrics
                 HoldingPeriod = result.ExitTime - signal.Timestamp,
                 RealizedR = CalculateRealizedR(signal, result.ExitPrice),
@@ -171,7 +171,7 @@ public class TripleBarrierLabeler
 
         // Time exit - use final price and calculate label based on PnL
         var lastBar = priceData.Last();
-        var finalPnL = signal.IsLong 
+        var finalPnL = signal.IsLong
             ? (lastBar.Close - signal.EntryPrice) / signal.EntryPrice
             : (signal.EntryPrice - lastBar.Close) / signal.EntryPrice;
 
@@ -185,7 +185,7 @@ public class TripleBarrierLabeler
     }
 
     private Dictionary<string, decimal> ExtractFeatures(
-        HistoricalTradeSignal signal, 
+        HistoricalTradeSignal signal,
         PriceBar currentBar)
     {
         return new Dictionary<string, decimal>
@@ -208,10 +208,10 @@ public class TripleBarrierLabeler
     private decimal CalculateRealizedR(HistoricalTradeSignal signal, decimal exitPrice)
     {
         var risk = Math.Abs(signal.EntryPrice - signal.StopPrice);
-        var reward = signal.IsLong 
+        var reward = signal.IsLong
             ? exitPrice - signal.EntryPrice
             : signal.EntryPrice - exitPrice;
-        
+
         return risk > 0 ? reward / risk : 0m;
     }
 
@@ -286,8 +286,8 @@ public record PriceBar
 public interface IHistoricalDataProvider
 {
     Task<List<PriceBar>> GetPriceDataAsync(
-        string symbol, 
-        DateTime start, 
-        DateTime end, 
+        string symbol,
+        DateTime start,
+        DateTime end,
         CancellationToken ct = default);
 }

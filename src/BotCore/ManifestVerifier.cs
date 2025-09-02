@@ -26,23 +26,23 @@ namespace BotCore
             {
                 // Parse and normalize JSON (same as Python implementation)
                 var jsonDoc = JsonDocument.Parse(manifestJson);
-                
+
                 // Create a copy without the signature field for verification
                 var manifestWithoutSig = CreateManifestWithoutSignature(jsonDoc.RootElement);
-                
+
                 // Generate canonical JSON (sorted keys, no whitespace)
                 var canonicalJson = JsonSerializer.Serialize(manifestWithoutSig, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     WriteIndented = false
                 });
-                
+
                 // Sort the JSON properties manually for true canonical form
                 var sortedJson = SortJsonProperties(canonicalJson);
-                
+
                 // Generate HMAC-SHA256
                 var actualSignature = GenerateHmacSignature(sortedJson, hmacKey);
-                
+
                 // Use timing-safe comparison
                 return CryptographicOperations.FixedTimeEquals(
                     Convert.FromHexString(expectedSignature),
@@ -55,7 +55,7 @@ namespace BotCore
                 return false;
             }
         }
-        
+
         /// <summary>
         /// Generate HMAC-SHA256 signature for manifest content.
         /// </summary>
@@ -68,7 +68,7 @@ namespace BotCore
             var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(canonicalJson));
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
-        
+
         /// <summary>
         /// Create manifest object without signature field for verification.
         /// </summary>
@@ -76,16 +76,16 @@ namespace BotCore
         {
             var jsonString = original.GetRawText();
             var jsonDoc = JsonDocument.Parse(jsonString);
-            
+
             // If no signature field, return as-is
             if (!jsonDoc.RootElement.TryGetProperty("signature", out _))
             {
                 return jsonDoc.RootElement;
             }
-            
+
             // Remove signature field and return clean manifest
             var dict = new Dictionary<string, object?>();
-            
+
             foreach (var prop in jsonDoc.RootElement.EnumerateObject())
             {
                 if (prop.Name != "signature")
@@ -93,11 +93,11 @@ namespace BotCore
                     dict[prop.Name] = JsonElementToObject(prop.Value);
                 }
             }
-            
+
             var cleanJson = JsonSerializer.Serialize(dict);
             return JsonDocument.Parse(cleanJson).RootElement;
         }
-        
+
         /// <summary>
         /// Convert JsonElement to object for dictionary creation.
         /// </summary>
@@ -117,7 +117,7 @@ namespace BotCore
                 _ => element.GetRawText()
             };
         }
-        
+
         /// <summary>
         /// Sort JSON properties for canonical representation.
         /// This ensures the same signature generation as Python implementation.
@@ -140,7 +140,7 @@ namespace BotCore
                 return json;
             }
         }
-        
+
         /// <summary>
         /// Extract signature from manifest JSON.
         /// </summary>
@@ -151,13 +151,13 @@ namespace BotCore
             try
             {
                 var jsonDoc = JsonDocument.Parse(manifestJson);
-                
+
                 if (jsonDoc.RootElement.TryGetProperty("signature", out var sigElement) &&
                     sigElement.TryGetProperty("value", out var valueElement))
                 {
                     return valueElement.GetString();
                 }
-                
+
                 return null;
             }
             catch
@@ -165,7 +165,7 @@ namespace BotCore
                 return null;
             }
         }
-        
+
         /// <summary>
         /// Validate manifest structure and required fields.
         /// </summary>
@@ -175,10 +175,10 @@ namespace BotCore
             {
                 var jsonDoc = JsonDocument.Parse(manifestJson);
                 var root = jsonDoc.RootElement;
-                
+
                 // Check required fields
                 var requiredFields = new[] { "version", "timestamp", "models" };
-                
+
                 foreach (var field in requiredFields)
                 {
                     if (!root.TryGetProperty(field, out _))
@@ -187,7 +187,7 @@ namespace BotCore
                         return false;
                     }
                 }
-                
+
                 // Validate models structure
                 if (root.TryGetProperty("models", out var modelsElement))
                 {
@@ -201,7 +201,7 @@ namespace BotCore
                         }
                     }
                 }
-                
+
                 return true;
             }
             catch (Exception ex)

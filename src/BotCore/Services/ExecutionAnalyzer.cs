@@ -23,7 +23,7 @@ public class ExecutionAnalyzer
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
-        
+
         // Ensure feedback directory exists
         Directory.CreateDirectory(_feedbackPath);
     }
@@ -31,7 +31,7 @@ public class ExecutionAnalyzer
     /// <summary>
     /// Track fill quality metrics for execution analysis
     /// </summary>
-    public async Task TrackFillQualityAsync(string symbol, decimal entryPrice, decimal fillPrice, 
+    public async Task TrackFillQualityAsync(string symbol, decimal entryPrice, decimal fillPrice,
         int quantity, string strategy, DateTime timestamp)
     {
         try
@@ -49,8 +49,8 @@ public class ExecutionAnalyzer
                 Quantity = quantity,
                 Slippage = Math.Round(slippage, 4),
                 SlippagePercent = Math.Round(slippagePercent, 4),
-                Quality = slippagePercent < 0.02m ? "excellent" : 
-                         slippagePercent < 0.05m ? "good" : 
+                Quality = slippagePercent < 0.02m ? "excellent" :
+                         slippagePercent < 0.05m ? "good" :
                          slippagePercent < 0.1m ? "fair" : "poor"
             };
 
@@ -69,13 +69,13 @@ public class ExecutionAnalyzer
     /// <summary>
     /// Provide feedback on supply/demand zone tests
     /// </summary>
-    public async Task ZoneFeedbackAsync(string symbol, decimal zoneLevel, string zoneType, 
+    public async Task ZoneFeedbackAsync(string symbol, decimal zoneLevel, string zoneType,
         bool successful, decimal entryPrice, decimal exitPrice, string reason)
     {
         try
         {
             var pnlPercent = entryPrice != 0 ? ((exitPrice - entryPrice) / entryPrice) * 100 : 0;
-            
+
             var feedback = new
             {
                 Symbol = symbol,
@@ -104,7 +104,7 @@ public class ExecutionAnalyzer
     /// <summary>
     /// Track pattern outcome (success/failure) for pattern recognition improvement
     /// </summary>
-    public async Task PatternOutcomeAsync(string symbol, string patternType, bool successful, 
+    public async Task PatternOutcomeAsync(string symbol, string patternType, bool successful,
         decimal confidence, string details)
     {
         try
@@ -175,7 +175,7 @@ public class ExecutionAnalyzer
 
             metrics.Add(fillQuality);
 
-            await File.WriteAllTextAsync(metricsFile, 
+            await File.WriteAllTextAsync(metricsFile,
                 JsonSerializer.Serialize(metrics, _jsonOptions));
         }
         catch (Exception ex)
@@ -224,7 +224,7 @@ public class ExecutionAnalyzer
                 last_test = DateTime.UtcNow.ToString("O")
             };
 
-            await File.WriteAllTextAsync(feedbackFile, 
+            await File.WriteAllTextAsync(feedbackFile,
                 JsonSerializer.Serialize(feedback, _jsonOptions));
         }
         catch (Exception ex)
@@ -250,7 +250,7 @@ public class ExecutionAnalyzer
 
             outcomes.Add(outcome);
 
-            await File.WriteAllTextAsync(outcomeFile, 
+            await File.WriteAllTextAsync(outcomeFile,
                 JsonSerializer.Serialize(outcomes, _jsonOptions));
         }
         catch (Exception ex)

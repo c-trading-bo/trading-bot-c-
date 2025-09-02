@@ -27,7 +27,7 @@ public class EvExecutionRouter : IExecutionRouter
     /// Calculates EV = p(win) × avgWin - (1-p) × avgLoss - predictedSlippage
     /// </summary>
     public async Task<ExecutionDecision> RouteOrderAsync(
-        TradeSignal signal, 
+        TradeSignal signal,
         MarketContext marketContext,
         CancellationToken ct = default)
     {
@@ -59,7 +59,7 @@ public class EvExecutionRouter : IExecutionRouter
         catch (Exception ex)
         {
             Console.WriteLine($"[EV-ROUTER] Error routing order for {signal.SignalId}: {ex.Message}");
-            
+
             // Fallback to market order
             return new ExecutionDecision
             {
@@ -87,7 +87,7 @@ public class EvExecutionRouter : IExecutionRouter
         await _costTracker.RecordExecutionAsync(signalId, originalDecision, actualResult, ct);
 
         var predictionError = Math.Abs(originalDecision.ExpectedSlippageBps - actualResult.ActualSlippageBps);
-        
+
         Console.WriteLine($"[EV-ROUTER] Execution update {signalId}: " +
                         $"predicted={originalDecision.ExpectedSlippageBps:F1}bps " +
                         $"actual={actualResult.ActualSlippageBps:F1}bps " +
@@ -132,7 +132,7 @@ public class EvExecutionRouter : IExecutionRouter
     {
         var confidence = signal.Confidence;
         var winProb = signal.MetaWinProbability ?? 0.5m;
-        
+
         return $"{recommendation.Reasoning}. " +
                $"Signal confidence={confidence:P0}, meta p(win)={winProb:P0}, " +
                $"R={signal.RMultiple:F1}, risk={recommendation.RiskAssessment}";

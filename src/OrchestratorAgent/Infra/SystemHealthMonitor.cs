@@ -16,34 +16,34 @@ public class SystemHealthMonitor
     private readonly Timer _healthCheckTimer;
     private SystemHealthSnapshot _lastSnapshot = new();
     private readonly object _lockObject = new(); // Thread safety lock
-    
+
     public SystemHealthMonitor(ILogger<SystemHealthMonitor> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _discovery = new HealthCheckDiscovery(serviceProvider, serviceProvider.GetRequiredService<ILogger<HealthCheckDiscovery>>());
         _selfHealingEngine = new SelfHealingEngine(serviceProvider, serviceProvider.GetRequiredService<ILogger<SelfHealingEngine>>());
-        
+
         // Initialize health checks (both legacy and discovered)
         InitializeHealthChecks();
-        
+
         // Initialize self-healing engine
         _ = Task.Run(async () => await _selfHealingEngine.InitializeAsync());
-        
+
         // Run health checks every 60 seconds
         _healthCheckTimer = new Timer(RunHealthChecks, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
-        
+
         _logger.LogInformation("[HEALTH] System health monitoring started - checking {count} features", _healthChecks.Count);
     }
-    
+
     private async void InitializeHealthChecks()
     {
         // Legacy hardcoded health checks (for backwards compatibility)
         InitializeLegacyHealthChecks();
-        
+
         // Discover new health checks automatically
         await DiscoverAndRegisterHealthChecks();
-        
+
         _logger.LogInformation("[HEALTH] System health monitoring started - checking {Count} features", _healthChecks.Count);
     }
 
@@ -57,7 +57,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckMLPersistence,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         _healthChecks["ml_cycles"] = new HealthCheck
         {
             Name = "ML Learning Cycles",
@@ -65,7 +65,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckMLCycles,
             CriticalLevel = HealthLevel.High
         };
-        
+
         // 2. Strategy System Health
         _healthChecks["strategy_configs"] = new HealthCheck
         {
@@ -74,7 +74,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckStrategyConfigs,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         _healthChecks["session_windows"] = new HealthCheck
         {
             Name = "Session Windows",
@@ -82,7 +82,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckSessionWindows,
             CriticalLevel = HealthLevel.High
         };
-        
+
         // 3. Time & Timezone Health
         _healthChecks["timezone_logic"] = new HealthCheck
         {
@@ -91,7 +91,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckTimezoneLogic,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         // 4. Risk Management Health
         _healthChecks["position_limits"] = new HealthCheck
         {
@@ -100,7 +100,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckPositionLimits,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         _healthChecks["risk_calculations"] = new HealthCheck
         {
             Name = "Risk Calculations",
@@ -108,7 +108,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckRiskCalculations,
             CriticalLevel = HealthLevel.High
         };
-        
+
         // 5. Market Data Health
         _healthChecks["data_feeds"] = new HealthCheck
         {
@@ -117,7 +117,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckDataFeeds,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         _healthChecks["connectivity"] = new HealthCheck
         {
             Name = "Connection Status",
@@ -125,7 +125,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckConnectivity,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         // 6. Order Routing Health
         _healthChecks["order_routing"] = new HealthCheck
         {
@@ -134,7 +134,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckOrderRouting,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         // 8. Strategy Logic Health (NEW)
         _healthChecks["strategy_signals"] = new HealthCheck
         {
@@ -143,7 +143,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckStrategySignals,
             CriticalLevel = HealthLevel.Critical
         };
-        
+
         _healthChecks["position_tracking"] = new HealthCheck
         {
             Name = "Position Tracking",
@@ -151,7 +151,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckPositionTracking,
             CriticalLevel = HealthLevel.High
         };
-        
+
         // 9. Data Quality Health (NEW)
         _healthChecks["price_validation"] = new HealthCheck
         {
@@ -160,7 +160,7 @@ public class SystemHealthMonitor
             CheckFunction = CheckPriceValidation,
             CriticalLevel = HealthLevel.High
         };
-        
+
         _logger.LogInformation("[HEALTH] Initialized {Count} legacy health checks", _healthChecks.Count);
     }
 
@@ -170,7 +170,7 @@ public class SystemHealthMonitor
         {
             // Discover health checks that implement IHealthCheck interface
             var discoveredChecks = await _discovery.DiscoverHealthChecksAsync();
-            
+
             foreach (var healthCheck in discoveredChecks)
             {
                 // Convert IHealthCheck to legacy HealthCheck format for compatibility
@@ -181,7 +181,7 @@ public class SystemHealthMonitor
                     CheckFunction = () => ConvertHealthCheckResult(healthCheck).Result,
                     CriticalLevel = HealthLevel.Medium
                 };
-                
+
                 lock (_lockObject)
                 {
                     _healthChecks[healthCheck.Name] = legacyCheck;
@@ -192,7 +192,7 @@ public class SystemHealthMonitor
             var universalDiscovery = new HealthChecks.UniversalAutoDiscoveryHealthCheck(
                 _serviceProvider.GetRequiredService<ILogger<HealthChecks.UniversalAutoDiscoveryHealthCheck>>(),
                 _serviceProvider);
-                
+
             var universalCheck = new HealthCheck
             {
                 Name = "Universal Auto-Discovery Monitor",
@@ -200,19 +200,19 @@ public class SystemHealthMonitor
                 CheckFunction = () => ConvertHealthCheckResult(universalDiscovery).Result,
                 CriticalLevel = HealthLevel.Critical  // Critical because it monitors everything
             };
-            
+
             lock (_lockObject)
             {
                 _healthChecks["universal_auto_discovery"] = universalCheck;
             }
-            
+
             _logger.LogInformation("[HEALTH] Discovered and registered {Count} health checks + Universal Auto-Discovery Monitor", discoveredChecks.Count);
-            
+
             // Check for unmonitored features
             var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync();
             if (unmonitored.Count > 0)
             {
-                _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features (will be auto-monitored by Universal Discovery): {Features}", 
+                _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features (will be auto-monitored by Universal Discovery): {Features}",
                     unmonitored.Count, string.Join(", ", unmonitored));
             }
         }
@@ -227,7 +227,7 @@ public class SystemHealthMonitor
         try
         {
             var result = await healthCheck.ExecuteAsync();
-            
+
             var status = result.Status switch
             {
                 HealthStatus.Healthy => HealthStatus.Healthy,
@@ -235,7 +235,7 @@ public class SystemHealthMonitor
                 HealthStatus.Failed => HealthStatus.Failed,
                 _ => HealthStatus.Failed
             };
-            
+
             return new HealthResult(status, result.Message);
         }
         catch (Exception ex)
@@ -259,7 +259,7 @@ public class SystemHealthMonitor
             _logger.LogError(ex, "[SELF-HEAL] Failed to initiate self-healing for {HealthCheck}", healthCheckName);
         }
     }
-    
+
     private void RunHealthChecks(object? state)
     {
         try
@@ -269,31 +269,31 @@ public class SystemHealthMonitor
                 Timestamp = DateTime.UtcNow,
                 Results = new Dictionary<string, HealthResult>()
             };
-            
+
             // Create a thread-safe snapshot of health checks to avoid concurrent modification
             Dictionary<string, HealthCheck> healthCheckSnapshot;
             lock (_lockObject)
             {
                 healthCheckSnapshot = new Dictionary<string, HealthCheck>(_healthChecks);
             }
-            
+
             foreach (var (key, check) in healthCheckSnapshot)
             {
                 try
                 {
                     var result = check.CheckFunction();
                     snapshot.Results[key] = result;
-                    
+
                     // Log critical and failed checks
                     if (result.Status == HealthStatus.Failed)
                     {
                         _logger.LogError("[HEALTH] {Check} FAILED: {Message}", check.Name, result.Message);
-                        
+
                         // Attempt self-healing for failed checks
-                        _ = Task.Run(async () => await AttemptSelfHealingAsync(key, new HealthCheckResult 
-                        { 
-                            Status = Infra.HealthStatus.Failed, 
-                            Message = result.Message 
+                        _ = Task.Run(async () => await AttemptSelfHealingAsync(key, new HealthCheckResult
+                        {
+                            Status = Infra.HealthStatus.Failed,
+                            Message = result.Message
                         }));
                     }
                     else if (check.CriticalLevel == HealthLevel.Critical && result.Status == HealthStatus.Warning)
@@ -312,12 +312,12 @@ public class SystemHealthMonitor
                     _logger.LogError(ex, "[HEALTH] Health check {check} crashed", check.Name);
                 }
             }
-            
+
             _lastSnapshot = snapshot;
-            
+
             // Save health snapshot to file
             SaveHealthSnapshot(snapshot);
-            
+
             // Check for critical failures
             CheckForCriticalFailures(snapshot);
         }
@@ -326,20 +326,20 @@ public class SystemHealthMonitor
             _logger.LogError(ex, "[HEALTH] Health check system failed");
         }
     }
-    
+
     private void SaveHealthSnapshot(SystemHealthSnapshot snapshot)
     {
         try
         {
             var healthDir = Path.Combine("state", "health");
             Directory.CreateDirectory(healthDir);
-            
+
             var fileName = $"health_{snapshot.Timestamp:yyyyMMdd_HHmmss}.json";
             var filePath = Path.Combine(healthDir, fileName);
-            
+
             var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(filePath, json);
-            
+
             // Keep only last 24 hours of health files
             CleanupOldHealthFiles(healthDir);
         }
@@ -348,14 +348,14 @@ public class SystemHealthMonitor
             _logger.LogWarning(ex, "[HEALTH] Failed to save health snapshot");
         }
     }
-    
+
     private void CleanupOldHealthFiles(string healthDir)
     {
         try
         {
             var cutoff = DateTime.UtcNow.AddHours(-24);
             var files = Directory.GetFiles(healthDir, "health_*.json");
-            
+
             foreach (var file in files)
             {
                 var fileInfo = new FileInfo(file);
@@ -370,26 +370,26 @@ public class SystemHealthMonitor
             _logger.LogWarning(ex, "[HEALTH] Failed to cleanup old health files");
         }
     }
-    
+
     private void CheckForCriticalFailures(SystemHealthSnapshot snapshot)
     {
         var criticalFailures = snapshot.Results
             .Where(kv => _healthChecks[kv.Key].CriticalLevel == HealthLevel.Critical && kv.Value.Status == HealthStatus.Failed)
             .ToList();
-            
+
         if (criticalFailures.Any())
         {
             var failureList = string.Join(", ", criticalFailures.Select(f => _healthChecks[f.Key].Name));
             _logger.LogCritical("[HEALTH] 🚨 CRITICAL SYSTEM FAILURES: {failures}", failureList);
-            
+
             // TODO: Add email/SMS alerts here
         }
     }
-    
+
     public SystemHealthSnapshot GetCurrentHealth() => _lastSnapshot;
-    
+
     public Dictionary<string, HealthCheck> GetHealthChecks() => _healthChecks;
-    
+
     // Health Check Implementation Methods
     private HealthResult CheckMLPersistence()
     {
@@ -404,10 +404,10 @@ public class SystemHealthMonitor
                     Message = "Learning state file does not exist yet"
                 };
             }
-            
+
             var state = LearningStateManager.LoadState();
             var timeSince = DateTime.UtcNow - state.StateUpdatedUtc;
-            
+
             if (timeSince > TimeSpan.FromHours(2))
             {
                 return new HealthResult
@@ -416,7 +416,7 @@ public class SystemHealthMonitor
                     Message = $"Learning state not updated for {timeSince.TotalHours:F1} hours"
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -434,7 +434,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckMLCycles()
     {
         try
@@ -442,7 +442,7 @@ public class SystemHealthMonitor
             var state = LearningStateManager.LoadState();
             var timeSinceLastCycle = state.TimeSinceLastPractice();
             var expectedInterval = TimeSpan.FromHours(1); // Default 1 hour
-            
+
             if (timeSinceLastCycle > expectedInterval.Add(TimeSpan.FromMinutes(10)))
             {
                 return new HealthResult
@@ -451,7 +451,7 @@ public class SystemHealthMonitor
                     Message = $"ML cycle overdue by {(timeSinceLastCycle - expectedInterval).TotalMinutes:F0} minutes"
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -468,7 +468,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckStrategyConfigs()
     {
         try
@@ -483,11 +483,11 @@ public class SystemHealthMonitor
                     Message = "Strategy configuration file missing"
                 };
             }
-            
+
             var configText = File.ReadAllText(configPath);
             var expectedStrategies = new[] { "S2", "S3", "S6", "S11" };
             var enabledCount = 0;
-            
+
             foreach (var strategy in expectedStrategies)
             {
                 if (configText.Contains($"\"id\": \"{strategy}\"") && configText.Contains("\"enabled\": true"))
@@ -495,7 +495,7 @@ public class SystemHealthMonitor
                     enabledCount++;
                 }
             }
-            
+
             if (enabledCount != expectedStrategies.Length)
             {
                 return new HealthResult
@@ -504,7 +504,7 @@ public class SystemHealthMonitor
                     Message = $"Only {enabledCount}/{expectedStrategies.Length} expected strategies enabled"
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -521,15 +521,15 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckSessionWindows()
     {
         try
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var currentTime = et.Hour * 100 + et.Minute;
-            
+
             var sessions = new Dictionary<string, (int start, int end)>
             {
                 ["S2"] = (1020, 1230), // 10:20-12:30 ET
@@ -537,10 +537,10 @@ public class SystemHealthMonitor
                 ["S6"] = (928, 1000),  // 09:28-10:00 ET
                 ["S11"] = (1330, 1530) // 13:30-15:30 ET
             };
-            
+
             var activeStrategies = sessions.Where(s => currentTime >= s.Value.start && currentTime <= s.Value.end).ToList();
             var upcomingStrategies = sessions.Where(s => currentTime < s.Value.start).ToList();
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -558,15 +558,15 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckTimezoneLogic()
     {
         try
         {
             var utcNow = DateTime.UtcNow;
-            var et = TimeZoneInfo.ConvertTimeFromUtc(utcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(utcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-            
+
             // Validate the conversion makes sense
             var hourDiff = Math.Abs((utcNow - et).TotalHours);
             if (hourDiff < 4 || hourDiff > 5)
@@ -577,7 +577,7 @@ public class SystemHealthMonitor
                     Message = $"Unexpected UTC to ET conversion: {hourDiff:F1} hour difference"
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -594,7 +594,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     // Placeholder implementations for remaining health checks
     private HealthResult CheckPositionLimits()
     {
@@ -606,14 +606,14 @@ public class SystemHealthMonitor
                 new { symbol = "ES", price = 5000m, expectedRisk = 1250m }, // 5 point stop = $250 per contract, 5 contracts = $1250
                 new { symbol = "NQ", price = 18000m, expectedRisk = 800m }  // 4 point stop = $80 per contract, 10 contracts = $800
             };
-            
+
             foreach (var scenario in testScenarios)
             {
                 // Simulate position sizing calculation
                 var accountSize = 100000m; // $100k account
                 var riskPercent = 0.02m; // 2% risk
                 var maxRisk = accountSize * riskPercent; // $2000 max risk
-                
+
                 if (scenario.expectedRisk > maxRisk)
                 {
                     return new HealthResult
@@ -623,7 +623,7 @@ public class SystemHealthMonitor
                     };
                 }
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -640,7 +640,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckRiskCalculations()
     {
         try
@@ -652,13 +652,13 @@ public class SystemHealthMonitor
                 new { entry = 18000m, stop = 18004m, target = 17992m, isLong = false, expectedR = 2.0m },
                 new { entry = 5000m, stop = 5005m, target = 4995m, isLong = false, expectedR = 1.0m }
             };
-            
+
             foreach (var test in testCases)
             {
                 var risk = test.isLong ? test.entry - test.stop : test.stop - test.entry;
                 var reward = test.isLong ? test.target - test.entry : test.entry - test.target;
                 var calculatedR = risk > 0 ? reward / risk : 0m;
-                
+
                 if (Math.Abs(calculatedR - test.expectedR) > 0.1m)
                 {
                     return new HealthResult
@@ -668,7 +668,7 @@ public class SystemHealthMonitor
                     };
                 }
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -685,34 +685,34 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckDataFeeds()
     {
         try
         {
             var now = DateTime.UtcNow;
             var issues = new List<string>();
-            
+
             // Check if we have recent data (within last 5 minutes during market hours)
             var et = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var isMarketHours = (et.Hour >= 9 && et.Hour < 16) || (et.Hour >= 18 && et.Hour < 23) || et.Hour < 4;
-            
+
             if (isMarketHours)
             {
                 // During market hours, data should be very fresh
                 var maxAge = TimeSpan.FromMinutes(5);
                 var staleDataWarning = $"Data feeds may be stale - no updates for {maxAge.TotalMinutes} minutes";
-                
+
                 // In a real implementation, this would check actual market data timestamps
                 // For now, we'll simulate checking data freshness
                 var simulatedLastUpdate = now.AddMinutes(-2); // Simulate 2 minutes old data
                 var dataAge = now - simulatedLastUpdate;
-                
+
                 if (dataAge > maxAge)
                 {
                     issues.Add($"ES data is {dataAge.TotalMinutes:F1} minutes old");
                 }
-                
+
                 if (issues.Any())
                 {
                     return new HealthResult
@@ -723,7 +723,7 @@ public class SystemHealthMonitor
                     };
                 }
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -740,24 +740,24 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckConnectivity()
     {
         try
         {
             var issues = new List<string>();
-            
+
             // Test API connectivity by checking if we can reach the health endpoint
             try
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
                 var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
-                
+
                 // We can't make external calls here easily, so simulate the check
                 // In real implementation, this would ping the actual API
                 var hasJwt = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"));
                 var hasCredentials = hasJwt || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME"));
-                
+
                 if (!hasCredentials)
                 {
                     issues.Add("No authentication credentials available");
@@ -767,14 +767,14 @@ public class SystemHealthMonitor
             {
                 issues.Add($"API connectivity test failed: {ex.Message}");
             }
-            
+
             // Check SignalR connection status (simulated)
             var hubStatus = "Connected"; // In real implementation, check actual hub connection state
             if (hubStatus != "Connected")
             {
                 issues.Add($"SignalR hub not connected: {hubStatus}");
             }
-            
+
             if (issues.Any())
             {
                 return new HealthResult
@@ -784,7 +784,7 @@ public class SystemHealthMonitor
                     Details = string.Join("; ", issues)
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -801,7 +801,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckOrderRouting()
     {
         try
@@ -809,20 +809,20 @@ public class SystemHealthMonitor
             var mode = Environment.GetEnvironmentVariable("BOT_MODE") ?? "paper";
             var paperMode = Environment.GetEnvironmentVariable("PAPER_MODE") ?? "0";
             var shadowMode = Environment.GetEnvironmentVariable("SHADOW_MODE") ?? "0";
-            
+
             // Validate mode consistency
             var issues = new List<string>();
-            
+
             if (mode.ToLower() == "live" && paperMode == "1")
             {
                 issues.Add("Conflicting modes: BOT_MODE=live but PAPER_MODE=1");
             }
-            
+
             if (paperMode == "1" && shadowMode == "1")
             {
                 issues.Add("Conflicting modes: Both PAPER_MODE and SHADOW_MODE enabled");
             }
-            
+
             // Test order routing logic with simulated order
             try
             {
@@ -834,18 +834,18 @@ public class SystemHealthMonitor
                     price = 5000m,
                     stopPrice = 4995m
                 };
-                
+
                 // Validate order structure
                 if (testOrder.quantity <= 0)
                 {
                     issues.Add("Order validation failed: invalid quantity");
                 }
-                
+
                 if (testOrder.price <= 0)
                 {
                     issues.Add("Order validation failed: invalid price");
                 }
-                
+
                 // Check stop loss distance (ES minimum 0.25 ticks)
                 var stopDistance = Math.Abs(testOrder.price - testOrder.stopPrice);
                 if (stopDistance < 0.25m)
@@ -857,7 +857,7 @@ public class SystemHealthMonitor
             {
                 issues.Add($"Order validation test failed: {ex.Message}");
             }
-            
+
             if (issues.Any())
             {
                 return new HealthResult
@@ -867,7 +867,7 @@ public class SystemHealthMonitor
                     Details = string.Join("; ", issues)
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -884,12 +884,12 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckMemoryUsage()
     {
         var process = System.Diagnostics.Process.GetCurrentProcess();
         var memoryMB = process.WorkingSet64 / 1024 / 1024;
-        
+
         if (memoryMB > 1000) // 1GB threshold
         {
             return new HealthResult
@@ -898,14 +898,14 @@ public class SystemHealthMonitor
                 Message = $"High memory usage: {memoryMB:N0} MB"
             };
         }
-        
+
         return new HealthResult
         {
             Status = HealthStatus.Healthy,
             Message = $"Memory usage normal: {memoryMB:N0} MB"
         };
     }
-    
+
     private HealthResult CheckFilePermissions()
     {
         try
@@ -914,7 +914,7 @@ public class SystemHealthMonitor
             Directory.CreateDirectory(Path.GetDirectoryName(testFile)!);
             File.WriteAllText(testFile, "test");
             File.Delete(testFile);
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -931,7 +931,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     // Advanced Strategy and Data Validation Health Checks
     private HealthResult CheckStrategySignals()
     {
@@ -940,40 +940,40 @@ public class SystemHealthMonitor
             // Test strategy signal logic with known market conditions
             var testScenarios = new object[]
             {
-                new { 
-                    strategy = "S2", 
-                    time = "11:00", 
-                    price = 5000m, 
-                    vwap = 4998m, 
-                    expectedSignal = "LONG", 
-                    reason = "Price above VWAP in S2 window" 
+                new {
+                    strategy = "S2",
+                    time = "11:00",
+                    price = 5000m,
+                    vwap = 4998m,
+                    expectedSignal = "LONG",
+                    reason = "Price above VWAP in S2 window"
                 },
-                new { 
-                    strategy = "S3", 
-                    time = "10:00", 
-                    price = 18000m, 
-                    squeeze = true, 
-                    expectedSignal = "BREAKOUT", 
-                    reason = "Squeeze breakout in S3 window" 
+                new {
+                    strategy = "S3",
+                    time = "10:00",
+                    price = 18000m,
+                    squeeze = true,
+                    expectedSignal = "BREAKOUT",
+                    reason = "Squeeze breakout in S3 window"
                 },
-                new { 
-                    strategy = "S6", 
-                    time = "09:30", 
-                    price = 5000m, 
-                    openingDrive = true, 
-                    expectedSignal = "FOLLOW", 
-                    reason = "Opening drive in S6 window" 
+                new {
+                    strategy = "S6",
+                    time = "09:30",
+                    price = 5000m,
+                    openingDrive = true,
+                    expectedSignal = "FOLLOW",
+                    reason = "Opening drive in S6 window"
                 }
             };
-            
+
             var failedTests = new List<string>();
-            
+
             foreach (dynamic scenario in testScenarios)
             {
                 // Simulate strategy logic validation
-                var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+                var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                     TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-                
+
                 // Check if strategy should be active at given time
                 var isActiveWindow = (string)scenario.strategy switch
                 {
@@ -983,12 +983,12 @@ public class SystemHealthMonitor
                     "S11" => scenario.time.CompareTo("13:30") >= 0 && scenario.time.CompareTo("15:30") <= 0,
                     _ => false
                 };
-                
+
                 if (!isActiveWindow)
                 {
                     failedTests.Add($"{scenario.strategy} should not be active at {scenario.time}");
                 }
-                
+
                 // Validate signal generation logic
                 var signalValid = (string)scenario.strategy switch
                 {
@@ -997,13 +997,13 @@ public class SystemHealthMonitor
                     "S6" when scenario.price > 4995m => scenario.expectedSignal == "FOLLOW",
                     _ => true // Skip validation for complex scenarios
                 };
-                
+
                 if (!signalValid)
                 {
                     failedTests.Add($"{scenario.strategy} signal logic failed: {scenario.reason}");
                 }
             }
-            
+
             if (failedTests.Any())
             {
                 return new HealthResult
@@ -1013,7 +1013,7 @@ public class SystemHealthMonitor
                     Details = string.Join("; ", failedTests)
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -1030,7 +1030,7 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckPositionTracking()
     {
         try
@@ -1038,40 +1038,40 @@ public class SystemHealthMonitor
             // Test position P&L calculations with known scenarios
             var testPositions = new[]
             {
-                new { 
-                    symbol = "ES", 
-                    qty = 5, 
-                    avgPrice = 5000m, 
-                    currentPrice = 5010m, 
+                new {
+                    symbol = "ES",
+                    qty = 5,
+                    avgPrice = 5000m,
+                    currentPrice = 5010m,
                     expectedPnL = 250m, // 5 contracts * 10 points * $50/point
                     description = "Long ES position with 10 point gain"
                 },
-                new { 
-                    symbol = "NQ", 
-                    qty = -10, 
-                    avgPrice = 18000m, 
-                    currentPrice = 17990m, 
+                new {
+                    symbol = "NQ",
+                    qty = -10,
+                    avgPrice = 18000m,
+                    currentPrice = 17990m,
                     expectedPnL = 400m, // 10 contracts * 10 points * $4/point (short)
                     description = "Short NQ position with 10 point gain"
                 }
             };
-            
+
             var calculationErrors = new List<string>();
-            
+
             foreach (var pos in testPositions)
             {
                 // Calculate P&L using the same logic as the bot
                 var pointValue = pos.symbol == "ES" ? 50m : 20m; // ES = $50/point, NQ = $20/point
                 var priceChange = pos.currentPrice - pos.avgPrice;
                 var calculatedPnL = pos.qty * priceChange * pointValue;
-                
+
                 var difference = Math.Abs(calculatedPnL - pos.expectedPnL);
                 if (difference > 0.01m) // Allow for small rounding differences
                 {
                     calculationErrors.Add($"{pos.description}: expected ${pos.expectedPnL}, calculated ${calculatedPnL}");
                 }
             }
-            
+
             // Test position sizing calculations
             var accountSize = 100000m;
             var riskPercent = 0.02m;
@@ -1079,12 +1079,12 @@ public class SystemHealthMonitor
             var esStopDistance = 5m; // 5 points
             var esPointValue = 50m;
             var maxContracts = (int)(maxRisk / (esStopDistance * esPointValue)); // Should be 8 contracts max
-            
+
             if (maxContracts != 8)
             {
                 calculationErrors.Add($"Position sizing calculation error: expected 8 max contracts, calculated {maxContracts}");
             }
-            
+
             if (calculationErrors.Any())
             {
                 return new HealthResult
@@ -1094,7 +1094,7 @@ public class SystemHealthMonitor
                     Details = string.Join("; ", calculationErrors)
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -1111,21 +1111,21 @@ public class SystemHealthMonitor
             };
         }
     }
-    
+
     private HealthResult CheckPriceValidation()
     {
         try
         {
             var now = DateTime.UtcNow;
             var validationIssues = new List<string>();
-            
+
             // Test price data consistency and validity
             var testPrices = new[]
             {
                 new { symbol = "ES", price = 5000m, minValid = 3000m, maxValid = 7000m },
                 new { symbol = "NQ", price = 18000m, minValid = 10000m, maxValid = 25000m }
             };
-            
+
             foreach (var test in testPrices)
             {
                 // Validate price is within reasonable bounds
@@ -1133,7 +1133,7 @@ public class SystemHealthMonitor
                 {
                     validationIssues.Add($"{test.symbol} price ${test.price} outside valid range ${test.minValid}-${test.maxValid}");
                 }
-                
+
                 // Validate tick size compliance
                 var tickSize = test.symbol == "ES" ? 0.25m : 0.25m;
                 var remainder = test.price % tickSize;
@@ -1142,35 +1142,35 @@ public class SystemHealthMonitor
                     validationIssues.Add($"{test.symbol} price ${test.price} not aligned to tick size ${tickSize}");
                 }
             }
-            
+
             // Test data freshness during market hours
             var et = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var isMarketHours = (et.Hour >= 9 && et.Hour < 16) || (et.Hour >= 18 && et.Hour < 23) || et.Hour < 4;
-            
+
             if (isMarketHours)
             {
                 // During market hours, simulate checking data freshness
                 var simulatedLastUpdate = now.AddSeconds(-30); // Simulate 30 seconds old
                 var dataAge = now - simulatedLastUpdate;
-                
+
                 if (dataAge > TimeSpan.FromMinutes(2))
                 {
                     validationIssues.Add($"Price data is stale - last update {dataAge.TotalSeconds:F0} seconds ago");
                 }
             }
-            
+
             // Test cross-market correlation (ES and NQ should move somewhat together)
             var esPrice = 5000m;
             var nqPrice = 18000m;
             var expectedRatio = 3.6m; // Typical NQ/ES ratio
             var actualRatio = nqPrice / esPrice;
             var ratioDeviation = Math.Abs(actualRatio - expectedRatio) / expectedRatio;
-            
+
             if (ratioDeviation > 0.1m) // 10% deviation threshold
             {
                 validationIssues.Add($"ES/NQ price correlation unusual - ratio {actualRatio:F2} vs expected {expectedRatio:F2}");
             }
-            
+
             if (validationIssues.Any())
             {
                 return new HealthResult
@@ -1180,7 +1180,7 @@ public class SystemHealthMonitor
                     Details = string.Join("; ", validationIssues)
                 };
             }
-            
+
             return new HealthResult
             {
                 Status = HealthStatus.Healthy,
@@ -1211,11 +1211,11 @@ public class SystemHealthSnapshot
 {
     public DateTime Timestamp { get; set; }
     public Dictionary<string, HealthResult> Results { get; set; } = new();
-    
-    public HealthStatus OverallStatus => Results.Values.Any(r => r.Status == HealthStatus.Failed) 
-        ? HealthStatus.Failed 
-        : Results.Values.Any(r => r.Status == HealthStatus.Warning) 
-            ? HealthStatus.Warning 
+
+    public HealthStatus OverallStatus => Results.Values.Any(r => r.Status == HealthStatus.Failed)
+        ? HealthStatus.Failed
+        : Results.Values.Any(r => r.Status == HealthStatus.Warning)
+            ? HealthStatus.Warning
             : HealthStatus.Healthy;
 }
 
@@ -1227,7 +1227,7 @@ public class HealthResult
     public DateTime CheckTime { get; set; } = DateTime.UtcNow;
 
     public HealthResult() { }
-    
+
     public HealthResult(HealthStatus status, string message)
     {
         Status = status;

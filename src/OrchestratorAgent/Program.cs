@@ -201,7 +201,7 @@ namespace OrchestratorAgent
             bool runTuneGate = (Environment.GetEnvironmentVariable("RUN_TUNING") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             bool authAllowGate = (Environment.GetEnvironmentVariable("AUTH_ALLOW") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
             bool demoMode = (Environment.GetEnvironmentVariable("DEMO_MODE") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-            
+
             if (!hasAnyCred && !(runTuneGate && authAllowGate) && !demoMode)
             {
                 Console.WriteLine("[Orchestrator] No credentials detected (TOPSTEPX_JWT / TOPSTEPX_USERNAME / TOPSTEPX_API_KEY). Exiting cleanly.");
@@ -209,7 +209,7 @@ namespace OrchestratorAgent
                 await Task.Delay(50);
                 return;
             }
-            
+
             if (demoMode)
             {
                 Console.WriteLine("[Orchestrator] 🧪 Starting in DEMO MODE - No real trading, dashboard only");
@@ -612,17 +612,17 @@ namespace OrchestratorAgent
                     });
 
                     var userHub = new BotCore.UserHubAgent(loggerFactory.CreateLogger<BotCore.UserHubAgent>(), status);
-                    
+
                     // 🌥️ Initialize 100% Cloud-Based Learning (No Local Training)
                     // Enable cloud model downloads for latest trained models
                     log.LogInformation("🌥️ [CloudLearning] Initializing 100% cloud-based learning - no local training required");
                     cloudModelDownloader = new BotCore.CloudRlTrainerEnhanced(loggerFactory.CreateLogger<BotCore.CloudRlTrainerEnhanced>());
-                    
+
                     // Enable cloud data upload so training data reaches cloud training pipeline  
                     cloudDataUploader = new BotCore.CloudDataUploader(loggerFactory.CreateLogger<BotCore.CloudDataUploader>());
-                    
+
                     log.LogInformation("🌥️ [CloudLearning] Bot configured for trading-only operation - all learning happens in cloud every 30 minutes");
-                    
+
                     // Ensure a non-empty token for hub connection; prefer jwtCache (fresh) then local jwt as fallback
                     string tokenNow = string.Empty;
                     try { tokenNow = await jwtCache.GetAsync() ?? string.Empty; } catch { tokenNow = string.Empty; }
@@ -733,7 +733,7 @@ namespace OrchestratorAgent
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
                         // Note: binding to ASPNETCORE_URLS is handled by hosting; no explicit UseUrls call needed here.
-                        
+
                         // Register RlSizer for risk-aware position sizing
                         webBuilder.Services.AddSingleton<OrchestratorAgent.ML.RlSizer>(sp =>
                         {
@@ -745,10 +745,10 @@ namespace OrchestratorAgent
                             var maxAgeMin = int.TryParse(Environment.GetEnvironmentVariable("RL_MAX_AGE_MIN"), out var age) ? age : 120;
                             return new OrchestratorAgent.ML.RlSizer(onnxPath, actions, sampleAction, maxAgeMin, logger);
                         });
-                        
+
                         // Register SizerCanary for A/A testing RL vs baseline CVaR
                         webBuilder.Services.AddSingleton<OrchestratorAgent.ML.SizerCanary>();
-                        
+
                         // Register IntelligenceService for market regime awareness and position sizing
                         webBuilder.Services.AddSingleton<BotCore.Services.IIntelligenceService>(sp =>
                         {
@@ -756,7 +756,7 @@ namespace OrchestratorAgent
                             var signalsPath = Environment.GetEnvironmentVariable("INTELLIGENCE_SIGNALS_PATH") ?? "Intelligence/data/signals/latest.json";
                             return new BotCore.Services.IntelligenceService(logger, signalsPath);
                         });
-                        
+
                         // Register ZoneService for supply/demand zone awareness
                         webBuilder.Services.AddSingleton<BotCore.Services.IZoneService>(sp =>
                         {
@@ -764,7 +764,7 @@ namespace OrchestratorAgent
                             var zonesPath = Environment.GetEnvironmentVariable("ZONES_DATA_PATH") ?? "Intelligence/data/zones/latest_zones.json";
                             return new BotCore.Services.ZoneService(logger, zonesPath);
                         });
-                        
+
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
                         {
@@ -815,10 +815,10 @@ namespace OrchestratorAgent
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                         rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
                         sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
-                        
+
                         // Get intelligence service from DI container
                         intelligenceService = web.Services.GetRequiredService<BotCore.Services.IIntelligenceService>();
-                        
+
                         // Get zone service from DI container
                         zoneService = web.Services.GetRequiredService<BotCore.Services.IZoneService>();
                         web.MapDashboard(dashboardHub);
@@ -2482,12 +2482,12 @@ namespace OrchestratorAgent
                 {
                     log.LogInformation("🧪 DEMO MODE: Dashboard running indefinitely without credentials. Press Ctrl+C to stop.");
                     // In demo mode, keep the dashboard running indefinitely
-                    try 
-                    { 
-                        await Task.Delay(Timeout.Infinite, cts.Token); 
-                    } 
-                    catch (OperationCanceledException) 
-                    { 
+                    try
+                    {
+                        await Task.Delay(Timeout.Infinite, cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
                         log.LogInformation("Demo mode stopped by user.");
                     }
                 }
@@ -2540,7 +2540,7 @@ namespace OrchestratorAgent
                         if (intelligence != null)
                         {
                             log.LogInformation("[INTEL] Loaded intelligence: Regime={Regime}, Confidence={Confidence:P0}, Bias={Bias}, FOMC={FOMC}, CPI={CPI}",
-                                intelligence.Regime, intelligence.ModelConfidence, intelligence.PrimaryBias, 
+                                intelligence.Regime, intelligence.ModelConfidence, intelligence.PrimaryBias,
                                 intelligence.IsFomcDay, intelligence.IsCpiDay);
                         }
                         else
@@ -2864,17 +2864,17 @@ namespace OrchestratorAgent
                     var bestShort = pickPool.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
                     var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
                     if (chosen is null) return;
-                    
+
                     // Intelligence-based strategy preference override
                     try
                     {
                         if (intelligenceService != null && intelligence != null)
                         {
                             var preferredStrategy = intelligenceService.GetPreferredStrategy(intelligence);
-                            var preferredSignal = signals.FirstOrDefault(s => 
+                            var preferredSignal = signals.FirstOrDefault(s =>
                                 string.Equals(s.StrategyId, preferredStrategy, StringComparison.OrdinalIgnoreCase) &&
                                 string.Equals(s.Side, chosen.Side, StringComparison.OrdinalIgnoreCase));
-                            
+
                             // Only override if the preferred strategy has reasonable quality (ExpR > 0.5)
                             if (preferredSignal != null && preferredSignal.ExpR >= 0.5m)
                             {
@@ -2893,26 +2893,27 @@ namespace OrchestratorAgent
                     {
                         log.LogWarning("[INTEL] Failed to apply strategy preference: {Error}", ex.Message);
                     }
-                    
+
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
 
                     // 🧠 RL Training Data Collection
-                    try 
+                    try
                     {
                         var rlSignalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
                         var features = BotCore.RlTrainingDataCollector.CreateFeatureSnapshot(
                             rlSignalId, symbol, chosen.StrategyId, chosen.Entry, baselineMultiplier: 1.0m);
-                        
+
                         // Populate with available market data
                         features.SignalStrength = chosen.ExpR;
-                        
+
                         // TODO: Add your indicator values here when available
                         // features.Atr = GetAtr(symbol);
                         // features.Rsi = GetRsi(symbol);
-                        
+
                         BotCore.RlTrainingDataCollector.LogFeatures(log, features);
                         status.Set($"rl.last_signal_id.{symbol}", rlSignalId); // Store for trade outcomes
-                    } catch (Exception ex) { log.LogDebug("RL data collection failed: {Error}", ex.Message); }
+                    }
+                    catch (Exception ex) { log.LogDebug("RL data collection failed: {Error}", ex.Message); }
 
                     // RS leader-only arbiter (env RS_ARB/RS_ARB_LEADER_ONLY=1):
                     try
@@ -3015,7 +3016,7 @@ namespace OrchestratorAgent
                         {
                             var intelligenceMultiplier = intelligenceService.GetPositionSizeMultiplier(intelligence);
                             riskScale *= intelligenceMultiplier;
-                            
+
                             log.LogInformation("[INTEL] Applied position size multiplier: {Multiplier:F2}, Final scale: {Scale:F2}",
                                 intelligenceMultiplier, riskScale);
                         }
@@ -3029,7 +3030,7 @@ namespace OrchestratorAgent
                     bool rlEnabled = string.Equals(Environment.GetEnvironmentVariable("RL_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
                     string signalId = $"{symbol}_{chosen.StrategyId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
                     bool useRlSizing = rlEnabled && rlSizer?.IsLoaded == true && sizerCanary?.ShouldUseRl(signalId) == true;
-                    
+
                     if (useRlSizing)
                     {
                         try
@@ -3064,11 +3065,11 @@ namespace OrchestratorAgent
 
                             // Get RL recommendation
                             var rlMultiplier = rlSizer!.Recommend(featureSnapshot);
-                            
+
                             // Apply RL multiplier, but keep it bounded and respect existing risk scale
                             riskScale *= (decimal)Math.Max(0.1, Math.Min(rlMultiplier, 2.0)); // RL can scale 0.1x to 2.0x
-                            
-                            log.LogInformation("[RlSizer] {Symbol} {Strategy} RL multiplier: {Mult:F2}, final risk scale: {Scale:F2}, signal: {SignalId}", 
+
+                            log.LogInformation("[RlSizer] {Symbol} {Strategy} RL multiplier: {Mult:F2}, final risk scale: {Scale:F2}, signal: {SignalId}",
                                 symbol, chosen.StrategyId, rlMultiplier, riskScale, signalId);
                         }
                         catch (Exception ex)
@@ -3078,7 +3079,7 @@ namespace OrchestratorAgent
                     }
                     else if (rlEnabled)
                     {
-                        log.LogDebug("[RlSizer] Using baseline CVaR sizing for {Symbol} {Strategy}, signal: {SignalId}", 
+                        log.LogDebug("[RlSizer] Using baseline CVaR sizing for {Symbol} {Strategy}, signal: {SignalId}",
                             symbol, chosen.StrategyId, signalId);
                     }
 
@@ -3237,7 +3238,7 @@ namespace OrchestratorAgent
                             if (zoneService != null)
                             {
                                 bool isLong = string.Equals(sig.Side, "BUY", StringComparison.OrdinalIgnoreCase);
-                                
+
                                 // Adjust stop to be BEYOND zones (avoid stop hunting)
                                 var optimalStop = zoneService.GetOptimalStopLevel(symbol, sig.Entry, isLong);
                                 if (Math.Abs(optimalStop - sig.Stop) > 0.01m) // Only adjust if different
@@ -3246,7 +3247,7 @@ namespace OrchestratorAgent
                                     log.LogInformation("[ZONES] Adjusted stop for {Symbol}: {OldStop} -> {NewStop} (beyond zone)",
                                         symbol, sig.Stop, optimalStop);
                                 }
-                                
+
                                 // Adjust target to nearest significant zone
                                 var optimalTarget = zoneService.GetOptimalTargetLevel(symbol, sig.Entry, isLong);
                                 if (Math.Abs(optimalTarget - sig.Target) > 0.01m) // Only adjust if different
@@ -3255,7 +3256,7 @@ namespace OrchestratorAgent
                                     log.LogInformation("[ZONES] Adjusted target for {Symbol}: {OldTarget} -> {NewTarget} (at zone)",
                                         symbol, sig.Target, optimalTarget);
                                 }
-                                
+
                                 // Apply zone-based position sizing
                                 var zoneAdjustedSize = zoneService.GetZoneBasedPositionSize(symbol, sig.Size, sig.Entry, isLong);
                                 if (Math.Abs(zoneAdjustedSize - sig.Size) > 0.1m) // Only adjust if significantly different
@@ -3264,12 +3265,12 @@ namespace OrchestratorAgent
                                     log.LogInformation("[ZONES] Zone-adjusted size for {Symbol}: {OldSize} -> {NewSize} (zone proximity)",
                                         symbol, sig.Size, toRoute.Size);
                                 }
-                                
+
                                 // Log zone analysis for this trade
                                 var nearestSupport = zoneService.GetNearestSupport(symbol, sig.Entry);
                                 var nearestResistance = zoneService.GetNearestResistance(symbol, sig.Entry);
                                 var isNearZone = zoneService.IsNearZone(symbol, sig.Entry, 0.005m);
-                                
+
                                 log.LogInformation("[ZONES] Trade context for {Symbol}: Entry={Entry}, Support={Support}, Resistance={Resistance}, NearZone={NearZone}",
                                     symbol, sig.Entry, nearestSupport, nearestResistance, isNearZone);
                             }
@@ -3319,20 +3320,20 @@ namespace OrchestratorAgent
                             // Log complete intelligence + zone context for successful trades
                             try
                             {
-                                var intelContext = intelligence != null 
+                                var intelContext = intelligence != null
                                     ? $"Regime={intelligence.Regime}, Confidence={intelligence.ModelConfidence:P0}, NewsIntensity={intelligence.NewsIntensity:F1}"
                                     : "No intelligence data";
-                                
+
                                 var zoneContext = zones != null
                                     ? $"NearSupport={zoneService?.GetNearestSupport(symbol, toRoute.Entry):F2}, NearResistance={zoneService?.GetNearestResistance(symbol, toRoute.Entry):F2}, POC={zones.POC:F2}"
                                     : "No zone data";
-                                
+
                                 log.LogInformation("[TRADE_ROUTED] {Symbol} {Strategy} {Side} {Size}@{Entry} | Stop={Stop} Target={Target} | Intel: {Intel} | Zones: {Zones}",
-                                    symbol, toRoute.StrategyId, toRoute.Side, toRoute.Size, toRoute.Entry, 
+                                    symbol, toRoute.StrategyId, toRoute.Side, toRoute.Size, toRoute.Entry,
                                     toRoute.Stop, toRoute.Target, intelContext, zoneContext);
                             }
                             catch { }
-                            
+
                             // Record intent, entries/hour stamp, and increment attempt counter (ET day)
                             try
                             {

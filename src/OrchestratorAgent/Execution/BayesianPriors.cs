@@ -6,7 +6,7 @@ namespace OrchestratorAgent.Execution
     // Maintains Beta(a,b) win-rate priors per (Strat, Cfg, Regime, Session)
     public sealed class BayesianPriors
     {
-        readonly Dictionary<(string strat, string cfg, string regime, string session), (double a, double b)> _map = 
+        readonly Dictionary<(string strat, string cfg, string regime, string session), (double a, double b)> _map =
             new(StringTupleComparer.OrdinalIgnoreCase);
 
         public (double a, double b) Get(string s, string c, string reg, string ses)
@@ -16,7 +16,7 @@ namespace OrchestratorAgent.Execution
         {
             var k = (s, c, reg, ses);
             var ab = Get(s, c, reg, ses);
-            if (win) ab.a += 1; 
+            if (win) ab.a += 1;
             else ab.b += 1;
             _map[k] = ab;
         }
@@ -51,7 +51,7 @@ namespace OrchestratorAgent.Execution
                     x = Normal01(r);
                     n = 1 + c * x;
                 } while (n <= 0);
-                
+
                 n = n * n * n;
                 double u = r.NextDouble();
                 if (u < 1 - 0.0331 * x * x * x * x) return d * n;

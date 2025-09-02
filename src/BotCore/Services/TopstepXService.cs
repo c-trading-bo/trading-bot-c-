@@ -70,7 +70,7 @@ public class TopstepXService : ITopstepXService, IDisposable
     /// <summary>
     /// Enhanced SSL certificate validation
     /// </summary>
-    private bool ValidateServerCertificate(HttpRequestMessage request, X509Certificate2? certificate, 
+    private bool ValidateServerCertificate(HttpRequestMessage request, X509Certificate2? certificate,
         X509Chain? chain, SslPolicyErrors sslPolicyErrors)
     {
         // In production, you might want to implement proper certificate validation
@@ -168,15 +168,15 @@ public class TopstepXService : ITopstepXService, IDisposable
                     if (message is HttpClientHandler clientHandler)
                     {
                         clientHandler.ServerCertificateCustomValidationCallback = ValidateServerCertificate;
-                        clientHandler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | 
+                        clientHandler.SslProtocols = System.Security.Authentication.SslProtocols.Tls12 |
                                                    System.Security.Authentication.SslProtocols.Tls13;
                     }
                     return message;
                 };
 
                 // Try WebSockets first, then fallback to other transports
-                options.Transports = HttpTransportType.WebSockets | 
-                                   HttpTransportType.LongPolling | 
+                options.Transports = HttpTransportType.WebSockets |
+                                   HttpTransportType.LongPolling |
                                    HttpTransportType.ServerSentEvents;
 
                 // Set timeouts
@@ -200,7 +200,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         // Set up event handlers
         SetupConnectionEventHandlers();
         RegisterMessageHandlers();
-        
+
         return Task.CompletedTask;
     }
 
@@ -211,7 +211,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         _hubConnection.Closed += async (error) =>
         {
             _logger.LogWarning("[TOPSTEPX] Connection closed: {Error}", error?.Message ?? "Unknown reason");
-            
+
             // Don't auto-reconnect immediately, let the timer handle it
             await Task.Delay(1000);
         };
@@ -225,7 +225,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         _hubConnection.Reconnected += async (connectionId) =>
         {
             _logger.LogInformation("[TOPSTEPX] Reconnected with ID: {ConnectionId}", connectionId);
-            
+
             // Re-subscribe to market data after reconnection
             try
             {
@@ -251,7 +251,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var marketData = JsonSerializer.Deserialize<MarketData>(data.GetRawText());
                 if (marketData != null)
                 {
-                    _logger.LogDebug("[MARKET] {Symbol}: Bid={Bid} Ask={Ask} Last={Last}", 
+                    _logger.LogDebug("[MARKET] {Symbol}: Bid={Bid} Ask={Ask} Last={Last}",
                         marketData.Symbol, marketData.Bid, marketData.Ask, marketData.Last);
                     OnMarketData?.Invoke(marketData);
                 }
@@ -270,7 +270,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var orderBook = JsonSerializer.Deserialize<OrderBookData>(data.GetRawText());
                 if (orderBook != null)
                 {
-                    _logger.LogDebug("[LEVEL2] {Symbol}: BidSize={BidSize} AskSize={AskSize}", 
+                    _logger.LogDebug("[LEVEL2] {Symbol}: BidSize={BidSize} AskSize={AskSize}",
                         orderBook.Symbol, orderBook.BidSize, orderBook.AskSize);
                     OnLevel2Update?.Invoke(orderBook);
                 }
@@ -289,7 +289,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var trade = JsonSerializer.Deserialize<TradeConfirmation>(data.GetRawText());
                 if (trade != null)
                 {
-                    _logger.LogInformation("[TRADE] Confirmed: {OrderId} {Symbol} {Side} {Quantity} @ {Price}", 
+                    _logger.LogInformation("[TRADE] Confirmed: {OrderId} {Symbol} {Side} {Quantity} @ {Price}",
                         trade.OrderId, trade.Symbol, trade.Side, trade.Quantity, trade.Price);
                     OnTradeConfirmed?.Invoke(trade);
                 }
@@ -311,7 +311,7 @@ public class TopstepXService : ITopstepXService, IDisposable
     private async Task<bool> StartConnectionWithRetry()
     {
         const int maxRetries = 3;
-        
+
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
@@ -320,17 +320,17 @@ public class TopstepXService : ITopstepXService, IDisposable
                     throw new InvalidOperationException("Hub connection not initialized");
 
                 _logger.LogInformation("[TOPSTEPX] Starting connection (attempt {Attempt}/{Max})", attempt, maxRetries);
-                
+
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await _hubConnection.StartAsync(cts.Token);
-                
+
                 _logger.LogInformation("[TOPSTEPX] Connection started successfully. State: {State}", _hubConnection.State);
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[TOPSTEPX] Connection attempt {Attempt} failed", attempt);
-                
+
                 if (attempt < maxRetries)
                 {
                     var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff
@@ -355,7 +355,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         {
             // Subscribe to market data for configured symbols
             var symbols = _configuration["TopstepX:Symbols"]?.Split(',') ?? new[] { "ES", "NQ" };
-            
+
             foreach (var symbol in symbols)
             {
                 await _hubConnection.InvokeAsync("SubscribeToMarketData", symbol.Trim());
@@ -388,7 +388,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             var tokenEndpoint = $"{apiUrl.TrimEnd('/')}/auth/token";
 
             var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
-            
+
             var loginPayload = new
             {
                 username = _configuration["TopstepX:Username"],
@@ -397,18 +397,18 @@ public class TopstepXService : ITopstepXService, IDisposable
             };
 
             request.Content = new StringContent(
-                JsonSerializer.Serialize(loginPayload), 
-                Encoding.UTF8, 
+                JsonSerializer.Serialize(loginPayload),
+                Encoding.UTF8,
                 "application/json"
             );
 
             var response = await _httpClient.SendAsync(request);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
                 var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(content);
-                
+
                 if (tokenResponse?.Token != null)
                 {
                     _logger.LogInformation("[TOPSTEPX] JWT token obtained successfully");
@@ -416,7 +416,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 }
             }
 
-            _logger.LogError("[TOPSTEPX] JWT request failed: {Status} {Content}", 
+            _logger.LogError("[TOPSTEPX] JWT request failed: {Status} {Content}",
                 response.StatusCode, await response.Content.ReadAsStringAsync());
             return null;
         }
@@ -459,7 +459,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 await _hubConnection.DisposeAsync();
                 _hubConnection = null;
             }
-            
+
             _logger.LogInformation("[TOPSTEPX] Disconnected successfully");
             return true;
         }
@@ -478,7 +478,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         _disposed = true;
 
         _reconnectTimer?.Dispose();
-        
+
         try
         {
             _hubConnection?.StopAsync().Wait(TimeSpan.FromSeconds(5));

@@ -63,7 +63,7 @@ public class RecoveryAttemptHistory
     public int AttemptCount { get; set; }
     public DateTime LastAttempt { get; set; }
     public bool IsBlocked { get; set; }
-    
+
     public void AttemptCompleted(string attemptId, bool success)
     {
         AttemptCount++;

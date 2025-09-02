@@ -13,22 +13,22 @@ public interface IHealthCheck
     /// Unique name for this health check
     /// </summary>
     string Name { get; }
-    
+
     /// <summary>
     /// Human-readable description of what this health check validates
     /// </summary>
     string Description { get; }
-    
+
     /// <summary>
     /// Category for grouping related health checks
     /// </summary>
     string Category { get; }
-    
+
     /// <summary>
     /// How often this check should run (in seconds)
     /// </summary>
     int IntervalSeconds { get; }
-    
+
     /// <summary>
     /// Execute the health check
     /// </summary>

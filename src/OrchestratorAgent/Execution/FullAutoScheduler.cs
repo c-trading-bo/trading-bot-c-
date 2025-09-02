@@ -25,7 +25,7 @@ namespace OrchestratorAgent.Execution
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (!Flag("AUTO_RETUNE_ENABLED")) 
+            if (!Flag("AUTO_RETUNE_ENABLED"))
             {
                 _log.LogInformation("[AUTO] Auto-retune disabled (AUTO_RETUNE_ENABLED != 1)");
                 return;
@@ -37,7 +37,7 @@ namespace OrchestratorAgent.Execution
             {
                 var now = DateTime.UtcNow.TimeOfDay;
                 var delay = now <= _at ? _at - now : TimeSpan.FromDays(1) - (now - _at);
-                
+
                 try
                 {
                     await Task.Delay(delay, stoppingToken);
@@ -58,20 +58,20 @@ namespace OrchestratorAgent.Execution
         async Task RetuneAsync(CancellationToken ct)
         {
             _log.LogInformation("[AUTO] nightly retune start lookback={LB} test={TD}", _lookbackDays, _testDays);
-            
+
             try
             {
                 // 1) Run walk-forward backtests over last LB days, folds of TEST days
                 // 2) Compute priors per (strat,cfg,regime,session) and write strat-configs + priors JSON
                 // 3) Signal orchestrator to reload lattice/priors (in-proc event or file watcher)
-                
+
                 // For now, just log that we would retune
                 _log.LogInformation("[AUTO] Would run walk-forward validation on {Days} days with {TestDays}-day folds", _lookbackDays, _testDays);
-                
+
                 // TODO: Integrate with existing TuningRunner
                 // var tuningRunner = _sp.GetService<TuningRunner>();
                 // await tuningRunner.RunWalkForwardAsync(_lookbackDays, _testDays, ct);
-                
+
                 await Task.CompletedTask;
                 _log.LogInformation("[AUTO] nightly retune done");
             }

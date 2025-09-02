@@ -11,7 +11,7 @@ namespace OrchestratorAgent.Execution
         readonly int _max = 500;
         readonly double _q;         // e.g., 0.95
         readonly double _targetR;   // e.g., 0.75 R
-        
+
         public double MinMult { get; set; } = 0.5;
         public double MaxMult { get; set; } = 1.5;
         public double Step { get; set; } = 0.25;
@@ -25,13 +25,13 @@ namespace OrchestratorAgent.Execution
         public void Observe(double rMultiple)
         {
             _r.Enqueue(Math.Max(-3, Math.Min(3, rMultiple)));
-            while (_r.Count > _max) 
+            while (_r.Count > _max)
                 _r.Dequeue();
         }
 
         public double Recommend(double baseMult)
         {
-            if (_r.Count < 50) 
+            if (_r.Count < 50)
                 return Math.Clamp(baseMult, MinMult, MaxMult);
 
             var arr = _r.ToArray().OrderBy(x => x).ToArray();
@@ -45,9 +45,9 @@ namespace OrchestratorAgent.Execution
 
             // Choose smallest multiplier that keeps |cvar| <= targetR
             double m = baseMult;
-            while (m > MinMult && Math.Abs(cvar * m) > _targetR) 
+            while (m > MinMult && Math.Abs(cvar * m) > _targetR)
                 m -= Step;
-            while (m < MaxMult && Math.Abs(cvar * m) < _targetR * 0.6) 
+            while (m < MaxMult && Math.Abs(cvar * m) < _targetR * 0.6)
                 m += Step; // scale up cautiously
 
             return Math.Clamp(m, MinMult, MaxMult);
