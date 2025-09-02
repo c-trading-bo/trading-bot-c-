@@ -727,6 +727,7 @@ namespace OrchestratorAgent
                     Dashboard.RealtimeHub? dashboardHub = null;
                     OrchestratorAgent.ML.RlSizer? rlSizer = null;
                     OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
+                    BotCore.Services.IIntelligenceService? intelligenceService = null;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
@@ -746,6 +747,14 @@ namespace OrchestratorAgent
                         
                         // Register SizerCanary for A/A testing RL vs baseline CVaR
                         webBuilder.Services.AddSingleton<OrchestratorAgent.ML.SizerCanary>();
+                        
+                        // Register IntelligenceService for market regime awareness and position sizing
+                        webBuilder.Services.AddSingleton<BotCore.Services.IIntelligenceService>(sp =>
+                        {
+                            var logger = sp.GetRequiredService<ILogger<BotCore.Services.IntelligenceService>>();
+                            var signalsPath = Environment.GetEnvironmentVariable("INTELLIGENCE_SIGNALS_PATH") ?? "Intelligence/data/signals/latest.json";
+                            return new BotCore.Services.IntelligenceService(logger, signalsPath);
+                        });
                         
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
@@ -797,6 +806,9 @@ namespace OrchestratorAgent
                         dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
                         rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
                         sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
+                        
+                        // Get intelligence service from DI container
+                        intelligenceService = web.Services.GetRequiredService<BotCore.Services.IIntelligenceService>();
                         web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
@@ -2292,7 +2304,7 @@ namespace OrchestratorAgent
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
                         // Handoff to strategy engine (bus-equivalent)
                         log.LogDebug("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
-                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, cts.Token);
+                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, intelligenceService, cts.Token);
                         dataLog.LogDebug("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
                     barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
@@ -2496,12 +2508,34 @@ namespace OrchestratorAgent
                 SupervisorAgent.StatusService status,
                 OrchestratorAgent.ML.RlSizer? rlSizer,
                 OrchestratorAgent.ML.SizerCanary? sizerCanary,
+                BotCore.Services.IIntelligenceService? intelligenceService,
                 CancellationToken ct)
             {
                 try
                 {
                     // Keep a reasonable history window
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
+
+                    // Load latest intelligence data for trading decisions
+                    BotCore.Models.MarketContext? intelligence = null;
+                    try
+                    {
+                        intelligence = await intelligenceService?.GetLatestIntelligenceAsync();
+                        if (intelligence != null)
+                        {
+                            log.LogInformation("[INTEL] Loaded intelligence: Regime={Regime}, Confidence={Confidence:P0}, Bias={Bias}, FOMC={FOMC}, CPI={CPI}",
+                                intelligence.Regime, intelligence.ModelConfidence, intelligence.PrimaryBias, 
+                                intelligence.IsFomcDay, intelligence.IsCpiDay);
+                        }
+                        else
+                        {
+                            log.LogDebug("[INTEL] No intelligence available, continuing with default logic");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning("[INTEL] Failed to load intelligence: {Error}", ex.Message);
+                    }
 
                     // Local helpers: veto counters and simple RS momentum
                     void IncVeto(string reason)
@@ -2904,6 +2938,23 @@ namespace OrchestratorAgent
                         }
                     }
                     catch { }
+
+                    // Apply intelligence-based risk scaling
+                    try
+                    {
+                        if (intelligenceService != null && intelligence != null)
+                        {
+                            var intelligenceMultiplier = intelligenceService.GetPositionSizeMultiplier(intelligence);
+                            riskScale *= intelligenceMultiplier;
+                            
+                            log.LogInformation("[INTEL] Applied position size multiplier: {Multiplier:F2}, Final scale: {Scale:F2}",
+                                intelligenceMultiplier, riskScale);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning("[INTEL] Failed to apply intelligence scaling: {Error}", ex.Message);
+                    }
 
                     // RL-based position sizing (if enabled and canary permits)
                     bool rlEnabled = string.Equals(Environment.GetEnvironmentVariable("RL_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
