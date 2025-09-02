@@ -22,6 +22,11 @@ concurrency:
   group: train-github-only
   cancel-in-progress: true
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 env:
   VENDOR_DIR: "data/vendor"
   DATA_DIR: "data/logs"
@@ -29,12 +34,17 @@ env:
 jobs:
   continuous-training:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
-      contents: write  # Needed for creating releases
+      contents: write
       
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            persist-credentials: true
+            fetch-depth: 0
         
       - name: "🔍 Debug Workflow Info"
         run: |
@@ -48,49 +58,12 @@ jobs:
         with:
           python-version: '3.9'
           
-      - name: "💾 Cache TA-Lib Dependencies"
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/pip
-            /usr/lib/libta_lib*
-            /usr/include/ta-lib/
-          key: ${{ runner.os }}-talib-deps-${{ hashFiles('**/requirements*.txt') }}
-          
-      - name: "🔧 Install System Dependencies"
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget tar build-essential
-          
-      - name: "📊 Install TA-Lib C Library"
-        run: |
-          if [ ! -f /usr/lib/libta_lib.so ]; then
-            echo "Installing TA-Lib C library from source..."
-            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-            tar -xzf ta-lib-0.4.0-src.tar.gz
-            cd ta-lib/
-            ./configure --prefix=/usr
-            make
-            sudo make install
-            cd ..
-            sudo ldconfig
-            echo "✅ TA-Lib C library installed successfully"
-          else
-            echo "✅ TA-Lib C library already cached"
-          fi
-          
       - name: "📦 Install Python Dependencies"
         run: |
           pip install --upgrade pip
-          # Core ML dependencies
           pip install torch numpy pandas scikit-learn onnx skl2onnx packaging pyarrow
           pip install gym stable-baselines3 tensorboard matplotlib seaborn
-          # TA-Lib (Python wrapper after C library)
-          pip install TA-Lib
-          # Backup technical analysis libraries
-          pip install ta pandas-ta
-          # Hyperparameter optimization
-          pip install optuna hyperopt
+          pip install optuna hyperopt joblib
           
       - name: "🔍 Test Dependencies"  
         run: |
@@ -101,7 +74,6 @@ jobs:
         run: |
           echo "🧪 Running lightweight smoke test..."
           mkdir -p models/rl data/logs
-          # Create minimal test data
           python -c "
           import pandas as pd
           import numpy as np
@@ -114,118 +86,48 @@ jobs:
           print('✅ Smoke test completed successfully!')
           "
 
-      - name: "📊 Generate Advanced Training Data"
+      - name: "📊 Generate Training Data"
         if: ${{ inputs.manual_test != true }}
         run: |
-          mkdir -p models/rl data/logs data/vendor
-          echo "Creating advanced training data with sophisticated features..."
+          mkdir -p models/rl data/logs data/vendor Intelligence/data/training
+          echo "Creating training data..."
           python -c "
           import json
-          import random
           import pandas as pd
           import numpy as np
           from datetime import datetime, timedelta
           
           # Generate training data
           meta_data = []
-          for i in range(5000):
-              base_price = 4500
-              price = base_price + random.uniform(-200, 200)
-              atr = random.uniform(5, 100)
-              
+          for i in range(1000):
               meta_data.append({
                   'timestamp': (datetime.now() - timedelta(hours=i)).isoformat(),
-                  'symbol': random.choice(['ES', 'NQ', 'YM', 'RTY']),
-                  'price': price,
-                  'atr': atr,
-                  'rsi': random.uniform(20, 80),
-                  'r_multiple': random.uniform(-3, 5),
-                  'win': random.choice([True, False])
+                  'symbol': 'ES',
+                  'price': 4500 + np.random.randn() * 50,
+                  'volume': np.random.randint(1000, 10000),
+                  'returns': np.random.randn() * 0.01,
+                  'volatility': np.random.exponential(0.02)
               })
           
           df_meta = pd.DataFrame(meta_data)
-          df_meta.to_parquet('data/logs/candidates.merged.parquet', index=False)
-          print(f'Generated meta classifier data: {len(df_meta)} samples')
+          df_meta.to_csv('Intelligence/data/training/data.csv', index=False)
+          print(f'Generated training data: {len(df_meta)} samples')
           "
 
-      - name: "🤖 Train Meta Strategy Classifier"
+      - name: "🤖 Train Models"
         if: ${{ inputs.manual_test != true }}
         run: |
-          echo "Training meta classifier..."
-          python -c "
-          import pandas as pd
-          import numpy as np
-          from sklearn.ensemble import RandomForestClassifier
-          from sklearn.model_selection import train_test_split
-          import joblib
-          import os
-          
-          os.makedirs('models', exist_ok=True)
-          
-          # Load data
-          df = pd.read_parquet('data/logs/candidates.merged.parquet')
-          
-          # Prepare features
-          features = ['price', 'atr', 'rsi']
-          X = df[features].fillna(0)
-          y = df['win'].astype(int)
-          
-          # Train model
-          X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-          model = RandomForestClassifier(n_estimators=100, random_state=42)
-          model.fit(X_train, y_train)
-          
-          # Save model
-          joblib.dump(model, 'models/meta_classifier.pkl')
-          print(f'Model trained with accuracy: {model.score(X_test, y_test):.3f}')
-          "
-
-      - name: "📝 Create Model Manifest"
-        run: |
-          echo "Creating model manifest..."
-          python -c "
-          import json
-          import hashlib
-          import os
-          import glob
-          from datetime import datetime
-          
-          manifest = {
-              'version': datetime.now().strftime('%Y%m%d-%H%M%S'),
-              'timestamp': datetime.now().isoformat(),
-              'models': {},
-              'training_metrics': {
-                  'meta_classifier_accuracy': 0.87
-              }
-          }
-
-          # Add all model files with checksums
-          for model_file in glob.glob('models/*.pkl'):
-              if os.path.exists(model_file):
-                  with open(model_file, 'rb') as f:
-                      content = f.read()
-                      checksum = hashlib.sha256(content).hexdigest()
-                      manifest['models'][os.path.basename(model_file)] = {
-                          'checksum': checksum,
-                          'size': len(content),
-                          'path': model_file,
-                          'type': 'Pickle'
-                      }
-
-          with open('models/manifest.json', 'w') as f:
-              json.dump(manifest, f, indent=2)
-
-          print(f'✅ Manifest created with {len(manifest[\"models\"])} models')
-          "
+          echo "Training models..."
+          python ml/rl/train_cvar_ppo.py --data Intelligence/data/training/data.csv --save_dir models/rl/
 
       - name: "📦 Package Models"
         run: |
+          mkdir -p models
           cd models
           timestamp=$(date +%Y%m%d-%H%M%S)
-          tar -czf ml-models-${timestamp}.tar.gz *.pkl manifest.json 2>/dev/null || tar -czf ml-models-${timestamp}.tar.gz manifest.json
+          tar -czf ml-models-${timestamp}.tar.gz rl/ 2>/dev/null || echo "No models to package"
           echo "MODEL_PACKAGE=ml-models-${timestamp}.tar.gz" >> $GITHUB_ENV
           echo "RELEASE_TAG=models-v${timestamp}" >> $GITHUB_ENV
-          echo "RELEASE_DATE=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
 
       - name: "🚀 Create GitHub Release"
         uses: actions/create-release@v1
@@ -234,19 +136,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          release_name: "AI Models ${{ env.RELEASE_DATE }}"
+          release_name: "AI Models $(date +'%Y-%m-%d %H:%M')"
           body: |
             🚀 **ML/RL Model Release**
             
-            **Training Completed**: ${{ env.RELEASE_DATE }}
+            **Training Completed**: $(date +'%Y-%m-%d %H:%M:%S UTC')
             
             ## 🧠 **Models Included**:
-            - **Meta Strategy Classifier** (Pickle) - Strategy selection
-            
-            ## 📊 **Training Metrics**:
-            - Meta Classifier Accuracy: **87%** ⬆️
-            
-            🎉 **Your bot is now learning continuously!**
+            - **CVaR PPO Agent** - Advanced RL position sizing
             
             Download the `ml-models-*.tar.gz` file to get all trained models.
           draft: false

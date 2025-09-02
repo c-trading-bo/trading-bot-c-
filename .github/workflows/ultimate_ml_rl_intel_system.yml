@@ -31,6 +31,11 @@ env:
   PYTHON_VERSION: '3.9'
   TZ: 'UTC'
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   # ============================================
   # JOB 1: COMPLETE DATA COLLECTION
@@ -41,7 +46,11 @@ jobs:
     if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'data_only' || github.event.inputs.mode == ''
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0  # Full history for analysis
@@ -85,21 +94,21 @@ jobs:
     
     - name: Install ALL Python Dependencies
       run: |
-        pip install --upgrade pip
+        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
         # Core dependencies
-        pip install numpy pandas scipy statsmodels
+        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy statsmodels
         # TA-Lib and technical analysis (install TA-Lib first, then backups)
-        pip install TA-Lib
-        pip install ta pandas-ta
+        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib
+        pip install --retry-delays 1,2,3 --timeout 60 ta pandas-ta
         # ML/RL dependencies
-        pip install torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install onnx onnxruntime optuna shap
+        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install --retry-delays 1,2,3 --timeout 60 onnx onnxruntime optuna shap
         # Data collection
-        pip install yfinance feedparser requests beautifulsoup4
-        pip install selenium webdriver-manager
-        pip install alpaca-trade-api polygon-api-client
+        pip install --retry-delays 1,2,3 --timeout 60 yfinance feedparser requests beautifulsoup4
+        pip install --retry-delays 1,2,3 --timeout 60 selenium webdriver-manager
+        pip install --retry-delays 1,2,3 --timeout 60 alpaca-trade-api polygon-api-client
         # Sentiment analysis
-        pip install textblob vaderSentiment
+        pip install --retry-delays 1,2,3 --timeout 60 textblob vaderSentiment
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Enhanced)
@@ -607,11 +616,17 @@ jobs:
     
     - name: Commit All Data Collection
       run: |
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git config --local user.email "ml-bot@github.com"
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git config --local user.name "ML Learning Bot"
+        git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
         git add Intelligence/data/
         git diff --staged --quiet || git commit -m "📊 Ultimate data collection $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push || true
+        git push --force-with-lease || true
 
   # ============================================
   # JOB 2: TRAIN ALL ML/RL MODELS
@@ -623,7 +638,11 @@ jobs:
     if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'training_only' || github.event.inputs.mode == ''
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
       with:
         ref: main  # Get latest data
     
@@ -634,8 +653,8 @@ jobs:
     
     - name: Install ML/RL Dependencies
       run: |
-        pip install torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install optuna shap numpy pandas onnx onnxruntime
+        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
     
     # ----------------------------------------
     # TRAIN NEURAL BANDITS
@@ -896,7 +915,7 @@ jobs:
         git config --local user.name "ML Learning Bot"
         git add Intelligence/models/ Intelligence/data/regime/
         git diff --staged --quiet || git commit -m "🧠 Ultimate model training $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push || true
+        git push --force-with-lease || true
 
   # ============================================
   # JOB 3: INTELLIGENCE INTEGRATION
@@ -908,7 +927,11 @@ jobs:
     if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'intelligence_only' || github.event.inputs.mode == ''
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
       with:
         ref: main  # Get latest updates
     
@@ -919,7 +942,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install pandas numpy scikit-learn joblib
+        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
     
     - name: Generate Trading Signals
       run: |
@@ -1217,7 +1240,7 @@ jobs:
         git config --local user.name "ML Learning Bot"
         git add Intelligence/
         git diff --staged --quiet || git commit -m "🎯 Ultimate intelligence integration complete $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push || true
+        git push --force-with-lease || true
 
   # ============================================
   # JOB 4: SUMMARY & MONITORING
@@ -1228,7 +1251,11 @@ jobs:
     if: always()
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
     
     - name: Generate Run Summary
       run: |
@@ -1276,4 +1303,4 @@ jobs:
         git config --local user.name "ML Learning Bot"
         git add .github/system_status.txt
         git diff --staged --quiet || git commit -m "📊 System status update"
-        git push || true
+        git push --force-with-lease || true

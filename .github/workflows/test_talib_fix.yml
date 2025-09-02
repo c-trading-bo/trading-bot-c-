@@ -13,13 +13,23 @@ on:
           - quick
           - dependencies_only
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   test-talib-fix:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            persist-credentials: true
+            fetch-depth: 0
         
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
@@ -59,12 +69,12 @@ jobs:
           
       - name: "📦 Install Python Dependencies"
         run: |
-          pip install --upgrade pip
-          pip install numpy pandas
+          pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+          pip install --retry-delays 1,2,3 --timeout 60 numpy pandas
           # Install TA-Lib Python wrapper
-          pip install TA-Lib
+          pip install --retry-delays 1,2,3 --timeout 60 TA-Lib
           # Install backup libraries
-          pip install ta pandas-ta
+          pip install --retry-delays 1,2,3 --timeout 60 ta pandas-ta
           
       - name: "🧪 Test TA-Lib Installation"
         run: |
