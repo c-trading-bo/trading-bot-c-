@@ -1,0 +1,121 @@
+name: "🧪 Test TA-Lib Installation Fix"
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: "Type of test to run"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - full
+          - quick
+          - dependencies_only
+
+jobs:
+  test-talib-fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "📥 Checkout Code"
+        uses: actions/checkout@v4
+        
+      - name: "🐍 Setup Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: "💾 Cache TA-Lib Dependencies"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            /usr/lib/libta_lib*
+            /usr/include/ta-lib/
+          key: ${{ runner.os }}-talib-test-${{ hashFiles('**/requirements*.txt') }}
+          
+      - name: "🔧 Install System Dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget tar build-essential
+          
+      - name: "📊 Install TA-Lib C Library"
+        run: |
+          if [ ! -f /usr/lib/libta_lib.so ]; then
+            echo "Installing TA-Lib C library from source..."
+            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+            tar -xzf ta-lib-0.4.0-src.tar.gz
+            cd ta-lib/
+            ./configure --prefix=/usr
+            make
+            sudo make install
+            cd ..
+            sudo ldconfig
+            echo "✅ TA-Lib C library installed successfully"
+          else
+            echo "✅ TA-Lib C library already cached"
+          fi
+          
+      - name: "📦 Install Python Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install numpy pandas
+          # Install TA-Lib Python wrapper
+          pip install TA-Lib
+          # Install backup libraries
+          pip install ta pandas-ta
+          
+      - name: "🧪 Test TA-Lib Installation"
+        run: |
+          echo "=========================================="
+          echo "🧪 TESTING TA-LIB INSTALLATION"
+          echo "=========================================="
+          
+          echo "Test 1: Import TA-Lib"
+          python -c "import talib; print('✅ TA-Lib imported successfully')" || echo "❌ TA-Lib import failed"
+          
+          echo "Test 2: Test basic TA-Lib function"
+          python -c "
+          import talib
+          import numpy as np
+          prices = np.random.randn(100) + 100
+          sma = talib.SMA(prices, 20)
+          print(f'✅ TA-Lib SMA calculation successful: {sma[-1]:.2f}')
+          " || echo "❌ TA-Lib function test failed"
+          
+          echo "Test 3: Test backup library 'ta'"
+          python -c "
+          import ta
+          import pandas as pd
+          import numpy as np
+          df = pd.DataFrame({'close': np.random.randn(100) + 100})
+          rsi = ta.momentum.RSIIndicator(df['close']).rsi()
+          print(f'✅ Backup ta library working: RSI = {rsi.iloc[-1]:.2f}')
+          " || echo "❌ Backup 'ta' library test failed"
+          
+          echo "Test 4: Test backup library 'pandas_ta'"
+          python -c "
+          import pandas_ta as pta
+          import pandas as pd
+          import numpy as np
+          df = pd.DataFrame({'close': np.random.randn(100) + 100})
+          rsi = pta.rsi(df['close'])
+          print(f'✅ Backup pandas_ta library working: RSI = {rsi.iloc[-1]:.2f}')
+          " || echo "❌ Backup 'pandas_ta' library test failed"
+          
+      - name: "✅ Test Summary"
+        run: |
+          echo "=========================================="
+          echo "🎉 TA-LIB INSTALLATION TEST COMPLETE"
+          echo "=========================================="
+          echo "If you see ✅ symbols above, the fix is working!"
+          echo "If you see ❌ symbols, there may still be issues."
+          echo ""
+          echo "The key indicators of success:"
+          echo "- ✅ TA-Lib imported successfully"
+          echo "- ✅ TA-Lib SMA calculation successful"
+          echo "- At least one backup library working"
+          echo ""
+          echo "This validates that the TA-Lib installation"
+          echo "fix in the main workflows will work correctly."

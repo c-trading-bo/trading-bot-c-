@@ -143,37 +143,37 @@ jobs:
           
           # Create unsigned manifest
           cat > models/current_unsigned.json <<EOF
-{
-  "version": "${{ steps.sums.outputs.ver }}",
-  "timestamp": "$(date -u --iso-8601=seconds)",
-  "training_samples": $(wc -l < "../${{ env.DATA_DIR }}/candidates.merged.parquet" 2>/dev/null || echo 1000),
-  "models": {
-    "meta": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/meta_model/v${{ steps.sums.outputs.ver }}.onnx",
-      "checksum": "${{ steps.sums.outputs.meta_sha }}",
-      "size": $(stat -c%s "models/meta_model.onnx" 2>/dev/null || echo 0),
-      "createdAt": "$(date -u --iso-8601=seconds)"
-    },
-    "execution": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/exec_model/v${{ steps.sums.outputs.ver }}.onnx", 
-      "checksum": "${{ steps.sums.outputs.exec_sha }}",
-      "size": $(stat -c%s "models/exec_model.onnx" 2>/dev/null || echo 0),
-      "createdAt": "$(date -u --iso-8601=seconds)"
-    },
-    "rl_sizer": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/rl_model/v${{ steps.sums.outputs.ver }}.onnx",
-      "checksum": "${{ steps.sums.outputs.rl_sha }}",
-      "size": $(stat -c%s "models/rl_model.onnx" 2>/dev/null || echo 0),
-      "createdAt": "$(date -u --iso-8601=seconds)"
-    }
-  },
-  "strategies": ["EmaCrossStrategy", "MeanReversion", "Breakout", "Momentum"],
-  "features": {
-    "count": 17,
-    "list": ["price", "atr", "rsi", "ema20", "ema50", "volume", "spread", "volatility", "bid_ask_imbalance", "order_book_imbalance", "tick_direction", "signal_strength", "prior_win_rate", "avg_r_multiple", "drawdown_risk", "news_impact", "liquidity_risk"]
-  }
-}
-EOF
+          {
+            "version": "${{ steps.sums.outputs.ver }}",
+            "timestamp": "$(date -u --iso-8601=seconds)",
+            "training_samples": $(wc -l < "../${{ env.DATA_DIR }}/candidates.merged.parquet" 2>/dev/null || echo 1000),
+            "models": {
+              "meta": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/meta_model/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.meta_sha }}",
+                "size": $(stat -c%s "models/meta_model.onnx" 2>/dev/null || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)"
+              },
+              "execution": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/exec_model/v${{ steps.sums.outputs.ver }}.onnx", 
+                "checksum": "${{ steps.sums.outputs.exec_sha }}",
+                "size": $(stat -c%s "models/exec_model.onnx" 2>/dev/null || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)"
+              },
+              "rl_sizer": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/rl_model/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.rl_sha }}",
+                "size": $(stat -c%s "models/rl_model.onnx" 2>/dev/null || echo 0),
+                "createdAt": "$(date -u --iso-8601=seconds)"
+              }
+            },
+            "strategies": ["EmaCrossStrategy", "MeanReversion", "Breakout", "Momentum"],
+            "features": {
+              "count": 17,
+              "list": ["price", "atr", "rsi", "ema20", "ema50", "volume", "spread", "volatility", "bid_ask_imbalance", "order_book_imbalance", "tick_direction", "signal_strength", "prior_win_rate", "avg_r_multiple", "drawdown_risk", "news_impact", "liquidity_risk"]
+            }
+          }
+          EOF
           
           # Sign manifest using HMAC tool
           echo "🔐 Signing manifest with HMAC-SHA256..."

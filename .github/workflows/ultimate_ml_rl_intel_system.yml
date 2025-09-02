@@ -52,15 +52,54 @@ jobs:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
     
-    - name: Install ALL Dependencies
+    - name: Cache TA-Lib and Dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          /usr/lib/libta_lib*
+          /usr/include/ta-lib/
+        key: ${{ runner.os }}-deps-talib-${{ hashFiles('**/requirements*.txt') }}
+        
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget tar build-essential
+    
+    - name: Install TA-Lib C Library
+      run: |
+        if [ ! -f /usr/lib/libta_lib.so ]; then
+          echo "Installing TA-Lib C library from source..."
+          wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+          tar -xzf ta-lib-0.4.0-src.tar.gz
+          cd ta-lib/
+          ./configure --prefix=/usr
+          make
+          sudo make install
+          cd ..
+          sudo ldconfig
+          echo "✅ TA-Lib C library installed successfully"
+        else
+          echo "✅ TA-Lib C library already cached"
+        fi
+    
+    - name: Install ALL Python Dependencies
       run: |
         pip install --upgrade pip
-        pip install yfinance pandas numpy scipy statsmodels
+        # Core dependencies
+        pip install numpy pandas scipy statsmodels
+        # TA-Lib and technical analysis (install TA-Lib first, then backups)
+        pip install TA-Lib
+        pip install ta pandas-ta
+        # ML/RL dependencies
         pip install torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install onnx onnxruntime optuna
-        pip install feedparser requests beautifulsoup4 selenium
-        pip install ta ta-lib
+        pip install onnx onnxruntime optuna shap
+        # Data collection
+        pip install yfinance feedparser requests beautifulsoup4
+        pip install selenium webdriver-manager
         pip install alpaca-trade-api polygon-api-client
+        # Sentiment analysis
+        pip install textblob vaderSentiment
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Enhanced)

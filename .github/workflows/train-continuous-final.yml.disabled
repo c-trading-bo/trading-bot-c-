@@ -120,26 +120,26 @@ jobs:
         run: |
           cd ml
           cat > models/manifest_unsigned.json << 'EOF'
-{
-  "version": "${{ steps.sums.outputs.ver }}",
-  "timestamp": "2023-12-01T00:00:00Z",
-  "training_samples": 1000,
-  "models": {
-    "meta": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/meta_model/v${{ steps.sums.outputs.ver }}.onnx",
-      "checksum": "${{ steps.sums.outputs.meta_sha }}"
-    },
-    "execution": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/exec_model/v${{ steps.sums.outputs.ver }}.onnx", 
-      "checksum": "${{ steps.sums.outputs.exec_sha }}"
-    },
-    "rl_sizer": {
-      "url": "${{ secrets.CDN_BASE_URL }}/models/rl_model/v${{ steps.sums.outputs.ver }}.onnx",
-      "checksum": "${{ steps.sums.outputs.rl_sha }}"
-    }
-  }
-}
-EOF
+          {
+            "version": "${{ steps.sums.outputs.ver }}",
+            "timestamp": "2023-12-01T00:00:00Z",
+            "training_samples": 1000,
+            "models": {
+              "meta": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/meta_model/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.meta_sha }}"
+              },
+              "execution": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/exec_model/v${{ steps.sums.outputs.ver }}.onnx", 
+                "checksum": "${{ steps.sums.outputs.exec_sha }}"
+              },
+              "rl_sizer": {
+                "url": "${{ secrets.CDN_BASE_URL }}/models/rl_model/v${{ steps.sums.outputs.ver }}.onnx",
+                "checksum": "${{ steps.sums.outputs.rl_sha }}"
+              }
+            }
+          }
+          EOF
 
       - name: "🔐 Sign Manifest"
         if: steps.skip_check.outputs.skip == 'false'
