@@ -2,7 +2,10 @@ name: "24/7 GitHub-Only ML/RL Training"
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    # Optimized for trading: frequent during market hours, moderate off-hours
+    - cron: '*/15 13-20 * * 1-5'  # Every 15 min during market hours (9:30 AM - 4:00 PM ET)
+    - cron: '0 */2 * * *'         # Every 2 hours during off-hours
+    - cron: '0 */3 * * 0,6'       # Every 3 hours on weekends
   workflow_dispatch:
     inputs:
       manual_test:

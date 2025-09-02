@@ -2,7 +2,8 @@ name: "Cloud ML Training Pipeline"
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '*/30 13-20 * * 1-5'  # Every 30 min during market hours
+    - cron: '0 */4 * * *'         # Every 4 hours off-hours
   workflow_dispatch:
   push:
     branches: ['main']
