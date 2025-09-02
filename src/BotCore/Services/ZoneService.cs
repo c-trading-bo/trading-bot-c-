@@ -15,6 +15,26 @@ public interface IZoneService
     decimal GetOptimalTargetLevel(string symbol, decimal entryPrice, bool isLong);
     decimal GetZoneBasedPositionSize(string symbol, decimal baseSize, decimal entryPrice, bool isLong);
     bool IsNearZone(string symbol, decimal price, decimal tolerance = 0.001m);
+    // Enhanced methods from problem statement
+    Zone GetNearestZone(decimal price, string zoneType);
+    string GetZoneContext(decimal price);
+    decimal GetZoneAdjustedStopLoss(decimal entryPrice, string direction);
+    decimal GetZoneAdjustedTarget(decimal entryPrice, string direction);
+    Task RecordZoneInteraction(decimal price, string outcome);
+}
+
+/// <summary>
+/// Enhanced Supply/Demand Service interface (as specified in problem statement)
+/// </summary>
+public interface ISupplyDemandService
+{
+    Task<ZoneData> LoadZonesAsync();
+    Zone GetNearestZone(decimal price, string zoneType);
+    bool IsNearZone(decimal price, decimal threshold = 0.002m);
+    string GetZoneContext(decimal price);
+    decimal GetZoneAdjustedStopLoss(decimal entryPrice, string direction);
+    decimal GetZoneAdjustedTarget(decimal entryPrice, string direction);
+    Task RecordZoneInteraction(decimal price, string outcome);
 }
 
 /// <summary>
@@ -30,15 +50,59 @@ public class ZoneData
     public ValueArea ValueArea { get; set; } = new();
     public KeyLevels KeyLevels { get; set; } = new();
     public DateTime GeneratedAt { get; set; }
+    public string Timestamp { get; set; } = string.Empty;  // For compatibility
+    public NearestZone? NearestSupply { get; set; }
+    public NearestZone? NearestDemand { get; set; }
+    public ZoneStatistics? Statistics { get; set; }
+}
+
+public class NearestZone
+{
+    public decimal Price { get; set; }
+    public decimal Distance { get; set; }
+    public double DistancePercent { get; set; }
+    public double Strength { get; set; }
+}
+
+public class ZoneStatistics
+{
+    public int TotalSupplyZones { get; set; }
+    public int TotalDemandZones { get; set; }
+    public int ActiveSupply { get; set; }
+    public int ActiveDemand { get; set; }
+}
+
+/// <summary>
+/// Zone interaction tracking for learning
+/// </summary>
+public class ZoneInteraction
+{
+    public DateTime Timestamp { get; set; }
+    public decimal Price { get; set; }
+    public string ZoneType { get; set; } = string.Empty;
+    public decimal ZonePrice { get; set; }
+    public string Outcome { get; set; } = string.Empty;
+    public double ZoneStrength { get; set; }
+    public string Direction { get; set; } = string.Empty;
 }
 
 public class Zone
 {
+    public string Type { get; set; } = string.Empty;  // "supply" or "demand"
     public decimal Price { get; set; }
     public List<decimal> Range { get; set; } = new();
-    public int Strength { get; set; }
+    public decimal PriceLevel { get; set; }  // For compatibility with new format
+    public decimal ZoneTop { get; set; }
+    public decimal ZoneBottom { get; set; }
+    public double Strength { get; set; }
     public DateTime LastTest { get; set; }
     public int TouchCount { get; set; }
+    public int Touches { get; set; }  // For compatibility
+    public int Holds { get; set; }
+    public int Breaks { get; set; }
+    public bool Active { get; set; } = true;
+    public decimal Volume { get; set; }
+    public DateTime CreatedDate { get; set; }
 }
 
 public class ValueArea
@@ -57,19 +121,22 @@ public class KeyLevels
 
 /// <summary>
 /// Service for loading and using supply/demand zones for optimal trade placement
+/// Enhanced with institutional-grade zone interaction tracking
 /// </summary>
-public class ZoneService : IZoneService
+public class ZoneService : IZoneService, ISupplyDemandService
 {
     private readonly string _zonesPath;
     private readonly ILogger<ZoneService> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Dictionary<string, ZoneData> _zoneCache = new();
     private DateTime _lastCacheUpdate = DateTime.MinValue;
+    private readonly List<ZoneInteraction> _interactions = new();
+    private ZoneData? _currentZones;
 
     public ZoneService(ILogger<ZoneService> logger, string? zonesPath = null)
     {
         _logger = logger;
-        _zonesPath = zonesPath ?? "Intelligence/data/zones/latest_zones.json";
+        _zonesPath = zonesPath ?? "Intelligence/data/zones/active_zones.json";
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -109,7 +176,14 @@ public class ZoneService : IZoneService
                 return null;
             }
 
-            var zoneData = JsonSerializer.Deserialize<ZoneData>(json, _jsonOptions);
+            // Try to parse as enhanced format first
+            var zoneData = await ParseEnhancedZoneData(json, symbol);
+            if (zoneData == null)
+            {
+                // Fallback to original format
+                zoneData = JsonSerializer.Deserialize<ZoneData>(json, _jsonOptions);
+            }
+
             if (zoneData != null)
             {
                 _zoneCache[symbol] = zoneData;
@@ -131,6 +205,218 @@ public class ZoneService : IZoneService
             _logger.LogDebug("[ZONES] Zones unavailable: {Error}", ex.Message);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Parse enhanced zone data format
+    /// </summary>
+    private async Task<ZoneData?> ParseEnhancedZoneData(string json, string symbol)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+
+            var zoneData = new ZoneData
+            {
+                Symbol = symbol,
+                Timestamp = GetStringValue(root, "timestamp") ?? DateTime.UtcNow.ToString("O")
+            };
+
+            // Parse current price
+            if (root.TryGetProperty("current_price", out var currentPriceElement))
+            {
+                zoneData.CurrentPrice = currentPriceElement.GetDecimal();
+            }
+
+            // Parse POC
+            if (root.TryGetProperty("poc", out var pocElement) && pocElement.ValueKind != JsonValueKind.Null)
+            {
+                zoneData.POC = pocElement.GetDecimal();
+            }
+
+            // Parse supply zones
+            if (root.TryGetProperty("supply_zones", out var supplyElement))
+            {
+                foreach (var zoneElement in supplyElement.EnumerateArray())
+                {
+                    var zone = ParseZoneElement(zoneElement, "supply");
+                    if (zone != null) zoneData.SupplyZones.Add(zone);
+                }
+            }
+
+            // Parse demand zones
+            if (root.TryGetProperty("demand_zones", out var demandElement))
+            {
+                foreach (var zoneElement in demandElement.EnumerateArray())
+                {
+                    var zone = ParseZoneElement(zoneElement, "demand");
+                    if (zone != null) zoneData.DemandZones.Add(zone);
+                }
+            }
+
+            // Parse nearest zones
+            if (root.TryGetProperty("nearest_supply", out var nearestSupplyElement) && nearestSupplyElement.ValueKind != JsonValueKind.Null)
+            {
+                zoneData.NearestSupply = ParseNearestZone(nearestSupplyElement);
+            }
+
+            if (root.TryGetProperty("nearest_demand", out var nearestDemandElement) && nearestDemandElement.ValueKind != JsonValueKind.Null)
+            {
+                zoneData.NearestDemand = ParseNearestZone(nearestDemandElement);
+            }
+
+            // Parse key levels (fallback from existing zones)
+            zoneData.KeyLevels = new KeyLevels
+            {
+                NearestSupport = zoneData.NearestDemand?.Price ?? 0,
+                NearestResistance = zoneData.NearestSupply?.Price ?? 0,
+                StrongestSupport = zoneData.DemandZones.OrderByDescending(z => z.Strength).FirstOrDefault()?.PriceLevel ?? 0,
+                StrongestResistance = zoneData.SupplyZones.OrderByDescending(z => z.Strength).FirstOrDefault()?.PriceLevel ?? 0
+            };
+
+            // Parse key_levels if present
+            if (root.TryGetProperty("key_levels", out var keyLevelsElement))
+            {
+                if (keyLevelsElement.TryGetProperty("nearest_support", out var nsElement))
+                    zoneData.KeyLevels.NearestSupport = nsElement.GetDecimal();
+                if (keyLevelsElement.TryGetProperty("nearest_resistance", out var nrElement))
+                    zoneData.KeyLevels.NearestResistance = nrElement.GetDecimal();
+                if (keyLevelsElement.TryGetProperty("strongest_support", out var ssElement))
+                    zoneData.KeyLevels.StrongestSupport = ssElement.GetDecimal();
+                if (keyLevelsElement.TryGetProperty("strongest_resistance", out var srElement))
+                    zoneData.KeyLevels.StrongestResistance = srElement.GetDecimal();
+            }
+
+            // Parse statistics
+            if (root.TryGetProperty("statistics", out var statsElement))
+            {
+                zoneData.Statistics = new ZoneStatistics
+                {
+                    TotalSupplyZones = GetIntValue(statsElement, "total_supply_zones"),
+                    TotalDemandZones = GetIntValue(statsElement, "total_demand_zones"),
+                    ActiveSupply = GetIntValue(statsElement, "active_supply"),
+                    ActiveDemand = GetIntValue(statsElement, "active_demand")
+                };
+            }
+
+            // Set generated at
+            if (DateTime.TryParse(zoneData.Timestamp, out var generatedAt))
+            {
+                zoneData.GeneratedAt = generatedAt;
+            }
+
+            return zoneData;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Failed to parse enhanced format: {Error}", ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Parse individual zone element
+    /// </summary>
+    private Zone? ParseZoneElement(JsonElement element, string type)
+    {
+        try
+        {
+            var zone = new Zone
+            {
+                Type = type,
+                PriceLevel = GetDecimalValue(element, "price_level"),
+                ZoneTop = GetDecimalValue(element, "zone_top"),
+                ZoneBottom = GetDecimalValue(element, "zone_bottom"),
+                Strength = GetDoubleValue(element, "strength"),
+                Touches = GetIntValue(element, "touches"),
+                Holds = GetIntValue(element, "holds"),
+                Breaks = GetIntValue(element, "breaks"),
+                Active = GetBoolValue(element, "active"),
+                Volume = GetDecimalValue(element, "volume")
+            };
+
+            // Set Price for compatibility
+            zone.Price = zone.PriceLevel;
+
+            // Set Range for compatibility
+            zone.Range = new List<decimal> { zone.ZoneBottom, zone.ZoneTop };
+
+            // Set TouchCount for compatibility
+            zone.TouchCount = zone.Touches;
+
+            // Parse dates
+            var lastTestStr = GetStringValue(element, "last_test");
+            if (!string.IsNullOrEmpty(lastTestStr) && DateTime.TryParse(lastTestStr, out var lastTest))
+            {
+                zone.LastTest = lastTest;
+            }
+
+            var createdDateStr = GetStringValue(element, "created_date");
+            if (!string.IsNullOrEmpty(createdDateStr) && DateTime.TryParse(createdDateStr, out var createdDate))
+            {
+                zone.CreatedDate = createdDate;
+            }
+
+            return zone;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Failed to parse zone element: {Error}", ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Parse nearest zone element
+    /// </summary>
+    private NearestZone? ParseNearestZone(JsonElement element)
+    {
+        try
+        {
+            return new NearestZone
+            {
+                Price = GetDecimalValue(element, "price"),
+                Distance = GetDecimalValue(element, "distance"),
+                DistancePercent = GetDoubleValue(element, "distance_percent"),
+                Strength = GetDoubleValue(element, "strength")
+            };
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // Helper methods for JSON parsing
+    private string? GetStringValue(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null
+            ? prop.GetString() : null;
+    }
+
+    private decimal GetDecimalValue(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null
+            ? prop.GetDecimal() : 0m;
+    }
+
+    private double GetDoubleValue(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null
+            ? prop.GetDouble() : 0.0;
+    }
+
+    private int GetIntValue(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null
+            ? prop.GetInt32() : 0;
+    }
+
+    private bool GetBoolValue(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var prop) && prop.ValueKind != JsonValueKind.Null
+            ? prop.GetBoolean() : true;
     }
 
     /// <summary>
@@ -404,5 +690,302 @@ public class ZoneService : IZoneService
             "RTY" => 0.1m,
             _ => 0.25m
         };
+    }
+
+    // Enhanced methods from problem statement
+
+    /// <summary>
+    /// Get nearest zone to price (enhanced implementation)
+    /// </summary>
+    public Zone GetNearestZone(decimal price, string zoneType)
+    {
+        try
+        {
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null) return new Zone();
+
+            var zones = zoneType.ToLowerInvariant() == "supply" 
+                ? _currentZones.SupplyZones 
+                : _currentZones.DemandZones;
+
+            if (!zones.Any()) return new Zone();
+
+            if (zoneType.ToLowerInvariant() == "supply")
+            {
+                // Find closest supply above current price
+                var aboveZones = zones.Where(z => z.PriceLevel > price).ToList();
+                if (aboveZones.Any())
+                {
+                    return aboveZones.OrderBy(z => z.PriceLevel - price).First();
+                }
+            }
+            else
+            {
+                // Find closest demand below current price
+                var belowZones = zones.Where(z => z.PriceLevel < price).ToList();
+                if (belowZones.Any())
+                {
+                    return belowZones.OrderByDescending(z => z.PriceLevel).First();
+                }
+            }
+
+            return zones.OrderBy(z => Math.Abs(z.PriceLevel - price)).First();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error getting nearest zone: {Error}", ex.Message);
+            return new Zone();
+        }
+    }
+
+    /// <summary>
+    /// Check if price is near a zone (enhanced implementation)
+    /// </summary>
+    public bool IsNearZone(decimal price, decimal threshold = 0.002m)
+    {
+        try
+        {
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null) return false;
+
+            var allZones = _currentZones.SupplyZones.Concat(_currentZones.DemandZones);
+            return allZones.Any(z => Math.Abs(z.PriceLevel - price) / price <= threshold);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get zone context for current price
+    /// </summary>
+    public string GetZoneContext(decimal price)
+    {
+        try
+        {
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null) return "No zone data available";
+
+            var nearestSupply = GetNearestZone(price, "supply");
+            var nearestDemand = GetNearestZone(price, "demand");
+
+            var supplyDistance = Math.Abs(nearestSupply.PriceLevel - price);
+            var demandDistance = Math.Abs(nearestDemand.PriceLevel - price);
+
+            if (IsNearZone(price, 0.001m))
+            {
+                var nearestZone = supplyDistance < demandDistance ? nearestSupply : nearestDemand;
+                return $"At {nearestZone.Type} zone (Strength: {nearestZone.Strength:F0})";
+            }
+
+            if (nearestSupply.PriceLevel > price && nearestDemand.PriceLevel < price)
+            {
+                return $"Between zones - Support: {nearestDemand.PriceLevel:F2} ({demandDistance:F2} away), Resistance: {nearestSupply.PriceLevel:F2} ({supplyDistance:F2} away)";
+            }
+
+            return "No significant zones nearby";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error getting zone context: {Error}", ex.Message);
+            return "Zone context unavailable";
+        }
+    }
+
+    /// <summary>
+    /// Get zone-adjusted stop loss level
+    /// </summary>
+    public decimal GetZoneAdjustedStopLoss(decimal entryPrice, string direction)
+    {
+        try
+        {
+            var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
+            
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null)
+            {
+                var defaultOffset = GetDefaultOffset("ES");
+                return isLong ? entryPrice - defaultOffset : entryPrice + defaultOffset;
+            }
+
+            if (isLong)
+            {
+                // For long positions, place stop below nearest demand zone
+                var nearestDemand = GetNearestZone(entryPrice, "demand");
+                if (nearestDemand.PriceLevel > 0 && nearestDemand.PriceLevel < entryPrice)
+                {
+                    var buffer = GetTickSize("ES") * 3; // 3 tick buffer beyond zone
+                    return nearestDemand.ZoneBottom - buffer;
+                }
+            }
+            else
+            {
+                // For short positions, place stop above nearest supply zone
+                var nearestSupply = GetNearestZone(entryPrice, "supply");
+                if (nearestSupply.PriceLevel > 0 && nearestSupply.PriceLevel > entryPrice)
+                {
+                    var buffer = GetTickSize("ES") * 3; // 3 tick buffer beyond zone
+                    return nearestSupply.ZoneTop + buffer;
+                }
+            }
+
+            // Fallback to standard stop
+            var fallbackOffset = GetDefaultOffset("ES");
+            return isLong ? entryPrice - fallbackOffset : entryPrice + fallbackOffset;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error calculating zone-adjusted stop: {Error}", ex.Message);
+            var fallback = GetDefaultOffset("ES");
+            var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
+            return isLong ? entryPrice - fallback : entryPrice + fallback;
+        }
+    }
+
+    /// <summary>
+    /// Get zone-adjusted target level
+    /// </summary>
+    public decimal GetZoneAdjustedTarget(decimal entryPrice, string direction)
+    {
+        try
+        {
+            var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
+            
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null)
+            {
+                var defaultTargetOffset = GetDefaultOffset("ES") * 2;
+                return isLong ? entryPrice + defaultTargetOffset : entryPrice - defaultTargetOffset;
+            }
+
+            if (isLong)
+            {
+                // For long positions, target nearest supply zone above
+                var nearestSupply = GetNearestZone(entryPrice, "supply");
+                if (nearestSupply.PriceLevel > 0 && nearestSupply.PriceLevel > entryPrice)
+                {
+                    // Target slightly below zone for better fill probability
+                    return nearestSupply.ZoneBottom;
+                }
+            }
+            else
+            {
+                // For short positions, target nearest demand zone below
+                var nearestDemand = GetNearestZone(entryPrice, "demand");
+                if (nearestDemand.PriceLevel > 0 && nearestDemand.PriceLevel < entryPrice)
+                {
+                    // Target slightly above zone for better fill probability
+                    return nearestDemand.ZoneTop;
+                }
+            }
+
+            // Fallback to standard target
+            var fallbackTargetOffset = GetDefaultOffset("ES") * 2;
+            return isLong ? entryPrice + fallbackTargetOffset : entryPrice - fallbackTargetOffset;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error calculating zone-adjusted target: {Error}", ex.Message);
+            var fallback = GetDefaultOffset("ES") * 2;
+            var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
+            return isLong ? entryPrice + fallback : entryPrice - fallback;
+        }
+    }
+
+    /// <summary>
+    /// Record zone interaction for learning
+    /// </summary>
+    public async Task RecordZoneInteraction(decimal price, string outcome)
+    {
+        try
+        {
+            _currentZones ??= GetLatestZonesAsync("ES").Result;
+            if (_currentZones == null) return;
+
+            // Find the zone that was touched
+            var touchedZones = _currentZones.SupplyZones.Concat(_currentZones.DemandZones)
+                .Where(z => price >= z.ZoneBottom && price <= z.ZoneTop)
+                .ToList();
+
+            foreach (var zone in touchedZones)
+            {
+                var interaction = new ZoneInteraction
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Price = price,
+                    ZoneType = zone.Type,
+                    ZonePrice = zone.PriceLevel,
+                    Outcome = outcome,
+                    ZoneStrength = zone.Strength,
+                    Direction = price > zone.PriceLevel ? "above" : "below"
+                };
+
+                _interactions.Add(interaction);
+
+                _logger.LogInformation("[ZONE INTERACTION] {ZoneType} zone at {ZonePrice:F2} touched at {Price:F2}, Outcome: {Outcome}",
+                    zone.Type, zone.PriceLevel, price, outcome);
+            }
+
+            // Save interactions if we have enough data
+            if (_interactions.Count >= 10)
+            {
+                await SaveZoneInteractions();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error recording zone interaction: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Load zones (SupplyDemandService interface)
+    /// </summary>
+    public async Task<ZoneData> LoadZonesAsync()
+    {
+        return await GetLatestZonesAsync("ES") ?? new ZoneData();
+    }
+
+    /// <summary>
+    /// Save zone interactions for learning
+    /// </summary>
+    private async Task SaveZoneInteractions()
+    {
+        try
+        {
+            var outputDir = "Intelligence/data/zones/learning";
+            Directory.CreateDirectory(outputDir);
+
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var filePath = Path.Combine(outputDir, $"zone_interactions_{timestamp}.json");
+
+            var interactionData = new
+            {
+                Timestamp = DateTime.UtcNow.ToString("O"),
+                InteractionCount = _interactions.Count,
+                Interactions = _interactions.TakeLast(50).ToList() // Keep last 50 interactions
+            };
+
+            var json = JsonSerializer.Serialize(interactionData, new JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+
+            await File.WriteAllTextAsync(filePath, json);
+
+            _logger.LogInformation("[ZONES] Saved {Count} zone interactions to {Path}", 
+                _interactions.Count, filePath);
+
+            // Keep only recent interactions in memory
+            if (_interactions.Count > 100)
+            {
+                _interactions.RemoveRange(0, _interactions.Count - 50);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[ZONES] Error saving zone interactions: {Error}", ex.Message);
+        }
     }
 }
