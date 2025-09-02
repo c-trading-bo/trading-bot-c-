@@ -20,8 +20,8 @@ public interface IMicrostructureAnalyzer
     /// Predicts slippage for a market order of given size.
     /// </summary>
     Task<decimal> PredictMarketOrderSlippageAsync(
-        string symbol, 
-        decimal quantity, 
+        string symbol,
+        decimal quantity,
         bool isBuy,
         MicrostructureState? currentState = null,
         CancellationToken ct = default);

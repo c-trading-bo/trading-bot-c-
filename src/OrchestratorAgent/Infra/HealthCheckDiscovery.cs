@@ -108,7 +108,7 @@ public class HealthCheckDiscovery
                 .ToList();
 
             _logger.LogInformation($"[HEALTH-DISCOVERY] Successfully registered {healthChecks.Count} health checks");
-            
+
             return healthChecks;
         }
         catch (Exception ex)

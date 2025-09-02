@@ -46,7 +46,7 @@ namespace BotCore.Infra
             // Check health every 30 minutes
             var interval = TimeSpan.FromMinutes(30);
             _checkTimer = new Timer(CheckHealthAsync, null, TimeSpan.Zero, interval);
-            
+
             _log.LogInformation("[ML-Health] Started monitoring pipeline health every {Interval}", interval);
         }
 
@@ -86,16 +86,16 @@ namespace BotCore.Infra
             if (issues.Any())
             {
                 _lastHealthCheckPassed = false;
-                _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}", 
+                _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}",
                     issues.Count, string.Join("; ", issues));
-                
+
                 // Attempt automatic recovery for known issues
                 await AttemptAutomaticRecoveryAsync(issues);
             }
             else if (warnings.Any())
             {
                 _lastHealthCheckPassed = true;
-                _log.LogWarning("[ML-Health] ⚠️ Pipeline health check passed with {Count} warnings: {Warnings}", 
+                _log.LogWarning("[ML-Health] ⚠️ Pipeline health check passed with {Count} warnings: {Warnings}",
                     warnings.Count, string.Join("; ", warnings));
             }
             else
@@ -121,7 +121,7 @@ namespace BotCore.Infra
                 {
                     _consecutiveDataCollectionFailures++;
                     issues.Add($"No data collection in last {MaxHoursWithoutData} hours");
-                    
+
                     if (_consecutiveDataCollectionFailures >= MaxConsecutiveFailures)
                     {
                         issues.Add($"Data collection has failed {_consecutiveDataCollectionFailures} times consecutively");
@@ -131,7 +131,7 @@ namespace BotCore.Infra
                 {
                     _consecutiveDataCollectionFailures = 0;
                     _lastDataCollection = recentFiles.Max(f => File.GetLastWriteTime(f));
-                    
+
                     // Check data quality
                     var totalSize = recentFiles.Sum(f => new FileInfo(f).Length);
                     if (totalSize < 1024) // Less than 1KB suggests minimal data
@@ -151,7 +151,7 @@ namespace BotCore.Infra
             try
             {
                 var latestModel = Path.Combine(_modelDir, "latest_rl_sizer.onnx");
-                
+
                 if (!File.Exists(latestModel))
                 {
                     issues.Add("No latest RL model found");
@@ -185,12 +185,12 @@ namespace BotCore.Infra
             {
                 // Look for training logs or backup files as evidence of training activity
                 var backupFiles = Directory.GetFiles(_modelDir, "backup_rl_sizer_*.onnx");
-                
+
                 if (backupFiles.Any())
                 {
                     var latestBackup = backupFiles.Max(f => File.GetCreationTime(f));
                     _lastTrainingAttempt = latestBackup;
-                    
+
                     var timeSinceTraining = DateTime.Now - latestBackup;
                     if (timeSinceTraining.TotalHours > 8) // Should train every 6 hours
                     {
@@ -215,12 +215,12 @@ namespace BotCore.Infra
                 // This would ideally check GitHub Actions API, but for now just check if cloud trainer is configured
                 var manifestUrl = Environment.GetEnvironmentVariable("MODEL_MANIFEST_URL");
                 var hmacKey = Environment.GetEnvironmentVariable("MANIFEST_HMAC_KEY");
-                
+
                 if (string.IsNullOrEmpty(manifestUrl) || string.IsNullOrEmpty(hmacKey))
                 {
                     warnings.Add("Cloud training pipeline not configured (missing environment variables)");
                 }
-                
+
                 // TODO: Add actual GitHub Actions status check via API
                 await Task.CompletedTask;
             }
@@ -237,10 +237,10 @@ namespace BotCore.Infra
                 // Check disk space
                 var dataDir = new DirectoryInfo(_dataDir);
                 var modelDir = new DirectoryInfo(_modelDir);
-                
+
                 var drive = new DriveInfo(dataDir.Root.FullName);
                 var freeSpaceGB = drive.AvailableFreeSpace / (1024 * 1024 * 1024);
-                
+
                 if (freeSpaceGB < 1)
                 {
                     issues.Add($"Low disk space: {freeSpaceGB:F1} GB remaining");
@@ -253,12 +253,12 @@ namespace BotCore.Infra
                 // Check for too many files (cleanup needed)
                 var dataFileCount = Directory.GetFiles(_dataDir, "*.jsonl").Length;
                 var modelFileCount = Directory.GetFiles(_modelDir, "*.onnx").Length;
-                
+
                 if (dataFileCount > 1000)
                 {
                     warnings.Add($"Many data files ({dataFileCount}) - cleanup may be needed");
                 }
-                
+
                 if (modelFileCount > 50)
                 {
                     warnings.Add($"Many model files ({modelFileCount}) - cleanup may be needed");
@@ -307,7 +307,7 @@ namespace BotCore.Infra
                 {
                     var latestBackup = backupFiles.First();
                     var latestModel = Path.Combine(_modelDir, "latest_rl_sizer.onnx");
-                    
+
                     File.Copy(latestBackup, latestModel, true);
                     _log.LogInformation("[ML-Health] Restored model from backup: {Backup}", Path.GetFileName(latestBackup));
                 }
@@ -320,7 +320,7 @@ namespace BotCore.Infra
             {
                 _log.LogError(ex, "[ML-Health] Failed to restore model from backup");
             }
-            
+
             return Task.CompletedTask;
         }
 

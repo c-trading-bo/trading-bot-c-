@@ -18,8 +18,8 @@ public interface IMetaLabeler
     /// <param name="ct">Cancellation token</param>
     /// <returns>Estimated probability of winning (0.0 to 1.0)</returns>
     Task<decimal> EstimateWinProbabilityAsync(
-        TradeSignalContext signal, 
-        MarketContext marketContext, 
+        TradeSignalContext signal,
+        MarketContext marketContext,
         CancellationToken ct = default);
 
     /// <summary>

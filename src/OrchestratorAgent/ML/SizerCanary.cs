@@ -19,8 +19,8 @@ public sealed class SizerCanary
         _log = log;
         _enabled = EnvFlag("RL_SIZER_CANARY_ENABLED", true);
         _rlTrafficFraction = Math.Clamp(EnvDouble("RL_SIZER_CANARY_RL_FRACTION", 0.5), 0.0, 1.0);
-        
-        _log.LogInformation("[SizerCanary] Enabled={Enabled} RLFraction={Fraction:F2}", 
+
+        _log.LogInformation("[SizerCanary] Enabled={Enabled} RLFraction={Fraction:F2}",
             _enabled, _rlTrafficFraction);
     }
 
@@ -40,10 +40,10 @@ public sealed class SizerCanary
         var fraction = (double)hashValue / uint.MaxValue;
 
         bool useRl = fraction < _rlTrafficFraction;
-        
-        _log.LogDebug("[SizerCanary] Signal={SignalId} Hash={Hash:F6} UseRL={UseRL}", 
+
+        _log.LogDebug("[SizerCanary] Signal={SignalId} Hash={Hash:F6} UseRL={UseRL}",
             signalId, fraction, useRl);
-        
+
         return useRl;
     }
 

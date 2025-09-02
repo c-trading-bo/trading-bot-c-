@@ -9,41 +9,41 @@ public class MarketContext
 {
     [Required]
     public string Date { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Market regime: "Trending", "Ranging", "Volatile"
     /// </summary>
     [Required]
     public string Regime { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// News intensity on a 0-100 scale
     /// </summary>
     [Range(0, 100)]
     public decimal NewsIntensity { get; set; }
-    
+
     /// <summary>
     /// Whether today is a CPI release day
     /// </summary>
     public bool IsCpiDay { get; set; }
-    
+
     /// <summary>
     /// Whether today is a FOMC meeting day
     /// </summary>
     public bool IsFomcDay { get; set; }
-    
+
     /// <summary>
     /// Model confidence score (0-1)
     /// </summary>
     [Range(0, 1)]
     public decimal ModelConfidence { get; set; }
-    
+
     /// <summary>
     /// Primary market bias: "Long", "Short", "Neutral"
     /// </summary>
     [Required]
     public string PrimaryBias { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// List of trade setups for the day
     /// </summary>
@@ -60,24 +60,24 @@ public class TradeSetup
     /// </summary>
     [Required]
     public string TimeWindow { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Trade direction: "Long", "Short"
     /// </summary>
     [Required]
     public string Direction { get; set; } = string.Empty;
-    
+
     /// <summary>
     /// Setup confidence score (0-1)
     /// </summary>
     [Range(0, 1)]
     public decimal ConfidenceScore { get; set; }
-    
+
     /// <summary>
     /// Suggested risk multiple for position sizing
     /// </summary>
     public decimal SuggestedRiskMultiple { get; set; }
-    
+
     /// <summary>
     /// Human-readable explanation for the setup
     /// </summary>

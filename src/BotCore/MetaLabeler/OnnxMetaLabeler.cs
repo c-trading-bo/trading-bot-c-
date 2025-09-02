@@ -37,14 +37,14 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         };
 
         _session = new InferenceSession(modelPath, sessionOptions);
-        
+
         Console.WriteLine($"[META-LABELER] Loaded ONNX model: {Path.GetFileName(modelPath)}");
         Console.WriteLine($"[META-LABELER] Min win probability threshold: {_minWinProbThreshold:P1}");
     }
 
     public async Task<decimal> EstimateWinProbabilityAsync(
-        TradeSignalContext signal, 
-        MarketContext marketContext, 
+        TradeSignalContext signal,
+        MarketContext marketContext,
         CancellationToken ct = default)
     {
         try
@@ -52,7 +52,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
             await Task.Delay(1, ct); // Satisfy async requirement
             // Prepare features for ONNX model
             var features = PrepareFeatures(signal, marketContext);
-            
+
             // Create input tensor
             var inputTensor = new DenseTensor<float>(features, new[] { 1, features.Length });
             var inputs = new List<NamedOnnxValue>
@@ -63,9 +63,9 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
             // Run inference
             using var results = _session.Run(inputs);
             var output = results.First().AsEnumerable<float>().First();
-            
+
             var winProb = Math.Max(0m, Math.Min(1m, (decimal)output));
-            
+
             Console.WriteLine($"[META-LABELER] {signal.SignalId} p(win)={winProb:P1} " +
                             $"(threshold={_minWinProbThreshold:P1}) " +
                             $"R={signal.RMultiple:F1} confidence={signal.Confidence:F2}");
@@ -85,12 +85,12 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
     }
 
     public async Task UpdateCalibrationAsync(
-        decimal predictedProb, 
-        bool actualOutcome, 
+        decimal predictedProb,
+        bool actualOutcome,
         CancellationToken ct = default)
     {
         _calibration.AddPrediction(predictedProb, actualOutcome);
-        
+
         // Update threshold based on calibration if needed
         var metrics = await GetCalibrationMetricsAsync(ct);
         if (metrics.TotalPredictions > 100 && !metrics.IsWellCalibrated)
@@ -98,7 +98,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
             // Adjust threshold if model is poorly calibrated
             var adjustment = metrics.BrierScore > 0.25m ? 0.02m : -0.01m;
             _minWinProbThreshold = Math.Max(0.5m, Math.Min(0.8m, _minWinProbThreshold + adjustment));
-            
+
             Console.WriteLine($"[META-LABELER] Adjusted threshold to {_minWinProbThreshold:P1} " +
                             $"(Brier={metrics.BrierScore:F3})");
         }
@@ -153,7 +153,7 @@ internal class CalibrationTracker
         lock (_lock)
         {
             _predictions.Add((predicted, actual));
-            
+
             // Keep only recent predictions (sliding window)
             if (_predictions.Count > 1000)
             {
@@ -198,7 +198,7 @@ internal class CalibrationTracker
 
     private decimal CalculateBrierScore()
     {
-        var sum = _predictions.Sum(p => 
+        var sum = _predictions.Sum(p =>
         {
             var actual = p.actual ? 1m : 0m;
             return (p.predicted - actual) * (p.predicted - actual);
@@ -211,7 +211,7 @@ internal class CalibrationTracker
         var sum = _predictions.Sum(p =>
         {
             var prob = Math.Max(0.0001m, Math.Min(0.9999m, p.predicted)); // Clip for numerical stability
-            return p.actual 
+            return p.actual
                 ? -(decimal)Math.Log((double)prob)
                 : -(decimal)Math.Log((double)(1 - prob));
         });
@@ -224,7 +224,7 @@ internal class CalibrationTracker
         const int numBins = 10;
         var bins = new List<decimal>[numBins];
         var outcomes = new List<bool>[numBins];
-        
+
         for (int i = 0; i < numBins; i++)
         {
             bins[i] = new List<decimal>();
@@ -258,11 +258,11 @@ internal class CalibrationTracker
     private decimal CalculateResolution()
     {
         var overallMean = _predictions.Average(p => p.actual ? 1m : 0m);
-        
+
         // Group predictions into bins
         const int numBins = 10;
         var bins = new List<bool>[numBins];
-        
+
         for (int i = 0; i < numBins; i++)
         {
             bins[i] = new List<bool>();

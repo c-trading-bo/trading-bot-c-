@@ -23,7 +23,7 @@ namespace BotCore.ML
         public float Ema50 { get; set; }
         public float SignalStrength { get; set; }
         public float Volatility { get; set; }
-        
+
         public Dictionary<string, float> ToDict()
         {
             return new Dictionary<string, float>
@@ -61,7 +61,7 @@ namespace BotCore.ML
         {
             _logger = logger;
             _modelsPath = Path.Combine(AppContext.BaseDirectory, "models", "rl");
-            
+
             _rlSizerPath = Path.Combine(_modelsPath, "latest_rl_sizer.onnx");
             _metaClassifierPath = Path.Combine(_modelsPath, "latest_meta_classifier.onnx");
             _execQualityPath = Path.Combine(_modelsPath, "latest_exec_quality.onnx");
@@ -90,18 +90,18 @@ namespace BotCore.ML
 
                 // For now, use rule-based logic until ONNX integration is complete
                 // TODO: Implement actual ONNX model inference
-                
+
                 // Simple rule-based position sizing based on quality and volatility
                 decimal multiplier = 1.0m;
-                
+
                 // Quality-based adjustment
                 if (qScore > 0.8m) multiplier += 0.25m;      // High quality signals get larger size
                 else if (qScore < 0.4m) multiplier -= 0.25m; // Low quality signals get smaller size
-                
+
                 // Score-based adjustment
                 if (score > 2.0m) multiplier += 0.15m;       // High score signals
                 else if (score < 1.0m) multiplier -= 0.15m;  // Low score signals
-                
+
                 // ATR-based volatility adjustment
                 if (bars.Any())
                 {
@@ -109,18 +109,18 @@ namespace BotCore.ML
                     if (avgAtr > atr * 1.5m) multiplier -= 0.2m; // High volatility = smaller size
                     else if (avgAtr < atr * 0.7m) multiplier += 0.1m; // Low volatility = slightly larger
                 }
-                
+
                 // Clamp to reasonable range for safety
                 multiplier = Math.Clamp(multiplier, 0.25m, 2.0m);
-                
+
                 _logger.LogDebug("[ML-Manager] Position multiplier for {Strategy}-{Symbol}: {Multiplier:F2} (qScore: {QScore:F2}, score: {Score:F2})",
                     strategyId, symbol, multiplier, qScore, score);
-                
+
                 return multiplier;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ML-Manager] Error getting position size multiplier for {Strategy}-{Symbol}", 
+                _logger.LogError(ex, "[ML-Manager] Error getting position size multiplier for {Strategy}-{Symbol}",
                     strategyId, symbol);
                 return 1.0m; // Fallback to default
             }
@@ -146,11 +146,11 @@ namespace BotCore.ML
 
                 // For now, use simple rule-based filtering
                 // TODO: Implement ONNX meta-classifier when available
-                
+
                 // Basic quality gates
                 if (qScore < 0.3m) return false; // Very low quality signals
                 if (score < 0.5m) return false; // Very low score signals
-                
+
                 // Volume validation
                 if (bars.Any())
                 {
@@ -162,7 +162,7 @@ namespace BotCore.ML
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ML-Manager] Error in signal filtering for {Strategy}-{Symbol}", 
+                _logger.LogError(ex, "[ML-Manager] Error in signal filtering for {Strategy}-{Symbol}",
                     strategyId, symbol);
                 return true; // Default to accepting signal
             }
@@ -187,21 +187,21 @@ namespace BotCore.ML
 
                 // For now, use simple rule-based scoring
                 // TODO: Implement ONNX execution quality predictor when available
-                
+
                 decimal qualityScore = 1.0m;
-                
+
                 // Penalize wide spreads
                 if (spread > price * 0.001m) // > 0.1%
                 {
                     qualityScore -= 0.2m;
                 }
-                
+
                 // Penalize low volume
                 if (volume < 1000)
                 {
                     qualityScore -= 0.3m;
                 }
-                
+
                 return Math.Clamp(qualityScore, 0.1m, 1.0m);
             }
             catch (Exception ex)
@@ -234,27 +234,27 @@ namespace BotCore.ML
             {
                 var latest = bars.Last();
                 features.Volume = (float)latest.Volume;
-                
+
                 // Calculate technical indicators
                 if (bars.Count >= 14)
                 {
                     features.Rsi = (float)CalculateRsi(bars, 14);
                 }
-                
+
                 if (bars.Count >= 20)
                 {
                     features.Ema20 = (float)CalculateEma(bars, 20);
                 }
-                
+
                 if (bars.Count >= 50)
                 {
                     features.Ema50 = (float)CalculateEma(bars, 50);
                 }
-                
+
                 // Calculate volatility
                 if (bars.Count >= 10)
                 {
-                    var returns = bars.Skip(1).Select((b, i) => 
+                    var returns = bars.Skip(1).Select((b, i) =>
                         Math.Log((double)(b.Close / bars[i].Close))).ToList();
                     features.Volatility = (float)(returns.StandardDeviation() * Math.Sqrt(252));
                 }
@@ -266,7 +266,7 @@ namespace BotCore.ML
         private static decimal CalculateAverageAtr(IList<Bar> bars, int period)
         {
             if (bars.Count < period + 1) return 1m;
-            
+
             var trs = new List<decimal>();
             for (int i = 1; i < bars.Count; i++)
             {
@@ -275,44 +275,44 @@ namespace BotCore.ML
                         Math.Abs(bars[i].Low - bars[i - 1].Close)));
                 trs.Add(tr);
             }
-            
+
             return trs.TakeLast(period).Average();
         }
 
         private static decimal CalculateEma(IList<Bar> bars, int period)
         {
             if (bars.Count < period) return bars.Last().Close;
-            
+
             var multiplier = 2m / (period + 1);
             var ema = bars[0].Close;
-            
+
             for (int i = 1; i < bars.Count; i++)
             {
                 ema = (bars[i].Close * multiplier) + (ema * (1 - multiplier));
             }
-            
+
             return ema;
         }
 
         private static decimal CalculateRsi(IList<Bar> bars, int period)
         {
             if (bars.Count < period + 1) return 50m;
-            
+
             var gains = 0m;
             var losses = 0m;
-            
+
             for (int i = bars.Count - period; i < bars.Count; i++)
             {
                 var change = bars[i].Close - bars[i - 1].Close;
                 if (change > 0) gains += change;
                 else losses -= change;
             }
-            
+
             var avgGain = gains / period;
             var avgLoss = losses / period;
-            
+
             if (avgLoss == 0) return 100m;
-            
+
             var rs = avgGain / avgLoss;
             return 100m - (100m / (1 + rs));
         }
@@ -350,7 +350,7 @@ public static class StatisticsExtensions
     {
         var valueList = values.ToList();
         if (valueList.Count < 2) return 0.0;
-        
+
         var mean = valueList.Average();
         var variance = valueList.Select(v => Math.Pow(v - mean, 2)).Average();
         return Math.Sqrt(variance);

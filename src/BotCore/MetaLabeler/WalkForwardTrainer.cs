@@ -73,7 +73,7 @@ public class WalkForwardTrainer
 
         // Calculate overall results
         results.OverallMetrics = CalculateOverallMetrics(results.Folds);
-        
+
         Console.WriteLine($"[WALK-FORWARD] Completed {foldNumber} folds. " +
                          $"Overall accuracy: {results.OverallMetrics.Accuracy:P1}, " +
                          $"Brier score: {results.OverallMetrics.BrierScore:F3}");
@@ -115,7 +115,7 @@ public class WalkForwardTrainer
             var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct);
 
             fold.TrainingSamples = trainLabeled.Count;
-            
+
             if (trainLabeled.Count < _config.MinTrainingSamples)
             {
                 fold.Status = FoldStatus.InsufficientData;
@@ -176,24 +176,24 @@ public class WalkForwardTrainer
     {
         // Placeholder for actual ML training
         // Would integrate with Python training scripts or C# ML.NET
-        
+
         var modelPath = Path.Combine(_modelsPath, $"meta_model_fold_{foldNumber}.onnx");
-        
+
         // Export training data for external training
         var trainingDataPath = Path.Combine(_modelsPath, $"training_data_fold_{foldNumber}.json");
-        var trainingJson = JsonSerializer.Serialize(trainData, new JsonSerializerOptions 
-        { 
-            WriteIndented = true 
+        var trainingJson = JsonSerializer.Serialize(trainData, new JsonSerializerOptions
+        {
+            WriteIndented = true
         });
-        
+
         await File.WriteAllTextAsync(trainingDataPath, trainingJson, ct);
-        
+
         Console.WriteLine($"[WALK-FORWARD] Exported {trainData.Count} training samples to {trainingDataPath}");
         Console.WriteLine($"[WALK-FORWARD] Model training placeholder - would generate {modelPath}");
-        
+
         // Create placeholder model file
         await File.WriteAllTextAsync(modelPath, "# Placeholder ONNX model", ct);
-        
+
         return modelPath;
     }
 
@@ -203,7 +203,7 @@ public class WalkForwardTrainer
         CancellationToken ct)
     {
         await Task.CompletedTask;
-        
+
         // Placeholder evaluation - would load ONNX model and predict
         var random = new Random(42);
         var predictions = testData.Select(d => (decimal)random.NextDouble()).ToList();
@@ -256,7 +256,7 @@ public class WalkForwardTrainer
     private ValidationMetrics CalculateOverallMetrics(List<ValidationFold> folds)
     {
         var completedFolds = folds.Where(f => f.Status == FoldStatus.Completed && f.Metrics != null).ToList();
-        
+
         if (!completedFolds.Any())
         {
             return new ValidationMetrics();
@@ -280,12 +280,12 @@ public class WalkForwardTrainer
     private async Task SaveResultsAsync(WalkForwardResults results, CancellationToken ct)
     {
         var resultsPath = Path.Combine(_modelsPath, $"walk_forward_results_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-        var json = JsonSerializer.Serialize(results, new JsonSerializerOptions 
-        { 
+        var json = JsonSerializer.Serialize(results, new JsonSerializerOptions
+        {
             WriteIndented = true,
             Converters = { new DateTimeJsonConverter() }
         });
-        
+
         await File.WriteAllTextAsync(resultsPath, json, ct);
         Console.WriteLine($"[WALK-FORWARD] Results saved to {resultsPath}");
     }

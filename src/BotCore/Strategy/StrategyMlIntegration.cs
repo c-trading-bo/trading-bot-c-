@@ -21,19 +21,19 @@ namespace BotCore.Strategy
             ["S1"] = MultiStrategyRlCollector.StrategyType.EmaCross,
             ["S2"] = MultiStrategyRlCollector.StrategyType.EmaCross,
             ["S3"] = MultiStrategyRlCollector.StrategyType.EmaCross,
-            
+
             // Mean Reversion strategies  
             ["S4"] = MultiStrategyRlCollector.StrategyType.MeanReversion,
             ["S5"] = MultiStrategyRlCollector.StrategyType.MeanReversion,
             ["S6"] = MultiStrategyRlCollector.StrategyType.MeanReversion,
             ["S7"] = MultiStrategyRlCollector.StrategyType.MeanReversion,
-            
+
             // Breakout strategies
             ["S8"] = MultiStrategyRlCollector.StrategyType.Breakout,
             ["S9"] = MultiStrategyRlCollector.StrategyType.Breakout,
             ["S10"] = MultiStrategyRlCollector.StrategyType.Breakout,
             ["S11"] = MultiStrategyRlCollector.StrategyType.Breakout,
-            
+
             // Momentum strategies
             ["S12"] = MultiStrategyRlCollector.StrategyType.Momentum,
             ["S13"] = MultiStrategyRlCollector.StrategyType.Momentum,
@@ -45,7 +45,7 @@ namespace BotCore.Strategy
         /// </summary>
         public static void LogStrategySignal(
             ILogger logger,
-            string strategyId, 
+            string strategyId,
             string symbol,
             Side side,
             decimal entry,
@@ -65,7 +65,7 @@ namespace BotCore.Strategy
                 }
 
                 var signalId = customSignalId ?? $"{strategyId}-{symbol}-{DateTime.UtcNow:yyyyMMddHHmmss}";
-                
+
                 // Create comprehensive features based on strategy type
                 var features = strategyType switch
                 {
@@ -84,8 +84,8 @@ namespace BotCore.Strategy
 
                 // Log to RL collector
                 MultiStrategyRlCollector.LogComprehensiveFeatures(logger, features);
-                
-                logger.LogDebug("[ML-Integration] Logged {StrategyType} features for {StrategyId} signal {SignalId}", 
+
+                logger.LogDebug("[ML-Integration] Logged {StrategyType} features for {StrategyId} signal {SignalId}",
                     strategyType, strategyId, signalId);
             }
             catch (Exception ex)
@@ -127,8 +127,8 @@ namespace BotCore.Strategy
                 };
 
                 MultiStrategyRlCollector.LogTradeOutcome(logger, outcome);
-                
-                logger.LogDebug("[ML-Integration] Logged trade outcome for {StrategyId} signal {SignalId}: {Result}", 
+
+                logger.LogDebug("[ML-Integration] Logged trade outcome for {StrategyId} signal {SignalId}: {Result}",
                     strategyId, signalId, isWin ? "WIN" : "LOSS");
             }
             catch (Exception ex)
@@ -146,22 +146,22 @@ namespace BotCore.Strategy
             decimal ema50 = bars.Count >= 50 ? CalculateEma(bars, 50) : price;
             decimal volume = bars.Any() ? bars.Last().Volume : 1000m;
             decimal atr = bars.Count >= 14 ? CalculateAtr(bars, 14) : 1m;
-            
+
             var features = MultiStrategyRlCollector.CreateEmaCrossFeatures(signalId, symbol, price, ema9, ema20, ema50, volume, atr);
-            
+
             if (bars.Any())
             {
                 var latest = bars.Last();
                 features.Volume = latest.Volume;
                 features.Price = latest.Close;
                 features.DailyRange = latest.High - latest.Low;
-                
+
                 // Additional calculations
                 features.Ema8 = CalculateEma(bars, 8);
                 features.Ema21 = CalculateEma(bars, 21);
                 features.MaAlignment = (features.Ema8 - features.Ema21) / Math.Max(features.Ema21, 0.01m);
             }
-            
+
             features.Score = score;
             features.QScore = qScore;
             return features;
@@ -172,7 +172,7 @@ namespace BotCore.Strategy
         {
             decimal rsi = bars.Count >= 14 ? CalculateRsi(bars, 14) : 50m;
             decimal bbUpper = 0m, bbLower = 0m, vwap = price;
-            
+
             if (bars.Count >= 20)
             {
                 var closes = bars.TakeLast(20).Select(b => b.Close).ToList();
@@ -182,11 +182,11 @@ namespace BotCore.Strategy
                 bbLower = sma - (2 * stdDev);
                 vwap = bars.Sum(b => b.Close * b.Volume) / bars.Sum(b => b.Volume);
             }
-            
+
             decimal volume = bars.Any() ? bars.Last().Volume : 1000m;
-            
+
             var features = MultiStrategyRlCollector.CreateMeanReversionFeatures(signalId, symbol, price, rsi, bbUpper, bbLower, vwap, volume);
-            
+
             if (bars.Any())
             {
                 var latest = bars.Last();
@@ -194,7 +194,7 @@ namespace BotCore.Strategy
                 features.Price = latest.Close;
                 features.DistanceFromVwap = (price - vwap) / Math.Max(vwap, 0.01m);
             }
-            
+
             features.Score = score;
             features.QScore = qScore;
             return features;
@@ -204,7 +204,7 @@ namespace BotCore.Strategy
             string signalId, string symbol, decimal price, IList<Bar> bars, decimal score, decimal qScore)
         {
             decimal highBreakout = 0m, lowBreakout = 0m, volume = 1000m, avgVolume = 1000m, consolidationTime = 0m;
-            
+
             if (bars.Count >= 20)
             {
                 var recent = bars.TakeLast(20).ToList();
@@ -214,16 +214,16 @@ namespace BotCore.Strategy
                 avgVolume = (decimal)recent.Average(b => b.Volume);
                 consolidationTime = 20m; // Simplified
             }
-            
+
             var features = MultiStrategyRlCollector.CreateBreakoutFeatures(signalId, symbol, price, highBreakout, lowBreakout, volume, avgVolume, consolidationTime);
-            
+
             if (bars.Any())
             {
                 var latest = bars.Last();
                 features.Volume = latest.Volume;
                 features.Price = latest.Close;
             }
-            
+
             features.Score = score;
             features.QScore = qScore;
             return features;
@@ -236,30 +236,30 @@ namespace BotCore.Strategy
             decimal rsi = bars.Count >= 14 ? CalculateRsi(bars, 14) : 50m;
             decimal volume = bars.Any() ? bars.Last().Volume : 1000m;
             decimal atr = bars.Count >= 14 ? CalculateAtr(bars, 14) : 1m;
-            
+
             var features = MultiStrategyRlCollector.CreateMomentumFeatures(signalId, symbol, price, priorPrice, rsi, volume, atr);
-            
+
             if (bars.Any())
             {
                 var latest = bars.Last();
                 features.Volume = latest.Volume;
                 features.Price = latest.Close;
-                
+
                 // Additional momentum calculations
                 features.MomentumStrength = CalculateMomentumStrength(bars);
             }
-            
+
             features.Score = score;
             features.QScore = qScore;
             return features;
         }
 
         private static MultiStrategyRlCollector.ComprehensiveFeatures CreateDefaultFeatures(
-            string signalId, string symbol, decimal price, IList<Bar> bars, decimal score, decimal qScore, 
+            string signalId, string symbol, decimal price, IList<Bar> bars, decimal score, decimal qScore,
             MultiStrategyRlCollector.StrategyType strategyType)
         {
             var features = MultiStrategyRlCollector.CreateBaseFeatures(signalId, symbol, strategyType, price);
-            
+
             if (bars.Any())
             {
                 var latest = bars.Last();
@@ -267,7 +267,7 @@ namespace BotCore.Strategy
                 features.Price = latest.Close;
                 features.DailyRange = latest.High - latest.Low;
             }
-            
+
             features.Score = score;
             features.QScore = qScore;
             return features;
@@ -278,37 +278,37 @@ namespace BotCore.Strategy
         private static decimal CalculateEma(IList<Bar> bars, int period)
         {
             if (bars.Count < period) return bars.Last().Close;
-            
+
             var multiplier = 2m / (period + 1);
             var ema = bars[0].Close;
-            
+
             for (int i = 1; i < bars.Count; i++)
             {
                 ema = (bars[i].Close * multiplier) + (ema * (1 - multiplier));
             }
-            
+
             return ema;
         }
 
         private static decimal CalculateRsi(IList<Bar> bars, int period)
         {
             if (bars.Count < period + 1) return 50m;
-            
+
             var gains = 0m;
             var losses = 0m;
-            
+
             for (int i = bars.Count - period; i < bars.Count; i++)
             {
                 var change = bars[i].Close - bars[i - 1].Close;
                 if (change > 0) gains += change;
                 else losses -= change;
             }
-            
+
             var avgGain = gains / period;
             var avgLoss = losses / period;
-            
+
             if (avgLoss == 0) return 100m;
-            
+
             var rs = avgGain / avgLoss;
             return 100m - (100m / (1 + rs));
         }
@@ -316,7 +316,7 @@ namespace BotCore.Strategy
         private static decimal CalculateAtr(IList<Bar> bars, int period)
         {
             if (bars.Count < period + 1) return 1m;
-            
+
             var trs = new List<decimal>();
             for (int i = 1; i < bars.Count; i++)
             {
@@ -325,78 +325,78 @@ namespace BotCore.Strategy
                         Math.Abs(bars[i].Low - bars[i - 1].Close)));
                 trs.Add(tr);
             }
-            
+
             return trs.TakeLast(period).Average();
         }
 
         private static decimal CalculateVolumeRatio(IList<Bar> bars, int period)
         {
             if (bars.Count < period) return 1m;
-            
+
             var latest = bars.Last().Volume;
             var average = (decimal)bars.TakeLast(period).Average(b => b.Volume);
-            
+
             return average > 0 ? latest / average : 1m;
         }
 
         private static decimal CalculateBollingerPosition(IList<Bar> bars, int period)
         {
             if (bars.Count < period) return 0.5m;
-            
+
             var closes = bars.TakeLast(period).Select(b => b.Close).ToList();
             var sma = closes.Average();
             var stdDev = (decimal)Math.Sqrt((double)closes.Select(c => (c - sma) * (c - sma)).Average());
-            
+
             var latest = bars.Last().Close;
             var upperBand = sma + (2 * stdDev);
             var lowerBand = sma - (2 * stdDev);
-            
+
             if (upperBand == lowerBand) return 0.5m;
-            
+
             return (latest - lowerBand) / (upperBand - lowerBand);
         }
 
         private static decimal CalculateVwapDistance(IList<Bar> bars)
         {
             if (bars.Count < 2) return 0m;
-            
+
             var vwap = bars.Sum(b => b.Close * b.Volume) / bars.Sum(b => b.Volume);
             var latest = bars.Last().Close;
-            
+
             return vwap > 0 ? (latest - vwap) / vwap : 0m;
         }
 
         private static decimal CalculateBreakoutStrength(IList<Bar> bars)
         {
             if (bars.Count < 20) return 0m;
-            
+
             var recent = bars.TakeLast(20).ToList();
             var highest = recent.Max(b => b.High);
             var lowest = recent.Min(b => b.Low);
             var latest = bars.Last().Close;
-            
+
             if (highest == lowest) return 0m;
-            
+
             return (latest - lowest) / (highest - lowest);
         }
 
         private static decimal CalculateRateOfChange(IList<Bar> bars, int period)
         {
             if (bars.Count < period + 1) return 0m;
-            
+
             var current = bars.Last().Close;
             var previous = bars[bars.Count - period - 1].Close;
-            
+
             return previous > 0 ? (current - previous) / previous : 0m;
         }
 
         private static decimal CalculateMomentumStrength(IList<Bar> bars)
         {
             if (bars.Count < 10) return 0m;
-            
+
             var recent = bars.TakeLast(10).ToList();
             var upBars = recent.Count(b => b.Close > b.Open);
-            
+
             return upBars / 10m;
         }
 
@@ -405,8 +405,8 @@ namespace BotCore.Strategy
         /// </summary>
         public static MultiStrategyRlCollector.StrategyType GetStrategyType(string strategyId)
         {
-            return StrategyTypeMapping.TryGetValue(strategyId, out var strategyType) 
-                ? strategyType 
+            return StrategyTypeMapping.TryGetValue(strategyId, out var strategyType)
+                ? strategyType
                 : MultiStrategyRlCollector.StrategyType.Breakout; // Default fallback
         }
 

@@ -7,8 +7,8 @@ namespace OrchestratorAgent.Execution
     {
         readonly double _lambda;   // threshold
         readonly double _delta;    // small tolerance
-        double _mean; 
-        double _cum; 
+        double _mean;
+        double _cum;
         double _minCum;
 
         public PageHinkley(double lambda = 50, double delta = 0.005)
@@ -26,11 +26,11 @@ namespace OrchestratorAgent.Execution
             _cum += x - _mean - _delta;                // cumulative deviation
             _minCum = Math.Min(_minCum, _cum);
             double stat = _cum - _minCum;
-            
-            if (stat > _lambda) 
-            { 
-                Reset(); 
-                return true; 
+
+            if (stat > _lambda)
+            {
+                Reset();
+                return true;
             }
             return false;
         }

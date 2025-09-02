@@ -20,14 +20,14 @@ namespace BotCore
             public string Session { get; set; } = ""; // RTH, ETH
             public string Regime { get; set; } = ""; // Range, Trend, Vol
             public string SignalId { get; set; } = "";
-            
+
             // Price features
             public decimal Price { get; set; }
             public decimal Atr { get; set; }
             public decimal Rsi { get; set; }
             public decimal Ema20 { get; set; }
             public decimal Ema50 { get; set; }
-            
+
             // Market microstructure
             public decimal Volume { get; set; }
             public decimal Spread { get; set; }
@@ -35,28 +35,28 @@ namespace BotCore
             public decimal BidAskImbalance { get; set; }
             public decimal OrderBookImbalance { get; set; }
             public decimal TickDirection { get; set; }
-            
+
             // Strategy-specific
             public decimal SignalStrength { get; set; }
             public decimal PriorWinRate { get; set; }
             public decimal AvgRMultiple { get; set; }
-            
+
             // Risk factors
             public decimal DrawdownRisk { get; set; }
             public decimal NewsImpact { get; set; }
             public decimal LiquidityRisk { get; set; }
-            
+
             // Symbol-specific features for multi-symbol learning
             public bool IsES => Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase);
             public bool IsNQ => Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase);
             public decimal TickSize => BotCore.Models.InstrumentMeta.Tick(Symbol);
             public decimal BigPointValue => BotCore.Models.InstrumentMeta.BigPointValue(Symbol);
-            
+
             // Position sizing decision (what we're learning)
             public decimal BaselineMultiplier { get; set; } = 1.0m;
             public decimal? ActualMultiplier { get; set; }
         }
-        
+
         public class TradeOutcome
         {
             public string SignalId { get; set; } = "";
@@ -88,21 +88,21 @@ namespace BotCore
         {
             try
             {
-                var json = JsonSerializer.Serialize(features, new JsonSerializerOptions 
-                { 
-                    WriteIndented = false 
+                var json = JsonSerializer.Serialize(features, new JsonSerializerOptions
+                {
+                    WriteIndented = false
                 });
-                
+
                 // Create symbol-specific files for better organization
                 var fileName = $"features_{features.Symbol.ToLowerInvariant()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
-                
+
                 lock (FileLock)
                 {
                     File.AppendAllText(filePath, json + Environment.NewLine);
                 }
-                
-                log.LogDebug("[RL-{Symbol}] Logged features for signal {SignalId}", 
+
+                log.LogDebug("[RL-{Symbol}] Logged features for signal {SignalId}",
                     features.Symbol, features.SignalId);
             }
             catch (Exception ex)
@@ -118,22 +118,22 @@ namespace BotCore
         {
             try
             {
-                var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions 
-                { 
-                    WriteIndented = false 
+                var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions
+                {
+                    WriteIndented = false
                 });
-                
+
                 // Create symbol-specific outcome files
                 var symbol = ExtractSymbolFromSignalId(outcome.SignalId);
                 var fileName = $"outcomes_{symbol.ToLowerInvariant()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
-                
+
                 lock (FileLock)
                 {
                     File.AppendAllText(filePath, json + Environment.NewLine);
                 }
-                
-                log.LogDebug("[RL-{Symbol}] Logged outcome for signal {SignalId}: R={R:F2}", 
+
+                log.LogDebug("[RL-{Symbol}] Logged outcome for signal {SignalId}: R={R:F2}",
                     symbol, outcome.SignalId, outcome.RMultiple);
             }
             catch (Exception ex)
@@ -148,14 +148,14 @@ namespace BotCore
         private static string ExtractSymbolFromSignalId(string signalId)
         {
             if (string.IsNullOrEmpty(signalId)) return "unknown";
-            
+
             var parts = signalId.Split('_');
-            if (parts.Length > 0 && (parts[0].Equals("ES", StringComparison.OrdinalIgnoreCase) || 
+            if (parts.Length > 0 && (parts[0].Equals("ES", StringComparison.OrdinalIgnoreCase) ||
                                      parts[0].Equals("NQ", StringComparison.OrdinalIgnoreCase)))
             {
                 return parts[0].ToUpperInvariant();
             }
-            
+
             return "unknown";
         }
 
@@ -164,7 +164,7 @@ namespace BotCore
         /// </summary>
         public static FeatureSnapshot CreateFeatureSnapshot(
             string signalId,
-            string symbol, 
+            string symbol,
             string strategy,
             decimal price,
             decimal baselineMultiplier = 1.0m)
@@ -172,7 +172,7 @@ namespace BotCore
             // Symbol-specific defaults
             var isES = symbol.Equals("ES", StringComparison.OrdinalIgnoreCase);
             var defaultSpread = isES ? 0.25m : 0.25m; // Both ES and NQ have 0.25 tick size
-            
+
             return new FeatureSnapshot
             {
                 Timestamp = DateTime.UtcNow,
@@ -183,7 +183,7 @@ namespace BotCore
                 Regime = "Unknown", // You'll populate this from your regime detection
                 Price = price,
                 BaselineMultiplier = baselineMultiplier,
-                
+
                 // TODO: Populate these from your actual market data
                 Atr = 0m,
                 Rsi = 50m,
@@ -206,10 +206,10 @@ namespace BotCore
 
         private static string GetSessionType()
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var hour = et.Hour;
-            
+
             // RTH: 9:30 AM - 4:00 PM ET
             return (hour >= 9 && hour < 16) ? "RTH" : "ETH";
         }
@@ -221,14 +221,14 @@ namespace BotCore
         {
             var start = startDate ?? DateTime.UtcNow.AddDays(-30);
             var end = endDate ?? DateTime.UtcNow;
-            
+
             var outputPath = Path.Combine(DataPath, $"training_data_{start:yyyyMMdd}_{end:yyyyMMdd}.csv");
-            
+
             try
             {
                 // TODO: Implement CSV export by joining features and outcomes
                 // This would read all .jsonl files and create a merged dataset
-                
+
                 log.LogInformation("[RL] Training data exported to {Path}", outputPath);
                 return outputPath;
             }

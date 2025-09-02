@@ -56,21 +56,21 @@ public sealed class CloudRlTrainer : IDisposable
             // Check GitHub API for latest release
             var apiUrl = "https://api.github.com/repos/kevinsuero072897-collab/trading-bot-c-/releases/latest";
             _http.DefaultRequestHeaders.UserAgent.ParseAdd("TradingBot/1.0");
-            
+
             var response = await _http.GetStringAsync(apiUrl);
             var release = JsonSerializer.Deserialize<JsonElement>(response);
-            
+
             if (release.TryGetProperty("tag_name", out var tagElement))
             {
                 var latestTag = tagElement.GetString();
                 var lastCheckFile = Path.Combine(_modelDir, "last_github_check.txt");
-                
+
                 string? lastCheckedTag = null;
                 if (File.Exists(lastCheckFile))
                 {
                     lastCheckedTag = await File.ReadAllTextAsync(lastCheckFile);
                 }
-                
+
                 if (latestTag != lastCheckedTag)
                 {
                     _log.LogInformation("[CloudRlTrainer] New models available: {Tag}", latestTag);
@@ -94,23 +94,23 @@ public sealed class CloudRlTrainer : IDisposable
         try
         {
             if (!release.TryGetProperty("assets", out var assetsElement)) return;
-            
+
             foreach (var asset in assetsElement.EnumerateArray())
             {
                 if (!asset.TryGetProperty("name", out var nameElement)) continue;
                 var assetName = nameElement.GetString();
-                
+
                 if (assetName?.EndsWith(".tar.gz") == true)
                 {
                     if (!asset.TryGetProperty("browser_download_url", out var urlElement)) continue;
                     var downloadUrl = urlElement.GetString();
-                    
+
                     _log.LogInformation("[CloudRlTrainer] Downloading models: {AssetName}", assetName);
-                    
+
                     var modelBytes = await _http.GetByteArrayAsync(downloadUrl);
                     var tempFile = Path.Combine(_modelDir, assetName);
                     await File.WriteAllBytesAsync(tempFile, modelBytes);
-                    
+
                     // Extract the tar.gz file (simplified - in production use a proper library)
                     _log.LogInformation("[CloudRlTrainer] Downloaded {Bytes} bytes to {File}", modelBytes.Length, tempFile);
                     break;
@@ -127,7 +127,7 @@ public sealed class CloudRlTrainer : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         _timer?.Dispose();
         _http?.Dispose();
         _log.LogInformation("[CloudRlTrainer] Disposed");

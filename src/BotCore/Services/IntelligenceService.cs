@@ -13,7 +13,7 @@ public interface IIntelligenceService
     bool IsIntelligenceAvailable();
     TimeSpan? GetIntelligenceAge();
     Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice, decimal pnl, MarketContext? intelligenceUsed = null);
-    
+
     // New methods for position sizing and risk management
     bool ShouldTrade(MarketContext? intelligence = null);
     decimal GetPositionSizeMultiplier(MarketContext? intelligence = null);
@@ -118,18 +118,18 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Logs a trade result for the Intelligence feedback loop
     /// </summary>
-    public async Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice, 
+    public async Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice,
         decimal pnl, MarketContext? intelligenceUsed = null)
     {
         try
         {
-            var resultsFolderPath = Path.GetDirectoryName(_signalsPath)?.Replace("signals", "trades") 
+            var resultsFolderPath = Path.GetDirectoryName(_signalsPath)?.Replace("signals", "trades")
                                    ?? "../Intelligence/data/trades/";
-            
+
             Directory.CreateDirectory(resultsFolderPath);
-            
+
             var resultsPath = Path.Combine(resultsFolderPath, "results.jsonl");
-            
+
             var tradeResult = new
             {
                 Timestamp = DateTime.UtcNow,
@@ -145,7 +145,7 @@ public class IntelligenceService : IIntelligenceService
 
             var json = JsonSerializer.Serialize(tradeResult, _jsonOptions);
             await File.AppendAllTextAsync(resultsPath, json + Environment.NewLine);
-            
+
             _logger.LogDebug("[INTEL] Logged trade result: {Symbol} PnL={PnL:F2} with intelligence={HasIntel}",
                 symbol, pnl, intelligenceUsed != null);
         }
@@ -239,7 +239,7 @@ public class IntelligenceService : IIntelligenceService
             multiplier *= 2.0m;
 
         // Extended targets in trending markets with high confidence
-        if (intelligence.Regime.Equals("Trending", StringComparison.OrdinalIgnoreCase) && 
+        if (intelligence.Regime.Equals("Trending", StringComparison.OrdinalIgnoreCase) &&
             intelligence.ModelConfidence >= 0.7m)
             multiplier *= 2.0m;
 
@@ -275,8 +275,8 @@ public class IntelligenceService : IIntelligenceService
         if (intelligence == null)
             return false;
 
-        return intelligence.IsFomcDay || 
-               intelligence.IsCpiDay || 
+        return intelligence.IsFomcDay ||
+               intelligence.IsCpiDay ||
                intelligence.NewsIntensity >= 80m ||
                intelligence.Regime.Equals("Volatile", StringComparison.OrdinalIgnoreCase);
     }
