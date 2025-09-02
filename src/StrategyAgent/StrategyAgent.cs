@@ -111,31 +111,31 @@ namespace StrategyAgent
             // Enhanced ES/NQ correlation guard with 24/7 session awareness
             var currentTime = snap.UtcNow.TimeOfDay;
             var currentSession = BotCore.Config.ES_NQ_TradingSchedule.GetCurrentSession(currentTime);
-            
+
             if (currentSession != null)
             {
                 // Filter signals based on session instrument allowance
-                outSignals = [.. outSignals.Where(s => 
+                outSignals = [.. outSignals.Where(s =>
                     currentSession.Instruments.Contains(s.Symbol, StringComparer.OrdinalIgnoreCase))];
-                
+
                 // Apply session-specific position sizing
                 var adjustedSignals = new List<Signal>();
                 foreach (var signal in outSignals)
                 {
                     var sizeMultiplier = BotCore.Config.ES_NQ_TradingSchedule.GetPositionSizeMultiplier(signal.Symbol, currentTime);
-                    var adjustedSignal = signal with 
-                    { 
+                    var adjustedSignal = signal with
+                    {
                         Size = (int)(signal.Size * sizeMultiplier)
                     };
                     adjustedSignals.Add(adjustedSignal);
                 }
                 outSignals = adjustedSignals;
             }
-            
+
             // Enhanced correlation guard for ES/NQ
             var hasEsLong = outSignals.Any(s => s.Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && s.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase));
             var hasEsShort = outSignals.Any(s => s.Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) && s.Side.Equals("SELL", StringComparison.OrdinalIgnoreCase));
-            
+
             // Only filter NQ if we're in high correlation periods and have ES positions
             if (currentSession?.PrimaryInstrument != "BOTH" && (hasEsLong || hasEsShort))
             {
