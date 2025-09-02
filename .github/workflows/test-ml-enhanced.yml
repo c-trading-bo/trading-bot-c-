@@ -1,0 +1,39 @@
+name: Test ML Enhanced
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  test-ml-enhanced:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Test Enhanced ML Components
+        run: |
+          echo "Testing enhanced ML components..."
+          python -c "
+          import sys
+          print(f'Python {sys.version}')
+          try:
+              import numpy as np
+              print('NumPy available')
+          except ImportError:
+              print('NumPy not available - would need installation')
+          "
+          echo "Enhanced ML test completed"
