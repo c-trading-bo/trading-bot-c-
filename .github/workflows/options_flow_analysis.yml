@@ -1,0 +1,97 @@
+name: Options Flow Analysis (Team)
+
+on:
+  schedule:
+    # OPTIMIZED FOR GITHUB TEAM
+    - cron: '*/20 13-14 * * 1-5'   # Every 20 min opening (3 runs)
+    - cron: '0 15,17,19 * * 1-5'   # 3 times during day (3 runs)
+    - cron: '*/30 19-20 * * 1-5'   # Every 30 min close (2 runs)
+    # Total: ~8 runs/day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  analyze-flow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install yfinance pandas numpy requests
+        
+    - name: Analyze Options Flow
+      run: |
+        python << 'EOF'
+        import yfinance as yf
+        import pandas as pd
+        import numpy as np
+        import json
+        from datetime import datetime
+        
+        print(f"[OPTIONS] Starting flow analysis at {datetime.utcnow()}")
+        
+        # Monitor key ETFs for options activity
+        symbols = ['SPY', 'QQQ', 'IWM']
+        flow_data = {}
+        
+        for symbol in symbols:
+            try:
+                ticker = yf.Ticker(symbol)
+                
+                # Get recent data
+                hist = ticker.history(period='1d', interval='5m')
+                
+                if not hist.empty:
+                    # Calculate unusual volume
+                    avg_volume = hist['Volume'].rolling(20).mean()
+                    current_volume = hist['Volume'].iloc[-1]
+                    volume_spike = current_volume / avg_volume.iloc[-1] if avg_volume.iloc[-1] > 0 else 1
+                    
+                    # Price momentum
+                    price_momentum = (hist['Close'].iloc[-1] - hist['Close'].iloc[-5]) / hist['Close'].iloc[-5] * 100
+                    
+                    flow_data[symbol] = {
+                        'price': float(hist['Close'].iloc[-1]),
+                        'volume_spike': float(volume_spike),
+                        'momentum': float(price_momentum),
+                        'signal_strength': min(1.0, abs(price_momentum) * volume_spike / 10),
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
+                    
+                    print(f"[{symbol}] Volume Spike: {volume_spike:.2f}x, Momentum: {price_momentum:.2f}%")
+                    
+            except Exception as e:
+                print(f"[ERROR] {symbol}: {e}")
+        
+        # Save flow analysis
+        import os
+        os.makedirs('data/options', exist_ok=True)
+        with open('data/options/flow_analysis.json', 'w') as f:
+            json.dump(flow_data, f, indent=2)
+        
+        # Generate alerts for unusual activity
+        alerts = []
+        for symbol, data in flow_data.items():
+            if data['volume_spike'] > 2.0 and abs(data['momentum']) > 0.5:
+                alerts.append(f"{symbol}: HIGH ACTIVITY - Volume {data['volume_spike']:.1f}x, Momentum {data['momentum']:.1f}%")
+        
+        if alerts:
+            print("[ALERTS]")
+            for alert in alerts:
+                print(f"  🚨 {alert}")
+        else:
+            print("[OPTIONS] No unusual activity detected")
+        
+        EOF

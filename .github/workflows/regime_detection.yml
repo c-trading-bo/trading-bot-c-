@@ -1,0 +1,123 @@
+name: Market Regime Detection (Team)
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'  # Every 2 hours (12 runs/day)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  detect-regime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install yfinance pandas numpy scikit-learn
+        
+    - name: Detect Market Regime
+      run: |
+        python << 'EOF'
+        import yfinance as yf
+        import pandas as pd
+        import numpy as np
+        import json
+        from datetime import datetime
+        import os
+        
+        print(f"[REGIME] Starting regime detection at {datetime.utcnow()}")
+        
+        try:
+            # Get SPY data for regime detection
+            spy = yf.Ticker('SPY')
+            data = spy.history(period='1mo', interval='1d')
+            
+            if len(data) > 10:
+                # Calculate indicators for regime detection
+                data['returns'] = data['Close'].pct_change()
+                data['volatility'] = data['returns'].rolling(10).std()
+                data['sma_20'] = data['Close'].rolling(20).mean()
+                data['price_position'] = (data['Close'] - data['sma_20']) / data['sma_20']
+                
+                # Current values
+                latest = data.iloc[-1]
+                recent_vol = data['volatility'].tail(5).mean()
+                recent_returns = data['returns'].tail(5).mean()
+                price_trend = latest['price_position']
+                
+                # Regime classification
+                if recent_vol > 0.02:  # High volatility threshold
+                    if abs(recent_returns) > 0.01:
+                        regime = "HIGH_VOLATILITY_TRENDING"
+                    else:
+                        regime = "HIGH_VOLATILITY_CHOPPY"
+                else:  # Low volatility
+                    if price_trend > 0.02:
+                        regime = "LOW_VOLATILITY_BULLISH"
+                    elif price_trend < -0.02:
+                        regime = "LOW_VOLATILITY_BEARISH"
+                    else:
+                        regime = "LOW_VOLATILITY_NEUTRAL"
+                
+                # Calculate confidence
+                vol_confidence = min(1.0, recent_vol / 0.03)
+                trend_confidence = min(1.0, abs(price_trend) / 0.05)
+                overall_confidence = (vol_confidence + trend_confidence) / 2
+                
+                regime_data = {
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'regime': regime,
+                    'confidence': float(overall_confidence),
+                    'metrics': {
+                        'volatility': float(recent_vol),
+                        'returns': float(recent_returns),
+                        'price_position': float(price_trend),
+                        'current_price': float(latest['Close'])
+                    },
+                    'interpretation': {
+                        'volatility_level': 'HIGH' if recent_vol > 0.02 else 'LOW',
+                        'trend_direction': 'UP' if price_trend > 0.02 else 'DOWN' if price_trend < -0.02 else 'NEUTRAL',
+                        'market_stress': 'HIGH' if recent_vol > 0.025 else 'NORMAL'
+                    }
+                }
+                
+                # Save regime data
+                os.makedirs('data/regime', exist_ok=True)
+                with open('data/regime/current.json', 'w') as f:
+                    json.dump(regime_data, f, indent=2)
+                
+                print(f"[REGIME] Current regime: {regime}")
+                print(f"[REGIME] Confidence: {overall_confidence:.2f}")
+                print(f"[REGIME] Volatility: {recent_vol:.3f}, Trend: {price_trend:.3f}")
+                
+            else:
+                print("[REGIME] Insufficient data for regime detection")
+                
+        except Exception as e:
+            print(f"[REGIME] Error: {e}")
+            
+            # Create fallback regime data
+            fallback_data = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'regime': 'UNKNOWN',
+                'confidence': 0.0,
+                'error': str(e)
+            }
+            
+            os.makedirs('data/regime', exist_ok=True)
+            with open('data/regime/current.json', 'w') as f:
+                json.dump(fallback_data, f, indent=2)
+        
+        EOF
