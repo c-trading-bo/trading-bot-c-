@@ -1,0 +1,8 @@
+# Zone Learning Data Directory
+#
+# This directory stores zone interaction data for machine learning:
+# - zone_interactions_*.json: Historical zone interaction patterns
+# - zone_performance_*.json: Zone effectiveness metrics
+# - zone_evolution_*.json: How zones change over time
+#
+# Used by the ZoneService for institutional-grade zone learning and optimization.
