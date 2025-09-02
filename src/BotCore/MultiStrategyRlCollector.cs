@@ -593,6 +593,101 @@ namespace BotCore
             }
         }
 
+        /// <summary>
+        /// Convert ComprehensiveFeatures to TradeSignalData for enhanced training
+        /// </summary>
+        public static Services.TradeSignalData ConvertToTradeSignalData(ComprehensiveFeatures features, string signalId)
+        {
+            return new Services.TradeSignalData
+            {
+                Id = signalId,
+                Symbol = features.Symbol,
+                Direction = DetermineDirection(features),
+                Entry = features.Price,
+                Size = 1.0m, // Base size, will be adjusted by position sizing
+                Strategy = features.Strategy.ToString(),
+                StopLoss = features.Price * 0.99m, // Approximate stop loss
+                TakeProfit = features.Price * 1.02m, // Approximate take profit
+                Regime = features.Regime.ToString(),
+                Atr = features.Atr14,
+                Rsi = features.Rsi14,
+                Ema20 = features.Ema20,
+                Ema50 = features.Ema50,
+                BbUpper = features.BbUpper,
+                BbLower = features.BbLower,
+                Momentum = features.MomentumStrength,
+                TrendStrength = features.TrendStrength,
+                VixLevel = features.VixLevel
+            };
+        }
+
+        /// <summary>
+        /// Convert EnhancedTradeOutcome to TradeOutcomeData for enhanced training
+        /// </summary>
+        public static Services.TradeOutcomeData ConvertToTradeOutcomeData(EnhancedTradeOutcome outcome)
+        {
+            return new Services.TradeOutcomeData
+            {
+                IsWin = outcome.IsWin,
+                ActualPnl = outcome.ActualPnl,
+                ExitPrice = outcome.ExitPrice ?? 0m,
+                ExitTime = outcome.ExitTime,
+                HoldingTimeMinutes = outcome.HoldingTimeMinutes,
+                ActualRMultiple = outcome.ActualRMultiple,
+                MaxDrawdown = outcome.MaxDrawdown ?? 0m
+            };
+        }
+
+        /// <summary>
+        /// Get training sample count across all collection methods
+        /// </summary>
+        public static int GetTotalTrainingSampleCount()
+        {
+            var totalCount = 0;
+
+            try
+            {
+                // Count samples from traditional collection
+                var files = Directory.GetFiles(DataPath, "*.jsonl");
+                foreach (var file in files)
+                {
+                    totalCount += File.ReadAllLines(file).Length;
+                }
+
+                // Count samples from emergency data generation
+                var emergencyDataPath = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
+                if (Directory.Exists(emergencyDataPath))
+                {
+                    var emergencyFiles = Directory.GetFiles(emergencyDataPath, "*.jsonl");
+                    foreach (var file in emergencyFiles)
+                    {
+                        totalCount += File.ReadAllLines(file).Length;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Return 0 if unable to count
+            }
+
+            return totalCount;
+        }
+
+        private static string DetermineDirection(ComprehensiveFeatures features)
+        {
+            // Simple logic to determine trade direction based on features
+            if (features.Rsi14 < 30 && features.Price < features.BbLower)
+                return "BUY"; // Oversold
+            else if (features.Rsi14 > 70 && features.Price > features.BbUpper)
+                return "SELL"; // Overbought
+            else if (features.MomentumStrength > 0.5m)
+                return "BUY"; // Positive momentum
+            else if (features.MomentumStrength < -0.5m)
+                return "SELL"; // Negative momentum
+            else
+                return "HOLD"; // Neutral
+        }
+
         #endregion
     }
 }
