@@ -27,7 +27,7 @@ public static class DashboardModule
             ctx.Response.ContentType = "text/html; charset=utf-8";
             await ctx.Response.SendFileAsync(Path.Combine(app.Environment.ContentRootPath, "wwwroot", "unified-dashboard.html"));
         });
-        
+
         // legacy dashboard (keep for reference)
         app.MapGet("/dashboard/legacy", async ctx =>
         {
@@ -108,7 +108,7 @@ public static class DashboardModule
                 {
                     // Get current metrics snapshot with enhanced data
                     var metrics = hub.GetMetrics();
-                    
+
                     // Enhance metrics with additional live data
                     var enhancedMetrics = new
                     {
@@ -135,7 +135,7 @@ public static class DashboardModule
                         healthStatus = metrics.healthStatus,
                         healthDetails = metrics.healthDetails,
                         selfHealingStatus = metrics.selfHealingStatus,
-                        
+
                         // Enhanced live data
                         overview = new
                         {
@@ -191,12 +191,12 @@ public static class DashboardModule
                         },
                         timestamp = DateTime.UtcNow
                     };
-                    
+
                     var json = JsonSerializer.Serialize(enhancedMetrics);
-                    
+
                     await ctx.Response.WriteAsync($"data: {json}\n\n");
                     await ctx.Response.Body.FlushAsync();
-                    
+
                     // Send metrics every 2 seconds for more responsive updates
                     await Task.Delay(2000, cancel);
                 }
@@ -271,7 +271,7 @@ public static class DashboardModule
             {
                 var body = ctx.Request.ReadFromJsonAsync<BotControlRequest>().Result;
                 hub.EmitEvent("info", $"Bot start requested - Mode: {body?.Mode ?? "default"}");
-                
+
                 // In a real implementation, this would trigger bot startup
                 // For now, just log the request
                 return Results.Json(new { success = true, message = $"Bot start initiated in {body?.Mode ?? "default"} mode" });
@@ -287,7 +287,7 @@ public static class DashboardModule
             try
             {
                 hub.EmitEvent("info", "Bot stop requested");
-                
+
                 // In a real implementation, this would trigger bot shutdown
                 return Results.Json(new { success = true, message = "Bot stop initiated" });
             }
@@ -303,7 +303,7 @@ public static class DashboardModule
             {
                 var body = ctx.Request.ReadFromJsonAsync<BotControlRequest>().Result;
                 hub.EmitEvent("info", $"Mode change requested: {body?.Mode ?? "unknown"}");
-                
+
                 return Results.Json(new { success = true, message = $"Mode changed to {body?.Mode ?? "unknown"}" });
             }
             catch (Exception ex)
@@ -333,7 +333,7 @@ public static class DashboardModule
                     },
                     last_updated = DateTime.UtcNow
                 };
-                
+
                 return Results.Json(githubStatus);
             }
             catch (Exception ex)
@@ -487,7 +487,7 @@ public sealed class RealtimeHub(ILogger<RealtimeHub> log, Func<MetricsSnapshot> 
     }
 
     // ---------- Get current metrics for SSE stream ----------
-    
+
     public MetricsSnapshot GetMetrics() => _metrics();
 
     // ---------- internals ----------

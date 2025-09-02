@@ -22,7 +22,7 @@ public class PerformanceTracker
             PropertyNameCaseInsensitive = true,
             WriteIndented = true
         };
-        
+
         // Ensure trades directory exists
         Directory.CreateDirectory(_tradesPath);
     }
@@ -46,13 +46,13 @@ public class PerformanceTracker
                 Symbol = trade.Symbol,
                 Strategy = trade.Strategy,
                 Side = trade.Side, // "BUY" or "SELL"
-                
+
                 // Timing
                 EntryTime = trade.EntryTime.ToString("O"),
                 ExitTime = trade.ExitTime.ToString("O"),
                 DurationMinutes = (int)duration.TotalMinutes,
                 DurationHours = Math.Round(duration.TotalHours, 2),
-                
+
                 // Prices and PnL
                 EntryPrice = Math.Round(trade.EntryPrice, 4),
                 ExitPrice = Math.Round(trade.ExitPrice, 4),
@@ -62,25 +62,25 @@ public class PerformanceTracker
                 PnLDollar = Math.Round(trade.PnLDollar, 2),
                 PnLPercent = Math.Round(pnlPercent, 4),
                 RMultiple = Math.Round(rMultiple, 2),
-                
+
                 // Exit reason and quality
                 ExitReason = trade.ExitReason, // "TARGET", "STOP", "TIME", "MANUAL", etc.
                 TradeQuality = ClassifyTradeQuality(trade, rMultiple),
-                
+
                 // Market context (if available)
                 MarketRegime = trade.MarketRegime,
                 VolatilityLevel = trade.VolatilityLevel,
                 IntelligenceUsed = trade.IntelligenceUsed,
                 IntelligenceConfidence = trade.IntelligenceConfidence,
-                
+
                 // Custom tags and notes
                 Tags = trade.Tags,
                 Notes = trade.Notes,
-                
+
                 // Performance metrics
                 MaxFavorableExcursion = trade.MaxFavorableExcursion,
                 MaxAdverseExcursion = trade.MaxAdverseExcursion,
-                
+
                 // Timestamp
                 LoggedAt = DateTime.UtcNow.ToString("O")
             };
@@ -90,7 +90,7 @@ public class PerformanceTracker
 
             // Save to daily trade log
             await SaveTradeLogAsync(tradeLog);
-            
+
             // Update personal metrics
             await UpdatePersonalMetricsAsync(trade, rMultiple);
         }
@@ -108,32 +108,32 @@ public class PerformanceTracker
         try
         {
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
-            
+
             // Load existing metrics
             var metrics = await LoadPersonalMetricsAsync() ?? new PersonalMetrics();
-            
+
             // Update trade counts
             metrics.TotalTrades++;
             if (trade.PnLDollar > 0) metrics.WinningTrades++;
             if (trade.PnLDollar < 0) metrics.LosingTrades++;
-            
+
             // Update PnL
             metrics.TotalPnL += trade.PnLDollar;
             metrics.GrossPnL += Math.Abs(trade.PnLDollar);
-            
+
             // Update R multiples
             metrics.TotalRMultiple += rMultiple;
             metrics.AverageRMultiple = metrics.TotalTrades > 0 ? metrics.TotalRMultiple / metrics.TotalTrades : 0;
-            
+
             // Update win rate
             metrics.WinRate = metrics.TotalTrades > 0 ? (double)metrics.WinningTrades / metrics.TotalTrades : 0;
-            
+
             // Track best performing strategies
             if (!metrics.StrategyPerformance.ContainsKey(trade.Strategy))
             {
                 metrics.StrategyPerformance[trade.Strategy] = new StrategyMetrics();
             }
-            
+
             var strategyMetrics = metrics.StrategyPerformance[trade.Strategy];
             strategyMetrics.TradeCount++;
             strategyMetrics.TotalPnL += trade.PnLDollar;
@@ -141,14 +141,14 @@ public class PerformanceTracker
             strategyMetrics.AverageRMultiple = strategyMetrics.TotalRMultiple / strategyMetrics.TradeCount;
             if (trade.PnLDollar > 0) strategyMetrics.Wins++;
             strategyMetrics.WinRate = strategyMetrics.TradeCount > 0 ? (double)strategyMetrics.Wins / strategyMetrics.TradeCount : 0;
-            
+
             // Update timestamps
             metrics.LastUpdated = DateTime.UtcNow;
             metrics.LastTradeTime = trade.ExitTime;
-            
+
             // Save updated metrics
             await File.WriteAllTextAsync(metricsFile, JsonSerializer.Serialize(metrics, _jsonOptions));
-            
+
             _logger.LogInformation("[PERSONAL_METRICS] Total trades: {TotalTrades}, Win rate: {WinRate:P1}, Avg R: {AvgR:F2}",
                 metrics.TotalTrades, metrics.WinRate, metrics.AverageRMultiple);
         }
@@ -167,9 +167,9 @@ public class PerformanceTracker
         {
             // Placeholder for cloud push functionality
             // In a real implementation, this would send data to cloud ML pipeline
-            
+
             _logger.LogDebug("[CLOUD_PUSH] Trade {TradeId} queued for cloud learning", trade.TradeId);
-            
+
             // For now, just save to a cloud queue file
             var cloudQueueFile = Path.Combine(_tradesPath, "cloud_queue.json");
             var cloudData = new
@@ -181,7 +181,7 @@ public class PerformanceTracker
                 Success = trade.PnLDollar > 0,
                 QueuedAt = DateTime.UtcNow.ToString("O")
             };
-            
+
             var queue = new List<object>();
             if (File.Exists(cloudQueueFile))
             {
@@ -189,15 +189,15 @@ public class PerformanceTracker
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) queue = existing;
             }
-            
+
             queue.Add(cloudData);
-            
+
             // Keep only last 1000 items
             if (queue.Count > 1000)
             {
                 queue = queue.Skip(queue.Count - 1000).ToList();
             }
-            
+
             await File.WriteAllTextAsync(cloudQueueFile, JsonSerializer.Serialize(queue, _jsonOptions));
         }
         catch (Exception ex)
@@ -214,10 +214,10 @@ public class PerformanceTracker
         try
         {
             var metricsFile = Path.Combine(_tradesPath, "personal_metrics.json");
-            
+
             if (!File.Exists(metricsFile))
                 return null;
-                
+
             var json = await File.ReadAllTextAsync(metricsFile);
             return JsonSerializer.Deserialize<PersonalMetrics>(json, _jsonOptions);
         }
@@ -291,29 +291,29 @@ public class TradeRecord
     public string Symbol { get; set; } = string.Empty;
     public string Strategy { get; set; } = string.Empty;
     public string Side { get; set; } = string.Empty; // "BUY" or "SELL"
-    
+
     public DateTime EntryTime { get; set; }
     public DateTime ExitTime { get; set; }
-    
+
     public decimal EntryPrice { get; set; }
     public decimal ExitPrice { get; set; }
     public decimal? StopPrice { get; set; }
     public decimal? TargetPrice { get; set; }
     public int Quantity { get; set; }
-    
+
     public decimal PnLDollar { get; set; }
     public string ExitReason { get; set; } = string.Empty;
-    
+
     // Market context
     public string? MarketRegime { get; set; }
     public string? VolatilityLevel { get; set; }
     public bool IntelligenceUsed { get; set; }
     public decimal? IntelligenceConfidence { get; set; }
-    
+
     // Additional metrics
     public decimal? MaxFavorableExcursion { get; set; }
     public decimal? MaxAdverseExcursion { get; set; }
-    
+
     public List<string> Tags { get; set; } = new();
     public string? Notes { get; set; }
 }
@@ -327,15 +327,15 @@ public class PersonalMetrics
     public int WinningTrades { get; set; }
     public int LosingTrades { get; set; }
     public double WinRate { get; set; }
-    
+
     public decimal TotalPnL { get; set; }
     public decimal GrossPnL { get; set; }
-    
+
     public double TotalRMultiple { get; set; }
     public double AverageRMultiple { get; set; }
-    
+
     public Dictionary<string, StrategyMetrics> StrategyPerformance { get; set; } = new();
-    
+
     public DateTime LastUpdated { get; set; }
     public DateTime LastTradeTime { get; set; }
 }

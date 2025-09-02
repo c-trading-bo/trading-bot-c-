@@ -25,13 +25,13 @@ namespace OrchestratorAgent.Execution
             _A = new double[_states, _states];
             _mu = new double[_states][];
             _sigma = new double[_states][];
-            
+
             for (int i = 0; i < _states; i++)
             {
                 _mu[i] = new double[3];
                 _sigma[i] = new double[] { 1, 1, 1 };
             }
-            
+
             // Start with a sticky prior
             for (int i = 0; i < _states; i++)
                 for (int j = 0; j < _states; j++)
@@ -44,7 +44,7 @@ namespace OrchestratorAgent.Execution
             var x = new double[] { ret, volZ, dirStrength };
             _buf.Enqueue(x);
             while (_buf.Count > _maxBuf) _buf.Dequeue();
-            
+
             // crude online EM step (moment updates)
             var post = Posterior(x);
             for (int k = 0; k < _states; k++)
@@ -56,18 +56,18 @@ namespace OrchestratorAgent.Execution
                     _sigma[k][d] = Math.Sqrt(0.98 * _sigma[k][d] * _sigma[k][d] + 0.02 * post[k] * diff * diff);
                 }
             }
-            
+
             // sticky argmax
             var r = ArgMax(post);
-            if (r != _last && _holdCount < _minHoldBars) 
-            { 
-                _holdCount++; 
-                r = _last; 
+            if (r != _last && _holdCount < _minHoldBars)
+            {
+                _holdCount++;
+                r = _last;
             }
-            else 
-            { 
-                _holdCount = 0; 
-                _last = r; 
+            else
+            {
+                _holdCount = 0;
+                _last = r;
             }
             return r;
         }
@@ -87,14 +87,14 @@ namespace OrchestratorAgent.Execution
                 }
                 p[k] = like * (0.7); // encourage self-persistence via scaling
             }
-            
+
             // normalize
-            double sum = p.Sum(); 
-            if (sum <= 0) 
+            double sum = p.Sum();
+            if (sum <= 0)
                 return Enumerable.Repeat(1.0 / _states, _states).ToArray();
-            
-            for (int k = 0; k < _states; k++) 
-                p[k] /= sum; 
+
+            for (int k = 0; k < _states; k++)
+                p[k] /= sum;
             return p;
         }
 

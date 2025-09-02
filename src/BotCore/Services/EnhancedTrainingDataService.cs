@@ -33,10 +33,10 @@ namespace BotCore
             _logger = logger;
             _dataPath = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
             _liveDataPath = Path.Combine(_dataPath, "live");
-            
+
             Directory.CreateDirectory(_dataPath);
             Directory.CreateDirectory(_liveDataPath);
-            
+
             _logger.LogInformation("[EnhancedTrainingData] Initialized - saving to {DataPath}", _liveDataPath);
         }
 
@@ -47,7 +47,7 @@ namespace BotCore
 
             // Collect comprehensive features at trade time
             var features = await GetCurrentMarketFeaturesAsync(signalData);
-            
+
             var tradeData = new TradeData
             {
                 TradeId = tradeId,
@@ -117,7 +117,7 @@ namespace BotCore
         public async Task<string?> ExportTrainingDataAsync(int minSamples = 50)
         {
             var completedFile = Path.Combine(_liveDataPath, "completed_trades.jsonl");
-            
+
             if (!File.Exists(completedFile))
             {
                 _logger.LogWarning("[EnhancedTrainingData] No completed trades file found");
@@ -125,7 +125,7 @@ namespace BotCore
             }
 
             var lines = await File.ReadAllLinesAsync(completedFile);
-            
+
             if (lines.Length < minSamples)
             {
                 _logger.LogInformation("[EnhancedTrainingData] Need {MinSamples} samples, have {CurrentSamples} - waiting for more",
@@ -135,11 +135,11 @@ namespace BotCore
 
             // Export to CSV format for RL training
             var csvData = new List<string> { CreateCsvHeader() };
-            
+
             foreach (var line in lines)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-                
+
                 try
                 {
                     var trade = JsonSerializer.Deserialize<TradeData>(line);
@@ -158,10 +158,10 @@ namespace BotCore
             {
                 var exportFile = Path.Combine(_liveDataPath, $"training_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
                 await File.WriteAllLinesAsync(exportFile, csvData);
-                
+
                 _logger.LogInformation("[EnhancedTrainingData] Exported {SampleCount} training samples to {ExportFile}",
                     csvData.Count - 1, exportFile);
-                    
+
                 return exportFile;
             }
 
@@ -172,9 +172,9 @@ namespace BotCore
         {
             var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
             var pattern = "live_trades_*.jsonl";
-            
+
             var files = Directory.GetFiles(_liveDataPath, pattern);
-            
+
             foreach (var file in files)
             {
                 var fileInfo = new FileInfo(file);
@@ -190,7 +190,7 @@ namespace BotCore
         {
             var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
             var filename = Path.Combine(_liveDataPath, $"live_trades_{dateStr}.jsonl");
-            
+
             var json = JsonSerializer.Serialize(tradeData);
             await File.AppendAllTextAsync(filename, json + Environment.NewLine);
         }
@@ -280,13 +280,13 @@ namespace BotCore
             {
                 "timestamp", "symbol", "session", "regime", "R_multiple", "slip_ticks"
             };
-            
+
             // Add feature columns
             for (int i = 1; i <= 20; i++)
             {
                 headers.Add($"feature_{i}");
             }
-            
+
             return string.Join(",", headers);
         }
 
@@ -364,7 +364,7 @@ namespace BotCore
         public decimal Atr { get; set; }
         public decimal Rsi { get; set; }
         public decimal SlipTicks { get; set; }
-        
+
         // Result fields (filled when trade closes)
         public string? Result { get; set; }
         public decimal? Pnl { get; set; }

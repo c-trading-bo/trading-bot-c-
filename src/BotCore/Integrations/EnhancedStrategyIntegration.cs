@@ -27,18 +27,18 @@ namespace BotCore.Integrations
             {
                 // Convert strategy signal to training data format
                 var signalData = ConvertToTrainingSignalData(signal, currentBar, snapshot);
-                
+
                 // Record the trade data for RL training
                 var tradeId = await trainingService.RecordTradeAsync(signalData);
-                
-                logger.LogDebug("[EnhancedIntegration] Collected signal data for {Strategy}: {TradeId}", 
+
+                logger.LogDebug("[EnhancedIntegration] Collected signal data for {Strategy}: {TradeId}",
                     signal.Strategy, tradeId);
-                
+
                 return tradeId;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "[EnhancedIntegration] Failed to collect signal data for {Strategy}", 
+                logger.LogError(ex, "[EnhancedIntegration] Failed to collect signal data for {Strategy}",
                     signal.Strategy);
                 return null;
             }
@@ -73,8 +73,8 @@ namespace BotCore.Integrations
                 };
 
                 await trainingService.RecordTradeResultAsync(tradeId, outcomeData);
-                
-                logger.LogDebug("[EnhancedIntegration] Recorded trade outcome for {TradeId}: {Result} (R={RMultiple:F2})", 
+
+                logger.LogDebug("[EnhancedIntegration] Recorded trade outcome for {TradeId}: {Result} (R={RMultiple:F2})",
                     tradeId, isWin ? "WIN" : "LOSS", outcomeData.ActualRMultiple);
             }
             catch (Exception ex)
@@ -107,7 +107,7 @@ namespace BotCore.Integrations
                 result.TradeId = await CollectSignalDataAsync(logger, trainingService, signal, currentBar, snapshot);
                 result.Success = !string.IsNullOrEmpty(result.TradeId);
 
-                logger.LogInformation("[EnhancedIntegration] Processed signal for {Strategy} - TradeId: {TradeId}", 
+                logger.LogInformation("[EnhancedIntegration] Processed signal for {Strategy} - TradeId: {TradeId}",
                     signal.Strategy, result.TradeId ?? "N/A");
 
                 return result;
@@ -153,7 +153,7 @@ namespace BotCore.Integrations
         {
             var range = currentBar.High - currentBar.Low;
             var price = currentBar.Close;
-            
+
             if (range / price > 0.01m) return "HighVol";
             if (range / price < 0.005m) return "LowVol";
             return "Range";
@@ -162,14 +162,14 @@ namespace BotCore.Integrations
         private static decimal CalculateRMultiple(decimal entryPrice, decimal exitPrice, decimal pnl, bool isWin)
         {
             if (entryPrice == 0) return 0;
-            
+
             var priceMove = Math.Abs(exitPrice - entryPrice);
             var percentMove = priceMove / entryPrice;
-            
+
             // Estimate R-multiple based on typical risk parameters
             var estimatedRisk = entryPrice * 0.01m; // 1% risk assumption
             var rMultiple = pnl / estimatedRisk;
-            
+
             return rMultiple;
         }
 
@@ -178,8 +178,7 @@ namespace BotCore.Integrations
         private static decimal CalculateRsi(Bar bar) => 50m; // Neutral RSI - could be calculated from price history
         private static decimal CalculateMomentum(Bar bar) => (bar.Close - bar.Open) / bar.Open;
         private static decimal CalculateTrendStrength(Bar bar) => Math.Abs(bar.Close - bar.Open) / bar.Open;
-        private static decimal CalculateVolume(Bar bar) => (decimal)(bar.Volume ?? 1000000);
-    }
+        private static decimal CalculateVolume(Bar bar) => (decimal)bar.Volume;
     }
 
     /// <summary>

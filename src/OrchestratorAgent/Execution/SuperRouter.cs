@@ -22,29 +22,29 @@ namespace OrchestratorAgent.Execution
         readonly DriftDetector _driftDetector;
         readonly CanaryAA _canary;
         readonly Dictionary<string, double> _strategyWeights = new();
-        
+
         bool _driftSafeMode = false;
 
         public SuperRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live, object? partialExit = null)
         {
             _baseRouter = new SimpleOrderRouter(http, getJwtAsync, log, live, partialExit as OrchestratorAgent.Ops.PartialExitService);
             _log = log as ILogger<SuperRouter> ?? throw new ArgumentException("Logger must be of type ILogger<SuperRouter>");
-            
+
             // Initialize components with env settings
             int minHoldBars = int.TryParse(Environment.GetEnvironmentVariable("REGIME_MIN_HOLD_BARS"), out var mhb) ? mhb : 10;
             _regimeEngine = new RegimeEngine(minHoldBars);
-            
+
             _priors = new BayesianPriors();
-            
+
             double cvarLevel = double.TryParse(Environment.GetEnvironmentVariable("CVAR_LEVEL"), out var cl) ? cl : 0.95;
             double cvarTarget = double.TryParse(Environment.GetEnvironmentVariable("CVAR_TARGET_R"), out var ct) ? ct : 0.75;
             _cvarSizer = new CvarSizer(cvarLevel, cvarTarget);
-            
+
             double phtLambda = double.TryParse(Environment.GetEnvironmentVariable("DRIFT_PHT_LAMBDA"), out var pl) ? pl : 50;
             double phtDelta = double.TryParse(Environment.GetEnvironmentVariable("DRIFT_PHT_DELTA"), out var pd) ? pd : 0.005;
             string driftAction = Environment.GetEnvironmentVariable("DRIFT_ACTION") ?? "safe";
             _driftDetector = new DriftDetector(phtLambda, phtDelta, driftAction);
-            
+
             double canaryRatio = double.TryParse(Environment.GetEnvironmentVariable("CANARY_RATIO"), out var cr) ? cr : 0.10;
             double canaryPValue = double.TryParse(Environment.GetEnvironmentVariable("CANARY_PVALUE_MAX"), out var cp) ? cp : 0.10;
             _canary = new CanaryAA(canaryRatio, canaryPValue);
@@ -64,7 +64,7 @@ namespace OrchestratorAgent.Execution
             {
                 // Apply ML enhancements before routing
                 var enhancedSig = await EnhanceSignalAsync(sig, ct);
-                
+
                 // Route using base router with enhancements
                 return await _baseRouter.RouteAsync(enhancedSig, ct);
             }
@@ -81,10 +81,10 @@ namespace OrchestratorAgent.Execution
             {
                 // 1. Regime detection (using synchronous method for now)
                 var currentRegime = DetectCurrentRegime(sig.Symbol);
-                
+
                 // 2. CVaR-optimized sizing 
                 var cvarMultiplier = OptimizePositionSize(sig.Symbol);
-                
+
                 // 3. Check for drift and adjust if needed
                 var isDrifting = CheckForDrift(sig.Symbol);
                 if (isDrifting && !_driftSafeMode)
@@ -92,16 +92,16 @@ namespace OrchestratorAgent.Execution
                     _log.LogWarning("[SuperRouter] Drift detected for {Symbol}, entering safe mode", sig.Symbol);
                     _driftSafeMode = true;
                 }
-                
+
                 // 4. Apply position size multiplier with bounds checking
                 double finalMult = Math.Max(0.5, Math.Min(1.5, cvarMultiplier * (_driftSafeMode ? 0.5 : 1.0)));
-                
+
                 // 5. Canary testing - route some signals to shadow for A/B testing
                 bool isShadow = ShouldShadowSignal(sig.StrategyId);
-                
+
                 _log.LogInformation("[SuperRouter] Enhanced signal: {Strategy} regime={Regime} size={Size}x shadow={Shadow}",
                     sig.StrategyId, currentRegime, finalMult, isShadow);
-                
+
                 return Task.FromResult(sig); // For now, return original signal - full enhancement implementation TBD
             }
             catch (Exception ex)
@@ -132,7 +132,7 @@ namespace OrchestratorAgent.Execution
                 // CVaR-based sizing - simplified version
                 double baseSize = 1.0;
                 double cvarLevel = double.TryParse(Environment.GetEnvironmentVariable("CVAR_LEVEL"), out var cl) ? cl : 0.95;
-                
+
                 // Simple risk-based adjustment
                 return Math.Max(0.5, Math.Min(1.5, baseSize));
             }
@@ -173,13 +173,13 @@ namespace OrchestratorAgent.Execution
         }
 
         public (string strategy, string config, double positionMult, bool isShadow) Route(
-            string symbol, 
-            double price, 
-            double atr14, 
-            double atr100, 
-            double atrStd, 
-            double emaFast, 
-            double emaSlow, 
+            string symbol,
+            double price,
+            double atr14,
+            double atr100,
+            double atrStd,
+            double emaFast,
+            double emaSlow,
             double prevClose,
             List<string> availableStrategies)
         {
@@ -187,10 +187,10 @@ namespace OrchestratorAgent.Execution
             double ret = prevClose > 0 ? (price - prevClose) / prevClose : 0;
             double volZ = atrStd > 1e-6 ? (atr14 - atr100) / atrStd : 0;
             double dirStrength = atr14 > 1e-6 ? Math.Clamp((emaFast - emaSlow) / atr14, -3, 3) : 0;
-            
+
             var regime = _regimeEngine.UpdateAndInfer(ret, volZ, dirStrength);
             var session = IsRthNow() ? "RTH" : "ETH";
-            
+
             _log.LogDebug("[SuperRouter] {Symbol} regime={Regime} session={Session}", symbol, regime, session);
 
             // Handle drift safe mode
@@ -202,7 +202,7 @@ namespace OrchestratorAgent.Execution
 
             // Score available strategies using Bayesian priors
             var scores = new List<(string strat, string config, double score)>();
-            
+
             foreach (var strat in availableStrategies)
             {
                 var configs = GetConfigsForStrategy(strat);
@@ -210,13 +210,13 @@ namespace OrchestratorAgent.Execution
                 {
                     // Sample posterior win probability from hierarchical priors
                     double posterior = _priors.Sample(strat, config, regime.ToString(), session, _rng);
-                    
+
                     // Apply strategy weight (learned from recent performance)
                     double stratWeight = _strategyWeights.TryGetValue(strat, out var w) ? w : 1.0;
-                    
+
                     // Compute final score
                     double score = posterior * stratWeight * GetSignalQuality(strat, symbol, price);
-                    
+
                     scores.Add((strat, config, score));
                 }
             }
@@ -229,7 +229,7 @@ namespace OrchestratorAgent.Execution
 
             // Select best strategy
             var best = scores.OrderByDescending(x => x.score).First();
-            
+
             // Determine if this should be a canary (shadow) trade
             bool isShadow = Flag("CANARY_ENABLED") && _canary.ToShadow();
             if (isShadow && scores.Count > 1)
@@ -242,32 +242,32 @@ namespace OrchestratorAgent.Execution
             // Compute position size using CVaR
             double baseMult = GetBaseMultiplier(best.strat);
             double posMult = _cvarSizer.Recommend(baseMult);
-            
+
             // Apply environment limits
             double minMult = double.TryParse(Environment.GetEnvironmentVariable("SIZE_MIN_MULT"), out var min) ? min : 0.5;
             double maxMult = double.TryParse(Environment.GetEnvironmentVariable("SIZE_MAX_MULT"), out var max) ? max : 1.5;
             posMult = Math.Clamp(posMult, minMult, maxMult);
 
-            _log.LogInformation("[SuperRouter] Selected {Strategy} {Config} mult={Mult:F2} shadow={Shadow}", 
+            _log.LogInformation("[SuperRouter] Selected {Strategy} {Config} mult={Mult:F2} shadow={Shadow}",
                 best.strat, best.config, posMult, isShadow);
 
             return (best.strat, best.config, posMult, isShadow);
         }
 
-        public void ObserveTrade(string strategy, string config, string regime, string session, 
+        public void ObserveTrade(string strategy, string config, string regime, string session,
             double rMultiple, bool isShadow, DateTime entryTime)
         {
             bool win = rMultiple > 0;
-            
+
             // Update Bayesian priors
             _priors.Observe(strategy, config, regime, session, win);
-            
+
             // Update CVaR sizer
             _cvarSizer.Observe(rMultiple);
-            
+
             // Update canary AA testing
             _canary.Observe(isShadow, win);
-            
+
             // Update drift detector
             double signal = Math.Abs(rMultiple) >= 1 ? 1 : 0; // Binary: hit target or not
             if (_driftDetector.Update(signal))
@@ -275,15 +275,15 @@ namespace OrchestratorAgent.Execution
                 _log.LogWarning("[SuperRouter] Drift detected! Applying action: {Action}", _driftDetector.GetAction());
                 ApplyDriftAction(_driftDetector.GetAction());
             }
-            
+
             // Check for canary promotion
             if (Flag("CANARY_ENABLED") && _canary.ShouldPromote())
             {
                 _log.LogInformation("[SuperRouter] Canary promotion triggered - shadow arm outperforming");
                 // TODO: Implement strategy promotion logic
             }
-            
-            _log.LogDebug("[SuperRouter] Trade observed: {Strategy} {Config} R={R:F2} shadow={Shadow}", 
+
+            _log.LogDebug("[SuperRouter] Trade observed: {Strategy} {Config} R={R:F2} shadow={Shadow}",
                 strategy, config, rMultiple, isShadow);
         }
 
@@ -320,7 +320,7 @@ namespace OrchestratorAgent.Execution
 
         static bool IsRthNow()
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var time = et.TimeOfDay;
             return time >= TimeSpan.FromHours(9.5) && time <= TimeSpan.FromHours(16);

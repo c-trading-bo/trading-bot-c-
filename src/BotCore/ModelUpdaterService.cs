@@ -22,20 +22,20 @@ namespace BotCore
         private readonly HttpClient _http;
         private readonly IConfiguration _config;
         private readonly IPositionAgent _positionAgent; // Assume this exists
-        
+
         private readonly string _manifestUrl;
         private readonly string _hmacKey;
         private readonly int _pollIntervalSeconds;
         private readonly string _modelsPath;
-        
+
         private string _currentManifestHash = "";
         private DateTime _lastSuccessfulCheck = DateTime.MinValue;
         private int _consecutiveFailures = 0;
-        
+
         private readonly Timer _updateTimer;
         private readonly object _updateLock = new();
         private bool _isRunning = false;
-        
+
         public ModelUpdaterService(
             ILogger<ModelUpdaterService> logger,
             HttpClient httpClient,
@@ -46,30 +46,30 @@ namespace BotCore
             _http = httpClient;
             _config = configuration;
             _positionAgent = positionAgent;
-            
+
             // Configuration from appsettings.json or environment
-            _manifestUrl = _config["ModelUpdater:ManifestUrl"] ?? 
+            _manifestUrl = _config["ModelUpdater:ManifestUrl"] ??
                           Environment.GetEnvironmentVariable("MODEL_MANIFEST_URL") ??
                           "https://d1234567890abcdef.cloudfront.net/models/current.json";
-            
+
             _hmacKey = _config["ModelUpdater:HmacKey"] ??
                       Environment.GetEnvironmentVariable("MANIFEST_HMAC_KEY") ??
                       throw new InvalidOperationException("MANIFEST_HMAC_KEY required");
-            
+
             _pollIntervalSeconds = int.Parse(_config["ModelUpdater:PollIntervalSeconds"] ?? "300"); // 5 minutes default
             _modelsPath = Path.Combine("models", "onnx");
-            
+
             Directory.CreateDirectory(_modelsPath);
-            
+
             // Create timer for periodic updates
             _updateTimer = new Timer(OnTimerElapsed, null, TimeSpan.Zero, TimeSpan.FromSeconds(_pollIntervalSeconds));
         }
 
         public void Start()
         {
-            _log.LogInformation("[ModelUpdater] Starting with manifest URL: {Url}, poll interval: {Interval}s", 
+            _log.LogInformation("[ModelUpdater] Starting with manifest URL: {Url}, poll interval: {Interval}s",
                 _manifestUrl, _pollIntervalSeconds);
-            
+
             _isRunning = true;
         }
 
@@ -84,7 +84,7 @@ namespace BotCore
         {
             if (!_isRunning)
                 return;
-                
+
             lock (_updateLock)
             {
                 if (!_isRunning)
@@ -101,13 +101,13 @@ namespace BotCore
             {
                 _consecutiveFailures++;
                 _log.LogError(ex, "[ModelUpdater] Check failed (attempt {Attempt})", _consecutiveFailures);
-                
+
                 // Exponential backoff on repeated failures
                 if (_consecutiveFailures >= 3)
                 {
                     var backoffMinutes = Math.Min(_consecutiveFailures * 2, 30);
                     _log.LogWarning("[ModelUpdater] Multiple failures, backing off for {Minutes} minutes", backoffMinutes);
-                    
+
                     // Adjust timer interval for backoff
                     _updateTimer?.Change(TimeSpan.FromMinutes(backoffMinutes), TimeSpan.FromSeconds(_pollIntervalSeconds));
                     return;
@@ -118,7 +118,7 @@ namespace BotCore
         private async Task CheckForModelUpdates(CancellationToken cancellationToken)
         {
             _log.LogDebug("[ModelUpdater] Checking for model updates...");
-            
+
             // Download and verify manifest
             var manifestJson = await DownloadManifestAsync(cancellationToken);
             if (string.IsNullOrEmpty(manifestJson))
@@ -126,7 +126,7 @@ namespace BotCore
                 _log.LogWarning("[ModelUpdater] Failed to download manifest");
                 return;
             }
-            
+
             // Check if manifest has changed
             var manifestHash = ComputeHash(manifestJson);
             if (manifestHash == _currentManifestHash)
@@ -134,14 +134,14 @@ namespace BotCore
                 _log.LogDebug("[ModelUpdater] No manifest changes detected");
                 return;
             }
-            
+
             // Verify HMAC signature
             if (!VerifyManifestSignature(manifestJson))
             {
                 _log.LogError("[ModelUpdater] SECURITY: Manifest signature verification failed!");
                 return;
             }
-            
+
             // Parse manifest
             var manifest = ParseManifest(manifestJson);
             if (manifest == null)
@@ -149,20 +149,20 @@ namespace BotCore
                 _log.LogError("[ModelUpdater] Failed to parse manifest");
                 return;
             }
-            
+
             // Safety check: only update when flat
             if (!await IsPositionFlat(cancellationToken))
             {
                 _log.LogInformation("[ModelUpdater] Skipping update - active positions detected");
                 return;
             }
-            
+
             // Download and install new models
             var updateSuccess = await UpdateModelsAsync(manifest, cancellationToken);
             if (updateSuccess)
             {
                 _currentManifestHash = manifestHash;
-                _log.LogInformation("[ModelUpdater] Successfully updated to manifest version {Version}", 
+                _log.LogInformation("[ModelUpdater] Successfully updated to manifest version {Version}",
                     manifest.Version);
             }
         }
@@ -173,10 +173,10 @@ namespace BotCore
             {
                 using var response = await _http.GetAsync(_manifestUrl, cancellationToken);
                 response.EnsureSuccessStatusCode();
-                
+
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
                 _log.LogDebug("[ModelUpdater] Downloaded manifest ({Bytes} bytes)", content.Length);
-                
+
                 return content;
             }
             catch (HttpRequestException ex)
@@ -197,10 +197,10 @@ namespace BotCore
                     _log.LogError("[ModelUpdater] No signature found in manifest");
                     return false;
                 }
-                
+
                 // Verify using ManifestVerifier
                 var isValid = ManifestVerifier.VerifyManifestSignature(manifestJson, _hmacKey, signature);
-                
+
                 if (!isValid)
                 {
                     _log.LogError("[ModelUpdater] SECURITY: Invalid manifest signature!");
@@ -209,7 +209,7 @@ namespace BotCore
                 {
                     _log.LogDebug("[ModelUpdater] Manifest signature verified");
                 }
-                
+
                 return isValid;
             }
             catch (Exception ex)
@@ -228,13 +228,13 @@ namespace BotCore
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     PropertyNameCaseInsensitive = true
                 });
-                
+
                 // Validate required fields
                 if (!ManifestVerifier.ValidateManifestStructure(manifestJson))
                 {
                     return null;
                 }
-                
+
                 return manifest;
             }
             catch (JsonException ex)
@@ -263,7 +263,7 @@ namespace BotCore
         private async Task<bool> UpdateModelsAsync(ModelManifest manifest, CancellationToken cancellationToken)
         {
             var allSuccessful = true;
-            
+
             foreach (var (modelName, modelInfo) in manifest.Models)
             {
                 try
@@ -276,7 +276,7 @@ namespace BotCore
                     }
                     else
                     {
-                        _log.LogInformation("[ModelUpdater] Updated model: {ModelName} -> {Checksum}", 
+                        _log.LogInformation("[ModelUpdater] Updated model: {ModelName} -> {Checksum}",
                             modelName, modelInfo.Checksum[..8]);
                     }
                 }
@@ -286,7 +286,7 @@ namespace BotCore
                     allSuccessful = false;
                 }
             }
-            
+
             return allSuccessful;
         }
 
@@ -294,34 +294,34 @@ namespace BotCore
         {
             var tempPath = Path.Combine(_modelsPath, $"{modelName}.tmp");
             var finalPath = Path.Combine(_modelsPath, $"{modelName}.onnx");
-            
+
             try
             {
                 // Download model to temporary file
                 using var response = await _http.GetAsync(modelInfo.Url, cancellationToken);
                 response.EnsureSuccessStatusCode();
-                
+
                 await using var fileStream = File.Create(tempPath);
                 await response.Content.CopyToAsync(fileStream, cancellationToken);
                 await fileStream.FlushAsync(cancellationToken);
                 fileStream.Close();
-                
+
                 // Verify checksum
                 var actualChecksum = await ComputeFileChecksumAsync(tempPath);
                 if (!string.Equals(actualChecksum, modelInfo.Checksum, StringComparison.OrdinalIgnoreCase))
                 {
-                    _log.LogError("[ModelUpdater] Checksum mismatch for {ModelName}: expected {Expected}, got {Actual}", 
+                    _log.LogError("[ModelUpdater] Checksum mismatch for {ModelName}: expected {Expected}, got {Actual}",
                         modelName, modelInfo.Checksum, actualChecksum);
                     File.Delete(tempPath);
                     return false;
                 }
-                
+
                 // Atomic replace: move temp file to final location
                 if (File.Exists(finalPath))
                 {
                     var backupPath = finalPath + ".backup";
                     File.Move(finalPath, backupPath);
-                    
+
                     try
                     {
                         File.Move(tempPath, finalPath);
@@ -341,19 +341,19 @@ namespace BotCore
                 {
                     File.Move(tempPath, finalPath);
                 }
-                
+
                 return true;
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "[ModelUpdater] Failed to download/install model {ModelName}", modelName);
-                
+
                 // Clean up temp file
                 if (File.Exists(tempPath))
                 {
                     try { File.Delete(tempPath); } catch { }
                 }
-                
+
                 return false;
             }
         }

@@ -22,14 +22,14 @@ namespace BotCore
         private bool _disposed;
 
         public EnhancedAutoRlTrainer(
-            ILogger<EnhancedAutoRlTrainer> logger, 
+            ILogger<EnhancedAutoRlTrainer> logger,
             IEnhancedTrainingDataService trainingDataService)
         {
             _logger = logger;
             _trainingDataService = trainingDataService;
             _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
             _modelDir = Path.Combine(AppContext.BaseDirectory, "models", "rl");
-            
+
             Directory.CreateDirectory(_dataDir);
             Directory.CreateDirectory(_modelDir);
 
@@ -39,7 +39,7 @@ namespace BotCore
             // Check for training data and train every 2 hours (faster than previous 6 hours)
             var checkInterval = TimeSpan.FromHours(2);
             _timer = new Timer(CheckAndTrain, null, TimeSpan.Zero, checkInterval);
-            
+
             _logger.LogInformation("[EnhancedAutoRlTrainer] Started - checking every {Interval} for training opportunities", checkInterval);
         }
 
@@ -51,7 +51,7 @@ namespace BotCore
             {
                 // Check total training samples across all sources
                 var totalSamples = await GetTotalTrainingSampleCountAsync();
-                
+
                 if (totalSamples < 100)
                 {
                     _logger.LogDebug("[EnhancedAutoRlTrainer] Insufficient data for training: {SampleCount} samples (need 100+)", totalSamples);
@@ -70,11 +70,11 @@ namespace BotCore
 
                 // Train the model
                 var success = await TrainModelAsync(exportPath);
-                
+
                 if (success)
                 {
                     _logger.LogInformation("[EnhancedAutoRlTrainer] ✅ Automated training complete! New model deployed");
-                    
+
                     // Cleanup old data
                     await _trainingDataService.CleanupOldDataAsync(7);
                 }
@@ -123,7 +123,7 @@ namespace BotCore
             {
                 var mlDir = Path.Combine(AppContext.BaseDirectory, "ml");
                 var trainScript = Path.Combine(mlDir, "rl", "train_cvar_ppo.py");
-                
+
                 if (!File.Exists(trainScript))
                 {
                     _logger.LogError("[EnhancedAutoRlTrainer] Training script not found: {ScriptPath}", trainScript);
@@ -135,7 +135,7 @@ namespace BotCore
 
                 // Build Python command with enhanced parameters
                 var arguments = $"\"{trainScript}\" --auto --data \"{dataPath}\" --output_model \"{outputModel}\"";
-                
+
                 _logger.LogInformation("[EnhancedAutoRlTrainer] Training: {Python} {Arguments}", _pythonPath, arguments);
 
                 using var process = new Process
@@ -179,7 +179,7 @@ namespace BotCore
 
                 // Wait for training to complete (with timeout)
                 var completed = await Task.Run(() => process.WaitForExit(600000)); // 10 minutes timeout
-                
+
                 if (!completed)
                 {
                     _logger.LogError("[EnhancedAutoRlTrainer] Training timed out after 10 minutes");
@@ -228,8 +228,8 @@ namespace BotCore
             // Extract key metrics from training output
             foreach (var line in outputLines.TakeLast(20))
             {
-                if (line.Contains("Final average return") || 
-                    line.Contains("CVaR") || 
+                if (line.Contains("Final average return") ||
+                    line.Contains("CVaR") ||
                     line.Contains("Training complete"))
                 {
                     _logger.LogInformation("[Training Summary] {Line}", line);
@@ -282,7 +282,7 @@ namespace BotCore
         public void Dispose()
         {
             if (_disposed) return;
-            
+
             _disposed = true;
             _timer?.Dispose();
             _logger.LogInformation("[EnhancedAutoRlTrainer] Disposed");

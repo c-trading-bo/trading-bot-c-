@@ -205,7 +205,7 @@ internal class LinUcbArm
     public (decimal prediction, decimal confidence) PredictWithConfidence(ContextVector context)
     {
         var x = context.ToArray(_dimension);
-        
+
         if (_inverseNeedsUpdate)
         {
             UpdateInverse();
@@ -219,10 +219,10 @@ internal class LinUcbArm
 
         // theta = A^(-1) * b
         var theta = MatrixVectorMultiply(_AInverse, _b);
-        
+
         // prediction = theta^T * x
         var prediction = VectorDotProduct(theta, x);
-        
+
         // confidence = sqrt(x^T * A^(-1) * x)
         var temp = MatrixVectorMultiply(_AInverse, x);
         var confidence = (decimal)Math.Sqrt((double)VectorDotProduct(x, temp));
@@ -233,7 +233,7 @@ internal class LinUcbArm
     public void Update(ContextVector context, decimal reward)
     {
         var x = context.ToArray(_dimension);
-        
+
         // Update A = A + x * x^T
         for (int i = 0; i < _dimension; i++)
         {
@@ -421,7 +421,7 @@ internal class LinUcbArm
     {
         var result = 0m;
         var length = Math.Min(a.Length, b.Length);
-        
+
         for (int i = 0; i < length; i++)
         {
             result += a[i] * b[i];
@@ -454,7 +454,7 @@ public class ContextVector
     {
         var array = new decimal[dimension];
         var featureKeys = Features.Keys.OrderBy(k => k).ToList();
-        
+
         for (int i = 0; i < Math.Min(dimension, featureKeys.Count); i++)
         {
             array[i] = Features[featureKeys[i]];

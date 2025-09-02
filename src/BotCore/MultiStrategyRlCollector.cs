@@ -40,21 +40,21 @@ namespace BotCore
             public string SignalId { get; set; } = "";
             public string Session { get; set; } = ""; // RTH, ETH
             public MarketRegime Regime { get; set; }
-            
+
             // === Core Price Action ===
             public decimal Price { get; set; }
             public decimal Atr14 { get; set; }
             public decimal Atr50 { get; set; }
             public decimal DailyRange { get; set; }
             public decimal Gap { get; set; }
-            
+
             // === Moving Averages ===
             public decimal Ema9 { get; set; }
             public decimal Ema20 { get; set; }
             public decimal Ema50 { get; set; }
             public decimal Sma200 { get; set; }
             public decimal MaAlignment { get; set; } // -1 to 1 (bearish to bullish)
-            
+
             // === Technical Indicators ===
             public decimal Rsi14 { get; set; }
             public decimal Rsi2 { get; set; }
@@ -62,7 +62,7 @@ namespace BotCore
             public decimal StochD { get; set; }
             public decimal Williams { get; set; }
             public decimal Cci { get; set; }
-            
+
             // === Volatility & Bollinger ===
             public decimal BbUpper { get; set; }
             public decimal BbLower { get; set; }
@@ -70,7 +70,7 @@ namespace BotCore
             public decimal BbSqueeze { get; set; } // Keltner vs BB
             public decimal HistVol20 { get; set; }
             public decimal VolumeProfile { get; set; }
-            
+
             // === Market Microstructure ===
             public decimal Volume { get; set; }
             public decimal VolumeRatio { get; set; } // vs 20-day avg
@@ -79,32 +79,32 @@ namespace BotCore
             public decimal OrderBookImbalance { get; set; }
             public decimal TickDirection { get; set; }
             public decimal VwapDistance { get; set; }
-            
+
             // === Strategy-Specific Signals ===
             // EmaCross
             public decimal EmaSpread920 { get; set; }
             public decimal EmaSlope9 { get; set; }
             public decimal EmaSlope20 { get; set; }
             public decimal CrossStrength { get; set; }
-            
+
             // MeanReversion
             public decimal MeanReversionZ { get; set; }
             public decimal BounceQuality { get; set; }
             public decimal SupportResistance { get; set; }
             public decimal OversoldDuration { get; set; }
-            
+
             // Breakout
             public decimal BreakoutStrength { get; set; }
             public decimal ConsolidationTime { get; set; }
             public decimal VolumeConfirmation { get; set; }
             public decimal FalseBreakoutRisk { get; set; }
-            
+
             // Momentum
             public decimal MomentumScore { get; set; }
             public decimal AccelerationDivergence { get; set; }
             public decimal TrendStrength { get; set; }
             public decimal MomentumSustainability { get; set; }
-            
+
             // === Risk & Performance Factors ===
             public decimal SignalQuality { get; set; } // 0-1 composite score
             public decimal PriorWinRate { get; set; } // last 20 trades this strategy
@@ -113,7 +113,7 @@ namespace BotCore
             public decimal CorrelationRisk { get; set; } // with other positions
             public decimal LiquidityScore { get; set; }
             public decimal NewsImpact { get; set; } // 0-1 upcoming events
-            
+
             // === Time-Based Features ===
             public int DayOfWeek { get; set; }
             public int HourOfDay { get; set; }
@@ -122,13 +122,13 @@ namespace BotCore
             public bool IsOpex { get; set; }
             public bool IsFomc { get; set; }
             public bool IsEarnings { get; set; }
-            
+
             // === Position Sizing Targets ===
             public decimal BaselineMultiplier { get; set; } = 1.0m;
             public decimal OptimalMultiplier { get; set; } = 1.0m; // ML predicted
             public decimal ActualMultiplier { get; set; } = 1.0m; // What was used
             public decimal ConfidenceScore { get; set; } = 0.5m;
-            
+
             // === Additional Integration Properties ===
             public decimal RiskPerShare { get; set; }
             public decimal RewardRisk { get; set; }
@@ -164,7 +164,7 @@ namespace BotCore
             public decimal PostTradeDrawdown { get; set; }
             public decimal PositionSizeUsed { get; set; }
             public decimal VolatilityAdjustment { get; set; }
-            
+
             // === Additional Integration Properties ===
             public decimal ActualPnl { get; set; }
             public int HoldingTimeMinutes { get; set; }
@@ -192,22 +192,22 @@ namespace BotCore
             {
                 // Enrich with calculated fields
                 EnrichFeatures(features);
-                
-                var json = JsonSerializer.Serialize(features, new JsonSerializerOptions 
-                { 
+
+                var json = JsonSerializer.Serialize(features, new JsonSerializerOptions
+                {
                     WriteIndented = false,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
-                
+
                 var fileName = $"features_{features.Strategy.ToString().ToLower()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
-                
+
                 lock (FileLock)
                 {
                     File.AppendAllText(filePath, json + Environment.NewLine);
                 }
-                
-                log.LogDebug("[RL-{Strategy}] Logged comprehensive features for signal {SignalId}", 
+
+                log.LogDebug("[RL-{Strategy}] Logged comprehensive features for signal {SignalId}",
                     features.Strategy, features.SignalId);
             }
             catch (Exception ex)
@@ -223,24 +223,24 @@ namespace BotCore
         {
             try
             {
-                var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions 
-                { 
+                var json = JsonSerializer.Serialize(outcome, new JsonSerializerOptions
+                {
                     WriteIndented = false,
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
-                
+
                 var fileName = $"outcomes_{outcome.Strategy.ToString().ToLower()}_{DateTime.UtcNow:yyyyMMdd}.jsonl";
                 var filePath = Path.Combine(DataPath, fileName);
-                
+
                 lock (FileLock)
                 {
                     File.AppendAllText(filePath, json + Environment.NewLine);
-                    
+
                     // Update recent trades cache for performance metrics
                     UpdateRecentTradesCache(outcome);
                 }
-                
-                log.LogDebug("[RL-{Strategy}] Logged enhanced outcome for {SignalId}: R={R:F2} Exit={Exit}", 
+
+                log.LogDebug("[RL-{Strategy}] Logged enhanced outcome for {SignalId}: R={R:F2} Exit={Exit}",
                     outcome.Strategy, outcome.SignalId, outcome.ActualRMultiple, outcome.ExitReason);
             }
             catch (Exception ex)
@@ -263,20 +263,20 @@ namespace BotCore
             decimal atr)
         {
             var features = CreateBaseFeatures(signalId, symbol, StrategyType.EmaCross, price);
-            
+
             features.Ema9 = ema9;
             features.Ema20 = ema20;
             features.Ema50 = ema50;
             features.Volume = volume;
             features.Atr14 = atr;
-            
+
             // EmaCross specific calculations
             features.EmaSpread920 = (ema9 - ema20) / price * 100m; // % spread
             features.EmaSlope9 = CalculateSlope(ema9, price); // Simplified slope
             features.EmaSlope20 = CalculateSlope(ema20, price);
             features.CrossStrength = Math.Abs(features.EmaSpread920) * (volume / 1000m);
             features.MaAlignment = CalculateMaAlignment(ema9, ema20, ema50);
-            
+
             return features;
         }
 
@@ -294,19 +294,19 @@ namespace BotCore
             decimal volume)
         {
             var features = CreateBaseFeatures(signalId, symbol, StrategyType.MeanReversion, price);
-            
+
             features.Rsi14 = rsi;
             features.BbUpper = bbUpper;
             features.BbLower = bbLower;
             features.VwapDistance = (price - vwap) / price * 100m;
             features.Volume = volume;
-            
+
             // MeanReversion specific
             features.BbPosition = (price - bbLower) / (bbUpper - bbLower);
             features.MeanReversionZ = (50m - rsi) / 10m; // Z-score from neutral
             features.BounceQuality = CalculateBounceQuality(price, bbLower, bbUpper);
             features.OversoldDuration = rsi < 30 ? 1m : 0m; // Simplified
-            
+
             return features;
         }
 
@@ -324,11 +324,11 @@ namespace BotCore
             decimal consolidationTime)
         {
             var features = CreateBaseFeatures(signalId, symbol, StrategyType.Breakout, price);
-            
+
             features.Volume = volume;
             features.VolumeRatio = volume / Math.Max(avgVolume, 1m);
             features.ConsolidationTime = consolidationTime;
-            
+
             // Breakout specific
             features.BreakoutStrength = Math.Max(
                 (price - highBreakout) / price * 100m,
@@ -336,7 +336,7 @@ namespace BotCore
             );
             features.VolumeConfirmation = Math.Min(features.VolumeRatio / 2m, 1m);
             features.FalseBreakoutRisk = CalculateFalseBreakoutRisk(price, highBreakout, lowBreakout);
-            
+
             return features;
         }
 
@@ -353,18 +353,18 @@ namespace BotCore
             decimal atr)
         {
             var features = CreateBaseFeatures(signalId, symbol, StrategyType.Momentum, price);
-            
+
             features.Rsi14 = rsi;
             features.Volume = volume;
             features.Atr14 = atr;
-            
+
             // Momentum specific
             var priceChange = (price - priorPrice) / priorPrice * 100m;
             features.MomentumScore = Math.Abs(priceChange) * (volume / 1000m);
             features.TrendStrength = Math.Min(Math.Abs(rsi - 50m) / 25m, 1m);
             features.AccelerationDivergence = 0m; // Would need more bars to calculate
             features.MomentumSustainability = CalculateMomentumSustainability(priceChange, atr);
-            
+
             return features;
         }
 
@@ -375,12 +375,12 @@ namespace BotCore
         {
             var start = startDate ?? DateTime.UtcNow.AddDays(-30);
             var outputPath = Path.Combine(DataPath, $"{strategy.ToString().ToLower()}_training_{start:yyyyMMdd}.parquet");
-            
+
             try
             {
                 // TODO: Implement strategy-specific feature selection and export
                 // This would read strategy-specific .jsonl files and optimize features
-                
+
                 log.LogInformation("[RL-{Strategy}] Training data exported to {Path}", strategy, outputPath);
                 return outputPath;
             }
@@ -419,10 +419,10 @@ namespace BotCore
                 features.PriorWinRate = recent.Count(t => t.IsWin) / (decimal)recent.Count;
                 features.AvgRMultiple = recent.Average(t => t.ActualRMultiple);
             }
-            
+
             // Calculate signal quality composite score
             features.SignalQuality = CalculateSignalQuality(features);
-            
+
             // Market regime detection
             features.Regime = DetectMarketRegime(features);
         }
@@ -455,7 +455,7 @@ namespace BotCore
         {
             var range = bbUpper - bbLower;
             if (range == 0) return 0m;
-            
+
             var distanceFromLower = price - bbLower;
             return Math.Min(distanceFromLower / (range * 0.2m), 1m); // Quality based on distance from lower band
         }
@@ -464,7 +464,7 @@ namespace BotCore
         {
             var range = high - low;
             if (range == 0) return 1m; // High risk if no range
-            
+
             // Risk higher if breakout is marginal
             var breakoutDistance = Math.Max(price - high, low - price);
             return Math.Max(0m, 1m - (breakoutDistance / (range * 0.1m)));
@@ -480,17 +480,17 @@ namespace BotCore
         {
             // Composite score based on multiple factors
             var qualityFactors = new List<decimal>();
-            
+
             // Volume confirmation
             if (features.Volume > 0)
                 qualityFactors.Add(Math.Min(features.VolumeRatio / 1.5m, 1m));
-            
+
             // Technical alignment
             qualityFactors.Add((Math.Abs(features.MaAlignment) + 1m) / 2m);
-            
+
             // Prior performance
             qualityFactors.Add(features.PriorWinRate);
-            
+
             return qualityFactors.Any() ? qualityFactors.Average() : 0.5m;
         }
 
@@ -502,44 +502,44 @@ namespace BotCore
             if (Math.Abs(features.MaAlignment) > 0.5m) return MarketRegime.Trend;
             if (features.BbSqueeze > 0.8m) return MarketRegime.Squeeze;
             if (features.Rsi14 > 40 && features.Rsi14 < 60) return MarketRegime.Range;
-            
+
             return MarketRegime.Choppy;
         }
 
         private static string GetSessionType()
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
             var hour = et.Hour;
-            
+
             return (hour >= 9 && hour < 16) ? "RTH" : "ETH";
         }
 
         private static int CalculateMinutesFromOpen()
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-            
+
             var marketOpen = new TimeSpan(9, 30, 0);
             var currentTime = et.TimeOfDay;
-            
+
             if (currentTime >= marketOpen)
                 return (int)(currentTime - marketOpen).TotalMinutes;
-            
+
             return -1; // Before market open
         }
 
         private static int CalculateMinutesToClose()
         {
-            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, 
+            var et = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
                 TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-            
+
             var marketClose = new TimeSpan(16, 0, 0);
             var currentTime = et.TimeOfDay;
-            
+
             if (currentTime < marketClose)
                 return (int)(marketClose - currentTime).TotalMinutes;
-            
+
             return -1; // After market close
         }
 
@@ -556,7 +556,7 @@ namespace BotCore
                     if (RecentTrades.TryGetValue(outcome.Strategy, out var trades))
                     {
                         trades.Add(outcome);
-                        
+
                         // Keep only last 100 trades per strategy
                         if (trades.Count > 100)
                         {
@@ -632,7 +632,7 @@ namespace BotCore
                 IsWin = outcome.IsWin,
                 ActualPnl = outcome.ActualPnl,
                 ExitPrice = outcome.ExitPrice ?? 0m,
-                ExitTime = outcome.ExitTime,
+                ExitTime = outcome.ExitTime ?? DateTime.UtcNow,
                 HoldingTimeMinutes = outcome.HoldingTimeMinutes,
                 ActualRMultiple = outcome.ActualRMultiple,
                 MaxDrawdown = 0m // Simplified - could be enhanced

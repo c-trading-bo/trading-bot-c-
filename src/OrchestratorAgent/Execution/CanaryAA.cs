@@ -34,7 +34,7 @@ namespace OrchestratorAgent.Execution
 
         public bool ShouldPromote()
         {
-            if (_nA < 20 || _nB < 20) 
+            if (_nA < 20 || _nB < 20)
                 return false; // need samples
 
             // two-proportion z-test
