@@ -2858,6 +2858,36 @@ namespace OrchestratorAgent
                     var bestShort = pickPool.Where(s => string.Equals(s.Side, "SELL", StringComparison.OrdinalIgnoreCase)).OrderByDescending(s => s.ExpR).FirstOrDefault();
                     var chosen = (bestLong?.ExpR ?? -1m) >= (bestShort?.ExpR ?? -1m) ? bestLong : bestShort;
                     if (chosen is null) return;
+                    
+                    // Intelligence-based strategy preference override
+                    try
+                    {
+                        if (intelligenceService != null && intelligence != null)
+                        {
+                            var preferredStrategy = intelligenceService.GetPreferredStrategy(intelligence);
+                            var preferredSignal = signals.FirstOrDefault(s => 
+                                string.Equals(s.StrategyId, preferredStrategy, StringComparison.OrdinalIgnoreCase) &&
+                                string.Equals(s.Side, chosen.Side, StringComparison.OrdinalIgnoreCase));
+                            
+                            // Only override if the preferred strategy has reasonable quality (ExpR > 0.5)
+                            if (preferredSignal != null && preferredSignal.ExpR >= 0.5m)
+                            {
+                                log.LogInformation("[INTEL] Strategy override: {Original} -> {Preferred} based on {Regime} regime",
+                                    chosen.StrategyId, preferredStrategy, intelligence.Regime);
+                                chosen = preferredSignal;
+                            }
+                            else
+                            {
+                                log.LogDebug("[INTEL] Keeping original strategy {Strategy}, preferred {Preferred} not available or low quality",
+                                    chosen.StrategyId, preferredStrategy);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning("[INTEL] Failed to apply strategy preference: {Error}", ex.Message);
+                    }
+                    
                     try { BotCore.TradeLog.Signal(log, symbol, chosen.StrategyId, chosen.Side, chosen.Size, chosen.Entry, chosen.Stop, chosen.Target, $"score={chosen.ExpR:F2}", chosen.Tag ?? string.Empty); } catch { }
 
                     // 🧠 RL Training Data Collection
@@ -3004,12 +3034,19 @@ namespace OrchestratorAgent
                                 Symbol = symbol,
                                 Strategy = chosen.StrategyId,
                                 Session = isNight4 ? "ETH" : "RTH",
-                                Regime = "Unknown", // Could be enhanced with regime detection
+                                Regime = intelligence?.Regime ?? "Unknown", // Use intelligence regime
                                 Timestamp = DateTime.UtcNow,
                                 Price = (float)chosen.Entry,
                                 SignalStrength = (float)Math.Min(Math.Max(chosen.ExpR, 0), 5), // Clamp to reasonable range
                                 PriorWinRate = 0.5f // Default; could be enhanced with historical data
                             };
+
+                            // Add intelligence features if available
+                            if (intelligence != null)
+                            {
+                                featureSnapshot.NewsImpact = (float)(intelligence.NewsIntensity / 100.0m); // Scale to 0-1
+                                featureSnapshot.Volatility = intelligenceService?.IsHighVolatilityEvent(intelligence) == true ? 1.0f : 0.5f;
+                            }
 
                             // Add additional features if available
                             try
@@ -3273,6 +3310,23 @@ namespace OrchestratorAgent
                         var routed = await router.RouteAsync(toRoute, ct);
                         if (routed)
                         {
+                            // Log complete intelligence + zone context for successful trades
+                            try
+                            {
+                                var intelContext = intelligence != null 
+                                    ? $"Regime={intelligence.Regime}, Confidence={intelligence.ModelConfidence:P0}, NewsIntensity={intelligence.NewsIntensity:F1}"
+                                    : "No intelligence data";
+                                
+                                var zoneContext = zones != null
+                                    ? $"NearSupport={zoneService?.GetNearestSupport(symbol, toRoute.Entry):F2}, NearResistance={zoneService?.GetNearestResistance(symbol, toRoute.Entry):F2}, POC={zones.POC:F2}"
+                                    : "No zone data";
+                                
+                                log.LogInformation("[TRADE_ROUTED] {Symbol} {Strategy} {Side} {Size}@{Entry} | Stop={Stop} Target={Target} | Intel: {Intel} | Zones: {Zones}",
+                                    symbol, toRoute.StrategyId, toRoute.Side, toRoute.Size, toRoute.Entry, 
+                                    toRoute.Stop, toRoute.Target, intelContext, zoneContext);
+                            }
+                            catch { }
+                            
                             // Record intent, entries/hour stamp, and increment attempt counter (ET day)
                             try
                             {
