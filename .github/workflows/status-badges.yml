@@ -277,9 +277,8 @@ jobs:
           ![Models Freshness](https://img.shields.io/badge/Models-Fresh-brightgreen)
           
           ## 📊 Quick Status Links
-          
-          - 💻 [Local Dashboard](http://localhost:5050/dashboard)
-          - 📋 [GitHub Actions](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions)
+
+          -  [GitHub Actions](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions)
           - 📦 [Model Releases](https://github.com/kevinsuero072897-collab/trading-bot-c-/releases)
           - 🎯 [Training Logs](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions/workflows/train-continuous-clean.yml)
           
