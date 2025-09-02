@@ -1,0 +1,16 @@
+{
+  "intensity": 0,
+  "sentiment": "neutral",
+  "confidence": 0,
+  "article_count": 0,
+  "volatility_score": 0,
+  "bullish_score": 0,
+  "bearish_score": 0,
+  "fomc_detected": false,
+  "cpi_detected": false,
+  "earnings_season": false,
+  "merger_activity": false,
+  "fed_speak": false,
+  "timestamp": "2025-09-02T03:18:06.944984",
+  "news_file": "Intelligence/data/raw/news/news_20250902_031806.json"
+}
