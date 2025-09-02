@@ -15,10 +15,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        persist-credentials: true
-        fetch-depth: 0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
       - uses: actions/setup-python@v2
         with:
           python-version: '3.9'
@@ -26,13 +26,7 @@ jobs:
       - run: python Intelligence/scripts/congress_trades.py
       - run: |
           git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git config user.name "GitHub Actions"
-          git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git config user.email "actions@github.com"
-          git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git add Intelligence/data/
+          git config --global user.name "ML Bot"
+          git add Intelligence/data/ || true
           git diff --quiet || git commit -m "Update congressional trades analysis"
-          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
+          git push --force-with-lease || echo "Push failed, continuing..."

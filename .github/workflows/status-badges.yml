@@ -18,10 +18,10 @@ jobs:
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        persist-credentials: true
-        fetch-depth: 0
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            persist-credentials: true
+            fetch-depth: 0
         
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
