@@ -1,0 +1,39 @@
+{
+  "timestamp": "2025-09-02T15:03:31.239193",
+  "treasury_yields": {
+    "10_year": {
+      "current": 4.25,
+      "previous": 4.22,
+      "change": 0.03,
+      "change_bps": 3
+    },
+    "2_year": {
+      "current": 4.85,
+      "previous": 4.87,
+      "change": -0.02,
+      "change_bps": -2
+    }
+  },
+  "currencies": {
+    "dxy": {
+      "current": 103.45,
+      "previous": 103.2,
+      "change_pct": 0.24
+    }
+  },
+  "volatility_indices": {
+    "vix": {
+      "current": 18.75,
+      "previous": 19.2,
+      "change": -0.45,
+      "change_pct": -2.34
+    }
+  },
+  "sentiment_indicators": {
+    "fear_greed_index": {
+      "score": 65,
+      "label": "Greed",
+      "calculation_basis": "VIX-based approximation"
+    }
+  }
+}

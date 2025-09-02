@@ -320,8 +320,10 @@ namespace OrchestratorAgent
                 })
                 .WithAutomaticReconnect(
                 [
-                    TimeSpan.Zero, TimeSpan.FromSeconds(2),
-                    TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)
+                    TimeSpan.Zero,
+                    TimeSpan.FromSeconds(2),
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(10)
                 ])
                 .ConfigureLogging(logging =>
                 {

@@ -85,7 +85,7 @@ public class MLPipelineHealthChecks : IHealthCheck
             // Check if meta-labeler classes exist
             var metaLabelerAssembly = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetTypes().Any(t => t.Name == "OnnxMetaLabeler"));
-            
+
             if (metaLabelerAssembly == null)
                 return (false, "OnnxMetaLabeler class not found");
 
@@ -129,7 +129,7 @@ public class MLPipelineHealthChecks : IHealthCheck
             // Check if execution interfaces are properly implemented
             var interfaceType = currentAssembly.GetTypes()
                 .FirstOrDefault(t => t.Name == "IMicrostructureAnalyzer");
-            
+
             if (interfaceType == null)
                 return (false, "IMicrostructureAnalyzer interface missing");
 

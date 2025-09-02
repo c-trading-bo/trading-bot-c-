@@ -27,9 +27,9 @@ public class EnhancedBayesianPriors : IBayesianPriors
     /// Gets enhanced prior with uncertainty quantification and shrinkage
     /// </summary>
     public async Task<BayesianEstimate> GetPriorAsync(
-        string strategy, 
-        string config, 
-        string regime, 
+        string strategy,
+        string config,
+        string regime,
         string session,
         CancellationToken ct = default)
     {
@@ -38,7 +38,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         lock (_lock)
         {
             var key = CreateKey(strategy, config, regime, session);
-            
+
             if (!_priors.ContainsKey(key))
             {
                 _priors[key] = CreateDefaultPosterior();
@@ -46,7 +46,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
             var posterior = _priors[key];
             var shrunkPosterior = ApplyShrinkage(strategy, config, regime, session, posterior);
-            
+
             // Create shrinkage estimate for calculations
             var shrinkageEstimate = new ShrinkageEstimate(
                 shrunkPosterior.Alpha,
@@ -84,14 +84,14 @@ public class EnhancedBayesianPriors : IBayesianPriors
         lock (_lock)
         {
             var key = CreateKey(strategy, config, regime, session);
-            
+
             if (!_priors.ContainsKey(key))
             {
                 _priors[key] = CreateDefaultPosterior();
             }
 
             var posterior = _priors[key];
-            
+
             // Update local posterior
             if (wasSuccessful)
             {
@@ -101,7 +101,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
             {
                 posterior.Beta += 1;
             }
-            
+
             posterior.LastUpdated = DateTime.UtcNow;
             posterior.TotalObservations++;
 
@@ -125,11 +125,11 @@ public class EnhancedBayesianPriors : IBayesianPriors
         CancellationToken ct = default)
     {
         var estimate = await GetPriorAsync(strategy, config, regime, session, ct);
-        
+
         // Sample from Beta distribution with shrinkage
         var alpha = estimate.EffectiveSampleSize * estimate.Mean;
         var beta = estimate.EffectiveSampleSize * (1 - estimate.Mean);
-        
+
         return SampleBeta(alpha, beta);
     }
 
@@ -143,7 +143,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         lock (_lock)
         {
             var result = new Dictionary<string, BayesianEstimate>();
-            
+
             foreach (var kvp in _priors)
             {
                 var parts = kvp.Key.Split('|');
@@ -196,7 +196,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
         // Calculate shrinkage strength based on local data quality
         var localN = localPosterior.Alpha + localPosterior.Beta;
-        var shrinkageStrength = _shrinkageConfig.BaseShrinkage * 
+        var shrinkageStrength = _shrinkageConfig.BaseShrinkage *
                                (decimal)Math.Exp(-(double)localN / (double)_shrinkageConfig.ShrinkageDecay);
 
         shrinkageStrength = Math.Min(0.8m, Math.Max(0.05m, shrinkageStrength));
@@ -209,7 +209,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         {
             var targetAlpha = target.Alpha;
             var targetBeta = target.Beta;
-            
+
             shrunkAlpha += shrinkageStrength * weight * (targetAlpha - localPosterior.Alpha);
             shrunkBeta += shrinkageStrength * weight * (targetBeta - localPosterior.Beta);
         }
@@ -258,7 +258,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
             {
                 group.Posterior.Beta += 0.1m;
             }
-            
+
             group.Posterior.LastUpdated = DateTime.UtcNow;
         }
     }
@@ -292,23 +292,23 @@ public class EnhancedBayesianPriors : IBayesianPriors
         // Effective sample size accounting for shrinkage
         var baseSampleSize = posterior.Alpha + posterior.Beta;
         var shrinkageDiscount = 1m - posterior.ShrinkageFactor * 0.5m; // Shrinkage reduces effective sample size
-        
+
         return Math.Max(1m, baseSampleSize * shrinkageDiscount);
     }
 
     private UncertaintyLevel CalculateUncertainty(BayesianPosterior posterior)
     {
         var effectiveN = CalculateEffectiveSampleSize(posterior);
-        var variance = posterior.Alpha * posterior.Beta / 
-                      ((posterior.Alpha + posterior.Beta) * (posterior.Alpha + posterior.Beta) * 
+        var variance = posterior.Alpha * posterior.Beta /
+                      ((posterior.Alpha + posterior.Beta) * (posterior.Alpha + posterior.Beta) *
                        (posterior.Alpha + posterior.Beta + 1));
 
         return (effectiveN, variance) switch
         {
-            (< 5, _) => UncertaintyLevel.VeryHigh,
-            (< 15, > 0.05m) => UncertaintyLevel.High,
-            (< 30, > 0.02m) => UncertaintyLevel.Medium,
-            (< 100, > 0.01m) => UncertaintyLevel.Low,
+            ( < 5, _) => UncertaintyLevel.VeryHigh,
+            ( < 15, > 0.05m) => UncertaintyLevel.High,
+            ( < 30, > 0.02m) => UncertaintyLevel.Medium,
+            ( < 100, > 0.01m) => UncertaintyLevel.Low,
             _ => UncertaintyLevel.VeryLow
         };
     }
@@ -317,11 +317,11 @@ public class EnhancedBayesianPriors : IBayesianPriors
     {
         // Box-Muller transform for Beta sampling
         var random = new Random();
-        
+
         // Use Gamma sampling to generate Beta
         var x = SampleGamma(alpha, random);
         var y = SampleGamma(beta, random);
-        
+
         return x / (x + y);
     }
 
@@ -340,10 +340,10 @@ public class EnhancedBayesianPriors : IBayesianPriors
         {
             var x = (decimal)random.NextDouble();
             var y = (decimal)random.NextDouble();
-            
+
             var z = (decimal)Math.Sqrt(-2.0 * Math.Log((double)x)) * (decimal)Math.Cos(2.0 * Math.PI * (double)y);
             var v = (1m + c * z) * (1m + c * z) * (1m + c * z);
-            
+
             if (v > 0 && Math.Log((double)y) < 0.5 * (double)(z * z) + (double)d * (1.0 - (double)v + Math.Log((double)v)))
             {
                 return d * v;
@@ -506,7 +506,7 @@ public static class BayesianCalculationExtensions
         var total = estimate.Alpha + estimate.Beta;
         return (estimate.Alpha * estimate.Beta) / (total * total * (total + 1));
     }
-    
+
     public static decimal CalculateShrinkageFactor(BayesianPosterior posterior)
     {
         // Simple shrinkage factor based on sample size

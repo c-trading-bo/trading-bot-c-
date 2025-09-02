@@ -153,7 +153,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
         try
         {
             // Check cache first (refresh every 5 minutes)
-            if (_zoneCache.ContainsKey(symbol) && 
+            if (_zoneCache.ContainsKey(symbol) &&
                 DateTime.UtcNow - _lastCacheUpdate < TimeSpan.FromMinutes(5))
             {
                 return _zoneCache[symbol];
@@ -188,7 +188,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
             {
                 _zoneCache[symbol] = zoneData;
                 _lastCacheUpdate = DateTime.UtcNow;
-                
+
                 _logger.LogInformation("[ZONES] Loaded zones for {Symbol}: {Supply} supply, {Demand} demand zones, POC={POC}",
                     symbol, zoneData.SupplyZones.Count, zoneData.DemandZones.Count, zoneData.POC);
             }
@@ -483,7 +483,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
         try
         {
             var zones = GetLatestZonesAsync(symbol).Result;
-            if (zones == null) 
+            if (zones == null)
             {
                 // Fallback to standard stop distance
                 var defaultOffset = GetDefaultOffset(symbol);
@@ -610,7 +610,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
             if (nearbyZones.Any())
             {
                 var avgStrength = nearbyZones.Average(z => z.Strength);
-                
+
                 if (avgStrength >= 80)
                     multiplier = 1.5m; // 150% size near strong zones
                 else if (avgStrength >= 70)
@@ -622,10 +622,10 @@ public class ZoneService : IZoneService, ISupplyDemandService
             // Check if we're in "no man's land" between zones
             var nearestSupport = GetNearestSupport(symbol, entryPrice);
             var nearestResistance = GetNearestResistance(symbol, entryPrice);
-            
+
             var supportDistance = Math.Abs(entryPrice - nearestSupport) / entryPrice;
             var resistanceDistance = Math.Abs(nearestResistance - entryPrice) / entryPrice;
-            
+
             // If we're far from any zones (> 1% from both support and resistance)
             if (supportDistance > 0.01m && resistanceDistance > 0.01m)
             {
@@ -653,7 +653,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
             if (zones == null) return false;
 
             var allZones = zones.SupplyZones.Concat(zones.DemandZones);
-            
+
             return allZones.Any(z => Math.Abs(z.Price - price) / price <= tolerance);
         }
         catch
@@ -704,8 +704,8 @@ public class ZoneService : IZoneService, ISupplyDemandService
             _currentZones ??= GetLatestZonesAsync("ES").Result;
             if (_currentZones == null) return new Zone();
 
-            var zones = zoneType.ToLowerInvariant() == "supply" 
-                ? _currentZones.SupplyZones 
+            var zones = zoneType.ToLowerInvariant() == "supply"
+                ? _currentZones.SupplyZones
                 : _currentZones.DemandZones;
 
             if (!zones.Any()) return new Zone();
@@ -801,7 +801,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
         try
         {
             var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
-            
+
             _currentZones ??= GetLatestZonesAsync("ES").Result;
             if (_currentZones == null)
             {
@@ -851,7 +851,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
         try
         {
             var isLong = direction.ToLowerInvariant() == "long" || direction.ToLowerInvariant() == "buy";
-            
+
             _currentZones ??= GetLatestZonesAsync("ES").Result;
             if (_currentZones == null)
             {
@@ -967,14 +967,14 @@ public class ZoneService : IZoneService, ISupplyDemandService
                 Interactions = _interactions.TakeLast(50).ToList() // Keep last 50 interactions
             };
 
-            var json = JsonSerializer.Serialize(interactionData, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
+            var json = JsonSerializer.Serialize(interactionData, new JsonSerializerOptions
+            {
+                WriteIndented = true
             });
 
             await File.WriteAllTextAsync(filePath, json);
 
-            _logger.LogInformation("[ZONES] Saved {Count} zone interactions to {Path}", 
+            _logger.LogInformation("[ZONES] Saved {Count} zone interactions to {Path}",
                 _interactions.Count, filePath);
 
             // Keep only recent interactions in memory

@@ -91,7 +91,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
                 message += $" | ISSUES: {string.Join("; ", failedComponents)}";
             }
 
-            return overallHealthy 
+            return overallHealthy
                 ? HealthCheckResult.Healthy(message, new { TotalComponents = totalComponents, HealthyComponents = healthyComponents })
                 : HealthCheckResult.Failed(message, new { TotalComponents = totalComponents, HealthyComponents = healthyComponents, FailedComponents = healthResults.Where(r => !r.IsHealthy).ToList() });
         }
@@ -159,16 +159,16 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
 
                     // ML Components
                     DiscoverMLComponents(types, components);
-                    
+
                     // Trading Components
                     DiscoverTradingComponents(types, components);
-                    
+
                     // Infrastructure Components
                     DiscoverInfrastructureComponents(types, components);
-                    
+
                     // Strategy Components
                     DiscoverStrategyComponents(types, components);
-                    
+
                     // Data Components
                     DiscoverDataComponents(types, components);
                 }
@@ -188,8 +188,8 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     private void DiscoverMLComponents(Type[] types, Dictionary<string, ComponentInfo> components)
     {
         // Meta-Labeler Components
-        var metaLabelerTypes = types.Where(t => 
-            t.Name.Contains("MetaLabeler") || 
+        var metaLabelerTypes = types.Where(t =>
+            t.Name.Contains("MetaLabeler") ||
             t.Name.Contains("OnnxMeta") ||
             t.GetInterfaces().Any(i => i.Name.Contains("IMetaLabeler")))
             .ToList();
@@ -208,7 +208,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
 
         // Bandit Components
         var banditTypes = types.Where(t =>
-            t.Name.Contains("Bandit") || 
+            t.Name.Contains("Bandit") ||
             t.Name.Contains("LinUcb") ||
             t.Name.Contains("NeuralUcb"))
             .ToList();
@@ -237,7 +237,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
             components[$"ml_bayesian_{type.Name.ToLower()}"] = new ComponentInfo
             {
                 Name = type.Name,
-                Category = "ML Pipeline", 
+                Category = "ML Pipeline",
                 Type = "Bayesian System",
                 AssemblyType = type,
                 HealthCheckMethod = () => CheckMLComponentHealth(type, "Bayesian")
@@ -395,7 +395,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     {
         // Look for strategy patterns
         var strategyPatterns = new[] { "S2", "S3", "S6", "S11", "Ema", "Cross" };
-        
+
         foreach (var pattern in strategyPatterns)
         {
             var matchingTypes = types.Where(t =>
@@ -469,13 +469,13 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
         try
         {
             var files = Directory.GetFiles(directory, "*", SearchOption.AllDirectories);
-            
+
             foreach (var file in files)
             {
                 var fileName = Path.GetFileNameWithoutExtension(file);
                 var extension = Path.GetExtension(file);
                 var category = DetermineFileCategory(file, extension);
-                
+
                 if (!string.IsNullOrEmpty(category))
                 {
                     components[$"file_{category.ToLower()}_{fileName.ToLower()}"] = new ComponentInfo
@@ -499,12 +499,12 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     private static string DetermineFileCategory(string filePath, string extension)
     {
         var fileName = Path.GetFileName(filePath).ToLower();
-        
+
         return extension.ToLower() switch
         {
             ".onnx" => "ML Models",
             ".json" when fileName.Contains("config") => "Configuration",
-            ".json" when fileName.Contains("state") => "State Management", 
+            ".json" when fileName.Contains("state") => "State Management",
             ".json" when fileName.Contains("health") => "Health Data",
             ".jsonl" => "Logging Data",
             ".cs" when fileName.Contains("strategy") => "Strategy Code",
@@ -553,7 +553,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
                 try
                 {
                     var interfaces = assembly.GetTypes().Where(t => t.IsInterface).ToList();
-                    
+
                     foreach (var interfaceType in interfaces)
                     {
                         var implementers = assembly.GetTypes()
@@ -614,7 +614,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     }
 
     private async Task<(bool IsHealthy, string Message)> CheckComponentHealthAsync(
-        string componentName, 
+        string componentName,
         ComponentInfo componentInfo)
     {
         try
@@ -789,8 +789,8 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
         {
             var assemblies = AppDomain.CurrentDomain.GetAssemblies();
             var found = assemblies.Any(a => a.GetName().Name?.Contains(dependencyName.Split('.')[0]) == true);
-            
-            return found 
+
+            return found
                 ? (true, "Dependency loaded")
                 : (false, "Dependency not found");
         }

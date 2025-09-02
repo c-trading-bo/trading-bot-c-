@@ -67,19 +67,19 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
     }
 
     public async Task<decimal> PredictMarketOrderSlippageAsync(
-        string symbol, 
-        decimal quantity, 
+        string symbol,
+        decimal quantity,
         bool isBuy,
         MicrostructureState? currentState = null,
         CancellationToken ct = default)
     {
         currentState ??= await AnalyzeCurrentStateAsync(symbol, ct);
-        
+
         // Base slippage from spread
         var baseSlippageBps = currentState.SpreadBps / 2;
 
         // Market impact based on order size vs average size
-        var avgTradeSize = currentState.RecentTrades.Any() 
+        var avgTradeSize = currentState.RecentTrades.Any()
             ? currentState.RecentTrades.Average(t => t.Size)
             : 100;
 
@@ -99,11 +99,11 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         };
 
         // Order imbalance adjustment
-        var imbalanceAdjustment = isBuy 
+        var imbalanceAdjustment = isBuy
             ? Math.Max(0, -currentState.OrderImbalance * 2m) // Penalty for buying when asks dominate
             : Math.Max(0, currentState.OrderImbalance * 2m);  // Penalty for selling when bids dominate
 
-        var totalSlippageBps = baseSlippageBps + marketImpactBps + volatilityAdjustment + 
+        var totalSlippageBps = baseSlippageBps + marketImpactBps + volatilityAdjustment +
                                sessionAdjustment + imbalanceAdjustment;
 
         return Math.Max(0.5m, totalSlippageBps);
@@ -122,7 +122,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
         // Distance from current market
         var marketPrice = isBuy ? currentState.AskPrice : currentState.BidPrice;
-        var priceDistance = isBuy 
+        var priceDistance = isBuy
             ? (marketPrice - limitPrice) / currentState.MidPrice
             : (limitPrice - marketPrice) / currentState.MidPrice;
 
@@ -146,7 +146,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         // Volume boost (more likely to fill in active markets)
         var volumeBoost = currentState.VolumeRate > 1000 ? 0.10m : 0m;
 
-        var adjustedProbability = Math.Min(0.98m, 
+        var adjustedProbability = Math.Min(0.98m,
             baseProbability * timeMultiplier + volatilityBoost + volumeBoost);
 
         return Math.Max(0.01m, adjustedProbability);
@@ -165,23 +165,23 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
         var limitFillProb = intent.LimitPrice.HasValue
             ? await EstimateLimitOrderFillProbabilityAsync(
-                intent.Symbol, intent.LimitPrice.Value, intent.Quantity, 
+                intent.Symbol, intent.LimitPrice.Value, intent.Quantity,
                 intent.IsBuy, intent.MaxWaitTime, currentState, ct)
             : 0m;
 
         // Calculate expected values
         var marketOrderEV = CalculateExpectedValue(intent, marketSlippage, 1.0m);
-        
+
         var bestLimitPrice = GetOptimalLimitPrice(intent, currentState);
         var limitOrderSlippage = CalculateLimitOrderSlippage(intent, bestLimitPrice, currentState);
         var limitOrderFillProb = await EstimateLimitOrderFillProbabilityAsync(
-            intent.Symbol, bestLimitPrice, intent.Quantity, 
+            intent.Symbol, bestLimitPrice, intent.Quantity,
             intent.IsBuy, intent.MaxWaitTime, currentState, ct);
         var limitOrderEV = CalculateExpectedValue(intent, limitOrderSlippage, limitOrderFillProb);
 
         // Choose optimal strategy
         var recommendation = ChooseOptimalStrategy(
-            intent, currentState, marketOrderEV, limitOrderEV, 
+            intent, currentState, marketOrderEV, limitOrderEV,
             marketSlippage, limitOrderSlippage, limitOrderFillProb, bestLimitPrice);
 
         // Record execution for learning
@@ -195,7 +195,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         // EV = p(fill) * [p(win) * avgWin - (1-p(win)) * avgLoss] - expectedSlippageCost
         var grossEV = intent.ExpectedWinRate * intent.RMultiple - (1 - intent.ExpectedWinRate) * 1m;
         var slippageCost = slippageBps / 10000m; // Convert bps to decimal
-        
+
         return fillProbability * grossEV - slippageCost;
     }
 
@@ -206,7 +206,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
 
         // Default to midpoint or slightly better
         var offset = state.BidAskSpread * 0.3m; // 30% through spread
-        return intent.IsBuy 
+        return intent.IsBuy
             ? state.BidPrice + offset
             : state.AskPrice - offset;
     }
@@ -214,15 +214,15 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
     private decimal CalculateLimitOrderSlippage(TradeIntent intent, decimal limitPrice, MicrostructureState state)
     {
         var marketPrice = intent.IsBuy ? state.AskPrice : state.BidPrice;
-        var savings = intent.IsBuy 
+        var savings = intent.IsBuy
             ? (marketPrice - limitPrice) / state.MidPrice * 10000
             : (limitPrice - marketPrice) / state.MidPrice * 10000;
-        
+
         return Math.Max(-10m, -savings); // Negative means savings, cap at 10 bps cost
     }
 
     private ExecutionRecommendation ChooseOptimalStrategy(
-        TradeIntent intent, 
+        TradeIntent intent,
         MicrostructureState state,
         decimal marketEV,
         decimal limitEV,
@@ -279,15 +279,15 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
             ExpectedValue = expectedEV,
             Reasoning = reasoning,
             RiskAssessment = risk,
-            EstimatedFillTime = orderType == OrderType.Market 
+            EstimatedFillTime = orderType == OrderType.Market
                 ? TimeSpan.FromSeconds(1)
                 : TimeSpan.FromMinutes((double)(5 / Math.Max(0.1m, fillProb)))
         };
     }
 
     private void RecordExecutionDecision(
-        TradeIntent intent, 
-        ExecutionRecommendation recommendation, 
+        TradeIntent intent,
+        ExecutionRecommendation recommendation,
         MicrostructureState state)
     {
         lock (_historyLock)
@@ -316,14 +316,14 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
     {
         if (trades.Count < 2) return 0m;
 
-        var returns = trades.Zip(trades.Skip(1), (prev, curr) => 
+        var returns = trades.Zip(trades.Skip(1), (prev, curr) =>
             Math.Log((double)(curr.Price / prev.Price))).ToList();
 
         if (!returns.Any()) return 0m;
 
         var mean = returns.Average();
         var variance = returns.Sum(r => (r - mean) * (r - mean)) / returns.Count;
-        
+
         return (decimal)Math.Sqrt(variance) * (decimal)Math.Sqrt(252 * 24 * 60); // Annualized
     }
 
@@ -334,7 +334,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
         var recentTrades = trades.TakeLast(20).ToList();
         var priceRange = recentTrades.Max(t => t.Price) - recentTrades.Min(t => t.Price);
         var midPrice = (recentTrades.Max(t => t.Price) + recentTrades.Min(t => t.Price)) / 2;
-        
+
         return priceRange / midPrice;
     }
 
@@ -354,7 +354,7 @@ public class BasicMicrostructureAnalyzer : IMicrostructureAnalyzer
     private MarketSession DetermineMarketSession()
     {
         var time = DateTime.Now.TimeOfDay;
-        
+
         return time switch
         {
             var t when t < TimeSpan.FromHours(9.5) => MarketSession.PreMarket,

@@ -44,12 +44,12 @@ namespace OrchestratorAgent.Infra
         public void OnFill(string strategyId, string symbol, string side, int quantity, decimal fillPrice, decimal? entryPrice = null)
         {
             if (string.IsNullOrWhiteSpace(strategyId) || string.IsNullOrWhiteSpace(symbol)) return;
-            
+
             var key = $"{strategyId}:{symbol}";
-            var pnl = _pnlByKey.GetOrAdd(key, k => new StrategySymbolPnl 
-            { 
-                StrategyId = strategyId, 
-                Symbol = symbol 
+            var pnl = _pnlByKey.GetOrAdd(key, k => new StrategySymbolPnl
+            {
+                StrategyId = strategyId,
+                Symbol = symbol
             });
 
             // Update trade statistics
@@ -64,9 +64,9 @@ namespace OrchestratorAgent.Infra
                 var isLong = side.Equals("BUY", StringComparison.OrdinalIgnoreCase);
                 var points = isLong ? (fillPrice - entryPrice.Value) : (entryPrice.Value - fillPrice);
                 var tradePnl = OrchestratorAgent.SymbolMeta.ToPnlUSD(root, points, Math.Abs(quantity));
-                
+
                 pnl.RealizedPnl += tradePnl;
-                
+
                 // Track win/loss
                 if (tradePnl > 0)
                 {
@@ -88,7 +88,7 @@ namespace OrchestratorAgent.Infra
         public void UpdateUnrealized(string strategyId, string symbol, decimal unrealizedPnl)
         {
             if (string.IsNullOrWhiteSpace(strategyId) || string.IsNullOrWhiteSpace(symbol)) return;
-            
+
             var key = $"{strategyId}:{symbol}";
             if (_pnlByKey.TryGetValue(key, out var pnl))
             {
@@ -100,7 +100,7 @@ namespace OrchestratorAgent.Infra
         public Dictionary<string, object> GetDashboardData()
         {
             var result = new Dictionary<string, object>();
-            
+
             // Group by strategy
             var byStrategy = _pnlByKey.Values
                 .GroupBy(p => p.StrategyId, StringComparer.OrdinalIgnoreCase)

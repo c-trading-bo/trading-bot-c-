@@ -32,18 +32,18 @@ namespace BotCore
             _http = httpClient ?? new HttpClient();
             _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
             _modelDir = Path.Combine(AppContext.BaseDirectory, "models", "rl");
-            
+
             // Configuration from environment
             _manifestUrl = Environment.GetEnvironmentVariable("MODEL_MANIFEST_URL") ?? "";
             _hmacKey = Environment.GetEnvironmentVariable("MANIFEST_HMAC_KEY") ?? "";
-            
+
             Directory.CreateDirectory(_dataDir);
             Directory.CreateDirectory(_modelDir);
-            
+
             // Check for model updates every 2 hours (cloud training runs every 30 min)
             var pollInterval = TimeSpan.FromSeconds(
                 int.Parse(Environment.GetEnvironmentVariable("MODEL_POLL_SEC") ?? "7200"));
-            
+
             _timer = new Timer(CheckForModelUpdates, null, TimeSpan.Zero, pollInterval);
             _log.LogInformation("[CloudRlTrainerEnhanced] Started - checking manifest every {Interval}", pollInterval);
         }
@@ -51,11 +51,11 @@ namespace BotCore
         public void Dispose()
         {
             if (_disposed) return;
-            
+
             _timer?.Dispose();
             _http?.Dispose();
             _disposed = true;
-            
+
             _log.LogInformation("[CloudRlTrainerEnhanced] Disposed");
         }
 
@@ -75,7 +75,7 @@ namespace BotCore
 
                 // Check if we have this version already
                 var currentVersionFile = Path.Combine(_modelDir, "current_version.txt");
-                var currentVersion = File.Exists(currentVersionFile) ? 
+                var currentVersion = File.Exists(currentVersionFile) ?
                     await File.ReadAllTextAsync(currentVersionFile) : "";
 
                 if (manifest.Version == currentVersion.Trim())
@@ -88,11 +88,11 @@ namespace BotCore
 
                 // Download new models
                 await DownloadModelsFromManifest(manifest);
-                
+
                 // Update version file
                 await File.WriteAllTextAsync(currentVersionFile, manifest.Version);
-                
-                _log.LogInformation("[CloudRlTrainerEnhanced] ✅ Updated to version {Version} with {Samples} training samples", 
+
+                _log.LogInformation("[CloudRlTrainerEnhanced] ✅ Updated to version {Version} with {Samples} training samples",
                     manifest.Version, manifest.TrainingSamples);
             }
             catch (Exception ex)
@@ -117,7 +117,7 @@ namespace BotCore
                     _log.LogWarning("[CloudRlTrainerEnhanced] Failed to parse manifest");
                     return null;
                 }
-                
+
                 // Verify HMAC signature if key is provided
                 if (!string.IsNullOrEmpty(_hmacKey))
                 {
@@ -127,20 +127,20 @@ namespace BotCore
                         _log.LogError("[CloudRlTrainerEnhanced] No signature found in manifest");
                         return null;
                     }
-                    
+
                     if (!ManifestVerifier.VerifyManifestSignature(manifestJson, _hmacKey, signature))
                     {
                         _log.LogError("[CloudRlTrainerEnhanced] SECURITY: Manifest signature verification failed!");
                         return null;
                     }
-                    
+
                     // Validate manifest structure
                     if (!ManifestVerifier.ValidateManifestStructure(manifestJson))
                     {
                         _log.LogError("[CloudRlTrainerEnhanced] Invalid manifest structure");
                         return null;
                     }
-                    
+
                     _log.LogDebug("[CloudRlTrainerEnhanced] Manifest signature verified");
                 }
 
@@ -196,7 +196,7 @@ namespace BotCore
                 var actualChecksum = await ComputeFileChecksumAsync(tempPath);
                 if (!string.Equals(actualChecksum, modelInfo.Checksum, StringComparison.OrdinalIgnoreCase))
                 {
-                    _log.LogError("[CloudRlTrainerEnhanced] Checksum mismatch for {ModelType}: expected {Expected}, got {Actual}", 
+                    _log.LogError("[CloudRlTrainerEnhanced] Checksum mismatch for {ModelType}: expected {Expected}, got {Actual}",
                         modelType, modelInfo.Checksum, actualChecksum);
                     File.Delete(tempPath);
                     return;
@@ -212,13 +212,13 @@ namespace BotCore
                     File.Move(tempPath, modelPath);
                 }
 
-                _log.LogInformation("[CloudRlTrainerEnhanced] ✅ Downloaded {ModelType} model ({Size} bytes)", 
+                _log.LogInformation("[CloudRlTrainerEnhanced] ✅ Downloaded {ModelType} model ({Size} bytes)",
                     modelType, modelInfo.Size);
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "[CloudRlTrainerEnhanced] Failed to download {ModelType} model", modelType);
-                
+
                 // Clean up temp file
                 if (File.Exists(tempPath))
                 {

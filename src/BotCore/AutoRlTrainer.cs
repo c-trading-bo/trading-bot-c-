@@ -33,13 +33,13 @@ namespace BotCore
         public AutoRlTrainer(ILogger logger)
         {
             _log = logger;
-            
+
             // Log deprecation warning
             _log.LogWarning("[AutoRlTrainer] DEPRECATED: Local training is disabled in favor of 100% cloud-based learning. Use CloudDataUploader + CloudRlTrainerEnhanced instead.");
-            
+
             // Don't start the timer - this component is deprecated
             _log.LogInformation("[AutoRlTrainer] Local training disabled - all learning now happens in cloud every 30 minutes");
-            
+
             // Initialize as null since this is deprecated
             _timer = null;
             _dataDir = null;
@@ -72,7 +72,7 @@ namespace BotCore
 
                 _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
                 await RunTrainingPipelineAsync();
-                
+
                 _consecutiveFailures = 0;
                 _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
             }
@@ -89,14 +89,14 @@ namespace BotCore
             {
                 var dataDir = _dataDir ?? "data";
                 if (!Directory.Exists(dataDir)) return false;
-                
+
                 var files = Directory.GetFiles(dataDir, "*.jsonl");
                 if (!files.Any()) return false;
 
                 // Check if we have data spanning at least MinTrainingDays
                 var oldestFile = files.Min(f => File.GetCreationTime(f));
                 var dataSpan = DateTime.Now - oldestFile;
-                
+
                 return dataSpan.TotalDays >= MinTrainingDays;
             }
             catch (Exception ex)
@@ -132,12 +132,12 @@ namespace BotCore
             {
                 var endDate = DateTime.UtcNow;
                 var startDate = endDate.AddDays(-30); // Export last 30 days
-                
+
                 var fileName = $"training_data_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.csv";
                 var csvPath = Path.Combine(_dataDir ?? "data", fileName);
 
                 // Use MultiStrategyRlCollector to export data for all strategies
-                var strategies = new[] { 
+                var strategies = new[] {
                     MultiStrategyRlCollector.StrategyType.EmaCross,
                     MultiStrategyRlCollector.StrategyType.MeanReversion,
                     MultiStrategyRlCollector.StrategyType.Breakout,
@@ -170,7 +170,7 @@ namespace BotCore
                 var fileInfo = new FileInfo(csvPath);
                 if (fileInfo.Exists)
                 {
-                    _log.LogInformation("[AutoRlTrainer] Exported training data: {File} ({Size:F1} KB)", 
+                    _log.LogInformation("[AutoRlTrainer] Exported training data: {File} ({Size:F1} KB)",
                         fileName, fileInfo.Length / 1024.0);
                     return Task.FromResult(csvPath);
                 }
@@ -251,7 +251,7 @@ namespace BotCore
             try
             {
                 var latestModelPath = Path.Combine(_modelDir ?? "models", "latest_rl_sizer.onnx");
-                
+
                 // Backup existing model
                 if (File.Exists(latestModelPath))
                 {
@@ -267,7 +267,7 @@ namespace BotCore
 
                 // Cleanup old backups (keep last 5)
                 CleanupOldBackups();
-                
+
                 return Task.CompletedTask;
             }
             catch (Exception ex)
@@ -283,7 +283,7 @@ namespace BotCore
             {
                 var modelDir = _modelDir ?? "models";
                 if (!Directory.Exists(modelDir)) return;
-                
+
                 var backupFiles = Directory.GetFiles(modelDir, "backup_rl_sizer_*.onnx")
                     .Select(f => new FileInfo(f))
                     .OrderByDescending(f => f.CreationTime)

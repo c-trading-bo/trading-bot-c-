@@ -15,13 +15,13 @@ namespace OrchestratorAgent.Execution
         private readonly Dictionary<string, SymbolSessionConfig> _configs = new();
         private readonly Dictionary<string, SessionBayesianPriors> _priors = new();
         private readonly string _configPath = "state/setup/symbol-session-configs.json";
-        
+
         public PerSymbolSessionLattices()
         {
             InitializeConfigs();
             LoadConfigs();
         }
-        
+
         /// <summary>
         /// Gets configuration for specific symbol-session combination
         /// </summary>
@@ -30,7 +30,7 @@ namespace OrchestratorAgent.Execution
             var key = GetKey(symbol, session);
             return _configs.GetValueOrDefault(key, _configs["ES_RTH"]); // Default fallback
         }
-        
+
         /// <summary>
         /// Gets Bayesian priors for specific symbol-session combination
         /// </summary>
@@ -43,7 +43,7 @@ namespace OrchestratorAgent.Execution
             }
             return _priors[key];
         }
-        
+
         /// <summary>
         /// Updates configuration for a symbol-session combination
         /// </summary>
@@ -52,10 +52,10 @@ namespace OrchestratorAgent.Execution
             var key = GetKey(symbol, session);
             _configs[key] = config;
             SaveConfigs();
-            
+
             Console.WriteLine($"[LATTICE] Updated {key} config: winRate={config.ExpectedWinRate:F3}, volatility={config.VolatilityFactor:F2}");
         }
-        
+
         /// <summary>
         /// Updates Bayesian priors with new outcome
         /// </summary>
@@ -63,11 +63,11 @@ namespace OrchestratorAgent.Execution
         {
             var priors = GetPriors(symbol, session);
             priors.Update(isWin, rMultiple);
-            
+
             var key = GetKey(symbol, session);
             Console.WriteLine($"[LATTICE] Updated {key} priors: alpha={priors.Alpha:F1}, beta={priors.Beta:F1}, winProb={priors.WinProbability:F3}");
         }
-        
+
         /// <summary>
         /// Gets current session type based on time
         /// </summary>
@@ -76,10 +76,10 @@ namespace OrchestratorAgent.Execution
             var now = DateTime.Now.TimeOfDay;
             // RTH: 9:30 AM - 4:00 PM ET
             // ETH: Everything else
-            return (now >= TimeSpan.FromHours(9.5) && now <= TimeSpan.FromHours(16.0)) ? 
+            return (now >= TimeSpan.FromHours(9.5) && now <= TimeSpan.FromHours(16.0)) ?
                 SessionType.RTH : SessionType.ETH;
         }
-        
+
         /// <summary>
         /// Gets optimal position sizing for symbol-session combination
         /// </summary>
@@ -87,23 +87,23 @@ namespace OrchestratorAgent.Execution
         {
             var config = GetConfig(symbol, session);
             var priors = GetPriors(symbol, session);
-            
+
             // Apply volatility factor
             var volAdjusted = baseSize * config.VolatilityFactor;
-            
+
             // Apply confidence factor based on sample size
             var confidenceFactor = Math.Min(1.0, priors.SampleSize / 50.0);
             var confAdjusted = volAdjusted * (0.5 + 0.5 * confidenceFactor);
-            
+
             // Apply win rate factor
             var winRateFactor = Math.Max(0.3, Math.Min(1.5, priors.WinProbability / 0.5));
             var finalSize = confAdjusted * winRateFactor;
-            
+
             Console.WriteLine($"[LATTICE] {GetKey(symbol, session)} sizing: base={baseSize:F2} -> vol={volAdjusted:F2} -> conf={confAdjusted:F2} -> final={finalSize:F2}");
-            
+
             return Math.Max(0.1, Math.Min(3.0, finalSize)); // Clamp to reasonable range
         }
-        
+
         private void InitializeConfigs()
         {
             // ES Regular Trading Hours (9:30 AM - 4:00 PM ET)
@@ -119,7 +119,7 @@ namespace OrchestratorAgent.Execution
                 SpreadThreshold = 0.50, // ES typical spread
                 VolumeThreshold = 1000
             };
-            
+
             // ES Extended Trading Hours (4:00 PM - 9:30 AM ET)
             _configs["ES_ETH"] = new SymbolSessionConfig
             {
@@ -133,7 +133,7 @@ namespace OrchestratorAgent.Execution
                 SpreadThreshold = 0.75, // Wider spreads during ETH
                 VolumeThreshold = 500
             };
-            
+
             // NQ Regular Trading Hours
             _configs["NQ_RTH"] = new SymbolSessionConfig
             {
@@ -147,7 +147,7 @@ namespace OrchestratorAgent.Execution
                 SpreadThreshold = 1.25, // NQ has wider spreads
                 VolumeThreshold = 800
             };
-            
+
             // NQ Extended Trading Hours
             _configs["NQ_ETH"] = new SymbolSessionConfig
             {
@@ -162,7 +162,7 @@ namespace OrchestratorAgent.Execution
                 VolumeThreshold = 300
             };
         }
-        
+
         private void LoadConfigs()
         {
             try
@@ -186,7 +186,7 @@ namespace OrchestratorAgent.Execution
                 Console.WriteLine($"[LATTICE] Failed to load configs: {ex.Message}");
             }
         }
-        
+
         private void SaveConfigs()
         {
             try
@@ -201,16 +201,16 @@ namespace OrchestratorAgent.Execution
                 Console.WriteLine($"[LATTICE] Failed to save configs: {ex.Message}");
             }
         }
-        
+
         private string GetKey(string symbol, SessionType session) => $"{symbol}_{session}";
     }
-    
+
     public enum SessionType
     {
         RTH, // Regular Trading Hours (9:30 AM - 4:00 PM ET)
         ETH  // Extended Trading Hours (4:00 PM - 9:30 AM ET)
     }
-    
+
     public class SymbolSessionConfig
     {
         public string Symbol { get; set; } = "";
@@ -223,29 +223,29 @@ namespace OrchestratorAgent.Execution
         public double SpreadThreshold { get; set; }
         public int VolumeThreshold { get; set; }
     }
-    
+
     public class SessionBayesianPriors
     {
         public double Alpha { get; private set; } = 1.0; // Prior wins + actual wins
         public double Beta { get; private set; } = 1.0;  // Prior losses + actual losses
         public int SampleSize => (int)(Alpha + Beta - 2); // Actual samples (excluding priors)
         public double WinProbability => Alpha / (Alpha + Beta);
-        
+
         private double _totalR = 0.0;
         private int _trades = 0;
         public double AverageR => _trades > 0 ? _totalR / _trades : 0.0;
-        
+
         public void Update(bool isWin, double rMultiple)
         {
             if (isWin)
                 Alpha += 1.0;
             else
                 Beta += 1.0;
-            
+
             _totalR += rMultiple;
             _trades++;
         }
-        
+
         /// <summary>
         /// Gets confidence interval for win probability
         /// </summary>
@@ -256,7 +256,7 @@ namespace OrchestratorAgent.Execution
             var p = WinProbability;
             var n = Alpha + Beta;
             var se = Math.Sqrt(p * (1 - p) / n);
-            
+
             return (Math.Max(0, p - z * se), Math.Min(1, p + z * se));
         }
     }

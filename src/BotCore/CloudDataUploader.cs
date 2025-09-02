@@ -29,7 +29,7 @@ namespace BotCore
             _log = logger;
             _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
             _s3Bucket = Environment.GetEnvironmentVariable("S3_BUCKET") ?? "";
-            
+
             // Enable if S3 configuration is present
             _enabled = !string.IsNullOrEmpty(_s3Bucket) &&
                       !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID")) &&
@@ -101,7 +101,7 @@ namespace BotCore
                 var featureFiles = jsonlFiles.Where(f => Path.GetFileName(f).StartsWith("features_")).ToList();
                 var outcomeFiles = jsonlFiles.Where(f => Path.GetFileName(f).StartsWith("outcomes_")).ToList();
 
-                _log.LogInformation("[CloudDataUploader] Found {FeatureFiles} feature files, {OutcomeFiles} outcome files", 
+                _log.LogInformation("[CloudDataUploader] Found {FeatureFiles} feature files, {OutcomeFiles} outcome files",
                     featureFiles.Count, outcomeFiles.Count);
 
                 // Convert and upload feature files  
@@ -132,10 +132,10 @@ namespace BotCore
             {
                 var fileName = Path.GetFileName(jsonlPath);
                 var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                
+
                 // Extract symbol from filename (e.g., features_es_20241201.jsonl -> es)
                 var symbol = ExtractSymbolFromFilename(fileName);
-                
+
                 // Create parquet filename for cloud storage
                 var parquetFileName = $"{dataType}_{symbol}_{timestamp}.parquet";
                 var tempParquetPath = Path.Combine(Path.GetTempPath(), parquetFileName);
@@ -146,12 +146,12 @@ namespace BotCore
 
                 // Upload to S3 using AWS CLI (since AWS SDK would add dependencies)
                 var success = await UploadToS3Async(tempParquetPath, s3Key);
-                
+
                 if (success)
                 {
-                    _log.LogInformation("[CloudDataUploader] ✅ Uploaded {Type} data: {File} -> s3://{Bucket}/{Key}", 
+                    _log.LogInformation("[CloudDataUploader] ✅ Uploaded {Type} data: {File} -> s3://{Bucket}/{Key}",
                         dataType, fileName, _s3Bucket, s3Key);
-                        
+
                     // Mark original file as uploaded by renaming it
                     var uploadedPath = jsonlPath + ".uploaded";
                     if (!File.Exists(uploadedPath))
@@ -196,25 +196,25 @@ namespace BotCore
             // For now, create a simple CSV format that can be easily converted to parquet
             // In a full implementation, you'd use a proper parquet library
             var csvPath = parquetPath.Replace(".parquet", ".csv");
-            
+
             var lines = await File.ReadAllLinesAsync(jsonlPath);
             if (lines.Length == 0) return;
 
             // Parse first line to get column headers
             using var firstDoc = JsonDocument.Parse(lines[0]);
             var headers = firstDoc.RootElement.EnumerateObject().Select(p => p.Name).ToList();
-            
+
             var csvLines = new List<string> { string.Join(",", headers) };
-            
+
             // Convert each JSONL line to CSV
             foreach (var line in lines)
             {
                 if (string.IsNullOrWhiteSpace(line)) continue;
-                
+
                 try
                 {
                     using var doc = JsonDocument.Parse(line);
-                    var values = headers.Select(h => 
+                    var values = headers.Select(h =>
                     {
                         if (doc.RootElement.TryGetProperty(h, out var prop))
                         {
@@ -239,11 +239,11 @@ namespace BotCore
             }
 
             await File.WriteAllLinesAsync(csvPath, csvLines);
-            
+
             // For now, just rename CSV to parquet (cloud pipeline can handle CSV files)
             // In production, you'd use Apache Arrow or similar for true parquet conversion
             File.Move(csvPath, parquetPath);
-            
+
             _log.LogDebug("[CloudDataUploader] Converted {Lines} JSONL lines to {Format}", lines.Length, "parquet-compatible CSV");
         }
 
@@ -252,7 +252,7 @@ namespace BotCore
             try
             {
                 var region = Environment.GetEnvironmentVariable("AWS_REGION") ?? "us-east-1";
-                
+
                 // Use AWS CLI for upload (more reliable than coding S3 client from scratch)
                 var processInfo = new System.Diagnostics.ProcessStartInfo
                 {
@@ -295,7 +295,7 @@ namespace BotCore
             {
                 var cutoff = DateTime.UtcNow.AddDays(-3);
                 var uploadedFiles = Directory.GetFiles(_dataDir, "*.uploaded");
-                
+
                 foreach (var file in uploadedFiles)
                 {
                     var fileInfo = new FileInfo(file);
@@ -310,7 +310,7 @@ namespace BotCore
             {
                 _log.LogWarning(ex, "[CloudDataUploader] Error cleaning up old files");
             }
-            
+
             return Task.CompletedTask;
         }
     }

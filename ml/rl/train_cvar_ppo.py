@@ -371,7 +371,18 @@ def main():
         dummy_data.to_parquet(data_path)
         logger.info(f"Saved dummy data to {data_path}")
     
-    df = pd.read_parquet(data_path)
+    # Handle different file formats
+    if data_path.suffix.lower() == '.csv':
+        df = pd.read_csv(data_path)
+    elif data_path.suffix.lower() == '.parquet':
+        df = pd.read_parquet(data_path)
+    else:
+        # Try CSV first, then parquet
+        try:
+            df = pd.read_csv(data_path)
+        except:
+            df = pd.read_parquet(data_path)
+    
     logger.info(f"Loaded {len(df)} samples from {data_path}")
     
     # Train policy

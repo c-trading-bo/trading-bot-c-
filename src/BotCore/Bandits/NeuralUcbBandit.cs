@@ -87,7 +87,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
         CancellationToken ct = default)
     {
         NeuralUcbArm arm;
-        
+
         lock (_lock)
         {
             if (!_arms.ContainsKey(selectedArm))
@@ -219,7 +219,7 @@ internal class NeuralUcbArm
         lock (_dataLock)
         {
             _trainingData.Add((context, reward));
-            
+
             // Keep only recent data
             if (_trainingData.Count > _config.MaxTrainingDataSize)
             {
@@ -257,17 +257,17 @@ internal class NeuralUcbArm
     {
         // Compute feature importance using gradient-based methods
         var importance = new Dictionary<string, decimal>();
-        
+
         if (UpdateCount == 0)
             return importance;
 
         // Use representative context for gradient computation
         var recentContexts = _trainingData.TakeLast(10).Select(d => d.context).ToList();
-        
+
         foreach (var context in recentContexts)
         {
             var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct);
-            
+
             var featureKeys = context.Features.Keys.OrderBy(k => k).ToList();
             for (int i = 0; i < Math.Min(gradients.Length, featureKeys.Count); i++)
             {
@@ -300,7 +300,7 @@ internal class NeuralUcbArm
 
         // Estimate uncertainty using ensemble prediction variance
         var predictions = new List<decimal>();
-        
+
         for (int i = 0; i < _config.UncertaintyEstimationSamples; i++)
         {
             var features = context.ToArray(_config.InputDimension);
@@ -314,7 +314,7 @@ internal class NeuralUcbArm
 
         var mean = predictions.Average();
         var variance = predictions.Sum(p => (p - mean) * (p - mean)) / (predictions.Count - 1);
-        
+
         return Math.Min(1m, (decimal)Math.Sqrt((double)variance));
     }
 
@@ -324,7 +324,7 @@ internal class NeuralUcbArm
         var timeSinceLastTraining = DateTime.UtcNow - LastTraining;
         var hasEnoughNewData = UpdateCount >= _config.MinSamplesForTraining;
         var enoughTimePassed = timeSinceLastTraining >= _config.RetrainingInterval;
-        var significantDataIncrease = UpdateCount > 0 && 
+        var significantDataIncrease = UpdateCount > 0 &&
             (DateTime.UtcNow - LastTraining).TotalMinutes > _config.RetrainingInterval.TotalMinutes;
 
         return hasEnoughNewData && (enoughTimePassed || significantDataIncrease);
@@ -333,7 +333,7 @@ internal class NeuralUcbArm
     private async Task RetrainNetworkAsync(CancellationToken ct)
     {
         List<(ContextVector context, decimal reward)> trainingData;
-        
+
         lock (_dataLock)
         {
             trainingData = _trainingData.ToList();
@@ -367,7 +367,7 @@ internal class NeuralUcbArm
 
         // Estimate average uncertainty using recent contexts
         var recentContexts = _trainingData.TakeLast(10).Select(d => d.context).ToList();
-        
+
         if (!recentContexts.Any())
             return 0.5m;
 
@@ -459,7 +459,7 @@ public class SimpleNeuralNetwork : INeuralNetwork
     public async Task TrainAsync(decimal[][] features, decimal[] targets, CancellationToken ct = default)
     {
         await Task.CompletedTask;
-        
+
         // Simple gradient descent training (placeholder)
         var learningRate = 0.01m;
         var epochs = 10;
@@ -470,7 +470,7 @@ public class SimpleNeuralNetwork : INeuralNetwork
             {
                 var prediction = ForwardPass(features[i]);
                 var error = targets[i] - prediction;
-                
+
                 // Very simplified backpropagation
                 _biasOutput += learningRate * error;
                 for (int j = 0; j < _weightsOutput.Length; j++)
@@ -484,24 +484,24 @@ public class SimpleNeuralNetwork : INeuralNetwork
     public async Task<decimal[]> ComputeGradientsAsync(decimal[] features, CancellationToken ct = default)
     {
         await Task.CompletedTask;
-        
+
         // Simplified gradient computation
         var gradients = new decimal[features.Length];
         for (int i = 0; i < gradients.Length; i++)
         {
             gradients[i] = (decimal)_random.NextDouble() * 0.1m; // Placeholder
         }
-        
+
         return gradients;
     }
 
     public async Task<decimal> GetComplexityAsync(CancellationToken ct = default)
     {
         await Task.CompletedTask;
-        
+
         // L2 norm of weights as complexity measure
         var complexity = 0m;
-        
+
         for (int i = 0; i < _weightsInput.GetLength(0); i++)
         {
             for (int j = 0; j < _weightsInput.GetLength(1); j++)
@@ -509,25 +509,25 @@ public class SimpleNeuralNetwork : INeuralNetwork
                 complexity += _weightsInput[i, j] * _weightsInput[i, j];
             }
         }
-        
+
         for (int i = 0; i < _weightsOutput.Length; i++)
         {
             complexity += _weightsOutput[i] * _weightsOutput[i];
         }
-        
+
         return (decimal)Math.Sqrt((double)complexity);
     }
 
     public INeuralNetwork Clone()
     {
         var clone = new SimpleNeuralNetwork(_inputSize, _hiddenSize);
-        
+
         // Deep copy weights
         Array.Copy(_weightsInput, clone._weightsInput, _weightsInput.Length);
         Array.Copy(_biasHidden, clone._biasHidden, _biasHidden.Length);
         Array.Copy(_weightsOutput, clone._weightsOutput, _weightsOutput.Length);
         clone._biasOutput = _biasOutput;
-        
+
         return clone;
     }
 
@@ -540,7 +540,7 @@ public class SimpleNeuralNetwork : INeuralNetwork
 
         // Xavier initialization
         var stddev = (decimal)Math.Sqrt(2.0 / (_inputSize + _hiddenSize));
-        
+
         for (int i = 0; i < _inputSize; i++)
         {
             for (int j = 0; j < _hiddenSize; j++)
@@ -567,10 +567,10 @@ public class SimpleNeuralNetwork : INeuralNetwork
             {
                 sum += features[i] * _weightsInput[i, j];
             }
-            
+
             // ReLU activation
             hidden[j] = Math.Max(0m, sum);
-            
+
             // Dropout
             if (dropout && _random.NextDouble() < 0.5)
             {

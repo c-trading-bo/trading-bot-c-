@@ -15,13 +15,13 @@ namespace OrchestratorAgent.ML
     public sealed class FeatureSnapshot
     {
         public Dictionary<string, float> Features { get; } = new();
-        
+
         public string Symbol { get; set; } = string.Empty;
         public string Strategy { get; set; } = string.Empty;
         public string Session { get; set; } = string.Empty;
         public string Regime { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
-        
+
         // Common technical indicators
         public float Price { get; set; }
         public float Atr { get; set; }
@@ -31,26 +31,26 @@ namespace OrchestratorAgent.ML
         public float Volume { get; set; }
         public float Spread { get; set; }
         public float Volatility { get; set; }
-        
+
         // Market microstructure
         public float BidAskImbalance { get; set; }
         public float OrderBookImbalance { get; set; }
         public float TickDirection { get; set; }
-        
+
         // Strategy-specific
         public float SignalStrength { get; set; }
         public float PriorWinRate { get; set; }
         public float AvgRMultiple { get; set; }
-        
+
         // Risk factors
         public float DrawdownRisk { get; set; }
         public float NewsImpact { get; set; }
         public float LiquidityRisk { get; set; }
-        
+
         // Symbol-specific features for multi-symbol learning
         public float IsES => Symbol.Equals("ES", StringComparison.OrdinalIgnoreCase) ? 1.0f : 0.0f;
         public float IsNQ => Symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 1.0f : 0.0f;
-        
+
         public FeatureSnapshot()
         {
             // Initialize with default feature values
@@ -75,16 +75,16 @@ namespace OrchestratorAgent.ML
             AddFeature("is_es", 0f);
             AddFeature("is_nq", 0f);
         }
-        
+
         public void AddFeature(string name, float value)
         {
             Features[name] = value;
         }
-        
+
         public Dictionary<string, float> ToDict()
         {
             var dict = new Dictionary<string, float>(Features);
-            
+
             // Sync properties to dictionary
             dict["price"] = Price;
             dict["atr"] = Atr;
@@ -103,14 +103,14 @@ namespace OrchestratorAgent.ML
             dict["drawdown_risk"] = DrawdownRisk;
             dict["news_impact"] = NewsImpact;
             dict["liquidity_risk"] = LiquidityRisk;
-            
+
             // Add symbol-specific features
             dict["is_es"] = IsES;
             dict["is_nq"] = IsNQ;
-            
+
             return dict;
         }
-        
+
         public void FromDict(Dictionary<string, float> dict)
         {
             Features.Clear();
@@ -118,7 +118,7 @@ namespace OrchestratorAgent.ML
             {
                 Features[kv.Key] = kv.Value;
             }
-            
+
             // Sync dictionary to properties
             Price = dict.GetValueOrDefault("price", 0f);
             Atr = dict.GetValueOrDefault("atr", 0f);
@@ -155,14 +155,14 @@ namespace OrchestratorAgent.ML
         private readonly string _modelPath;
         private DateTime _modelLastWrite;
         private readonly int _maxAgeMinutes;
-        
+
         public bool IsLoaded => _session != null;
         public float[] AvailableActions => _actions.ToArray();
-        
+
         public RlSizer(
-            string onnxPath, 
-            float[] actions, 
-            bool sampleAction = false, 
+            string onnxPath,
+            float[] actions,
+            bool sampleAction = false,
             int maxAgeMinutes = 120,
             ILogger<RlSizer>? logger = null)
         {
@@ -172,10 +172,10 @@ namespace OrchestratorAgent.ML
             _sampleAction = sampleAction;
             _maxAgeMinutes = maxAgeMinutes;
             _inputNames = Array.Empty<string>();
-            
+
             LoadModel();
         }
-        
+
         private void LoadModel()
         {
             try
@@ -183,26 +183,26 @@ namespace OrchestratorAgent.ML
                 // Dispose existing session
                 _session?.Dispose();
                 _session = null;
-                
+
                 if (!File.Exists(_modelPath))
                 {
                     _logger.LogWarning("[RlSizer] Model file not found: {Path}", _modelPath);
                     return;
                 }
-                
+
                 // Load ONNX model
                 var sessionOptions = new SessionOptions();
                 sessionOptions.EnableMemoryPattern = false; // Reduce memory usage
                 sessionOptions.EnableCpuMemArena = false;
-                
+
                 _session = new InferenceSession(_modelPath, sessionOptions);
                 _modelLastWrite = File.GetLastWriteTimeUtc(_modelPath);
-                
+
                 // Extract input names
                 var inputMeta = _session.InputMetadata;
                 _inputNames = inputMeta.Keys.ToArray();
-                
-                _logger.LogInformation("[RlSizer] Loaded model from {Path} with {Inputs} inputs", 
+
+                _logger.LogInformation("[RlSizer] Loaded model from {Path} with {Inputs} inputs",
                     _modelPath, _inputNames.Length);
                 _logger.LogDebug("[RlSizer] Input features: {Features}", string.Join(", ", _inputNames));
             }
@@ -213,21 +213,21 @@ namespace OrchestratorAgent.ML
                 _session = null;
             }
         }
-        
+
         public void CheckForModelUpdates()
         {
             if (!File.Exists(_modelPath)) return;
-            
+
             var lastWrite = File.GetLastWriteTimeUtc(_modelPath);
             var ageMinutes = (DateTime.UtcNow - lastWrite).TotalMinutes;
-            
+
             if (lastWrite > _modelLastWrite && ageMinutes <= _maxAgeMinutes)
             {
                 _logger.LogInformation("[RlSizer] Detected updated model, reloading...");
                 LoadModel();
             }
         }
-        
+
         public double Recommend(FeatureSnapshot snapshot)
         {
             if (_session == null)
@@ -235,15 +235,15 @@ namespace OrchestratorAgent.ML
                 _logger.LogWarning("[RlSizer] Model not loaded, returning default size 1.0");
                 return 1.0;
             }
-            
+
             try
             {
                 // Check for model updates
                 CheckForModelUpdates();
-                
+
                 var features = snapshot.ToDict();
                 var inputs = new List<NamedOnnxValue>();
-                
+
                 // Prepare input tensors
                 foreach (var inputName in _inputNames)
                 {
@@ -251,10 +251,10 @@ namespace OrchestratorAgent.ML
                     var tensor = new DenseTensor<float>(new[] { value }, new[] { 1, 1 });
                     inputs.Add(NamedOnnxValue.CreateFromTensor(inputName, tensor));
                 }
-                
+
                 // Run inference
                 using var results = _session.Run(inputs);
-                
+
                 // Extract logits (policy output)
                 DenseTensor<float>? logits = null;
                 foreach (var output in results)
@@ -265,26 +265,26 @@ namespace OrchestratorAgent.ML
                         break;
                     }
                 }
-                
+
                 if (logits == null)
                 {
                     _logger.LogWarning("[RlSizer] No logits output found, returning default size 1.0");
                     return 1.0;
                 }
-                
+
                 var logitsArray = logits.ToArray();
                 int actionIndex = _sampleAction ? SampleAction(logitsArray) : GreedyAction(logitsArray);
-                
+
                 // Clamp action to valid range
                 actionIndex = Math.Max(0, Math.Min(actionIndex, _actions.Length - 1));
                 double recommendedSize = _actions[actionIndex];
-                
+
                 // Apply safety bounds
                 recommendedSize = Math.Max(0.1, Math.Min(recommendedSize, 3.0));
-                
-                _logger.LogDebug("[RlSizer] Recommended size: {Size:F2} (action {Index}, logits: [{Logits}])", 
+
+                _logger.LogDebug("[RlSizer] Recommended size: {Size:F2} (action {Index}, logits: [{Logits}])",
                     recommendedSize, actionIndex, string.Join(", ", logitsArray.Select(x => x.ToString("F3"))));
-                
+
                 return recommendedSize;
             }
             catch (Exception ex)
@@ -293,7 +293,7 @@ namespace OrchestratorAgent.ML
                 return 1.0;
             }
         }
-        
+
         private int GreedyAction(float[] logits)
         {
             int maxIndex = 0;
@@ -304,7 +304,7 @@ namespace OrchestratorAgent.ML
             }
             return maxIndex;
         }
-        
+
         private int SampleAction(float[] logits)
         {
             // Softmax sampling
@@ -313,7 +313,7 @@ namespace OrchestratorAgent.ML
             {
                 if (v > max) max = v;
             }
-            
+
             double sum = 0;
             var probs = new double[logits.Length];
             for (int i = 0; i < logits.Length; i++)
@@ -321,12 +321,12 @@ namespace OrchestratorAgent.ML
                 probs[i] = Math.Exp(logits[i] - max);
                 sum += probs[i];
             }
-            
+
             for (int i = 0; i < probs.Length; i++)
             {
                 probs[i] /= sum;
             }
-            
+
             double u = _rng.NextDouble();
             double acc = 0;
             for (int i = 0; i < probs.Length; i++)
@@ -334,10 +334,10 @@ namespace OrchestratorAgent.ML
                 acc += probs[i];
                 if (u <= acc) return i;
             }
-            
+
             return probs.Length - 1;
         }
-        
+
         /// <summary>
         /// Predict position size multiplier for a given feature snapshot
         /// </summary>
@@ -346,7 +346,7 @@ namespace OrchestratorAgent.ML
             var recommendation = Recommend(snapshot);
             return (decimal)recommendation;
         }
-        
+
         public void Dispose()
         {
             _session?.Dispose();
