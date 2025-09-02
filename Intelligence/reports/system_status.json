@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-09-02T18:25:43.701416",
+  "system_status": "PARTIALLY_OPERATIONAL",
+  "data_sources": {
+    "options": {
+      "available": true,
+      "fresh": true,
+      "age_info": "Fresh (0m old)"
+    },
+    "news": {
+      "available": false,
+      "fresh": false,
+      "age_info": "No data"
+    },
+    "regime": {
+      "available": true,
+      "fresh": true,
+      "age_info": "Fresh (0m old)"
+    }
+  },
+  "active_signals": {
+    "options": {
+      "ES": {
+        "action": "NEUTRAL",
+        "confidence": 0
+      },
+      "NQ": {
+        "action": "NEUTRAL",
+        "confidence": 0
+      }
+    },
+    "regime": "CHOP"
+  },
+  "recommendations": []
+}
