@@ -2,11 +2,11 @@ name: Options Flow Analysis (Team)
 
 on:
   schedule:
-    # OPTIMIZED FOR GITHUB TEAM
-    - cron: '*/20 13-14 * * 1-5'   # Every 20 min opening (3 runs)
-    - cron: '0 15,17,19 * * 1-5'   # 3 times during day (3 runs)
-    - cron: '*/30 19-20 * * 1-5'   # Every 30 min close (2 runs)
-    # Total: ~8 runs/day
+    # MORE FREQUENT FOR BETTER SIGNALS - TEAM OPTIMIZED
+    - cron: '*/5 9-10 * * 1-5'   # Every 5 min opening (12 runs)
+    - cron: '*/15 10-15 * * 1-5' # Every 15 min day (20 runs)
+    - cron: '*/10 15-16 * * 1-5' # Every 10 min close (6 runs)
+    # Total: ~38 runs/day
   workflow_dispatch:
 
 permissions:
