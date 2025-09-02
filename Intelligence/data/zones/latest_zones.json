@@ -1,121 +1,121 @@
 {
   "symbol": "ES",
-  "current_price": 4490.35,
+  "current_price": 4494.88,
   "supply_zones": [
     {
-      "price": 4505.25,
+      "price": 4510.0,
       "range": [
-        4500.74,
-        4509.76
+        4505.49,
+        4514.51
       ],
-      "strength": 90,
-      "last_test": "2025-08-29T03:28:57.113289",
+      "strength": 89,
+      "last_test": "2025-09-02T03:33:10.423945",
+      "touch_count": 2
+    },
+    {
+      "price": 4502.5,
+      "range": [
+        4500.25,
+        4504.75
+      ],
+      "strength": 77,
+      "last_test": "2025-09-02T03:33:10.424141",
       "touch_count": 1
     },
     {
-      "price": 4497.75,
+      "price": 4525.0,
       "range": [
-        4495.5,
-        4500.0
+        4518.21,
+        4531.79
       ],
-      "strength": 79,
-      "last_test": "2025-09-02T03:28:57.113626",
-      "touch_count": 1
-    },
-    {
-      "price": 4520.25,
-      "range": [
-        4513.47,
-        4527.03
-      ],
-      "strength": 78,
-      "last_test": "2025-08-31T03:28:57.113342",
-      "touch_count": 1
-    },
-    {
-      "price": 4535.25,
-      "range": [
-        4526.18,
-        4544.32
-      ],
-      "strength": 49,
-      "last_test": "2025-08-27T03:28:57.113375",
+      "strength": 76,
+      "last_test": "2025-08-28T03:33:10.424000",
       "touch_count": 3
     },
     {
-      "price": 4550.25,
+      "price": 4540.0,
       "range": [
-        4538.87,
-        4561.63
+        4530.92,
+        4549.08
+      ],
+      "strength": 55,
+      "last_test": "2025-08-30T03:33:10.424024",
+      "touch_count": 1
+    },
+    {
+      "price": 4555.0,
+      "range": [
+        4543.61,
+        4566.39
       ],
       "strength": 40,
-      "last_test": "2025-09-02T03:28:57.113405",
-      "touch_count": 4
+      "last_test": "2025-08-29T03:33:10.424042",
+      "touch_count": 3
     }
   ],
   "demand_zones": [
     {
-      "price": 4475.25,
+      "price": 4480.0,
       "range": [
-        4470.77,
-        4479.73
+        4475.52,
+        4484.48
       ],
-      "strength": 88,
-      "last_test": "2025-09-01T03:28:57.113441",
-      "touch_count": 2
+      "strength": 95,
+      "last_test": "2025-09-01T03:33:10.424063",
+      "touch_count": 5
     },
     {
-      "price": 4460.25,
+      "price": 4465.0,
       "range": [
-        4453.56,
-        4466.94
+        4458.3,
+        4471.7
       ],
-      "strength": 84,
-      "last_test": "2025-08-30T03:28:57.113479",
-      "touch_count": 4
+      "strength": 80,
+      "last_test": "2025-08-30T03:33:10.424087",
+      "touch_count": 3
     },
     {
-      "price": 4482.75,
+      "price": 4487.5,
       "range": [
-        4480.51,
-        4484.99
+        4485.26,
+        4489.74
       ],
-      "strength": 76,
-      "last_test": "2025-09-02T03:28:57.113649",
+      "strength": 79,
+      "last_test": "2025-09-02T03:33:10.424154",
       "touch_count": 1
     },
     {
-      "price": 4445.25,
+      "price": 4450.0,
       "range": [
-        4436.36,
-        4454.14
+        4441.1,
+        4458.9
       ],
-      "strength": 65,
-      "last_test": "2025-09-02T03:28:57.113516",
-      "touch_count": 2
+      "strength": 69,
+      "last_test": "2025-08-30T03:33:10.424105",
+      "touch_count": 4
     },
     {
-      "price": 4430.25,
+      "price": 4435.0,
       "range": [
-        4419.17,
-        4441.33
+        4423.91,
+        4446.09
       ],
-      "strength": 47,
-      "last_test": "2025-08-30T03:28:57.113595",
+      "strength": 49,
+      "last_test": "2025-08-29T03:33:10.424127",
       "touch_count": 3
     }
   ],
-  "poc": 4495.71,
+  "poc": 4500.27,
   "value_area": {
-    "high": 4507.71,
-    "low": 4487.71
+    "high": 4512.27,
+    "low": 4492.27
   },
   "key_levels": {
-    "nearest_support": 4430.25,
-    "nearest_resistance": 4497.75,
-    "strongest_support": 4475.25,
-    "strongest_resistance": 4505.25
+    "nearest_support": 4435.0,
+    "nearest_resistance": 4502.5,
+    "strongest_support": 4480.0,
+    "strongest_resistance": 4510.0
   },
-  "generated_at": "2025-09-02T03:28:57.113779",
-  "next_update": "2025-09-02T07:28:57.114845"
+  "generated_at": "2025-09-02T03:33:10.424234",
+  "next_update": "2025-09-02T07:33:10.424920"
 }
