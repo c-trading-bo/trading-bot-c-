@@ -598,8 +598,8 @@ jobs:
     
     - name: Install ML/RL Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
+        pip install torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install optuna shap numpy pandas onnx onnxruntime
     
     # ----------------------------------------
     # TRAIN NEURAL BANDITS
@@ -886,7 +886,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
+        pip install pandas numpy scikit-learn joblib
     
     - name: Generate Trading Signals
       run: |
