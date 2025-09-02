@@ -1,0 +1,36 @@
+{
+  "timestamp": "2025-09-02T15:03:31.239615",
+  "data_availability": {
+    "options": true,
+    "macro": true,
+    "news": true
+  },
+  "risk_regime": "MEDIUM_RISK",
+  "market_bias": "SLIGHTLY_BULLISH",
+  "volatility_regime": "MEDIUM",
+  "position_sizing_factor": 1.0,
+  "entry_confidence": 0.75,
+  "risk_factors": [
+    "MEDIUM_VOL",
+    "POSITIVE_SENTIMENT"
+  ],
+  "raw_data": {
+    "options_summary": {
+      "total_call_volume": 430000,
+      "total_put_volume": 300000,
+      "market_put_call_ratio": 0.7,
+      "collection_time": "2025-09-02T15:03:31.239004"
+    },
+    "macro_summary": {
+      "vix_level": 18.75,
+      "yield_curve_spread": -0.5999999999999996,
+      "dollar_strength": 0.24
+    },
+    "news_summary": {
+      "overall_polarity": 0.1,
+      "sentiment_label": "Slightly Positive",
+      "confidence": 0.45,
+      "headlines_analyzed": 2
+    }
+  }
+}
