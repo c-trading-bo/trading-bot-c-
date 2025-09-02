@@ -50,24 +50,10 @@ jobs:
           
       - name: "📦 Install Dependencies"
         run: |
-          # Install system dependencies for TA-Lib
-          sudo apt-get update
-          sudo apt-get install -y build-essential wget
-          
-          # Download and install TA-Lib C library
-          wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-          tar -xzf ta-lib-0.4.0-src.tar.gz
-          cd ta-lib/
-          ./configure --prefix=/usr
-          make
-          sudo make install
-          cd ..
-          
-          # Install Python packages
           pip install --upgrade pip
           pip install torch numpy pandas scikit-learn onnx skl2onnx packaging pyarrow
           pip install gym stable-baselines3 tensorboard matplotlib seaborn
-          pip install TA-Lib  # Technical analysis features
+          pip install ta-lib talib-binary  # Technical analysis features
           pip install optuna hyperopt  # Hyperparameter optimization
           
       - name: "🔍 Test Dependencies"  
@@ -213,41 +199,27 @@ jobs:
                   'correlation_risk': random.uniform(0, 1),
                   'market_regime': random.choice([0, 1, 2]),  # TRENDING, RANGING, VOLATILE
                   'position_size_optimal': random.uniform(0.1, 2.0),
-                  'R_multiple': r_mult  # Capital R to match SizerEnv expectations
+                  'r_multiple': r_mult
               })
           
           df_rl = pd.DataFrame(rl_data)
           df_rl.to_parquet('data/logs/rl_training_data.parquet', index=False)
           print(f'Generated advanced RL training data: {len(df_rl)} samples')
           
-          # Generate CVaR-PPO trading data with proper structure
+          # Generate CVaR-PPO environment data
           cvar_data = []
           for i in range(1000):
-              price = 4500 + random.uniform(-150, 150)
-              atr = random.uniform(8, 60)
-              r_mult = random.uniform(-4, 6)
-              
               cvar_data.append({
-                  'price': price,
-                  'atr': atr,
-                  'rsi': random.uniform(15, 85),
-                  'volume': random.randint(80, 1500),
-                  'volatility': random.uniform(0.05, 0.7),
-                  'signal_strength': random.uniform(0, 1),
-                  'prior_win_rate': random.uniform(0.2, 0.8),
-                  'avg_r_multiple': random.uniform(-0.8, 2.5),
-                  'max_drawdown': random.uniform(0, 0.4),
-                  'sharpe_ratio': random.uniform(-1.5, 3.0),
-                  'var_95': random.uniform(0, 0.15),
-                  'cvar_95': random.uniform(0, 0.25),
-                  'portfolio_heat': random.uniform(0, 1),
-                  'market_regime': random.choice([0, 1, 2]),
-                  'R_multiple': r_mult  # Required by SizerEnv
+                  'state': [random.uniform(-2, 2) for _ in range(10)],
+                  'action': random.randint(0, 4),  # 5 position sizes
+                  'reward': random.uniform(-1, 2),
+                  'done': random.choice([True, False]),
+                  'cvar_constraint': random.uniform(0.05, 0.2)
               })
           
           df_cvar = pd.DataFrame(cvar_data)
           df_cvar.to_parquet('data/logs/cvar_training_data.parquet', index=False)
-          print(f'Generated CVaR-PPO trading data: {len(df_cvar)} samples')
+          print(f'Generated CVaR-PPO training data: {len(df_cvar)} samples')
           "
 
       - name: "🤖 Train Meta Strategy Classifier"
@@ -265,14 +237,15 @@ jobs:
       - name: "🎯 Train CVaR-PPO Advanced RL Agent"
         if: ${{ inputs.manual_test != true }}
         run: |
-          echo "Training advanced CVaR-PPO RL agent with corrected arguments..."
+          echo "Training advanced CVaR-PPO RL agent..."
           cd ml/rl
           python train_cvar_ppo.py \
-            --data-path ../../data/logs/cvar_training_data.parquet \
-            --steps 1000 \
+            --data ../../data/logs/cvar_training_data.parquet \
+            --episodes 1000 \
             --lr 3e-4 \
-            --auto \
-            --out-rl ../../models/rl/cvar_ppo_agent.onnx
+            --cvar_alpha 0.05 \
+            --risk_penalty 0.1 \
+            --save_dir ../../models/rl
 
       - name: "🔧 Feature Engineering & Model Optimization"
         if: ${{ inputs.manual_test != true }}
