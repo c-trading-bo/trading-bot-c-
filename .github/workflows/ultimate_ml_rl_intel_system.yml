@@ -90,24 +90,24 @@ jobs:
     
     - name: Install Core Python Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+        pip install --upgrade pip
         # Essential core dependencies only
-        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
+        pip install numpy pandas scipy
         # Technical analysis (with fallbacks)
-        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
+        pip install TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
         # Lightweight ML dependencies
-        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn
+        pip install scikit-learn
         # Data collection essentials
-        pip install --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
+        pip install yfinance requests feedparser
         # News processing essentials
-        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
+        pip install beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
         
     - name: Install Optional Heavy Dependencies
       continue-on-error: true
       run: |
         # These are optional - workflow continues if they fail
-        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
-        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
+        pip install torch || echo "PyTorch install failed, skipping"
+        pip install xgboost || echo "XGBoost install failed, skipping"
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Simplified & Robust)
