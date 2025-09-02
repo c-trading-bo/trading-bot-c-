@@ -2,10 +2,11 @@ name: News & Sentiment (Team)
 
 on:
   schedule:
-    - cron: '*/15 12-13 * * 1-5'    # Every 15 min pre-market
-    - cron: '0 14,15,17,18,19 * * 1-5'  # Hourly during day
-    - cron: '*/30 * * * 0,6'      # Weekends less frequent
-    # Total: ~15 runs/day
+    # SMART TIMING - TEAM OPTIMIZED
+    - cron: '*/15 8-9 * * 1-5'    # Every 15 min pre-market (4 runs)
+    - cron: '0 10,11,13,14,15 * * 1-5'  # Hourly during day (5 runs)
+    - cron: '*/30 * * * 0,6'      # Weekends less frequent (48 runs weekend)
+    # Total: ~15 runs/day weekdays
   workflow_dispatch:
 
 permissions:

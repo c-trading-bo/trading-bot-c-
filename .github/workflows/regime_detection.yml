@@ -2,7 +2,8 @@ name: Market Regime Detection (Team)
 
 on:
   schedule:
-    - cron: '0 */2 * * *'  # Every 2 hours (12 runs/day)
+    # REGULAR DETECTION - TEAM OPTIMIZED
+    - cron: '*/20 * * * *'  # Every 20 minutes (72 runs/day)
   workflow_dispatch:
 
 permissions:

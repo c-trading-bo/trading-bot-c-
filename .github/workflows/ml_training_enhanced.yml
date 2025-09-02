@@ -2,8 +2,8 @@ name: ML Training Enhanced (Team)
 
 on:
   schedule:
-    # OPTIMIZED FOR GITHUB TEAM
-    - cron: '0 */6 * * *'  # Every 6 hours (4 runs/day)
+    # TRAIN MORE OFTEN FOR ADAPTATION - TEAM OPTIMIZED
+    - cron: '0 */1 * * *'  # Every hour (24 runs/day)
   workflow_dispatch:
 
 permissions:

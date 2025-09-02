@@ -2,9 +2,10 @@ name: Portfolio Heat Management (Team)
 
 on:
   schedule:
-    - cron: '*/30 13-20 * * 1-5'  # Every 30 min market hours (14 runs)
-    - cron: '0 */4 * * *'         # Every 4 hours otherwise (6 runs)
-    # Total: ~20 runs/day
+    # HEAT MANAGEMENT - TEAM OPTIMIZED
+    - cron: '*/15 9-16 * * 1-5'  # Every 15 min market hours (28 runs)
+    - cron: '0 */2 * * *'        # Every 2 hours otherwise (12 runs)
+    # Total: ~40 runs/day
   workflow_dispatch:
 
 permissions:
