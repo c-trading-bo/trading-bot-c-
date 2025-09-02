@@ -303,7 +303,20 @@ namespace OrchestratorAgent
                 {
                     options.AccessTokenProvider = TokenProvider;
                     options.SkipNegotiation = false;
-                    options.Transports = HttpTransportType.WebSockets;
+                    options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
+                    options.CloseTimeout = TimeSpan.FromSeconds(30);
+                    options.WebSocketConfiguration = ws =>
+                    {
+                        ws.KeepAliveInterval = TimeSpan.FromSeconds(30);
+                    };
+                    options.HttpMessageHandlerFactory = handler =>
+                    {
+                        if (handler is HttpClientHandler clientHandler)
+                        {
+                            clientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+                        }
+                        return handler;
+                    };
                 })
                 .WithAutomaticReconnect(
                 [
