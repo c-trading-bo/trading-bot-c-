@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-02T04:16:31.068358",
+  "timestamp": "2025-09-02T04:07:48.316957",
   "symbol": "ES=F",
   "supply_zones": [
     {
@@ -9,11 +9,11 @@
       "zone_bottom": 5722.75,
       "strength": 85.5,
       "volume": 45000,
-      "created_date": "2025-08-31T04:16:31.068378",
+      "created_date": "2025-08-31T04:07:48.316982",
       "touches": 3,
       "holds": 2,
       "breaks": 1,
-      "last_test": "2025-09-02T00:16:31.068403",
+      "last_test": "2025-09-02T00:07:48.317003",
       "active": true
     },
     {
@@ -23,11 +23,11 @@
       "zone_bottom": 5747.75,
       "strength": 92.0,
       "volume": 67000,
-      "created_date": "2025-08-28T04:16:31.068426",
+      "created_date": "2025-08-28T04:07:48.317022",
       "touches": 4,
       "holds": 4,
       "breaks": 0,
-      "last_test": "2025-09-01T20:16:31.068444",
+      "last_test": "2025-09-01T20:07:48.317039",
       "active": true
     }
   ],
@@ -39,11 +39,11 @@
       "zone_bottom": 5672.75,
       "strength": 78.2,
       "volume": 52000,
-      "created_date": "2025-08-30T04:16:31.068463",
+      "created_date": "2025-08-30T04:07:48.317057",
       "touches": 2,
       "holds": 2,
       "breaks": 0,
-      "last_test": "2025-09-01T22:16:31.068486",
+      "last_test": "2025-09-01T22:07:48.317074",
       "active": true
     },
     {
@@ -53,11 +53,11 @@
       "zone_bottom": 5647.75,
       "strength": 88.7,
       "volume": 71000,
-      "created_date": "2025-08-26T04:16:31.068507",
+      "created_date": "2025-08-26T04:07:48.317093",
       "touches": 5,
       "holds": 4,
       "breaks": 1,
-      "last_test": "2025-09-01T16:16:31.068529",
+      "last_test": "2025-09-01T16:07:48.317111",
       "active": true
     }
   ],
