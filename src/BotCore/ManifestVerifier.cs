@@ -9,7 +9,8 @@ namespace BotCore
     /// Verifies HMAC-SHA256 signatures for model manifest security.
     /// 
     /// Ensures model manifests have not been tampered with during
-    /// 24/7 cloud learning updates from S3/CloudFront.
+        /// Model manifest verification for local model updates.
+    /// Ensures integrity and freshness of local model files.
     /// </summary>
     public static class ManifestVerifier
     {

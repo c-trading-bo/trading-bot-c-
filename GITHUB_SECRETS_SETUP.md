@@ -23,10 +23,10 @@ Value: us-east-1 (or your preferred region)
 #### 2. S3 Storage Configuration
 ```
 S3_BUCKET
-Value: [Your S3 bucket name, e.g., "topstep-bot-ml-models"]
+Value: [Local storage path, e.g., "models/local"]
 
-CDN_BASE_URL
-Value: [CloudFront or S3 public URL, e.g., "https://d1234567890.cloudfront.net"]
+LOCAL_MODEL_URL
+Value: [Local endpoint URL, e.g., "https://local.trading-bot.dev/models"]
 ```
 
 #### 3. Security (HMAC Manifest Signing)
