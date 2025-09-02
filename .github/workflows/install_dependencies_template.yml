@@ -74,38 +74,8 @@ jobs:
     - name: Verify Installation
       run: |
         echo "🧪 Testing critical dependencies..."
-        python -c "
-import pandas as pd
-import numpy as np
-print('✅ Core: pandas, numpy')
-
-try:
-    import talib
-    print('✅ TA-Lib: Main library working')
-except ImportError as e:
-    print(f'❌ TA-Lib: {e}')
-
-try:
-    import ta
-    print('✅ ta: Backup library working')
-except ImportError as e:
-    print(f'❌ ta: {e}')
-
-try:
-    import yfinance as yf
-    print('✅ yfinance: Data collection working')
-except ImportError as e:
-    print(f'❌ yfinance: {e}')
-
-print('🎉 Dependency verification complete!')
-"
-
-# USAGE INSTRUCTIONS:
-# Copy the steps from 'Setup Python' through 'Verify Installation' 
-# to any workflow that needs comprehensive dependencies.
-#
-# This template ensures:
-# 1. TA-Lib C library is compiled before Python wrapper
-# 2. Backup libraries (ta, pandas-ta) are available
-# 3. All dependencies are cached for faster subsequent runs
-# 4. Installation is verified before proceeding
+        python -c "import pandas as pd; import numpy as np; print('✅ Core: pandas, numpy')"
+        python -c "import talib; print('✅ TA-Lib: Main library working')" || echo "⚠️ TA-Lib: Not available"
+        python -c "import ta; print('✅ ta: Backup library working')" || echo "⚠️ ta: Not available"  
+        python -c "import yfinance as yf; print('✅ yfinance: Data collection working')" || echo "⚠️ yfinance: Not available"
+        echo "🎉 Dependency verification complete!"
