@@ -1,0 +1,83 @@
+name: ES/NQ Critical Trading (Team)
+
+on:
+  schedule:
+    # OPTIMIZED FOR GITHUB TEAM
+    - cron: '*/15 13:28-14:00 * * 1-5'  # Every 15 min opening (3 runs)
+    - cron: '*/30 14-19 * * 1-5'       # Every 30 min midday (10 runs)
+    - cron: '*/15 19:30-20:00 * * 1-5' # Every 15 min close (2 runs)
+    # Total: ~15 runs/day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  es-nq-analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install yfinance pandas numpy
+        
+    - name: ES/NQ Real-Time Analysis
+      run: |
+        python << 'EOF'
+        import yfinance as yf
+        import pandas as pd
+        import numpy as np
+        import json
+        from datetime import datetime
+        
+        print(f"[ES/NQ] Starting critical analysis at {datetime.utcnow()}")
+        
+        # Fetch ES and NQ futures data
+        symbols = ['ES=F', 'NQ=F']
+        analysis_results = {}
+        
+        for symbol in symbols:
+            try:
+                ticker = yf.Ticker(symbol)
+                data = ticker.history(period='1d', interval='1m')
+                
+                if not data.empty:
+                    latest = data.iloc[-1]
+                    
+                    # Calculate key metrics
+                    price_change = (latest['Close'] - data['Open'].iloc[0]) / data['Open'].iloc[0] * 100
+                    volatility = data['Close'].pct_change().std() * 100
+                    volume_ratio = latest['Volume'] / data['Volume'].mean()
+                    
+                    analysis_results[symbol] = {
+                        'price': float(latest['Close']),
+                        'change_percent': float(price_change),
+                        'volatility': float(volatility),
+                        'volume_ratio': float(volume_ratio),
+                        'timestamp': datetime.utcnow().isoformat()
+                    }
+                    
+                    print(f"[{symbol}] Price: ${latest['Close']:.2f}, Change: {price_change:.2f}%, Vol: {volatility:.2f}%")
+                    
+            except Exception as e:
+                print(f"[ERROR] {symbol}: {e}")
+        
+        # Save results for other workflows
+        import os
+        os.makedirs('data/es_nq', exist_ok=True)
+        with open('data/es_nq/latest_analysis.json', 'w') as f:
+            json.dump(analysis_results, f, indent=2)
+        
+        print(f"[ES/NQ] Analysis complete, {len(analysis_results)} symbols processed")
+        
+        EOF

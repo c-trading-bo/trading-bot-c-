@@ -1,0 +1,150 @@
+name: Portfolio Heat Management (Team)
+
+on:
+  schedule:
+    - cron: '*/30 13-20 * * 1-5'  # Every 30 min market hours (14 runs)
+    - cron: '0 */4 * * *'         # Every 4 hours otherwise (6 runs)
+    # Total: ~20 runs/day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  manage-heat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install Dependencies
+      run: |
+        pip install --upgrade pip
+        pip install pandas numpy json-logging
+        
+    - name: Calculate Portfolio Heat
+      run: |
+        python << 'EOF'
+        import json
+        import os
+        from datetime import datetime
+        import numpy as np
+        
+        print(f"[HEAT] Starting portfolio heat calculation at {datetime.utcnow()}")
+        
+        # Load existing data sources
+        market_data = {}
+        regime_data = {}
+        
+        # Try to load market data
+        try:
+            if os.path.exists('data/es_nq/latest_analysis.json'):
+                with open('data/es_nq/latest_analysis.json', 'r') as f:
+                    market_data = json.load(f)
+        except:
+            pass
+        
+        # Try to load regime data
+        try:
+            if os.path.exists('data/regime/current.json'):
+                with open('data/regime/current.json', 'r') as f:
+                    regime_data = json.load(f)
+        except:
+            pass
+        
+        # Calculate portfolio heat metrics
+        heat_score = 0.5  # Base heat level
+        max_position_size = 1.0  # Base position size
+        risk_multiplier = 1.0
+        
+        # Adjust based on market volatility
+        if market_data:
+            for symbol, data in market_data.items():
+                if 'volatility' in data:
+                    vol = data['volatility']
+                    if vol > 2.0:  # High volatility
+                        heat_score += 0.2
+                    elif vol > 1.5:
+                        heat_score += 0.1
+        
+        # Adjust based on regime
+        if regime_data:
+            regime = regime_data.get('regime', 'UNKNOWN')
+            if 'HIGH_VOLATILITY' in regime:
+                heat_score += 0.3
+                max_position_size *= 0.7  # Reduce position size
+            elif 'BEARISH' in regime:
+                heat_score += 0.2
+                max_position_size *= 0.8
+            elif 'BULLISH' in regime:
+                heat_score -= 0.1
+                max_position_size *= 1.1
+        
+        # Cap heat score
+        heat_score = max(0.0, min(1.0, heat_score))
+        max_position_size = max(0.1, min(2.0, max_position_size))
+        
+        # Determine risk level
+        if heat_score < 0.3:
+            risk_level = "LOW"
+            risk_color = "🟢"
+        elif heat_score < 0.6:
+            risk_level = "MEDIUM"
+            risk_color = "🟡"
+        elif heat_score < 0.8:
+            risk_level = "HIGH"
+            risk_color = "🟠"
+        else:
+            risk_level = "EXTREME"
+            risk_color = "🔴"
+        
+        # Calculate recommended actions
+        recommendations = []
+        if heat_score > 0.7:
+            recommendations.append("REDUCE_POSITIONS")
+            recommendations.append("INCREASE_STOPS")
+        elif heat_score > 0.5:
+            recommendations.append("MONITOR_CLOSELY")
+        else:
+            recommendations.append("NORMAL_OPERATIONS")
+        
+        # Portfolio heat data
+        heat_data = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'heat_score': float(heat_score),
+            'risk_level': risk_level,
+            'max_position_size': float(max_position_size),
+            'risk_multiplier': float(risk_multiplier),
+            'recommendations': recommendations,
+            'metrics': {
+                'market_volatility_impact': bool(market_data),
+                'regime_impact': bool(regime_data),
+                'current_regime': regime_data.get('regime', 'UNKNOWN') if regime_data else 'UNKNOWN'
+            },
+            'alerts': {
+                'high_heat': heat_score > 0.7,
+                'extreme_heat': heat_score > 0.8,
+                'regime_change': False  # Could be enhanced with historical data
+            }
+        }
+        
+        # Save heat data
+        os.makedirs('data/portfolio', exist_ok=True)
+        with open('data/portfolio/heat_management.json', 'w') as f:
+            json.dump(heat_data, f, indent=2)
+        
+        print(f"[HEAT] {risk_color} Portfolio Heat: {heat_score:.2f} ({risk_level})")
+        print(f"[HEAT] Max Position Size: {max_position_size:.2f}x")
+        print(f"[HEAT] Recommendations: {', '.join(recommendations)}")
+        
+        if heat_data['alerts']['high_heat']:
+            print("🚨 [ALERT] High portfolio heat detected!")
+        
+        EOF

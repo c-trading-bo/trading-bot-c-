@@ -3,17 +3,10 @@ name: Ultimate 24/7 ML/RL/Intelligence System
 
 on:
   schedule:
-    # Data Collection - Every 5 minutes during market hours
-    - cron: '*/5 13-20 * * 1-5'  # Every 5 min, market hours (9:30 AM - 4:00 PM ET)
-    - cron: '*/10 21-12 * * 1-5'  # Every 10 min, after hours
-    - cron: '*/15 * * * 0,6'  # Every 15 min, weekends
-    
-    # Model Training - Every 30 minutes
-    - cron: '*/30 * * * *'  # Train models every 30 minutes
-    
-    # Intelligence Updates - Every hour
-    - cron: '0 * * * *'  # Update intelligence hourly
-    
+    # OPTIMIZED FOR GITHUB TEAM - REDUCED FREQUENCY
+    - cron: '*/30 13-20 * * 1-5'   # Every 30 min market hours (16 runs)
+    - cron: '0 */8 * * *'          # Every 8 hours overnight (3 runs)
+    # Total: ~19 runs/day
   workflow_dispatch:
     inputs:
       mode:
@@ -50,9 +43,6 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
-        fetch-depth: 0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0  # Full history for analysis
     
     - name: Setup Python
@@ -619,11 +609,7 @@ jobs:
         git config --global user.email "ml-bot@github.com"
         git config --global user.name "ML Bot"
         git config --local user.email "ml-bot@github.com"
-        git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
         git config --local user.name "ML Learning Bot"
-        git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
         git add Intelligence/data/
         git diff --staged --quiet || git commit -m "📊 Ultimate data collection $(date -u +'%Y-%m-%d %H:%M:%S')"
         git push --force-with-lease || true
@@ -643,7 +629,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-      with:
         ref: main  # Get latest data
     
     - name: Setup Python
@@ -932,7 +917,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-      with:
         ref: main  # Get latest updates
     
     - name: Setup Python
