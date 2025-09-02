@@ -50,7 +50,7 @@ namespace BotCore
             // Configuration from appsettings.json or environment
             _manifestUrl = _config["ModelUpdater:ManifestUrl"] ??
                           Environment.GetEnvironmentVariable("MODEL_MANIFEST_URL") ??
-                          "https://d1234567890abcdef.cloudfront.net/models/current.json";
+                          "https://local.trading-bot.dev/models/current.json";  // Local endpoint only
 
             _hmacKey = _config["ModelUpdater:HmacKey"] ??
                       Environment.GetEnvironmentVariable("MANIFEST_HMAC_KEY") ??
