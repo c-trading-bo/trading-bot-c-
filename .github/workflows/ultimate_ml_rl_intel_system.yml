@@ -1,12 +1,14 @@
 # Ultimate 24/7 ML/RL/Intelligence System - Master Orchestrator
-name: Ultimate 24/7 ML/RL/Intelligence System
+name: Ultimate ML/RL/Intel System (Team Optimized)
 
 on:
   schedule:
-    # OPTIMIZED FOR GITHUB TEAM - REDUCED FREQUENCY
-    - cron: '*/30 13-20 * * 1-5'   # Every 30 min market hours (16 runs)
-    - cron: '0 */8 * * *'          # Every 8 hours overnight (3 runs)
-    # Total: ~19 runs/day
+    # HIGH FREQUENCY DURING MARKET
+    - cron: '*/10 9-10 * * 1-5'   # Every 10 min opening (6 runs)
+    - cron: '*/15 10-15 * * 1-5'  # Every 15 min midday (20 runs)
+    - cron: '*/10 15-16 * * 1-5'  # Every 10 min closing (6 runs)
+    - cron: '0 */2 * * *'          # Every 2 hours overnight (12 runs)
+    # Total: ~44 runs/day
   workflow_dispatch:
     inputs:
       mode:
