@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-09-02T14:53:26.743125",
+  "symbol": "ES=F",
+  "current_price": 4500.25,
+  "supply_zones": [
+    {
+      "price_level": 4520.0,
+      "zone_top": 4525.0,
+      "zone_bottom": 4515.0,
+      "strength": 75,
+      "timeframe": "1h",
+      "active": true
+    }
+  ],
+  "demand_zones": [
+    {
+      "price_level": 4480.0,
+      "zone_top": 4485.0,
+      "zone_bottom": 4475.0,
+      "strength": 80,
+      "timeframe": "1h",
+      "active": true
+    }
+  ]
+}
