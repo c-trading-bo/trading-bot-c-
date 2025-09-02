@@ -62,13 +62,13 @@ jobs:
         run: |
           pip install --upgrade pip
           # Core dependencies with retries
-          pip install --retry-delays 1,2,3 --timeout 60 torch numpy pandas scikit-learn
-          pip install --retry-delays 1,2,3 --timeout 60 onnx skl2onnx packaging pyarrow
+          pip install torch numpy pandas scikit-learn
+          pip install onnx skl2onnx packaging pyarrow
           # RL and ML dependencies with fallbacks
-          pip install --retry-delays 1,2,3 --timeout 60 stable-baselines3 || echo "stable-baselines3 failed, using fallback"
-          pip install --retry-delays 1,2,3 --timeout 60 gymnasium || pip install gym || echo "gym installation failed"
-          pip install --retry-delays 1,2,3 --timeout 60 tensorboard matplotlib seaborn || echo "visualization packages failed"
-          pip install --retry-delays 1,2,3 --timeout 60 optuna hyperopt joblib || echo "optimization packages failed"
+          pip install stable-baselines3 || echo "stable-baselines3 failed, using fallback"
+          pip install gymnasium || pip install gym || echo "gym installation failed"
+          pip install tensorboard matplotlib seaborn || echo "visualization packages failed"
+          pip install optuna hyperopt joblib || echo "optimization packages failed"
           
       - name: "🔍 Test Dependencies"  
         run: |
