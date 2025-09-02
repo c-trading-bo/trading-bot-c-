@@ -4,6 +4,10 @@ obj/
 **/*.suo
 .vscode/
 .env.local
+
+# SSL certificates (auto-generated)
+certs/
+
 # Ignore accidentally embedded repos
 trading-bot-c-/
 trading-bot-c--1/

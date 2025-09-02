@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Security.Cryptography.X509Certificates;
 
 namespace StandaloneDashboard
 {
@@ -11,17 +14,48 @@ namespace StandaloneDashboard
     {
         private static readonly ConcurrentQueue<string> _logEntries = new();
         private static readonly HttpClient _httpClient = new();
-        private static string _botApiUrl = "http://localhost:5000"; // Default bot URL
+        private static string _botApiUrl = "https://localhost:5000"; // Default bot HTTPS URL
 
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            
+            // Configure HTTPS with self-signed certificate for local development
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+            {
+                serverOptions.ListenLocalhost(5050, listenOptions =>
+                {
+                    listenOptions.UseHttps(httpsOptions =>
+                    {
+                        // Load the development certificate
+                        var certPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "certs", "localhost.crt");
+                        var keyPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "certs", "localhost.key");
+                        
+                        if (File.Exists(certPath) && File.Exists(keyPath))
+                        {
+                            httpsOptions.ServerCertificate = X509Certificate2.CreateFromPemFile(certPath, keyPath);
+                            AddLog("success", "🔒 SSL certificate loaded for HTTPS");
+                        }
+                        else
+                        {
+                            AddLog("warning", "⚠️ SSL certificate not found, using default development certificate");
+                            // Use default development certificate
+                        }
+                    });
+                });
+            });
+            
             var app = builder.Build();
             
-            // Load environment variables to get bot URL
+            // Load environment variables to get bot URL (prefer HTTPS)
             LoadDotEnv();
-            var botUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? Environment.GetEnvironmentVariable("BOT_API_URL") ?? "http://localhost:5000";
-            var firstUrl = botUrl.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "http://localhost:5000";
+            var botUrl = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? Environment.GetEnvironmentVariable("BOT_API_URL") ?? "https://localhost:5000";
+            var firstUrl = botUrl.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "https://localhost:5000";
+            // Ensure HTTPS for local dashboard
+            if (firstUrl.StartsWith("http://"))
+            {
+                firstUrl = firstUrl.Replace("http://", "https://");
+            }
             _botApiUrl = firstUrl;
             
             Console.WriteLine($"🔗 Connecting to bot at: {_botApiUrl}");
@@ -307,22 +341,27 @@ namespace StandaloneDashboard
                 }
             });
 
-            Console.WriteLine("🚀 Unified Cloud Dashboard Starting...");
-            Console.WriteLine($"📊 Dashboard: http://localhost:5050/dashboard");
-            Console.WriteLine($"💾 Health: http://localhost:5050/healthz");
-            Console.WriteLine($"🔄 Real-time: http://localhost:5050/stream/realtime");
+            Console.WriteLine("🚀 Local HTTPS Trading Dashboard Starting...");
+            Console.WriteLine($"📊 Dashboard: https://localhost:5050/dashboard");
+            Console.WriteLine($"💾 Health: https://localhost:5050/healthz");
+            Console.WriteLine($"🔄 Real-time: https://localhost:5050/stream/realtime");
             Console.WriteLine($"🔗 Bot API: {_botApiUrl}");
             Console.WriteLine("📡 Connecting to live trading bot for real data");
             Console.WriteLine("⚡ Features: Live Bot Control, Real Trading Data, Actual P&L, Health Monitoring");
             Console.WriteLine("🎯 Getting live data from your local bot (not demo data)");
+            Console.WriteLine("🔒 Secure HTTPS connection for all communications");
             Console.WriteLine("");
             Console.WriteLine("To start your bot:");
             Console.WriteLine("1. Open another terminal");
             Console.WriteLine("2. Run: cd src/OrchestratorAgent && dotnet run");
             Console.WriteLine("3. The dashboard will automatically connect to get live data");
+            Console.WriteLine("4. Accept the self-signed certificate in your browser");
             Console.WriteLine("");
 
-            app.Run("http://localhost:5050");
+            // Note: This was previously http://localhost:5050, now https://localhost:5050
+            // The certificate will be self-signed for local development
+
+            app.Run("https://localhost:5050");
         }
 
         private static void LoadDotEnv()
