@@ -36,7 +36,7 @@ namespace BotCore.Config
                 Description = "Asian Session - NQ more active",
                 IsActive = true
             },
-            
+
             ["EuropeanPreOpen"] = new TradingSession
             {
                 Start = new TimeSpan(0, 0, 0),   // 12:00 AM CT (1AM ET)
@@ -56,7 +56,7 @@ namespace BotCore.Config
                 Description = "European Pre-Open positioning",
                 IsActive = true
             },
-            
+
             ["EuropeanOpen"] = new TradingSession
             {
                 Start = new TimeSpan(2, 0, 0),   // 2:00 AM CT (3AM ET, 8AM London)
@@ -76,7 +76,7 @@ namespace BotCore.Config
                 Description = "European Open - Increased volatility",
                 IsActive = true
             },
-            
+
             ["LondonMorning"] = new TradingSession
             {
                 Start = new TimeSpan(5, 0, 0),   // 5:00 AM CT
@@ -96,7 +96,7 @@ namespace BotCore.Config
                 Description = "London Morning - Good liquidity",
                 IsActive = true
             },
-            
+
             // ============================================
             // US PRE-MARKET (CRITICAL SETUP PERIOD)
             // ============================================
@@ -119,7 +119,7 @@ namespace BotCore.Config
                 Description = "Pre-Market - Position for open",
                 IsActive = true
             },
-            
+
             // ============================================
             // OPENING DRIVE (HIGHEST OPPORTUNITY)
             // ============================================
@@ -142,7 +142,7 @@ namespace BotCore.Config
                 Description = "CRITICAL: Opening Drive Window",
                 IsActive = true
             },
-            
+
             // ============================================
             // MORNING TREND (BEST TRENDING PERIOD)
             // ============================================
@@ -165,7 +165,7 @@ namespace BotCore.Config
                 Description = "Morning Trend - Best trends",
                 IsActive = true
             },
-            
+
             // ============================================
             // LUNCH CHOP (REDUCE ACTIVITY)
             // ============================================
@@ -188,7 +188,7 @@ namespace BotCore.Config
                 Description = "Lunch - Low volume chop",
                 IsActive = true
             },
-            
+
             // ============================================
             // AFTERNOON TREND (ADR EXHAUSTION TIME)
             // ============================================
@@ -211,7 +211,7 @@ namespace BotCore.Config
                 Description = "Afternoon - ADR exhaustion setups",
                 IsActive = true
             },
-            
+
             // ============================================
             // CLOSING HOUR (HIGH VOLATILITY)
             // ============================================
@@ -234,7 +234,7 @@ namespace BotCore.Config
                 Description = "Power Hour - Increased volatility",
                 IsActive = true
             },
-            
+
             ["MarketClose"] = new TradingSession
             {
                 Start = new TimeSpan(15, 0, 0),  // 3:00 PM CT
@@ -254,7 +254,7 @@ namespace BotCore.Config
                 Description = "Close - Position squaring",
                 IsActive = true
             },
-            
+
             // ============================================
             // AFTER HOURS (REDUCED BUT ACTIVE)
             // ============================================
@@ -278,7 +278,7 @@ namespace BotCore.Config
                 IsActive = true
             }
         };
-        
+
         /// <summary>
         /// Get the currently active trading session based on Central Time
         /// </summary>
@@ -290,7 +290,7 @@ namespace BotCore.Config
             {
                 var session = kvp.Value;
                 if (!session.IsActive) continue;
-                
+
                 // Handle sessions that cross midnight
                 if (session.Start > session.End)
                 {
@@ -303,10 +303,10 @@ namespace BotCore.Config
                         return session;
                 }
             }
-            
+
             return null; // Market closed
         }
-        
+
         /// <summary>
         /// Get the current session by name
         /// </summary>
@@ -314,7 +314,7 @@ namespace BotCore.Config
         {
             return Sessions.TryGetValue(sessionName, out var session) ? session : null;
         }
-        
+
         /// <summary>
         /// Check if an instrument should be trading in the current session
         /// </summary>
@@ -323,7 +323,7 @@ namespace BotCore.Config
             var session = GetCurrentSession(currentTime);
             return session?.Instruments.Contains(instrument) == true;
         }
-        
+
         /// <summary>
         /// Get strategies for an instrument in the current session
         /// </summary>
@@ -332,10 +332,10 @@ namespace BotCore.Config
             var session = GetCurrentSession(currentTime);
             if (session?.Strategies.TryGetValue(instrument, out var strategies) == true)
                 return strategies;
-            
+
             return Array.Empty<string>();
         }
-        
+
         /// <summary>
         /// Get position size multiplier for an instrument in current session
         /// </summary>
@@ -344,11 +344,11 @@ namespace BotCore.Config
             var session = GetCurrentSession(currentTime);
             if (session?.PositionSizeMultiplier.TryGetValue(instrument, out var multiplier) == true)
                 return multiplier;
-            
+
             return 1.0; // Default multiplier
         }
     }
-    
+
     /// <summary>
     /// Represents a trading session with instrument-specific configuration
     /// </summary>

@@ -19,7 +19,7 @@ namespace BotCore.Services
         public double Divergence { get; set; }
         public DateTime LastUpdate { get; set; }
     }
-    
+
     public class SignalFilter
     {
         public bool Allow { get; set; } = true;
@@ -27,7 +27,7 @@ namespace BotCore.Services
         public double PositionSizeMultiplier { get; set; } = 1.0;
         public string Reason { get; set; } = "";
     }
-    
+
     public class SignalResult
     {
         public string Action { get; set; } = "NEUTRAL";
@@ -45,29 +45,29 @@ namespace BotCore.Services
     {
         private readonly IMarketDataService _marketData;
         private readonly ILogger<ES_NQ_CorrelationManager> _logger;
-        
+
         // Dynamic correlation windows
         private readonly int[] _correlationWindows = { 5, 20, 60, 252 }; // minutes
         private Dictionary<string, CorrelationData> _correlationMatrix = new();
-        
+
         public ES_NQ_CorrelationManager(IMarketDataService marketData, ILogger<ES_NQ_CorrelationManager> logger)
         {
             _marketData = marketData ?? throw new ArgumentNullException(nameof(marketData));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-        
+
         public async Task<SignalFilter> GetCorrelationFilterAsync(string instrument, SignalResult signal)
         {
             try
             {
                 var correlation = await CalculateES_NQ_CorrelationAsync();
                 var filter = new SignalFilter { Allow = true };
-                
+
                 // CRITICAL: ES/NQ divergence detection
                 if (correlation.Divergence > 2.0) // Significant divergence
                 {
                     _logger.LogWarning("ES/NQ divergence detected: {Divergence:F2}σ", correlation.Divergence);
-                    
+
                     // Trade the laggard
                     if (instrument == correlation.Leader)
                     {
@@ -80,7 +80,7 @@ namespace BotCore.Services
                         filter.Reason = $"{instrument} lagging, catch-up trade";
                     }
                 }
-                
+
                 // Correlation regime filtering
                 if (correlation.Correlation5Min < 0.3) // Decorrelated
                 {
@@ -97,7 +97,7 @@ namespace BotCore.Services
                         filter.Reason = "Would create opposing ES/NQ positions";
                     }
                 }
-                
+
                 return filter;
             }
             catch (Exception ex)
@@ -106,40 +106,40 @@ namespace BotCore.Services
                 return new SignalFilter { Allow = true };
             }
         }
-        
+
         public async Task<CorrelationData> GetCorrelationDataAsync()
         {
             return await CalculateES_NQ_CorrelationAsync();
         }
-        
+
         private async Task<CorrelationData> CalculateES_NQ_CorrelationAsync()
         {
             try
             {
                 var esData = await GetRecentBarsAsync("ES", 252);
                 var nqData = await GetRecentBarsAsync("NQ", 252);
-                
+
                 var correlation = new CorrelationData
                 {
                     LastUpdate = DateTime.UtcNow
                 };
-                
+
                 // Calculate correlations at different timeframes
                 correlation.Correlation5Min = CalculateCorrelation(esData.Take(5).ToList(), nqData.Take(5).ToList());
                 correlation.Correlation20Min = CalculateCorrelation(esData.Take(20).ToList(), nqData.Take(20).ToList());
                 correlation.Correlation60Min = CalculateCorrelation(esData.Take(60).ToList(), nqData.Take(60).ToList());
                 correlation.CorrelationDaily = CalculateCorrelation(esData, nqData);
-                
+
                 // Detect lead/lag
                 var leadLag = DetectLeadLag(esData, nqData);
                 correlation.Leader = leadLag.Leader;
                 correlation.LeadLagRatio = leadLag.Ratio;
-                
+
                 // Calculate divergence
                 correlation.Divergence = CalculateDivergence(esData, nqData);
-                
+
                 _correlationMatrix["ES_NQ"] = correlation;
-                
+
                 return correlation;
             }
             catch (Exception ex)
@@ -158,7 +158,7 @@ namespace BotCore.Services
                 };
             }
         }
-        
+
         private async Task<List<decimal>> GetRecentBarsAsync(string symbol, int count)
         {
             try
@@ -168,14 +168,14 @@ namespace BotCore.Services
                 var random = new Random();
                 var bars = new List<decimal>();
                 var basePrice = symbol == "ES" ? 4500m : 15000m;
-                
+
                 for (int i = 0; i < count; i++)
                 {
                     var change = (decimal)(random.NextDouble() - 0.5) * 0.02m; // ±1% change
                     basePrice = basePrice * (1 + change);
                     bars.Add(basePrice);
                 }
-                
+
                 return bars;
             }
             catch (Exception ex)
@@ -184,18 +184,18 @@ namespace BotCore.Services
                 return new List<decimal>();
             }
         }
-        
+
         private double CalculateCorrelation(List<decimal> series1, List<decimal> series2)
         {
             try
             {
                 if (series1.Count != series2.Count || series1.Count < 2)
                     return 0.0;
-                
+
                 // Calculate returns
                 var returns1 = new List<double>();
                 var returns2 = new List<double>();
-                
+
                 for (int i = 1; i < series1.Count; i++)
                 {
                     if (series1[i - 1] != 0 && series2[i - 1] != 0)
@@ -204,21 +204,21 @@ namespace BotCore.Services
                         returns2.Add((double)((series2[i] - series2[i - 1]) / series2[i - 1]));
                     }
                 }
-                
+
                 if (returns1.Count < 2)
                     return 0.0;
-                
+
                 // Calculate correlation coefficient
                 var mean1 = returns1.Average();
                 var mean2 = returns2.Average();
-                
+
                 var numerator = returns1.Zip(returns2, (x, y) => (x - mean1) * (y - mean2)).Sum();
                 var denominator1 = Math.Sqrt(returns1.Sum(x => Math.Pow(x - mean1, 2)));
                 var denominator2 = Math.Sqrt(returns2.Sum(y => Math.Pow(y - mean2, 2)));
-                
+
                 if (denominator1 == 0 || denominator2 == 0)
                     return 0.0;
-                
+
                 return numerator / (denominator1 * denominator2);
             }
             catch (Exception ex)
@@ -227,7 +227,7 @@ namespace BotCore.Services
                 return 0.0;
             }
         }
-        
+
         private (string Leader, double Ratio) DetectLeadLag(List<decimal> esData, List<decimal> nqData)
         {
             try
@@ -235,15 +235,15 @@ namespace BotCore.Services
                 // Simplified lead/lag detection using price momentum
                 if (esData.Count < 5 || nqData.Count < 5)
                     return ("NEUTRAL", 0.0);
-                
+
                 var esReturn = (double)((esData[0] - esData[4]) / esData[4]);
                 var nqReturn = (double)((nqData[0] - nqData[4]) / nqData[4]);
-                
+
                 var ratio = Math.Abs(esReturn) - Math.Abs(nqReturn);
-                
+
                 if (Math.Abs(ratio) < 0.001) // Too close to call
                     return ("NEUTRAL", 0.0);
-                
+
                 return ratio > 0 ? ("ES", ratio) : ("NQ", Math.Abs(ratio));
             }
             catch (Exception ex)
@@ -252,18 +252,18 @@ namespace BotCore.Services
                 return ("NEUTRAL", 0.0);
             }
         }
-        
+
         private double CalculateDivergence(List<decimal> esData, List<decimal> nqData)
         {
             try
             {
                 if (esData.Count < 20 || nqData.Count < 20)
                     return 0.0;
-                
+
                 // Calculate z-score of the spread between normalized returns
                 var esReturns = new List<double>();
                 var nqReturns = new List<double>();
-                
+
                 for (int i = 1; i < Math.Min(esData.Count, 20); i++)
                 {
                     if (esData[i - 1] != 0 && nqData[i - 1] != 0)
@@ -272,17 +272,17 @@ namespace BotCore.Services
                         nqReturns.Add((double)((nqData[i] - nqData[i - 1]) / nqData[i - 1]));
                     }
                 }
-                
+
                 if (esReturns.Count < 10)
                     return 0.0;
-                
+
                 var spreads = esReturns.Zip(nqReturns, (es, nq) => es - nq).ToList();
                 var mean = spreads.Average();
                 var stdDev = Math.Sqrt(spreads.Sum(x => Math.Pow(x - mean, 2)) / spreads.Count);
-                
+
                 if (stdDev == 0)
                     return 0.0;
-                
+
                 return Math.Abs(spreads.Last() - mean) / stdDev;
             }
             catch (Exception ex)
@@ -291,12 +291,12 @@ namespace BotCore.Services
                 return 0.0;
             }
         }
-        
+
         private string GetOther(string instrument)
         {
             return instrument == "ES" ? "NQ" : "ES";
         }
-        
+
         private async Task<Position?> GetCurrentPositionAsync(string symbol)
         {
             // This would interface with your position service
@@ -304,7 +304,7 @@ namespace BotCore.Services
             await Task.Delay(1);
             return null;
         }
-        
+
         private bool OppositeDirection(SignalResult signal, Position position)
         {
             // Check if signal direction is opposite to current position
@@ -312,7 +312,7 @@ namespace BotCore.Services
                    (signal.Action == "SELL" && position.Size > 0);
         }
     }
-    
+
     // Supporting classes
     public class Position
     {
@@ -320,7 +320,7 @@ namespace BotCore.Services
         public decimal Size { get; set; }
         public decimal CurrentPrice { get; set; }
     }
-    
+
     public interface IMarketDataService
     {
         // Interface definition for market data service

@@ -29,7 +29,7 @@ namespace BotCore.Strategy
         {
             return generate_candidates_with_time_filter(symbol, env, levels, bars, risk, DateTime.UtcNow);
         }
-        
+
         public static List<Candidate> generate_candidates_with_time_filter(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk, DateTime currentTime)
         {
             var cands = new List<Candidate>();
@@ -37,33 +37,33 @@ namespace BotCore.Strategy
             try { env.volz = VolZ(bars); } catch { env.volz ??= 0m; }
             var attemptCaps = HighWinRateProfile.AttemptCaps;
             bool noAttemptCaps = (Environment.GetEnvironmentVariable("NO_ATTEMPT_CAPS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
-            
+
             // Get current session and allowed strategies
             var currentTimeSpan = currentTime.TimeOfDay;
             var currentSession = BotCore.Config.ES_NQ_TradingSchedule.GetCurrentSession(currentTimeSpan);
-            var allowedStrategies = currentSession != null && currentSession.Strategies.ContainsKey(symbol) 
-                ? currentSession.Strategies[symbol] 
+            var allowedStrategies = currentSession != null && currentSession.Strategies.ContainsKey(symbol)
+                ? currentSession.Strategies[symbol]
                 : new[] { "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14" };
-            
+
             var strategyMethods = new List<(string, Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>>)> {
                 ("S1", S1), ("S2", S2), ("S3", S3), ("S4", S4), ("S5", S5), ("S6", S6), ("S7", S7), ("S8", S8), ("S9", S9), ("S10", S10), ("S11", S11), ("S12", S12), ("S13", S13), ("S14", S14)
             };
-            
+
             foreach (var (id, method) in strategyMethods)
             {
                 // Skip strategies not allowed in current session
                 if (!allowedStrategies.Contains(id))
                     continue;
-                    
+
                 bool hasCap = attemptCaps.TryGetValue(id, out int cap);
                 if (!noAttemptCaps && hasCap && cap == 0) continue;
-                
+
                 // Apply time-based performance filtering
                 if (!ShouldRunStrategyAtTime(id, currentTime.Hour))
                     continue;
-                
+
                 var candidates = method(symbol, env, levels, bars, risk);
-                
+
                 // Apply session-specific position sizing to candidates
                 if (currentSession != null && currentSession.PositionSizeMultiplier.ContainsKey(symbol))
                 {
@@ -73,13 +73,13 @@ namespace BotCore.Strategy
                         candidate.qty = candidate.qty * (decimal)multiplier;
                     }
                 }
-                
+
                 if (!noAttemptCaps && hasCap && cap > 0 && candidates.Count > cap) candidates = [.. candidates.Take(cap)];
                 cands.AddRange(candidates);
             }
             return cands;
         }
-        
+
         private static bool ShouldRunStrategyAtTime(string strategyId, int hour)
         {
             // Time-based strategy performance thresholds
@@ -90,16 +90,16 @@ namespace BotCore.Strategy
                 ["S6"] = new() { [9] = 0.95 }, // Only during opening
                 ["S11"] = new() { [13] = 0.91, [14] = 0.88, [15] = 0.85, [16] = 0.82 }
             };
-            
+
             if (!performanceThresholds.ContainsKey(strategyId))
                 return true; // Allow strategies without specific time restrictions
-            
+
             var hourPerformance = performanceThresholds[strategyId];
-            
+
             // Find closest hour performance
             var closestHour = hourPerformance.Keys.OrderBy(h => Math.Abs(h - hour)).FirstOrDefault();
             var performance = hourPerformance.ContainsKey(closestHour) ? hourPerformance[closestHour] : 0.5;
-            
+
             // Only run strategy if performance is above threshold
             return performance > 0.70;
         }
