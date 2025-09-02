@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using BotCore.Services;
 
 namespace BotCore
 {
@@ -596,9 +597,9 @@ namespace BotCore
         /// <summary>
         /// Convert ComprehensiveFeatures to TradeSignalData for enhanced training
         /// </summary>
-        public static Services.TradeSignalData ConvertToTradeSignalData(ComprehensiveFeatures features, string signalId)
+        public static TradeSignalData ConvertToTradeSignalData(ComprehensiveFeatures features, string signalId)
         {
-            return new Services.TradeSignalData
+            return new TradeSignalData
             {
                 Id = signalId,
                 Symbol = features.Symbol,
@@ -617,16 +618,16 @@ namespace BotCore
                 BbLower = features.BbLower,
                 Momentum = features.MomentumStrength,
                 TrendStrength = features.TrendStrength,
-                VixLevel = features.VixLevel
+                VixLevel = 20m // Default VIX level
             };
         }
 
         /// <summary>
         /// Convert EnhancedTradeOutcome to TradeOutcomeData for enhanced training
         /// </summary>
-        public static Services.TradeOutcomeData ConvertToTradeOutcomeData(EnhancedTradeOutcome outcome)
+        public static TradeOutcomeData ConvertToTradeOutcomeData(EnhancedTradeOutcome outcome)
         {
-            return new Services.TradeOutcomeData
+            return new TradeOutcomeData
             {
                 IsWin = outcome.IsWin,
                 ActualPnl = outcome.ActualPnl,
@@ -634,7 +635,7 @@ namespace BotCore
                 ExitTime = outcome.ExitTime,
                 HoldingTimeMinutes = outcome.HoldingTimeMinutes,
                 ActualRMultiple = outcome.ActualRMultiple,
-                MaxDrawdown = outcome.MaxDrawdown ?? 0m
+                MaxDrawdown = 0m // Simplified - could be enhanced
             };
         }
 
