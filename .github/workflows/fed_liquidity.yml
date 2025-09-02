@@ -26,13 +26,13 @@ jobs:
       - run: python Intelligence/scripts/fed_liquidity.py
       - run: |
           git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git config user.name "GitHub Actions"
+          git config --global user.name "ML Bot"
+          git config user.name "GitHub Actions"
           git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git config user.email "actions@github.com"
+          git config --global user.name "ML Bot"
+          git config user.email "actions@github.com"
           git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git add Intelligence/data/
+          git config --global user.name "ML Bot"
+          git add Intelligence/data/
           git diff --quiet || git commit -m "Update Fed liquidity analysis"
           git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
