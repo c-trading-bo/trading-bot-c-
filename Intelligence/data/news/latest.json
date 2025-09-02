@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-09-02T03:51:00.566682",
+  "article_count": 0,
+  "avg_sentiment": 0,
+  "news_intensity": 0,
+  "volatility_score": 0,
+  "regime_hint": "Ranging",
+  "events": {
+    "fomc": false,
+    "cpi": false,
+    "nfp": false,
+    "earnings": false,
+    "panic": false,
+    "euphoria": false
+  },
+  "top_headlines": []
+}

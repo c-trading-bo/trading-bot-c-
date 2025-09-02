@@ -2533,7 +2533,10 @@ namespace OrchestratorAgent
                     BotCore.Models.MarketContext? intelligence = null;
                     try
                     {
-                        intelligence = await intelligenceService?.GetLatestIntelligenceAsync();
+                        if (intelligenceService != null)
+                        {
+                            intelligence = await intelligenceService.GetLatestIntelligenceAsync();
+                        }
                         if (intelligence != null)
                         {
                             log.LogInformation("[INTEL] Loaded intelligence: Regime={Regime}, Confidence={Confidence:P0}, Bias={Bias}, FOMC={FOMC}, CPI={CPI}",
@@ -2554,7 +2557,10 @@ namespace OrchestratorAgent
                     BotCore.Services.ZoneData? zones = null;
                     try
                     {
-                        zones = await zoneService?.GetLatestZonesAsync(symbol);
+                        if (zoneService != null)
+                        {
+                            zones = await zoneService.GetLatestZonesAsync(symbol);
+                        }
                         if (zones != null)
                         {
                             log.LogInformation("[ZONES] Loaded zones for {Symbol}: {Supply} supply, {Demand} demand, POC={POC}, Current={Current}",
