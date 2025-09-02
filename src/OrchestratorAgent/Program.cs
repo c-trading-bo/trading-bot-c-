@@ -728,6 +728,7 @@ namespace OrchestratorAgent
                     OrchestratorAgent.ML.RlSizer? rlSizer = null;
                     OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
                     BotCore.Services.IIntelligenceService? intelligenceService = null;
+                    BotCore.Services.IZoneService? zoneService = null;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
@@ -754,6 +755,14 @@ namespace OrchestratorAgent
                             var logger = sp.GetRequiredService<ILogger<BotCore.Services.IntelligenceService>>();
                             var signalsPath = Environment.GetEnvironmentVariable("INTELLIGENCE_SIGNALS_PATH") ?? "Intelligence/data/signals/latest.json";
                             return new BotCore.Services.IntelligenceService(logger, signalsPath);
+                        });
+                        
+                        // Register ZoneService for supply/demand zone awareness
+                        webBuilder.Services.AddSingleton<BotCore.Services.IZoneService>(sp =>
+                        {
+                            var logger = sp.GetRequiredService<ILogger<BotCore.Services.ZoneService>>();
+                            var zonesPath = Environment.GetEnvironmentVariable("ZONES_DATA_PATH") ?? "Intelligence/data/zones/latest_zones.json";
+                            return new BotCore.Services.ZoneService(logger, zonesPath);
                         });
                         
                         // Register RealtimeHub with metrics provider capturing current pos/status
@@ -809,6 +818,9 @@ namespace OrchestratorAgent
                         
                         // Get intelligence service from DI container
                         intelligenceService = web.Services.GetRequiredService<BotCore.Services.IIntelligenceService>();
+                        
+                        // Get zone service from DI container
+                        zoneService = web.Services.GetRequiredService<BotCore.Services.IZoneService>();
                         web.MapDashboard(dashboardHub);
 
                         // Map health endpoints on same Kestrel host
@@ -2304,7 +2316,7 @@ namespace OrchestratorAgent
                         if (paperBroker != null) { try { paperBroker.OnBar(root, bar); } catch { } }
                         // Handoff to strategy engine (bus-equivalent)
                         log.LogDebug("[Bus] -> 1m {Sym} O={0} H={1} L={2} C={3}", root, b.Open, b.High, b.Low, b.Close);
-                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, intelligenceService, cts.Token);
+                        await RunStrategiesFor(root, bar, barsHist[root], accountId, cid, risk, levels, router, paperBroker, simulateMode, log, appState, liveLease, status, rlSizer, sizerCanary, intelligenceService, zoneService, cts.Token);
                         dataLog.LogDebug("[Bars] 1m close {Sym} {End:o} O={O} H={H} L={L} C={C} V={V}", root, b.End.ToUniversalTime(), b.Open, b.High, b.Low, b.Close, b.Volume);
                     };
                     barPyramid.M5.OnBarClosed += (cid, b) => { dataLog.LogDebug("[Bars] 5m close {Cid} {End:o}", cid, b.End.ToUniversalTime()); };
@@ -2509,6 +2521,7 @@ namespace OrchestratorAgent
                 OrchestratorAgent.ML.RlSizer? rlSizer,
                 OrchestratorAgent.ML.SizerCanary? sizerCanary,
                 BotCore.Services.IIntelligenceService? intelligenceService,
+                BotCore.Services.IZoneService? zoneService,
                 CancellationToken ct)
             {
                 try
@@ -2535,6 +2548,26 @@ namespace OrchestratorAgent
                     catch (Exception ex)
                     {
                         log.LogWarning("[INTEL] Failed to load intelligence: {Error}", ex.Message);
+                    }
+
+                    // Load latest zone data for optimal stop/target placement
+                    BotCore.Services.ZoneData? zones = null;
+                    try
+                    {
+                        zones = await zoneService?.GetLatestZonesAsync(symbol);
+                        if (zones != null)
+                        {
+                            log.LogInformation("[ZONES] Loaded zones for {Symbol}: {Supply} supply, {Demand} demand, POC={POC}, Current={Current}",
+                                symbol, zones.SupplyZones.Count, zones.DemandZones.Count, zones.POC, zones.CurrentPrice);
+                        }
+                        else
+                        {
+                            log.LogDebug("[ZONES] No zone data available for {Symbol}, using default levels", symbol);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogWarning("[ZONES] Failed to load zones for {Symbol}: {Error}", symbol, ex.Message);
                     }
 
                     // Local helpers: veto counters and simple RS momentum
@@ -3154,6 +3187,54 @@ namespace OrchestratorAgent
                             }
                         }
                         catch { }
+
+                        // Zone-based stop/target placement and position sizing
+                        try
+                        {
+                            if (zoneService != null)
+                            {
+                                bool isLong = string.Equals(sig.Side, "BUY", StringComparison.OrdinalIgnoreCase);
+                                
+                                // Adjust stop to be BEYOND zones (avoid stop hunting)
+                                var optimalStop = zoneService.GetOptimalStopLevel(symbol, sig.Entry, isLong);
+                                if (Math.Abs(optimalStop - sig.Stop) > 0.01m) // Only adjust if different
+                                {
+                                    toRoute = toRoute with { Stop = optimalStop };
+                                    log.LogInformation("[ZONES] Adjusted stop for {Symbol}: {OldStop} -> {NewStop} (beyond zone)",
+                                        symbol, sig.Stop, optimalStop);
+                                }
+                                
+                                // Adjust target to nearest significant zone
+                                var optimalTarget = zoneService.GetOptimalTargetLevel(symbol, sig.Entry, isLong);
+                                if (Math.Abs(optimalTarget - sig.Target) > 0.01m) // Only adjust if different
+                                {
+                                    toRoute = toRoute with { Target = optimalTarget };
+                                    log.LogInformation("[ZONES] Adjusted target for {Symbol}: {OldTarget} -> {NewTarget} (at zone)",
+                                        symbol, sig.Target, optimalTarget);
+                                }
+                                
+                                // Apply zone-based position sizing
+                                var zoneAdjustedSize = zoneService.GetZoneBasedPositionSize(symbol, sig.Size, sig.Entry, isLong);
+                                if (Math.Abs(zoneAdjustedSize - sig.Size) > 0.1m) // Only adjust if significantly different
+                                {
+                                    toRoute = toRoute with { Size = (int)Math.Max(1, Math.Floor(zoneAdjustedSize)) };
+                                    log.LogInformation("[ZONES] Zone-adjusted size for {Symbol}: {OldSize} -> {NewSize} (zone proximity)",
+                                        symbol, sig.Size, toRoute.Size);
+                                }
+                                
+                                // Log zone analysis for this trade
+                                var nearestSupport = zoneService.GetNearestSupport(symbol, sig.Entry);
+                                var nearestResistance = zoneService.GetNearestResistance(symbol, sig.Entry);
+                                var isNearZone = zoneService.IsNearZone(symbol, sig.Entry, 0.005m);
+                                
+                                log.LogInformation("[ZONES] Trade context for {Symbol}: Entry={Entry}, Support={Support}, Resistance={Resistance}, NearZone={NearZone}",
+                                    symbol, sig.Entry, nearestSupport, nearestResistance, isNearZone);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogWarning("[ZONES] Failed to apply zone adjustments for {Symbol}: {Error}", symbol, ex.Message);
+                        }
 
                         // Day PnL kill (in R units) as no-new gate for S2
                         try

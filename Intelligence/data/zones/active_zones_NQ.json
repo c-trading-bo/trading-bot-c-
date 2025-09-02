@@ -1,0 +1,19 @@
+{
+  "symbol": "NQ",
+  "current_price": 16104.78,
+  "supply_zones": [],
+  "demand_zones": [],
+  "poc": 16193.86,
+  "value_area": {
+    "high": 16241.86,
+    "low": 16161.86
+  },
+  "key_levels": {
+    "nearest_support": 16084.78026123034,
+    "nearest_resistance": 16124.78026123034,
+    "strongest_support": 16074.78026123034,
+    "strongest_resistance": 16134.78026123034
+  },
+  "generated_at": "2025-09-02T03:24:14.589858",
+  "next_update": "2025-09-02T07:24:14.590140"
+}

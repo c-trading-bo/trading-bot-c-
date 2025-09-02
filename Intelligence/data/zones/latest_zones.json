@@ -1,0 +1,121 @@
+{
+  "symbol": "ES",
+  "current_price": 4490.35,
+  "supply_zones": [
+    {
+      "price": 4505.25,
+      "range": [
+        4500.74,
+        4509.76
+      ],
+      "strength": 90,
+      "last_test": "2025-08-29T03:28:57.113289",
+      "touch_count": 1
+    },
+    {
+      "price": 4497.75,
+      "range": [
+        4495.5,
+        4500.0
+      ],
+      "strength": 79,
+      "last_test": "2025-09-02T03:28:57.113626",
+      "touch_count": 1
+    },
+    {
+      "price": 4520.25,
+      "range": [
+        4513.47,
+        4527.03
+      ],
+      "strength": 78,
+      "last_test": "2025-08-31T03:28:57.113342",
+      "touch_count": 1
+    },
+    {
+      "price": 4535.25,
+      "range": [
+        4526.18,
+        4544.32
+      ],
+      "strength": 49,
+      "last_test": "2025-08-27T03:28:57.113375",
+      "touch_count": 3
+    },
+    {
+      "price": 4550.25,
+      "range": [
+        4538.87,
+        4561.63
+      ],
+      "strength": 40,
+      "last_test": "2025-09-02T03:28:57.113405",
+      "touch_count": 4
+    }
+  ],
+  "demand_zones": [
+    {
+      "price": 4475.25,
+      "range": [
+        4470.77,
+        4479.73
+      ],
+      "strength": 88,
+      "last_test": "2025-09-01T03:28:57.113441",
+      "touch_count": 2
+    },
+    {
+      "price": 4460.25,
+      "range": [
+        4453.56,
+        4466.94
+      ],
+      "strength": 84,
+      "last_test": "2025-08-30T03:28:57.113479",
+      "touch_count": 4
+    },
+    {
+      "price": 4482.75,
+      "range": [
+        4480.51,
+        4484.99
+      ],
+      "strength": 76,
+      "last_test": "2025-09-02T03:28:57.113649",
+      "touch_count": 1
+    },
+    {
+      "price": 4445.25,
+      "range": [
+        4436.36,
+        4454.14
+      ],
+      "strength": 65,
+      "last_test": "2025-09-02T03:28:57.113516",
+      "touch_count": 2
+    },
+    {
+      "price": 4430.25,
+      "range": [
+        4419.17,
+        4441.33
+      ],
+      "strength": 47,
+      "last_test": "2025-08-30T03:28:57.113595",
+      "touch_count": 3
+    }
+  ],
+  "poc": 4495.71,
+  "value_area": {
+    "high": 4507.71,
+    "low": 4487.71
+  },
+  "key_levels": {
+    "nearest_support": 4430.25,
+    "nearest_resistance": 4497.75,
+    "strongest_support": 4475.25,
+    "strongest_resistance": 4505.25
+  },
+  "generated_at": "2025-09-02T03:28:57.113779",
+  "next_update": "2025-09-02T07:28:57.114845"
+}
