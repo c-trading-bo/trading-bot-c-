@@ -48,13 +48,49 @@ jobs:
         with:
           python-version: '3.9'
           
-      - name: "📦 Install Dependencies"
+      - name: "💾 Cache TA-Lib Dependencies"
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            /usr/lib/libta_lib*
+            /usr/include/ta-lib/
+          key: ${{ runner.os }}-talib-deps-${{ hashFiles('**/requirements*.txt') }}
+          
+      - name: "🔧 Install System Dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget tar build-essential
+          
+      - name: "📊 Install TA-Lib C Library"
+        run: |
+          if [ ! -f /usr/lib/libta_lib.so ]; then
+            echo "Installing TA-Lib C library from source..."
+            wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
+            tar -xzf ta-lib-0.4.0-src.tar.gz
+            cd ta-lib/
+            ./configure --prefix=/usr
+            make
+            sudo make install
+            cd ..
+            sudo ldconfig
+            echo "✅ TA-Lib C library installed successfully"
+          else
+            echo "✅ TA-Lib C library already cached"
+          fi
+          
+      - name: "📦 Install Python Dependencies"
         run: |
           pip install --upgrade pip
+          # Core ML dependencies
           pip install torch numpy pandas scikit-learn onnx skl2onnx packaging pyarrow
           pip install gym stable-baselines3 tensorboard matplotlib seaborn
-          pip install ta-lib talib-binary  # Technical analysis features
-          pip install optuna hyperopt  # Hyperparameter optimization
+          # TA-Lib (Python wrapper after C library)
+          pip install TA-Lib
+          # Backup technical analysis libraries
+          pip install ta pandas-ta
+          # Hyperparameter optimization
+          pip install optuna hyperopt
           
       - name: "🔍 Test Dependencies"  
         run: |
