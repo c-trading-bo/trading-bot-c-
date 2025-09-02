@@ -972,17 +972,16 @@
 
         <div class="card">
           <div class="card-header">
-            <div class="card-title">🔗 Cloud Monitoring Links</div>
+            <div class="card-title">🔒 Local HTTPS Dashboard</div>
           </div>
           <div class="card-body">
             <div class="action-buttons">
-              <a href="https://kevinsuero072897-collab.github.io/trading-bot-c-/monitoring.html" target="_blank" class="action-btn primary">
-                🎮 Enhanced Dashboard
-              </a>
-              <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="action-btn">
-                📋 GitHub Actions
-              </a>
-              <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/releases" target="_blank" class="action-btn">
+              <div class="action-btn primary" style="text-align: center;">
+                🔒 Secure Local Dashboard
+              </div>
+              <div style="font-size: 12px; color: #8b949e; text-align: center; margin-top: 8px;">
+                https://localhost:5050/dashboard
+              </div>
                 📦 Model Releases
               </a>
               <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/issues" target="_blank" class="action-btn">
@@ -2753,17 +2752,21 @@ End of Log
       }
     }
     
-    // Check GitHub Actions dashboard connectivity
-    async function checkGitHubDashboardConnection() {
+    // Check local dashboard connectivity
+    async function checkLocalDashboardConnection() {
       try {
-        // Try to fetch status from GitHub Pages dashboard
-        const dashboardUrl = 'https://kevinsuero072897-collab.github.io/trading-bot-c-/simple_status.json';
-        const response = await fetch(dashboardUrl, { 
-          mode: 'cors',
+        // Check if local dashboard is accessible
+        const response = await fetch('/healthz', { 
           cache: 'no-cache' 
         });
         
         if (response.ok) {
+          addLogEnhanced('success', '✅ Local dashboard connectivity verified');
+          return true;
+        } else {
+          addLogEnhanced('warning', '⚠️ Local dashboard connection issues');
+          return false;
+        }
           githubDashboardStatus = await response.json();
           addLog('success', 'Connected to GitHub Actions dashboard');
           updateGitHubDashboardStatus(true);
@@ -2802,20 +2805,20 @@ End of Log
           ${connected ? 'Connected' : 'Offline'}
         </div>
         ${connected ? `
-          <button onclick="openGitHubDashboard()" class="btn" style="width: 100%; font-size: 12px;">
-            🚀 Open Live Dashboard
+          <button onclick="showLocalDashboardInfo()" class="btn" style="width: 100%; font-size: 12px;">
+            🔒 Open Local Dashboard
           </button>
         ` : `
           <div style="font-size: 11px; color: #8b949e;">
-            Live dashboard unavailable
+            Local dashboard available at https://localhost:5050/dashboard
           </div>
         `}
       `;
     }
     
-    function openGitHubDashboard() {
-      window.open('https://kevinsuero072897-collab.github.io/trading-bot-c-/', '_blank');
-      addLog('info', 'Opened GitHub Actions live dashboard');
+    function showLocalDashboardInfo() {
+      addLog('info', 'Local HTTPS dashboard available at https://localhost:5050/dashboard');
+      addLog('info', 'To access: Start the StandaloneDashboard and navigate to the URL');
     }
     
     // Bot Control Functions (Enhanced)
@@ -2908,11 +2911,11 @@ End of Log
       }
     }
 
-    // Enhanced GitHub dashboard integration
-    async function openGitHubDashboard() {
+    // Enhanced local dashboard integration
+    async function showLocalDashboardInfo() {
       try {
-        window.open('https://kevinsuero072897-collab.github.io/trading-bot-c-/', '_blank');
-        addLogEnhanced('info', '🚀 Opened GitHub Actions live dashboard');
+        addLogEnhanced('info', '🔒 Local HTTPS dashboard: https://localhost:5050/dashboard');
+        addLogEnhanced('info', 'To start: cd src/StandaloneDashboard && dotnet run');
       } catch (error) {
         addLogEnhanced('error', `Error opening GitHub dashboard: ${error.message}`);
       }
@@ -3242,10 +3245,9 @@ End of Log
                 </div>
               </div>
               <div>
-                <h4 style="color: #4CAF50; margin-bottom: 8px;">Dashboard Links</h4>
+                <h4 style="color: #4CAF50; margin-bottom: 8px;">Local Dashboard</h4>
                 <div class="action-buttons">
-                  <button onclick="openGitHubDashboard()" class="action-btn primary">🚀 Live Dashboard</button>
-                  <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="action-btn">📋 GitHub Actions</a>
+                  <button onclick="showLocalDashboardInfo()" class="action-btn primary">🔒 Local HTTPS</button>
                   <button onclick="triggerManualTraining()" class="action-btn">🧠 Trigger Training</button>
                   <button onclick="checkModelUpdates()" class="action-btn">🔄 Check Updates</button>
                 </div>

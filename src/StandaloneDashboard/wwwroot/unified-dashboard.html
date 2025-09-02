@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TopstepX Trading Bot - Unified Cloud Dashboard</title>
+  <title>TopstepX Trading Bot - Local HTTPS Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -399,10 +399,10 @@
           </div>
         </div>
         
-        <!-- Cloud Learning Card -->
+        <!-- Learning Card -->
         <div class="card cloud-learning">
           <div class="card-header">
-            <div class="card-title">☁️ 24/7 Cloud Learning</div>
+            <div class="card-title">🧠 24/7 Learning</div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <div class="status-dot running" id="cloudStatusDot"></div>
               <span class="badge success" id="cloudStatusBadge">Active</span>
@@ -491,29 +491,30 @@
           </div>
         </div>
         
-        <!-- GitHub Integration Card -->
+        <!-- Local Security Status Card -->
         <div class="card">
           <div class="card-header">
-            <div class="card-title">🔗 GitHub Cloud Integration</div>
+            <div class="card-title">🔒 Local HTTPS Security</div>
             <span class="badge success">Enabled</span>
           </div>
           <div class="card-body">
             <div style="margin-bottom: 12px;">
-              <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Cloud Dashboard URLs:</div>
+              <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Local Dashboard Status:</div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <a href="https://kevinsuero072897-collab.github.io/trading-bot-c-/" target="_blank" class="action-btn primary">
-                  🎮 GitHub Pages Dashboard
-                </a>
-                <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="action-btn">
-                  📋 Actions & Workflows
-                </a>
+                <div class="action-btn primary" style="text-align: center;">
+                  🔒 Secure HTTPS Dashboard
+                </div>
+                <div style="font-size: 12px; color: #8b949e; text-align: center;">
+                  https://localhost:5050/dashboard
+                </div>
               </div>
             </div>
             <div style="margin-top: 12px;">
-              <div style="font-size: 12px; color: #8b949e;">Status Badges:</div>
+              <div style="font-size: 12px; color: #8b949e;">Security Status:</div>
               <div style="display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap;">
-                <img src="https://img.shields.io/badge/Learning-Active-brightgreen" alt="Learning Status" />
-                <img src="https://img.shields.io/badge/Cloud-Connected-brightgreen" alt="Cloud Status" />
+                <img src="https://img.shields.io/badge/HTTPS-Enabled-brightgreen" alt="HTTPS Status" />
+                <img src="https://img.shields.io/badge/Local-Active-brightgreen" alt="Local Status" />
+                <img src="https://img.shields.io/badge/SSL-Self--Signed-yellow" alt="SSL Status" />
               </div>
             </div>
           </div>
@@ -545,7 +546,7 @@
           </div>
           <div class="card-body">
             <div class="log-stream" id="logStream">
-              <div class="log-entry info">[Dashboard] Initializing unified cloud dashboard...</div>
+              <div class="log-entry info">[Dashboard] Initializing local HTTPS dashboard...</div>
               <div class="log-entry success">[Dashboard] Connected to real-time stream</div>
             </div>
           </div>
@@ -578,9 +579,9 @@
         </div>
         
         <div style="margin-bottom: 16px;">
-          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Cloud Learning:</label>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500;">Learning:</label>
           <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-            <input type="checkbox" id="enableCloudLearning" checked> Enable 24/7 cloud learning
+            <input type="checkbox" id="enableCloudLearning" checked> Enable 24/7 learning
           </label>
         </div>
         
@@ -601,7 +602,7 @@
     
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
-      addLog('info', 'Unified cloud dashboard initializing...');
+      addLog('info', 'Local HTTPS dashboard initializing...');
       updateBotStatus('stopped');
       connectToBot();
       setInterval(updateTimers, 1000);
@@ -631,7 +632,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             Mode: mode, 
-            CloudLearning: cloudLearning 
+            Learning: cloudLearning 
           })
         });
         
@@ -859,7 +860,7 @@
     }
     
     function updateLiveData() {
-      // Simulate cloud learning progress
+      // Simulate learning progress
       const accuracy = 85 + Math.random() * 10;
       const samples = 15420 + Math.floor(Math.random() * 100);
       
