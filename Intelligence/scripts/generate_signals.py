@@ -28,10 +28,48 @@ class SignalGenerator:
         self.features_dir = "Intelligence/data/features"
         self.models_dir = "Intelligence/models"
         self.signals_dir = "Intelligence/data/signals"
+        self.news_dir = "Intelligence/data/raw/news"
         
         # Create directories
         for dir_path in [self.models_dir, self.signals_dir]:
             os.makedirs(dir_path, exist_ok=True)
+    
+    def load_news_analysis(self):
+        """Load the latest news analysis"""
+        try:
+            news_file = os.path.join(self.news_dir, "latest_analysis.json")
+            if not os.path.exists(news_file):
+                logger.warning("No news analysis found, using defaults")
+                return {
+                    'sentiment': 'neutral',
+                    'intensity': 25.0,
+                    'confidence': 50.0,
+                    'volatility_score': 2.0,
+                    'fomc_detected': False,
+                    'cpi_detected': False,
+                    'earnings_season': False,
+                    'fed_speak': False
+                }
+            
+            with open(news_file, 'r') as f:
+                news_data = json.load(f)
+            
+            logger.info(f"Loaded news analysis: {news_data['sentiment']} sentiment, "
+                       f"{news_data['intensity']:.1f} intensity, {news_data['article_count']} articles")
+            return news_data
+            
+        except Exception as e:
+            logger.warning(f"Error loading news analysis: {e}, using defaults")
+            return {
+                'sentiment': 'neutral',
+                'intensity': 25.0,
+                'confidence': 50.0,
+                'volatility_score': 2.0,
+                'fomc_detected': False,
+                'cpi_detected': False,
+                'earnings_season': False,
+                'fed_speak': False
+            }
     
     def load_features(self):
         """Load the latest feature data"""
@@ -262,51 +300,110 @@ class SignalGenerator:
         try:
             today = datetime.now()
             
-            # Get calendar information
-            is_cpi_day = False
-            is_fomc_day = False
+            # Load news analysis
+            news_data = self.load_news_analysis()
             
+            # Get calendar information - prioritize news detection over data features
+            is_cpi_day = news_data.get('cpi_detected', False)
+            is_fomc_day = news_data.get('fomc_detected', False)
+            
+            # Fallback to data features if news doesn't detect events
             if df is not None and not df.empty:
                 latest_row = df.iloc[-1]
-                is_cpi_day = bool(latest_row.get('is_cpi_day', False))
-                is_fomc_day = bool(latest_row.get('is_fomc_day', False))
+                if not is_cpi_day:
+                    is_cpi_day = bool(latest_row.get('is_cpi_day', False))
+                if not is_fomc_day:
+                    is_fomc_day = bool(latest_row.get('is_fomc_day', False))
+            
+            # Adjust regime based on news sentiment and volatility
+            regime = predictions['regime']
+            news_sentiment = news_data.get('sentiment', 'neutral')
+            volatility_score = news_data.get('volatility_score', 2.0)
+            
+            # Override regime if news indicates high volatility or strong directional bias
+            if volatility_score >= 7 or is_fomc_day or is_cpi_day:
+                regime = "Volatile"
+            elif news_sentiment == 'bullish' and news_data.get('confidence', 50) > 70:
+                regime = "Trending"
+            elif news_sentiment == 'bearish' and news_data.get('confidence', 50) > 70:
+                regime = "Trending"
+            
+            # Adjust confidence based on news confidence
+            base_confidence = predictions['confidence']
+            news_confidence = news_data.get('confidence', 50) / 100.0
+            
+            # Blend model confidence with news confidence
+            blended_confidence = (base_confidence * 0.6 + news_confidence * 0.4)
+            
+            # Adjust primary bias based on news sentiment
+            primary_bias = predictions['primary_bias']
+            if news_sentiment == 'bullish' and news_confidence > 0.7:
+                primary_bias = "Long"
+            elif news_sentiment == 'bearish' and news_confidence > 0.7:
+                primary_bias = "Short"
             
             # Create trade setups
             setups = predictions.get('setups', [])
             
-            # If no setups, create default ones based on regime
+            # If no setups, create default ones based on regime and news
             if not setups:
-                regime = predictions['regime']
-                confidence = predictions['confidence']
-                bias = predictions['primary_bias']
+                confidence = blended_confidence
+                bias = primary_bias
+                
+                # Adjust risk multipliers based on volatility and events
+                base_risk = 1.0
+                if is_fomc_day or is_cpi_day:
+                    base_risk = 0.5  # Reduce risk on major events
+                elif volatility_score >= 6:
+                    base_risk = 0.7  # Reduce risk in high volatility
+                elif news_confidence > 0.8:
+                    base_risk = 1.3  # Increase risk with high confidence
                 
                 if regime == "Trending" and bias != "Neutral":
                     setups.append({
                         "timeWindow": "Opening30Min",
                         "direction": bias,
-                        "confidenceScore": confidence * 0.7,
-                        "suggestedRiskMultiple": 1.0,
-                        "rationale": f"Trending market with {bias.lower()} bias"
+                        "confidenceScore": confidence * 0.8,
+                        "suggestedRiskMultiple": base_risk,
+                        "rationale": f"Trending market with {bias.lower()} bias from news sentiment"
                     })
                 
                 if confidence > 0.6:
                     setups.append({
                         "timeWindow": "Afternoon",
                         "direction": bias if bias != "Neutral" else "Long",
+                        "confidenceScore": confidence * 0.7,
+                        "suggestedRiskMultiple": base_risk * 0.8,
+                        "rationale": f"High confidence {regime.lower()} regime with {news_sentiment} sentiment"
+                    })
+                
+                # Add volatility-based setups
+                if regime == "Volatile" and confidence > 0.5:
+                    setups.append({
+                        "timeWindow": "EventWindow",
+                        "direction": bias if bias != "Neutral" else "Long",
                         "confidenceScore": confidence * 0.6,
-                        "suggestedRiskMultiple": 0.8,
-                        "rationale": f"High confidence {regime.lower()} regime"
+                        "suggestedRiskMultiple": 0.4,  # Small size for volatility
+                        "rationale": f"Volatility trading on {regime.lower()} regime"
                     })
             
             market_context = {
                 "date": today.strftime("%Y-%m-%d"),
-                "regime": predictions['regime'],
-                "newsIntensity": float(predictions['news_intensity']),
+                "regime": regime,
+                "newsIntensity": float(news_data.get('intensity', 25.0)),
                 "isCpiDay": is_cpi_day,
                 "isFomcDay": is_fomc_day,
-                "modelConfidence": float(predictions['confidence']),
-                "primaryBias": predictions['primary_bias'],
-                "setups": setups
+                "modelConfidence": float(blended_confidence),
+                "primaryBias": primary_bias,
+                "setups": setups,
+                "newsDetails": {
+                    "sentiment": news_sentiment,
+                    "volatilityScore": volatility_score,
+                    "articleCount": news_data.get('article_count', 0),
+                    "newsConfidence": news_data.get('confidence', 50),
+                    "earningsSeason": news_data.get('earnings_season', False),
+                    "fedSpeak": news_data.get('fed_speak', False)
+                }
             }
             
             return market_context
