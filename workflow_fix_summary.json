@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-02T17:02:06.857044",
+  "timestamp": "2025-09-02T17:34:34.016997",
   "summary": {
     "total_workflows": 40,
-    "valid_workflows": 15,
-    "invalid_workflows": 25,
-    "success_rate": "37.5%",
-    "overall_health": "79.2%"
+    "valid_workflows": 40,
+    "invalid_workflows": 0,
+    "success_rate": "100.0%",
+    "overall_health": "66.7%"
   },
   "critical_workflows": {
     "train_github_only": true,
@@ -13,8 +13,8 @@
     "ultimate_system": true
   },
   "scripts": {
-    "train_cvar_ppo": true,
-    "api_fallback": true
+    "train_cvar_ppo": false,
+    "api_fallback": false
   },
   "features": {
     "permissions_count": 36,
@@ -34,11 +34,11 @@
     "missing": []
   },
   "action_plan": {
-    "overall_health": 79.16666666666667,
-    "yaml_health": 37.5,
+    "overall_health": 66.66666666666667,
+    "yaml_health": 100.0,
     "critical_workflows_operational": 3,
     "immediate_actions": [
-      "Fix 25 workflows with YAML syntax errors"
+      "Fix train_cvar_ppo.py script"
     ],
     "next_steps": [],
     "long_term": [
@@ -50,124 +50,48 @@
   "detailed_results": {
     "yaml": {
       "valid": [
+        "earnings_whisper.yml",
+        "rebalancing.yml",
+        "failed_patterns.yml",
         "news_pulse.yml",
+        "status-badges.yml",
         "dotnet-desktop.yml",
         "debug-simple.yml",
+        "fed_liquidity.yml",
         "daily_report.yml",
         "market_data.yml",
         "train-github-only.yml",
         "ultimate_ml_rl_intel_system.yml",
         "auto-label-automerge.yml",
+        "regime_detector.yml",
+        "zones_identifier.yml",
+        "overnight.yml",
+        "microstructure.yml",
+        "test_talib_fix.yml",
+        "seasonality.yml",
+        "options_flow.yml",
+        "cot_report.yml",
         "simple-ml-test.yml",
+        "live-dashboard.yml",
         "minimal-debug.yml",
+        "intermarket.yml",
+        "quality-assurance.yml",
+        "dotnet.yml",
+        "dashboard-enhanced.yml",
+        "congress_trades.yml",
+        "social_momentum.yml",
         "ml_trainer.yml",
+        "volatility_surface.yml",
         "enhanced_data_collection.yml",
         "install_dependencies_template.yml",
+        "mm_positioning.yml",
         "test-ml-enhanced.yml",
-        "cloud-ml-training.yml"
+        "sector_rotation.yml",
+        "ci.yml",
+        "cloud-ml-training.yml",
+        "opex_calendar.yml"
       ],
-      "invalid": [
-        {
-          "file": "earnings_whisper.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "rebalancing.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "failed_patterns.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "status-badges.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 19, column 7:\n          - name: \"\ud83d\udce5 Ch..."
-        },
-        {
-          "file": "fed_liquidity.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "regime_detector.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "zones_identifier.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "overnight.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "microstructure.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "test_talib_fix.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 27, column 7:\n          - name: \"\ud83d\udce5 Ch..."
-        },
-        {
-          "file": "seasonality.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "options_flow.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "cot_report.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "live-dashboard.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 29, column 7:\n          - name: \"\ud83d\udce5 Ch..."
-        },
-        {
-          "file": "intermarket.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "quality-assurance.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 22, column 7:\n          - name: \"\ud83d\udce5 Ch..."
-        },
-        {
-          "file": "dotnet.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 13, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "dashboard-enhanced.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 24, column 7:\n          - name: \"\ud83d\udce5 Ch..."
-        },
-        {
-          "file": "congress_trades.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "social_momentum.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "volatility_surface.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "mm_positioning.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "sector_rotation.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        },
-        {
-          "file": "ci.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 27, column 7:\n          - name: Check..."
-        },
-        {
-          "file": "opex_calendar.yml",
-          "error": "while parsing a block collection\n  in \"<unicode string>\", line 17, column 7:\n          - uses: actio..."
-        }
-      ],
+      "invalid": [],
       "total": 40
     },
     "features": {
