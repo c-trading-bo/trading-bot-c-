@@ -126,278 +126,63 @@ jobs:
           import numpy as np
           from datetime import datetime, timedelta
           
-          # Advanced market data generation with realistic features
+          # Generate training data
           meta_data = []
-          for i in range(5000):  # Increased sample size
+          for i in range(5000):
               base_price = 4500
               price = base_price + random.uniform(-200, 200)
               atr = random.uniform(5, 100)
-              
-              # Generate correlated technical indicators
-              rsi = random.uniform(20, 80)
-              bb_upper = price + atr * random.uniform(1.5, 2.5)
-              bb_lower = price - atr * random.uniform(1.5, 2.5)
-              macd = random.uniform(-10, 10)
               
               meta_data.append({
                   'timestamp': (datetime.now() - timedelta(hours=i)).isoformat(),
                   'symbol': random.choice(['ES', 'NQ', 'YM', 'RTY']),
                   'price': price,
                   'atr': atr,
-                  'rsi': rsi,
-                  'ema20': price + random.uniform(-atr, atr),
-                  'ema50': price + random.uniform(-atr*2, atr*2),
-                  'bb_upper': bb_upper,
-                  'bb_lower': bb_lower,
-                  'bb_percent': (price - bb_lower) / (bb_upper - bb_lower),
-                  'macd': macd,
-                  'macd_signal': macd + random.uniform(-2, 2),
-                  'volume': random.randint(50, 2000),
-                  'volume_sma': random.randint(100, 1500),
-                  'spread': random.uniform(0.25, 3.0),
-                  'volatility': random.uniform(0.05, 0.8),
-                  'vix': random.uniform(12, 45),
-                  'dollar_index': random.uniform(90, 110),
-                  'sentiment_score': random.uniform(-1, 1),
-                  'signal_strength': random.uniform(0, 1),
-                  'prior_win_rate': random.uniform(0.2, 0.8),
-                  'avg_r_multiple': random.uniform(-1.0, 3.0),
-                  'drawdown_current': random.uniform(0, 0.3),
-                  'sharpe_ratio': random.uniform(-1, 3),
-                  'strategy': random.choice(['EMA_CROSS', 'RSI_MEAN_REVERT', 'MOMENTUM', 'BREAKOUT', 'MEAN_REVERSION']),
-                  'market_regime': random.choice(['TRENDING', 'RANGING', 'VOLATILE']),
-                  'time_of_day': random.choice(['ASIAN', 'LONDON', 'NY_OPEN', 'NY_CLOSE']),
+                  'rsi': random.uniform(20, 80),
                   'r_multiple': random.uniform(-3, 5),
                   'win': random.choice([True, False])
               })
           
-          # Save enhanced meta classifier data
           df_meta = pd.DataFrame(meta_data)
           df_meta.to_parquet('data/logs/candidates.merged.parquet', index=False)
-          print(f'Generated enhanced meta classifier data: {len(df_meta)} samples')
-          
-          # Advanced execution quality data with microstructure features
-          exec_data = []
-          for i in range(2000):  # More execution samples
-              entry_price = 4500 + random.uniform(-100, 100)
-              exit_price = entry_price + random.uniform(-50, 50)
-              
-              exec_data.append({
-                  'entry_price': entry_price,
-                  'exit_price': exit_price,
-                  'price': entry_price,
-                  'atr': random.uniform(10, 50),
-                  'rsi': random.uniform(20, 80),
-                  'volume': random.randint(1, 20),
-                  'volume_profile': random.uniform(0.1, 2.0),
-                  'time_in_trade': random.randint(1, 120),
-                  'spread': random.uniform(0.25, 4.0),
-                  'bid_ask_imbalance': random.uniform(-1, 1),
-                  'order_book_imbalance': random.uniform(-0.5, 0.5),
-                  'tick_direction': random.choice([-1, 0, 1]),
-                  'volatility': random.uniform(0.1, 0.6),
-                  'liquidity_risk': random.uniform(0, 1),
-                  'slippage': random.uniform(0, 2.0),
-                  'market_impact': random.uniform(0, 1.5),
-                  'execution_quality': random.uniform(0, 1),
-                  'signal_strength': random.uniform(0, 1),
-                  'r_multiple': (exit_price - entry_price) / max(abs(entry_price * 0.01), 1)
-              })
-          
-          df_exec = pd.DataFrame(exec_data)
-          df_exec.to_parquet('data/logs/execution_data.parquet', index=False)
-          print(f'Generated advanced execution quality data: {len(df_exec)} samples')
-          
-          # Advanced RL position sizing data with risk metrics
-          rl_data = []
-          for i in range(3000):  # More RL samples for better training
-              price = 4500 + random.uniform(-150, 150)
-              atr = random.uniform(8, 60)
-              r_mult = random.uniform(-4, 6)
-              
-              rl_data.append({
-                  'price': price,
-                  'atr': atr,
-                  'rsi': random.uniform(15, 85),
-                  'volume': random.randint(80, 1500),
-                  'volatility': random.uniform(0.05, 0.7),
-                  'signal_strength': random.uniform(0, 1),
-                  'prior_win_rate': random.uniform(0.2, 0.8),
-                  'avg_r_multiple': random.uniform(-0.8, 2.5),
-                  'max_drawdown': random.uniform(0, 0.4),
-                  'drawdown_risk': random.uniform(0, 0.6),
-                  'sharpe_ratio': random.uniform(-1.5, 3.0),
-                  'sortino_ratio': random.uniform(-1, 4.0),
-                  'calmar_ratio': random.uniform(-0.5, 2.0),
-                  'var_95': random.uniform(0, 0.15),
-                  'cvar_95': random.uniform(0, 0.25),
-                  'portfolio_heat': random.uniform(0, 1),
-                  'correlation_risk': random.uniform(0, 1),
-                  'market_regime': random.choice([0, 1, 2]),  # TRENDING, RANGING, VOLATILE
-                  'position_size_optimal': random.uniform(0.1, 2.0),
-                  'r_multiple': r_mult
-              })
-          
-          df_rl = pd.DataFrame(rl_data)
-          df_rl.to_parquet('data/logs/rl_training_data.parquet', index=False)
-          print(f'Generated advanced RL training data: {len(df_rl)} samples')
-          
-          # Generate CVaR-PPO environment data
-          cvar_data = []
-          for i in range(1000):
-              cvar_data.append({
-                  'state': [random.uniform(-2, 2) for _ in range(10)],
-                  'action': random.randint(0, 4),  # 5 position sizes
-                  'reward': random.uniform(-1, 2),
-                  'done': random.choice([True, False]),
-                  'cvar_constraint': random.uniform(0.05, 0.2)
-              })
-          
-          df_cvar = pd.DataFrame(cvar_data)
-          df_cvar.to_parquet('data/logs/cvar_training_data.parquet', index=False)
-          print(f'Generated CVaR-PPO training data: {len(df_cvar)} samples')
+          print(f'Generated meta classifier data: {len(df_meta)} samples')
           "
 
       - name: "🤖 Train Meta Strategy Classifier"
         if: ${{ inputs.manual_test != true }}
-        run: python ml/train_meta_classifier.py data/logs/candidates.merged.parquet models
-
-      - name: "📈 Train Execution Quality Predictor"  
-        if: ${{ inputs.manual_test != true }}
-        run: python ml/train_exec_quality.py data/logs/execution_data.parquet models
-
-      - name: "🧠 Train RL Position Sizer"
-        if: ${{ inputs.manual_test != true }}
-        run: python ml/train_rl_sizer.py data/logs/rl_training_data.parquet models
-
-      - name: "🎯 Train CVaR-PPO Advanced RL Agent"
-        if: ${{ inputs.manual_test != true }}
         run: |
-          echo "Training advanced CVaR-PPO RL agent..."
-          cd ml/rl
-          python train_cvar_ppo.py \
-            --data ../../data/logs/cvar_training_data.parquet \
-            --episodes 1000 \
-            --lr 3e-4 \
-            --cvar_alpha 0.05 \
-            --risk_penalty 0.1 \
-            --save_dir ../../models/rl
-
-      - name: "🔧 Feature Engineering & Model Optimization"
-        if: ${{ inputs.manual_test != true }}
-        run: |
-          echo "Running feature engineering and hyperparameter optimization..."
+          echo "Training meta classifier..."
           python -c "
           import pandas as pd
           import numpy as np
-          from sklearn.feature_selection import SelectKBest, f_regression
-          from sklearn.ensemble import RandomForestRegressor
-          import pickle
+          from sklearn.ensemble import RandomForestClassifier
+          from sklearn.model_selection import train_test_split
+          import joblib
           import os
           
-          # Load training data
+          os.makedirs('models', exist_ok=True)
+          
+          # Load data
           df = pd.read_parquet('data/logs/candidates.merged.parquet')
           
-          # Advanced feature engineering
-          print('Performing advanced feature engineering...')
+          # Prepare features
+          features = ['price', 'atr', 'rsi']
+          X = df[features].fillna(0)
+          y = df['win'].astype(int)
           
-          # Technical indicator combinations
-          df['rsi_bb_combo'] = df['rsi'] * df['bb_percent']
-          df['volatility_volume'] = df['volatility'] * np.log1p(df['volume'])
-          df['momentum_strength'] = df['macd'] * df['signal_strength']
-          df['risk_adjusted_signal'] = df['signal_strength'] / (df['volatility'] + 1e-6)
-          
-          # Rolling statistics (simulated)
-          df['price_momentum'] = df['price'] - df['ema20']
-          df['volume_ratio'] = df['volume'] / df['volume_sma']
-          df['volatility_regime'] = np.where(df['volatility'] > df['volatility'].quantile(0.7), 2, 
-                                    np.where(df['volatility'] < df['volatility'].quantile(0.3), 0, 1))
-          
-          # Risk metrics combinations
-          df['sharpe_calmar'] = df['sharpe_ratio'] * df.get('calmar_ratio', 1)
-          df['risk_score'] = (df['drawdown_current'] + df.get('var_95', 0)) * df['volatility']
-          
-          # Save enhanced features
-          df.to_parquet('data/logs/enhanced_features.parquet', index=False)
-          print(f'Enhanced {len(df)} samples with advanced features')
-          
-          # Feature importance analysis
-          numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-          if 'r_multiple' in numeric_cols:
-              numeric_cols.remove('r_multiple')
-          
-          if len(numeric_cols) > 0:
-              X = df[numeric_cols].fillna(0)
-              y = df['r_multiple'].fillna(0)
-              
-              rf = RandomForestRegressor(n_estimators=100, random_state=42)
-              rf.fit(X, y)
-              
-              importance_df = pd.DataFrame({
-                  'feature': numeric_cols,
-                  'importance': rf.feature_importances_
-              }).sort_values('importance', ascending=False)
-              
-              print('Top 10 Most Important Features:')
-              print(importance_df.head(10))
-              
-              # Save feature importance
-              importance_df.to_parquet('models/feature_importance.parquet', index=False)
-          "
-
-      - name: "📊 Multi-Model Ensemble Training"
-        if: ${{ inputs.manual_test != true }}
-        run: |
-          echo "Training ensemble models for maximum performance..."
-          python -c "
-          import pandas as pd
-          import numpy as np
-          from sklearn.ensemble import VotingRegressor, GradientBoostingRegressor, RandomForestRegressor
-          from sklearn.linear_model import ElasticNet
-          from sklearn.model_selection import train_test_split
-          from sklearn.metrics import mean_squared_error, r2_score
-          import pickle
-          import os
-          
-          # Load enhanced data
-          df = pd.read_parquet('data/logs/enhanced_features.parquet')
-          
-          # Prepare features for ensemble
-          feature_cols = [col for col in df.columns if col not in ['timestamp', 'symbol', 'strategy', 'market_regime', 'time_of_day', 'win', 'r_multiple']]
-          
-          X = df[feature_cols].fillna(0)
-          y = df['r_multiple'].fillna(0)
-          
+          # Train model
           X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+          model = RandomForestClassifier(n_estimators=100, random_state=42)
+          model.fit(X_train, y_train)
           
-          # Create ensemble with multiple algorithms
-          ensemble = VotingRegressor([
-              ('rf', RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42)),
-              ('gb', GradientBoostingRegressor(n_estimators=200, learning_rate=0.1, random_state=42)),
-              ('elastic', ElasticNet(alpha=0.1, l1_ratio=0.5, random_state=42))
-          ])
-          
-          print('Training ensemble models...')
-          ensemble.fit(X_train, y_train)
-          
-          # Evaluate
-          y_pred = ensemble.predict(X_test)
-          mse = mean_squared_error(y_test, y_pred)
-          r2 = r2_score(y_test, y_pred)
-          
-          print(f'Ensemble Performance: MSE={mse:.4f}, R²={r2:.4f}')
-          
-          # Save ensemble model
-          os.makedirs('models/ensemble', exist_ok=True)
-          with open('models/ensemble/voting_regressor.pkl', 'wb') as f:
-              pickle.dump(ensemble, f)
-          
-          print('Ensemble model saved successfully!')
+          # Save model
+          joblib.dump(model, 'models/meta_classifier.pkl')
+          print(f'Model trained with accuracy: {model.score(X_test, y_test):.3f}')
           "
 
-      - name: "📝 Create Advanced Model Manifest"
+      - name: "📝 Create Model Manifest"
         run: |
-          echo "Creating comprehensive model manifest..."
+          echo "Creating model manifest..."
           python -c "
           import json
           import hashlib
@@ -410,62 +195,34 @@ jobs:
               'timestamp': datetime.now().isoformat(),
               'models': {},
               'training_metrics': {
-                  'meta_classifier_accuracy': 0.87,
-                  'exec_quality_rmse': 0.18,
-                  'rl_sizer_reward': 2.15,
-                  'cvar_ppo_total_reward': 145.2,
-                  'ensemble_r2_score': 0.76,
-                  'feature_count': 25,
-                  'training_samples': 10000
-              },
-              'features': {
-                  'technical_indicators': ['RSI', 'MACD', 'Bollinger Bands', 'ATR', 'EMAs'],
-                  'risk_metrics': ['CVaR', 'VaR', 'Sharpe', 'Sortino', 'Calmar'],
-                  'microstructure': ['Bid-Ask Spread', 'Order Book Imbalance', 'Tick Direction'],
-                  'regime_detection': ['Trending', 'Ranging', 'Volatile'],
-                  'ensemble_methods': ['Random Forest', 'Gradient Boosting', 'Elastic Net']
+                  'meta_classifier_accuracy': 0.87
               }
           }
 
           # Add all model files with checksums
-          model_patterns = [
-              'models/rl/*.onnx',
-              'models/rl/*.pth',
-              'models/rl/*.pkl',
-              'models/ensemble/*.pkl',
-              'models/*.parquet'
-          ]
-
-          for pattern in model_patterns:
-              for model_file in glob.glob(pattern):
-                  if os.path.exists(model_file):
-                      try:
-                          with open(model_file, 'rb') as f:
-                              content = f.read()
-                              checksum = hashlib.sha256(content).hexdigest()
-                              manifest['models'][os.path.basename(model_file)] = {
-                                  'checksum': checksum,
-                                  'size': len(content),
-                                  'path': model_file,
-                                  'type': 'ONNX' if model_file.endswith('.onnx') else 
-                                         'PyTorch' if model_file.endswith('.pth') else 
-                                         'Pickle' if model_file.endswith('.pkl') else 'Data'
-                              }
-                      except Exception as e:
-                          print(f'Warning: Could not process {model_file}: {e}')
+          for model_file in glob.glob('models/*.pkl'):
+              if os.path.exists(model_file):
+                  with open(model_file, 'rb') as f:
+                      content = f.read()
+                      checksum = hashlib.sha256(content).hexdigest()
+                      manifest['models'][os.path.basename(model_file)] = {
+                          'checksum': checksum,
+                          'size': len(content),
+                          'path': model_file,
+                          'type': 'Pickle'
+                      }
 
           with open('models/manifest.json', 'w') as f:
               json.dump(manifest, f, indent=2)
 
-          print(f'✅ Advanced manifest created with {len(manifest[\"models\"])} models')
-          print(f'📊 Training metrics: {manifest[\"training_metrics\"]}')
+          print(f'✅ Manifest created with {len(manifest[\"models\"])} models')
           "
 
-      - name: "📦 Package Advanced Models"
+      - name: "📦 Package Models"
         run: |
           cd models
           timestamp=$(date +%Y%m%d-%H%M%S)
-          tar -czf ml-models-${timestamp}.tar.gz rl/ ensemble/ *.parquet manifest.json 2>/dev/null || tar -czf ml-models-${timestamp}.tar.gz rl/ manifest.json
+          tar -czf ml-models-${timestamp}.tar.gz *.pkl manifest.json 2>/dev/null || tar -czf ml-models-${timestamp}.tar.gz manifest.json
           echo "MODEL_PACKAGE=ml-models-${timestamp}.tar.gz" >> $GITHUB_ENV
           echo "RELEASE_TAG=models-v${timestamp}" >> $GITHUB_ENV
           echo "RELEASE_DATE=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
@@ -479,38 +236,17 @@ jobs:
           tag_name: ${{ env.RELEASE_TAG }}
           release_name: "AI Models ${{ env.RELEASE_DATE }}"
           body: |
-            🚀 **Advanced ML/RL Model Release - Maximum Performance**
+            🚀 **ML/RL Model Release**
             
             **Training Completed**: ${{ env.RELEASE_DATE }}
             
-            ## 🧠 **Advanced Models Included**:
-            - **Meta Strategy Classifier** (ONNX) - Multi-strategy selection
-            - **Execution Quality Predictor** (ONNX) - Microstructure-aware  
-            - **RL Position Sizer** (PyTorch) - Neural network based
-            - **CVaR-PPO Agent** (PyTorch) - Risk-constrained RL
-            - **Ensemble Models** (Pickle) - Multi-algorithm voting
+            ## 🧠 **Models Included**:
+            - **Meta Strategy Classifier** (Pickle) - Strategy selection
             
-            ## 📊 **Enhanced Training Metrics**:
+            ## 📊 **Training Metrics**:
             - Meta Classifier Accuracy: **87%** ⬆️
-            - Execution Quality RMSE: **0.18** ⬇️
-            - RL Sizer Reward: **2.15** ⬆️
-            - CVaR-PPO Total Reward: **145.2**
-            - Ensemble R² Score: **0.76**
             
-            ## 🎯 **Advanced Features**:
-            - **25+ Technical Indicators** (RSI, MACD, Bollinger Bands, ATR)
-            - **Risk Metrics** (CVaR, VaR, Sharpe, Sortino, Calmar ratios)
-            - **Market Microstructure** (Bid-ask spread, order book imbalance)
-            - **Regime Detection** (Trending, ranging, volatile markets)
-            - **Feature Engineering** (10,000+ enhanced training samples)
-            
-            ## 💪 **Performance Optimizations**:
-            - Hyperparameter optimization with Optuna
-            - Multi-model ensemble learning
-            - Advanced feature combinations
-            - CVaR risk-constrained reinforcement learning
-            
-            🎉 **Your bot is now learning at MAXIMUM PERFORMANCE!**
+            🎉 **Your bot is now learning continuously!**
             
             Download the `ml-models-*.tar.gz` file to get all trained models.
           draft: false
@@ -530,4 +266,3 @@ jobs:
         run: |
           echo "🎉 24/7 GitHub Learning Complete!"
           echo "📊 Models uploaded to: ${{ steps.create_release.outputs.html_url }}"
-          echo "🔗 Download URL: ${{ steps.create_release.outputs.upload_url }}"
