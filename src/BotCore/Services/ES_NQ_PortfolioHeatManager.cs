@@ -33,7 +33,7 @@ namespace BotCore.Services
     {
         private readonly ILogger<ES_NQ_PortfolioHeatManager> _logger;
         private readonly decimal _accountBalance;
-        
+
         public ES_NQ_PortfolioHeatManager(ILogger<ES_NQ_PortfolioHeatManager> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -77,7 +77,7 @@ namespace BotCore.Services
                 heat.RiskMetrics = await CalculateRiskMetricsAsync(positions);
 
                 // Overheat detection
-                heat.IsOverheated = heat.ConcentrationRisk > 0.7 || 
+                heat.IsOverheated = heat.ConcentrationRisk > 0.7 ||
                                     heat.TotalExposure > _accountBalance * 2.0m ||
                                     heat.RiskMetrics.ContainsKey("VaR") && heat.RiskMetrics["VaR"] > _accountBalance * 0.05m;
 
@@ -141,7 +141,7 @@ namespace BotCore.Services
                 await Task.Delay(1); // Simulate async operation
 
                 var totalExposure = positions.Sum(p => Math.Abs(p.Size * p.CurrentPrice));
-                
+
                 // Simple session weighting (in practice, track actual timing)
                 return session switch
                 {
@@ -178,7 +178,7 @@ namespace BotCore.Services
 
                 // Check if positions are in same direction
                 var sameDirection = (esExposure > 0 && nqExposure > 0) || (esExposure < 0 && nqExposure < 0);
-                
+
                 return sameDirection ? 0.8 : -0.3; // Simplified correlation estimate
             }
             catch (Exception ex)
@@ -215,7 +215,7 @@ namespace BotCore.Services
                 metrics["PositionCount"] = positions.Count;
 
                 // Largest single position risk
-                var largestPosition = positions.Any() ? 
+                var largestPosition = positions.Any() ?
                     positions.Max(p => Math.Abs(p.Size * p.CurrentPrice)) : 0m;
                 metrics["LargestPositionRisk"] = largestPosition;
 
@@ -276,7 +276,7 @@ namespace BotCore.Services
                 // This would normally interface with your position service
                 // For now, return mock data
                 await Task.Delay(1);
-                
+
                 return new List<Position>
                 {
                     new Position { Symbol = "ES", Size = 1, CurrentPrice = 4500m },
