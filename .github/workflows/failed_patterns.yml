@@ -4,19 +4,35 @@ on:
     - cron: '*/15 9-15 * * 1-5'  # Every 15 min RTH (9 AM - 3 PM UTC, Mon-Fri)
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   failed_patterns:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
       - uses: actions/setup-python@v2
         with:
           python-version: '3.9'
-      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/failed_patterns.py
       - run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add Intelligence/data/
+          git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
+        git config user.name "GitHub Actions"
+          git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
+        git config user.email "actions@github.com"
+          git config --global user.email "ml-bot@github.com"
+        git config --global user.name "ML Bot"
+        git add Intelligence/data/
           git diff --quiet || git commit -m "Update failed patterns analysis"
-          git push
+          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."

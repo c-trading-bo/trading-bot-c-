@@ -8,13 +8,23 @@ on:
     workflows: ["24/7 Continuous ML/RL Trainer (Compliant)"]
     types: [completed]
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   quality-monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
         
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
@@ -23,8 +33,8 @@ jobs:
           
       - name: "📦 Install Dependencies"
         run: |
-          pip install requests pandas numpy scikit-learn
-          pip install awscli boto3
+          pip install --retry-delays 1,2,3 --timeout 60 requests pandas numpy scikit-learn
+          pip install --retry-delays 1,2,3 --timeout 60 awscli boto3
           
       - name: "🔍 Quality Assessment"
         run: |

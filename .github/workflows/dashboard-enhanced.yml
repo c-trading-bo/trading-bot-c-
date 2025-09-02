@@ -10,13 +10,23 @@ on:
 env:
   DASHBOARD_DATA_DIR: "dashboard-data"
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   dashboard-monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: "📥 Checkout Code"
         uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
         
       - name: "🐍 Setup Python"
         uses: actions/setup-python@v4
@@ -25,9 +35,9 @@ jobs:
           
       - name: "📦 Install Dependencies"
         run: |
-          pip install --upgrade pip
-          pip install requests pandas matplotlib seaborn plotly
-          pip install awscli boto3 python-dateutil
+          pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+          pip install --retry-delays 1,2,3 --timeout 60 requests pandas matplotlib seaborn plotly
+          pip install --retry-delays 1,2,3 --timeout 60 awscli boto3 python-dateutil
           
       - name: "📊 Generate Dashboard Data"
         run: |

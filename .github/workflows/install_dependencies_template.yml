@@ -6,9 +6,15 @@ name: Universal Dependency Installation Template
 on:
   workflow_call:
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
   install-dependencies:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -48,28 +54,28 @@ jobs:
     
     - name: Install Complete Python Dependencies
       run: |
-        pip install --upgrade pip
+        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
         
         # Core dependencies
-        pip install numpy pandas scipy
+        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
         
         # TA-Lib Python wrapper (AFTER C library)
-        pip install TA-Lib
+        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib
         
         # Backup technical analysis libraries
-        pip install ta pandas-ta
+        pip install --retry-delays 1,2,3 --timeout 60 ta pandas-ta
         
         # Data collection
-        pip install yfinance feedparser requests beautifulsoup4
+        pip install --retry-delays 1,2,3 --timeout 60 yfinance feedparser requests beautifulsoup4
         
         # ML/RL dependencies
-        pip install scikit-learn torch onnx onnxruntime
-        pip install xgboost lightgbm catboost optuna
+        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn torch onnx onnxruntime
+        pip install --retry-delays 1,2,3 --timeout 60 xgboost lightgbm catboost optuna
         
         # Additional utilities (optional, with error handling)
-        pip install textblob vaderSentiment || echo "⚠️ Sentiment libraries optional"
-        pip install pytrends || echo "⚠️ Trends library optional"
-        pip install fredapi || echo "⚠️ FRED API optional"
+        pip install --retry-delays 1,2,3 --timeout 60 textblob vaderSentiment || echo "⚠️ Sentiment libraries optional"
+        pip install --retry-delays 1,2,3 --timeout 60 pytrends || echo "⚠️ Trends library optional"
+        pip install --retry-delays 1,2,3 --timeout 60 fredapi || echo "⚠️ FRED API optional"
         
     - name: Verify Installation
       run: |

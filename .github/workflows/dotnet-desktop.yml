@@ -44,6 +44,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
 jobs:
 
   build:
@@ -53,6 +58,7 @@ jobs:
         configuration: [Debug, Release]
 
     runs-on: windows-latest  # For a list of available runner types, refer to
+    timeout-minutes: 30
                              # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
     env:
@@ -64,6 +70,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
       with:
         fetch-depth: 0
 
