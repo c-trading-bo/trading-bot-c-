@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-09-02T14:53:26.742936",
+  "article_count": 10,
+  "avg_sentiment": 0.15,
+  "news_intensity": 0.7,
+  "volatility_score": 2,
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Sample Market Update",
+      "summary": "Markets showing mixed signals...",
+      "sentiment": 0.15,
+      "source": "sample"
+    }
+  ]
+}

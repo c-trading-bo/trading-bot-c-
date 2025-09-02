@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-09-02T15:03:31.239419",
+  "market_news": [
+    {
+      "source": "MarketWatch",
+      "title": "Fed officials signal continued rate vigilance amid inflation concerns",
+      "sentiment": {
+        "polarity": -0.2,
+        "subjectivity": 0.6
+      }
+    },
+    {
+      "source": "Yahoo Finance",
+      "title": "Tech stocks rally on AI optimism and strong earnings outlook",
+      "sentiment": {
+        "polarity": 0.4,
+        "subjectivity": 0.5
+      }
+    }
+  ],
+  "sentiment_analysis": {
+    "overall_polarity": 0.1,
+    "sentiment_label": "Slightly Positive",
+    "confidence": 0.45,
+    "headlines_analyzed": 2
+  },
+  "trending_topics": {
+    "keywords": {
+      "fed": 3,
+      "earnings": 2,
+      "inflation": 2,
+      "ai": 1
+    }
+  }
+}

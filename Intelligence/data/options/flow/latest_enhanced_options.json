@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-09-02T15:03:31.238992",
+  "symbols": {
+    "SPY": {
+      "current_price": 445.5,
+      "price_change_pct": 0.75,
+      "summary": {
+        "total_call_volume": 250000,
+        "total_put_volume": 180000,
+        "avg_put_call_ratio": 0.72,
+        "total_net_gamma_exposure": 15000000,
+        "gamma_flip_level": 448.25
+      }
+    },
+    "QQQ": {
+      "current_price": 375.25,
+      "price_change_pct": 1.2,
+      "summary": {
+        "total_call_volume": 180000,
+        "total_put_volume": 120000,
+        "avg_put_call_ratio": 0.67,
+        "total_net_gamma_exposure": 8500000,
+        "gamma_flip_level": 378.5
+      }
+    }
+  },
+  "market_summary": {
+    "total_call_volume": 430000,
+    "total_put_volume": 300000,
+    "market_put_call_ratio": 0.7,
+    "collection_time": "2025-09-02T15:03:31.239004"
+  }
+}
