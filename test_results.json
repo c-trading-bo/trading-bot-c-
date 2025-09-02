@@ -1,0 +1,47 @@
+{
+  "yaml": {
+    "ok": true,
+    "details": []
+  },
+  "talib": {
+    "ok": false,
+    "details": "No technical analysis libraries available: No module named 'talib'"
+  },
+  "ml_deps": {
+    "ok": false,
+    "details": {
+      "working": [],
+      "missing": [
+        "torch",
+        "numpy",
+        "pandas",
+        "sklearn",
+        "onnx",
+        "joblib",
+        "matplotlib"
+      ]
+    }
+  },
+  "scripts": {
+    "ok": true,
+    "details": {
+      "present": [
+        "ml/train_meta_classifier.py",
+        "ml/train_exec_quality.py",
+        "ml/train_rl_sizer.py",
+        "ml/rl/train_cvar_ppo.py"
+      ],
+      "missing": []
+    }
+  },
+  "templates": {
+    "ok": true,
+    "details": {
+      "present": [
+        ".github/workflows/install_dependencies_template.yml",
+        ".github/workflows/test_talib_fix.yml"
+      ],
+      "missing": []
+    }
+  }
+}

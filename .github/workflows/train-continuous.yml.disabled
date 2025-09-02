@@ -74,7 +74,7 @@ jobs:
           # Check if vendor features were generated
           if [ -f "data/logs/candidates.vendor.parquet" ]; then
             echo "✅ Vendor features generated"
-            python -c "
+                        python -c "
 import pandas as pd
 df = pd.read_parquet('data/logs/candidates.vendor.parquet')
 print(f'Vendor candidates: {len(df)} rows')
