@@ -78,29 +78,13 @@ function Write-Info {
     Write-ColorOutput "ℹ️  $Message" "Blue"
 }
 
-# Registration function for GitHub Actions dashboard
-function RegisterWithGitHubDashboard {
-    param([hashtable]$Data)
-    
-    Write-Info "Preparing GitHub Actions dashboard registration..."
-    
-    # In a real implementation, this would make HTTP calls to GitHub API
-    # For now, we just validate the data structure
-    if ($Data.local_bot_running -and $Data.mode -and $Data.port) {
-        Write-Success "Registration data validated"
-        return $true
-    } else {
-        throw "Invalid registration data"
-    }
-}
-
 # Main launcher function
 function Start-TradingBot {
     Write-Header "🤖 Enhanced Trading Bot Launcher"
     
     Write-Info "Mode: $($Mode.ToUpper())"
     Write-Info "Port: $Port"
-    Write-Info "Auto-register: $(-not $NoAutoRegister)"
+    Write-Info "Local HTTPS Dashboard: https://localhost:$Port/dashboard"
     Write-Host ""
     
     # Verify .NET runtime
@@ -150,45 +134,16 @@ function Start-TradingBot {
     
     Write-Success "Environment configured for $($Mode.ToUpper()) mode"
     
-    # Register with GitHub Actions dashboard (if enabled)
-    if (-not $NoAutoRegister) {
-        Write-Step "Registering with GitHub Actions dashboard..."
-        try {
-            $registrationData = @{
-                local_bot_running = $true
-                mode = $Mode
-                port = $Port
-                timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ"
-                features = @{
-                    local_trading = $true
-                    bot_control = $true
-                    real_time_monitoring = $true
-                    multi_mode_support = $true
-                }
-            }
-            
-            # Call the registerWithGitHubDashboard function
-            RegisterWithGitHubDashboard -Data $registrationData
-            
-            # In a real implementation, this would POST to GitHub Actions API
-            Write-Success "Registration data prepared for GitHub Actions dashboard"
-            Write-Info "Dashboard will be available at: https://kevinsuero072897-collab.github.io/trading-bot-c-/"
-        } catch {
-            Write-Error "Failed to register with GitHub Actions dashboard: $_"
-            Write-Info "Continuing with local-only mode..."
-        }
-    }
-    
     # Start the dashboard web server
-    Write-Step "Starting dashboard web server..."
-    Write-Info "Local dashboard will be available at: http://localhost:$Port/dashboard"
+    Write-Step "Starting local HTTPS dashboard web server..."
+    Write-Info "Local dashboard will be available at: https://localhost:$Port/dashboard"
     Write-Host ""
     
     # Launch the bot
     Write-Header "🚀 Launching Trading Bot"
     Write-ColorOutput "Mode: $($Mode.ToUpper())" "Green"
-    Write-ColorOutput "Dashboard: http://localhost:$Port/dashboard" "Cyan"
-    Write-ColorOutput "GitHub Dashboard: https://kevinsuero072897-collab.github.io/trading-bot-c-/" "Cyan"
+    Write-ColorOutput "Local Dashboard: https://localhost:$Port/dashboard" "Cyan"
+    Write-ColorOutput "🔒 Secure HTTPS connection enabled" "Green"
     Write-Host ""
     
     Write-Info "Press Ctrl+C to stop the bot"

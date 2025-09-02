@@ -21,7 +21,7 @@ public static class DashboardModule
         // root redirects to dashboard for convenience
         app.MapGet("/", () => Results.Redirect("/dashboard"));
 
-        // static file (our unified cloud dashboard)
+        // static file (our local HTTPS dashboard)
         app.MapGet("/dashboard", async ctx =>
         {
             ctx.Response.ContentType = "text/html; charset=utf-8";

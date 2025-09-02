@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TopstepX Trading Bot - Unified Cloud Dashboard</title>
+  <title>TopstepX Trading Bot - Local HTTPS Dashboard</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -499,14 +499,14 @@
           </div>
           <div class="card-body">
             <div style="margin-bottom: 12px;">
-              <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Cloud Dashboard URLs:</div>
+              <div style="font-size: 12px; color: #8b949e; margin-bottom: 8px;">Local Dashboard Status:</div>
               <div style="display: flex; flex-direction: column; gap: 4px;">
-                <a href="https://kevinsuero072897-collab.github.io/trading-bot-c-/" target="_blank" class="action-btn primary">
-                  🎮 GitHub Pages Dashboard
-                </a>
-                <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="action-btn">
-                  📋 Actions & Workflows
-                </a>
+                <div class="action-btn primary" style="text-align: center;">
+                  🔒 Secure HTTPS Dashboard
+                </div>
+                <div style="font-size: 12px; color: #8b949e; text-align: center;">
+                  https://localhost:5050/dashboard
+                </div>
               </div>
             </div>
             <div style="margin-top: 12px;">
@@ -545,7 +545,7 @@
           </div>
           <div class="card-body">
             <div class="log-stream" id="logStream">
-              <div class="log-entry info">[Dashboard] Initializing unified cloud dashboard...</div>
+              <div class="log-entry info">[Dashboard] Initializing local HTTPS dashboard...</div>
               <div class="log-entry success">[Dashboard] Connected to real-time stream</div>
             </div>
           </div>
@@ -601,7 +601,7 @@
     
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
-      addLog('info', 'Unified cloud dashboard initializing...');
+      addLog('info', 'Local HTTPS dashboard initializing...');
       updateBotStatus('stopped');
       connectToBot();
       setInterval(updateTimers, 1000);
