@@ -1,36 +1,37 @@
 name: Market Maker Positioning
 'on':
   schedule:
-    - cron: '15 * * * *'  # Every hour at 15 min past
-  workflow_dispatch:
-
+  - cron: 15 * * * *
+  workflow_dispatch: null
 jobs:
   mm_positioning:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas requests numpy yfinance beautifulsoup4
-          
-      - name: Analyze MM Positioning
-        run: |
-          cd Intelligence/scripts
-          python mm_positioning.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Commit MM data
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/market_makers/
-          git diff --staged --quiet || git commit -m "🏦 Market maker positioning update: $(date +'%Y-%m-%d %H:%M')"
-          git push
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install dependencies
+      run: 'python -m pip install --upgrade pip
+
+        pip install pandas requests numpy yfinance beautifulsoup4
+
+        '
+    - name: Analyze MM Positioning
+      run: 'cd Intelligence/scripts
+
+        python mm_positioning.py
+
+        '
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Commit MM data
+      run: "git config --local user.email \"action@github.com\"\ngit config --local\
+        \ user.name \"GitHub Action\"\ngit add data/market_makers/\ngit diff --staged\
+        \ --quiet || git commit -m \"\U0001F3E6 Market maker positioning update: $(date\
+        \ +'%Y-%m-%d %H:%M')\"\ngit push\n"
+    timeout-minutes: 15

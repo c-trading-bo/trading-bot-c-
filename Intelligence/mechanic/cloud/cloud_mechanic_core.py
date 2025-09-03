@@ -121,8 +121,15 @@ class CloudBotMechanic:
     def _analyze_workflow(self, wf_file: Path, analysis: Dict):
         """Analyze individual workflow file"""
         try:
-            with open(wf_file, 'r') as f:
-                workflow = yaml.safe_load(f)
+            # Try multiple encodings to handle special characters
+            workflow = None
+            for encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
+                try:
+                    with open(wf_file, 'r', encoding=encoding) as f:
+                        workflow = yaml.safe_load(f)
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
 
             wf_name = wf_file.name
             wf_data = {
@@ -138,7 +145,7 @@ class CloudBotMechanic:
 
             # Check workflow structure
             if not workflow:
-                wf_data['issues'].append('Empty workflow file')
+                wf_data['issues'].append('Empty workflow file or encoding issue')
                 analysis['broken_workflows'].append(wf_name)
             elif 'jobs' not in workflow:
                 wf_data['issues'].append('No jobs defined')

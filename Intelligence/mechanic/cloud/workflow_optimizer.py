@@ -57,8 +57,15 @@ class WorkflowOptimizer:
     def optimize_workflow(self, wf_file: Path) -> int:
         """Optimize a single workflow file"""
         try:
-            with open(wf_file, 'r') as f:
-                workflow = yaml.safe_load(f)
+            # Try multiple encodings to handle special characters
+            workflow = None
+            for encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
+                try:
+                    with open(wf_file, 'r', encoding=encoding) as f:
+                        workflow = yaml.safe_load(f)
+                    break
+                except (UnicodeDecodeError, UnicodeError):
+                    continue
             
             if not workflow:
                 return 0
@@ -75,8 +82,14 @@ class WorkflowOptimizer:
             # Save if modified
             new_content = yaml.dump(workflow, default_flow_style=False)
             if new_content != original_content:
-                with open(wf_file, 'w') as f:
-                    yaml.dump(workflow, f, default_flow_style=False, sort_keys=False)
+                # Use the same encoding that worked for reading
+                for encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
+                    try:
+                        with open(wf_file, 'w', encoding=encoding) as f:
+                            yaml.dump(workflow, f, default_flow_style=False, sort_keys=False)
+                        break
+                    except (UnicodeEncodeError, UnicodeError):
+                        continue
                 
                 print(f"    ✅ Optimized {wf_file.name}")
                 return minutes_saved

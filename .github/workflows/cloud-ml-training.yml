@@ -1,166 +1,110 @@
-name: "Cloud ML Training Pipeline"
-
-on:
+name: Cloud ML Training Pipeline
+true:
   schedule:
-    - cron: '0 */6 * * *'
-  workflow_dispatch:
+  - cron: 0 */6 * * *
+  workflow_dispatch: null
   push:
-    branches: ['main']
-
+    branches:
+    - main
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
   cloud-training:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
     steps:
-      - name: "📥 Checkout Code"
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-        
-      - name: "🐍 Setup Python"
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: "📦 Install ML Dependencies"
-        run: |
-          pip install --upgrade pip
-          pip install --retry-delays 1,2,3 --timeout 60 torch torchvision numpy pandas
-          pip install --retry-delays 1,2,3 --timeout 60 stable-baselines3
-          pip install --retry-delays 1,2,3 --timeout 60 scikit-learn matplotlib joblib
-          pip install --retry-delays 1,2,3 --timeout 60 gymnasium || pip install gym
-          
-      - name: "📊 Prepare Training Data"
-        run: |
-          mkdir -p Intelligence/data/training models/rl
-          python << 'EOF'
-          import pandas as pd
-          import numpy as np
-          from datetime import datetime
-          import os
-          
-          # Create training data directory
-          os.makedirs('Intelligence/data/training', exist_ok=True)
-          
-          try:
-              # Create synthetic training data
-              data = pd.DataFrame({
-                  'timestamp': pd.date_range('2024-01-01', periods=1000, freq='5min'),
-                  'price': np.random.randn(1000).cumsum() + 4500,
-                  'volume': np.random.randint(1000, 10000, 1000),
-                  'returns': np.random.randn(1000) * 0.01,
-                  'volatility': np.random.exponential(0.02, 1000)
-              })
-              
-              data.to_csv('Intelligence/data/training/data.csv', index=False)
-              print(f'✅ Created training data with {len(data)} samples')
-          except Exception as e:
-              print(f'❌ Error creating training data: {e}')
-              # Create minimal fallback data
-              fallback_data = pd.DataFrame({
-                  'timestamp': pd.date_range('2024-01-01', periods=100, freq='5min'),
-                  'price': np.random.randn(100).cumsum() + 4500,
-                  'volume': np.random.randint(1000, 10000, 100),
-                  'returns': np.random.randn(100) * 0.01,
-                  'volatility': np.random.exponential(0.02, 100)
-              })
-              fallback_data.to_csv('Intelligence/data/training/data.csv', index=False)
-              print(f'✅ Created fallback data with {len(fallback_data)} samples')
-          EOF
-          
-      - name: "🤖 Train Models"
-        run: |
-          echo "🚀 Starting CVaR PPO model training..."
-          
-          # Ensure directories exist
-          mkdir -p models/rl
-          
-          # Check if training script exists
-          if [ -f "ml/rl/train_cvar_ppo.py" ]; then
-            echo "✅ Training script found"
-            python ml/rl/train_cvar_ppo.py --data Intelligence/data/training/data.csv --save_dir models/rl/ || echo "⚠️ Training completed with warnings"
-          else
-            echo "❌ Training script not found, creating minimal model..."
-            python << 'EOF'
-          import os
-          import pickle
-          import numpy as np
-          
-          # Create models directory
-          os.makedirs('models/rl', exist_ok=True)
-          
-          # Create a placeholder model file
-          model_data = {
-              'type': 'cvar_ppo_placeholder',
-              'timestamp': '$(date -u +"%Y-%m-%d %H:%M:%S UTC")',
-              'weights': np.random.randn(10, 10).tolist(),
-              'status': 'cloud_trained'
-          }
-          
-          with open('models/rl/cvar_ppo_model.pkl', 'wb') as f:
-              pickle.dump(model_data, f)
-              
-          print("✅ Created placeholder model")
-          EOF
-          fi
-          
-      - name: "📦 Package and Upload Models"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Install GitHub CLI if not available
-          if ! command -v gh &> /dev/null; then
-            echo "Installing GitHub CLI..."
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          fi
-          
-          cd models
-          timestamp=$(date +%Y%m%d-%H%M)
-          
-          # Check if models exist before packaging
-          if [ -d "rl" ] && [ "$(ls -A rl)" ]; then
-            echo "📦 Packaging models..."
-            tar -czf "models-${timestamp}.tar.gz" rl/ 2>/dev/null || echo "⚠️ Packaging completed with warnings"
-            
-            if [ -f "models-${timestamp}.tar.gz" ]; then
-              echo "🚀 Uploading to GitHub releases..."
-              tag="cloud-training-${timestamp}"
-              
-              # Create release with error handling
-              gh release create "$tag" \
-                --title "🤖 Cloud Training - $(date)" \
-                --notes "Automated cloud training run. Models updated every 6 hours. Generated at $(date -u)" \
-                "models-${timestamp}.tar.gz" || echo "⚠️ Release creation failed but continuing"
-                
-              echo "✅ Models packaged and upload attempted"
-            else
-              echo "❌ No models package created"
-            fi
-          else
-            echo "⚠️ No models found to package"
-          fi
-          
-      - name: "✅ Training Summary"
-        run: |
-          echo ""
-          echo "🎯 Cloud ML Training Pipeline Complete!"
-          echo "=================================="
-          echo "📊 Training Data: ✅ Generated"
-          echo "🤖 Model Training: ✅ Attempted"
-          echo "� Model Packaging: ✅ Attempted"
-          echo "☁️ Cloud Upload: ✅ Attempted"
-          echo ""
-          echo "🔄 Next training scheduled in 6 hours"
-          echo "⏰ Current time: $(date -u)"
-          echo "📈 Training frequency: Every 6 hours (4x daily)"
+    - name: "\U0001F4E5 Checkout Code"
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - name: "\U0001F40D Setup Python"
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: pip
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: "\U0001F4E6 Install ML Dependencies"
+      run: 'pip install --upgrade pip
+
+        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision numpy pandas
+
+        pip install --retry-delays 1,2,3 --timeout 60 stable-baselines3
+
+        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn matplotlib joblib
+
+        pip install --retry-delays 1,2,3 --timeout 60 gymnasium || pip install gym
+
+        '
+    - name: "\U0001F4CA Prepare Training Data"
+      run: "mkdir -p Intelligence/data/training models/rl\npython << 'EOF'\nimport\
+        \ pandas as pd\nimport numpy as np\nfrom datetime import datetime\nimport\
+        \ os\n\n# Create training data directory\nos.makedirs('Intelligence/data/training',\
+        \ exist_ok=True)\n\ntry:\n    # Create synthetic training data\n    data =\
+        \ pd.DataFrame({\n        'timestamp': pd.date_range('2024-01-01', periods=1000,\
+        \ freq='5min'),\n        'price': np.random.randn(1000).cumsum() + 4500,\n\
+        \        'volume': np.random.randint(1000, 10000, 1000),\n        'returns':\
+        \ np.random.randn(1000) * 0.01,\n        'volatility': np.random.exponential(0.02,\
+        \ 1000)\n    })\n    \n    data.to_csv('Intelligence/data/training/data.csv',\
+        \ index=False)\n    print(f'\u2705 Created training data with {len(data)}\
+        \ samples')\nexcept Exception as e:\n    print(f'\u274C Error creating training\
+        \ data: {e}')\n    # Create minimal fallback data\n    fallback_data = pd.DataFrame({\n\
+        \        'timestamp': pd.date_range('2024-01-01', periods=100, freq='5min'),\n\
+        \        'price': np.random.randn(100).cumsum() + 4500,\n        'volume':\
+        \ np.random.randint(1000, 10000, 100),\n        'returns': np.random.randn(100)\
+        \ * 0.01,\n        'volatility': np.random.exponential(0.02, 100)\n    })\n\
+        \    fallback_data.to_csv('Intelligence/data/training/data.csv', index=False)\n\
+        \    print(f'\u2705 Created fallback data with {len(fallback_data)} samples')\n\
+        EOF\n"
+    - name: "\U0001F916 Train Models"
+      run: "echo \"\U0001F680 Starting CVaR PPO model training...\"\n\n# Ensure directories\
+        \ exist\nmkdir -p models/rl\n\n# Check if training script exists\nif [ -f\
+        \ \"ml/rl/train_cvar_ppo.py\" ]; then\n  echo \"\u2705 Training script found\"\
+        \n  python ml/rl/train_cvar_ppo.py --data Intelligence/data/training/data.csv\
+        \ --save_dir models/rl/ || echo \"\u26A0\uFE0F Training completed with warnings\"\
+        \nelse\n  echo \"\u274C Training script not found, creating minimal model...\"\
+        \n  python << 'EOF'\nimport os\nimport pickle\nimport numpy as np\n\n# Create\
+        \ models directory\nos.makedirs('models/rl', exist_ok=True)\n\n# Create a\
+        \ placeholder model file\nmodel_data = {\n    'type': 'cvar_ppo_placeholder',\n\
+        \    'timestamp': '$(date -u +\"%Y-%m-%d %H:%M:%S UTC\")',\n    'weights':\
+        \ np.random.randn(10, 10).tolist(),\n    'status': 'cloud_trained'\n}\n\n\
+        with open('models/rl/cvar_ppo_model.pkl', 'wb') as f:\n    pickle.dump(model_data,\
+        \ f)\n    \nprint(\"\u2705 Created placeholder model\")\nEOF\nfi\n"
+    - name: "\U0001F4E6 Package and Upload Models"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: "# Install GitHub CLI if not available\nif ! command -v gh &> /dev/null;\
+        \ then\n  echo \"Installing GitHub CLI...\"\n  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg\
+        \ | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg\n  echo \"\
+        deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg]\
+        \ https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list\
+        \ > /dev/null\n  sudo apt update\n  sudo apt install gh -y\nfi\n\ncd models\n\
+        timestamp=$(date +%Y%m%d-%H%M)\n\n# Check if models exist before packaging\n\
+        if [ -d \"rl\" ] && [ \"$(ls -A rl)\" ]; then\n  echo \"\U0001F4E6 Packaging\
+        \ models...\"\n  tar -czf \"models-${timestamp}.tar.gz\" rl/ 2>/dev/null ||\
+        \ echo \"\u26A0\uFE0F Packaging completed with warnings\"\n  \n  if [ -f \"\
+        models-${timestamp}.tar.gz\" ]; then\n    echo \"\U0001F680 Uploading to GitHub\
+        \ releases...\"\n    tag=\"cloud-training-${timestamp}\"\n    \n    # Create\
+        \ release with error handling\n    gh release create \"$tag\" \\\n      --title\
+        \ \"\U0001F916 Cloud Training - $(date)\" \\\n      --notes \"Automated cloud\
+        \ training run. Models updated every 6 hours. Generated at $(date -u)\" \\\
+        \n      \"models-${timestamp}.tar.gz\" || echo \"\u26A0\uFE0F Release creation\
+        \ failed but continuing\"\n      \n    echo \"\u2705 Models packaged and upload\
+        \ attempted\"\n  else\n    echo \"\u274C No models package created\"\n  fi\n\
+        else\n  echo \"\u26A0\uFE0F No models found to package\"\nfi\n"
+    - name: "\u2705 Training Summary"
+      run: "echo \"\"\necho \"\U0001F3AF Cloud ML Training Pipeline Complete!\"\n\
+        echo \"==================================\"\necho \"\U0001F4CA Training Data:\
+        \ \u2705 Generated\"\necho \"\U0001F916 Model Training: \u2705 Attempted\"\
+        \necho \"\uFFFD Model Packaging: \u2705 Attempted\"\necho \"\u2601\uFE0F Cloud\
+        \ Upload: \u2705 Attempted\"\necho \"\"\necho \"\U0001F504 Next training scheduled\
+        \ in 6 hours\"\necho \"\u23F0 Current time: $(date -u)\"\necho \"\U0001F4C8\
+        \ Training frequency: Every 6 hours (4x daily)\"\n"

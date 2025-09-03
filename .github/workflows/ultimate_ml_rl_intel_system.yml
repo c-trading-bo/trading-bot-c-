@@ -1,1260 +1,687 @@
-# Ultimate 24/7 ML/RL/Intelligence System - Master Orchestrator
 name: Ultimate ML/RL/Intel System (Team Optimized)
-
-on:
+true:
   schedule:
-    # FUTURES 24/5 ML/RL SYSTEM - EXTENDED HOURS
-    # Asian Session  
-    - cron: '*/20 23-23 * * 0'      # Sunday 6PM EST start
-    - cron: '*/20 0-4 * * 1-5'      # Asian session (6PM-11PM EST)
-    # European Session
-    - cron: '*/30 7-12 * * 1-5'     # European hours (2AM-7AM EST)
-    # US Trading Hours (MOST FREQUENT)
-    - cron: '*/15 14-15 * * 1-5'    # Market open (9:30-10:30 AM EST)
-    - cron: '*/20 15-20 * * 1-5'    # Midday (10:30 AM-3:00 PM EST)  
-    - cron: '*/15 20-21 * * 1-5'    # Close (3:00-4:00 PM EST)
-    # After Hours
-    - cron: '*/30 21-23 * * 1-4'    # After hours Mon-Thu
-    - cron: '*/20 21-22 * * 5'      # Friday until close
-    # Overnight base frequency
-    - cron: '0 5,6 * * 1-5'         # Reduced during quiet hours (12AM-1AM EST)
-    # Total: ~44 runs/day with 24/5 coverage
+  - cron: '*/20 23-23 * * 0'
+  - cron: '*/20 0-4 * * 1-5'
+  - cron: '*/30 7-12 * * 1-5'
+  - cron: '*/15 14-15 * * 1-5'
+  - cron: '*/20 15-20 * * 1-5'
+  - cron: '*/15 20-21 * * 1-5'
+  - cron: '*/30 21-23 * * 1-4'
+  - cron: '*/20 21-22 * * 5'
+  - cron: 0 5,6 * * 1-5
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Execution mode'
+        description: Execution mode
         required: true
-        default: 'full'
+        default: full
         type: choice
         options:
-          - full
-          - data_only
-          - training_only
-          - intelligence_only
-
+        - full
+        - data_only
+        - training_only
+        - intelligence_only
 env:
   PYTHON_VERSION: '3.9'
-  TZ: 'UTC'
-
+  TZ: UTC
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
-  # ============================================
-  # JOB 1: COMPLETE DATA COLLECTION
-  # ============================================
   collect-everything:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'data_only' || github.event.inputs.mode == ''
-    
+    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'data_only'
+      || github.event.inputs.mode == ''
     steps:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
-        fetch-depth: 0  # Full history for analysis
-    
+        fetch-depth: 0
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-    
+        cache: pip
     - name: Cache TA-Lib and Dependencies
       uses: actions/cache@v3
       with:
-        path: |
-          ~/.cache/pip
+        path: '~/.cache/pip
+
           /usr/lib/libta_lib*
+
           /usr/include/ta-lib/
+
+          '
         key: ${{ runner.os }}-deps-talib-${{ hashFiles('**/requirements*.txt') }}
-        
     - name: Install System Dependencies
-      run: |
-        sudo apt-get update
+      run: 'sudo apt-get update
+
         sudo apt-get install -y wget tar build-essential
-    
+
+        '
     - name: Install TA-Lib C Library
-      run: |
-        if [ ! -f /usr/lib/libta_lib.so ]; then
-          echo "Installing TA-Lib C library from source..."
-          wget -q http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz || echo "TA-Lib download failed, continuing..."
-          if [ -f ta-lib-0.4.0-src.tar.gz ]; then
-            tar -xzf ta-lib-0.4.0-src.tar.gz
-            cd ta-lib/
-            ./configure --prefix=/usr --quiet
-            make -s
-            sudo make install -s
-            cd ..
-            sudo ldconfig
-            echo "✅ TA-Lib C library installed successfully"
-          else
-            echo "⚠️ TA-Lib source not available, using fallback"
-          fi
-        else
-          echo "✅ TA-Lib C library already cached"
-        fi
-    
+      run: "if [ ! -f /usr/lib/libta_lib.so ]; then\n  echo \"Installing TA-Lib C\
+        \ library from source...\"\n  wget -q http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz\
+        \ || echo \"TA-Lib download failed, continuing...\"\n  if [ -f ta-lib-0.4.0-src.tar.gz\
+        \ ]; then\n    tar -xzf ta-lib-0.4.0-src.tar.gz\n    cd ta-lib/\n    ./configure\
+        \ --prefix=/usr --quiet\n    make -s\n    sudo make install -s\n    cd ..\n\
+        \    sudo ldconfig\n    echo \"\u2705 TA-Lib C library installed successfully\"\
+        \n  else\n    echo \"\u26A0\uFE0F TA-Lib source not available, using fallback\"\
+        \n  fi\nelse\n  echo \"\u2705 TA-Lib C library already cached\"\nfi\n"
     - name: Install Core Python Dependencies
-      run: |
-        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+      run: 'pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+
         # Essential core dependencies only
+
         pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
+
         # Technical analysis (with fallbacks)
-        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
+
+        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta
+        || echo "TA-Lib install failed, using numpy fallback"
+
         # Lightweight ML dependencies
+
         pip install --retry-delays 1,2,3 --timeout 60 scikit-learn
+
         # Data collection essentials
+
         pip install --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
+
         # News processing essentials
-        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
-        
+
+        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup
+        install failed, skipping"
+
+        '
     - name: Install Optional Heavy Dependencies
       continue-on-error: true
-      run: |
-        # These are optional - workflow continues if they fail
-        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
-        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
-    
-    # ----------------------------------------
-    # MARKET DATA COLLECTION (Simplified & Robust)
-    # ----------------------------------------
-    - name: Collect Essential Market Data
-      run: |
-        python << 'EOF'
-        import yfinance as yf
-        import pandas as pd
-        import numpy as np
-        import json
-        import os
-        import time
-        from datetime import datetime, timedelta
-        
-        def safe_feature_extract(data, symbol):
-            """Safely extract basic features with fallbacks"""
-            try:
-                if data.empty:
-                    return None
-                    
-                latest = data.iloc[-1]
-                features = []
-                
-                # Basic price features (safe)
-                features.extend([
-                    float(latest.get('Open', 0)),
-                    float(latest.get('High', 0)), 
-                    float(latest.get('Low', 0)),
-                    float(latest.get('Close', 0)),
-                    float(latest.get('Volume', 0)) / 1e6
-                ])
-                
-                # Simple calculations with safety
-                try:
-                    price_change = (latest['Close'] - latest['Open']) / latest['Open'] if latest['Open'] > 0 else 0
-                    features.append(float(price_change))
-                except:
-                    features.append(0.0)
-                
-                # Pad to minimum feature count
-                while len(features) < 20:
-                    features.append(0.0)
-                    
-                return features[:20]  # Return exactly 20 features
-                
-            except Exception as e:
-                print(f"[FEATURE] Error extracting features for {symbol}: {e}")
-                return [0.0] * 20  # Return zero features on error
-        
-        print(f"[MARKET] Starting essential data collection at {datetime.utcnow()}")
-        
-        # Create directories safely
-        for dir_path in ["Intelligence/data/market/live", "Intelligence/data/training"]:
-            os.makedirs(dir_path, exist_ok=True)
-        
-        # Essential symbols only (reduce load)
-        symbols = {
-            'indices': ['SPY', 'QQQ', 'IWM'],
-            'futures': ['ES=F', 'NQ=F'],
-            'volatility': ['^VIX']
-        }
-        
-        all_data = {}
-        training_samples = []
-        successful_collections = 0
-        
-        for category, symbol_list in symbols.items():
-            for i, symbol in enumerate(symbol_list):
-                try:
-                    # Add delay to prevent rate limiting
-                    if i > 0:
-                        time.sleep(1)
-                    
-                    print(f"[MARKET] Collecting {symbol}...")
-                    ticker = yf.Ticker(symbol)
-                    
-                    # Get data with retries
-                    data = None
-                    for attempt in range(2):
-                        try:
-                            data = ticker.history(period='1d', interval='5m')  # Use 5min to reduce load
-                            if not data.empty:
-                                break
-                        except:
-                            time.sleep(2)
-                    
-                    if data is not None and not data.empty:
-                        latest = data.iloc[-1]
-                        features = safe_feature_extract(data, symbol)
-                        
-                        if features:
-                            all_data[symbol] = {
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'category': category,
-                                'price': float(latest['Close']),
-                                'volume': int(latest.get('Volume', 0)),
-                                'features': features,
-                                'status': 'success'
-                            }
-                            
-                            training_samples.append({
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'symbol': symbol,
-                                'features': features,
-                                'price': float(latest['Close']),
-                                'category': category
-                            })
-                            
-                            successful_collections += 1
-                            print(f"[MARKET] ✅ {symbol}: ${latest['Close']:.2f}")
-                        else:
-                            print(f"[MARKET] ⚠️ {symbol}: Feature extraction failed")
-                    else:
-                        print(f"[MARKET] ❌ {symbol}: No data available")
-                        
-                except Exception as e:
-                    print(f"[MARKET] ❌ {symbol}: {e}")
-                    continue
-        
-        # Always save results (even if partial)
-        try:
-            # Save latest snapshot
-            with open("Intelligence/data/market/latest.json", 'w') as f:
-                json.dump(all_data, f, indent=2)
-            
-            # Save training samples if any
-            if training_samples:
-                training_file = f"Intelligence/data/training/samples_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.jsonl"
-                with open(training_file, 'w') as f:
-                    for sample in training_samples:
-                        f.write(json.dumps(sample) + '\n')
-            
-            print(f"[MARKET] ✅ Collection complete: {successful_collections} symbols successful")
-            
-        except Exception as e:
-            print(f"[MARKET] ❌ Save error: {e}")
-        
-        # Success if we got any data
-        if successful_collections > 0:
-            print(f"[MARKET] ✅ Data collection SUCCESS")
-        else:
-            print(f"[MARKET] ⚠️ Data collection completed with no data (not failing workflow)")
-            
-        EOF
-    
-    # ----------------------------------------
-    # NEWS COLLECTION (Enhanced with Sentiment)
-    # ----------------------------------------
-    - name: Collect News & Advanced Sentiment Analysis
-      run: |
-        python << 'EOF'
-        import feedparser
-        import requests
-        import json
-        import os
-        from datetime import datetime
-        import re
-        
-        print(f"[NEWS] Starting comprehensive news collection at {datetime.utcnow()}")
-        
-        os.makedirs("Intelligence/data/news/raw", exist_ok=True)
-        
-        all_articles = []
-        sentiment_scores = []
-        volatility_indicators = {
-            'fomc_detected': False,
-            'cpi_detected': False,
-            'nfp_detected': False,
-            'earnings_detected': False,
-            'panic_detected': False,
-            'euphoria_detected': False,
-            'major_event_score': 0
-        }
-        
-        # Enhanced RSS feed sources
-        yahoo_feeds = [
-            "https://finance.yahoo.com/rss/topfinstories",
-            "https://feeds.finance.yahoo.com/rss/2.0/headline",
-            "https://finance.yahoo.com/news/rssindex",
-            "https://finance.yahoo.com/rss/marketreports"
-        ]
-        
-        for feed_url in yahoo_feeds:
-            try:
-                feed = feedparser.parse(feed_url)
-                for entry in feed.entries[:20]:
-                    title = entry.get('title', '')
-                    summary = entry.get('summary', '')
-                    full_text = f"{title} {summary}".lower()
-                    
-                    # Advanced sentiment analysis
-                    sentiment = 0
-                    
-                    # Bullish words with weights
-                    strong_bullish = ['surge', 'soar', 'moon', 'squeeze', 'breakout', 'ath', 'rocket']
-                    moderate_bullish = ['rally', 'gain', 'up', 'buy', 'bull', 'calls', 'long', 'growth']
-                    weak_bullish = ['positive', 'improve', 'recover', 'support', 'bid']
-                    
-                    # Bearish words with weights
-                    strong_bearish = ['crash', 'plunge', 'collapse', 'dump', 'capitulation', 'panic']
-                    moderate_bearish = ['fall', 'drop', 'down', 'sell', 'bear', 'puts', 'short', 'decline']
-                    weak_bearish = ['negative', 'concern', 'worry', 'resistance', 'weak']
-                    
-                    # Calculate weighted sentiment
-                    for word in strong_bullish:
-                        if word in full_text:
-                            sentiment += 3
-                    for word in moderate_bullish:
-                        if word in full_text:
-                            sentiment += 2
-                    for word in weak_bullish:
-                        if word in full_text:
-                            sentiment += 1
-                    for word in strong_bearish:
-                        if word in full_text:
-                            sentiment -= 3
-                    for word in moderate_bearish:
-                        if word in full_text:
-                            sentiment -= 2
-                    for word in weak_bearish:
-                        if word in full_text:
-                            sentiment -= 1
-                    
-                    # Normalize sentiment
-                    sentiment = max(-10, min(10, sentiment)) / 10
-                    
-                    # Check for volatility events
-                    if any(word in full_text for word in ['fomc', 'federal reserve', 'powell', 'rate decision']):
-                        volatility_indicators['fomc_detected'] = True
-                        volatility_indicators['major_event_score'] += 5
-                    
-                    if any(word in full_text for word in ['cpi', 'inflation', 'consumer price', 'pce']):
-                        volatility_indicators['cpi_detected'] = True
-                        volatility_indicators['major_event_score'] += 4
-                    
-                    if any(word in full_text for word in ['nfp', 'non-farm', 'payroll', 'unemployment']):
-                        volatility_indicators['nfp_detected'] = True
-                        volatility_indicators['major_event_score'] += 4
-                    
-                    if any(word in full_text for word in ['earnings', 'eps', 'revenue', 'guidance']):
-                        volatility_indicators['earnings_detected'] = True
-                        volatility_indicators['major_event_score'] += 2
-                    
-                    all_articles.append({
-                        'title': title,
-                        'summary': summary[:500],
-                        'published': entry.get('published', datetime.utcnow().isoformat()),
-                        'link': entry.get('link', ''),
-                        'source': 'yahoo_finance',
-                        'sentiment': sentiment,
-                        'has_numbers': bool(re.search(r'\d+\.?\d*%', full_text))
-                    })
-                    sentiment_scores.append(sentiment)
-                    
-            except Exception as e:
-                print(f"[NEWS] Yahoo error: {e}")
-        
-        # Calculate aggregate metrics
-        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
-        news_intensity = min(1.0, len(all_articles) / 50)
-        
-        # Determine market regime from news
-        if volatility_indicators['fomc_detected'] or volatility_indicators['cpi_detected']:
-            regime_hint = "volatile"
-        elif avg_sentiment > 0.3:
-            regime_hint = "bullish"
-        elif avg_sentiment < -0.3:
-            regime_hint = "bearish"
-        else:
-            regime_hint = "neutral"
-        
-        # Save comprehensive news data
-        news_data = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'article_count': len(all_articles),
-            'avg_sentiment': avg_sentiment,
-            'news_intensity': news_intensity,
-            'volatility_score': volatility_indicators['major_event_score'],
-            'events': volatility_indicators,
-            'regime_hint': regime_hint,
-            'articles': all_articles[:50]  # Top 50 articles
-        }
-        
-        with open("Intelligence/data/news/latest.json", 'w') as f:
-            json.dump(news_data, f, indent=2)
-        
-        # Archive with timestamp
-        archive_file = f"Intelligence/data/news/raw/news_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(archive_file, 'w') as f:
-            json.dump(news_data, f, indent=2)
-        
-        print(f"[NEWS] Collected {len(all_articles)} articles, sentiment: {avg_sentiment:.2f}, intensity: {news_intensity:.2f}")
-        
-        EOF
-    
-    # ----------------------------------------
-    # SUPPLY/DEMAND ZONES (Enhanced)
-    # ----------------------------------------
-    - name: Identify Enhanced Supply/Demand Zones
-      run: |
-        python << 'EOF'
-        import yfinance as yf
-        import pandas as pd
-        import numpy as np
-        import json
-        import os
-        from datetime import datetime, timedelta
-        
-        print(f"[ZONES] Identifying enhanced supply/demand zones at {datetime.utcnow()}")
-        
-        os.makedirs("Intelligence/data/zones", exist_ok=True)
-        
-        # Fetch multiple timeframes for ES futures
-        ticker = yf.Ticker('ES=F')
-        
-        # Get different timeframes
-        data_1h = ticker.history(period='1mo', interval='1h')
-        data_4h = ticker.history(period='3mo', interval='1d')  # Use daily as proxy for 4h
-        data_1d = ticker.history(period='6mo', interval='1d')
-        
-        zones = {
-            'supply': [],
-            'demand': [],
-            'timeframes': {}
-        }
-        
-        # Analyze each timeframe
-        for timeframe, data in [('1h', data_1h), ('4h', data_4h), ('1d', data_1d)]:
-            if len(data) > 20:
-                tf_zones = {'supply': [], 'demand': []}
-                
-                # Volume analysis
-                avg_volume = data['Volume'].rolling(20).mean()
-                
-                for i in range(20, len(data) - 5):
-                    current = data.iloc[i]
-                    
-                    # Volume spike detection
-                    if current['Volume'] > avg_volume.iloc[i] * 1.5:
-                        # Check price action after volume spike
-                        future_prices = data.iloc[i+1:min(i+6, len(data))]
-                        
-                        if len(future_prices) > 0:
-                            price_change = (future_prices['Close'].iloc[-1] - current['Close']) / current['Close']
-                            
-                            # Supply zone (selling pressure)
-                            if price_change < -0.003:
-                                zone = {
-                                    'price_level': float(current['High']),
-                                    'zone_top': float(current['High'] * 1.002),
-                                    'zone_bottom': float(current['High'] * 0.998),
-                                    'strength': min(100, abs(price_change) * 5000),
-                                    'volume': int(current['Volume']),
-                                    'timeframe': timeframe,
-                                    'created': data.index[i].isoformat(),
-                                    'touches': 0,
-                                    'active': True
-                                }
-                                tf_zones['supply'].append(zone)
-                            
-                            # Demand zone (buying pressure)
-                            elif price_change > 0.003:
-                                zone = {
-                                    'price_level': float(current['Low']),
-                                    'zone_top': float(current['Low'] * 1.002),
-                                    'zone_bottom': float(current['Low'] * 0.998),
-                                    'strength': min(100, abs(price_change) * 5000),
-                                    'volume': int(current['Volume']),
-                                    'timeframe': timeframe,
-                                    'created': data.index[i].isoformat(),
-                                    'touches': 0,
-                                    'active': True
-                                }
-                                tf_zones['demand'].append(zone)
-                
-                # Keep top zones per timeframe
-                tf_zones['supply'] = sorted(tf_zones['supply'], key=lambda x: x['strength'], reverse=True)[:5]
-                tf_zones['demand'] = sorted(tf_zones['demand'], key=lambda x: x['strength'], reverse=True)[:5]
-                
-                zones['timeframes'][timeframe] = tf_zones
-                zones['supply'].extend(tf_zones['supply'])
-                zones['demand'].extend(tf_zones['demand'])
-        
-        # Volume Profile Analysis (Point of Control)
-        if len(data_1h) > 0:
-            price_bins = pd.cut(data_1h['Close'], bins=50)
-            volume_profile = data_1h.groupby(price_bins)['Volume'].sum()
-            poc_bin = volume_profile.idxmax()
-            if poc_bin is not None:
-                poc_price = poc_bin.mid
-            else:
-                poc_price = data_1h['Close'].mean()
-        else:
-            poc_price = 0
-        
-        # Final zone compilation
-        current_price = float(data_1h['Close'].iloc[-1]) if len(data_1h) > 0 else 0
-        
-        # Sort and deduplicate zones
-        zones['supply'] = sorted(zones['supply'], key=lambda x: x['strength'], reverse=True)[:10]
-        zones['demand'] = sorted(zones['demand'], key=lambda x: x['strength'], reverse=True)[:10]
-        
-        # Find nearest zones
-        nearest_supply = None
-        nearest_demand = None
-        
-        if zones['supply']:
-            above_zones = [z for z in zones['supply'] if z['price_level'] > current_price]
-            if above_zones:
-                nearest_supply = min(above_zones, key=lambda x: x['price_level'] - current_price)
-        
-        if zones['demand']:
-            below_zones = [z for z in zones['demand'] if z['price_level'] < current_price]
-            if below_zones:
-                nearest_demand = max(below_zones, key=lambda x: x['price_level'])
-        
-        # Save comprehensive zone data
-        zone_data = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'symbol': 'ES=F',
-            'current_price': current_price,
-            'supply_zones': zones['supply'],
-            'demand_zones': zones['demand'],
-            'poc': float(poc_price),
-            'nearest_supply': {
-                'price': nearest_supply['price_level'],
-                'distance': nearest_supply['price_level'] - current_price,
-                'strength': nearest_supply['strength']
-            } if nearest_supply else None,
-            'nearest_demand': {
-                'price': nearest_demand['price_level'],
-                'distance': current_price - nearest_demand['price_level'],
-                'strength': nearest_demand['strength']
-            } if nearest_demand else None,
-            'statistics': {
-                'total_supply_zones': len(zones['supply']),
-                'total_demand_zones': len(zones['demand']),
-                'timeframes_analyzed': list(zones['timeframes'].keys())
-            }
-        }
-        
-        # Save active zones
-        with open("Intelligence/data/zones/active_zones.json", 'w') as f:
-            json.dump(zone_data, f, indent=2)
-        
-        # Archive with timestamp
-        archive_file = f"Intelligence/data/zones/zones_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(archive_file, 'w') as f:
-            json.dump(zone_data, f, indent=2)
-        
-        print(f"[ZONES] Identified {len(zones['supply'])} supply and {len(zones['demand'])} demand zones")
-        print(f"[ZONES] Current: ${current_price:.2f}, POC: ${poc_price:.2f}")
-        
-        EOF
-    
-    - name: Commit All Data Collection
-      run: |
-        git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git config --local user.email "ml-bot@github.com"
-        git config --local user.name "ML Learning Bot"
-        git add Intelligence/data/
-        git diff --staged --quiet || git commit -m "📊 Ultimate data collection $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push --force-with-lease || true
+      run: '# These are optional - workflow continues if they fail
 
-  # ============================================
-  # JOB 2: TRAIN ALL ML/RL MODELS
-  # ============================================
+        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install
+        failed, skipping"
+
+        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install
+        failed, skipping"
+
+        '
+    - name: Collect Essential Market Data
+      run: "python << 'EOF'\nimport yfinance as yf\nimport pandas as pd\nimport numpy\
+        \ as np\nimport json\nimport os\nimport time\nfrom datetime import datetime,\
+        \ timedelta\n\ndef safe_feature_extract(data, symbol):\n    \"\"\"Safely extract\
+        \ basic features with fallbacks\"\"\"\n    try:\n        if data.empty:\n\
+        \            return None\n            \n        latest = data.iloc[-1]\n \
+        \       features = []\n        \n        # Basic price features (safe)\n \
+        \       features.extend([\n            float(latest.get('Open', 0)),\n   \
+        \         float(latest.get('High', 0)), \n            float(latest.get('Low',\
+        \ 0)),\n            float(latest.get('Close', 0)),\n            float(latest.get('Volume',\
+        \ 0)) / 1e6\n        ])\n        \n        # Simple calculations with safety\n\
+        \        try:\n            price_change = (latest['Close'] - latest['Open'])\
+        \ / latest['Open'] if latest['Open'] > 0 else 0\n            features.append(float(price_change))\n\
+        \        except:\n            features.append(0.0)\n        \n        # Pad\
+        \ to minimum feature count\n        while len(features) < 20:\n          \
+        \  features.append(0.0)\n            \n        return features[:20]  # Return\
+        \ exactly 20 features\n        \n    except Exception as e:\n        print(f\"\
+        [FEATURE] Error extracting features for {symbol}: {e}\")\n        return [0.0]\
+        \ * 20  # Return zero features on error\n\nprint(f\"[MARKET] Starting essential\
+        \ data collection at {datetime.utcnow()}\")\n\n# Create directories safely\n\
+        for dir_path in [\"Intelligence/data/market/live\", \"Intelligence/data/training\"\
+        ]:\n    os.makedirs(dir_path, exist_ok=True)\n\n# Essential symbols only (reduce\
+        \ load)\nsymbols = {\n    'indices': ['SPY', 'QQQ', 'IWM'],\n    'futures':\
+        \ ['ES=F', 'NQ=F'],\n    'volatility': ['^VIX']\n}\n\nall_data = {}\ntraining_samples\
+        \ = []\nsuccessful_collections = 0\n\nfor category, symbol_list in symbols.items():\n\
+        \    for i, symbol in enumerate(symbol_list):\n        try:\n            #\
+        \ Add delay to prevent rate limiting\n            if i > 0:\n            \
+        \    time.sleep(1)\n            \n            print(f\"[MARKET] Collecting\
+        \ {symbol}...\")\n            ticker = yf.Ticker(symbol)\n            \n \
+        \           # Get data with retries\n            data = None\n           \
+        \ for attempt in range(2):\n                try:\n                    data\
+        \ = ticker.history(period='1d', interval='5m')  # Use 5min to reduce load\n\
+        \                    if not data.empty:\n                        break\n \
+        \               except:\n                    time.sleep(2)\n            \n\
+        \            if data is not None and not data.empty:\n                latest\
+        \ = data.iloc[-1]\n                features = safe_feature_extract(data, symbol)\n\
+        \                \n                if features:\n                    all_data[symbol]\
+        \ = {\n                        'timestamp': datetime.utcnow().isoformat(),\n\
+        \                        'category': category,\n                        'price':\
+        \ float(latest['Close']),\n                        'volume': int(latest.get('Volume',\
+        \ 0)),\n                        'features': features,\n                  \
+        \      'status': 'success'\n                    }\n                    \n\
+        \                    training_samples.append({\n                        'timestamp':\
+        \ datetime.utcnow().isoformat(),\n                        'symbol': symbol,\n\
+        \                        'features': features,\n                        'price':\
+        \ float(latest['Close']),\n                        'category': category\n\
+        \                    })\n                    \n                    successful_collections\
+        \ += 1\n                    print(f\"[MARKET] \u2705 {symbol}: ${latest['Close']:.2f}\"\
+        )\n                else:\n                    print(f\"[MARKET] \u26A0\uFE0F\
+        \ {symbol}: Feature extraction failed\")\n            else:\n            \
+        \    print(f\"[MARKET] \u274C {symbol}: No data available\")\n           \
+        \     \n        except Exception as e:\n            print(f\"[MARKET] \u274C\
+        \ {symbol}: {e}\")\n            continue\n\n# Always save results (even if\
+        \ partial)\ntry:\n    # Save latest snapshot\n    with open(\"Intelligence/data/market/latest.json\"\
+        , 'w') as f:\n        json.dump(all_data, f, indent=2)\n    \n    # Save training\
+        \ samples if any\n    if training_samples:\n        training_file = f\"Intelligence/data/training/samples_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.jsonl\"\
+        \n        with open(training_file, 'w') as f:\n            for sample in training_samples:\n\
+        \                f.write(json.dumps(sample) + '\\n')\n    \n    print(f\"\
+        [MARKET] \u2705 Collection complete: {successful_collections} symbols successful\"\
+        )\n    \nexcept Exception as e:\n    print(f\"[MARKET] \u274C Save error:\
+        \ {e}\")\n\n# Success if we got any data\nif successful_collections > 0:\n\
+        \    print(f\"[MARKET] \u2705 Data collection SUCCESS\")\nelse:\n    print(f\"\
+        [MARKET] \u26A0\uFE0F Data collection completed with no data (not failing\
+        \ workflow)\")\n    \nEOF\n"
+    - name: Collect News & Advanced Sentiment Analysis
+      run: "python << 'EOF'\nimport feedparser\nimport requests\nimport json\nimport\
+        \ os\nfrom datetime import datetime\nimport re\n\nprint(f\"[NEWS] Starting\
+        \ comprehensive news collection at {datetime.utcnow()}\")\n\nos.makedirs(\"\
+        Intelligence/data/news/raw\", exist_ok=True)\n\nall_articles = []\nsentiment_scores\
+        \ = []\nvolatility_indicators = {\n    'fomc_detected': False,\n    'cpi_detected':\
+        \ False,\n    'nfp_detected': False,\n    'earnings_detected': False,\n  \
+        \  'panic_detected': False,\n    'euphoria_detected': False,\n    'major_event_score':\
+        \ 0\n}\n\n# Enhanced RSS feed sources\nyahoo_feeds = [\n    \"https://finance.yahoo.com/rss/topfinstories\"\
+        ,\n    \"https://feeds.finance.yahoo.com/rss/2.0/headline\",\n    \"https://finance.yahoo.com/news/rssindex\"\
+        ,\n    \"https://finance.yahoo.com/rss/marketreports\"\n]\n\nfor feed_url\
+        \ in yahoo_feeds:\n    try:\n        feed = feedparser.parse(feed_url)\n \
+        \       for entry in feed.entries[:20]:\n            title = entry.get('title',\
+        \ '')\n            summary = entry.get('summary', '')\n            full_text\
+        \ = f\"{title} {summary}\".lower()\n            \n            # Advanced sentiment\
+        \ analysis\n            sentiment = 0\n            \n            # Bullish\
+        \ words with weights\n            strong_bullish = ['surge', 'soar', 'moon',\
+        \ 'squeeze', 'breakout', 'ath', 'rocket']\n            moderate_bullish =\
+        \ ['rally', 'gain', 'up', 'buy', 'bull', 'calls', 'long', 'growth']\n    \
+        \        weak_bullish = ['positive', 'improve', 'recover', 'support', 'bid']\n\
+        \            \n            # Bearish words with weights\n            strong_bearish\
+        \ = ['crash', 'plunge', 'collapse', 'dump', 'capitulation', 'panic']\n   \
+        \         moderate_bearish = ['fall', 'drop', 'down', 'sell', 'bear', 'puts',\
+        \ 'short', 'decline']\n            weak_bearish = ['negative', 'concern',\
+        \ 'worry', 'resistance', 'weak']\n            \n            # Calculate weighted\
+        \ sentiment\n            for word in strong_bullish:\n                if word\
+        \ in full_text:\n                    sentiment += 3\n            for word\
+        \ in moderate_bullish:\n                if word in full_text:\n          \
+        \          sentiment += 2\n            for word in weak_bullish:\n       \
+        \         if word in full_text:\n                    sentiment += 1\n    \
+        \        for word in strong_bearish:\n                if word in full_text:\n\
+        \                    sentiment -= 3\n            for word in moderate_bearish:\n\
+        \                if word in full_text:\n                    sentiment -= 2\n\
+        \            for word in weak_bearish:\n                if word in full_text:\n\
+        \                    sentiment -= 1\n            \n            # Normalize\
+        \ sentiment\n            sentiment = max(-10, min(10, sentiment)) / 10\n \
+        \           \n            # Check for volatility events\n            if any(word\
+        \ in full_text for word in ['fomc', 'federal reserve', 'powell', 'rate decision']):\n\
+        \                volatility_indicators['fomc_detected'] = True\n         \
+        \       volatility_indicators['major_event_score'] += 5\n            \n  \
+        \          if any(word in full_text for word in ['cpi', 'inflation', 'consumer\
+        \ price', 'pce']):\n                volatility_indicators['cpi_detected']\
+        \ = True\n                volatility_indicators['major_event_score'] += 4\n\
+        \            \n            if any(word in full_text for word in ['nfp', 'non-farm',\
+        \ 'payroll', 'unemployment']):\n                volatility_indicators['nfp_detected']\
+        \ = True\n                volatility_indicators['major_event_score'] += 4\n\
+        \            \n            if any(word in full_text for word in ['earnings',\
+        \ 'eps', 'revenue', 'guidance']):\n                volatility_indicators['earnings_detected']\
+        \ = True\n                volatility_indicators['major_event_score'] += 2\n\
+        \            \n            all_articles.append({\n                'title':\
+        \ title,\n                'summary': summary[:500],\n                'published':\
+        \ entry.get('published', datetime.utcnow().isoformat()),\n               \
+        \ 'link': entry.get('link', ''),\n                'source': 'yahoo_finance',\n\
+        \                'sentiment': sentiment,\n                'has_numbers': bool(re.search(r'\\\
+        d+\\.?\\d*%', full_text))\n            })\n            sentiment_scores.append(sentiment)\n\
+        \            \n    except Exception as e:\n        print(f\"[NEWS] Yahoo error:\
+        \ {e}\")\n\n# Calculate aggregate metrics\navg_sentiment = sum(sentiment_scores)\
+        \ / len(sentiment_scores) if sentiment_scores else 0\nnews_intensity = min(1.0,\
+        \ len(all_articles) / 50)\n\n# Determine market regime from news\nif volatility_indicators['fomc_detected']\
+        \ or volatility_indicators['cpi_detected']:\n    regime_hint = \"volatile\"\
+        \nelif avg_sentiment > 0.3:\n    regime_hint = \"bullish\"\nelif avg_sentiment\
+        \ < -0.3:\n    regime_hint = \"bearish\"\nelse:\n    regime_hint = \"neutral\"\
+        \n\n# Save comprehensive news data\nnews_data = {\n    'timestamp': datetime.utcnow().isoformat(),\n\
+        \    'article_count': len(all_articles),\n    'avg_sentiment': avg_sentiment,\n\
+        \    'news_intensity': news_intensity,\n    'volatility_score': volatility_indicators['major_event_score'],\n\
+        \    'events': volatility_indicators,\n    'regime_hint': regime_hint,\n \
+        \   'articles': all_articles[:50]  # Top 50 articles\n}\n\nwith open(\"Intelligence/data/news/latest.json\"\
+        , 'w') as f:\n    json.dump(news_data, f, indent=2)\n\n# Archive with timestamp\n\
+        archive_file = f\"Intelligence/data/news/raw/news_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json\"\
+        \nwith open(archive_file, 'w') as f:\n    json.dump(news_data, f, indent=2)\n\
+        \nprint(f\"[NEWS] Collected {len(all_articles)} articles, sentiment: {avg_sentiment:.2f},\
+        \ intensity: {news_intensity:.2f}\")\n\nEOF\n"
+    - name: Identify Enhanced Supply/Demand Zones
+      run: "python << 'EOF'\nimport yfinance as yf\nimport pandas as pd\nimport numpy\
+        \ as np\nimport json\nimport os\nfrom datetime import datetime, timedelta\n\
+        \nprint(f\"[ZONES] Identifying enhanced supply/demand zones at {datetime.utcnow()}\"\
+        )\n\nos.makedirs(\"Intelligence/data/zones\", exist_ok=True)\n\n# Fetch multiple\
+        \ timeframes for ES futures\nticker = yf.Ticker('ES=F')\n\n# Get different\
+        \ timeframes\ndata_1h = ticker.history(period='1mo', interval='1h')\ndata_4h\
+        \ = ticker.history(period='3mo', interval='1d')  # Use daily as proxy for\
+        \ 4h\ndata_1d = ticker.history(period='6mo', interval='1d')\n\nzones = {\n\
+        \    'supply': [],\n    'demand': [],\n    'timeframes': {}\n}\n\n# Analyze\
+        \ each timeframe\nfor timeframe, data in [('1h', data_1h), ('4h', data_4h),\
+        \ ('1d', data_1d)]:\n    if len(data) > 20:\n        tf_zones = {'supply':\
+        \ [], 'demand': []}\n        \n        # Volume analysis\n        avg_volume\
+        \ = data['Volume'].rolling(20).mean()\n        \n        for i in range(20,\
+        \ len(data) - 5):\n            current = data.iloc[i]\n            \n    \
+        \        # Volume spike detection\n            if current['Volume'] > avg_volume.iloc[i]\
+        \ * 1.5:\n                # Check price action after volume spike\n      \
+        \          future_prices = data.iloc[i+1:min(i+6, len(data))]\n          \
+        \      \n                if len(future_prices) > 0:\n                    price_change\
+        \ = (future_prices['Close'].iloc[-1] - current['Close']) / current['Close']\n\
+        \                    \n                    # Supply zone (selling pressure)\n\
+        \                    if price_change < -0.003:\n                        zone\
+        \ = {\n                            'price_level': float(current['High']),\n\
+        \                            'zone_top': float(current['High'] * 1.002),\n\
+        \                            'zone_bottom': float(current['High'] * 0.998),\n\
+        \                            'strength': min(100, abs(price_change) * 5000),\n\
+        \                            'volume': int(current['Volume']),\n         \
+        \                   'timeframe': timeframe,\n                            'created':\
+        \ data.index[i].isoformat(),\n                            'touches': 0,\n\
+        \                            'active': True\n                        }\n \
+        \                       tf_zones['supply'].append(zone)\n                \
+        \    \n                    # Demand zone (buying pressure)\n             \
+        \       elif price_change > 0.003:\n                        zone = {\n   \
+        \                         'price_level': float(current['Low']),\n        \
+        \                    'zone_top': float(current['Low'] * 1.002),\n        \
+        \                    'zone_bottom': float(current['Low'] * 0.998),\n     \
+        \                       'strength': min(100, abs(price_change) * 5000),\n\
+        \                            'volume': int(current['Volume']),\n         \
+        \                   'timeframe': timeframe,\n                            'created':\
+        \ data.index[i].isoformat(),\n                            'touches': 0,\n\
+        \                            'active': True\n                        }\n \
+        \                       tf_zones['demand'].append(zone)\n        \n      \
+        \  # Keep top zones per timeframe\n        tf_zones['supply'] = sorted(tf_zones['supply'],\
+        \ key=lambda x: x['strength'], reverse=True)[:5]\n        tf_zones['demand']\
+        \ = sorted(tf_zones['demand'], key=lambda x: x['strength'], reverse=True)[:5]\n\
+        \        \n        zones['timeframes'][timeframe] = tf_zones\n        zones['supply'].extend(tf_zones['supply'])\n\
+        \        zones['demand'].extend(tf_zones['demand'])\n\n# Volume Profile Analysis\
+        \ (Point of Control)\nif len(data_1h) > 0:\n    price_bins = pd.cut(data_1h['Close'],\
+        \ bins=50)\n    volume_profile = data_1h.groupby(price_bins)['Volume'].sum()\n\
+        \    poc_bin = volume_profile.idxmax()\n    if poc_bin is not None:\n    \
+        \    poc_price = poc_bin.mid\n    else:\n        poc_price = data_1h['Close'].mean()\n\
+        else:\n    poc_price = 0\n\n# Final zone compilation\ncurrent_price = float(data_1h['Close'].iloc[-1])\
+        \ if len(data_1h) > 0 else 0\n\n# Sort and deduplicate zones\nzones['supply']\
+        \ = sorted(zones['supply'], key=lambda x: x['strength'], reverse=True)[:10]\n\
+        zones['demand'] = sorted(zones['demand'], key=lambda x: x['strength'], reverse=True)[:10]\n\
+        \n# Find nearest zones\nnearest_supply = None\nnearest_demand = None\n\nif\
+        \ zones['supply']:\n    above_zones = [z for z in zones['supply'] if z['price_level']\
+        \ > current_price]\n    if above_zones:\n        nearest_supply = min(above_zones,\
+        \ key=lambda x: x['price_level'] - current_price)\n\nif zones['demand']:\n\
+        \    below_zones = [z for z in zones['demand'] if z['price_level'] < current_price]\n\
+        \    if below_zones:\n        nearest_demand = max(below_zones, key=lambda\
+        \ x: x['price_level'])\n\n# Save comprehensive zone data\nzone_data = {\n\
+        \    'timestamp': datetime.utcnow().isoformat(),\n    'symbol': 'ES=F',\n\
+        \    'current_price': current_price,\n    'supply_zones': zones['supply'],\n\
+        \    'demand_zones': zones['demand'],\n    'poc': float(poc_price),\n    'nearest_supply':\
+        \ {\n        'price': nearest_supply['price_level'],\n        'distance':\
+        \ nearest_supply['price_level'] - current_price,\n        'strength': nearest_supply['strength']\n\
+        \    } if nearest_supply else None,\n    'nearest_demand': {\n        'price':\
+        \ nearest_demand['price_level'],\n        'distance': current_price - nearest_demand['price_level'],\n\
+        \        'strength': nearest_demand['strength']\n    } if nearest_demand else\
+        \ None,\n    'statistics': {\n        'total_supply_zones': len(zones['supply']),\n\
+        \        'total_demand_zones': len(zones['demand']),\n        'timeframes_analyzed':\
+        \ list(zones['timeframes'].keys())\n    }\n}\n\n# Save active zones\nwith\
+        \ open(\"Intelligence/data/zones/active_zones.json\", 'w') as f:\n    json.dump(zone_data,\
+        \ f, indent=2)\n\n# Archive with timestamp\narchive_file = f\"Intelligence/data/zones/zones_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json\"\
+        \nwith open(archive_file, 'w') as f:\n    json.dump(zone_data, f, indent=2)\n\
+        \nprint(f\"[ZONES] Identified {len(zones['supply'])} supply and {len(zones['demand'])}\
+        \ demand zones\")\nprint(f\"[ZONES] Current: ${current_price:.2f}, POC: ${poc_price:.2f}\"\
+        )\n\nEOF\n"
+    - name: Commit All Data Collection
+      run: "git config --global user.email \"ml-bot@github.com\"\ngit config --global\
+        \ user.name \"ML Bot\"\ngit config --local user.email \"ml-bot@github.com\"\
+        \ngit config --local user.name \"ML Learning Bot\"\ngit add Intelligence/data/\n\
+        git diff --staged --quiet || git commit -m \"\U0001F4CA Ultimate data collection\
+        \ $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease || true\n"
   train-everything:
     runs-on: ubuntu-latest
     needs: collect-everything
     timeout-minutes: 45
-    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'training_only' || github.event.inputs.mode == ''
-    
+    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'training_only'
+      || github.event.inputs.mode == ''
     steps:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-        ref: main  # Get latest data
-    
+        ref: main
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+        cache: pip
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
     - name: Install ML/RL Dependencies
-      run: |
-        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
-    
-    # ----------------------------------------
-    # TRAIN NEURAL BANDITS
-    # ----------------------------------------
-    - name: Train Neural Bandits for Strategy Selection
-      run: |
-        python << 'EOF'
-        import torch
-        import torch.nn as nn
-        import torch.optim as optim
-        import numpy as np
-        import json
-        import os
-        from glob import glob
-        from datetime import datetime
-        
-        print("[BANDITS] Training Neural Bandits for strategy selection...")
-        
-        os.makedirs("Intelligence/models/bandits", exist_ok=True)
-        
-        class NeuralBandit(nn.Module):
-            def __init__(self, input_dim=43, hidden_dim=128, n_arms=12):
-                super().__init__()
-                self.fc1 = nn.Linear(input_dim, hidden_dim)
-                self.fc2 = nn.Linear(hidden_dim, hidden_dim // 2)
-                self.fc3 = nn.Linear(hidden_dim // 2, n_arms)
-                self.dropout = nn.Dropout(0.2)
-                
-            def forward(self, x):
-                x = torch.relu(self.fc1(x))
-                x = self.dropout(x)
-                x = torch.relu(self.fc2(x))
-                return self.fc3(x)
-        
-        # Load all training data
-        training_data = []
-        for file in glob("Intelligence/data/training/*.jsonl"):
-            with open(file, 'r') as f:
-                for line in f:
-                    try:
-                        training_data.append(json.loads(line))
-                    except:
-                        pass
-        
-        print(f"[BANDITS] Loaded {len(training_data)} training samples")
-        
-        # Generate synthetic data if insufficient real data
-        if len(training_data) < 100:
-            print("[BANDITS] Generating synthetic training data...")
-            for i in range(500):
-                sample = {
-                    'features': np.random.randn(43).tolist(),
-                    'strategy_reward': np.random.uniform(-1, 1),
-                    'category': np.random.choice(['indices', 'futures', 'volatility'])
-                }
-                training_data.append(sample)
-        
-        # Prepare training data
-        X = []
-        y = []
-        for sample in training_data[:1000]:  # Use up to 1000 samples
-            if 'features' in sample and len(sample['features']) == 43:
-                X.append(sample['features'])
-                # Simulate strategy rewards (12 strategies)
-                strategy_rewards = np.random.randn(12) * 0.1
-                y.append(strategy_rewards)
-        
-        if len(X) == 0:
-            print("[BANDITS] No valid training data, creating dummy model...")
-            X = [np.random.randn(43).tolist() for _ in range(100)]
-            y = [np.random.randn(12).tolist() for _ in range(100)]
-        
-        X = torch.FloatTensor(X)
-        y = torch.FloatTensor(y)
-        
-        print(f"[BANDITS] Training on {len(X)} samples")
-        
-        # Initialize model
-        model = NeuralBandit()
-        optimizer = optim.Adam(model.parameters(), lr=0.001)
-        criterion = nn.MSELoss()
-        
-        # Training loop
-        model.train()
-        for epoch in range(50):
-            optimizer.zero_grad()
-            outputs = model(X)
-            loss = criterion(outputs, y)
-            loss.backward()
-            optimizer.step()
-            
-            if epoch % 10 == 0:
-                print(f"[BANDITS] Epoch {epoch}, Loss: {loss.item():.4f}")
-        
-        # Save model
-        model_path = "Intelligence/models/bandits/neural_bandit.pth"
-        torch.save(model.state_dict(), model_path)
-        
-        # Export to ONNX
-        model.eval()
-        dummy_input = torch.randn(1, 43)
-        onnx_path = "Intelligence/models/bandits/neural_bandit.onnx"
-        torch.onnx.export(model, dummy_input, onnx_path, 
-                         input_names=['features'], output_names=['strategy_scores'],
-                         dynamic_axes={'features': {0: 'batch_size'}})
-        
-        print(f"[BANDITS] Model saved to {model_path} and {onnx_path}")
-        
-        # Save model metadata
-        metadata = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'training_samples': len(X),
-            'input_dim': 43,
-            'output_dim': 12,
-            'final_loss': loss.item(),
-            'strategies': ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12']
-        }
-        
-        with open("Intelligence/models/bandits/metadata.json", 'w') as f:
-            json.dump(metadata, f, indent=2)
-        
-        EOF
-    
-    # ----------------------------------------
-    # ENHANCED MODEL TRAINING
-    # ----------------------------------------
-    - name: Train Enhanced Market Regime Models
-      run: |
-        python << 'EOF'
-        import numpy as np
-        import pandas as pd
-        import json
-        import os
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.model_selection import train_test_split
-        from sklearn.metrics import accuracy_score
-        import joblib
-        from datetime import datetime
-        
-        print("[REGIME] Training enhanced market regime detection models...")
-        
-        os.makedirs("Intelligence/models/regime", exist_ok=True)
-        
-        # Load market and news data
-        market_data = []
-        news_data = []
-        
-        # Load latest market data
-        try:
-            with open("Intelligence/data/market/latest.json", 'r') as f:
-                market_latest = json.load(f)
-                for symbol, data in market_latest.items():
-                    if 'features' in data:
-                        market_data.append(data['features'])
-        except:
-            print("[REGIME] No market data found, generating synthetic...")
-            market_data = [np.random.randn(43).tolist() for _ in range(1000)]
-        
-        # Load latest news data
-        try:
-            with open("Intelligence/data/news/latest.json", 'r') as f:
-                news_latest = json.load(f)
-                news_sentiment = news_latest.get('avg_sentiment', 0)
-                news_intensity = news_latest.get('news_intensity', 0)
-        except:
-            print("[REGIME] No news data found, using defaults...")
-            news_sentiment = 0
-            news_intensity = 0.5
-        
-        # Generate training data for regime classification
-        print(f"[REGIME] Processing {len(market_data)} market samples")
-        
-        X = []
-        y = []
-        
-        for i, features in enumerate(market_data[:500]):  # Use up to 500 samples
-            # Add news features to market features
-            enhanced_features = features + [news_sentiment, news_intensity]
-            X.append(enhanced_features)
-            
-            # Simulate regime labels based on features
-            # 0: Trending Bull, 1: Trending Bear, 2: Sideways, 3: High Volatility
-            if enhanced_features[6] > 0.02:  # High positive return
-                if enhanced_features[5] > 0.03:  # High range
-                    regime = 3  # High volatility bull
-                else:
-                    regime = 0  # Trending bull
-            elif enhanced_features[6] < -0.02:  # Negative return
-                if enhanced_features[5] > 0.03:  # High range
-                    regime = 3  # High volatility bear
-                else:
-                    regime = 1  # Trending bear
-            else:
-                regime = 2  # Sideways
-            
-            y.append(regime)
-        
-        if len(X) == 0:
-            print("[REGIME] No training data, creating synthetic...")
-            X = [np.random.randn(45).tolist() for _ in range(1000)]
-            y = [np.random.randint(0, 4) for _ in range(1000)]
-        
-        X = np.array(X)
-        y = np.array(y)
-        
-        print(f"[REGIME] Training on {len(X)} samples with {X.shape[1]} features")
-        
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-        
-        # Train Random Forest
-        rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
-        rf_model.fit(X_train, y_train)
-        rf_pred = rf_model.predict(X_test)
-        rf_accuracy = accuracy_score(y_test, rf_pred)
-        
-        # Train Logistic Regression
-        lr_model = LogisticRegression(random_state=42, max_iter=1000)
-        lr_model.fit(X_train, y_train)
-        lr_pred = lr_model.predict(X_test)
-        lr_accuracy = accuracy_score(y_test, lr_pred)
-        
-        print(f"[REGIME] Random Forest Accuracy: {rf_accuracy:.3f}")
-        print(f"[REGIME] Logistic Regression Accuracy: {lr_accuracy:.3f}")
-        
-        # Save models
-        joblib.dump(rf_model, "Intelligence/models/regime/random_forest.pkl")
-        joblib.dump(lr_model, "Intelligence/models/regime/logistic_regression.pkl")
-        
-        # Save current regime prediction
-        current_features = X[-1].reshape(1, -1) if len(X) > 0 else np.random.randn(1, 45)
-        current_regime = rf_model.predict(current_features)[0]
-        regime_proba = rf_model.predict_proba(current_features)[0]
-        
-        regime_names = ['Trending Bull', 'Trending Bear', 'Sideways', 'High Volatility']
-        current_regime_data = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'regime': int(current_regime),
-            'regime_name': regime_names[current_regime],
-            'probabilities': {
-                regime_names[i]: float(prob) for i, prob in enumerate(regime_proba)
-            },
-            'confidence': float(max(regime_proba)),
-            'model_accuracy': rf_accuracy
-        }
-        
-        with open("Intelligence/data/regime/current.json", 'w') as f:
-            json.dump(current_regime_data, f, indent=2)
-        
-        print(f"[REGIME] Current regime: {regime_names[current_regime]} (confidence: {max(regime_proba):.2f})")
-        
-        EOF
-    
-    - name: Commit Models
-      run: |
-        git config --local user.email "ml-bot@github.com"
-        git config --local user.name "ML Learning Bot"
-        git add Intelligence/models/ Intelligence/data/regime/
-        git diff --staged --quiet || git commit -m "🧠 Ultimate model training $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push --force-with-lease || true
+      run: 'pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn
+        xgboost lightgbm catboost
 
-  # ============================================
-  # JOB 3: INTELLIGENCE INTEGRATION
-  # ============================================
+        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx
+        onnxruntime
+
+        '
+    - name: Train Neural Bandits for Strategy Selection
+      run: "python << 'EOF'\nimport torch\nimport torch.nn as nn\nimport torch.optim\
+        \ as optim\nimport numpy as np\nimport json\nimport os\nfrom glob import glob\n\
+        from datetime import datetime\n\nprint(\"[BANDITS] Training Neural Bandits\
+        \ for strategy selection...\")\n\nos.makedirs(\"Intelligence/models/bandits\"\
+        , exist_ok=True)\n\nclass NeuralBandit(nn.Module):\n    def __init__(self,\
+        \ input_dim=43, hidden_dim=128, n_arms=12):\n        super().__init__()\n\
+        \        self.fc1 = nn.Linear(input_dim, hidden_dim)\n        self.fc2 = nn.Linear(hidden_dim,\
+        \ hidden_dim // 2)\n        self.fc3 = nn.Linear(hidden_dim // 2, n_arms)\n\
+        \        self.dropout = nn.Dropout(0.2)\n        \n    def forward(self, x):\n\
+        \        x = torch.relu(self.fc1(x))\n        x = self.dropout(x)\n      \
+        \  x = torch.relu(self.fc2(x))\n        return self.fc3(x)\n\n# Load all training\
+        \ data\ntraining_data = []\nfor file in glob(\"Intelligence/data/training/*.jsonl\"\
+        ):\n    with open(file, 'r') as f:\n        for line in f:\n            try:\n\
+        \                training_data.append(json.loads(line))\n            except:\n\
+        \                pass\n\nprint(f\"[BANDITS] Loaded {len(training_data)} training\
+        \ samples\")\n\n# Generate synthetic data if insufficient real data\nif len(training_data)\
+        \ < 100:\n    print(\"[BANDITS] Generating synthetic training data...\")\n\
+        \    for i in range(500):\n        sample = {\n            'features': np.random.randn(43).tolist(),\n\
+        \            'strategy_reward': np.random.uniform(-1, 1),\n            'category':\
+        \ np.random.choice(['indices', 'futures', 'volatility'])\n        }\n    \
+        \    training_data.append(sample)\n\n# Prepare training data\nX = []\ny =\
+        \ []\nfor sample in training_data[:1000]:  # Use up to 1000 samples\n    if\
+        \ 'features' in sample and len(sample['features']) == 43:\n        X.append(sample['features'])\n\
+        \        # Simulate strategy rewards (12 strategies)\n        strategy_rewards\
+        \ = np.random.randn(12) * 0.1\n        y.append(strategy_rewards)\n\nif len(X)\
+        \ == 0:\n    print(\"[BANDITS] No valid training data, creating dummy model...\"\
+        )\n    X = [np.random.randn(43).tolist() for _ in range(100)]\n    y = [np.random.randn(12).tolist()\
+        \ for _ in range(100)]\n\nX = torch.FloatTensor(X)\ny = torch.FloatTensor(y)\n\
+        \nprint(f\"[BANDITS] Training on {len(X)} samples\")\n\n# Initialize model\n\
+        model = NeuralBandit()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\
+        criterion = nn.MSELoss()\n\n# Training loop\nmodel.train()\nfor epoch in range(50):\n\
+        \    optimizer.zero_grad()\n    outputs = model(X)\n    loss = criterion(outputs,\
+        \ y)\n    loss.backward()\n    optimizer.step()\n    \n    if epoch % 10 ==\
+        \ 0:\n        print(f\"[BANDITS] Epoch {epoch}, Loss: {loss.item():.4f}\"\
+        )\n\n# Save model\nmodel_path = \"Intelligence/models/bandits/neural_bandit.pth\"\
+        \ntorch.save(model.state_dict(), model_path)\n\n# Export to ONNX\nmodel.eval()\n\
+        dummy_input = torch.randn(1, 43)\nonnx_path = \"Intelligence/models/bandits/neural_bandit.onnx\"\
+        \ntorch.onnx.export(model, dummy_input, onnx_path, \n                 input_names=['features'],\
+        \ output_names=['strategy_scores'],\n                 dynamic_axes={'features':\
+        \ {0: 'batch_size'}})\n\nprint(f\"[BANDITS] Model saved to {model_path} and\
+        \ {onnx_path}\")\n\n# Save model metadata\nmetadata = {\n    'timestamp':\
+        \ datetime.utcnow().isoformat(),\n    'training_samples': len(X),\n    'input_dim':\
+        \ 43,\n    'output_dim': 12,\n    'final_loss': loss.item(),\n    'strategies':\
+        \ ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12']\n\
+        }\n\nwith open(\"Intelligence/models/bandits/metadata.json\", 'w') as f:\n\
+        \    json.dump(metadata, f, indent=2)\n\nEOF\n"
+    - name: Train Enhanced Market Regime Models
+      run: "python << 'EOF'\nimport numpy as np\nimport pandas as pd\nimport json\n\
+        import os\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.linear_model\
+        \ import LogisticRegression\nfrom sklearn.model_selection import train_test_split\n\
+        from sklearn.metrics import accuracy_score\nimport joblib\nfrom datetime import\
+        \ datetime\n\nprint(\"[REGIME] Training enhanced market regime detection models...\"\
+        )\n\nos.makedirs(\"Intelligence/models/regime\", exist_ok=True)\n\n# Load\
+        \ market and news data\nmarket_data = []\nnews_data = []\n\n# Load latest\
+        \ market data\ntry:\n    with open(\"Intelligence/data/market/latest.json\"\
+        , 'r') as f:\n        market_latest = json.load(f)\n        for symbol, data\
+        \ in market_latest.items():\n            if 'features' in data:\n        \
+        \        market_data.append(data['features'])\nexcept:\n    print(\"[REGIME]\
+        \ No market data found, generating synthetic...\")\n    market_data = [np.random.randn(43).tolist()\
+        \ for _ in range(1000)]\n\n# Load latest news data\ntry:\n    with open(\"\
+        Intelligence/data/news/latest.json\", 'r') as f:\n        news_latest = json.load(f)\n\
+        \        news_sentiment = news_latest.get('avg_sentiment', 0)\n        news_intensity\
+        \ = news_latest.get('news_intensity', 0)\nexcept:\n    print(\"[REGIME] No\
+        \ news data found, using defaults...\")\n    news_sentiment = 0\n    news_intensity\
+        \ = 0.5\n\n# Generate training data for regime classification\nprint(f\"[REGIME]\
+        \ Processing {len(market_data)} market samples\")\n\nX = []\ny = []\n\nfor\
+        \ i, features in enumerate(market_data[:500]):  # Use up to 500 samples\n\
+        \    # Add news features to market features\n    enhanced_features = features\
+        \ + [news_sentiment, news_intensity]\n    X.append(enhanced_features)\n  \
+        \  \n    # Simulate regime labels based on features\n    # 0: Trending Bull,\
+        \ 1: Trending Bear, 2: Sideways, 3: High Volatility\n    if enhanced_features[6]\
+        \ > 0.02:  # High positive return\n        if enhanced_features[5] > 0.03:\
+        \  # High range\n            regime = 3  # High volatility bull\n        else:\n\
+        \            regime = 0  # Trending bull\n    elif enhanced_features[6] <\
+        \ -0.02:  # Negative return\n        if enhanced_features[5] > 0.03:  # High\
+        \ range\n            regime = 3  # High volatility bear\n        else:\n \
+        \           regime = 1  # Trending bear\n    else:\n        regime = 2  #\
+        \ Sideways\n    \n    y.append(regime)\n\nif len(X) == 0:\n    print(\"[REGIME]\
+        \ No training data, creating synthetic...\")\n    X = [np.random.randn(45).tolist()\
+        \ for _ in range(1000)]\n    y = [np.random.randint(0, 4) for _ in range(1000)]\n\
+        \nX = np.array(X)\ny = np.array(y)\n\nprint(f\"[REGIME] Training on {len(X)}\
+        \ samples with {X.shape[1]} features\")\n\n# Split data\nX_train, X_test,\
+        \ y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\
+        \n# Train Random Forest\nrf_model = RandomForestClassifier(n_estimators=100,\
+        \ random_state=42)\nrf_model.fit(X_train, y_train)\nrf_pred = rf_model.predict(X_test)\n\
+        rf_accuracy = accuracy_score(y_test, rf_pred)\n\n# Train Logistic Regression\n\
+        lr_model = LogisticRegression(random_state=42, max_iter=1000)\nlr_model.fit(X_train,\
+        \ y_train)\nlr_pred = lr_model.predict(X_test)\nlr_accuracy = accuracy_score(y_test,\
+        \ lr_pred)\n\nprint(f\"[REGIME] Random Forest Accuracy: {rf_accuracy:.3f}\"\
+        )\nprint(f\"[REGIME] Logistic Regression Accuracy: {lr_accuracy:.3f}\")\n\n\
+        # Save models\njoblib.dump(rf_model, \"Intelligence/models/regime/random_forest.pkl\"\
+        )\njoblib.dump(lr_model, \"Intelligence/models/regime/logistic_regression.pkl\"\
+        )\n\n# Save current regime prediction\ncurrent_features = X[-1].reshape(1,\
+        \ -1) if len(X) > 0 else np.random.randn(1, 45)\ncurrent_regime = rf_model.predict(current_features)[0]\n\
+        regime_proba = rf_model.predict_proba(current_features)[0]\n\nregime_names\
+        \ = ['Trending Bull', 'Trending Bear', 'Sideways', 'High Volatility']\ncurrent_regime_data\
+        \ = {\n    'timestamp': datetime.utcnow().isoformat(),\n    'regime': int(current_regime),\n\
+        \    'regime_name': regime_names[current_regime],\n    'probabilities': {\n\
+        \        regime_names[i]: float(prob) for i, prob in enumerate(regime_proba)\n\
+        \    },\n    'confidence': float(max(regime_proba)),\n    'model_accuracy':\
+        \ rf_accuracy\n}\n\nwith open(\"Intelligence/data/regime/current.json\", 'w')\
+        \ as f:\n    json.dump(current_regime_data, f, indent=2)\n\nprint(f\"[REGIME]\
+        \ Current regime: {regime_names[current_regime]} (confidence: {max(regime_proba):.2f})\"\
+        )\n\nEOF\n"
+    - name: Commit Models
+      run: "git config --local user.email \"ml-bot@github.com\"\ngit config --local\
+        \ user.name \"ML Learning Bot\"\ngit add Intelligence/models/ Intelligence/data/regime/\n\
+        git diff --staged --quiet || git commit -m \"\U0001F9E0 Ultimate model training\
+        \ $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease || true\n"
   intelligence-integration:
     runs-on: ubuntu-latest
-    needs: [collect-everything, train-everything]
+    needs:
+    - collect-everything
+    - train-everything
     timeout-minutes: 15
-    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'intelligence_only' || github.event.inputs.mode == ''
-    
+    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'intelligence_only'
+      || github.event.inputs.mode == ''
     steps:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-        ref: main  # Get latest updates
-    
+        ref: main
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+        cache: pip
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
     - name: Install Dependencies
-      run: |
-        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
-    
-    - name: Generate Trading Signals
-      run: |
-        python << 'EOF'
-        import json
-        import numpy as np
-        import pandas as pd
-        from datetime import datetime
-        import os
-        
-        print("[SIGNALS] Generating comprehensive trading signals...")
-        
-        os.makedirs("Intelligence/data/signals", exist_ok=True)
-        
-        # Load all data sources
-        market_data = {}
-        news_data = {}
-        zones_data = {}
-        regime_data = {}
-        
-        try:
-            with open("Intelligence/data/market/latest.json", 'r') as f:
-                market_data = json.load(f)
-        except:
-            print("[SIGNALS] No market data available")
-        
-        try:
-            with open("Intelligence/data/news/latest.json", 'r') as f:
-                news_data = json.load(f)
-        except:
-            print("[SIGNALS] No news data available")
-        
-        try:
-            with open("Intelligence/data/zones/active_zones.json", 'r') as f:
-                zones_data = json.load(f)
-        except:
-            print("[SIGNALS] No zones data available")
-        
-        try:
-            with open("Intelligence/data/regime/current.json", 'r') as f:
-                regime_data = json.load(f)
-        except:
-            print("[SIGNALS] No regime data available")
-        
-        # Generate signals for key symbols
-        signals = {}
-        
-        key_symbols = ['ES=F', 'NQ=F', 'SPY', 'QQQ']
-        
-        for symbol in key_symbols:
-            if symbol in market_data:
-                data = market_data[symbol]
-                features = data.get('features', [0] * 43)
-                
-                # Calculate signal strength
-                signal_strength = 0
-                signal_direction = "NEUTRAL"
-                confidence = 0.5
-                
-                # Technical analysis signals
-                if len(features) >= 43:
-                    # Price momentum (feature 6 is return)
-                    price_return = features[6] if len(features) > 6 else 0
-                    
-                    # RSI signal (feature 10)
-                    rsi = features[10] if len(features) > 10 else 50
-                    
-                    # Volume signal (feature 4)
-                    volume_ratio = features[4] if len(features) > 4 else 1
-                    
-                    # Calculate composite signal
-                    if price_return > 0.005 and rsi < 70 and volume_ratio > 1.2:
-                        signal_strength = min(1.0, abs(price_return) * 100)
-                        signal_direction = "BUY"
-                        confidence = 0.7
-                    elif price_return < -0.005 and rsi > 30 and volume_ratio > 1.2:
-                        signal_strength = min(1.0, abs(price_return) * 100)
-                        signal_direction = "SELL"
-                        confidence = 0.7
-                    else:
-                        signal_strength = 0.1
-                        signal_direction = "NEUTRAL"
-                        confidence = 0.5
-                
-                # Adjust for news sentiment
-                if news_data:
-                    news_sentiment = news_data.get('avg_sentiment', 0)
-                    if news_sentiment > 0.3 and signal_direction == "BUY":
-                        confidence = min(0.95, confidence + 0.15)
-                    elif news_sentiment < -0.3 and signal_direction == "SELL":
-                        confidence = min(0.95, confidence + 0.15)
-                    elif news_sentiment > 0.3 and signal_direction == "SELL":
-                        confidence = max(0.3, confidence - 0.2)
-                    elif news_sentiment < -0.3 and signal_direction == "BUY":
-                        confidence = max(0.3, confidence - 0.2)
-                
-                # Adjust for market regime
-                if regime_data:
-                    regime = regime_data.get('regime_name', 'Unknown')
-                    if regime == 'Trending Bull' and signal_direction == "BUY":
-                        confidence = min(0.95, confidence + 0.1)
-                    elif regime == 'Trending Bear' and signal_direction == "SELL":
-                        confidence = min(0.95, confidence + 0.1)
-                    elif regime == 'High Volatility':
-                        signal_strength *= 0.7  # Reduce position size in high volatility
-                
-                # Check zone proximity
-                if zones_data and symbol == 'ES=F':
-                    current_price = data.get('price', 0)
-                    nearest_supply = zones_data.get('nearest_supply')
-                    nearest_demand = zones_data.get('nearest_demand')
-                    
-                    if nearest_supply and abs(current_price - nearest_supply['price']) < 5:
-                        if signal_direction == "SELL":
-                            confidence = min(0.95, confidence + 0.2)
-                        elif signal_direction == "BUY":
-                            confidence = max(0.3, confidence - 0.3)
-                    
-                    if nearest_demand and abs(current_price - nearest_demand['price']) < 5:
-                        if signal_direction == "BUY":
-                            confidence = min(0.95, confidence + 0.2)
-                        elif signal_direction == "SELL":
-                            confidence = max(0.3, confidence - 0.3)
-                
-                signals[symbol] = {
-                    'symbol': symbol,
-                    'signal': signal_direction,
-                    'strength': round(signal_strength, 3),
-                    'confidence': round(confidence, 3),
-                    'price': data.get('price', 0),
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'factors': {
-                        'technical': True,
-                        'news_adjusted': bool(news_data),
-                        'regime_adjusted': bool(regime_data),
-                        'zone_adjusted': bool(zones_data and symbol == 'ES=F')
-                    }
-                }
-        
-        # Save signals
-        signal_output = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'signal_count': len(signals),
-            'data_sources': {
-                'market': bool(market_data),
-                'news': bool(news_data),
-                'zones': bool(zones_data),
-                'regime': bool(regime_data)
-            },
-            'signals': signals
-        }
-        
-        with open("Intelligence/data/signals/latest.json", 'w') as f:
-            json.dump(signal_output, f, indent=2)
-        
-        # Archive signals
-        archive_file = f"Intelligence/data/signals/signals_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(archive_file, 'w') as f:
-            json.dump(signal_output, f, indent=2)
-        
-        print(f"[SIGNALS] Generated {len(signals)} signals")
-        for symbol, signal in signals.items():
-            print(f"[SIGNALS] {symbol}: {signal['signal']} (strength: {signal['strength']}, confidence: {signal['confidence']})")
-        
-        EOF
-    
-    - name: Create System Health Report
-      run: |
-        python << 'EOF'
-        import json
-        import os
-        from datetime import datetime
-        from glob import glob
-        
-        print("[HEALTH] Creating comprehensive system health report...")
-        
-        os.makedirs("Intelligence/reports", exist_ok=True)
-        
-        health_report = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'system_status': 'OPERATIONAL',
-            'components': {},
-            'data_freshness': {},
-            'model_status': {},
-            'recommendations': []
-        }
-        
-        # Check data components
-        data_checks = {
-            'market_data': 'Intelligence/data/market/latest.json',
-            'news_data': 'Intelligence/data/news/latest.json',
-            'zones_data': 'Intelligence/data/zones/active_zones.json',
-            'regime_data': 'Intelligence/data/regime/current.json',
-            'signals_data': 'Intelligence/data/signals/latest.json'
-        }
-        
-        for component, file_path in data_checks.items():
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        data = json.load(f)
-                        health_report['components'][component] = {
-                            'status': 'OK',
-                            'last_update': data.get('timestamp', 'Unknown'),
-                            'data_size': len(str(data))
-                        }
-                except Exception as e:
-                    health_report['components'][component] = {
-                        'status': 'ERROR',
-                        'error': str(e)
-                    }
-            else:
-                health_report['components'][component] = {
-                    'status': 'MISSING',
-                    'message': 'File not found'
-                }
-        
-        # Check model components
-        model_checks = {
-            'neural_bandits': 'Intelligence/models/bandits/neural_bandit.onnx',
-            'regime_rf': 'Intelligence/models/regime/random_forest.pkl',
-            'regime_lr': 'Intelligence/models/regime/logistic_regression.pkl'
-        }
-        
-        for model, file_path in model_checks.items():
-            if os.path.exists(file_path):
-                file_size = os.path.getsize(file_path)
-                health_report['model_status'][model] = {
-                    'status': 'OK',
-                    'file_size': file_size,
-                    'location': file_path
-                }
-            else:
-                health_report['model_status'][model] = {
-                    'status': 'MISSING',
-                    'location': file_path
-                }
-        
-        # Count training data files
-        training_files = glob("Intelligence/data/training/*.jsonl")
-        health_report['data_freshness']['training_files'] = len(training_files)
-        
-        # Count archived data
-        news_archives = glob("Intelligence/data/news/raw/*.json")
-        zone_archives = glob("Intelligence/data/zones/*.json")
-        signal_archives = glob("Intelligence/data/signals/*.json")
-        
-        health_report['data_freshness']['archives'] = {
-            'news': len(news_archives),
-            'zones': len(zone_archives),
-            'signals': len(signal_archives)
-        }
-        
-        # Generate recommendations
-        if health_report['components'].get('market_data', {}).get('status') != 'OK':
-            health_report['recommendations'].append("Market data collection needs attention")
-        
-        if health_report['components'].get('news_data', {}).get('status') != 'OK':
-            health_report['recommendations'].append("News data collection needs attention")
-        
-        if len([m for m in health_report['model_status'].values() if m['status'] == 'OK']) < 2:
-            health_report['recommendations'].append("Multiple models are missing - check training pipeline")
-        
-        if health_report['data_freshness']['training_files'] < 5:
-            health_report['recommendations'].append("Low training data volume - increase collection frequency")
-        
-        if not health_report['recommendations']:
-            health_report['recommendations'].append("All systems operational - continue monitoring")
-        
-        # Overall system status
-        error_count = len([c for c in health_report['components'].values() if c['status'] == 'ERROR'])
-        missing_count = len([c for c in health_report['components'].values() if c['status'] == 'MISSING'])
-        
-        if error_count > 0:
-            health_report['system_status'] = 'DEGRADED'
-        elif missing_count > 2:
-            health_report['system_status'] = 'PARTIAL'
-        else:
-            health_report['system_status'] = 'OPERATIONAL'
-        
-        # Save health report
-        with open("Intelligence/reports/system_health.json", 'w') as f:
-            json.dump(health_report, f, indent=2)
-        
-        print(f"[HEALTH] System Status: {health_report['system_status']}")
-        print(f"[HEALTH] Components OK: {len([c for c in health_report['components'].values() if c['status'] == 'OK'])}")
-        print(f"[HEALTH] Models OK: {len([m for m in health_report['model_status'].values() if m['status'] == 'OK'])}")
-        print(f"[HEALTH] Recommendations: {len(health_report['recommendations'])}")
-        
-        EOF
-    
-    - name: Final Commit
-      run: |
-        git config --local user.email "ml-bot@github.com"
-        git config --local user.name "ML Learning Bot"
-        git add Intelligence/
-        git diff --staged --quiet || git commit -m "🎯 Ultimate intelligence integration complete $(date -u +'%Y-%m-%d %H:%M:%S')"
-        git push --force-with-lease || true
+      run: 'pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn
+        joblib
 
-  # ============================================
-  # JOB 4: SUMMARY & MONITORING
-  # ============================================
+        '
+    - name: Generate Trading Signals
+      run: "python << 'EOF'\nimport json\nimport numpy as np\nimport pandas as pd\n\
+        from datetime import datetime\nimport os\n\nprint(\"[SIGNALS] Generating comprehensive\
+        \ trading signals...\")\n\nos.makedirs(\"Intelligence/data/signals\", exist_ok=True)\n\
+        \n# Load all data sources\nmarket_data = {}\nnews_data = {}\nzones_data =\
+        \ {}\nregime_data = {}\n\ntry:\n    with open(\"Intelligence/data/market/latest.json\"\
+        , 'r') as f:\n        market_data = json.load(f)\nexcept:\n    print(\"[SIGNALS]\
+        \ No market data available\")\n\ntry:\n    with open(\"Intelligence/data/news/latest.json\"\
+        , 'r') as f:\n        news_data = json.load(f)\nexcept:\n    print(\"[SIGNALS]\
+        \ No news data available\")\n\ntry:\n    with open(\"Intelligence/data/zones/active_zones.json\"\
+        , 'r') as f:\n        zones_data = json.load(f)\nexcept:\n    print(\"[SIGNALS]\
+        \ No zones data available\")\n\ntry:\n    with open(\"Intelligence/data/regime/current.json\"\
+        , 'r') as f:\n        regime_data = json.load(f)\nexcept:\n    print(\"[SIGNALS]\
+        \ No regime data available\")\n\n# Generate signals for key symbols\nsignals\
+        \ = {}\n\nkey_symbols = ['ES=F', 'NQ=F', 'SPY', 'QQQ']\n\nfor symbol in key_symbols:\n\
+        \    if symbol in market_data:\n        data = market_data[symbol]\n     \
+        \   features = data.get('features', [0] * 43)\n        \n        # Calculate\
+        \ signal strength\n        signal_strength = 0\n        signal_direction =\
+        \ \"NEUTRAL\"\n        confidence = 0.5\n        \n        # Technical analysis\
+        \ signals\n        if len(features) >= 43:\n            # Price momentum (feature\
+        \ 6 is return)\n            price_return = features[6] if len(features) >\
+        \ 6 else 0\n            \n            # RSI signal (feature 10)\n        \
+        \    rsi = features[10] if len(features) > 10 else 50\n            \n    \
+        \        # Volume signal (feature 4)\n            volume_ratio = features[4]\
+        \ if len(features) > 4 else 1\n            \n            # Calculate composite\
+        \ signal\n            if price_return > 0.005 and rsi < 70 and volume_ratio\
+        \ > 1.2:\n                signal_strength = min(1.0, abs(price_return) * 100)\n\
+        \                signal_direction = \"BUY\"\n                confidence =\
+        \ 0.7\n            elif price_return < -0.005 and rsi > 30 and volume_ratio\
+        \ > 1.2:\n                signal_strength = min(1.0, abs(price_return) * 100)\n\
+        \                signal_direction = \"SELL\"\n                confidence =\
+        \ 0.7\n            else:\n                signal_strength = 0.1\n        \
+        \        signal_direction = \"NEUTRAL\"\n                confidence = 0.5\n\
+        \        \n        # Adjust for news sentiment\n        if news_data:\n  \
+        \          news_sentiment = news_data.get('avg_sentiment', 0)\n          \
+        \  if news_sentiment > 0.3 and signal_direction == \"BUY\":\n            \
+        \    confidence = min(0.95, confidence + 0.15)\n            elif news_sentiment\
+        \ < -0.3 and signal_direction == \"SELL\":\n                confidence = min(0.95,\
+        \ confidence + 0.15)\n            elif news_sentiment > 0.3 and signal_direction\
+        \ == \"SELL\":\n                confidence = max(0.3, confidence - 0.2)\n\
+        \            elif news_sentiment < -0.3 and signal_direction == \"BUY\":\n\
+        \                confidence = max(0.3, confidence - 0.2)\n        \n     \
+        \   # Adjust for market regime\n        if regime_data:\n            regime\
+        \ = regime_data.get('regime_name', 'Unknown')\n            if regime == 'Trending\
+        \ Bull' and signal_direction == \"BUY\":\n                confidence = min(0.95,\
+        \ confidence + 0.1)\n            elif regime == 'Trending Bear' and signal_direction\
+        \ == \"SELL\":\n                confidence = min(0.95, confidence + 0.1)\n\
+        \            elif regime == 'High Volatility':\n                signal_strength\
+        \ *= 0.7  # Reduce position size in high volatility\n        \n        # Check\
+        \ zone proximity\n        if zones_data and symbol == 'ES=F':\n          \
+        \  current_price = data.get('price', 0)\n            nearest_supply = zones_data.get('nearest_supply')\n\
+        \            nearest_demand = zones_data.get('nearest_demand')\n         \
+        \   \n            if nearest_supply and abs(current_price - nearest_supply['price'])\
+        \ < 5:\n                if signal_direction == \"SELL\":\n               \
+        \     confidence = min(0.95, confidence + 0.2)\n                elif signal_direction\
+        \ == \"BUY\":\n                    confidence = max(0.3, confidence - 0.3)\n\
+        \            \n            if nearest_demand and abs(current_price - nearest_demand['price'])\
+        \ < 5:\n                if signal_direction == \"BUY\":\n                \
+        \    confidence = min(0.95, confidence + 0.2)\n                elif signal_direction\
+        \ == \"SELL\":\n                    confidence = max(0.3, confidence - 0.3)\n\
+        \        \n        signals[symbol] = {\n            'symbol': symbol,\n  \
+        \          'signal': signal_direction,\n            'strength': round(signal_strength,\
+        \ 3),\n            'confidence': round(confidence, 3),\n            'price':\
+        \ data.get('price', 0),\n            'timestamp': datetime.utcnow().isoformat(),\n\
+        \            'factors': {\n                'technical': True,\n          \
+        \      'news_adjusted': bool(news_data),\n                'regime_adjusted':\
+        \ bool(regime_data),\n                'zone_adjusted': bool(zones_data and\
+        \ symbol == 'ES=F')\n            }\n        }\n\n# Save signals\nsignal_output\
+        \ = {\n    'timestamp': datetime.utcnow().isoformat(),\n    'signal_count':\
+        \ len(signals),\n    'data_sources': {\n        'market': bool(market_data),\n\
+        \        'news': bool(news_data),\n        'zones': bool(zones_data),\n  \
+        \      'regime': bool(regime_data)\n    },\n    'signals': signals\n}\n\n\
+        with open(\"Intelligence/data/signals/latest.json\", 'w') as f:\n    json.dump(signal_output,\
+        \ f, indent=2)\n\n# Archive signals\narchive_file = f\"Intelligence/data/signals/signals_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json\"\
+        \nwith open(archive_file, 'w') as f:\n    json.dump(signal_output, f, indent=2)\n\
+        \nprint(f\"[SIGNALS] Generated {len(signals)} signals\")\nfor symbol, signal\
+        \ in signals.items():\n    print(f\"[SIGNALS] {symbol}: {signal['signal']}\
+        \ (strength: {signal['strength']}, confidence: {signal['confidence']})\")\n\
+        \nEOF\n"
+    - name: Create System Health Report
+      run: "python << 'EOF'\nimport json\nimport os\nfrom datetime import datetime\n\
+        from glob import glob\n\nprint(\"[HEALTH] Creating comprehensive system health\
+        \ report...\")\n\nos.makedirs(\"Intelligence/reports\", exist_ok=True)\n\n\
+        health_report = {\n    'timestamp': datetime.utcnow().isoformat(),\n    'system_status':\
+        \ 'OPERATIONAL',\n    'components': {},\n    'data_freshness': {},\n    'model_status':\
+        \ {},\n    'recommendations': []\n}\n\n# Check data components\ndata_checks\
+        \ = {\n    'market_data': 'Intelligence/data/market/latest.json',\n    'news_data':\
+        \ 'Intelligence/data/news/latest.json',\n    'zones_data': 'Intelligence/data/zones/active_zones.json',\n\
+        \    'regime_data': 'Intelligence/data/regime/current.json',\n    'signals_data':\
+        \ 'Intelligence/data/signals/latest.json'\n}\n\nfor component, file_path in\
+        \ data_checks.items():\n    if os.path.exists(file_path):\n        try:\n\
+        \            with open(file_path, 'r') as f:\n                data = json.load(f)\n\
+        \                health_report['components'][component] = {\n            \
+        \        'status': 'OK',\n                    'last_update': data.get('timestamp',\
+        \ 'Unknown'),\n                    'data_size': len(str(data))\n         \
+        \       }\n        except Exception as e:\n            health_report['components'][component]\
+        \ = {\n                'status': 'ERROR',\n                'error': str(e)\n\
+        \            }\n    else:\n        health_report['components'][component]\
+        \ = {\n            'status': 'MISSING',\n            'message': 'File not\
+        \ found'\n        }\n\n# Check model components\nmodel_checks = {\n    'neural_bandits':\
+        \ 'Intelligence/models/bandits/neural_bandit.onnx',\n    'regime_rf': 'Intelligence/models/regime/random_forest.pkl',\n\
+        \    'regime_lr': 'Intelligence/models/regime/logistic_regression.pkl'\n}\n\
+        \nfor model, file_path in model_checks.items():\n    if os.path.exists(file_path):\n\
+        \        file_size = os.path.getsize(file_path)\n        health_report['model_status'][model]\
+        \ = {\n            'status': 'OK',\n            'file_size': file_size,\n\
+        \            'location': file_path\n        }\n    else:\n        health_report['model_status'][model]\
+        \ = {\n            'status': 'MISSING',\n            'location': file_path\n\
+        \        }\n\n# Count training data files\ntraining_files = glob(\"Intelligence/data/training/*.jsonl\"\
+        )\nhealth_report['data_freshness']['training_files'] = len(training_files)\n\
+        \n# Count archived data\nnews_archives = glob(\"Intelligence/data/news/raw/*.json\"\
+        )\nzone_archives = glob(\"Intelligence/data/zones/*.json\")\nsignal_archives\
+        \ = glob(\"Intelligence/data/signals/*.json\")\n\nhealth_report['data_freshness']['archives']\
+        \ = {\n    'news': len(news_archives),\n    'zones': len(zone_archives),\n\
+        \    'signals': len(signal_archives)\n}\n\n# Generate recommendations\nif\
+        \ health_report['components'].get('market_data', {}).get('status') != 'OK':\n\
+        \    health_report['recommendations'].append(\"Market data collection needs\
+        \ attention\")\n\nif health_report['components'].get('news_data', {}).get('status')\
+        \ != 'OK':\n    health_report['recommendations'].append(\"News data collection\
+        \ needs attention\")\n\nif len([m for m in health_report['model_status'].values()\
+        \ if m['status'] == 'OK']) < 2:\n    health_report['recommendations'].append(\"\
+        Multiple models are missing - check training pipeline\")\n\nif health_report['data_freshness']['training_files']\
+        \ < 5:\n    health_report['recommendations'].append(\"Low training data volume\
+        \ - increase collection frequency\")\n\nif not health_report['recommendations']:\n\
+        \    health_report['recommendations'].append(\"All systems operational - continue\
+        \ monitoring\")\n\n# Overall system status\nerror_count = len([c for c in\
+        \ health_report['components'].values() if c['status'] == 'ERROR'])\nmissing_count\
+        \ = len([c for c in health_report['components'].values() if c['status'] ==\
+        \ 'MISSING'])\n\nif error_count > 0:\n    health_report['system_status'] =\
+        \ 'DEGRADED'\nelif missing_count > 2:\n    health_report['system_status']\
+        \ = 'PARTIAL'\nelse:\n    health_report['system_status'] = 'OPERATIONAL'\n\
+        \n# Save health report\nwith open(\"Intelligence/reports/system_health.json\"\
+        , 'w') as f:\n    json.dump(health_report, f, indent=2)\n\nprint(f\"[HEALTH]\
+        \ System Status: {health_report['system_status']}\")\nprint(f\"[HEALTH] Components\
+        \ OK: {len([c for c in health_report['components'].values() if c['status']\
+        \ == 'OK'])}\")\nprint(f\"[HEALTH] Models OK: {len([m for m in health_report['model_status'].values()\
+        \ if m['status'] == 'OK'])}\")\nprint(f\"[HEALTH] Recommendations: {len(health_report['recommendations'])}\"\
+        )\n\nEOF\n"
+    - name: Final Commit
+      run: "git config --local user.email \"ml-bot@github.com\"\ngit config --local\
+        \ user.name \"ML Learning Bot\"\ngit add Intelligence/\ngit diff --staged\
+        \ --quiet || git commit -m \"\U0001F3AF Ultimate intelligence integration\
+        \ complete $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease\
+        \ || true\n"
   system-summary:
     runs-on: ubuntu-latest
-    needs: [collect-everything, train-everything, intelligence-integration]
+    needs:
+    - collect-everything
+    - train-everything
+    - intelligence-integration
     if: always()
-    
     steps:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-    
     - name: Generate Run Summary
-      run: |
-        cat << 'EOF'
-        
-        🎉 ULTIMATE 24/7 ML/RL/INTELLIGENCE SYSTEM - RUN COMPLETE
-        ================================================================
-        
-        📊 DATA COLLECTION:
-        - ✅ Market data with 43 comprehensive features
-        - ✅ Advanced news sentiment analysis  
-        - ✅ Enhanced supply/demand zones identification
-        - ✅ Training samples generated for ML pipeline
-        
-        🧠 MODEL TRAINING:
-        - ✅ Neural bandits for strategy selection
-        - ✅ Market regime detection models
-        - ✅ Enhanced feature engineering pipeline
-        - ✅ ONNX model export for production use
-        
-        🎯 INTELLIGENCE INTEGRATION:
-        - ✅ Multi-source signal generation
-        - ✅ Regime-aware position sizing
-        - ✅ Zone-proximity trade optimization
-        - ✅ News-sentiment trade filtering
-        
-        📈 SYSTEM HEALTH:
-        - ✅ Comprehensive monitoring dashboard
-        - ✅ Component status validation
-        - ✅ Data freshness tracking
-        - ✅ Model performance metrics
-        
-        🚀 NEXT EXECUTION: Automatic in 5-30 minutes (depending on schedule)
-        
-        💡 GITHUB PRO PLUS USAGE: Maximizing all 50,000 minutes/month!
-        
-        ================================================================
-        EOF
-    
+      run: "cat << 'EOF'\n\n\U0001F389 ULTIMATE 24/7 ML/RL/INTELLIGENCE SYSTEM - RUN\
+        \ COMPLETE\n================================================================\n\
+        \n\U0001F4CA DATA COLLECTION:\n- \u2705 Market data with 43 comprehensive\
+        \ features\n- \u2705 Advanced news sentiment analysis  \n- \u2705 Enhanced\
+        \ supply/demand zones identification\n- \u2705 Training samples generated\
+        \ for ML pipeline\n\n\U0001F9E0 MODEL TRAINING:\n- \u2705 Neural bandits for\
+        \ strategy selection\n- \u2705 Market regime detection models\n- \u2705 Enhanced\
+        \ feature engineering pipeline\n- \u2705 ONNX model export for production\
+        \ use\n\n\U0001F3AF INTELLIGENCE INTEGRATION:\n- \u2705 Multi-source signal\
+        \ generation\n- \u2705 Regime-aware position sizing\n- \u2705 Zone-proximity\
+        \ trade optimization\n- \u2705 News-sentiment trade filtering\n\n\U0001F4C8\
+        \ SYSTEM HEALTH:\n- \u2705 Comprehensive monitoring dashboard\n- \u2705 Component\
+        \ status validation\n- \u2705 Data freshness tracking\n- \u2705 Model performance\
+        \ metrics\n\n\U0001F680 NEXT EXECUTION: Automatic in 5-30 minutes (depending\
+        \ on schedule)\n\n\U0001F4A1 GITHUB PRO PLUS USAGE: Maximizing all 50,000\
+        \ minutes/month!\n\n================================================================\n\
+        EOF\n"
     - name: Update Status Badge
-      run: |
-        echo "Ultimate ML/RL System: OPERATIONAL" > .github/system_status.txt
-        echo "Last Run: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> .github/system_status.txt
-        git config --local user.email "ml-bot@github.com" 
-        git config --local user.name "ML Learning Bot"
-        git add .github/system_status.txt
-        git diff --staged --quiet || git commit -m "📊 System status update"
-        git push --force-with-lease || true
+      run: "echo \"Ultimate ML/RL System: OPERATIONAL\" > .github/system_status.txt\n\
+        echo \"Last Run: $(date -u +'%Y-%m-%d %H:%M:%S UTC')\" >> .github/system_status.txt\n\
+        git config --local user.email \"ml-bot@github.com\" \ngit config --local user.name\
+        \ \"ML Learning Bot\"\ngit add .github/system_status.txt\ngit diff --staged\
+        \ --quiet || git commit -m \"\U0001F4CA System status update\"\ngit push --force-with-lease\
+        \ || true"
+    timeout-minutes: 10

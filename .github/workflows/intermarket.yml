@@ -1,36 +1,37 @@
 name: Intermarket Analysis
 'on':
   schedule:
-    - cron: '30 */4 * * *'  # Every 4 hours at 30 min past
-  workflow_dispatch:
-
+  - cron: 30 */4 * * *
+  workflow_dispatch: null
 jobs:
   intermarket:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas requests numpy yfinance scipy
-          
-      - name: Run Intermarket Analysis
-        run: |
-          cd Intelligence/scripts
-          python intermarket.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Commit Intermarket data
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/intermarket/
-          git diff --staged --quiet || git commit -m "🌐 Intermarket analysis update: $(date +'%Y-%m-%d %H:%M')"
-          git push
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install dependencies
+      run: 'python -m pip install --upgrade pip
+
+        pip install pandas requests numpy yfinance scipy
+
+        '
+    - name: Run Intermarket Analysis
+      run: 'cd Intelligence/scripts
+
+        python intermarket.py
+
+        '
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Commit Intermarket data
+      run: "git config --local user.email \"action@github.com\"\ngit config --local\
+        \ user.name \"GitHub Action\"\ngit add data/intermarket/\ngit diff --staged\
+        \ --quiet || git commit -m \"\U0001F310 Intermarket analysis update: $(date\
+        \ +'%Y-%m-%d %H:%M')\"\ngit push\n"
+    timeout-minutes: 15

@@ -1,189 +1,106 @@
 name: ES/NQ Critical Trading (Team)
-
-on:
+true:
   schedule:
-    # FUTURES 24/5 TRADING HOURS (ES/NQ) - EXTENDED COVERAGE
-    # Asian Session (Sunday 6PM - Thursday 11PM EST)
-    - cron: '*/10 23-23 * * 0'      # Sunday 6PM EST start
-    - cron: '*/10 0-4 * * 1-5'      # Asian overnight (6PM-11PM EST)
-    # European Session (2AM-7AM EST)  
-    - cron: '*/15 7-12 * * 1-5'     # European hours (2AM-7AM EST)
-    # US Pre-market (8AM-9:30AM EST)
-    - cron: '*/15 13-14 * * 1-5'    # Pre-market (8:00-9:30 AM EST)
-    # US Regular Hours (9:30AM-4PM EST) - MOST ACTIVE
-    - cron: '*/5 14-15 * * 1-5'     # Market open (9:30-10:30 AM EST) 
-    - cron: '*/10 15-20 * * 1-5'    # Midday (10:30 AM-3:00 PM EST)
-    - cron: '*/5 20-21 * * 1-5'     # Close (3:00-4:00 PM EST)
-    # After Hours (4PM-6PM EST)
-    - cron: '*/15 21-23 * * 1-4'    # After hours Mon-Thu
-    # Friday close at 5PM EST (22:00 UTC)
-    - cron: '*/10 21-22 * * 5'      # Friday after hours until close
-    # Total: ~24/5 futures coverage
-  workflow_dispatch:
-
+  - cron: '*/10 23-23 * * 0'
+  - cron: '*/10 0-4 * * 1-5'
+  - cron: '*/15 7-12 * * 1-5'
+  - cron: '*/15 13-14 * * 1-5'
+  - cron: '*/5 14-15 * * 1-5'
+  - cron: '*/10 15-20 * * 1-5'
+  - cron: '*/5 20-21 * * 1-5'
+  - cron: '*/15 21-23 * * 1-4'
+  - cron: '*/10 21-22 * * 5'
+  workflow_dispatch: null
 permissions:
   contents: read
   actions: read
-
 jobs:
   es-nq-analysis:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    
     steps:
     - uses: actions/checkout@v4
-      
+      with:
+        fetch-depth: 1
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+        cache: pip
     - name: Install Dependencies
-      run: |
-        pip install --upgrade pip
+      run: 'pip install --upgrade pip
+
         pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy requests
-        
+
+        '
     - name: ES/NQ Real-Time Analysis
-      run: |
-        python << 'EOF'
-        import yfinance as yf
-        import pandas as pd
-        import numpy as np
-        import json
-        import time
-        import requests
-        from datetime import datetime
-        
-        def fetch_with_retry(symbol, max_retries=3, delay=2):
-            """Fetch data with exponential backoff retry logic"""
-            for attempt in range(max_retries):
-                try:
-                    print(f"[{symbol}] Attempt {attempt + 1}/{max_retries}")
-                    
-                    # Add random delay to avoid rate limiting
-                    if attempt > 0:
-                        time.sleep(delay * (2 ** attempt) + np.random.uniform(0, 1))
-                    
-                    ticker = yf.Ticker(symbol)
-                    data = ticker.history(period='1d', interval='1m')
-                    
-                    if not data.empty:
-                        return data
-                    else:
-                        print(f"[{symbol}] Empty data on attempt {attempt + 1}")
-                        
-                except Exception as e:
-                    print(f"[{symbol}] Error on attempt {attempt + 1}: {e}")
-                    if attempt == max_retries - 1:
-                        # Try alternative data source on final attempt
-                        try:
-                            print(f"[{symbol}] Trying alternative timeframe...")
-                            data = ticker.history(period='2d', interval='5m')
-                            if not data.empty:
-                                return data.tail(78)  # Last ~6.5 hours of 5min data
-                        except:
-                            pass
-                        raise e
-                    
-            return None
-        
-        print(f"[ES/NQ] Starting critical analysis at {datetime.utcnow()}")
-        
-        # Fetch ES and NQ futures data with retry logic
-        symbols = ['ES=F', 'NQ=F']
-        analysis_results = {}
-        
-        for i, symbol in enumerate(symbols):
-            try:
-                # Stagger requests to avoid rate limiting
-                if i > 0:
-                    time.sleep(1 + np.random.uniform(0, 2))
-                
-                data = fetch_with_retry(symbol)
-                
-                if data is not None and not data.empty:
-                    latest = data.iloc[-1]
-                    
-                    # Calculate key metrics with safety checks
-                    try:
-                        price_change = (latest['Close'] - data['Open'].iloc[0]) / data['Open'].iloc[0] * 100
-                    except (ZeroDivisionError, IndexError):
-                        price_change = 0.0
-                        
-                    try:
-                        volatility = data['Close'].pct_change().std() * 100
-                        if np.isnan(volatility) or np.isinf(volatility):
-                            volatility = 0.0
-                    except:
-                        volatility = 0.0
-                        
-                    try:
-                        volume_mean = data['Volume'].mean()
-                        volume_ratio = latest['Volume'] / volume_mean if volume_mean > 0 else 1.0
-                        if np.isnan(volume_ratio) or np.isinf(volume_ratio):
-                            volume_ratio = 1.0
-                    except:
-                        volume_ratio = 1.0
-                    
-                    analysis_results[symbol] = {
-                        'price': float(latest['Close']),
-                        'change_percent': float(price_change),
-                        'volatility': float(volatility),
-                        'volume_ratio': float(volume_ratio),
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'data_points': len(data),
-                        'status': 'success'
-                    }
-                    
-                    print(f"[{symbol}] ✅ Price: ${latest['Close']:.2f}, Change: {price_change:.2f}%, Vol: {volatility:.2f}%, VR: {volume_ratio:.2f}")
-                    
-                else:
-                    print(f"[{symbol}] ❌ No data available")
-                    analysis_results[symbol] = {
-                        'price': 0.0,
-                        'change_percent': 0.0,
-                        'volatility': 0.0,
-                        'volume_ratio': 1.0,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'data_points': 0,
-                        'status': 'no_data'
-                    }
-                    
-            except Exception as e:
-                print(f"[{symbol}] ❌ CRITICAL ERROR: {e}")
-                analysis_results[symbol] = {
-                    'price': 0.0,
-                    'change_percent': 0.0,
-                    'volatility': 0.0,
-                    'volume_ratio': 1.0,
-                    'timestamp': datetime.utcnow().isoformat(),
-                    'data_points': 0,
-                    'status': 'error',
-                    'error': str(e)
-                }
-        
-        # Save results for other workflows (always save even if partial data)
-        import os
-        os.makedirs('data/es_nq', exist_ok=True)
-        
-        # Add metadata
-        analysis_results['_metadata'] = {
-            'total_symbols': len(symbols),
-            'successful_symbols': len([r for r in analysis_results.values() if isinstance(r, dict) and r.get('status') == 'success']),
-            'run_timestamp': datetime.utcnow().isoformat(),
-            'workflow_run': 'es_nq_critical_trading'
-        }
-        
-        with open('data/es_nq/latest_analysis.json', 'w') as f:
-            json.dump(analysis_results, f, indent=2)
-        
-        successful_count = analysis_results['_metadata']['successful_symbols']
-        print(f"[ES/NQ] ✅ Analysis complete: {successful_count}/{len(symbols)} symbols successful")
-        
-        # Exit with success even if partial data (better than complete failure)
-        if successful_count > 0:
-            print(f"[ES/NQ] ✅ Workflow SUCCESS - Partial data is acceptable")
-        else:
-            print(f"[ES/NQ] ⚠️  Workflow WARNING - No data retrieved but not failing")
-            
-        EOF
+      run: "python << 'EOF'\nimport yfinance as yf\nimport pandas as pd\nimport numpy\
+        \ as np\nimport json\nimport time\nimport requests\nfrom datetime import datetime\n\
+        \ndef fetch_with_retry(symbol, max_retries=3, delay=2):\n    \"\"\"Fetch data\
+        \ with exponential backoff retry logic\"\"\"\n    for attempt in range(max_retries):\n\
+        \        try:\n            print(f\"[{symbol}] Attempt {attempt + 1}/{max_retries}\"\
+        )\n            \n            # Add random delay to avoid rate limiting\n \
+        \           if attempt > 0:\n                time.sleep(delay * (2 ** attempt)\
+        \ + np.random.uniform(0, 1))\n            \n            ticker = yf.Ticker(symbol)\n\
+        \            data = ticker.history(period='1d', interval='1m')\n         \
+        \   \n            if not data.empty:\n                return data\n      \
+        \      else:\n                print(f\"[{symbol}] Empty data on attempt {attempt\
+        \ + 1}\")\n                \n        except Exception as e:\n            print(f\"\
+        [{symbol}] Error on attempt {attempt + 1}: {e}\")\n            if attempt\
+        \ == max_retries - 1:\n                # Try alternative data source on final\
+        \ attempt\n                try:\n                    print(f\"[{symbol}] Trying\
+        \ alternative timeframe...\")\n                    data = ticker.history(period='2d',\
+        \ interval='5m')\n                    if not data.empty:\n               \
+        \         return data.tail(78)  # Last ~6.5 hours of 5min data\n         \
+        \       except:\n                    pass\n                raise e\n     \
+        \       \n    return None\n\nprint(f\"[ES/NQ] Starting critical analysis at\
+        \ {datetime.utcnow()}\")\n\n# Fetch ES and NQ futures data with retry logic\n\
+        symbols = ['ES=F', 'NQ=F']\nanalysis_results = {}\n\nfor i, symbol in enumerate(symbols):\n\
+        \    try:\n        # Stagger requests to avoid rate limiting\n        if i\
+        \ > 0:\n            time.sleep(1 + np.random.uniform(0, 2))\n        \n  \
+        \      data = fetch_with_retry(symbol)\n        \n        if data is not None\
+        \ and not data.empty:\n            latest = data.iloc[-1]\n            \n\
+        \            # Calculate key metrics with safety checks\n            try:\n\
+        \                price_change = (latest['Close'] - data['Open'].iloc[0]) /\
+        \ data['Open'].iloc[0] * 100\n            except (ZeroDivisionError, IndexError):\n\
+        \                price_change = 0.0\n                \n            try:\n\
+        \                volatility = data['Close'].pct_change().std() * 100\n   \
+        \             if np.isnan(volatility) or np.isinf(volatility):\n         \
+        \           volatility = 0.0\n            except:\n                volatility\
+        \ = 0.0\n                \n            try:\n                volume_mean =\
+        \ data['Volume'].mean()\n                volume_ratio = latest['Volume'] /\
+        \ volume_mean if volume_mean > 0 else 1.0\n                if np.isnan(volume_ratio)\
+        \ or np.isinf(volume_ratio):\n                    volume_ratio = 1.0\n   \
+        \         except:\n                volume_ratio = 1.0\n            \n    \
+        \        analysis_results[symbol] = {\n                'price': float(latest['Close']),\n\
+        \                'change_percent': float(price_change),\n                'volatility':\
+        \ float(volatility),\n                'volume_ratio': float(volume_ratio),\n\
+        \                'timestamp': datetime.utcnow().isoformat(),\n           \
+        \     'data_points': len(data),\n                'status': 'success'\n   \
+        \         }\n            \n            print(f\"[{symbol}] \u2705 Price: ${latest['Close']:.2f},\
+        \ Change: {price_change:.2f}%, Vol: {volatility:.2f}%, VR: {volume_ratio:.2f}\"\
+        )\n            \n        else:\n            print(f\"[{symbol}] \u274C No\
+        \ data available\")\n            analysis_results[symbol] = {\n          \
+        \      'price': 0.0,\n                'change_percent': 0.0,\n           \
+        \     'volatility': 0.0,\n                'volume_ratio': 1.0,\n         \
+        \       'timestamp': datetime.utcnow().isoformat(),\n                'data_points':\
+        \ 0,\n                'status': 'no_data'\n            }\n            \n \
+        \   except Exception as e:\n        print(f\"[{symbol}] \u274C CRITICAL ERROR:\
+        \ {e}\")\n        analysis_results[symbol] = {\n            'price': 0.0,\n\
+        \            'change_percent': 0.0,\n            'volatility': 0.0,\n    \
+        \        'volume_ratio': 1.0,\n            'timestamp': datetime.utcnow().isoformat(),\n\
+        \            'data_points': 0,\n            'status': 'error',\n         \
+        \   'error': str(e)\n        }\n\n# Save results for other workflows (always\
+        \ save even if partial data)\nimport os\nos.makedirs('data/es_nq', exist_ok=True)\n\
+        \n# Add metadata\nanalysis_results['_metadata'] = {\n    'total_symbols':\
+        \ len(symbols),\n    'successful_symbols': len([r for r in analysis_results.values()\
+        \ if isinstance(r, dict) and r.get('status') == 'success']),\n    'run_timestamp':\
+        \ datetime.utcnow().isoformat(),\n    'workflow_run': 'es_nq_critical_trading'\n\
+        }\n\nwith open('data/es_nq/latest_analysis.json', 'w') as f:\n    json.dump(analysis_results,\
+        \ f, indent=2)\n\nsuccessful_count = analysis_results['_metadata']['successful_symbols']\n\
+        print(f\"[ES/NQ] \u2705 Analysis complete: {successful_count}/{len(symbols)}\
+        \ symbols successful\")\n\n# Exit with success even if partial data (better\
+        \ than complete failure)\nif successful_count > 0:\n    print(f\"[ES/NQ] \u2705\
+        \ Workflow SUCCESS - Partial data is acceptable\")\nelse:\n    print(f\"[ES/NQ]\
+        \ \u26A0\uFE0F  Workflow WARNING - No data retrieved but not failing\")\n\
+        \    \nEOF"

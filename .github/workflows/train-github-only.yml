@@ -1,258 +1,172 @@
-name: "24/7 GitHub-Only ML/RL Training"
-
-on:
+name: 24/7 GitHub-Only ML/RL Training
+true:
   schedule:
-    - cron: '*/30 * * * *'  # Every 30 minutes (48 runs/day) - original frequency
+  - cron: '*/30 * * * *'
   workflow_dispatch:
     inputs:
       manual_test:
-        description: "Run lightweight smoke tests"
+        description: Run lightweight smoke tests
         required: false
         default: false
         type: boolean
       force_run:
-        description: "Force run even if recent models exist"
+        description: Force run even if recent models exist
         required: false
         default: false
         type: boolean
   push:
-    branches: ['main']
-
+    branches:
+    - main
 concurrency:
   group: train-github-only
   cancel-in-progress: true
-
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 env:
-  VENDOR_DIR: "data/vendor"
-  DATA_DIR: "data/logs"
-
+  VENDOR_DIR: data/vendor
+  DATA_DIR: data/logs
 jobs:
   continuous-training:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: write
-      
     steps:
-      - name: "📥 Checkout Code"
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-        
-      - name: "🔍 Debug Workflow Info"
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Manual test: ${{ inputs.manual_test }}"
-          echo "Force run: ${{ inputs.force_run }}"
-          echo "Ref: ${{ github.ref }}"
-        
-      - name: "🐍 Setup Python"
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          
-      - name: "📦 Install Python Dependencies"
-        run: |
-          pip install --upgrade pip
-          # Core ML dependencies with retry logic
-          pip install --retry-delays 1,2,3 --timeout 60 torch numpy pandas scikit-learn || echo "Core packages failed, using fallbacks"
-          pip install --retry-delays 1,2,3 --timeout 60 onnx skl2onnx packaging pyarrow || echo "ONNX packages failed, continuing"
-          pip install --retry-delays 1,2,3 --timeout 60 gym stable-baselines3 || echo "RL packages failed, using fallbacks"
-          pip install --retry-delays 1,2,3 --timeout 60 tensorboard matplotlib seaborn || echo "Visualization packages failed, continuing"
-          pip install --retry-delays 1,2,3 --timeout 60 optuna hyperopt joblib || echo "Optimization packages failed, continuing"
-          
-      - name: "🔍 Test Dependencies"  
-        run: |
-          python << 'EOF'
-          try:
-              import pandas as pd
-              import numpy as np
-              print("✅ Core packages: numpy, pandas")
-              
-              try:
-                  import torch
-                  print("✅ PyTorch available")
-              except ImportError:
-                  print("⚠️ PyTorch not available, using numpy fallback")
-                  
-              try:
-                  import onnx
-                  print("✅ ONNX available")
-              except ImportError:
-                  print("⚠️ ONNX not available, skipping ONNX features")
-                  
-              try:
-                  import pyarrow
-                  print("✅ PyArrow available")
-              except ImportError:
-                  print("⚠️ PyArrow not available, using CSV fallback")
-                  
-              print("✅ Dependency check completed - continuing with available packages")
-              
-          except Exception as e:
-              print(f"❌ Critical dependency error: {e}")
-              raise e
-          EOF
+    - name: "\U0001F4E5 Checkout Code"
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - name: "\U0001F50D Debug Workflow Info"
+      run: 'echo "Event: ${{ github.event_name }}"
 
-      - name: "🧪 Lightweight Smoke Test"
-        if: ${{ inputs.manual_test == true }}
-        run: |
-          echo "🧪 Running lightweight smoke test..."
-          mkdir -p models/rl data/logs
-          python -c "
-          import pandas as pd
-          import numpy as np
-          data = pd.DataFrame({
-              'feature1': np.random.randn(10),
-              'feature2': np.random.randn(10),
-              'target': np.random.randn(10)
-          })
-          data.to_parquet('data/logs/test_data.parquet')
-          print('✅ Smoke test completed successfully!')
-          "
+        echo "Manual test: ${{ inputs.manual_test }}"
 
-      - name: "📊 Generate Training Data"
-        if: ${{ inputs.manual_test != true }}
-        run: |
-          mkdir -p models/rl data/logs data/vendor Intelligence/data/training
-          echo "Creating training data..."
-          python -c "
-          import json
-          import pandas as pd
-          import numpy as np
-          from datetime import datetime, timedelta
-          
-          # Generate training data
-          meta_data = []
-          for i in range(1000):
-              meta_data.append({
-                  'timestamp': (datetime.now() - timedelta(hours=i)).isoformat(),
-                  'symbol': 'ES',
-                  'price': 4500 + np.random.randn() * 50,
-                  'volume': np.random.randint(1000, 10000),
-                  'returns': np.random.randn() * 0.01,
-                  'volatility': np.random.exponential(0.02)
-              })
-          
-          df_meta = pd.DataFrame(meta_data)
-          df_meta.to_csv('Intelligence/data/training/data.csv', index=False)
-          print(f'Generated training data: {len(df_meta)} samples')
-          "
+        echo "Force run: ${{ inputs.force_run }}"
 
-      - name: "🤖 Train Models"
-        if: ${{ inputs.manual_test != true }}
-        run: |
-          echo "Training models..."
-          # Check if training script exists, create fallback if not
-          if [ -f "ml/rl/train_cvar_ppo.py" ]; then
-            python ml/rl/train_cvar_ppo.py --data Intelligence/data/training/data.csv --save_dir models/rl/
-          else
-            echo "Training script not found, creating placeholder model..."
-            mkdir -p models/rl
-            python -c "
-            import torch
-            import json
-            from datetime import datetime
-            
-            # Create a simple placeholder model
-            model_data = {
-                'model_type': 'placeholder_cvar_ppo',
-                'created_at': datetime.utcnow().isoformat(),
-                'version': '1.0.0',
-                'parameters': {'dummy': True}
-            }
-            
-            with open('models/rl/model_info.json', 'w') as f:
-                json.dump(model_data, f, indent=2)
-                
-            # Create a dummy model file
-            dummy_model = torch.randn(10, 10)
-            torch.save(dummy_model, 'models/rl/cvar_ppo_model.pth')
-            print('✅ Placeholder model created successfully')
-            "
-          fi
+        echo "Ref: ${{ github.ref }}"
 
-      - name: "Package Models"
-        run: |
-          mkdir -p models
-          cd models
-          timestamp=$(date +%Y%m%d-%H%M%S)
-          
-          # Create tar package with error handling
-          if [ -d "rl" ] && [ "$(ls -A rl 2>/dev/null)" ]; then
-            echo "Packaging existing models..."
-            tar -czf "ml-models-${timestamp}.tar.gz" rl/ 2>/dev/null || echo "WARNING: Packaging failed, creating empty package"
-          else
-            echo "No models found, creating placeholder package..."
-            mkdir -p rl
-            echo "# Placeholder Model Package" > rl/README.md
-            echo "Created: $(date)" >> rl/README.md
-            tar -czf "ml-models-${timestamp}.tar.gz" rl/
-          fi
-          
-          # Set environment variables with fallbacks
-          echo "MODEL_PACKAGE=ml-models-${timestamp}.tar.gz" >> $GITHUB_ENV
-          echo "RELEASE_TAG=models-v${timestamp}" >> $GITHUB_ENV
-          echo "TIMESTAMP=${timestamp}" >> $GITHUB_ENV
-          
-          echo "Generated package: ml-models-${timestamp}.tar.gz"
+        '
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: "\U0001F40D Setup Python"
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: pip
+    - name: "\U0001F4E6 Install Python Dependencies"
+      run: 'pip install --upgrade pip
 
-      - name: "Create GitHub Release"
-        continue-on-error: true
-        run: |
-          # Install GitHub CLI if not available
-          if ! command -v gh &> /dev/null; then
-            echo "Installing GitHub CLI..."
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          fi
-          
-          # Get environment variables with fallbacks
-          RELEASE_TAG="${{ env.RELEASE_TAG }}"
-          MODEL_PACKAGE="${{ env.MODEL_PACKAGE }}"
-          TIMESTAMP="${{ env.TIMESTAMP }}"
-          
-          if [ -z "$RELEASE_TAG" ]; then
-            RELEASE_TAG="models-v$(date +%Y%m%d-%H%M%S)"
-          fi
-          
-          if [ -z "$MODEL_PACKAGE" ]; then
-            MODEL_PACKAGE="ml-models-fallback.tar.gz"
-          fi
-          
-          # Create release with GitHub CLI
-          cd models
-          if [ -f "$MODEL_PACKAGE" ]; then
-            echo "Creating release with tag: $RELEASE_TAG"
-            RELEASE_NOTES="ML/RL Model Release
+        # Core ML dependencies with retry logic
 
-          Training Completed: $(date +'%Y-%m-%d %H:%M:%S UTC')
+        pip install --retry-delays 1,2,3 --timeout 60 torch numpy pandas scikit-learn
+        || echo "Core packages failed, using fallbacks"
 
-          Models Included:
-          - CVaR PPO Agent - Advanced RL position sizing
+        pip install --retry-delays 1,2,3 --timeout 60 onnx skl2onnx packaging pyarrow
+        || echo "ONNX packages failed, continuing"
 
-          Download the $MODEL_PACKAGE file to get all trained models."
-            
-            gh release create "$RELEASE_TAG" \
-              --title "AI Models $(date +'%Y-%m-%d %H:%M')" \
-              --notes "$RELEASE_NOTES" \
-              "$MODEL_PACKAGE" || echo "WARNING: Release creation failed"
-          else
-            echo "ERROR: Model package not found: $MODEL_PACKAGE"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        pip install --retry-delays 1,2,3 --timeout 60 gym stable-baselines3 || echo
+        "RL packages failed, using fallbacks"
 
-      - name: "Training Complete"
-        run: |
-          echo "24/7 GitHub Learning Complete!"
-          echo "Models packaged and uploaded successfully."
+        pip install --retry-delays 1,2,3 --timeout 60 tensorboard matplotlib seaborn
+        || echo "Visualization packages failed, continuing"
+
+        pip install --retry-delays 1,2,3 --timeout 60 optuna hyperopt joblib || echo
+        "Optimization packages failed, continuing"
+
+        '
+    - name: "\U0001F50D Test Dependencies"
+      run: "python << 'EOF'\ntry:\n    import pandas as pd\n    import numpy as np\n\
+        \    print(\"\u2705 Core packages: numpy, pandas\")\n    \n    try:\n    \
+        \    import torch\n        print(\"\u2705 PyTorch available\")\n    except\
+        \ ImportError:\n        print(\"\u26A0\uFE0F PyTorch not available, using\
+        \ numpy fallback\")\n        \n    try:\n        import onnx\n        print(\"\
+        \u2705 ONNX available\")\n    except ImportError:\n        print(\"\u26A0\uFE0F\
+        \ ONNX not available, skipping ONNX features\")\n        \n    try:\n    \
+        \    import pyarrow\n        print(\"\u2705 PyArrow available\")\n    except\
+        \ ImportError:\n        print(\"\u26A0\uFE0F PyArrow not available, using\
+        \ CSV fallback\")\n        \n    print(\"\u2705 Dependency check completed\
+        \ - continuing with available packages\")\n    \nexcept Exception as e:\n\
+        \    print(f\"\u274C Critical dependency error: {e}\")\n    raise e\nEOF\n"
+    - name: "\U0001F9EA Lightweight Smoke Test"
+      if: ${{ inputs.manual_test == true }}
+      run: "echo \"\U0001F9EA Running lightweight smoke test...\"\nmkdir -p models/rl\
+        \ data/logs\npython -c \"\nimport pandas as pd\nimport numpy as np\ndata =\
+        \ pd.DataFrame({\n    'feature1': np.random.randn(10),\n    'feature2': np.random.randn(10),\n\
+        \    'target': np.random.randn(10)\n})\ndata.to_parquet('data/logs/test_data.parquet')\n\
+        print('\u2705 Smoke test completed successfully!')\n\"\n"
+    - name: "\U0001F4CA Generate Training Data"
+      if: ${{ inputs.manual_test != true }}
+      run: "mkdir -p models/rl data/logs data/vendor Intelligence/data/training\n\
+        echo \"Creating training data...\"\npython -c \"\nimport json\nimport pandas\
+        \ as pd\nimport numpy as np\nfrom datetime import datetime, timedelta\n\n\
+        # Generate training data\nmeta_data = []\nfor i in range(1000):\n    meta_data.append({\n\
+        \        'timestamp': (datetime.now() - timedelta(hours=i)).isoformat(),\n\
+        \        'symbol': 'ES',\n        'price': 4500 + np.random.randn() * 50,\n\
+        \        'volume': np.random.randint(1000, 10000),\n        'returns': np.random.randn()\
+        \ * 0.01,\n        'volatility': np.random.exponential(0.02)\n    })\n\ndf_meta\
+        \ = pd.DataFrame(meta_data)\ndf_meta.to_csv('Intelligence/data/training/data.csv',\
+        \ index=False)\nprint(f'Generated training data: {len(df_meta)} samples')\n\
+        \"\n"
+    - name: "\U0001F916 Train Models"
+      if: ${{ inputs.manual_test != true }}
+      run: "echo \"Training models...\"\n# Check if training script exists, create\
+        \ fallback if not\nif [ -f \"ml/rl/train_cvar_ppo.py\" ]; then\n  python ml/rl/train_cvar_ppo.py\
+        \ --data Intelligence/data/training/data.csv --save_dir models/rl/\nelse\n\
+        \  echo \"Training script not found, creating placeholder model...\"\n  mkdir\
+        \ -p models/rl\n  python -c \"\n  import torch\n  import json\n  from datetime\
+        \ import datetime\n  \n  # Create a simple placeholder model\n  model_data\
+        \ = {\n      'model_type': 'placeholder_cvar_ppo',\n      'created_at': datetime.utcnow().isoformat(),\n\
+        \      'version': '1.0.0',\n      'parameters': {'dummy': True}\n  }\n  \n\
+        \  with open('models/rl/model_info.json', 'w') as f:\n      json.dump(model_data,\
+        \ f, indent=2)\n      \n  # Create a dummy model file\n  dummy_model = torch.randn(10,\
+        \ 10)\n  torch.save(dummy_model, 'models/rl/cvar_ppo_model.pth')\n  print('\u2705\
+        \ Placeholder model created successfully')\n  \"\nfi\n"
+    - name: Package Models
+      run: "mkdir -p models\ncd models\ntimestamp=$(date +%Y%m%d-%H%M%S)\n\n# Create\
+        \ tar package with error handling\nif [ -d \"rl\" ] && [ \"$(ls -A rl 2>/dev/null)\"\
+        \ ]; then\n  echo \"Packaging existing models...\"\n  tar -czf \"ml-models-${timestamp}.tar.gz\"\
+        \ rl/ 2>/dev/null || echo \"WARNING: Packaging failed, creating empty package\"\
+        \nelse\n  echo \"No models found, creating placeholder package...\"\n  mkdir\
+        \ -p rl\n  echo \"# Placeholder Model Package\" > rl/README.md\n  echo \"\
+        Created: $(date)\" >> rl/README.md\n  tar -czf \"ml-models-${timestamp}.tar.gz\"\
+        \ rl/\nfi\n\n# Set environment variables with fallbacks\necho \"MODEL_PACKAGE=ml-models-${timestamp}.tar.gz\"\
+        \ >> $GITHUB_ENV\necho \"RELEASE_TAG=models-v${timestamp}\" >> $GITHUB_ENV\n\
+        echo \"TIMESTAMP=${timestamp}\" >> $GITHUB_ENV\n\necho \"Generated package:\
+        \ ml-models-${timestamp}.tar.gz\"\n"
+    - name: Create GitHub Release
+      continue-on-error: true
+      run: "# Install GitHub CLI if not available\nif ! command -v gh &> /dev/null;\
+        \ then\n  echo \"Installing GitHub CLI...\"\n  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg\
+        \ | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg\n  echo \"\
+        deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg]\
+        \ https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list\
+        \ > /dev/null\n  sudo apt update\n  sudo apt install gh -y\nfi\n\n# Get environment\
+        \ variables with fallbacks\nRELEASE_TAG=\"${{ env.RELEASE_TAG }}\"\nMODEL_PACKAGE=\"\
+        ${{ env.MODEL_PACKAGE }}\"\nTIMESTAMP=\"${{ env.TIMESTAMP }}\"\n\nif [ -z\
+        \ \"$RELEASE_TAG\" ]; then\n  RELEASE_TAG=\"models-v$(date +%Y%m%d-%H%M%S)\"\
+        \nfi\n\nif [ -z \"$MODEL_PACKAGE\" ]; then\n  MODEL_PACKAGE=\"ml-models-fallback.tar.gz\"\
+        \nfi\n\n# Create release with GitHub CLI\ncd models\nif [ -f \"$MODEL_PACKAGE\"\
+        \ ]; then\n  echo \"Creating release with tag: $RELEASE_TAG\"\n  RELEASE_NOTES=\"\
+        ML/RL Model Release\n\nTraining Completed: $(date +'%Y-%m-%d %H:%M:%S UTC')\n\
+        \nModels Included:\n- CVaR PPO Agent - Advanced RL position sizing\n\nDownload\
+        \ the $MODEL_PACKAGE file to get all trained models.\"\n  \n  gh release create\
+        \ \"$RELEASE_TAG\" \\\n    --title \"AI Models $(date +'%Y-%m-%d %H:%M')\"\
+        \ \\\n    --notes \"$RELEASE_NOTES\" \\\n    \"$MODEL_PACKAGE\" || echo \"\
+        WARNING: Release creation failed\"\nelse\n  echo \"ERROR: Model package not\
+        \ found: $MODEL_PACKAGE\"\nfi\n"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Training Complete
+      run: 'echo "24/7 GitHub Learning Complete!"
+
+        echo "Models packaged and uploaded successfully."
+
+        '

@@ -22,14 +22,14 @@
     "issues": [],
     "optimizations": [],
     "schedules": [],
-    "estimated_minutes": 19,
+    "estimated_minutes": 21,
     "runs_per_month": 0,
     "jobs": {
       "build": {
         "timeout": 30,
         "runs_on": "ubuntu-latest",
-        "steps": 7,
-        "estimated_minutes": 14
+        "steps": 8,
+        "estimated_minutes": 16
       }
     }
   },
@@ -56,14 +56,14 @@
     "issues": [],
     "optimizations": [],
     "schedules": [],
-    "estimated_minutes": 23,
+    "estimated_minutes": 25,
     "runs_per_month": 0,
     "jobs": {
       "build": {
         "timeout": 30,
         "runs_on": "windows-latest",
-        "steps": 9,
-        "estimated_minutes": 18
+        "steps": 10,
+        "estimated_minutes": 20
       }
     }
   },
@@ -111,7 +111,7 @@
     "runs_per_month": 0,
     "jobs": {
       "analyze-futures-news": {
-        "timeout": 360,
+        "timeout": 15,
         "runs_on": "ubuntu-latest",
         "steps": 5,
         "estimated_minutes": 10
@@ -216,7 +216,7 @@
     "runs_per_month": 11,
     "jobs": {
       "opex_calendar": {
-        "timeout": 360,
+        "timeout": 15,
         "runs_on": "ubuntu-latest",
         "steps": 5,
         "estimated_minutes": 10
@@ -371,7 +371,7 @@
     "runs_per_month": 22,
     "jobs": {
       "sector_rotation": {
-        "timeout": 360,
+        "timeout": 15,
         "runs_on": "ubuntu-latest",
         "steps": 5,
         "estimated_minutes": 10
@@ -407,7 +407,7 @@
     "runs_per_month": 572,
     "jobs": {
       "social_momentum": {
-        "timeout": 360,
+        "timeout": 15,
         "runs_on": "ubuntu-latest",
         "steps": 5,
         "estimated_minutes": 10
@@ -466,41 +466,17 @@
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-03T22:53:22.188489",
+    "timestamp": "2025-09-03T22:57:09.738610",
     "total_workflows": 40,
-    "healthy_workflows": 28,
-    "broken_workflows": [
-      "cloud-ml-training.yml",
-      "cloud_bot_mechanic.yml",
-      "congress_trades.yml",
-      "cot_report.yml",
-      "es_nq_critical_trading.yml",
-      "install_dependencies_template.yml",
-      "intermarket.yml",
-      "mm_positioning.yml",
-      "status-badges.yml",
-      "test_talib_fix.yml",
-      "train-github-only.yml",
-      "ultimate_ml_rl_intel_system.yml"
-    ],
+    "healthy_workflows": 40,
+    "broken_workflows": [],
     "slow_workflows": [],
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
-    "total_monthly_minutes": 9075,
+    "total_monthly_minutes": 22980,
     "issues_found": [
-      "cloud-ml-training.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 535: character maps to <undefined>",
-      "cloud_bot_mechanic.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 12: character maps to <undefined>",
-      "congress_trades.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1054: character maps to <undefined>",
-      "cot_report.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1063: character maps to <undefined>",
-      "es_nq_critical_trading.yml: Analysis error - 'charmap' codec can't decode byte 0x9d in position 5828: character maps to <undefined>",
-      "install_dependencies_template.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 2550: character maps to <undefined>",
-      "intermarket.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 1007: character maps to <undefined>",
-      "mm_positioning.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1011: character maps to <undefined>",
-      "status-badges.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 13: character maps to <undefined>",
-      "test_talib_fix.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 702: character maps to <undefined>",
-      "train-github-only.yml: Analysis error - 'charmap' codec can't decode byte 0x8d in position 1088: character maps to <undefined>",
-      "ultimate_ml_rl_intel_system.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 3166: character maps to <undefined>"
+      "CRITICAL: Estimated 22980 minutes exceeds 20,000 limit!"
     ]
   },
   "quality-assurance.yml": {
@@ -517,6 +493,237 @@
         "runs_on": "ubuntu-latest",
         "steps": 4,
         "estimated_minutes": 8
+      }
+    }
+  },
+  "cloud-ml-training.yml": {
+    "name": "Cloud ML Training Pipeline",
+    "file": "cloud-ml-training.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 21,
+    "runs_per_month": 0,
+    "jobs": {
+      "cloud-training": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "cloud_bot_mechanic.yml": {
+    "name": "\ud83c\udf29\ufe0f Cloud Bot Mechanic (Ultimate)",
+    "file": "cloud_bot_mechanic.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 20,
+    "runs_per_month": 0,
+    "jobs": {
+      "cloud-mechanic": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 14,
+        "estimated_minutes": 15
+      }
+    }
+  },
+  "congress_trades.yml": {
+    "name": "Congressional Trades Monitor",
+    "file": "congress_trades.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 22 * * 1-5"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 22,
+    "jobs": {
+      "congress_trades": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "cot_report.yml": {
+    "name": "COT Report Analysis",
+    "file": "cot_report.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 21 * * 2",
+      "0 21 * * 5"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 5,
+    "jobs": {
+      "cot_analysis": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "es_nq_critical_trading.yml": {
+    "name": "ES/NQ Critical Trading (Team)",
+    "file": "es_nq_critical_trading.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 10,
+    "runs_per_month": 0,
+    "jobs": {
+      "es-nq-analysis": {
+        "timeout": 5,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 5
+      }
+    }
+  },
+  "install_dependencies_template.yml": {
+    "name": "Universal Dependency Installation Template",
+    "file": "install_dependencies_template.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 17,
+    "runs_per_month": 0,
+    "jobs": {
+      "install-dependencies": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 6,
+        "estimated_minutes": 12
+      }
+    }
+  },
+  "intermarket.yml": {
+    "name": "Intermarket Analysis",
+    "file": "intermarket.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "30 */4 * * *"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 180,
+    "jobs": {
+      "intermarket": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "mm_positioning.yml": {
+    "name": "Market Maker Positioning",
+    "file": "mm_positioning.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "15 * * * *"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 720,
+    "jobs": {
+      "mm_positioning": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "status-badges.yml": {
+    "name": "\ud83c\udf96\ufe0f Status Badges",
+    "file": "status-badges.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 21,
+    "runs_per_month": 0,
+    "jobs": {
+      "update-badges": {
+        "timeout": 24,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "test_talib_fix.yml": {
+    "name": "\ud83e\uddea Test TA-Lib Installation Fix",
+    "file": "test_talib_fix.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 21,
+    "runs_per_month": 0,
+    "jobs": {
+      "test-talib-fix": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "train-github-only.yml": {
+    "name": "24/7 GitHub-Only ML/RL Training",
+    "file": "train-github-only.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 29,
+    "runs_per_month": 0,
+    "jobs": {
+      "continuous-training": {
+        "timeout": 45,
+        "runs_on": "ubuntu-latest",
+        "steps": 12,
+        "estimated_minutes": 24
+      }
+    }
+  },
+  "ultimate_ml_rl_intel_system.yml": {
+    "name": "Ultimate ML/RL/Intel System (Team Optimized)",
+    "file": "ultimate_ml_rl_intel_system.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 54,
+    "runs_per_month": 0,
+    "jobs": {
+      "collect-everything": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 11,
+        "estimated_minutes": 15
+      },
+      "train-everything": {
+        "timeout": 45,
+        "runs_on": "ubuntu-latest",
+        "steps": 7,
+        "estimated_minutes": 14
+      },
+      "intelligence-integration": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 7,
+        "estimated_minutes": 14
+      },
+      "system-summary": {
+        "timeout": 10,
+        "runs_on": "ubuntu-latest",
+        "steps": 3,
+        "estimated_minutes": 6
       }
     }
   }
