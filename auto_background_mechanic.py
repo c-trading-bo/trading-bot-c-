@@ -15,7 +15,7 @@ import threading
 import subprocess
 import traceback
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set, Tuple
 import warnings
@@ -24,7 +24,7 @@ warnings.filterwarnings('ignore')
 class AutoBackgroundMechanic:
     def __init__(self):
         self.version = "3.0.0-AUTO-BACKGROUND"
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self.base_path = Path.cwd()
         self.running = True
         
@@ -41,7 +41,7 @@ class AutoBackgroundMechanic:
         # Load databases
         self.knowledge = self.load_json(self.knowledge_db, {
             "version": self.version,
-            "created": datetime.utcnow().isoformat(),
+            "created": datetime.now(timezone.utc).isoformat(),
             "files": {},
             "features": {},
             "dependencies": {},
@@ -2007,7 +2007,7 @@ def start_auto_background_mechanic():
             try:
                 __import__(package.replace('-', '_').split('.')[0])
             except ImportError:
-                subprocess.run(f"pip install {package}", shell=True, capture_output=True)
+                subprocess.run(["pip", "install", package], capture_output=True)
         
         # Create mechanic instance
         mechanic = AutoBackgroundMechanic()

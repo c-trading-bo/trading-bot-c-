@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace OrchestratorAgent.Intelligence
 {
@@ -14,15 +15,19 @@ namespace OrchestratorAgent.Intelligence
     public class LocalBotMechanicIntegration : IHostedService, IDisposable
     {
         private readonly ILogger<LocalBotMechanicIntegration> _logger;
+        private readonly IConfiguration _configuration;
         private Process? _mechanicProcess;
         private Process? _dashboardProcess;
         private readonly string _mechanicPath;
+        private readonly string _mechanicBaseUrl;
         private bool _disposed;
 
-        public LocalBotMechanicIntegration(ILogger<LocalBotMechanicIntegration> logger)
+        public LocalBotMechanicIntegration(ILogger<LocalBotMechanicIntegration> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
             _mechanicPath = Path.Combine(Directory.GetCurrentDirectory(), "Intelligence", "mechanic", "local");
+            _mechanicBaseUrl = _configuration.GetValue<string>("MechanicBaseUrl") ?? "http://localhost:5051";
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -42,8 +47,8 @@ namespace OrchestratorAgent.Intelligence
                 await StartMechanicAsync();
 
                 _logger.LogInformation("✅ Local Bot Mechanic started successfully");
-                _logger.LogInformation("📊 Dashboard: http://localhost:5051/mechanic/dashboard");
-                _logger.LogInformation("🔗 Health API: http://localhost:5051/mechanic/health");
+                _logger.LogInformation("📊 Dashboard: {MechanicUrl}/mechanic/dashboard", _mechanicBaseUrl);
+                _logger.LogInformation("🔗 Health API: {MechanicUrl}/mechanic/health", _mechanicBaseUrl);
             }
             catch (Exception ex)
             {
@@ -94,6 +99,15 @@ namespace OrchestratorAgent.Intelligence
         {
             var startupScript = Path.Combine(_mechanicPath, "start_local_mechanic.py");
             
+            // Validate that startupScript is within _mechanicPath
+            var mechanicPathFull = Path.GetFullPath(_mechanicPath);
+            var startupScriptFull = Path.GetFullPath(startupScript);
+            if (!startupScriptFull.StartsWith(mechanicPathFull + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            {
+                _logger.LogError("Startup script path {StartupScript} is not within the expected directory {MechanicPath}", startupScriptFull, mechanicPathFull);
+                throw new UnauthorizedAccessException("Startup script path validation failed.");
+            }
+            
             if (!File.Exists(startupScript))
             {
                 throw new FileNotFoundException($"Startup script not found: {startupScript}");
@@ -102,8 +116,8 @@ namespace OrchestratorAgent.Intelligence
             var startInfo = new ProcessStartInfo
             {
                 FileName = "python",
-                Arguments = $"\"{startupScript}\"",
-                WorkingDirectory = Directory.GetCurrentDirectory(),
+                Arguments = $"\"{startupScriptFull}\"",
+                WorkingDirectory = mechanicPathFull,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -192,7 +206,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
                 
-                var response = await client.GetStringAsync("http://localhost:5051/mechanic/health");
+                var response = await client.GetStringAsync($"{_mechanicBaseUrl}/mechanic/health");
                 return response;
             }
             catch (Exception ex)
@@ -212,7 +226,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/scan");
+                var response = await client.GetAsync($"{_mechanicBaseUrl}/mechanic/scan");
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -232,7 +246,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/fix");
+                var response = await client.GetAsync($"{_mechanicBaseUrl}/mechanic/fix");
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

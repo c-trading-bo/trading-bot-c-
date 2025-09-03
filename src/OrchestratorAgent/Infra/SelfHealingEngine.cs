@@ -12,12 +12,10 @@ namespace OrchestratorAgent.Infra;
 /// </summary>
 public class SelfHealingEngine
 {
-    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<SelfHealingEngine> _logger;
 
-    public SelfHealingEngine(IServiceProvider serviceProvider, ILogger<SelfHealingEngine> logger)
+    public SelfHealingEngine(ILogger<SelfHealingEngine> logger)
     {
-        _serviceProvider = serviceProvider;
         _logger = logger;
         _logger.LogWarning("⚠️ [SelfHealingEngine] Temporarily disabled for cloud learning setup");
     }

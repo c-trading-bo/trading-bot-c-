@@ -1,0 +1,18 @@
+{
+  "version": "3.0.0-LOCAL",
+  "created": "2025-09-03T18:00:00.000000",
+  "files": {},
+  "features": {},
+  "dependencies": {},
+  "trading_logic": {},
+  "ml_models": {},
+  "strategies": {},
+  "last_scan": null,
+  "system_health": {
+    "status": "initialized",
+    "last_check": "2025-09-03T18:00:00.000000"
+  },
+  "performance_metrics": {},
+  "error_history": [],
+  "optimization_history": []
+}
