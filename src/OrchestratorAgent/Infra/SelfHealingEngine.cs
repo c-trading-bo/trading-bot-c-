@@ -8,7 +8,7 @@ namespace OrchestratorAgent.Infra;
 
 /// <summary>
 /// Self-healing engine that automatically attempts to fix detected health issues
-/// ENABLED - Actively monitors and repairs system issues
+/// TEMPORARILY DISABLED FOR COMPILATION - WILL RE-ENABLE AFTER CLOUD LEARNING IS STABLE
 /// </summary>
 public class SelfHealingEngine
 {
@@ -19,18 +19,18 @@ public class SelfHealingEngine
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _logger.LogInformation("✅ [SelfHealingEngine] Self-healing enabled and active");
+        _logger.LogWarning("⚠️ [SelfHealingEngine] Temporarily disabled for cloud learning setup");
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🛠️ [SelfHealingEngine] Starting active healing mode");
+        _logger.LogInformation("🛠️ [SelfHealingEngine] Starting (disabled mode)");
         await Task.CompletedTask;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🛠️ [SelfHealingEngine] Initializing active healing systems");
+        _logger.LogInformation("🛠️ [SelfHealingEngine] Initializing (disabled mode)");
         await Task.CompletedTask;
     }
 
@@ -42,44 +42,21 @@ public class SelfHealingEngine
 
     public async Task<bool> TryHealAsync(HealthCheckResult failedResult, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🛠️ [SelfHealingEngine] Attempting to heal: {FailedCheck}", failedResult.Message);
-        
-        // Add healing logic here based on the type of failure
-        try
-        {
-            // Basic healing attempts
-            await Task.Delay(100, cancellationToken); // Simulate healing work
-            _logger.LogInformation("✅ [SelfHealingEngine] Successfully healed: {FailedCheck}", failedResult.Message);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ [SelfHealingEngine] Failed to heal: {FailedCheck}", failedResult.Message);
-            return false;
-        }
+        _logger.LogWarning("🛠️ [SelfHealingEngine] Healing disabled - would attempt to heal: {FailedCheck}", failedResult.Message);
+        await Task.CompletedTask;
+        return false;
     }
 
     public async Task<bool> AttemptHealingAsync(string healthCheckName, HealthCheckResult failedResult, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🛠️ [SelfHealingEngine] Healing {HealthCheck}: {FailedCheck}", healthCheckName, failedResult.Message);
-        
-        try
-        {
-            // Implement specific healing logic based on health check name
-            await Task.Delay(100, cancellationToken); // Simulate healing work
-            _logger.LogInformation("✅ [SelfHealingEngine] Successfully healed {HealthCheck}", healthCheckName);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "❌ [SelfHealingEngine] Failed to heal {HealthCheck}", healthCheckName);
-            return false;
-        }
+        _logger.LogWarning("🛠️ [SelfHealingEngine] Healing disabled - would attempt to heal {HealthCheck}: {FailedCheck}", healthCheckName, failedResult.Message);
+        await Task.CompletedTask;
+        return false;
     }
 }
 
 /// <summary>
-/// Recovery attempt history for active self-healing engine
+/// Temporary simplified recovery attempt history for disabled self-healing engine
 /// </summary>
 public class RecoveryAttemptHistory
 {
@@ -95,11 +72,11 @@ public class RecoveryAttemptHistory
 }
 
 /// <summary>
-/// Self-healing status for active engine
+/// Temporary self-healing status for disabled engine
 /// </summary>
 public class SelfHealingStatus
 {
-    public bool IsActive { get; set; } = true;
-    public string Status { get; set; } = "Active";
+    public bool IsActive { get; set; } = false;
+    public string Status { get; set; } = "Disabled";
     public DateTime LastActivity { get; set; } = DateTime.UtcNow;
 }

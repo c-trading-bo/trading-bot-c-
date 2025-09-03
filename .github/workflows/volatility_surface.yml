@@ -1,7 +1,7 @@
 name: Volatility Surface Analysis
 on:
   schedule:
-    - cron: '0 */4 * * *'  # Every 4 hours (24/7) - optimized for 20k minutes
+    - cron: '0 */6 * * *'  # Every 6 hours (24/7) - optimized for 20k minutes
   workflow_dispatch:
 
 permissions:

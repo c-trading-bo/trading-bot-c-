@@ -1,7 +1,7 @@
 name: ES/NQ Correlation Matrix Analysis
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Every 3 hours (24/7) - optimized for 20k minutes
+    - cron: '0 */4 * * *'  # Every 4 hours (24/7) - optimized for 20k minutes
   workflow_dispatch:
 
 permissions:
