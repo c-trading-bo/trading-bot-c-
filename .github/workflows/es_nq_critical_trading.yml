@@ -2,12 +2,23 @@ name: ES/NQ Critical Trading (Team)
 
 on:
   schedule:
-    # VERY FREQUENT DURING KEY TIMES - TEAM OPTIMIZED
-    - cron: '*/5 9-10 * * 1-5'    # Every 5 min opening (12 runs)
-    - cron: '*/10 10-14 * * 1-5'  # Every 10 min midday (24 runs)
-    - cron: '*/5 15-16 * * 1-5'   # Every 5 min close (12 runs)
-    - cron: '*/30 * * * *'        # Every 30 min always (48 runs)
-    # Total: ~96 runs/day
+    # FUTURES 24/5 TRADING HOURS (ES/NQ) - EXTENDED COVERAGE
+    # Asian Session (Sunday 6PM - Thursday 11PM EST)
+    - cron: '*/10 23-23 * * 0'      # Sunday 6PM EST start
+    - cron: '*/10 0-4 * * 1-5'      # Asian overnight (6PM-11PM EST)
+    # European Session (2AM-7AM EST)  
+    - cron: '*/15 7-12 * * 1-5'     # European hours (2AM-7AM EST)
+    # US Pre-market (8AM-9:30AM EST)
+    - cron: '*/15 13-14 * * 1-5'    # Pre-market (8:00-9:30 AM EST)
+    # US Regular Hours (9:30AM-4PM EST) - MOST ACTIVE
+    - cron: '*/5 14-15 * * 1-5'     # Market open (9:30-10:30 AM EST) 
+    - cron: '*/10 15-20 * * 1-5'    # Midday (10:30 AM-3:00 PM EST)
+    - cron: '*/5 20-21 * * 1-5'     # Close (3:00-4:00 PM EST)
+    # After Hours (4PM-6PM EST)
+    - cron: '*/15 21-23 * * 1-4'    # After hours Mon-Thu
+    # Friday close at 5PM EST (22:00 UTC)
+    - cron: '*/10 21-22 * * 5'      # Friday after hours until close
+    # Total: ~24/5 futures coverage
   workflow_dispatch:
 
 permissions:

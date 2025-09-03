@@ -1,0 +1,37 @@
+name: COT Report Analysis
+'on':
+  schedule:
+    - cron: '0 21 * * 2'  # Tuesdays 9PM UTC (after CFTC release)
+    - cron: '0 21 * * 5'  # Fridays 9PM UTC (weekly review)
+  workflow_dispatch:
+
+jobs:
+  cot_analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests numpy yfinance beautifulsoup4 lxml
+          
+      - name: Run COT Analysis
+        run: |
+          cd Intelligence/scripts
+          python cot_report.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Commit COT data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/cot/
+          git diff --staged --quiet || git commit -m "🏛️ COT Report update: $(date +'%Y-%m-%d')"
+          git push
