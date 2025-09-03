@@ -1,0 +1,506 @@
+{
+  "auto-label-automerge.yml": {
+    "name": "auto-label-automerge",
+    "file": "auto-label-automerge.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 7,
+    "runs_per_month": 0,
+    "jobs": {
+      "label": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 1,
+        "estimated_minutes": 2
+      }
+    }
+  },
+  "ci.yml": {
+    "name": ".NET Bot CI",
+    "file": "ci.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 19,
+    "runs_per_month": 0,
+    "jobs": {
+      "build": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 7,
+        "estimated_minutes": 14
+      }
+    }
+  },
+  "daily_consolidated.yml": {
+    "name": "Daily Consolidated Tasks (Team)",
+    "file": "daily_consolidated.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "daily-tasks": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "dotnet-desktop.yml": {
+    "name": ".NET Core Desktop",
+    "file": "dotnet-desktop.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 23,
+    "runs_per_month": 0,
+    "jobs": {
+      "build": {
+        "timeout": 30,
+        "runs_on": "windows-latest",
+        "steps": 9,
+        "estimated_minutes": 18
+      }
+    }
+  },
+  "dotnet.yml": {
+    "name": "build",
+    "file": "dotnet.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "build": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "es_nq_correlation_matrix.yml": {
+    "name": "ES/NQ Correlation Matrix Analysis",
+    "file": "es_nq_correlation_matrix.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "correlation_matrix": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "es_nq_news_sentiment.yml": {
+    "name": "ES/NQ Futures News Sentiment",
+    "file": "es_nq_news_sentiment.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "analyze-futures-news": {
+        "timeout": 360,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "failed_patterns.yml": {
+    "name": "Failed Patterns Detection",
+    "file": "failed_patterns.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "failed_patterns": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "intelligence_collection.yml": {
+    "name": "Intelligence Collection (Team)",
+    "file": "intelligence_collection.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "collect-intel": {
+        "timeout": 10,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "microstructure.yml": {
+    "name": "Microstructure Analysis",
+    "file": "microstructure.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "microstructure": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "ml_training_enhanced.yml": {
+    "name": "ML Training Enhanced (Team)",
+    "file": "ml_training_enhanced.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "train-all-models": {
+        "timeout": 10,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "news_sentiment.yml": {
+    "name": "News & Sentiment (Team)",
+    "file": "news_sentiment.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 8,
+    "runs_per_month": 0,
+    "jobs": {
+      "analyze-news": {
+        "timeout": 3,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 3
+      }
+    }
+  },
+  "opex_calendar.yml": {
+    "name": "OPEX Calendar Monitor",
+    "file": "opex_calendar.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 10 * * 1",
+      "0 15 15-21 * 5"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 11,
+    "jobs": {
+      "opex_calendar": {
+        "timeout": 360,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "options_flow.yml": {
+    "name": "Options Flow Analysis",
+    "file": "options_flow.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "options_flow": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "options_flow_analysis.yml": {
+    "name": "Options Flow Analysis (Team)",
+    "file": "options_flow_analysis.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 8,
+    "runs_per_month": 0,
+    "jobs": {
+      "analyze-flow": {
+        "timeout": 3,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 3
+      }
+    }
+  },
+  "overnight.yml": {
+    "name": "Overnight Session Analysis",
+    "file": "overnight.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "overnight": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "portfolio_heat.yml": {
+    "name": "Portfolio Heat Management (Team)",
+    "file": "portfolio_heat.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 7,
+    "runs_per_month": 0,
+    "jobs": {
+      "manage-heat": {
+        "timeout": 2,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 2
+      }
+    }
+  },
+  "rebalancing.yml": {
+    "name": "Rebalancing Flows Analysis",
+    "file": "rebalancing.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "rebalancing": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "regime_detection.yml": {
+    "name": "Market Regime Detection (Team)",
+    "file": "regime_detection.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 7,
+    "runs_per_month": 0,
+    "jobs": {
+      "detect-regime": {
+        "timeout": 2,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 2
+      }
+    }
+  },
+  "regime_detector.yml": {
+    "name": "Regime Detection Analysis",
+    "file": "regime_detector.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "regime_detector": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "seasonality.yml": {
+    "name": "Seasonality Patterns Analysis",
+    "file": "seasonality.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "seasonality": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "sector_rotation.yml": {
+    "name": "Sector Rotation Analysis",
+    "file": "sector_rotation.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 23 * * 1-5"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 22,
+    "jobs": {
+      "sector_rotation": {
+        "timeout": 360,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "simple-ml-test.yml": {
+    "name": "Simple ML Test",
+    "file": "simple-ml-test.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 11,
+    "runs_per_month": 0,
+    "jobs": {
+      "ml-test": {
+        "timeout": 10,
+        "runs_on": "ubuntu-latest",
+        "steps": 3,
+        "estimated_minutes": 6
+      }
+    }
+  },
+  "social_momentum.yml": {
+    "name": "Social Momentum Tracker",
+    "file": "social_momentum.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "*/30 9-21 * * 1-5"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 572,
+    "jobs": {
+      "social_momentum": {
+        "timeout": 360,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "test-ml-enhanced.yml": {
+    "name": "Test ML Enhanced",
+    "file": "test-ml-enhanced.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 11,
+    "runs_per_month": 0,
+    "jobs": {
+      "test-ml-enhanced": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 3,
+        "estimated_minutes": 6
+      }
+    }
+  },
+  "volatility_surface.yml": {
+    "name": "Volatility Surface Analysis",
+    "file": "volatility_surface.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "volatility_surface": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "zones_identifier.yml": {
+    "name": "Supply Demand Zones Identifier",
+    "file": "zones_identifier.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 15,
+    "runs_per_month": 0,
+    "jobs": {
+      "zones_identifier": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 5,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "last_analysis": {
+    "timestamp": "2025-09-03T22:48:30.149236",
+    "total_workflows": 39,
+    "healthy_workflows": 27,
+    "broken_workflows": [
+      "cloud-ml-training.yml",
+      "cloud_bot_mechanic.yml",
+      "congress_trades.yml",
+      "cot_report.yml",
+      "es_nq_critical_trading.yml",
+      "install_dependencies_template.yml",
+      "intermarket.yml",
+      "mm_positioning.yml",
+      "status-badges.yml",
+      "test_talib_fix.yml",
+      "train-github-only.yml",
+      "ultimate_ml_rl_intel_system.yml"
+    ],
+    "slow_workflows": [],
+    "expensive_workflows": [],
+    "schedule_conflicts": [],
+    "optimization_opportunities": [],
+    "total_monthly_minutes": 9075,
+    "issues_found": [
+      "cloud-ml-training.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 535: character maps to <undefined>",
+      "cloud_bot_mechanic.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 12: character maps to <undefined>",
+      "congress_trades.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1054: character maps to <undefined>",
+      "cot_report.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1063: character maps to <undefined>",
+      "es_nq_critical_trading.yml: Analysis error - 'charmap' codec can't decode byte 0x9d in position 5828: character maps to <undefined>",
+      "install_dependencies_template.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 2550: character maps to <undefined>",
+      "intermarket.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 1007: character maps to <undefined>",
+      "mm_positioning.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1011: character maps to <undefined>",
+      "status-badges.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 13: character maps to <undefined>",
+      "test_talib_fix.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 702: character maps to <undefined>",
+      "train-github-only.yml: Analysis error - 'charmap' codec can't decode byte 0x8d in position 1088: character maps to <undefined>",
+      "ultimate_ml_rl_intel_system.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 3166: character maps to <undefined>"
+    ]
+  }
+}
