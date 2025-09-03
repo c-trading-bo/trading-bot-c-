@@ -15,13 +15,13 @@ namespace TopstepX.Bot.Intelligence
         private readonly string _basePath;
         private readonly string _databasePath;
         private Process? _mechanicProcess;
-        
+
         public LocalBotMechanicIntegration(string basePath)
         {
             _basePath = basePath;
             _databasePath = Path.Combine(basePath, "Intelligence", "mechanic", "database");
         }
-        
+
         /// <summary>
         /// Start Local Bot Mechanic in background
         /// </summary>
@@ -30,13 +30,13 @@ namespace TopstepX.Bot.Intelligence
             try
             {
                 var autoStartPath = Path.Combine(_basePath, "Intelligence", "mechanic", "local", "auto_start.py");
-                
+
                 if (!File.Exists(autoStartPath))
                 {
                     Console.WriteLine("❌ Local Bot Mechanic not found");
                     return false;
                 }
-                
+
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "python",
@@ -47,9 +47,9 @@ namespace TopstepX.Bot.Intelligence
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
-                
+
                 _mechanicProcess = Process.Start(startInfo);
-                
+
                 if (_mechanicProcess != null)
                 {
                     Console.WriteLine($"🧠 Local Bot Mechanic started (PID: {_mechanicProcess.Id})");
@@ -60,10 +60,10 @@ namespace TopstepX.Bot.Intelligence
             {
                 Console.WriteLine($"❌ Failed to start Local Bot Mechanic: {ex.Message}");
             }
-            
+
             return false;
         }
-        
+
         /// <summary>
         /// Get current mechanic status for dashboard
         /// </summary>
@@ -72,7 +72,7 @@ namespace TopstepX.Bot.Intelligence
             try
             {
                 var knowledgeFile = Path.Combine(_databasePath, "knowledge.json");
-                
+
                 if (!File.Exists(knowledgeFile))
                 {
                     return new MechanicStatus
@@ -86,36 +86,36 @@ namespace TopstepX.Bot.Intelligence
                         IsMonitoring = false
                     };
                 }
-                
+
                 var json = await File.ReadAllTextAsync(knowledgeFile);
                 var data = JsonSerializer.Deserialize<JsonElement>(json);
-                
+
                 var lastScan = data.TryGetProperty("last_scan", out var scanElement) ? scanElement : new JsonElement();
-                
+
                 var issuesCount = 0;
                 if (lastScan.TryGetProperty("issues_found", out var issuesElement) && issuesElement.ValueKind == JsonValueKind.Array)
                 {
                     issuesCount = issuesElement.GetArrayLength();
                 }
-                
+
                 var autoFixed = 0;
                 if (lastScan.TryGetProperty("auto_fixed", out var fixedElement) && fixedElement.ValueKind == JsonValueKind.Array)
                 {
                     autoFixed = fixedElement.GetArrayLength();
                 }
-                
+
                 var filesCount = 0;
                 if (data.TryGetProperty("files", out var filesElement) && filesElement.ValueKind == JsonValueKind.Object)
                 {
                     filesCount = filesElement.EnumerateObject().Count();
                 }
-                
+
                 var lastScanTime = "Never";
                 if (lastScan.TryGetProperty("timestamp", out var timeElement) && timeElement.ValueKind == JsonValueKind.String)
                 {
                     lastScanTime = timeElement.GetString() ?? "Never";
                 }
-                
+
                 return new MechanicStatus
                 {
                     Status = issuesCount == 0 ? "healthy" : "warning",
@@ -142,7 +142,7 @@ namespace TopstepX.Bot.Intelligence
                 };
             }
         }
-        
+
         /// <summary>
         /// Stop the mechanic process
         /// </summary>
@@ -161,13 +161,13 @@ namespace TopstepX.Bot.Intelligence
                 Console.WriteLine($"⚠️ Error stopping mechanic: {ex.Message}");
             }
         }
-        
+
         /// <summary>
         /// Check if mechanic is running
         /// </summary>
         public bool IsRunning => _mechanicProcess != null && !_mechanicProcess.HasExited;
     }
-    
+
     /// <summary>
     /// Status information from Local Bot Mechanic
     /// </summary>

@@ -93,7 +93,7 @@ namespace OrchestratorAgent.Intelligence
         private async Task StartMechanicAsync()
         {
             var startupScript = Path.Combine(_mechanicPath, "start_local_mechanic.py");
-            
+
             if (!File.Exists(startupScript))
             {
                 throw new FileNotFoundException($"Startup script not found: {startupScript}");
@@ -166,7 +166,7 @@ namespace OrchestratorAgent.Intelligence
 
                 // Try graceful shutdown first
                 process.CloseMainWindow();
-                
+
                 if (!process.WaitForExit(5000))
                 {
                     // Force kill if needed
@@ -191,7 +191,7 @@ namespace OrchestratorAgent.Intelligence
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
-                
+
                 var response = await client.GetStringAsync("http://localhost:5051/mechanic/health");
                 return response;
             }
@@ -211,7 +211,7 @@ namespace OrchestratorAgent.Intelligence
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
-                
+
                 var response = await client.GetAsync("http://localhost:5051/mechanic/scan");
                 return response.IsSuccessStatusCode;
             }
@@ -231,7 +231,7 @@ namespace OrchestratorAgent.Intelligence
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
-                
+
                 var response = await client.GetAsync("http://localhost:5051/mechanic/fix");
                 return response.IsSuccessStatusCode;
             }
@@ -251,7 +251,7 @@ namespace OrchestratorAgent.Intelligence
             {
                 _mechanicProcess?.Kill();
                 _mechanicProcess?.Dispose();
-                
+
                 _dashboardProcess?.Kill();
                 _dashboardProcess?.Dispose();
             }

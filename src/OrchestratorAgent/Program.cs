@@ -809,11 +809,11 @@ namespace OrchestratorAgent
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
                         webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
-                        
+
                         // Add Local Bot Mechanic Integration
                         webBuilder.Services.AddSingleton<OrchestratorAgent.Intelligence.LocalBotMechanicIntegration>();
                         webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<OrchestratorAgent.Intelligence.LocalBotMechanicIntegration>());
-                        
+
                         var web = webBuilder.Build();
                         web.UseDefaultFiles();
                         web.UseStaticFiles();

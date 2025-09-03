@@ -30,7 +30,7 @@ namespace OrchestratorAgent.Advanced
             var baseSize = signal.Size;
             var regime = GetMarketRegime(signal.Symbol);
             var correlation = CalculatePortfolioCorrelation(signal.Symbol, currentPositions);
-            var volatility = snapshot.Atr / snapshot.Price; // Normalized volatility
+            var volatility = snapshot.SignalBarAtrMult / snapshot.LastPrice; // Normalized volatility
 
             // Regime-based sizing
             var regimeMultiplier = regime switch
@@ -43,7 +43,7 @@ namespace OrchestratorAgent.Advanced
             };
 
             // Correlation adjustment (reduce size if highly correlated positions exist)
-            var correlationMultiplier = correlation > 0.7m ? 0.6m : 
+            var correlationMultiplier = correlation > 0.7m ? 0.6m :
                                        correlation > 0.5m ? 0.8m : 1.0m;
 
             // Volatility adjustment
@@ -51,7 +51,7 @@ namespace OrchestratorAgent.Advanced
                                volatility < 0.015m ? 1.2m : 1.0m; // Low vol = larger size
 
             var adjustedSize = (int)(baseSize * regimeMultiplier * correlationMultiplier * volMultiplier);
-            
+
             // Ensure minimum size and lot compliance
             var minSize = BotCore.Models.InstrumentMeta.LotStep(signal.Symbol);
             adjustedSize = Math.Max(minSize, adjustedSize);
@@ -69,9 +69,9 @@ namespace OrchestratorAgent.Advanced
         public decimal CalculateDynamicStop(Signal signal, MarketSnapshot snapshot, TimeSpan timeInPosition)
         {
             var baseStop = signal.Stop;
-            var currentPrice = snapshot.Price;
+            var currentPrice = snapshot.LastPrice;
             var isLong = signal.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase);
-            
+
             // Time-based stop tightening (trail stop closer as time passes)
             var timeMultiplier = timeInPosition.TotalMinutes switch
             {
@@ -82,7 +82,7 @@ namespace OrchestratorAgent.Advanced
             };
 
             // Volatility-based adjustment
-            var atr = snapshot.Atr;
+            var atr = snapshot.SignalBarAtrMult;
             var normalizedAtr = atr / currentPrice;
             var volMultiplier = normalizedAtr > 0.02m ? 1.3m :  // High vol = wider stops
                                normalizedAtr < 0.01m ? 0.8m : 1.0m; // Low vol = tighter stops
@@ -108,17 +108,17 @@ namespace OrchestratorAgent.Advanced
             var stop = signal.Stop;
             var finalTarget = signal.Target;
             var isLong = signal.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase);
-            
+
             var riskAmount = Math.Abs(entry - stop);
             var targets = new List<PartialTarget>();
 
             // Support/Resistance based targets
             var levels = GetKeyLevels(signal.Symbol, snapshot);
-            
+
             // T1: Quick scalp at 0.5R or nearest support/resistance
             var t1Distance = riskAmount * 0.5m;
             var t1Price = isLong ? entry + t1Distance : entry - t1Distance;
-            
+
             // Adjust to nearest level if within 25% of calculated target
             var nearestLevel = FindNearestLevel(t1Price, levels, isLong);
             if (nearestLevel.HasValue && Math.Abs(nearestLevel.Value - t1Price) / riskAmount < 0.25m)
@@ -148,7 +148,7 @@ namespace OrchestratorAgent.Advanced
             var extendedR = regime == MarketRegime.Trending ? 3.0m : 2.0m;
             var t3Distance = riskAmount * extendedR;
             var t3Price = isLong ? entry + t3Distance : entry - t3Distance;
-            
+
             targets.Add(new PartialTarget
             {
                 Price = BotCore.Models.InstrumentMeta.RoundToTick(signal.Symbol, t3Price),
@@ -184,9 +184,9 @@ namespace OrchestratorAgent.Advanced
         private List<decimal> GetKeyLevels(string symbol, MarketSnapshot snapshot)
         {
             // Simplified - in practice, calculate from historical data
-            var price = snapshot.Price;
-            var atr = snapshot.Atr;
-            
+            var price = snapshot.LastPrice;
+            var atr = snapshot.SignalBarAtrMult;
+
             return new List<decimal>
             {
                 price + atr,     // Resistance
@@ -200,7 +200,7 @@ namespace OrchestratorAgent.Advanced
         {
             if (!levels.Any()) return null;
 
-            return isLong 
+            return isLong
                 ? levels.Where(l => l >= targetPrice).OrderBy(l => l).FirstOrDefault()
                 : levels.Where(l => l <= targetPrice).OrderByDescending(l => l).FirstOrDefault();
         }

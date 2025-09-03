@@ -22,7 +22,7 @@ public class SystemHealthMonitor
         _logger = logger;
         _serviceProvider = serviceProvider;
         _discovery = new HealthCheckDiscovery(serviceProvider, serviceProvider.GetRequiredService<ILogger<HealthCheckDiscovery>>());
-        _selfHealingEngine = new SelfHealingEngine(serviceProvider, serviceProvider.GetRequiredService<ILogger<SelfHealingEngine>>());
+        _selfHealingEngine = new SelfHealingEngine(serviceProvider.GetRequiredService<ILogger<SelfHealingEngine>>());
 
         // Initialize health checks (both legacy and discovered)
         InitializeHealthChecks();
