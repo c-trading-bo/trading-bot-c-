@@ -1,27 +1,22 @@
 {
-  "timestamp": "2025-09-03T09:35:33.195230",
-  "healthy": false,
+  "timestamp": "2025-09-03T21:06:50.099738",
+  "is_healthy": false,
   "issues_count": 1,
   "health_score": 90,
-  "services": {
-    "trading": {
-      "healthy": false,
-      "issue": "Stale signals: combined_trading_signals.json, Stale signals: latest_signals.json",
-      "fixable": true,
-      "fix_type": "create_trading_files"
+  "feature_count": 0,
+  "files_count": 0,
+  "recent_repairs": [
+    {
+      "timestamp": "2025-09-03T09:19:25.396897",
+      "system": "Signal Generation",
+      "fix_type": "regenerate_signals",
+      "success": true
     },
-    "intelligence": {
-      "healthy": true
-    },
-    "ml": {
-      "healthy": true
-    },
-    "data": {
-      "healthy": true
-    },
-    "dependencies": {
-      "healthy": true
+    {
+      "timestamp": "2025-09-03T09:26:35.259421",
+      "system": "Signal Generation",
+      "fix_type": "regenerate_signals",
+      "success": true
     }
-  },
-  "version": "3.0.0-AUTO"
+  ]
 }
