@@ -2,8 +2,15 @@ name: ML Training Enhanced (Team)
 
 on:
   schedule:
-    # TRAIN MORE OFTEN FOR ADAPTATION - ORIGINAL FREQUENCY
-    - cron: '0 */1 * * *'  # Every hour (24 runs/day)
+    # OPTIMIZED EST SCHEDULE - More frequent during active trading hours
+    # Pre-market (7-9:30am EST = 12-14 UTC): Every hour preparation
+    - cron: '0 12,13,14 * * 1-5'
+    # Market hours (9:30am-4pm EST = 14:30-21 UTC): Every 30min for adaptation
+    - cron: '*/30 14-21 * * 1-5'  
+    # Post-market (4-6pm EST = 21-23 UTC): Heavy training every 20min
+    - cron: '*/20 21-23 * * 1-5'
+    # After-hours (6pm+ EST = 23+ UTC): Every hour
+    - cron: '0 23,0,1,2,3,4,5,6,7,8,9,10,11 * * *'
   workflow_dispatch:
 
 permissions:

@@ -1,7 +1,7 @@
 name: Congressional Trades Monitor
 'on':
   schedule:
-    - cron: '0 22 * * 1-5'  # Daily 10PM UTC during trading week
+    - cron: '0 21 * * 1-5'  # Daily 5PM EST (21 UTC) - After market close
   workflow_dispatch:
 
 jobs:

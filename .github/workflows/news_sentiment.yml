@@ -2,11 +2,15 @@ name: News & Sentiment (Team)
 
 on:
   schedule:
-    # SMART TIMING - US MARKET HOURS (UTC)
-    - cron: '*/15 13-14 * * 1-5'    # Pre-market analysis (8:00-9:30 AM EST)
-    - cron: '0 15,16,18,19,20 * * 1-5'  # Market hours (10 AM, 11 AM, 1 PM, 2 PM, 3 PM EST)
-    - cron: '*/30 * * * 0,6'      # Weekends less frequent (48 runs weekend)
-    # Total: ~13 runs/day weekdays (fixed timezone)
+    # OPTIMIZED EST MARKET TIMING
+    # Pre-market (7-9:30am EST = 12-14:30 UTC)
+    - cron: '*/20 12-14 * * 1-5'    # Every 20min pre-market 
+    # Active market hours (9:30am-4pm EST = 14:30-21 UTC) 
+    - cron: '*/15 14-21 * * 1-5'    # Every 15min during market hours
+    # Post-market (4-6pm EST = 21-23 UTC)
+    - cron: '*/30 21-23 * * 1-5'    # Every 30min post-market
+    # Weekends reduced frequency
+    - cron: '0 */3 * * 0,6'         # Every 3 hours on weekends
   workflow_dispatch:
 
 permissions:
