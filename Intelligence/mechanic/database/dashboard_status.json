@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-09-03T09:35:33.195230",
+  "healthy": false,
+  "issues_count": 1,
+  "health_score": 90,
+  "services": {
+    "trading": {
+      "healthy": false,
+      "issue": "Stale signals: combined_trading_signals.json, Stale signals: latest_signals.json",
+      "fixable": true,
+      "fix_type": "create_trading_files"
+    },
+    "intelligence": {
+      "healthy": true
+    },
+    "ml": {
+      "healthy": true
+    },
+    "data": {
+      "healthy": true
+    },
+    "dependencies": {
+      "healthy": true
+    }
+  },
+  "version": "3.0.0-AUTO"
+}
