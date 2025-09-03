@@ -1,8 +1,4 @@
 name: Social Momentum Tracker
-'on':
-  schedule:
-  - cron: '*/30 9-21 * * 1-5'
-  workflow_dispatch: null
 jobs:
   social_momentum:
     runs-on: ubuntu-latest
@@ -37,3 +33,7 @@ jobs:
         \ || git commit -m \"\xF0\u0178\u201C\xB1 Social momentum update: $(date +'%Y-%m-%d\
         \ %H:%M')\"\ngit push\n"
     timeout-minutes: 15
+'on':
+  schedule:
+  - cron: '*/30 9-21 * * 1-5'
+  workflow_dispatch: null

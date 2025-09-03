@@ -1,8 +1,4 @@
 name: Intermarket Analysis
-'on':
-  schedule:
-  - cron: 30 */4 * * *
-  workflow_dispatch: null
 jobs:
   intermarket:
     runs-on: ubuntu-latest
@@ -35,3 +31,7 @@ jobs:
         \ --quiet || git commit -m \"\U0001F310 Intermarket analysis update: $(date\
         \ +'%Y-%m-%d %H:%M')\"\ngit push\n"
     timeout-minutes: 15
+'on':
+  schedule:
+  - cron: 30 */4 * * *
+  workflow_dispatch: null

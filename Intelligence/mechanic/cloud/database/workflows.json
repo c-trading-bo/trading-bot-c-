@@ -522,16 +522,19 @@
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-03T23:02:55.559604",
+    "timestamp": "2025-09-03T23:06:13.175592",
     "total_workflows": 40,
-    "healthy_workflows": 40,
-    "broken_workflows": [],
+    "healthy_workflows": 39,
+    "broken_workflows": [
+      "dotnet.yml"
+    ],
     "slow_workflows": [],
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
     "total_monthly_minutes": 143624,
     "issues_found": [
+      "dotnet.yml: Analysis error - while parsing a block mapping\n  in \"<unicode string>\", line 1, column 1:\n    name: build\n    ^\nexpected <block end>, but found '-'\n  in \"<unicode string>\", line 23, column 1:\n    - push\n    ^",
       "CRITICAL: Estimated 143624 minutes exceeds 20,000 limit!"
     ]
   },

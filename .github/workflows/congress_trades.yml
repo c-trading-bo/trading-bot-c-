@@ -1,8 +1,4 @@
 name: Congressional Trades Monitor
-'on':
-  schedule:
-  - cron: 0 22 * * 1-5
-  workflow_dispatch: null
 jobs:
   congress_trades:
     runs-on: ubuntu-latest
@@ -35,3 +31,7 @@ jobs:
         \ || git commit -m \"\U0001F3DB\uFE0F Congressional trades update: $(date\
         \ +'%Y-%m-%d')\"\ngit push\n"
     timeout-minutes: 15
+'on':
+  schedule:
+  - cron: 0 22 * * 1-5
+  workflow_dispatch: null

@@ -1,8 +1,4 @@
 name: Market Maker Positioning
-'on':
-  schedule:
-  - cron: 15 * * * *
-  workflow_dispatch: null
 jobs:
   mm_positioning:
     runs-on: ubuntu-latest
@@ -35,3 +31,7 @@ jobs:
         \ --quiet || git commit -m \"\U0001F3E6 Market maker positioning update: $(date\
         \ +'%Y-%m-%d %H:%M')\"\ngit push\n"
     timeout-minutes: 15
+'on':
+  schedule:
+  - cron: 15 * * * *
+  workflow_dispatch: null
