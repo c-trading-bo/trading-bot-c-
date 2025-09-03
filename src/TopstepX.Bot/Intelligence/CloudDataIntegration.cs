@@ -127,6 +127,161 @@ namespace TopstepX.Bot.Intelligence
         }
         
         /// <summary>
+        /// Get latest COT analysis data
+        /// </summary>
+        public async Task<COTAnalysis?> GetLatestCOTAnalysisAsync()
+        {
+            try
+            {
+                var cotFile = Path.Combine(_intelligenceDir, "data", "cot", "latest_cot_analysis.json");
+                
+                if (!File.Exists(cotFile))
+                {
+                    _logger.LogWarning("No COT analysis data found");
+                    return null;
+                }
+                
+                var jsonContent = await File.ReadAllTextAsync(cotFile);
+                var cotData = JsonSerializer.Deserialize<COTAnalysis>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                _logger.LogInformation($"✅ COT analysis loaded - Bias: {cotData?.InstitutionalBias}, Confidence: {cotData?.PositioningStrength:F2}");
+                return cotData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error loading COT analysis data");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Get latest Congressional trades analysis
+        /// </summary>
+        public async Task<CongressionalAnalysis?> GetLatestCongressionalAnalysisAsync()
+        {
+            try
+            {
+                var congressFile = Path.Combine(_intelligenceDir, "data", "congress", "latest_congressional_analysis.json");
+                
+                if (!File.Exists(congressFile))
+                {
+                    _logger.LogWarning("No Congressional analysis data found");
+                    return null;
+                }
+                
+                var jsonContent = await File.ReadAllTextAsync(congressFile);
+                var congressData = JsonSerializer.Deserialize<CongressionalAnalysis>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                _logger.LogInformation($"✅ Congressional analysis loaded - Bias: {congressData?.CongressionalBias}, Signal Strength: {congressData?.SignalStrength:F2}");
+                return congressData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error loading Congressional analysis data");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Get latest Social momentum analysis
+        /// </summary>
+        public async Task<SocialAnalysis?> GetLatestSocialAnalysisAsync()
+        {
+            try
+            {
+                var socialFile = Path.Combine(_intelligenceDir, "data", "social", "latest_social_analysis.json");
+                
+                if (!File.Exists(socialFile))
+                {
+                    _logger.LogWarning("No Social analysis data found");
+                    return null;
+                }
+                
+                var jsonContent = await File.ReadAllTextAsync(socialFile);
+                var socialData = JsonSerializer.Deserialize<SocialAnalysis>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                _logger.LogInformation($"✅ Social analysis loaded - Bias: {socialData?.SocialBias}, Contrarian: {socialData?.ContrarianSignal}");
+                return socialData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error loading Social analysis data");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Get latest Intermarket analysis
+        /// </summary>
+        public async Task<IntermarketAnalysis?> GetLatestIntermarketAnalysisAsync()
+        {
+            try
+            {
+                var intermarketFile = Path.Combine(_intelligenceDir, "data", "intermarket", "latest_intermarket_analysis.json");
+                
+                if (!File.Exists(intermarketFile))
+                {
+                    _logger.LogWarning("No Intermarket analysis data found");
+                    return null;
+                }
+                
+                var jsonContent = await File.ReadAllTextAsync(intermarketFile);
+                var intermarketData = JsonSerializer.Deserialize<IntermarketAnalysis>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                _logger.LogInformation($"✅ Intermarket analysis loaded - Bias: {intermarketData?.IntermarketBias}, Signal Strength: {intermarketData?.SignalStrength:F2}");
+                return intermarketData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error loading Intermarket analysis data");
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Get latest OPEX calendar analysis
+        /// </summary>
+        public async Task<OPEXAnalysis?> GetLatestOPEXAnalysisAsync()
+        {
+            try
+            {
+                var opexFile = Path.Combine(_intelligenceDir, "data", "opex", "latest_opex_analysis.json");
+                
+                if (!File.Exists(opexFile))
+                {
+                    _logger.LogWarning("No OPEX analysis data found");
+                    return null;
+                }
+                
+                var jsonContent = await File.ReadAllTextAsync(opexFile);
+                var opexData = JsonSerializer.Deserialize<OPEXAnalysis>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                
+                _logger.LogInformation($"✅ OPEX analysis loaded - Phase: {opexData?.OpexPhase}, Days to OPEX: {opexData?.DaysToOpex}");
+                return opexData;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error loading OPEX analysis data");
+                return null;
+            }
+        }
+        
+        /// <summary>
         /// Check if cloud data collection is working properly
         /// </summary>
         public async Task<CloudDataStatus> GetCloudDataStatusAsync()
@@ -146,7 +301,12 @@ namespace TopstepX.Bot.Intelligence
                     ["Options"] = Path.Combine(_intelligenceDir, "data", "options", "flow", "latest_enhanced_options.json"),
                     ["Macro"] = Path.Combine(_intelligenceDir, "data", "macro", "latest_macro_data.json"),
                     ["News"] = Path.Combine(_intelligenceDir, "data", "news", "latest_news_sentiment.json"),
-                    ["Signals"] = Path.Combine(_intelligenceDir, "data", "combined_trading_signals.json")
+                    ["Signals"] = Path.Combine(_intelligenceDir, "data", "combined_trading_signals.json"),
+                    ["COT"] = Path.Combine(_intelligenceDir, "data", "cot", "latest_cot_analysis.json"),
+                    ["Congressional"] = Path.Combine(_intelligenceDir, "data", "congress", "latest_congressional_analysis.json"),
+                    ["Social"] = Path.Combine(_intelligenceDir, "data", "social", "latest_social_analysis.json"),
+                    ["Intermarket"] = Path.Combine(_intelligenceDir, "data", "intermarket", "latest_intermarket_analysis.json"),
+                    ["OPEX"] = Path.Combine(_intelligenceDir, "data", "opex", "latest_opex_analysis.json")
                 };
                 
                 foreach (var (dataType, filePath) in requiredFiles)
@@ -186,7 +346,12 @@ namespace TopstepX.Bot.Intelligence
                 {
                     ["Options"] = signals?.DataAvailability?.Options ?? false,
                     ["Macro"] = signals?.DataAvailability?.Macro ?? false,
-                    ["News"] = signals?.DataAvailability?.News ?? false
+                    ["News"] = signals?.DataAvailability?.News ?? false,
+                    ["COT"] = File.Exists(Path.Combine(_intelligenceDir, "data", "cot", "latest_cot_analysis.json")),
+                    ["Congressional"] = File.Exists(Path.Combine(_intelligenceDir, "data", "congress", "latest_congressional_analysis.json")),
+                    ["Social"] = File.Exists(Path.Combine(_intelligenceDir, "data", "social", "latest_social_analysis.json")),
+                    ["Intermarket"] = File.Exists(Path.Combine(_intelligenceDir, "data", "intermarket", "latest_intermarket_analysis.json")),
+                    ["OPEX"] = File.Exists(Path.Combine(_intelligenceDir, "data", "opex", "latest_opex_analysis.json"))
                 };
                 
                 _logger.LogInformation($"Cloud data status: {(status.IsHealthy ? "✅ Healthy" : "⚠️ Issues detected")}");
@@ -391,5 +556,88 @@ namespace TopstepX.Bot.Intelligence
         public decimal RecommendedSize { get; set; }
         public decimal SizingFactor { get; set; }
         public string? Reasoning { get; set; }
+    }
+    
+    // New Intelligence Source Models
+    
+    public class COTAnalysis
+    {
+        public string? InstitutionalBias { get; set; }
+        public double PositioningStrength { get; set; }
+        public string? ContrarianSignal { get; set; }
+        public bool ExtremePositioning { get; set; }
+        public TradeRecommendation? TradeRecommendation { get; set; }
+    }
+    
+    public class CongressionalAnalysis
+    {
+        public string? CongressionalBias { get; set; }
+        public double SignalStrength { get; set; }
+        public int TotalTrades { get; set; }
+        public int BullishSignals { get; set; }
+        public int BearishSignals { get; set; }
+        public int HighValueTrades { get; set; }
+        public TradeRecommendation? TradeRecommendation { get; set; }
+    }
+    
+    public class SocialAnalysis
+    {
+        public string? SocialBias { get; set; }
+        public double SentimentStrength { get; set; }
+        public double WSBSentimentScore { get; set; }
+        public double FuturesSentiment { get; set; }
+        public double CombinedScore { get; set; }
+        public string? ContrarianSignal { get; set; }
+        public double ContrarianConfidence { get; set; }
+        public TradeRecommendation? TradeRecommendation { get; set; }
+    }
+    
+    public class IntermarketAnalysis
+    {
+        public string? IntermarketBias { get; set; }
+        public double SignalStrength { get; set; }
+        public Dictionary<string, IndividualSignal>? IndividualSignals { get; set; }
+        public double NetSignalScore { get; set; }
+        public int BullishSignals { get; set; }
+        public int BearishSignals { get; set; }
+        public TradeRecommendation? TradeRecommendation { get; set; }
+    }
+    
+    public class OPEXAnalysis
+    {
+        public string? NextOpexDate { get; set; }
+        public int DaysToOpex { get; set; }
+        public bool IsQuarterlyOpex { get; set; }
+        public string? OpexPhase { get; set; }
+        public string? VolatilityExpectation { get; set; }
+        public string? MarketImpact { get; set; }
+        public List<double>? KeyStrikeLevels { get; set; }
+        public TradingImplications? TradingImplications { get; set; }
+        public TradeRecommendation? TradeRecommendation { get; set; }
+    }
+    
+    public class TradeRecommendation
+    {
+        public string? Direction { get; set; }
+        public double Confidence { get; set; }
+        public string? Timeframe { get; set; }
+        public double PositionSizeMultiplier { get; set; }
+        public bool UseContrarian { get; set; }
+    }
+    
+    public class IndividualSignal
+    {
+        public string? Signal { get; set; }
+        public double Strength { get; set; }
+        public double GoldChange { get; set; }
+        public double OilChange { get; set; }
+    }
+    
+    public class TradingImplications
+    {
+        public string? ExpectedVolatility { get; set; }
+        public bool PinRisk { get; set; }
+        public bool GammaSqueezeRisk { get; set; }
+        public string? RecommendedStrategy { get; set; }
     }
 }

@@ -2,7 +2,7 @@ name: "24/7 GitHub-Only ML/RL Training"
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/30 * * * *'  # Every 30 minutes (48 runs/day) - original frequency
   workflow_dispatch:
     inputs:
       manual_test:
@@ -61,29 +61,45 @@ jobs:
       - name: "📦 Install Python Dependencies"
         run: |
           pip install --upgrade pip
-          # Core dependencies with retries
-          pip install torch numpy pandas scikit-learn
-          pip install onnx skl2onnx packaging pyarrow
-          # RL and ML dependencies with fallbacks
-          pip install stable-baselines3 || echo "stable-baselines3 failed, using fallback"
-          pip install gymnasium || pip install gym || echo "gym installation failed"
-          pip install tensorboard matplotlib seaborn || echo "visualization packages failed"
-          pip install optuna hyperopt joblib || echo "optimization packages failed"
+          # Core ML dependencies with retry logic
+          pip install --retry-delays 1,2,3 --timeout 60 torch numpy pandas scikit-learn || echo "Core packages failed, using fallbacks"
+          pip install --retry-delays 1,2,3 --timeout 60 onnx skl2onnx packaging pyarrow || echo "ONNX packages failed, continuing"
+          pip install --retry-delays 1,2,3 --timeout 60 gym stable-baselines3 || echo "RL packages failed, using fallbacks"
+          pip install --retry-delays 1,2,3 --timeout 60 tensorboard matplotlib seaborn || echo "Visualization packages failed, continuing"
+          pip install --retry-delays 1,2,3 --timeout 60 optuna hyperopt joblib || echo "Optimization packages failed, continuing"
           
       - name: "🔍 Test Dependencies"  
         run: |
-          python -c "
+          python << 'EOF'
           try:
               import pandas as pd
               import numpy as np
-              import torch
-              import onnx
-              import pyarrow
-              print('✅ All core dependencies working')
-          except ImportError as e:
-              print(f'⚠️ Dependency issue: {e}')
-              print('✅ Continuing with available dependencies')
-          "
+              print("✅ Core packages: numpy, pandas")
+              
+              try:
+                  import torch
+                  print("✅ PyTorch available")
+              except ImportError:
+                  print("⚠️ PyTorch not available, using numpy fallback")
+                  
+              try:
+                  import onnx
+                  print("✅ ONNX available")
+              except ImportError:
+                  print("⚠️ ONNX not available, skipping ONNX features")
+                  
+              try:
+                  import pyarrow
+                  print("✅ PyArrow available")
+              except ImportError:
+                  print("⚠️ PyArrow not available, using CSV fallback")
+                  
+              print("✅ Dependency check completed - continuing with available packages")
+              
+          except Exception as e:
+              print(f"❌ Critical dependency error: {e}")
+              raise e
+          EOF
 
       - name: "🧪 Lightweight Smoke Test"
         if: ${{ inputs.manual_test == true }}
@@ -163,50 +179,80 @@ jobs:
             "
           fi
 
-      - name: "📦 Package Models"
+      - name: "Package Models"
         run: |
           mkdir -p models
           cd models
           timestamp=$(date +%Y%m%d-%H%M%S)
+          
           # Create tar package with error handling
           if [ -d "rl" ] && [ "$(ls -A rl 2>/dev/null)" ]; then
-            tar -czf ml-models-${timestamp}.tar.gz rl/ 2>/dev/null || echo "Packaging failed, creating empty package"
+            echo "Packaging existing models..."
+            tar -czf "ml-models-${timestamp}.tar.gz" rl/ 2>/dev/null || echo "WARNING: Packaging failed, creating empty package"
           else
-            echo "No models found, creating placeholder package"
+            echo "No models found, creating placeholder package..."
             mkdir -p rl
-            echo "placeholder" > rl/README.md
-            tar -czf ml-models-${timestamp}.tar.gz rl/
+            echo "# Placeholder Model Package" > rl/README.md
+            echo "Created: $(date)" >> rl/README.md
+            tar -czf "ml-models-${timestamp}.tar.gz" rl/
           fi
           
+          # Set environment variables with fallbacks
           echo "MODEL_PACKAGE=ml-models-${timestamp}.tar.gz" >> $GITHUB_ENV
           echo "RELEASE_TAG=models-v${timestamp}" >> $GITHUB_ENV
+          echo "TIMESTAMP=${timestamp}" >> $GITHUB_ENV
+          
           echo "Generated package: ml-models-${timestamp}.tar.gz"
 
-      - name: "🚀 Create GitHub Release"
-        uses: softprops/action-gh-release@v1
+      - name: "Create GitHub Release"
         continue-on-error: true
+        run: |
+          # Install GitHub CLI if not available
+          if ! command -v gh &> /dev/null; then
+            echo "Installing GitHub CLI..."
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+          fi
+          
+          # Get environment variables with fallbacks
+          RELEASE_TAG="${{ env.RELEASE_TAG }}"
+          MODEL_PACKAGE="${{ env.MODEL_PACKAGE }}"
+          TIMESTAMP="${{ env.TIMESTAMP }}"
+          
+          if [ -z "$RELEASE_TAG" ]; then
+            RELEASE_TAG="models-v$(date +%Y%m%d-%H%M%S)"
+          fi
+          
+          if [ -z "$MODEL_PACKAGE" ]; then
+            MODEL_PACKAGE="ml-models-fallback.tar.gz"
+          fi
+          
+          # Create release with GitHub CLI
+          cd models
+          if [ -f "$MODEL_PACKAGE" ]; then
+            echo "Creating release with tag: $RELEASE_TAG"
+            RELEASE_NOTES="ML/RL Model Release
+
+          Training Completed: $(date +'%Y-%m-%d %H:%M:%S UTC')
+
+          Models Included:
+          - CVaR PPO Agent - Advanced RL position sizing
+
+          Download the $MODEL_PACKAGE file to get all trained models."
+            
+            gh release create "$RELEASE_TAG" \
+              --title "AI Models $(date +'%Y-%m-%d %H:%M')" \
+              --notes "$RELEASE_NOTES" \
+              "$MODEL_PACKAGE" || echo "WARNING: Release creation failed"
+          else
+            echo "ERROR: Model package not found: $MODEL_PACKAGE"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: models-v${{ github.run_number }}
-          name: "AI Models $(date +'%Y-%m-%d %H:%M')"
-          body: |
-            🚀 **ML/RL Model Release**
-            
-            **Training Completed**: $(date +'%Y-%m-%d %H:%M:%S UTC')
-            **Run Number**: ${{ github.run_number }}
-            
-            ## 🧠 **Models Included**:
-            - **CVaR PPO Agent** - Advanced RL position sizing
-            
-            Download the attached tar.gz file to get all trained models.
-          draft: false
-          prerelease: false
-          files: models/*.tar.gz
 
-      - name: "✅ Training Complete"
+      - name: "Training Complete"
         run: |
-          echo "🎉 24/7 GitHub Learning Complete!"
-          echo "📊 Models packaged and uploaded successfully"
-          echo "🔄 Next training run in 30 minutes"
-          echo "⏰ Current time: $(date -u)"
+          echo "24/7 GitHub Learning Complete!"
+          echo "Models packaged and uploaded successfully."

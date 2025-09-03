@@ -191,6 +191,13 @@ public class IntelligenceService : IIntelligenceService
         else if (intelligence.NewsIntensity <= 20m)
             multiplier *= 1.2m; // Low news intensity = increase size
 
+        // TODO: Integrate new intelligence sources (COT, Congressional, Social, Intermarket, OPEX)
+        // COT: Increase size when institutional bias aligns
+        // Congressional: Moderate increase when insider bias aligns  
+        // Social: Contrarian sizing when sentiment extreme
+        // Intermarket: Adjust based on cross-asset signals
+        // OPEX: Reduce size near expiration
+
         // Clamp to reasonable bounds
         return Math.Max(0.2m, Math.Min(multiplier, 2.0m));
     }

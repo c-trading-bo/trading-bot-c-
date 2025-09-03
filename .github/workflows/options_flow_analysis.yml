@@ -2,11 +2,11 @@ name: Options Flow Analysis (Team)
 
 on:
   schedule:
-    # MORE FREQUENT FOR BETTER SIGNALS - TEAM OPTIMIZED
-    - cron: '*/5 9-10 * * 1-5'   # Every 5 min opening (12 runs)
-    - cron: '*/15 10-15 * * 1-5' # Every 15 min day (20 runs)
-    - cron: '*/10 15-16 * * 1-5' # Every 10 min close (6 runs)
-    # Total: ~38 runs/day
+    # US MARKET HOURS - CORRECTED TIMEZONE (UTC)
+    - cron: '*/5 14-15 * * 1-5'   # Every 5 min opening (9:30-10:30 AM EST) - 12 runs
+    - cron: '*/15 15-20 * * 1-5'  # Every 15 min day (10:30 AM-3:00 PM EST) - 20 runs
+    - cron: '*/10 20-21 * * 1-5'  # Every 10 min close (3:00-4:00 PM EST) - 6 runs
+    # Total: ~38 runs/day (fixed timezone)
   workflow_dispatch:
 
 permissions:

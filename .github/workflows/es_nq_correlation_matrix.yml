@@ -1,7 +1,7 @@
-name: Volatility Surface Analysis
+name: ES/NQ Correlation Matrix Analysis
 on:
   schedule:
-    - cron: '0 * * * *'  # Hourly (24/7)
+    - cron: '0 */4 * * *'  # Every 4 hours (24/7) - optimized for 20k minutes
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
   actions: read
 
 jobs:
-  volatility_surface:
+  correlation_matrix:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.9'
       - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/volatility_surface.py
+      - run: python Intelligence/scripts/correlations.py
       - run: |
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
@@ -34,5 +34,5 @@ jobs:
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update volatility surface analysis"
+          git diff --quiet || git commit -m "Update ES/NQ correlation matrix analysis"
           git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."

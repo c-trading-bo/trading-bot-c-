@@ -1,7 +1,7 @@
-name: Options Flow Analysis
+name: Overnight Session Analysis
 on:
   schedule:
-    - cron: '*/15 14-21 * * 1-5'  # Every 15 min US market hours (9:30 AM-4:00 PM EST)
+    - cron: '0 5 * * 1-5'   # Daily 5:00 UTC (12 AM EST) - optimized timing
   workflow_dispatch:
 
 permissions:
@@ -10,7 +10,7 @@ permissions:
   actions: read
 
 jobs:
-  options_flow:
+  overnight:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.9'
       - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/scan_options.py
+      - run: python Intelligence/scripts/overnight_analysis.py
       - run: |
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
@@ -34,5 +34,5 @@ jobs:
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update options flow analysis"
+          git diff --quiet || git commit -m "Update overnight session analysis"
           git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."

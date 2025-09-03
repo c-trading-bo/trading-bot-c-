@@ -1,7 +1,10 @@
-name: ES/NQ Correlation Matrix Analysis
+name: Microstructure Analysis
 on:
   schedule:
-    - cron: '0 */2 * * *'  # Every 2 hours (24/7)
+    # 24/5 Futures Trading - High frequency during market hours, reduced off-hours
+    - cron: '*/15 14-21 * * 1-5'    # Every 15 min US market hours (9:30 AM-4:00 PM EST)
+    - cron: '*/30 21-23 * * 1-4'    # Every 30 min after hours Mon-Thu 
+    - cron: '0 0,2,4,6,8,10,12 * * 1-5'  # Every 2 hours Asian/European sessions
   workflow_dispatch:
 
 permissions:
@@ -10,7 +13,7 @@ permissions:
   actions: read
 
 jobs:
-  correlation_matrix:
+  microstructure:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,7 +26,7 @@ jobs:
         with:
           python-version: '3.9'
       - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/correlations.py
+      - run: python Intelligence/scripts/microstructure.py
       - run: |
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
@@ -34,5 +37,5 @@ jobs:
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update ES/NQ correlation matrix analysis"
+          git diff --quiet || git commit -m "Update microstructure analysis"
           git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
