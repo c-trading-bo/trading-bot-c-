@@ -11,7 +11,9 @@ import os
 from datetime import datetime, time
 from pathlib import Path
 import warnings
-warnings.filterwarnings('ignore')
+# Suppress specific warnings that are not critical for trading operations
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Try to import ML libraries, fall back gracefully if not available
 try:

@@ -19,7 +19,9 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 import warnings
-warnings.filterwarnings('ignore')
+# Suppress specific warnings that are not critical for trading operations
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 @dataclass
 class ValidationResult:

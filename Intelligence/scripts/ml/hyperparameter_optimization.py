@@ -13,7 +13,9 @@ import json
 import os
 from typing import Dict, List, Any
 import warnings
-warnings.filterwarnings('ignore')
+# Suppress specific warnings that are not critical for trading operations
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 class HyperparameterOptimizer:
     """Automated hyperparameter optimization using Optuna"""

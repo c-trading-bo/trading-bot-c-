@@ -10,11 +10,23 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace StandaloneDashboard
 {
+    public static class DashboardConfig
+    {
+        public static string DashboardHost => Environment.GetEnvironmentVariable("DASHBOARD_HOST") ?? "localhost";
+        public static int DashboardPort => int.TryParse(Environment.GetEnvironmentVariable("DASHBOARD_PORT"), out var port) ? port : 5050;
+        public static string BotApiUrl => Environment.GetEnvironmentVariable("BOT_API_URL") ?? "https://localhost:5000";
+        
+        public static string DashboardUrl => $"https://{DashboardHost}:{DashboardPort}";
+        public static string DashboardEndpoint => $"{DashboardUrl}/dashboard";
+        public static string HealthEndpoint => $"{DashboardUrl}/healthz";
+        public static string RealtimeEndpoint => $"{DashboardUrl}/stream/realtime";
+    }
+
     public class Program
     {
         private static readonly ConcurrentQueue<string> _logEntries = new();
         private static readonly HttpClient _httpClient = new();
-        private static string _botApiUrl = "https://localhost:5000"; // Default bot HTTPS URL
+        private static string _botApiUrl = DashboardConfig.BotApiUrl;
 
         public static void Main(string[] args)
         {
@@ -23,7 +35,7 @@ namespace StandaloneDashboard
             // Configure HTTPS with self-signed certificate for local development
             builder.WebHost.ConfigureKestrel(serverOptions =>
             {
-                serverOptions.ListenLocalhost(5050, listenOptions =>
+                serverOptions.ListenLocalhost(DashboardConfig.DashboardPort, listenOptions =>
                 {
                     listenOptions.UseHttps(httpsOptions =>
                     {
@@ -342,9 +354,9 @@ namespace StandaloneDashboard
             });
 
             Console.WriteLine("🚀 Local HTTPS Trading Dashboard Starting...");
-            Console.WriteLine($"📊 Dashboard: https://localhost:5050/dashboard");
-            Console.WriteLine($"💾 Health: https://localhost:5050/healthz");
-            Console.WriteLine($"🔄 Real-time: https://localhost:5050/stream/realtime");
+            Console.WriteLine($"📊 Dashboard: {DashboardConfig.DashboardEndpoint}");
+            Console.WriteLine($"💾 Health: {DashboardConfig.HealthEndpoint}");
+            Console.WriteLine($"🔄 Real-time: {DashboardConfig.RealtimeEndpoint}");
             Console.WriteLine($"🔗 Bot API: {_botApiUrl}");
             Console.WriteLine("📡 Connecting to live trading bot for real data");
             Console.WriteLine("⚡ Features: Live Bot Control, Real Trading Data, Actual P&L, Health Monitoring");
@@ -358,10 +370,10 @@ namespace StandaloneDashboard
             Console.WriteLine("4. Accept the self-signed certificate in your browser");
             Console.WriteLine("");
 
-            // Note: This was previously http://localhost:5050, now https://localhost:5050
+            // Note: Using configurable dashboard URL instead of hardcoded localhost:5050
             // The certificate will be self-signed for local development
 
-            app.Run("https://localhost:5050");
+            app.Run(DashboardConfig.DashboardUrl);
         }
 
         private static void LoadDotEnv()
