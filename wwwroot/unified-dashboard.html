@@ -333,7 +333,7 @@
                 <div class="card">
                     <h3>📈 Trading Performance</h3>
                     <div class="iframe-container">
-                        <iframe src="http://localhost:5050/trading" title="Trading Performance"></iframe>
+                        <iframe id="trading-iframe" title="Trading Performance"></iframe>
                     </div>
                 </div>
             </div>
@@ -345,7 +345,7 @@
                 <div class="card">
                     <h3>🧠 Intelligence Dashboard</h3>
                     <div class="iframe-container">
-                        <iframe src="http://localhost:5050/intelligence" title="Intelligence Dashboard"></iframe>
+                        <iframe id="intelligence-iframe" title="Intelligence Dashboard"></iframe>
                     </div>
                 </div>
             </div>
@@ -357,7 +357,7 @@
                 <div class="card">
                     <h3>🔧 Local Bot Mechanic</h3>
                     <div class="iframe-container">
-                        <iframe src="http://localhost:5051/mechanic/dashboard" title="Bot Mechanic Dashboard"></iframe>
+                        <iframe id="mechanic-iframe" title="Bot Mechanic Dashboard"></iframe>
                     </div>
                 </div>
             </div>
@@ -369,7 +369,7 @@
                 <div class="card">
                     <h3>📊 System Monitoring</h3>
                     <div class="iframe-container">
-                        <iframe src="http://localhost:5050/monitoring" title="System Monitoring"></iframe>
+                        <iframe id="monitoring-iframe" title="System Monitoring"></iframe>
                     </div>
                 </div>
             </div>
@@ -377,14 +377,21 @@
 
         <!-- Links -->
         <div class="links">
-            <a href="http://localhost:5050" target="_blank">🌐 Main Bot Dashboard</a>
-            <a href="http://localhost:5051/mechanic/dashboard" target="_blank">🔧 Bot Mechanic</a>
-            <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank">🔄 GitHub Actions</a>
-            <a href="http://localhost:5050/healthz" target="_blank">💊 Health Check</a>
+            <a id="main-dashboard-link" target="_blank">🌐 Main Bot Dashboard</a>
+            <a id="mechanic-link" target="_blank">🔧 Bot Mechanic</a>
+            <a id="github-actions-link" target="_blank">🔄 GitHub Actions</a>
+            <a id="health-check-link" target="_blank">💊 Health Check</a>
         </div>
     </div>
 
     <script>
+        // Configuration - Centralized endpoint management
+        const CONFIG = {
+            MAIN_BOT_URL: window.location.protocol + '//' + window.location.hostname + ':5050',
+            MECHANIC_URL: window.location.protocol + '//' + window.location.hostname + ':5051',
+            GITHUB_ACTIONS_URL: 'https://github.com/kevinsuero072897-collab/trading-bot-c-/actions'
+        };
+
         // Tab Management
         function showTab(tabName) {
             // Hide all tab contents
@@ -408,7 +415,7 @@
         async function updateSystemStatus() {
             try {
                 // Update main bot status
-                const botResponse = await fetch('http://localhost:5050/healthz');
+                const botResponse = await fetch(CONFIG.MAIN_BOT_URL + '/healthz');
                 if (botResponse.ok) {
                     document.getElementById('bot-status').innerHTML = '✅ Online';
                     document.getElementById('main-status').className = 'status-indicator status-healthy';
@@ -423,7 +430,7 @@
 
             try {
                 // Update mechanic status
-                const mechanicResponse = await fetch('http://localhost:5051/mechanic/api/status');
+                const mechanicResponse = await fetch(CONFIG.MECHANIC_URL + '/mechanic/api/status');
                 if (mechanicResponse.ok) {
                     const mechanicData = await mechanicResponse.json();
                     
@@ -455,7 +462,7 @@
             addLogEntry('🔍 Starting health check...', 'info');
             
             try {
-                const response = await fetch('http://localhost:5051/mechanic/scan');
+                const response = await fetch(CONFIG.MECHANIC_URL + '/mechanic/scan');
                 if (response.ok) {
                     addLogEntry('✅ Health check completed', 'success');
                 } else {
@@ -472,7 +479,7 @@
             addLogEntry('🔧 Starting auto-fix...', 'info');
             
             try {
-                const response = await fetch('http://localhost:5051/mechanic/fix');
+                const response = await fetch(CONFIG.MECHANIC_URL + '/mechanic/fix');
                 if (response.ok) {
                     addLogEntry('✅ Auto-fix completed', 'success');
                 } else {
@@ -526,8 +533,24 @@
         // Auto-refresh every 30 seconds
         setInterval(updateSystemStatus, 30000);
 
+        // Initialize configuration-based URLs
+        function initializeUrls() {
+            // Set iframe sources
+            document.getElementById('trading-iframe').src = CONFIG.MAIN_BOT_URL + '/trading';
+            document.getElementById('intelligence-iframe').src = CONFIG.MAIN_BOT_URL + '/intelligence';
+            document.getElementById('mechanic-iframe').src = CONFIG.MECHANIC_URL + '/mechanic/dashboard';
+            document.getElementById('monitoring-iframe').src = CONFIG.MAIN_BOT_URL + '/monitoring';
+            
+            // Set link hrefs
+            document.getElementById('main-dashboard-link').href = CONFIG.MAIN_BOT_URL;
+            document.getElementById('mechanic-link').href = CONFIG.MECHANIC_URL + '/mechanic/dashboard';
+            document.getElementById('github-actions-link').href = CONFIG.GITHUB_ACTIONS_URL;
+            document.getElementById('health-check-link').href = CONFIG.MAIN_BOT_URL + '/healthz';
+        }
+
         // Initial load
         document.addEventListener('DOMContentLoaded', () => {
+            initializeUrls();
             addLogEntry('🚀 Dashboard loaded', 'success');
             updateSystemStatus();
         });
