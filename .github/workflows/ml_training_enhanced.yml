@@ -2,7 +2,7 @@ name: ML Training Enhanced (Team)
 
 on:
   schedule:
-    # TRAIN MORE OFTEN FOR ADAPTATION - TEAM OPTIMIZED
+    # TRAIN MORE OFTEN FOR ADAPTATION - ORIGINAL FREQUENCY
     - cron: '0 */1 * * *'  # Every hour (24 runs/day)
   workflow_dispatch:
 

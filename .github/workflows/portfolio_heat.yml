@@ -2,10 +2,20 @@ name: Portfolio Heat Management (Team)
 
 on:
   schedule:
-    # HEAT MANAGEMENT - TEAM OPTIMIZED
-    - cron: '*/15 9-16 * * 1-5'  # Every 15 min market hours (28 runs)
-    - cron: '0 */2 * * *'        # Every 2 hours otherwise (12 runs)
-    # Total: ~40 runs/day
+    # FUTURES RISK MANAGEMENT - 24/5 COVERAGE  
+    # Asian session (Sunday 6PM - Friday 11PM EST)
+    - cron: '*/30 23 * * 0'         # Sunday 6PM EST start
+    - cron: '*/30 0-6 * * 1-5'      # Asian/European sessions
+    # European session
+    - cron: '*/30 7-13 * * 1-5'     # European morning
+    # US Market hours (most frequent)
+    - cron: '*/15 14-21 * * 1-5'    # US market hours (15 min intervals)
+    # After hours 
+    - cron: '*/20 21-23 * * 1-4'    # After hours Mon-Thu
+    - cron: '*/20 21-22 * * 5'      # Friday until close (5PM EST)
+    # Weekend minimal monitoring
+    - cron: '0 0,6,12,18 * * 6,0'   # Weekends (every 6 hours)
+    # Total: ~60 runs/day with 24/5 risk coverage
   workflow_dispatch:
 
 permissions:

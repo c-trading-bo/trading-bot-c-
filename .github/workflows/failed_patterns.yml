@@ -1,7 +1,9 @@
-name: Supply Demand Zones Identifier
+name: Failed Patterns Detection
 on:
   schedule:
-    - cron: '*/30 9-15 * * 1-5'  # Every 30 min RTH (9 AM - 3 PM UTC, Mon-Fri)
+    - cron: '*/20 13-21 * * 1-5'    # Every 20min US trading hours (EST)
+    - cron: '0 0-12,22-23 * * 1-5'  # Every hour off-hours weekdays  
+    - cron: '0 */4 * * 0,6'         # Every 4hrs weekends
   workflow_dispatch:
 
 permissions:
@@ -10,7 +12,7 @@ permissions:
   actions: read
 
 jobs:
-  zones_identifier:
+  failed_patterns:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -23,7 +25,7 @@ jobs:
         with:
           python-version: '3.9'
       - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/identify_zones.py
+      - run: python Intelligence/scripts/failed_patterns.py
       - run: |
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
@@ -34,5 +36,5 @@ jobs:
           git config --global user.email "ml-bot@github.com"
           git config --global user.name "ML Bot"
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update supply/demand zones analysis"
+          git diff --quiet || git commit -m "Update failed patterns analysis"
           git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."

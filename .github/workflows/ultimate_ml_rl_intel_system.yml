@@ -3,12 +3,22 @@ name: Ultimate ML/RL/Intel System (Team Optimized)
 
 on:
   schedule:
-    # HIGH FREQUENCY DURING MARKET
-    - cron: '*/10 9-10 * * 1-5'   # Every 10 min opening (6 runs)
-    - cron: '*/15 10-15 * * 1-5'  # Every 15 min midday (20 runs)
-    - cron: '*/10 15-16 * * 1-5'  # Every 10 min closing (6 runs)
-    - cron: '0 */2 * * *'          # Every 2 hours overnight (12 runs)
-    # Total: ~44 runs/day
+    # OPTIMIZED FOR 20K MINUTES - MAXIMUM ML/RL FREQUENCY
+    # Asian Session  
+    - cron: '*/15 23-23 * * 0'      # Sunday 6PM EST start (every 15min)
+    - cron: '*/15 0-4 * * 1-5'      # Asian session (6PM-11PM EST) (every 15min)
+    # European Session
+    - cron: '*/15 7-12 * * 1-5'     # European hours (2AM-7AM EST) (every 15min)
+    # US Trading Hours (MAXIMUM FREQUENCY)
+    - cron: '*/15 14-15 * * 1-5'    # Market open (9:30-10:30 AM EST) (every 15min)
+    - cron: '*/15 15-20 * * 1-5'    # Midday (10:30 AM-3:00 PM EST) (every 15min)
+    - cron: '*/15 20-21 * * 1-5'    # Close (3:00-4:00 PM EST) (every 15min)
+    # After Hours
+    - cron: '*/30 21-23 * * 1-4'    # After hours Mon-Thu
+    - cron: '*/20 21-22 * * 5'      # Friday until close
+    # Overnight base frequency
+    - cron: '0 5,6 * * 1-5'         # Reduced during quiet hours (12AM-1AM EST)
+    # Total: ~44 runs/day with 24/5 coverage
   workflow_dispatch:
     inputs:
       mode:
@@ -90,24 +100,24 @@ jobs:
     
     - name: Install Core Python Dependencies
       run: |
-        pip install --upgrade pip
+        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
         # Essential core dependencies only
-        pip install numpy pandas scipy
+        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
         # Technical analysis (with fallbacks)
-        pip install TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
+        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
         # Lightweight ML dependencies
-        pip install scikit-learn
+        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn
         # Data collection essentials
-        pip install yfinance requests feedparser
+        pip install --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
         # News processing essentials
-        pip install beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
+        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
         
     - name: Install Optional Heavy Dependencies
       continue-on-error: true
       run: |
         # These are optional - workflow continues if they fail
-        pip install torch || echo "PyTorch install failed, skipping"
-        pip install xgboost || echo "XGBoost install failed, skipping"
+        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
+        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Simplified & Robust)
@@ -598,8 +608,8 @@ jobs:
     
     - name: Install ML/RL Dependencies
       run: |
-        pip install torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install optuna shap numpy pandas onnx onnxruntime
+        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
     
     # ----------------------------------------
     # TRAIN NEURAL BANDITS
@@ -886,7 +896,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install pandas numpy scikit-learn joblib
+        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
     
     - name: Generate Trading Signals
       run: |
@@ -1227,6 +1237,7 @@ jobs:
         - ✅ News-sentiment trade filtering
         
         📈 SYSTEM HEALTH:
+        - ✅ Comprehensive monitoring dashboard
         - ✅ Component status validation
         - ✅ Data freshness tracking
         - ✅ Model performance metrics
