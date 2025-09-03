@@ -117,6 +117,9 @@ namespace OrchestratorAgent
             var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "http://localhost:5000";
             Console.WriteLine($"[Orchestrator] Starting (urls={urls}) …");
 
+            // 🧠 Auto-start Local Bot Mechanic (no manual intervention required)
+            BotCore.Services.LocalBotMechanicService.StartAutomatic();
+
             // Load .env.local / .env into environment variables before reading any config
             LoadDotEnv();
             // Guardrail: kill.txt forces DRY_RUN/PAPER and disables LIVE_ORDERS
@@ -180,7 +183,12 @@ namespace OrchestratorAgent
 
             using var http = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com") };
             using var cts = new CancellationTokenSource();
-            Console.CancelKeyPress += (s, e) => { e.Cancel = true; cts.Cancel(); };
+            Console.CancelKeyPress += (s, e) => { 
+                e.Cancel = true; 
+                cts.Cancel(); 
+                // Stop Local Bot Mechanic on shutdown
+                BotCore.Services.LocalBotMechanicService.Stop();
+            };
 
             // Optional quick-exit for CI/smoke: cancel after 5s if BOT_QUICK_EXIT is enabled
             var qe = Environment.GetEnvironmentVariable("BOT_QUICK_EXIT");
@@ -809,6 +817,7 @@ namespace OrchestratorAgent
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
                         webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
+
                         var web = webBuilder.Build();
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
