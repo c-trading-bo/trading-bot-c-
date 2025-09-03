@@ -1,42 +1,51 @@
 name: Supply Demand Zones Identifier
-on:
+true:
   schedule:
-    # 24/5 Futures Trading Schedule - Optimized for 20k minutes
-    - cron: '*/45 14-21 * * 1-5'    # Every 45 min US market hours (9:30 AM-4:00 PM EST)
-    - cron: '0 21,23 * * 1-4'       # After hours Mon-Thu (4PM, 6PM EST)
-    - cron: '0 0,2,4,6 * * 1-5'     # Asian session every 2 hours
-    - cron: '0 7,9,11,13 * * 1-5'   # European session every 2 hours
-  workflow_dispatch:
-
+  - cron: '*/45 14-21 * * 1-5'
+  - cron: 0 21,23 * * 1-4
+  - cron: 0 0,2,4,6 * * 1-5
+  - cron: 0 7,9,11,13 * * 1-5
+  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
   zones_identifier:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/identify_zones.py
-      - run: |
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.name "GitHub Actions"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.email "actions@github.com"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git add Intelligence/data/
-          git diff --quiet || git commit -m "Update supply/demand zones analysis"
-          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        cache: pip
+    - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy
+        requests beautifulsoup4 ta pytrends fredapi
+    - run: python Intelligence/scripts/identify_zones.py
+    - run: 'git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.name "GitHub Actions"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.email "actions@github.com"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git add Intelligence/data/
+
+        git diff --quiet || git commit -m "Update supply/demand zones analysis"
+
+        git push --force-with-lease || git push --force-with-lease || echo "Push failed,
+        continuing..."'

@@ -1,158 +1,91 @@
 name: ES/NQ Futures News Sentiment
-
-on:
+true:
   schedule:
-    - cron: '*/10 13-21 * * 1-5'    # Every 10min US trading hours (8AM-4PM EST)
-    - cron: '*/30 0-12,22-23 * * 1-5'  # Every 30min off-hours weekdays
-    - cron: '0 */2 * * 0'           # Every 2hrs Sunday futures
-    - cron: '*/30 22-23 * * 0'      # Every 30min Sunday evening open
-  workflow_dispatch:
-
+  - cron: '*/10 13-21 * * 1-5'
+  - cron: '*/30 0-12,22-23 * * 1-5'
+  - cron: 0 */2 * * 0
+  - cron: '*/30 22-23 * * 0'
+  workflow_dispatch: null
 jobs:
   analyze-futures-news:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    
     steps:
     - uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
-    
+        fetch-depth: 1
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-    
+        cache: pip
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
+      run: 'python -m pip install --upgrade pip
+
         pip install feedparser textblob requests beautifulsoup4 pandas numpy
-    
+
+        '
     - name: Analyze ES/NQ News
-      run: |
-        python << 'EOF'
-        import feedparser
-        import requests
-        from textblob import TextBlob
-        import json
-        import os
-        from datetime import datetime
-        import logging
-        
-        logging.basicConfig(level=logging.INFO)
-        logger = logging.getLogger(__name__)
-        
-        # ES/NQ specific news sources
-        feeds = {
-            'bloomberg': 'https://feeds.bloomberg.com/markets/news.rss',
-            'reuters': 'https://feeds.reuters.com/reuters/businessNews',
-            'marketwatch': 'https://feeds.marketwatch.com/marketwatch/topstories/',
-            'cnbc': 'https://search.cnbc.com/rs/search/combined.do?partnerId=wrss01&id=15839069'
-        }
-        
-        es_keywords = ['S&P', 'SPX', 'ES futures', 'e-mini', 'stock index', 'SPY', 'equity index']
-        nq_keywords = ['Nasdaq', 'NQ futures', 'tech stocks', 'QQQ', 'technology sector', 'FAANG', 'tech earnings']
-        
-        sentiment_data = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'ES': {'sentiment': 0, 'articles': [], 'signal': 'NEUTRAL'},
-            'NQ': {'sentiment': 0, 'articles': [], 'signal': 'NEUTRAL'}
-        }
-        
-        for source, url in feeds.items():
-            try:
-                logger.info(f"Processing {source}...")
-                feed = feedparser.parse(url)
-                
-                for entry in feed.entries[:10]:
-                    title = entry.title
-                    summary = entry.get('summary', '')
-                    full_text = f"{title} {summary}".lower()
-                    
-                    # Sentiment analysis
-                    try:
-                        blob = TextBlob(full_text)
-                        sentiment = blob.sentiment.polarity
-                    except:
-                        sentiment = 0.0
-                    
-                    # Categorize for ES or NQ
-                    is_es = any(kw.lower() in full_text for kw in es_keywords)
-                    is_nq = any(kw.lower() in full_text for kw in nq_keywords)
-                    
-                    if sentiment != 0 and (is_es or is_nq):
-                        article_data = {
-                            'title': title[:100] + '...' if len(title) > 100 else title,
-                            'sentiment': sentiment,
-                            'source': source,
-                            'time': entry.get('published', '')
-                        }
-                        
-                        if is_es:
-                            sentiment_data['ES']['articles'].append(article_data)
-                            sentiment_data['ES']['sentiment'] += sentiment
-                        
-                        if is_nq:
-                            sentiment_data['NQ']['articles'].append(article_data)
-                            sentiment_data['NQ']['sentiment'] += sentiment
-                            
-            except Exception as e:
-                logger.error(f"Error processing {source}: {e}")
-                continue
-        
-        # Calculate average sentiment and generate signals
-        for instrument in ['ES', 'NQ']:
-            articles = sentiment_data[instrument]['articles']
-            if articles:
-                sentiment_data[instrument]['sentiment'] /= len(articles)
-                
-                # Generate signal
-                avg_sentiment = sentiment_data[instrument]['sentiment']
-                if avg_sentiment > 0.3:
-                    sentiment_data[instrument]['signal'] = 'BULLISH'
-                elif avg_sentiment < -0.3:
-                    sentiment_data[instrument]['signal'] = 'BEARISH'
-                else:
-                    sentiment_data[instrument]['signal'] = 'NEUTRAL'
-                    
-                # Add article count
-                sentiment_data[instrument]['article_count'] = len(articles)
-            else:
-                sentiment_data[instrument]['sentiment'] = 0.0
-                sentiment_data[instrument]['signal'] = 'NEUTRAL'
-                sentiment_data[instrument]['article_count'] = 0
-        
-        # Save data
-        os.makedirs('Intelligence/data/news', exist_ok=True)
-        with open('Intelligence/data/news/es_nq_sentiment.json', 'w') as f:
-            json.dump(sentiment_data, f, indent=2)
-        
-        # Output summary
-        print(f"✅ ES/NQ News Sentiment Analysis Complete")
-        print(f"📊 ES: {sentiment_data['ES']['sentiment']:.3f} ({sentiment_data['ES']['signal']}) - {sentiment_data['ES']['article_count']} articles")
-        print(f"📊 NQ: {sentiment_data['NQ']['sentiment']:.3f} ({sentiment_data['NQ']['signal']}) - {sentiment_data['NQ']['article_count']} articles")
-        
-        # Create summary for GitHub
-        summary = {
-            'status': 'success',
-            'timestamp': datetime.utcnow().isoformat(),
-            'ES_signal': sentiment_data['ES']['signal'],
-            'NQ_signal': sentiment_data['NQ']['signal'],
-            'ES_sentiment': sentiment_data['ES']['sentiment'],
-            'NQ_sentiment': sentiment_data['NQ']['sentiment']
-        }
-        
-        with open('Intelligence/data/news/sentiment_summary.json', 'w') as f:
-            json.dump(summary, f, indent=2)
-        
-        EOF
-    
+      run: "python << 'EOF'\nimport feedparser\nimport requests\nfrom textblob import\
+        \ TextBlob\nimport json\nimport os\nfrom datetime import datetime\nimport\
+        \ logging\n\nlogging.basicConfig(level=logging.INFO)\nlogger = logging.getLogger(__name__)\n\
+        \n# ES/NQ specific news sources\nfeeds = {\n    'bloomberg': 'https://feeds.bloomberg.com/markets/news.rss',\n\
+        \    'reuters': 'https://feeds.reuters.com/reuters/businessNews',\n    'marketwatch':\
+        \ 'https://feeds.marketwatch.com/marketwatch/topstories/',\n    'cnbc': 'https://search.cnbc.com/rs/search/combined.do?partnerId=wrss01&id=15839069'\n\
+        }\n\nes_keywords = ['S&P', 'SPX', 'ES futures', 'e-mini', 'stock index', 'SPY',\
+        \ 'equity index']\nnq_keywords = ['Nasdaq', 'NQ futures', 'tech stocks', 'QQQ',\
+        \ 'technology sector', 'FAANG', 'tech earnings']\n\nsentiment_data = {\n \
+        \   'timestamp': datetime.utcnow().isoformat(),\n    'ES': {'sentiment': 0,\
+        \ 'articles': [], 'signal': 'NEUTRAL'},\n    'NQ': {'sentiment': 0, 'articles':\
+        \ [], 'signal': 'NEUTRAL'}\n}\n\nfor source, url in feeds.items():\n    try:\n\
+        \        logger.info(f\"Processing {source}...\")\n        feed = feedparser.parse(url)\n\
+        \        \n        for entry in feed.entries[:10]:\n            title = entry.title\n\
+        \            summary = entry.get('summary', '')\n            full_text = f\"\
+        {title} {summary}\".lower()\n            \n            # Sentiment analysis\n\
+        \            try:\n                blob = TextBlob(full_text)\n          \
+        \      sentiment = blob.sentiment.polarity\n            except:\n        \
+        \        sentiment = 0.0\n            \n            # Categorize for ES or\
+        \ NQ\n            is_es = any(kw.lower() in full_text for kw in es_keywords)\n\
+        \            is_nq = any(kw.lower() in full_text for kw in nq_keywords)\n\
+        \            \n            if sentiment != 0 and (is_es or is_nq):\n     \
+        \           article_data = {\n                    'title': title[:100] + '...'\
+        \ if len(title) > 100 else title,\n                    'sentiment': sentiment,\n\
+        \                    'source': source,\n                    'time': entry.get('published',\
+        \ '')\n                }\n                \n                if is_es:\n  \
+        \                  sentiment_data['ES']['articles'].append(article_data)\n\
+        \                    sentiment_data['ES']['sentiment'] += sentiment\n    \
+        \            \n                if is_nq:\n                    sentiment_data['NQ']['articles'].append(article_data)\n\
+        \                    sentiment_data['NQ']['sentiment'] += sentiment\n    \
+        \                \n    except Exception as e:\n        logger.error(f\"Error\
+        \ processing {source}: {e}\")\n        continue\n\n# Calculate average sentiment\
+        \ and generate signals\nfor instrument in ['ES', 'NQ']:\n    articles = sentiment_data[instrument]['articles']\n\
+        \    if articles:\n        sentiment_data[instrument]['sentiment'] /= len(articles)\n\
+        \        \n        # Generate signal\n        avg_sentiment = sentiment_data[instrument]['sentiment']\n\
+        \        if avg_sentiment > 0.3:\n            sentiment_data[instrument]['signal']\
+        \ = 'BULLISH'\n        elif avg_sentiment < -0.3:\n            sentiment_data[instrument]['signal']\
+        \ = 'BEARISH'\n        else:\n            sentiment_data[instrument]['signal']\
+        \ = 'NEUTRAL'\n            \n        # Add article count\n        sentiment_data[instrument]['article_count']\
+        \ = len(articles)\n    else:\n        sentiment_data[instrument]['sentiment']\
+        \ = 0.0\n        sentiment_data[instrument]['signal'] = 'NEUTRAL'\n      \
+        \  sentiment_data[instrument]['article_count'] = 0\n\n# Save data\nos.makedirs('Intelligence/data/news',\
+        \ exist_ok=True)\nwith open('Intelligence/data/news/es_nq_sentiment.json',\
+        \ 'w') as f:\n    json.dump(sentiment_data, f, indent=2)\n\n# Output summary\n\
+        print(f\"\xE2\u0153\u2026 ES/NQ News Sentiment Analysis Complete\")\nprint(f\"\
+        \xF0\u0178\u201C\u0160 ES: {sentiment_data['ES']['sentiment']:.3f} ({sentiment_data['ES']['signal']})\
+        \ - {sentiment_data['ES']['article_count']} articles\")\nprint(f\"\xF0\u0178\
+        \u201C\u0160 NQ: {sentiment_data['NQ']['sentiment']:.3f} ({sentiment_data['NQ']['signal']})\
+        \ - {sentiment_data['NQ']['article_count']} articles\")\n\n# Create summary\
+        \ for GitHub\nsummary = {\n    'status': 'success',\n    'timestamp': datetime.utcnow().isoformat(),\n\
+        \    'ES_signal': sentiment_data['ES']['signal'],\n    'NQ_signal': sentiment_data['NQ']['signal'],\n\
+        \    'ES_sentiment': sentiment_data['ES']['sentiment'],\n    'NQ_sentiment':\
+        \ sentiment_data['NQ']['sentiment']\n}\n\nwith open('Intelligence/data/news/sentiment_summary.json',\
+        \ 'w') as f:\n    json.dump(summary, f, indent=2)\n\nEOF\n"
     - name: Commit Sentiment Data
-      run: |
-        git config --global user.email "ml-bot@github.com"
-        git config --global user.name "ML Bot"
-        git add Intelligence/data/news/ || true
-        git commit -m "📰 Update ES/NQ news sentiment - $(date -u '+%Y-%m-%d %H:%M UTC')" || true
-        git push --force-with-lease || true
+      run: "git config --global user.email \"ml-bot@github.com\"\ngit config --global\
+        \ user.name \"ML Bot\"\ngit add Intelligence/data/news/ || true\ngit commit\
+        \ -m \"\xF0\u0178\u201C\xB0 Update ES/NQ news sentiment - $(date -u '+%Y-%m-%d\
+        \ %H:%M UTC')\" || true\ngit push --force-with-lease || true"
+    timeout-minutes: 15

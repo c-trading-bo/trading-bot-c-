@@ -1,36 +1,37 @@
 name: Sector Rotation Analysis
 'on':
   schedule:
-    - cron: '0 23 * * 1-5'  # Daily 11PM UTC after market close
-  workflow_dispatch:
-
+  - cron: 0 23 * * 1-5
+  workflow_dispatch: null
 jobs:
   sector_rotation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas requests numpy yfinance scikit-learn
-          
-      - name: Analyze Sector Rotation
-        run: |
-          cd Intelligence/scripts
-          python sector_rotation.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Commit Sector data
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add data/sectors/
-          git diff --staged --quiet || git commit -m "🔄 Sector rotation update: $(date +'%Y-%m-%d')"
-          git push
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: pip
+    - name: Install dependencies
+      run: 'python -m pip install --upgrade pip
+
+        pip install pandas requests numpy yfinance scikit-learn
+
+        '
+    - name: Analyze Sector Rotation
+      run: 'cd Intelligence/scripts
+
+        python sector_rotation.py
+
+        '
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Commit Sector data
+      run: "git config --local user.email \"action@github.com\"\ngit config --local\
+        \ user.name \"GitHub Action\"\ngit add data/sectors/\ngit diff --staged --quiet\
+        \ || git commit -m \"\xF0\u0178\u201D\u201E Sector rotation update: $(date\
+        \ +'%Y-%m-%d')\"\ngit push\n"
+    timeout-minutes: 15

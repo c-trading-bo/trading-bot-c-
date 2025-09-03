@@ -1,28 +1,32 @@
 name: Quality Assurance
-
-on:
+true:
   push:
-    branches: [main]
+    branches:
+    - main
   pull_request:
-    branches: [main]
-
+    branches:
+    - main
 jobs:
   quality-check:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-      
-      - name: Install QA tools
-        run: |
-          pip install flake8 black pylint
-      
-      - name: Run linting
-        run: |
-          echo "Add linting commands here"
-          # flake8 . || true
-          # black --check . || true
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        cache: pip
+    - name: Install QA tools
+      run: 'pip install flake8 black pylint
+
+        '
+    - name: Run linting
+      run: 'echo "Add linting commands here"
+
+        # flake8 . || true
+
+        # black --check . || true
+
+        '

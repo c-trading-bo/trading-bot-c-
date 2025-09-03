@@ -1,41 +1,50 @@
 name: Microstructure Analysis
-on:
+true:
   schedule:
-    # 24/5 Futures Trading - High frequency during market hours, reduced off-hours
-    - cron: '*/15 14-21 * * 1-5'    # Every 15 min US market hours (9:30 AM-4:00 PM EST)
-    - cron: '*/30 21-23 * * 1-4'    # Every 30 min after hours Mon-Thu 
-    - cron: '0 0,2,4,6,8,10,12 * * 1-5'  # Every 2 hours Asian/European sessions
-  workflow_dispatch:
-
+  - cron: '*/15 14-21 * * 1-5'
+  - cron: '*/30 21-23 * * 1-4'
+  - cron: 0 0,2,4,6,8,10,12 * * 1-5
+  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
   microstructure:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/microstructure.py
-      - run: |
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.name "GitHub Actions"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.email "actions@github.com"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git add Intelligence/data/
-          git diff --quiet || git commit -m "Update microstructure analysis"
-          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        cache: pip
+    - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy
+        requests beautifulsoup4 ta pytrends fredapi
+    - run: python Intelligence/scripts/microstructure.py
+    - run: 'git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.name "GitHub Actions"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.email "actions@github.com"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git add Intelligence/data/
+
+        git diff --quiet || git commit -m "Update microstructure analysis"
+
+        git push --force-with-lease || git push --force-with-lease || echo "Push failed,
+        continuing..."'

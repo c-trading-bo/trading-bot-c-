@@ -1,38 +1,48 @@
 name: Regime Detection Analysis
-on:
+true:
   schedule:
-    - cron: '0 * * * *'  # Hourly (24/7)
-  workflow_dispatch:
-
+  - cron: 0 * * * *
+  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
   regime_detector:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-      - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
-      - run: python Intelligence/scripts/regime_detector.py
-      - run: |
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.name "GitHub Actions"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git config user.email "actions@github.com"
-          git config --global user.email "ml-bot@github.com"
-          git config --global user.name "ML Bot"
-          git add Intelligence/data/
-          git diff --quiet || git commit -m "Update regime detection analysis"
-          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        cache: pip
+    - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy
+        requests beautifulsoup4 ta pytrends fredapi
+    - run: python Intelligence/scripts/regime_detector.py
+    - run: 'git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.name "GitHub Actions"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git config user.email "actions@github.com"
+
+        git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git add Intelligence/data/
+
+        git diff --quiet || git commit -m "Update regime detection analysis"
+
+        git push --force-with-lease || git push --force-with-lease || echo "Push failed,
+        continuing..."'

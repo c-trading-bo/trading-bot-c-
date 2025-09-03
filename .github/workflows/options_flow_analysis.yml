@@ -1,97 +1,58 @@
 name: Options Flow Analysis (Team)
-
-on:
+true:
   schedule:
-    # US MARKET HOURS - CORRECTED TIMEZONE (UTC)
-    - cron: '*/5 14-15 * * 1-5'   # Every 5 min opening (9:30-10:30 AM EST) - 12 runs
-    - cron: '*/15 15-20 * * 1-5'  # Every 15 min day (10:30 AM-3:00 PM EST) - 20 runs
-    - cron: '*/10 20-21 * * 1-5'  # Every 10 min close (3:00-4:00 PM EST) - 6 runs
-    # Total: ~38 runs/day (fixed timezone)
-  workflow_dispatch:
-
+  - cron: '*/5 14-15 * * 1-5'
+  - cron: '*/15 15-20 * * 1-5'
+  - cron: '*/10 20-21 * * 1-5'
+  workflow_dispatch: null
 permissions:
   contents: read
   actions: read
-
 jobs:
   analyze-flow:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    
     steps:
     - uses: actions/checkout@v4
-    
+      with:
+        fetch-depth: 1
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+        cache: pip
     - name: Install Dependencies
-      run: |
-        pip install --upgrade pip
+      run: 'pip install --upgrade pip
+
         pip install yfinance pandas numpy requests
-        
+
+        '
     - name: Analyze Options Flow
-      run: |
-        python << 'EOF'
-        import yfinance as yf
-        import pandas as pd
-        import numpy as np
-        import json
-        from datetime import datetime
-        
-        print(f"[OPTIONS] Starting flow analysis at {datetime.utcnow()}")
-        
-        # Monitor key ETFs for options activity
-        symbols = ['SPY', 'QQQ', 'IWM']
-        flow_data = {}
-        
-        for symbol in symbols:
-            try:
-                ticker = yf.Ticker(symbol)
-                
-                # Get recent data
-                hist = ticker.history(period='1d', interval='5m')
-                
-                if not hist.empty:
-                    # Calculate unusual volume
-                    avg_volume = hist['Volume'].rolling(20).mean()
-                    current_volume = hist['Volume'].iloc[-1]
-                    volume_spike = current_volume / avg_volume.iloc[-1] if avg_volume.iloc[-1] > 0 else 1
-                    
-                    # Price momentum
-                    price_momentum = (hist['Close'].iloc[-1] - hist['Close'].iloc[-5]) / hist['Close'].iloc[-5] * 100
-                    
-                    flow_data[symbol] = {
-                        'price': float(hist['Close'].iloc[-1]),
-                        'volume_spike': float(volume_spike),
-                        'momentum': float(price_momentum),
-                        'signal_strength': min(1.0, abs(price_momentum) * volume_spike / 10),
-                        'timestamp': datetime.utcnow().isoformat()
-                    }
-                    
-                    print(f"[{symbol}] Volume Spike: {volume_spike:.2f}x, Momentum: {price_momentum:.2f}%")
-                    
-            except Exception as e:
-                print(f"[ERROR] {symbol}: {e}")
-        
-        # Save flow analysis
-        import os
-        os.makedirs('data/options', exist_ok=True)
-        with open('data/options/flow_analysis.json', 'w') as f:
-            json.dump(flow_data, f, indent=2)
-        
-        # Generate alerts for unusual activity
-        alerts = []
-        for symbol, data in flow_data.items():
-            if data['volume_spike'] > 2.0 and abs(data['momentum']) > 0.5:
-                alerts.append(f"{symbol}: HIGH ACTIVITY - Volume {data['volume_spike']:.1f}x, Momentum {data['momentum']:.1f}%")
-        
-        if alerts:
-            print("[ALERTS]")
-            for alert in alerts:
-                print(f"  🚨 {alert}")
-        else:
-            print("[OPTIONS] No unusual activity detected")
-        
-        EOF
+      run: "python << 'EOF'\nimport yfinance as yf\nimport pandas as pd\nimport numpy\
+        \ as np\nimport json\nfrom datetime import datetime\n\nprint(f\"[OPTIONS]\
+        \ Starting flow analysis at {datetime.utcnow()}\")\n\n# Monitor key ETFs for\
+        \ options activity\nsymbols = ['SPY', 'QQQ', 'IWM']\nflow_data = {}\n\nfor\
+        \ symbol in symbols:\n    try:\n        ticker = yf.Ticker(symbol)\n     \
+        \   \n        # Get recent data\n        hist = ticker.history(period='1d',\
+        \ interval='5m')\n        \n        if not hist.empty:\n            # Calculate\
+        \ unusual volume\n            avg_volume = hist['Volume'].rolling(20).mean()\n\
+        \            current_volume = hist['Volume'].iloc[-1]\n            volume_spike\
+        \ = current_volume / avg_volume.iloc[-1] if avg_volume.iloc[-1] > 0 else 1\n\
+        \            \n            # Price momentum\n            price_momentum =\
+        \ (hist['Close'].iloc[-1] - hist['Close'].iloc[-5]) / hist['Close'].iloc[-5]\
+        \ * 100\n            \n            flow_data[symbol] = {\n               \
+        \ 'price': float(hist['Close'].iloc[-1]),\n                'volume_spike':\
+        \ float(volume_spike),\n                'momentum': float(price_momentum),\n\
+        \                'signal_strength': min(1.0, abs(price_momentum) * volume_spike\
+        \ / 10),\n                'timestamp': datetime.utcnow().isoformat()\n   \
+        \         }\n            \n            print(f\"[{symbol}] Volume Spike: {volume_spike:.2f}x,\
+        \ Momentum: {price_momentum:.2f}%\")\n            \n    except Exception as\
+        \ e:\n        print(f\"[ERROR] {symbol}: {e}\")\n\n# Save flow analysis\n\
+        import os\nos.makedirs('data/options', exist_ok=True)\nwith open('data/options/flow_analysis.json',\
+        \ 'w') as f:\n    json.dump(flow_data, f, indent=2)\n\n# Generate alerts for\
+        \ unusual activity\nalerts = []\nfor symbol, data in flow_data.items():\n\
+        \    if data['volume_spike'] > 2.0 and abs(data['momentum']) > 0.5:\n    \
+        \    alerts.append(f\"{symbol}: HIGH ACTIVITY - Volume {data['volume_spike']:.1f}x,\
+        \ Momentum {data['momentum']:.1f}%\")\n\nif alerts:\n    print(\"[ALERTS]\"\
+        )\n    for alert in alerts:\n        print(f\"  \xF0\u0178\u0161\xA8 {alert}\"\
+        )\nelse:\n    print(\"[OPTIONS] No unusual activity detected\")\n\nEOF"

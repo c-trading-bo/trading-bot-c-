@@ -466,9 +466,9 @@
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-03T22:48:30.149236",
-    "total_workflows": 39,
-    "healthy_workflows": 27,
+    "timestamp": "2025-09-03T22:53:22.188489",
+    "total_workflows": 40,
+    "healthy_workflows": 28,
     "broken_workflows": [
       "cloud-ml-training.yml",
       "cloud_bot_mechanic.yml",
@@ -502,5 +502,22 @@
       "train-github-only.yml: Analysis error - 'charmap' codec can't decode byte 0x8d in position 1088: character maps to <undefined>",
       "ultimate_ml_rl_intel_system.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 3166: character maps to <undefined>"
     ]
+  },
+  "quality-assurance.yml": {
+    "name": "Quality Assurance",
+    "file": "quality-assurance.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 13,
+    "runs_per_month": 0,
+    "jobs": {
+      "quality-check": {
+        "timeout": 20,
+        "runs_on": "ubuntu-latest",
+        "steps": 4,
+        "estimated_minutes": 8
+      }
+    }
   }
 }

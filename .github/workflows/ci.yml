@@ -1,40 +1,46 @@
 name: .NET Bot CI
-
-on:
+true:
   push:
-    branches: [ main, master ]
+    branches:
+    - main
+    - master
   pull_request:
-    branches: [ main, master ]
-
+    branches:
+    - main
+    - master
 permissions:
   contents: write
   pull-requests: write
   actions: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-          fetch-depth: 0
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-      - name: Restore dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-      - name: Format Code
-        run: dotnet format --verify-no-changes
-      - name: Run Tests
-        run: dotnet test --no-build --configuration Release
-      - name: Analyze Code (SonarQube)
-        continue-on-error: true
-        run: echo "SonarQube analysis skipped - configure SONAR_TOKEN secret if needed"
-  # ...existing code...
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: true
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: ${{ runner.os }}-pip-
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    - name: Format Code
+      run: dotnet format --verify-no-changes
+    - name: Run Tests
+      run: dotnet test --no-build --configuration Release
+    - name: Analyze Code (SonarQube)
+      continue-on-error: true
+      run: echo "SonarQube analysis skipped - configure SONAR_TOKEN secret if needed"
