@@ -6,7 +6,6 @@ on:
   pull_request:
     branches:
     - main
-
 permissions:
   contents: write
   pull-requests: write
@@ -15,8 +14,8 @@ jobs:
   build:
     strategy:
       matrix:
-        - Debug
-        - Release
+      - Debug
+      - Release
     timeout-minutes: 30
     env:
       Solution_Name: your-solution-name
@@ -33,7 +32,7 @@ jobs:
         with: null
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
-      with:
+      with: null
     - name: Cache dependencies
       uses: actions/cache@v3
       with:
@@ -46,7 +45,7 @@ jobs:
       run: dotnet test
     - name: Restore the application
       run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
-      env:
+      env: null
     - name: Decode the pfx
       run: '$pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx
         }}")
@@ -71,3 +70,6 @@ jobs:
       with:
         name: MSIX Package
         path: ${{ env.Wap_Project_Directory }}\AppPackages
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

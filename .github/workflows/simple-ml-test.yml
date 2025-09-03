@@ -1,7 +1,6 @@
 name: Simple ML Test
 on:
   workflow_dispatch: null
-
 permissions:
   contents: write
   pull-requests: write
@@ -24,3 +23,6 @@ jobs:
       run: 'python -c "import sys; print(f''Python {sys.version} ready for ML'')"
 
         echo "Simple ML test completed successfully"'
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

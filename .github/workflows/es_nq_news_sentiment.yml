@@ -6,7 +6,6 @@ on:
   - cron: 0 */2 * * 0
   - cron: '*/30 22-23 * * 0'
   workflow_dispatch: null
-
 jobs:
   analyze-futures-news:
     permissions:
@@ -72,10 +71,10 @@ jobs:
         \  sentiment_data[instrument]['article_count'] = 0\n\n# Save data\nos.makedirs('Intelligence/data/news',\
         \ exist_ok=True)\nwith open('Intelligence/data/news/es_nq_sentiment.json',\
         \ 'w') as f:\n    json.dump(sentiment_data, f, indent=2)\n\n# Output summary\n\
-        print(f\"\xE2\u0153\u2026 ES/NQ News Sentiment Analysis Complete\")\nprint(f\"\
-        \xF0\u0178\u201C\u0160 ES: {sentiment_data['ES']['sentiment']:.3f} ({sentiment_data['ES']['signal']})\
-        \ - {sentiment_data['ES']['article_count']} articles\")\nprint(f\"\xF0\u0178\
-        \u201C\u0160 NQ: {sentiment_data['NQ']['sentiment']:.3f} ({sentiment_data['NQ']['signal']})\
+        print(f\"âœ… ES/NQ News Sentiment Analysis Complete\")\nprint(f\"ðŸ“Š ES:\
+        \ {sentiment_data['ES']['sentiment']:.3f} ({sentiment_data['ES']['signal']})\
+        \ - {sentiment_data['ES']['article_count']} articles\")\nprint(f\"ðŸ“Š NQ:\
+        \ {sentiment_data['NQ']['sentiment']:.3f} ({sentiment_data['NQ']['signal']})\
         \ - {sentiment_data['NQ']['article_count']} articles\")\n\n# Create summary\
         \ for GitHub\nsummary = {\n    'status': 'success',\n    'timestamp': datetime.utcnow().isoformat(),\n\
         \    'ES_signal': sentiment_data['ES']['signal'],\n    'NQ_signal': sentiment_data['NQ']['signal'],\n\
@@ -83,8 +82,17 @@ jobs:
         \ sentiment_data['NQ']['sentiment']\n}\n\nwith open('Intelligence/data/news/sentiment_summary.json',\
         \ 'w') as f:\n    json.dump(summary, f, indent=2)\n\nEOF\n"
     - name: Commit Sentiment Data
-      run: "git config --global user.email \"ml-bot@github.com\"\ngit config --global\
-        \ user.name \"ML Bot\"\ngit add Intelligence/data/news/ || true\ngit commit\
-        \ -m \"\xF0\u0178\u201C\xB0 Update ES/NQ news sentiment - $(date -u '+%Y-%m-%d\
-        \ %H:%M UTC')\" || true\ngit push --force-with-lease || true"
+      run: 'git config --global user.email "ml-bot@github.com"
+
+        git config --global user.name "ML Bot"
+
+        git add Intelligence/data/news/ || true
+
+        git commit -m "ðŸ“° Update ES/NQ news sentiment - $(date -u ''+%Y-%m-%d %H:%M
+        UTC'')" || true
+
+        git push --force-with-lease || true'
     timeout-minutes: 15
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

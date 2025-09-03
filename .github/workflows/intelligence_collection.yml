@@ -3,7 +3,6 @@ on:
   schedule:
   - cron: 0 12,14,16,18,20,0 * * *
   workflow_dispatch: null
-
 permissions:
   contents: write
   actions: read
@@ -103,8 +102,16 @@ jobs:
         \ {summary['risk_level']}\")\nprint(f\"[INTEL] Key Observations: {len(summary['key_observations'])}\"\
         )\n\nEOF\n"
     - name: Commit Intelligence Data
-      run: "git config --local user.email \"intel-bot@github.com\"\ngit config --local\
-        \ user.name \"Intelligence Bot\"\ngit add data/\ngit diff --staged --quiet\
-        \ || git commit -m \"\xF0\u0178\u201C\u0160 Intelligence collection $(date\
-        \ -u +'%Y-%m-%d %H:%M')\"\ngit push --force-with-lease || echo \"Push failed,\
-        \ continuing...\""
+      run: 'git config --local user.email "intel-bot@github.com"
+
+        git config --local user.name "Intelligence Bot"
+
+        git add data/
+
+        git diff --staged --quiet || git commit -m "ðŸ“Š Intelligence collection $(date
+        -u +''%Y-%m-%d %H:%M'')"
+
+        git push --force-with-lease || echo "Push failed, continuing..."'
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

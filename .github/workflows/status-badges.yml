@@ -1,17 +1,16 @@
-name: "\U0001F396\uFE0F Status Badges"
+name: 🎖️ Status Badges
 on:
   schedule:
   - cron: 0 */4 * * *
   workflow_dispatch: null
-
 jobs:
   update-badges:
     steps:
-    - name: "\U0001F4E5 Checkout Code"
+    - name: 📥 Checkout Code
       uses: actions/checkout@v4
       with:
         fetch-depth: 1
-    - name: "\U0001F40D Setup Python"
+    - name: 🐍 Setup Python
       uses: actions/setup-python@v4
       with:
         cache: pip
@@ -21,11 +20,11 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
         restore-keys: ${{ runner.os }}-pip-
-    - name: "\U0001F4E6 Install Dependencies"
+    - name: 📦 Install Dependencies
       run: 'pip install requests
 
         '
-    - name: "\U0001F396\uFE0F Generate Status Badges"
+    - name: 🎖️ Generate Status Badges
       run: "# Create badge generation script\ncat > generate_badges.py << 'EOF'\n\
         import json\nimport requests\nimport datetime\nimport os\n\ndef get_workflow_status():\n\
         \    \"\"\"Get the latest workflow status\"\"\"\n    try:\n        headers\
@@ -49,7 +48,7 @@ jobs:
         \     }\n    \n    status = workflow_status['status']\n    conclusion = workflow_status['conclusion']\n\
         \    \n    if status == 'completed' and conclusion == 'success':\n       \
         \ return {\n            'schemaVersion': 1,\n            'label': 'Learning',\n\
-        \            'message': 'Active \u2713',\n            'color': 'brightgreen'\n\
+        \            'message': 'Active ✓',\n            'color': 'brightgreen'\n\
         \        }\n    elif status == 'in_progress':\n        return {\n        \
         \    'schemaVersion': 1,\n            'label': 'Learning',\n            'message':\
         \ 'Training...',\n            'color': 'yellow'\n        }\n    elif conclusion\
@@ -107,7 +106,7 @@ jobs:
         \        'models': generate_models_badge()\n    }\n    \n    for badge_name,\
         \ badge_data in badges.items():\n        with open(f'badges/{badge_name}.json',\
         \ 'w') as f:\n            json.dump(badge_data, f, indent=2)\n        \n \
-        \       print(f\"\u2705 Generated {badge_name} badge: {badge_data['message']}\"\
+        \       print(f\"✅ Generated {badge_name} badge: {badge_data['message']}\"\
         )\n    \n    # Also create a summary badge\n    learning_status = badges['learning']['message']\n\
         \    if 'Active' in learning_status:\n        summary_color = 'brightgreen'\n\
         \        summary_message = '\U0001F7E2 LEARNING'\n    elif 'Training' in learning_status:\n\
@@ -117,9 +116,9 @@ jobs:
         \     'label': 'Bot Status',\n        'message': summary_message,\n      \
         \  'color': summary_color\n    }\n    \n    with open('badges/status.json',\
         \ 'w') as f:\n        json.dump(summary_badge, f, indent=2)\n    \n    print(f\"\
-        \u2705 Generated status badge: {summary_message}\")\n\nif __name__ == \"__main__\"\
+        ✅ Generated status badge: {summary_message}\")\n\nif __name__ == \"__main__\"\
         :\n    save_badges()\nEOF\n\n# Run badge generation\npython generate_badges.py\n"
-    - name: "\u2601\uFE0F Upload Badges to S3"
+    - name: ☁️ Upload Badges to S3
       if: env.AWS_ACCESS_KEY_ID != ''
       run: "# Upload badges to S3 for shields.io integration\naws s3 sync badges/\
         \ \"s3://${{ secrets.S3_BUCKET }}/badges/\" \\\n  --acl public-read \\\n \
@@ -129,25 +128,56 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
-    - name: "\U0001F4CA Generate README Badges"
-      run: "# Create README badges section\ncat > badges_readme.md << 'EOF'\n# \U0001F916\
-        \ Trading Bot Status\n\n![Bot Status](https://img.shields.io/badge/Bot-Running-green)\n\
-        ![Learning Status](https://img.shields.io/badge/Learning-Active-blue)\n![Model\
-        \ Accuracy](https://img.shields.io/badge/Accuracy-85.2%25-brightgreen)\n![System\
-        \ Uptime](https://img.shields.io/badge/Uptime-98.7%25-green)\n![Models Freshness](https://img.shields.io/badge/Models-Fresh-brightgreen)\n\
-        \n## \U0001F4CA Quick Status Links\n\n- \U0001F4BB [Local Dashboard](http://localhost:5050/dashboard)\n\
-        - \U0001F4CB [GitHub Actions](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions)\n\
-        - \U0001F4E6 [Model Releases](https://github.com/kevinsuero072897-collab/trading-bot-c-/releases)\n\
-        - \U0001F3AF [Training Logs](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions/workflows/train-continuous-clean.yml)\n\
-        \nEOF\n\necho \"\U0001F4CB README badges section generated\"\ncat badges_readme.md\n"
-    - name: "\U0001F4CB Badge Summary"
-      run: "echo \"\U0001F396\uFE0F Status Badges Updated\"\necho \"========================\"\
-        \n\necho \"\u2705 Generated badges:\"\nls -la badges/ || echo \"No badges\
-        \ directory\"\n\necho \"\"\necho \"\U0001F4CA Badge contents:\"\nfor badge\
-        \ in badges/*.json; do\n    if [ -f \"$badge\" ]; then\n        echo \"$(basename\
-        \ $badge):\"\n        cat \"$badge\" | python -c \"import sys, json; data=json.load(sys.stdin);\
+    - name: 📊 Generate README Badges
+      run: '# Create README badges section
+
+        cat > badges_readme.md << ''EOF''
+
+        # 🤖 Trading Bot Status
+
+
+        ![Bot Status](https://img.shields.io/badge/Bot-Running-green)
+
+        ![Learning Status](https://img.shields.io/badge/Learning-Active-blue)
+
+        ![Model Accuracy](https://img.shields.io/badge/Accuracy-85.2%25-brightgreen)
+
+        ![System Uptime](https://img.shields.io/badge/Uptime-98.7%25-green)
+
+        ![Models Freshness](https://img.shields.io/badge/Models-Fresh-brightgreen)
+
+
+        ## 📊 Quick Status Links
+
+
+        - 💻 [Local Dashboard](http://localhost:5050/dashboard)
+
+        - 📋 [GitHub Actions](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions)
+
+        - 📦 [Model Releases](https://github.com/kevinsuero072897-collab/trading-bot-c-/releases)
+
+        - 🎯 [Training Logs](https://github.com/kevinsuero072897-collab/trading-bot-c-/actions/workflows/train-continuous-clean.yml)
+
+
+        EOF
+
+
+        echo "📋 README badges section generated"
+
+        cat badges_readme.md
+
+        '
+    - name: 📋 Badge Summary
+      run: "echo \"\U0001F396️ Status Badges Updated\"\necho \"========================\"\
+        \n\necho \"✅ Generated badges:\"\nls -la badges/ || echo \"No badges directory\"\
+        \n\necho \"\"\necho \"\U0001F4CA Badge contents:\"\nfor badge in badges/*.json;\
+        \ do\n    if [ -f \"$badge\" ]; then\n        echo \"$(basename $badge):\"\
+        \n        cat \"$badge\" | python -c \"import sys, json; data=json.load(sys.stdin);\
         \ print(f'  {data[\\\"label\\\"]}: {data[\\\"message\\\"]} ({data[\\\"color\\\
         \"]})')\"\n    fi\ndone\n\necho \"\"\necho \"\U0001F517 Static Badge Examples:\"\
         \necho \"![Bot Status](https://img.shields.io/badge/Bot-Running-green)\"\n\
         echo \"![Learning](https://img.shields.io/badge/Learning-Active-blue)\""
     timeout-minutes: 24
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

@@ -17,30 +17,26 @@ on:
   push:
     branches:
     - main
-
-concurrency:
-  group: train-github-only
-  cancel-in-progress: true
+env:
+  VENDOR_DIR: data/vendor
+  DATA_DIR: data/logs
 permissions:
   contents: write
   pull-requests: write
   actions: read
-env:
-  VENDOR_DIR: data/vendor
-  DATA_DIR: data/logs
 jobs:
   continuous-training:
     timeout-minutes: 45
     permissions:
       contents: write
     steps:
-    - name: "\U0001F4E5 Checkout Code"
+    - name: 📥 Checkout Code
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-    - name: "\U0001F50D Debug Workflow Info"
+    - name: 🔍 Debug Workflow Info
       run: 'echo "Event: ${{ github.event_name }}"
 
         echo "Manual test: ${{ inputs.manual_test }}"
@@ -56,11 +52,11 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
         restore-keys: ${{ runner.os }}-pip-
-    - name: "\U0001F40D Setup Python"
+    - name: 🐍 Setup Python
       uses: actions/setup-python@v4
       with:
         cache: pip
-    - name: "\U0001F4E6 Install Python Dependencies"
+    - name: 📦 Install Python Dependencies
       run: 'pip install --upgrade pip
 
         # Core ML dependencies with retry logic
@@ -81,27 +77,26 @@ jobs:
         "Optimization packages failed, continuing"
 
         '
-    - name: "\U0001F50D Test Dependencies"
+    - name: 🔍 Test Dependencies
       run: "python << 'EOF'\ntry:\n    import pandas as pd\n    import numpy as np\n\
-        \    print(\"\u2705 Core packages: numpy, pandas\")\n    \n    try:\n    \
-        \    import torch\n        print(\"\u2705 PyTorch available\")\n    except\
-        \ ImportError:\n        print(\"\u26A0\uFE0F PyTorch not available, using\
-        \ numpy fallback\")\n        \n    try:\n        import onnx\n        print(\"\
-        \u2705 ONNX available\")\n    except ImportError:\n        print(\"\u26A0\uFE0F\
-        \ ONNX not available, skipping ONNX features\")\n        \n    try:\n    \
-        \    import pyarrow\n        print(\"\u2705 PyArrow available\")\n    except\
-        \ ImportError:\n        print(\"\u26A0\uFE0F PyArrow not available, using\
-        \ CSV fallback\")\n        \n    print(\"\u2705 Dependency check completed\
-        \ - continuing with available packages\")\n    \nexcept Exception as e:\n\
-        \    print(f\"\u274C Critical dependency error: {e}\")\n    raise e\nEOF\n"
-    - name: "\U0001F9EA Lightweight Smoke Test"
+        \    print(\"✅ Core packages: numpy, pandas\")\n    \n    try:\n        import\
+        \ torch\n        print(\"✅ PyTorch available\")\n    except ImportError:\n\
+        \        print(\"⚠️ PyTorch not available, using numpy fallback\")\n     \
+        \   \n    try:\n        import onnx\n        print(\"✅ ONNX available\")\n\
+        \    except ImportError:\n        print(\"⚠️ ONNX not available, skipping\
+        \ ONNX features\")\n        \n    try:\n        import pyarrow\n        print(\"\
+        ✅ PyArrow available\")\n    except ImportError:\n        print(\"⚠️ PyArrow\
+        \ not available, using CSV fallback\")\n        \n    print(\"✅ Dependency\
+        \ check completed - continuing with available packages\")\n    \nexcept Exception\
+        \ as e:\n    print(f\"❌ Critical dependency error: {e}\")\n    raise e\nEOF\n"
+    - name: 🧪 Lightweight Smoke Test
       if: ${{ inputs.manual_test == true }}
       run: "echo \"\U0001F9EA Running lightweight smoke test...\"\nmkdir -p models/rl\
         \ data/logs\npython -c \"\nimport pandas as pd\nimport numpy as np\ndata =\
         \ pd.DataFrame({\n    'feature1': np.random.randn(10),\n    'feature2': np.random.randn(10),\n\
         \    'target': np.random.randn(10)\n})\ndata.to_parquet('data/logs/test_data.parquet')\n\
-        print('\u2705 Smoke test completed successfully!')\n\"\n"
-    - name: "\U0001F4CA Generate Training Data"
+        print('✅ Smoke test completed successfully!')\n\"\n"
+    - name: 📊 Generate Training Data
       if: ${{ inputs.manual_test != true }}
       run: "mkdir -p models/rl data/logs data/vendor Intelligence/data/training\n\
         echo \"Creating training data...\"\npython -c \"\nimport json\nimport pandas\
@@ -114,7 +109,7 @@ jobs:
         \ = pd.DataFrame(meta_data)\ndf_meta.to_csv('Intelligence/data/training/data.csv',\
         \ index=False)\nprint(f'Generated training data: {len(df_meta)} samples')\n\
         \"\n"
-    - name: "\U0001F916 Train Models"
+    - name: 🤖 Train Models
       if: ${{ inputs.manual_test != true }}
       run: "echo \"Training models...\"\n# Check if training script exists, create\
         \ fallback if not\nif [ -f \"ml/rl/train_cvar_ppo.py\" ]; then\n  python ml/rl/train_cvar_ppo.py\
@@ -126,7 +121,7 @@ jobs:
         \      'version': '1.0.0',\n      'parameters': {'dummy': True}\n  }\n  \n\
         \  with open('models/rl/model_info.json', 'w') as f:\n      json.dump(model_data,\
         \ f, indent=2)\n      \n  # Create a dummy model file\n  dummy_model = torch.randn(10,\
-        \ 10)\n  torch.save(dummy_model, 'models/rl/cvar_ppo_model.pth')\n  print('\u2705\
+        \ 10)\n  torch.save(dummy_model, 'models/rl/cvar_ppo_model.pth')\n  print('✅\
         \ Placeholder model created successfully')\n  \"\nfi\n"
     - name: Package Models
       run: "mkdir -p models\ncd models\ntimestamp=$(date +%Y%m%d-%H%M%S)\n\n# Create\
@@ -169,3 +164,6 @@ jobs:
         echo "Models packaged and uploaded successfully."
 
         '
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

@@ -3,7 +3,6 @@ on:
   schedule:
   - cron: 15 * * * *
   workflow_dispatch: null
-
 jobs:
   mm_positioning:
     steps:
@@ -29,8 +28,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Commit MM data
-      run: "git config --local user.email \"action@github.com\"\ngit config --local\
-        \ user.name \"GitHub Action\"\ngit add data/market_makers/\ngit diff --staged\
-        \ --quiet || git commit -m \"\U0001F3E6 Market maker positioning update: $(date\
-        \ +'%Y-%m-%d %H:%M')\"\ngit push\n"
+      run: 'git config --local user.email "action@github.com"
+
+        git config --local user.name "GitHub Action"
+
+        git add data/market_makers/
+
+        git diff --staged --quiet || git commit -m "🏦 Market maker positioning update:
+        $(date +''%Y-%m-%d %H:%M'')"
+
+        git push
+
+        '
     timeout-minutes: 15
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

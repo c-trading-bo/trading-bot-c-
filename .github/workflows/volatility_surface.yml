@@ -3,7 +3,6 @@ on:
   schedule:
   - cron: 0 */4 * * *
   workflow_dispatch: null
-
 permissions:
   contents: write
   pull-requests: write
@@ -45,3 +44,6 @@ jobs:
 
         git push --force-with-lease || git push --force-with-lease || echo "Push failed,
         continuing..."'
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

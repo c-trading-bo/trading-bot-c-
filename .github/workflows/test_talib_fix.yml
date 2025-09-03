@@ -1,4 +1,4 @@
-name: "\U0001F9EA Test TA-Lib Installation Fix"
+name: 🧪 Test TA-Lib Installation Fix
 on:
   workflow_dispatch:
     inputs:
@@ -11,7 +11,6 @@ on:
         - full
         - quick
         - dependencies_only
-
 permissions:
   contents: write
   pull-requests: write
@@ -20,17 +19,17 @@ jobs:
   test-talib-fix:
     timeout-minutes: 30
     steps:
-    - name: "\U0001F4E5 Checkout Code"
+    - name: 📥 Checkout Code
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         persist-credentials: true
         fetch-depth: 0
-    - name: "\U0001F40D Setup Python"
+    - name: 🐍 Setup Python
       uses: actions/setup-python@v4
       with:
         cache: pip
-    - name: "\U0001F4BE Cache TA-Lib Dependencies"
+    - name: 💾 Cache TA-Lib Dependencies
       uses: actions/cache@v3
       with:
         path: '~/.cache/pip
@@ -41,20 +40,20 @@ jobs:
 
           '
         key: ${{ runner.os }}-talib-test-${{ hashFiles('**/requirements*.txt') }}
-    - name: "\U0001F527 Install System Dependencies"
+    - name: 🔧 Install System Dependencies
       run: 'sudo apt-get update
 
         sudo apt-get install -y wget tar build-essential
 
         '
-    - name: "\U0001F4CA Install TA-Lib C Library"
+    - name: 📊 Install TA-Lib C Library
       run: "if [ ! -f /usr/lib/libta_lib.so ]; then\n  echo \"Installing TA-Lib C\
         \ library from source...\"\n  wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz\n\
         \  tar -xzf ta-lib-0.4.0-src.tar.gz\n  cd ta-lib/\n  ./configure --prefix=/usr\n\
-        \  make\n  sudo make install\n  cd ..\n  sudo ldconfig\n  echo \"\u2705 TA-Lib\
-        \ C library installed successfully\"\nelse\n  echo \"\u2705 TA-Lib C library\
-        \ already cached\"\nfi\n"
-    - name: "\U0001F4E6 Install Python Dependencies"
+        \  make\n  sudo make install\n  cd ..\n  sudo ldconfig\n  echo \"✅ TA-Lib\
+        \ C library installed successfully\"\nelse\n  echo \"✅ TA-Lib C library already\
+        \ cached\"\nfi\n"
+    - name: 📦 Install Python Dependencies
       run: 'pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
 
         pip install --retry-delays 1,2,3 --timeout 60 numpy pandas
@@ -68,30 +67,101 @@ jobs:
         pip install --retry-delays 1,2,3 --timeout 60 ta pandas-ta
 
         '
-    - name: "\U0001F9EA Test TA-Lib Installation"
-      run: "echo \"==========================================\"\necho \"\U0001F9EA\
-        \ TESTING TA-LIB INSTALLATION\"\necho \"==========================================\"\
-        \n\necho \"Test 1: Import TA-Lib\"\npython -c \"import talib; print('\u2705\
-        \ TA-Lib imported successfully')\" || echo \"\u274C TA-Lib import failed\"\
-        \n\necho \"Test 2: Test basic TA-Lib function\"\npython -c \"\nimport talib\n\
-        import numpy as np\nprices = np.random.randn(100) + 100\nsma = talib.SMA(prices,\
-        \ 20)\nprint(f'\u2705 TA-Lib SMA calculation successful: {sma[-1]:.2f}')\n\
-        \" || echo \"\u274C TA-Lib function test failed\"\n\necho \"Test 3: Test backup\
-        \ library 'ta'\"\npython -c \"\nimport ta\nimport pandas as pd\nimport numpy\
-        \ as np\ndf = pd.DataFrame({'close': np.random.randn(100) + 100})\nrsi = ta.momentum.RSIIndicator(df['close']).rsi()\n\
-        print(f'\u2705 Backup ta library working: RSI = {rsi.iloc[-1]:.2f}')\n\" ||\
-        \ echo \"\u274C Backup 'ta' library test failed\"\n\necho \"Test 4: Test backup\
-        \ library 'pandas_ta'\"\npython -c \"\nimport pandas_ta as pta\nimport pandas\
-        \ as pd\nimport numpy as np\ndf = pd.DataFrame({'close': np.random.randn(100)\
-        \ + 100})\nrsi = pta.rsi(df['close'])\nprint(f'\u2705 Backup pandas_ta library\
-        \ working: RSI = {rsi.iloc[-1]:.2f}')\n\" || echo \"\u274C Backup 'pandas_ta'\
-        \ library test failed\"\n"
-    - name: "\u2705 Test Summary"
-      run: "echo \"==========================================\"\necho \"\U0001F389\
-        \ TA-LIB INSTALLATION TEST COMPLETE\"\necho \"==========================================\"\
-        \necho \"If you see \u2705 symbols above, the fix is working!\"\necho \"If\
-        \ you see \u274C symbols, there may still be issues.\"\necho \"\"\necho \"\
-        The key indicators of success:\"\necho \"- \u2705 TA-Lib imported successfully\"\
-        \necho \"- \u2705 TA-Lib SMA calculation successful\"\necho \"- At least one\
-        \ backup library working\"\necho \"\"\necho \"This validates that the TA-Lib\
-        \ installation\"\necho \"fix in the main workflows will work correctly.\""
+    - name: 🧪 Test TA-Lib Installation
+      run: 'echo "=========================================="
+
+        echo "🧪 TESTING TA-LIB INSTALLATION"
+
+        echo "=========================================="
+
+
+        echo "Test 1: Import TA-Lib"
+
+        python -c "import talib; print(''✅ TA-Lib imported successfully'')" || echo
+        "❌ TA-Lib import failed"
+
+
+        echo "Test 2: Test basic TA-Lib function"
+
+        python -c "
+
+        import talib
+
+        import numpy as np
+
+        prices = np.random.randn(100) + 100
+
+        sma = talib.SMA(prices, 20)
+
+        print(f''✅ TA-Lib SMA calculation successful: {sma[-1]:.2f}'')
+
+        " || echo "❌ TA-Lib function test failed"
+
+
+        echo "Test 3: Test backup library ''ta''"
+
+        python -c "
+
+        import ta
+
+        import pandas as pd
+
+        import numpy as np
+
+        df = pd.DataFrame({''close'': np.random.randn(100) + 100})
+
+        rsi = ta.momentum.RSIIndicator(df[''close'']).rsi()
+
+        print(f''✅ Backup ta library working: RSI = {rsi.iloc[-1]:.2f}'')
+
+        " || echo "❌ Backup ''ta'' library test failed"
+
+
+        echo "Test 4: Test backup library ''pandas_ta''"
+
+        python -c "
+
+        import pandas_ta as pta
+
+        import pandas as pd
+
+        import numpy as np
+
+        df = pd.DataFrame({''close'': np.random.randn(100) + 100})
+
+        rsi = pta.rsi(df[''close''])
+
+        print(f''✅ Backup pandas_ta library working: RSI = {rsi.iloc[-1]:.2f}'')
+
+        " || echo "❌ Backup ''pandas_ta'' library test failed"
+
+        '
+    - name: ✅ Test Summary
+      run: 'echo "=========================================="
+
+        echo "🎉 TA-LIB INSTALLATION TEST COMPLETE"
+
+        echo "=========================================="
+
+        echo "If you see ✅ symbols above, the fix is working!"
+
+        echo "If you see ❌ symbols, there may still be issues."
+
+        echo ""
+
+        echo "The key indicators of success:"
+
+        echo "- ✅ TA-Lib imported successfully"
+
+        echo "- ✅ TA-Lib SMA calculation successful"
+
+        echo "- At least one backup library working"
+
+        echo ""
+
+        echo "This validates that the TA-Lib installation"
+
+        echo "fix in the main workflows will work correctly."'
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

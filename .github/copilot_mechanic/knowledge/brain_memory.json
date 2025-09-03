@@ -1,0 +1,16 @@
+{
+  "workflow_patterns": {},
+  "error_solutions": {},
+  "optimization_history": [],
+  "learned_fixes": {
+    "bf7d3d377d056000": {
+      "timestamp": "2025-09-03T23:49:12.083099",
+      "workflow": "test-workflow",
+      "error_pattern": "YAML syntax error",
+      "fix_type": "workflow_edit",
+      "fix_code": null,
+      "confidence": 85
+    }
+  },
+  "performance_data": {}
+}

@@ -6,7 +6,6 @@ on:
   pull_request:
     branches:
     - main
-
 jobs:
   quality-check:
     timeout-minutes: 20
@@ -29,3 +28,6 @@ jobs:
         # black --check . || true
 
         '
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

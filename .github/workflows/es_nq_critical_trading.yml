@@ -11,7 +11,6 @@ on:
   - cron: '*/15 21-23 * * 1-4'
   - cron: '*/10 21-22 * * 5'
   workflow_dispatch: null
-
 permissions:
   contents: read
   actions: read
@@ -76,18 +75,18 @@ jobs:
         \ float(volatility),\n                'volume_ratio': float(volume_ratio),\n\
         \                'timestamp': datetime.utcnow().isoformat(),\n           \
         \     'data_points': len(data),\n                'status': 'success'\n   \
-        \         }\n            \n            print(f\"[{symbol}] \u2705 Price: ${latest['Close']:.2f},\
+        \         }\n            \n            print(f\"[{symbol}] ✅ Price: ${latest['Close']:.2f},\
         \ Change: {price_change:.2f}%, Vol: {volatility:.2f}%, VR: {volume_ratio:.2f}\"\
-        )\n            \n        else:\n            print(f\"[{symbol}] \u274C No\
-        \ data available\")\n            analysis_results[symbol] = {\n          \
-        \      'price': 0.0,\n                'change_percent': 0.0,\n           \
-        \     'volatility': 0.0,\n                'volume_ratio': 1.0,\n         \
-        \       'timestamp': datetime.utcnow().isoformat(),\n                'data_points':\
-        \ 0,\n                'status': 'no_data'\n            }\n            \n \
-        \   except Exception as e:\n        print(f\"[{symbol}] \u274C CRITICAL ERROR:\
-        \ {e}\")\n        analysis_results[symbol] = {\n            'price': 0.0,\n\
-        \            'change_percent': 0.0,\n            'volatility': 0.0,\n    \
-        \        'volume_ratio': 1.0,\n            'timestamp': datetime.utcnow().isoformat(),\n\
+        )\n            \n        else:\n            print(f\"[{symbol}] ❌ No data\
+        \ available\")\n            analysis_results[symbol] = {\n               \
+        \ 'price': 0.0,\n                'change_percent': 0.0,\n                'volatility':\
+        \ 0.0,\n                'volume_ratio': 1.0,\n                'timestamp':\
+        \ datetime.utcnow().isoformat(),\n                'data_points': 0,\n    \
+        \            'status': 'no_data'\n            }\n            \n    except\
+        \ Exception as e:\n        print(f\"[{symbol}] ❌ CRITICAL ERROR: {e}\")\n\
+        \        analysis_results[symbol] = {\n            'price': 0.0,\n       \
+        \     'change_percent': 0.0,\n            'volatility': 0.0,\n           \
+        \ 'volume_ratio': 1.0,\n            'timestamp': datetime.utcnow().isoformat(),\n\
         \            'data_points': 0,\n            'status': 'error',\n         \
         \   'error': str(e)\n        }\n\n# Save results for other workflows (always\
         \ save even if partial data)\nimport os\nos.makedirs('data/es_nq', exist_ok=True)\n\
@@ -97,9 +96,11 @@ jobs:
         \ datetime.utcnow().isoformat(),\n    'workflow_run': 'es_nq_critical_trading'\n\
         }\n\nwith open('data/es_nq/latest_analysis.json', 'w') as f:\n    json.dump(analysis_results,\
         \ f, indent=2)\n\nsuccessful_count = analysis_results['_metadata']['successful_symbols']\n\
-        print(f\"[ES/NQ] \u2705 Analysis complete: {successful_count}/{len(symbols)}\
-        \ symbols successful\")\n\n# Exit with success even if partial data (better\
-        \ than complete failure)\nif successful_count > 0:\n    print(f\"[ES/NQ] \u2705\
-        \ Workflow SUCCESS - Partial data is acceptable\")\nelse:\n    print(f\"[ES/NQ]\
-        \ \u26A0\uFE0F  Workflow WARNING - No data retrieved but not failing\")\n\
-        \    \nEOF"
+        print(f\"[ES/NQ] ✅ Analysis complete: {successful_count}/{len(symbols)} symbols\
+        \ successful\")\n\n# Exit with success even if partial data (better than complete\
+        \ failure)\nif successful_count > 0:\n    print(f\"[ES/NQ] ✅ Workflow SUCCESS\
+        \ - Partial data is acceptable\")\nelse:\n    print(f\"[ES/NQ] ⚠️  Workflow\
+        \ WARNING - No data retrieved but not failing\")\n    \nEOF"
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

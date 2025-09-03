@@ -5,7 +5,6 @@ on:
   - cron: '*/15 15-20 * * 1-5'
   - cron: '*/10 20-21 * * 1-5'
   workflow_dispatch: null
-
 permissions:
   contents: read
   actions: read
@@ -53,5 +52,8 @@ jobs:
         \    if data['volume_spike'] > 2.0 and abs(data['momentum']) > 0.5:\n    \
         \    alerts.append(f\"{symbol}: HIGH ACTIVITY - Volume {data['volume_spike']:.1f}x,\
         \ Momentum {data['momentum']:.1f}%\")\n\nif alerts:\n    print(\"[ALERTS]\"\
-        )\n    for alert in alerts:\n        print(f\"  \xF0\u0178\u0161\xA8 {alert}\"\
-        )\nelse:\n    print(\"[OPTIONS] No unusual activity detected\")\n\nEOF"
+        )\n    for alert in alerts:\n        print(f\"  ðŸš¨ {alert}\")\nelse:\n \
+        \   print(\"[OPTIONS] No unusual activity detected\")\n\nEOF"
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

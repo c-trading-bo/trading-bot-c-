@@ -4,7 +4,6 @@ on:
   - cron: 0 21 * * 2
   - cron: 0 21 * * 5
   workflow_dispatch: null
-
 jobs:
   cot_analysis:
     steps:
@@ -30,8 +29,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Commit COT data
-      run: "git config --local user.email \"action@github.com\"\ngit config --local\
-        \ user.name \"GitHub Action\"\ngit add data/cot/\ngit diff --staged --quiet\
-        \ || git commit -m \"\U0001F3DB\uFE0F COT Report update: $(date +'%Y-%m-%d')\"\
-        \ngit push\n"
+      run: 'git config --local user.email "action@github.com"
+
+        git config --local user.name "GitHub Action"
+
+        git add data/cot/
+
+        git diff --staged --quiet || git commit -m "🏛️ COT Report update: $(date +''%Y-%m-%d'')"
+
+        git push
+
+        '
     timeout-minutes: 15
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

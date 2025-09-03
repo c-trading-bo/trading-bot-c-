@@ -1,7 +1,7 @@
 name: build
 on:
-  push:
-  pull_request:
+  push: null
+  pull_request: null
 permissions:
   contents: write
   pull-requests: write
@@ -16,7 +16,10 @@ jobs:
         persist-credentials: true
         fetch-depth: 0
     - uses: actions/setup-dotnet@v4
-      with:
+      with: null
     - run: dotnet restore
     - run: dotnet build --configuration Release --no-restore
     - run: dotnet test --configuration Release --no-build --verbosity normal
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

@@ -22,7 +22,6 @@ on:
         - data_only
         - training_only
         - intelligence_only
-
 env:
   PYTHON_VERSION: '3.9'
   TZ: UTC
@@ -68,9 +67,9 @@ jobs:
         \ || echo \"TA-Lib download failed, continuing...\"\n  if [ -f ta-lib-0.4.0-src.tar.gz\
         \ ]; then\n    tar -xzf ta-lib-0.4.0-src.tar.gz\n    cd ta-lib/\n    ./configure\
         \ --prefix=/usr --quiet\n    make -s\n    sudo make install -s\n    cd ..\n\
-        \    sudo ldconfig\n    echo \"\u2705 TA-Lib C library installed successfully\"\
-        \n  else\n    echo \"\u26A0\uFE0F TA-Lib source not available, using fallback\"\
-        \n  fi\nelse\n  echo \"\u2705 TA-Lib C library already cached\"\nfi\n"
+        \    sudo ldconfig\n    echo \"✅ TA-Lib C library installed successfully\"\
+        \n  else\n    echo \"⚠️ TA-Lib source not available, using fallback\"\n  fi\n\
+        else\n  echo \"✅ TA-Lib C library already cached\"\nfi\n"
     - name: Install Core Python Dependencies
       run: 'pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
 
@@ -155,23 +154,22 @@ jobs:
         \                        'features': features,\n                        'price':\
         \ float(latest['Close']),\n                        'category': category\n\
         \                    })\n                    \n                    successful_collections\
-        \ += 1\n                    print(f\"[MARKET] \u2705 {symbol}: ${latest['Close']:.2f}\"\
-        )\n                else:\n                    print(f\"[MARKET] \u26A0\uFE0F\
-        \ {symbol}: Feature extraction failed\")\n            else:\n            \
-        \    print(f\"[MARKET] \u274C {symbol}: No data available\")\n           \
-        \     \n        except Exception as e:\n            print(f\"[MARKET] \u274C\
-        \ {symbol}: {e}\")\n            continue\n\n# Always save results (even if\
-        \ partial)\ntry:\n    # Save latest snapshot\n    with open(\"Intelligence/data/market/latest.json\"\
+        \ += 1\n                    print(f\"[MARKET] ✅ {symbol}: ${latest['Close']:.2f}\"\
+        )\n                else:\n                    print(f\"[MARKET] ⚠️ {symbol}:\
+        \ Feature extraction failed\")\n            else:\n                print(f\"\
+        [MARKET] ❌ {symbol}: No data available\")\n                \n        except\
+        \ Exception as e:\n            print(f\"[MARKET] ❌ {symbol}: {e}\")\n    \
+        \        continue\n\n# Always save results (even if partial)\ntry:\n    #\
+        \ Save latest snapshot\n    with open(\"Intelligence/data/market/latest.json\"\
         , 'w') as f:\n        json.dump(all_data, f, indent=2)\n    \n    # Save training\
         \ samples if any\n    if training_samples:\n        training_file = f\"Intelligence/data/training/samples_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.jsonl\"\
         \n        with open(training_file, 'w') as f:\n            for sample in training_samples:\n\
         \                f.write(json.dumps(sample) + '\\n')\n    \n    print(f\"\
-        [MARKET] \u2705 Collection complete: {successful_collections} symbols successful\"\
-        )\n    \nexcept Exception as e:\n    print(f\"[MARKET] \u274C Save error:\
-        \ {e}\")\n\n# Success if we got any data\nif successful_collections > 0:\n\
-        \    print(f\"[MARKET] \u2705 Data collection SUCCESS\")\nelse:\n    print(f\"\
-        [MARKET] \u26A0\uFE0F Data collection completed with no data (not failing\
-        \ workflow)\")\n    \nEOF\n"
+        [MARKET] ✅ Collection complete: {successful_collections} symbols successful\"\
+        )\n    \nexcept Exception as e:\n    print(f\"[MARKET] ❌ Save error: {e}\"\
+        )\n\n# Success if we got any data\nif successful_collections > 0:\n    print(f\"\
+        [MARKET] ✅ Data collection SUCCESS\")\nelse:\n    print(f\"[MARKET] ⚠️ Data\
+        \ collection completed with no data (not failing workflow)\")\n    \nEOF\n"
     - name: Collect News & Advanced Sentiment Analysis
       run: "python << 'EOF'\nimport feedparser\nimport requests\nimport json\nimport\
         \ os\nfrom datetime import datetime\nimport re\n\nprint(f\"[NEWS] Starting\
@@ -324,151 +322,24 @@ jobs:
         \ demand zones\")\nprint(f\"[ZONES] Current: ${current_price:.2f}, POC: ${poc_price:.2f}\"\
         )\n\nEOF\n"
     - name: Commit All Data Collection
-      run: "git config --global user.email \"ml-bot@github.com\"\ngit config --global\
-        \ user.name \"ML Bot\"\ngit config --local user.email \"ml-bot@github.com\"\
-        \ngit config --local user.name \"ML Learning Bot\"\ngit add Intelligence/data/\n\
-        git diff --staged --quiet || git commit -m \"\U0001F4CA Ultimate data collection\
-        \ $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease || true\n"
-  train-everything:
-    needs: collect-everything
-    timeout-minutes: 45
-    if: github.event.inputs.mode == 'full' || github.event.inputs.mode == 'training_only'
-      || github.event.inputs.mode == ''
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        persist-credentials: true
-        fetch-depth: 0
-        ref: main
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        cache: pip
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
-        restore-keys: ${{ runner.os }}-pip-
-    - name: Install ML/RL Dependencies
-      run: 'pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn
-        xgboost lightgbm catboost
+      run: 'git config --global user.email "ml-bot@github.com"
 
-        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx
-        onnxruntime
+        git config --global user.name "ML Bot"
+
+        git config --local user.email "ml-bot@github.com"
+
+        git config --local user.name "ML Learning Bot"
+
+        git add Intelligence/data/
+
+        git diff --staged --quiet || git commit -m "📊 Ultimate data collection $(date
+        -u +''%Y-%m-%d %H:%M:%S'')"
+
+        git push --force-with-lease || true
 
         '
-    - name: Train Neural Bandits for Strategy Selection
-      run: "python << 'EOF'\nimport torch\nimport torch.nn as nn\nimport torch.optim\
-        \ as optim\nimport numpy as np\nimport json\nimport os\nfrom glob import glob\n\
-        from datetime import datetime\n\nprint(\"[BANDITS] Training Neural Bandits\
-        \ for strategy selection...\")\n\nos.makedirs(\"Intelligence/models/bandits\"\
-        , exist_ok=True)\n\nclass NeuralBandit(nn.Module):\n    def __init__(self,\
-        \ input_dim=43, hidden_dim=128, n_arms=12):\n        super().__init__()\n\
-        \        self.fc1 = nn.Linear(input_dim, hidden_dim)\n        self.fc2 = nn.Linear(hidden_dim,\
-        \ hidden_dim // 2)\n        self.fc3 = nn.Linear(hidden_dim // 2, n_arms)\n\
-        \        self.dropout = nn.Dropout(0.2)\n        \n    def forward(self, x):\n\
-        \        x = torch.relu(self.fc1(x))\n        x = self.dropout(x)\n      \
-        \  x = torch.relu(self.fc2(x))\n        return self.fc3(x)\n\n# Load all training\
-        \ data\ntraining_data = []\nfor file in glob(\"Intelligence/data/training/*.jsonl\"\
-        ):\n    with open(file, 'r') as f:\n        for line in f:\n            try:\n\
-        \                training_data.append(json.loads(line))\n            except:\n\
-        \                pass\n\nprint(f\"[BANDITS] Loaded {len(training_data)} training\
-        \ samples\")\n\n# Generate synthetic data if insufficient real data\nif len(training_data)\
-        \ < 100:\n    print(\"[BANDITS] Generating synthetic training data...\")\n\
-        \    for i in range(500):\n        sample = {\n            'features': np.random.randn(43).tolist(),\n\
-        \            'strategy_reward': np.random.uniform(-1, 1),\n            'category':\
-        \ np.random.choice(['indices', 'futures', 'volatility'])\n        }\n    \
-        \    training_data.append(sample)\n\n# Prepare training data\nX = []\ny =\
-        \ []\nfor sample in training_data[:1000]:  # Use up to 1000 samples\n    if\
-        \ 'features' in sample and len(sample['features']) == 43:\n        X.append(sample['features'])\n\
-        \        # Simulate strategy rewards (12 strategies)\n        strategy_rewards\
-        \ = np.random.randn(12) * 0.1\n        y.append(strategy_rewards)\n\nif len(X)\
-        \ == 0:\n    print(\"[BANDITS] No valid training data, creating dummy model...\"\
-        )\n    X = [np.random.randn(43).tolist() for _ in range(100)]\n    y = [np.random.randn(12).tolist()\
-        \ for _ in range(100)]\n\nX = torch.FloatTensor(X)\ny = torch.FloatTensor(y)\n\
-        \nprint(f\"[BANDITS] Training on {len(X)} samples\")\n\n# Initialize model\n\
-        model = NeuralBandit()\noptimizer = optim.Adam(model.parameters(), lr=0.001)\n\
-        criterion = nn.MSELoss()\n\n# Training loop\nmodel.train()\nfor epoch in range(50):\n\
-        \    optimizer.zero_grad()\n    outputs = model(X)\n    loss = criterion(outputs,\
-        \ y)\n    loss.backward()\n    optimizer.step()\n    \n    if epoch % 10 ==\
-        \ 0:\n        print(f\"[BANDITS] Epoch {epoch}, Loss: {loss.item():.4f}\"\
-        )\n\n# Save model\nmodel_path = \"Intelligence/models/bandits/neural_bandit.pth\"\
-        \ntorch.save(model.state_dict(), model_path)\n\n# Export to ONNX\nmodel.eval()\n\
-        dummy_input = torch.randn(1, 43)\nonnx_path = \"Intelligence/models/bandits/neural_bandit.onnx\"\
-        \ntorch.onnx.export(model, dummy_input, onnx_path, \n                 input_names=['features'],\
-        \ output_names=['strategy_scores'],\n                 dynamic_axes={'features':\
-        \ {0: 'batch_size'}})\n\nprint(f\"[BANDITS] Model saved to {model_path} and\
-        \ {onnx_path}\")\n\n# Save model metadata\nmetadata = {\n    'timestamp':\
-        \ datetime.utcnow().isoformat(),\n    'training_samples': len(X),\n    'input_dim':\
-        \ 43,\n    'output_dim': 12,\n    'final_loss': loss.item(),\n    'strategies':\
-        \ ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12']\n\
-        }\n\nwith open(\"Intelligence/models/bandits/metadata.json\", 'w') as f:\n\
-        \    json.dump(metadata, f, indent=2)\n\nEOF\n"
-    - name: Train Enhanced Market Regime Models
-      run: "python << 'EOF'\nimport numpy as np\nimport pandas as pd\nimport json\n\
-        import os\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.linear_model\
-        \ import LogisticRegression\nfrom sklearn.model_selection import train_test_split\n\
-        from sklearn.metrics import accuracy_score\nimport joblib\nfrom datetime import\
-        \ datetime\n\nprint(\"[REGIME] Training enhanced market regime detection models...\"\
-        )\n\nos.makedirs(\"Intelligence/models/regime\", exist_ok=True)\n\n# Load\
-        \ market and news data\nmarket_data = []\nnews_data = []\n\n# Load latest\
-        \ market data\ntry:\n    with open(\"Intelligence/data/market/latest.json\"\
-        , 'r') as f:\n        market_latest = json.load(f)\n        for symbol, data\
-        \ in market_latest.items():\n            if 'features' in data:\n        \
-        \        market_data.append(data['features'])\nexcept:\n    print(\"[REGIME]\
-        \ No market data found, generating synthetic...\")\n    market_data = [np.random.randn(43).tolist()\
-        \ for _ in range(1000)]\n\n# Load latest news data\ntry:\n    with open(\"\
-        Intelligence/data/news/latest.json\", 'r') as f:\n        news_latest = json.load(f)\n\
-        \        news_sentiment = news_latest.get('avg_sentiment', 0)\n        news_intensity\
-        \ = news_latest.get('news_intensity', 0)\nexcept:\n    print(\"[REGIME] No\
-        \ news data found, using defaults...\")\n    news_sentiment = 0\n    news_intensity\
-        \ = 0.5\n\n# Generate training data for regime classification\nprint(f\"[REGIME]\
-        \ Processing {len(market_data)} market samples\")\n\nX = []\ny = []\n\nfor\
-        \ i, features in enumerate(market_data[:500]):  # Use up to 500 samples\n\
-        \    # Add news features to market features\n    enhanced_features = features\
-        \ + [news_sentiment, news_intensity]\n    X.append(enhanced_features)\n  \
-        \  \n    # Simulate regime labels based on features\n    # 0: Trending Bull,\
-        \ 1: Trending Bear, 2: Sideways, 3: High Volatility\n    if enhanced_features[6]\
-        \ > 0.02:  # High positive return\n        if enhanced_features[5] > 0.03:\
-        \  # High range\n            regime = 3  # High volatility bull\n        else:\n\
-        \            regime = 0  # Trending bull\n    elif enhanced_features[6] <\
-        \ -0.02:  # Negative return\n        if enhanced_features[5] > 0.03:  # High\
-        \ range\n            regime = 3  # High volatility bear\n        else:\n \
-        \           regime = 1  # Trending bear\n    else:\n        regime = 2  #\
-        \ Sideways\n    \n    y.append(regime)\n\nif len(X) == 0:\n    print(\"[REGIME]\
-        \ No training data, creating synthetic...\")\n    X = [np.random.randn(45).tolist()\
-        \ for _ in range(1000)]\n    y = [np.random.randint(0, 4) for _ in range(1000)]\n\
-        \nX = np.array(X)\ny = np.array(y)\n\nprint(f\"[REGIME] Training on {len(X)}\
-        \ samples with {X.shape[1]} features\")\n\n# Split data\nX_train, X_test,\
-        \ y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\
-        \n# Train Random Forest\nrf_model = RandomForestClassifier(n_estimators=100,\
-        \ random_state=42)\nrf_model.fit(X_train, y_train)\nrf_pred = rf_model.predict(X_test)\n\
-        rf_accuracy = accuracy_score(y_test, rf_pred)\n\n# Train Logistic Regression\n\
-        lr_model = LogisticRegression(random_state=42, max_iter=1000)\nlr_model.fit(X_train,\
-        \ y_train)\nlr_pred = lr_model.predict(X_test)\nlr_accuracy = accuracy_score(y_test,\
-        \ lr_pred)\n\nprint(f\"[REGIME] Random Forest Accuracy: {rf_accuracy:.3f}\"\
-        )\nprint(f\"[REGIME] Logistic Regression Accuracy: {lr_accuracy:.3f}\")\n\n\
-        # Save models\njoblib.dump(rf_model, \"Intelligence/models/regime/random_forest.pkl\"\
-        )\njoblib.dump(lr_model, \"Intelligence/models/regime/logistic_regression.pkl\"\
-        )\n\n# Save current regime prediction\ncurrent_features = X[-1].reshape(1,\
-        \ -1) if len(X) > 0 else np.random.randn(1, 45)\ncurrent_regime = rf_model.predict(current_features)[0]\n\
-        regime_proba = rf_model.predict_proba(current_features)[0]\n\nregime_names\
-        \ = ['Trending Bull', 'Trending Bear', 'Sideways', 'High Volatility']\ncurrent_regime_data\
-        \ = {\n    'timestamp': datetime.utcnow().isoformat(),\n    'regime': int(current_regime),\n\
-        \    'regime_name': regime_names[current_regime],\n    'probabilities': {\n\
-        \        regime_names[i]: float(prob) for i, prob in enumerate(regime_proba)\n\
-        \    },\n    'confidence': float(max(regime_proba)),\n    'model_accuracy':\
-        \ rf_accuracy\n}\n\nwith open(\"Intelligence/data/regime/current.json\", 'w')\
-        \ as f:\n    json.dump(current_regime_data, f, indent=2)\n\nprint(f\"[REGIME]\
-        \ Current regime: {regime_names[current_regime]} (confidence: {max(regime_proba):.2f})\"\
-        )\n\nEOF\n"
-    - name: Commit Models
-      run: "git config --local user.email \"ml-bot@github.com\"\ngit config --local\
-        \ user.name \"ML Learning Bot\"\ngit add Intelligence/models/ Intelligence/data/regime/\n\
-        git diff --staged --quiet || git commit -m \"\U0001F9E0 Ultimate model training\
-        \ $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease || true\n"
+    runs-on: ubuntu-latest
+  train-everything:
     needs:
     - collect-everything
     - train-everything
@@ -635,11 +506,19 @@ jobs:
         \ if m['status'] == 'OK'])}\")\nprint(f\"[HEALTH] Recommendations: {len(health_report['recommendations'])}\"\
         )\n\nEOF\n"
     - name: Final Commit
-      run: "git config --local user.email \"ml-bot@github.com\"\ngit config --local\
-        \ user.name \"ML Learning Bot\"\ngit add Intelligence/\ngit diff --staged\
-        \ --quiet || git commit -m \"\U0001F3AF Ultimate intelligence integration\
-        \ complete $(date -u +'%Y-%m-%d %H:%M:%S')\"\ngit push --force-with-lease\
-        \ || true\n"
+      run: 'git config --local user.email "ml-bot@github.com"
+
+        git config --local user.name "ML Learning Bot"
+
+        git add Intelligence/
+
+        git diff --staged --quiet || git commit -m "🎯 Ultimate intelligence integration
+        complete $(date -u +''%Y-%m-%d %H:%M:%S'')"
+
+        git push --force-with-lease || true
+
+        '
+    runs-on: ubuntu-latest
   system-summary:
     needs:
     - collect-everything
@@ -655,20 +534,18 @@ jobs:
     - name: Generate Run Summary
       run: "cat << 'EOF'\n\n\U0001F389 ULTIMATE 24/7 ML/RL/INTELLIGENCE SYSTEM - RUN\
         \ COMPLETE\n================================================================\n\
-        \n\U0001F4CA DATA COLLECTION:\n- \u2705 Market data with 43 comprehensive\
-        \ features\n- \u2705 Advanced news sentiment analysis  \n- \u2705 Enhanced\
-        \ supply/demand zones identification\n- \u2705 Training samples generated\
-        \ for ML pipeline\n\n\U0001F9E0 MODEL TRAINING:\n- \u2705 Neural bandits for\
-        \ strategy selection\n- \u2705 Market regime detection models\n- \u2705 Enhanced\
-        \ feature engineering pipeline\n- \u2705 ONNX model export for production\
-        \ use\n\n\U0001F3AF INTELLIGENCE INTEGRATION:\n- \u2705 Multi-source signal\
-        \ generation\n- \u2705 Regime-aware position sizing\n- \u2705 Zone-proximity\
-        \ trade optimization\n- \u2705 News-sentiment trade filtering\n\n\U0001F4C8\
-        \ SYSTEM HEALTH:\n- \u2705 Comprehensive monitoring dashboard\n- \u2705 Component\
-        \ status validation\n- \u2705 Data freshness tracking\n- \u2705 Model performance\
-        \ metrics\n\n\U0001F680 NEXT EXECUTION: Automatic in 5-30 minutes (depending\
-        \ on schedule)\n\n\U0001F4A1 GITHUB PRO PLUS USAGE: Maximizing all 50,000\
-        \ minutes/month!\n\n================================================================\n\
+        \n\U0001F4CA DATA COLLECTION:\n- ✅ Market data with 43 comprehensive features\n\
+        - ✅ Advanced news sentiment analysis  \n- ✅ Enhanced supply/demand zones identification\n\
+        - ✅ Training samples generated for ML pipeline\n\n\U0001F9E0 MODEL TRAINING:\n\
+        - ✅ Neural bandits for strategy selection\n- ✅ Market regime detection models\n\
+        - ✅ Enhanced feature engineering pipeline\n- ✅ ONNX model export for production\
+        \ use\n\n\U0001F3AF INTELLIGENCE INTEGRATION:\n- ✅ Multi-source signal generation\n\
+        - ✅ Regime-aware position sizing\n- ✅ Zone-proximity trade optimization\n\
+        - ✅ News-sentiment trade filtering\n\n\U0001F4C8 SYSTEM HEALTH:\n- ✅ Comprehensive\
+        \ monitoring dashboard\n- ✅ Component status validation\n- ✅ Data freshness\
+        \ tracking\n- ✅ Model performance metrics\n\n\U0001F680 NEXT EXECUTION: Automatic\
+        \ in 5-30 minutes (depending on schedule)\n\n\U0001F4A1 GITHUB PRO PLUS USAGE:\
+        \ Maximizing all 50,000 minutes/month!\n\n================================================================\n\
         EOF\n"
     - name: Update Status Badge
       run: "echo \"Ultimate ML/RL System: OPERATIONAL\" > .github/system_status.txt\n\
@@ -678,3 +555,6 @@ jobs:
         \ --quiet || git commit -m \"\U0001F4CA System status update\"\ngit push --force-with-lease\
         \ || true"
     timeout-minutes: 10
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}

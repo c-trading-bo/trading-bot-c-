@@ -3,7 +3,6 @@ on:
   schedule:
   - cron: 0 22 * * 1-5
   workflow_dispatch: null
-
 jobs:
   congress_trades:
     steps:
@@ -29,8 +28,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Commit Congressional data
-      run: "git config --local user.email \"action@github.com\"\ngit config --local\
-        \ user.name \"GitHub Action\"\ngit add data/congress/\ngit diff --staged --quiet\
-        \ || git commit -m \"\U0001F3DB\uFE0F Congressional trades update: $(date\
-        \ +'%Y-%m-%d')\"\ngit push\n"
+      run: 'git config --local user.email "action@github.com"
+
+        git config --local user.name "GitHub Action"
+
+        git add data/congress/
+
+        git diff --staged --quiet || git commit -m "🏛️ Congressional trades update:
+        $(date +''%Y-%m-%d'')"
+
+        git push
+
+        '
     timeout-minutes: 15
+    runs-on: ubuntu-latest
+'on':
+  workflow_dispatch: {}
