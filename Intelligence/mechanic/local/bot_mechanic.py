@@ -909,8 +909,7 @@ if __name__ == "__main__":
             try:
                 print(f"   📦 Installing {package}...")
                 result = subprocess.run(
-                    f"pip install {package}",
-                    shell=True,
+                    ["pip", "install", package],
                     capture_output=True,
                     text=True
                 )

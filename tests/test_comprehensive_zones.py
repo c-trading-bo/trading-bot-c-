@@ -15,7 +15,10 @@ def run_command(cmd, description):
     print(f"\n🧪 {description}")
     print("-" * 60)
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd="/home/runner/work/trading-bot-c-/trading-bot-c-")
+        if isinstance(cmd, str):
+            # Convert string command to list for security
+            cmd = cmd.split()
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd="/home/runner/work/trading-bot-c-/trading-bot-c-")
         if result.returncode == 0:
             print(f"✅ PASSED: {description}")
             if result.stdout.strip():
