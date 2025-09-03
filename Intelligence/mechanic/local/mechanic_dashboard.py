@@ -17,8 +17,24 @@ import os
 sys.path.append(str(Path(__file__).parent))
 from bot_mechanic import LocalBotMechanic
 
+# Centralized URL configuration to eliminate hardcoded URLs
+class MechanicConfig:
+    def __init__(self, host="localhost", port=5051):
+        self.host = host
+        self.port = port
+    
+    def get_dashboard_url(self):
+        return f"http://{self.host}:{self.port}/mechanic/dashboard"
+    
+    def get_health_url(self):
+        return f"http://{self.host}:{self.port}/mechanic/health"
+    
+    def get_base_url(self):
+        return f"http://{self.host}:{self.port}"
+
 class MechanicDashboard:
-    def __init__(self, port=5051):
+    def __init__(self, port=5051, host="localhost"):
+        self.config = MechanicConfig(host, port)
         self.port = port
         self.mechanic = LocalBotMechanic()
         self.app = Flask(__name__)
@@ -292,8 +308,8 @@ class MechanicDashboard:
     def run(self, debug=False):
         """Run the dashboard"""
         print(f"\n🚀 Starting Mechanic Dashboard on port {self.port}")
-        print(f"📊 Dashboard URL: http://localhost:{self.port}/mechanic/dashboard")
-        print(f"🔗 API Health: http://localhost:{self.port}/mechanic/health")
+        print(f"📊 Dashboard URL: {self.config.get_dashboard_url()}")
+        print(f"🔗 API Health: {self.config.get_health_url()}")
         
         try:
             self.app.run(host='0.0.0.0', port=self.port, debug=debug, threaded=True)

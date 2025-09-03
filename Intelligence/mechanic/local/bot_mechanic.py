@@ -19,7 +19,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set, Tuple
 import warnings
-warnings.filterwarnings('ignore')
+# Suppress specific warnings that are not critical for trading operations
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 class LocalBotMechanic:
     def __init__(self):
@@ -907,8 +909,7 @@ if __name__ == "__main__":
             try:
                 print(f"   📦 Installing {package}...")
                 result = subprocess.run(
-                    f"pip install {package}",
-                    shell=True,
+                    ["pip", "install", package],
                     capture_output=True,
                     text=True
                 )

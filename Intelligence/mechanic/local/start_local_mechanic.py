@@ -14,6 +14,18 @@ import signal
 from datetime import datetime
 from pathlib import Path
 
+# Centralized URL configuration to eliminate hardcoded URLs
+class LocalMechanicConfig:
+    def __init__(self, host="localhost", dashboard_port=5051):
+        self.host = host
+        self.dashboard_port = dashboard_port
+    
+    def get_dashboard_url(self):
+        return f"http://{self.host}:{self.dashboard_port}"
+    
+    def get_iframe_src(self):
+        return f"http://{self.host}:{self.dashboard_port}"
+
 class MechanicAutoLauncher:
     def __init__(self):
         self.version = "3.0.0-AUTO"
@@ -25,7 +37,8 @@ class MechanicAutoLauncher:
         self.base_path = Path.cwd()
         self.mechanic_path = self.base_path / "Intelligence" / "mechanic" / "local"
         
-        # Dashboard integration settings
+        # Dashboard integration settings with centralized config
+        self.config = LocalMechanicConfig()
         self.dashboard_port = 5051  # Different from main dashboard (5050)
         self.check_interval = 30    # Health check every 30 seconds
         
@@ -274,7 +287,7 @@ class MechanicAutoLauncher:
             self.flask_thread = threading.Thread(target=run_flask, daemon=True)
             self.flask_thread.start()
             
-            print(f"🌐 Dashboard started on http://localhost:{self.dashboard_port}")
+            print(f"🌐 Dashboard started on {self.config.get_dashboard_url()}")
             return True
             
         except Exception as e:
@@ -310,7 +323,7 @@ class MechanicAutoLauncher:
                         <div class="status-grid">
                             <div class="status-card">
                                 <h3>🔍 System Status</h3>
-                                <iframe src="http://localhost:{self.dashboard_port}" 
+                                <iframe src="{self.config.get_iframe_src()}" 
                                         width="100%" height="600px" frameborder="0">
                                 </iframe>
                             </div>
@@ -361,7 +374,7 @@ class MechanicAutoLauncher:
         print("\n" + "="*60)
         print("✅ LOCAL BOT MECHANIC FULLY OPERATIONAL!")
         print("="*60)
-        print(f"🌐 Dashboard: http://localhost:{self.dashboard_port}")
+        print(f"🌐 Dashboard: {self.config.get_dashboard_url()}")
         print(f"🔍 Monitoring every {self.check_interval} seconds")
         print(f"🔧 Auto-repair enabled")
         print("="*60)

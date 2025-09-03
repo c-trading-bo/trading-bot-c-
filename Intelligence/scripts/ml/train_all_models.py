@@ -10,7 +10,8 @@ import json
 import numpy as np
 from datetime import datetime
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Import all ML modules
 try:

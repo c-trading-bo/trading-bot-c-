@@ -15,7 +15,19 @@ def run_command(cmd, description):
     print(f"\n🧪 {description}")
     print("-" * 60)
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd="/home/runner/work/trading-bot-c-/trading-bot-c-")
+        # Convert string command to secure list format
+        if isinstance(cmd, str):
+            # Handle special case of python -c with embedded code
+            if cmd.startswith('python -c "') and cmd.endswith('"'):
+                code = cmd[11:-1]  # Extract code between 'python -c "' and '"'
+                cmd_list = ["python", "-c", code]
+            else:
+                # For simple commands, split safely
+                cmd_list = cmd.split()
+        else:
+            cmd_list = cmd
+        
+        result = subprocess.run(cmd_list, capture_output=True, text=True, cwd="/home/runner/work/trading-bot-c-/trading-bot-c-")
         if result.returncode == 0:
             print(f"✅ PASSED: {description}")
             if result.stdout.strip():

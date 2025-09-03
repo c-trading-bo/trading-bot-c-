@@ -19,7 +19,8 @@ import numpy as np
 import pandas as pd
 from collections import defaultdict
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 @dataclass
 class ValidationResult:

@@ -14,7 +14,8 @@ import os
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 class RealTimeSignalProcessor:
     """Real-time signal processing and pattern recognition for trading signals"""

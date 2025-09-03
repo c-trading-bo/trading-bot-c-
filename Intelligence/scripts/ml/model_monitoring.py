@@ -13,7 +13,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 class ModelPerformanceMonitor:
     """Monitor and validate ML model performance in production"""

@@ -13,7 +13,8 @@ import json
 import os
 from typing import Dict, List, Any
 import warnings
-warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 class HyperparameterOptimizer:
     """Automated hyperparameter optimization using Optuna"""
