@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-09-03T08:11:32.665577",
+  "ES": {
+    "signal": "HOLD",
+    "confidence": 0.5
+  },
+  "NQ": {
+    "signal": "HOLD",
+    "confidence": 0.5
+  },
+  "SPY": {
+    "signal": "HOLD",
+    "confidence": 0.5
+  },
+  "QQQ": {
+    "signal": "HOLD",
+    "confidence": 0.5
+  },
+  "generated_by": "bot_mechanic",
+  "status": "emergency"
+}

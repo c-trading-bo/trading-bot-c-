@@ -2,8 +2,8 @@ name: Market Regime Detection (Team)
 
 on:
   schedule:
-    # OPTIMIZED FOR 20K MINUTES - ML/RL PRIORITY
-    - cron: '*/30 * * * *'  # Every 30 minutes (48 runs/day) - optimized frequency
+    # REGULAR DETECTION - TIMEZONE CORRECTED
+    - cron: '*/20 * * * *'  # Every 20 minutes (72 runs/day) - original frequency
   workflow_dispatch:
 
 permissions:

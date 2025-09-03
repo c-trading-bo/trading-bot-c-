@@ -19,27 +19,20 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
           fetch-depth: 0
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v2
         with:
           python-version: '3.9'
-          
-      - name: Install Dependencies with Retry
-        run: |
-          for i in {1..3}; do
-            pip install --upgrade pip && \
-            pip install --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi && break
-            echo "Attempt $i failed, retrying in 10 seconds..."
-            sleep 10
-          done
-          
-      - name: Run Regime Detection
-        run: |
-          python Intelligence/scripts/regime_detector.py || echo "Regime detection completed with warnings"
-          
-      - name: Commit Results
-        run: |
-          git config --local user.email "ml-bot@github.com"
-          git config --local user.name "ML Bot"
-          git add Intelligence/data/ || echo "No data changes to add"
-          git diff --staged --quiet || git commit -m "🔍 Regime detection analysis $(date -u +'%Y-%m-%d %H:%M')"
-          git push --force-with-lease || echo "Push failed, continuing..."
+      - run: pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/regime_detector.py
+      - run: |
+          git config --global user.email "ml-bot@github.com"
+          git config --global user.name "ML Bot"
+          git config user.name "GitHub Actions"
+          git config --global user.email "ml-bot@github.com"
+          git config --global user.name "ML Bot"
+          git config user.email "actions@github.com"
+          git config --global user.email "ml-bot@github.com"
+          git config --global user.name "ML Bot"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update regime detection analysis"
+          git push --force-with-lease || git push --force-with-lease || echo "Push failed, continuing..."

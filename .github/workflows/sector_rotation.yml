@@ -1,7 +1,7 @@
 name: Sector Rotation Analysis
 'on':
   schedule:
-    - cron: '30 21 * * 1-5'  # Daily 5:30PM EST (21:30 UTC) - After market close
+    - cron: '0 23 * * 1-5'  # Daily 11PM UTC after market close
   workflow_dispatch:
 
 jobs:
