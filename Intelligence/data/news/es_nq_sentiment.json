@@ -1,17 +1,10 @@
 {
-  "timestamp": "2025-09-03T21:43:52.391492",
+  "timestamp": "2025-09-03T21:52:33.244049",
   "ES": {
-    "sentiment": -0.16666666666666666,
-    "articles": [
-      {
-        "title": "Porsche AG to Exit Germany\u2019s DAX After Less Than Three Years",
-        "sentiment": -0.16666666666666666,
-        "source": "bloomberg",
-        "time": "Wed, 03 Sep 2025 20:34:23 GMT"
-      }
-    ],
+    "sentiment": 0.0,
+    "articles": [],
     "signal": "NEUTRAL",
-    "article_count": 1
+    "article_count": 0
   },
   "NQ": {
     "sentiment": 0.0,
