@@ -10,7 +10,9 @@ import json
 import numpy as np
 from datetime import datetime
 import warnings
-warnings.filterwarnings('ignore')
+# Suppress specific warnings that are not critical for trading operations
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Import all ML modules
 try:

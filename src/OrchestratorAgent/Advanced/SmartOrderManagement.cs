@@ -30,7 +30,7 @@ namespace OrchestratorAgent.Advanced
             var baseSize = signal.Size;
             var regime = GetMarketRegime(signal.Symbol);
             var correlation = CalculatePortfolioCorrelation(signal.Symbol, currentPositions);
-            var volatility = snapshot.Atr / snapshot.Price; // Normalized volatility
+            var volatility = snapshot.SignalBarAtrMult; // Normalized volatility (using ATR multiplier)
 
             // Regime-based sizing
             var regimeMultiplier = regime switch
@@ -69,7 +69,7 @@ namespace OrchestratorAgent.Advanced
         public decimal CalculateDynamicStop(Signal signal, MarketSnapshot snapshot, TimeSpan timeInPosition)
         {
             var baseStop = signal.Stop;
-            var currentPrice = snapshot.Price;
+            var currentPrice = snapshot.LastPrice;
             var isLong = signal.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase);
             
             // Time-based stop tightening (trail stop closer as time passes)
@@ -81,8 +81,8 @@ namespace OrchestratorAgent.Advanced
                 _ => 1.0m       // First hour, keep original
             };
 
-            // Volatility-based adjustment
-            var atr = snapshot.Atr;
+            // Volatility-based adjustment (using available ATR multiplier data)
+            var atr = snapshot.SignalBarAtrMult * snapshot.LastPrice; // Approximate ATR from multiplier
             var normalizedAtr = atr / currentPrice;
             var volMultiplier = normalizedAtr > 0.02m ? 1.3m :  // High vol = wider stops
                                normalizedAtr < 0.01m ? 0.8m : 1.0m; // Low vol = tighter stops
@@ -184,8 +184,8 @@ namespace OrchestratorAgent.Advanced
         private List<decimal> GetKeyLevels(string symbol, MarketSnapshot snapshot)
         {
             // Simplified - in practice, calculate from historical data
-            var price = snapshot.Price;
-            var atr = snapshot.Atr;
+            var price = snapshot.LastPrice;
+            var atr = snapshot.SignalBarAtrMult * snapshot.LastPrice; // Approximate ATR from multiplier
             
             return new List<decimal>
             {
