@@ -1,7 +1,14 @@
 name: ES/NQ Futures News Sentiment
+on:
+  schedule:
+  - cron: '*/10 13-21 * * 1-5'
+  - cron: '*/30 0-12,22-23 * * 1-5'
+  - cron: 0 */2 * * 0
+  - cron: '*/30 22-23 * * 0'
+  workflow_dispatch: null
+
 jobs:
   analyze-futures-news:
-    runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
@@ -13,7 +20,6 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.12'
         cache: pip
     - name: Install dependencies
       run: 'python -m pip install --upgrade pip
@@ -82,10 +88,3 @@ jobs:
         \ -m \"\xF0\u0178\u201C\xB0 Update ES/NQ news sentiment - $(date -u '+%Y-%m-%d\
         \ %H:%M UTC')\" || true\ngit push --force-with-lease || true"
     timeout-minutes: 15
-'on':
-  schedule:
-  - cron: '*/10 13-21 * * 1-5'
-  - cron: '*/30 0-12,22-23 * * 1-5'
-  - cron: 0 */2 * * 0
-  - cron: '*/30 22-23 * * 0'
-  workflow_dispatch: null

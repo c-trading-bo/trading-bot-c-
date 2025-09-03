@@ -1,7 +1,11 @@
 name: Social Momentum Tracker
+on:
+  schedule:
+  - cron: '*/30 9-21 * * 1-5'
+  workflow_dispatch: null
+
 jobs:
   social_momentum:
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
@@ -9,7 +13,6 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
         cache: pip
     - name: Install dependencies
       run: 'python -m pip install --upgrade pip
@@ -33,7 +36,3 @@ jobs:
         \ || git commit -m \"\xF0\u0178\u201C\xB1 Social momentum update: $(date +'%Y-%m-%d\
         \ %H:%M')\"\ngit push\n"
     timeout-minutes: 15
-'on':
-  schedule:
-  - cron: '*/30 9-21 * * 1-5'
-  workflow_dispatch: null

@@ -1,11 +1,13 @@
 name: Simple ML Test
+on:
+  workflow_dispatch: null
+
 permissions:
   contents: write
   pull-requests: write
   actions: read
 jobs:
   ml-test:
-    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
     - name: Checkout
@@ -17,11 +19,8 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
         cache: pip
     - name: Simple ML Test
       run: 'python -c "import sys; print(f''Python {sys.version} ready for ML'')"
 
         echo "Simple ML test completed successfully"'
-'on':
-  workflow_dispatch: null

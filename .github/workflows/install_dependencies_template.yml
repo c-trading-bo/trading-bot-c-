@@ -1,17 +1,18 @@
 name: Universal Dependency Installation Template
+on:
+  workflow_call: null
+
 permissions:
   contents: write
   pull-requests: write
   actions: read
 jobs:
   install-dependencies:
-    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
         cache: pip
     - name: Cache Dependencies
       uses: actions/cache@v3
@@ -62,5 +63,3 @@ jobs:
         \  \npython -c \"import yfinance as yf; print('\u2705 yfinance: Data collection\
         \ working')\" || echo \"\u26A0\uFE0F yfinance: Not available\"\necho \"\U0001F389\
         \ Dependency verification complete!\""
-'on':
-  workflow_call: null

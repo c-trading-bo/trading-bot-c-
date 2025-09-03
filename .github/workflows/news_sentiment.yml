@@ -1,10 +1,16 @@
 name: News & Sentiment (Team)
+on:
+  schedule:
+  - cron: '*/15 13-14 * * 1-5'
+  - cron: 0 15,16,18,19,20 * * 1-5
+  - cron: '*/30 * * * 0,6'
+  workflow_dispatch: null
+
 permissions:
   contents: read
   actions: read
 jobs:
   analyze-news:
-    runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
     - uses: actions/checkout@v4
@@ -13,7 +19,6 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
         cache: pip
     - name: Install Dependencies
       run: 'pip install --upgrade pip
@@ -65,9 +70,3 @@ jobs:
         \ \"\n      f\"Bearish: {sentiment_data['sentiment_distribution']['bearish']},\
         \ \"\n      f\"Neutral: {sentiment_data['sentiment_distribution']['neutral']}\"\
         )\n\nEOF"
-'on':
-  schedule:
-  - cron: '*/15 13-14 * * 1-5'
-  - cron: 0 15,16,18,19,20 * * 1-5
-  - cron: '*/30 * * * 0,6'
-  workflow_dispatch: null

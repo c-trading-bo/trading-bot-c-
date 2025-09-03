@@ -1,11 +1,23 @@
 name: "\U0001F9EA Test TA-Lib Installation Fix"
+on:
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: Type of test to run
+        required: false
+        default: full
+        type: choice
+        options:
+        - full
+        - quick
+        - dependencies_only
+
 permissions:
   contents: write
   pull-requests: write
   actions: read
 jobs:
   test-talib-fix:
-    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
     - name: "\U0001F4E5 Checkout Code"
@@ -17,7 +29,6 @@ jobs:
     - name: "\U0001F40D Setup Python"
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
         cache: pip
     - name: "\U0001F4BE Cache TA-Lib Dependencies"
       uses: actions/cache@v3
@@ -84,15 +95,3 @@ jobs:
         \necho \"- \u2705 TA-Lib SMA calculation successful\"\necho \"- At least one\
         \ backup library working\"\necho \"\"\necho \"This validates that the TA-Lib\
         \ installation\"\necho \"fix in the main workflows will work correctly.\""
-'on':
-  workflow_dispatch:
-    inputs:
-      test_type:
-        description: Type of test to run
-        required: false
-        default: full
-        type: choice
-        options:
-        - full
-        - quick
-        - dependencies_only

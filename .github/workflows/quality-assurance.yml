@@ -1,7 +1,14 @@
 name: Quality Assurance
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
 jobs:
   quality-check:
-    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
     - uses: actions/checkout@v4
@@ -9,7 +16,6 @@ jobs:
         fetch-depth: 1
     - uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
         cache: pip
     - name: Install QA tools
       run: 'pip install flake8 black pylint
@@ -23,10 +29,3 @@ jobs:
         # black --check . || true
 
         '
-'on':
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main

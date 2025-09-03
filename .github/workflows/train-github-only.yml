@@ -1,4 +1,23 @@
 name: 24/7 GitHub-Only ML/RL Training
+on:
+  schedule:
+  - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      manual_test:
+        description: Run lightweight smoke tests
+        required: false
+        default: false
+        type: boolean
+      force_run:
+        description: Force run even if recent models exist
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+    - main
+
 concurrency:
   group: train-github-only
   cancel-in-progress: true
@@ -11,7 +30,6 @@ env:
   DATA_DIR: data/logs
 jobs:
   continuous-training:
-    runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: write
@@ -41,7 +59,6 @@ jobs:
     - name: "\U0001F40D Setup Python"
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
         cache: pip
     - name: "\U0001F4E6 Install Python Dependencies"
       run: 'pip install --upgrade pip
@@ -152,21 +169,3 @@ jobs:
         echo "Models packaged and uploaded successfully."
 
         '
-'on':
-  schedule:
-  - cron: '*/30 * * * *'
-  workflow_dispatch:
-    inputs:
-      manual_test:
-        description: Run lightweight smoke tests
-        required: false
-        default: false
-        type: boolean
-      force_run:
-        description: Force run even if recent models exist
-        required: false
-        default: false
-        type: boolean
-  push:
-    branches:
-    - main

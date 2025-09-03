@@ -1,12 +1,13 @@
 name: build
 on:
+  push:
+  pull_request:
 permissions:
   contents: write
   pull-requests: write
   actions: read
 jobs:
   build:
-    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
     - uses: actions/checkout@v4
@@ -16,9 +17,6 @@ jobs:
         fetch-depth: 0
     - uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
     - run: dotnet restore
     - run: dotnet build --configuration Release --no-restore
     - run: dotnet test --configuration Release --no-build --verbosity normal
-- push
-- pull_request

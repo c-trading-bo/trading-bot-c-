@@ -1,7 +1,12 @@
 name: COT Report Analysis
+on:
+  schedule:
+  - cron: 0 21 * * 2
+  - cron: 0 21 * * 5
+  workflow_dispatch: null
+
 jobs:
   cot_analysis:
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
       with:
@@ -9,7 +14,6 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.11'
         cache: pip
     - name: Install dependencies
       run: 'python -m pip install --upgrade pip
@@ -31,8 +35,3 @@ jobs:
         \ || git commit -m \"\U0001F3DB\uFE0F COT Report update: $(date +'%Y-%m-%d')\"\
         \ngit push\n"
     timeout-minutes: 15
-'on':
-  schedule:
-  - cron: 0 21 * * 2
-  - cron: 0 21 * * 5
-  workflow_dispatch: null

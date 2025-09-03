@@ -1,4 +1,12 @@
 name: .NET Core Desktop
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
 permissions:
   contents: write
   pull-requests: write
@@ -7,10 +15,8 @@ jobs:
   build:
     strategy:
       matrix:
-        configuration:
         - Debug
         - Release
-    runs-on: windows-latest
     timeout-minutes: 30
     env:
       Solution_Name: your-solution-name
@@ -28,7 +34,6 @@ jobs:
     - name: Install .NET Core
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
     - name: Cache dependencies
       uses: actions/cache@v3
       with:
@@ -42,7 +47,6 @@ jobs:
     - name: Restore the application
       run: msbuild $env:Solution_Name /t:Restore /p:Configuration=$env:Configuration
       env:
-        Configuration: ${{ matrix.configuration }}
     - name: Decode the pfx
       run: '$pfx_cert_byte = [System.Convert]::FromBase64String("${{ secrets.Base64_Encoded_Pfx
         }}")
@@ -60,7 +64,6 @@ jobs:
         Appx_Bundle: Always
         Appx_Bundle_Platforms: x86|x64
         Appx_Package_Build_Mode: StoreUpload
-        Configuration: ${{ matrix.configuration }}
     - name: Remove the pfx
       run: Remove-Item -path $env:Wap_Project_Directory\GitHubActionsWorkflow.pfx
     - name: Upload build artifacts
@@ -68,10 +71,3 @@ jobs:
       with:
         name: MSIX Package
         path: ${{ env.Wap_Project_Directory }}\AppPackages
-'on':
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main

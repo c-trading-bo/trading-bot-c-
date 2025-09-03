@@ -1,10 +1,16 @@
 name: Options Flow Analysis (Team)
+on:
+  schedule:
+  - cron: '*/5 14-15 * * 1-5'
+  - cron: '*/15 15-20 * * 1-5'
+  - cron: '*/10 20-21 * * 1-5'
+  workflow_dispatch: null
+
 permissions:
   contents: read
   actions: read
 jobs:
   analyze-flow:
-    runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
     - uses: actions/checkout@v4
@@ -13,7 +19,6 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
         cache: pip
     - name: Install Dependencies
       run: 'pip install --upgrade pip
@@ -50,9 +55,3 @@ jobs:
         \ Momentum {data['momentum']:.1f}%\")\n\nif alerts:\n    print(\"[ALERTS]\"\
         )\n    for alert in alerts:\n        print(f\"  \xF0\u0178\u0161\xA8 {alert}\"\
         )\nelse:\n    print(\"[OPTIONS] No unusual activity detected\")\n\nEOF"
-'on':
-  schedule:
-  - cron: '*/5 14-15 * * 1-5'
-  - cron: '*/15 15-20 * * 1-5'
-  - cron: '*/10 20-21 * * 1-5'
-  workflow_dispatch: null
