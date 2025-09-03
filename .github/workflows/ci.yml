@@ -1,13 +1,4 @@
 name: .NET Bot CI
-true:
-  push:
-    branches:
-    - main
-    - master
-  pull_request:
-    branches:
-    - main
-    - master
 permissions:
   contents: write
   pull-requests: write
@@ -44,3 +35,12 @@ jobs:
     - name: Analyze Code (SonarQube)
       continue-on-error: true
       run: echo "SonarQube analysis skipped - configure SONAR_TOKEN secret if needed"
+'on':
+  push:
+    branches:
+    - main
+    - master
+  pull_request:
+    branches:
+    - main
+    - master

@@ -1,8 +1,4 @@
 name: Daily Consolidated Tasks (Team)
-true:
-  schedule:
-  - cron: 0 0 * * *
-  workflow_dispatch: null
 permissions:
   contents: write
   actions: read
@@ -104,3 +100,7 @@ jobs:
         \ user.name \"Daily Report Bot\"\ngit add reports/\ngit diff --staged --quiet\
         \ || git commit -m \"\xF0\u0178\u201C\u0160 Daily consolidated report $(date\
         \ -u +'%Y-%m-%d')\"\ngit push --force-with-lease || echo \"Push failed, continuing...\""
+'on':
+  schedule:
+  - cron: 0 0 * * *
+  workflow_dispatch: null

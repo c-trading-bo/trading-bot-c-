@@ -1,16 +1,4 @@
 name: "\U0001F9EA Test TA-Lib Installation Fix"
-true:
-  workflow_dispatch:
-    inputs:
-      test_type:
-        description: Type of test to run
-        required: false
-        default: full
-        type: choice
-        options:
-        - full
-        - quick
-        - dependencies_only
 permissions:
   contents: write
   pull-requests: write
@@ -96,3 +84,15 @@ jobs:
         \necho \"- \u2705 TA-Lib SMA calculation successful\"\necho \"- At least one\
         \ backup library working\"\necho \"\"\necho \"This validates that the TA-Lib\
         \ installation\"\necho \"fix in the main workflows will work correctly.\""
+'on':
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: Type of test to run
+        required: false
+        default: full
+        type: choice
+        options:
+        - full
+        - quick
+        - dependencies_only

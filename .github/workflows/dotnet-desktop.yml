@@ -1,11 +1,4 @@
 name: .NET Core Desktop
-true:
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
 permissions:
   contents: write
   pull-requests: write
@@ -75,3 +68,10 @@ jobs:
       with:
         name: MSIX Package
         path: ${{ env.Wap_Project_Directory }}\AppPackages
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main

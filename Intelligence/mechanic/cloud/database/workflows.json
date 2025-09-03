@@ -38,9 +38,11 @@
     "file": "daily_consolidated.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 0 * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 30,
     "jobs": {
       "daily-tasks": {
         "timeout": 15,
@@ -89,9 +91,11 @@
     "file": "es_nq_correlation_matrix.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 */3 * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 240,
     "jobs": {
       "correlation_matrix": {
         "timeout": 30,
@@ -106,9 +110,14 @@
     "file": "es_nq_news_sentiment.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/10 13-21 * * 1-5",
+      "*/30 0-12,22-23 * * 1-5",
+      "0 */2 * * 0",
+      "*/30 22-23 * * 0"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 16,
     "jobs": {
       "analyze-futures-news": {
         "timeout": 15,
@@ -123,9 +132,13 @@
     "file": "failed_patterns.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/20 13-21 * * 1-5",
+      "0 0-12,22-23 * * 1-5",
+      "0 */4 * * 0,6"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 48,
     "jobs": {
       "failed_patterns": {
         "timeout": 30,
@@ -140,9 +153,11 @@
     "file": "intelligence_collection.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 12,14,16,18,20,0 * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 180,
     "jobs": {
       "collect-intel": {
         "timeout": 10,
@@ -157,9 +172,13 @@
     "file": "microstructure.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/15 14-21 * * 1-5",
+      "*/30 21-23 * * 1-4",
+      "0 0,2,4,6,8,10,12 * * 1-5"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 154,
     "jobs": {
       "microstructure": {
         "timeout": 30,
@@ -174,9 +193,11 @@
     "file": "ml_training_enhanced.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 */1 * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 720,
     "jobs": {
       "train-all-models": {
         "timeout": 10,
@@ -191,9 +212,13 @@
     "file": "news_sentiment.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/15 13-14 * * 1-5",
+      "0 15,16,18,19,20 * * 1-5",
+      "*/30 * * * 0,6"
+    ],
     "estimated_minutes": 8,
-    "runs_per_month": 0,
+    "runs_per_month": 384,
     "jobs": {
       "analyze-news": {
         "timeout": 3,
@@ -228,9 +253,11 @@
     "file": "options_flow.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/15 14-21 * * 1-5"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 704,
     "jobs": {
       "options_flow": {
         "timeout": 30,
@@ -245,9 +272,13 @@
     "file": "options_flow_analysis.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/5 14-15 * * 1-5",
+      "*/15 15-20 * * 1-5",
+      "*/10 20-21 * * 1-5"
+    ],
     "estimated_minutes": 8,
-    "runs_per_month": 0,
+    "runs_per_month": 264,
     "jobs": {
       "analyze-flow": {
         "timeout": 3,
@@ -262,9 +293,11 @@
     "file": "overnight.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 5 * * 1-5"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 22,
     "jobs": {
       "overnight": {
         "timeout": 30,
@@ -279,9 +312,17 @@
     "file": "portfolio_heat.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/30 23 * * 0",
+      "*/30 0-6 * * 1-5",
+      "*/30 7-13 * * 1-5",
+      "*/15 14-21 * * 1-5",
+      "*/20 21-23 * * 1-4",
+      "*/20 21-22 * * 5",
+      "0 0,6,12,18 * * 6,0"
+    ],
     "estimated_minutes": 7,
-    "runs_per_month": 0,
+    "runs_per_month": 32,
     "jobs": {
       "manage-heat": {
         "timeout": 2,
@@ -296,9 +337,11 @@
     "file": "rebalancing.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 19 25-31 * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 6,
     "jobs": {
       "rebalancing": {
         "timeout": 30,
@@ -313,9 +356,11 @@
     "file": "regime_detection.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/20 * * * *"
+    ],
     "estimated_minutes": 7,
-    "runs_per_month": 0,
+    "runs_per_month": 2160,
     "jobs": {
       "detect-regime": {
         "timeout": 2,
@@ -330,9 +375,11 @@
     "file": "regime_detector.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 * * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 720,
     "jobs": {
       "regime_detector": {
         "timeout": 30,
@@ -347,9 +394,11 @@
     "file": "seasonality.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 11 * * 1"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 4,
     "jobs": {
       "seasonality": {
         "timeout": 30,
@@ -436,9 +485,11 @@
     "file": "volatility_surface.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 */4 * * *"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 180,
     "jobs": {
       "volatility_surface": {
         "timeout": 30,
@@ -453,9 +504,14 @@
     "file": "zones_identifier.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/45 14-21 * * 1-5",
+      "0 21,23 * * 1-4",
+      "0 0,2,4,6 * * 1-5",
+      "0 7,9,11,13 * * 1-5"
+    ],
     "estimated_minutes": 15,
-    "runs_per_month": 0,
+    "runs_per_month": 88,
     "jobs": {
       "zones_identifier": {
         "timeout": 30,
@@ -466,7 +522,7 @@
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-03T22:57:09.738610",
+    "timestamp": "2025-09-03T23:02:55.559604",
     "total_workflows": 40,
     "healthy_workflows": 40,
     "broken_workflows": [],
@@ -474,9 +530,9 @@
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
-    "total_monthly_minutes": 22980,
+    "total_monthly_minutes": 143624,
     "issues_found": [
-      "CRITICAL: Estimated 22980 minutes exceeds 20,000 limit!"
+      "CRITICAL: Estimated 143624 minutes exceeds 20,000 limit!"
     ]
   },
   "quality-assurance.yml": {
@@ -501,9 +557,11 @@
     "file": "cloud-ml-training.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 */6 * * *"
+    ],
     "estimated_minutes": 21,
-    "runs_per_month": 0,
+    "runs_per_month": 120,
     "jobs": {
       "cloud-training": {
         "timeout": 30,
@@ -518,9 +576,13 @@
     "file": "cloud_bot_mechanic.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/10 * * * *",
+      "0 * * * *",
+      "0 */6 * * *"
+    ],
     "estimated_minutes": 20,
-    "runs_per_month": 0,
+    "runs_per_month": 120,
     "jobs": {
       "cloud-mechanic": {
         "timeout": 15,
@@ -574,9 +636,19 @@
     "file": "es_nq_critical_trading.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/10 23-23 * * 0",
+      "*/10 0-4 * * 1-5",
+      "*/15 7-12 * * 1-5",
+      "*/15 13-14 * * 1-5",
+      "*/5 14-15 * * 1-5",
+      "*/10 15-20 * * 1-5",
+      "*/5 20-21 * * 1-5",
+      "*/15 21-23 * * 1-4",
+      "*/10 21-22 * * 5"
+    ],
     "estimated_minutes": 10,
-    "runs_per_month": 0,
+    "runs_per_month": 60,
     "jobs": {
       "es-nq-analysis": {
         "timeout": 5,
@@ -646,9 +718,11 @@
     "file": "status-badges.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "0 */4 * * *"
+    ],
     "estimated_minutes": 21,
-    "runs_per_month": 0,
+    "runs_per_month": 180,
     "jobs": {
       "update-badges": {
         "timeout": 24,
@@ -680,9 +754,11 @@
     "file": "train-github-only.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/30 * * * *"
+    ],
     "estimated_minutes": 29,
-    "runs_per_month": 0,
+    "runs_per_month": 1440,
     "jobs": {
       "continuous-training": {
         "timeout": 45,
@@ -697,9 +773,19 @@
     "file": "ultimate_ml_rl_intel_system.yml",
     "issues": [],
     "optimizations": [],
-    "schedules": [],
+    "schedules": [
+      "*/20 23-23 * * 0",
+      "*/20 0-4 * * 1-5",
+      "*/30 7-12 * * 1-5",
+      "*/15 14-15 * * 1-5",
+      "*/20 15-20 * * 1-5",
+      "*/15 20-21 * * 1-5",
+      "*/30 21-23 * * 1-4",
+      "*/20 21-22 * * 5",
+      "0 5,6 * * 1-5"
+    ],
     "estimated_minutes": 54,
-    "runs_per_month": 0,
+    "runs_per_month": 44,
     "jobs": {
       "collect-everything": {
         "timeout": 15,

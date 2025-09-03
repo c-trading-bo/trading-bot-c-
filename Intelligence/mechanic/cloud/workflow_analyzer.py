@@ -58,7 +58,8 @@ class WorkflowAnalyzer:
         """Analyze a single workflow file"""
         try:
             with open(wf_file, 'r') as f:
-                workflow = yaml.safe_load(f)
+                raw_content = f.read()
+                workflow = yaml.safe_load(raw_content)
             
             if not workflow:
                 return {'error': 'Empty workflow file'}
@@ -72,6 +73,14 @@ class WorkflowAnalyzer:
                 'issues': [],
                 'suggestions': []
             }
+            
+            # Check for YAML syntax issues
+            if 'true:' in raw_content and 'on:' not in raw_content:
+                result['issues'].append('YAML syntax error: "true:" should be "on:"')
+            
+            if True in workflow:  # Parsed YAML has True key instead of 'on'
+                result['issues'].append('Invalid workflow trigger: missing "on:" section')
+                result['triggers'] = ['INVALID_TRIGGER']
             
             # Analyze each job
             for job_name, job_config in workflow.get('jobs', {}).items():

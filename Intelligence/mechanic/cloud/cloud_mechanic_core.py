@@ -123,10 +123,12 @@ class CloudBotMechanic:
         try:
             # Try multiple encodings to handle special characters
             workflow = None
+            raw_content = None
             for encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']:
                 try:
                     with open(wf_file, 'r', encoding=encoding) as f:
-                        workflow = yaml.safe_load(f)
+                        raw_content = f.read()
+                        workflow = yaml.safe_load(raw_content)
                     break
                 except (UnicodeDecodeError, UnicodeError):
                     continue
@@ -143,8 +145,16 @@ class CloudBotMechanic:
                 'jobs': {}
             }
 
+            # Check for YAML syntax issues
+            if raw_content and 'true:' in raw_content and 'on:' not in raw_content:
+                wf_data['issues'].append('YAML syntax error: "true:" should be "on:"')
+                analysis['broken_workflows'].append(wf_name)
+            elif workflow and True in workflow:  # Parsed YAML has True key instead of 'on'
+                wf_data['issues'].append('Invalid workflow trigger: missing "on:" section')
+                analysis['broken_workflows'].append(wf_name)
+
             # Check workflow structure
-            if not workflow:
+            elif not workflow:
                 wf_data['issues'].append('Empty workflow file or encoding issue')
                 analysis['broken_workflows'].append(wf_name)
             elif 'jobs' not in workflow:

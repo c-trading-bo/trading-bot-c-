@@ -1,8 +1,4 @@
 name: Rebalancing Flows Analysis
-true:
-  schedule:
-  - cron: 0 19 25-31 * *
-  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
@@ -38,3 +34,7 @@ jobs:
 
         git push --force-with-lease || git push --force-with-lease || echo "Push failed,
         continuing..."'
+'on':
+  schedule:
+  - cron: 0 19 25-31 * *
+  workflow_dispatch: null

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-03T22:53:30.425937",
+  "timestamp": "2025-09-03T23:01:08.492850",
   "workflows": {
     "auto-label-automerge.yml": {
       "name": "auto-label-automerge",
@@ -25,15 +25,16 @@
       "name": ".NET Bot CI",
       "triggers": [],
       "job_count": 1,
-      "step_count": 7,
+      "step_count": 8,
       "jobs": {
         "build": {
-          "step_count": 7,
+          "step_count": 8,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
+            "action",
             "action",
             "action",
             "script",
@@ -48,16 +49,118 @@
       "suggestions": []
     },
     "cloud-ml-training.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x90 in position 535: character maps to <undefined>"
+      "name": "Cloud ML Training Pipeline",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "cloud-training": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "cloud_bot_mechanic.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 12: character maps to <undefined>"
+      "name": "\ud83c\udf29\ufe0f Cloud Bot Mechanic (Ultimate)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 14,
+      "jobs": {
+        "cloud-mechanic": {
+          "step_count": 14,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": true,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "action",
+            "script",
+            "action",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "congress_trades.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 1054: character maps to <undefined>"
+      "name": "Congressional Trades Monitor",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "congress_trades": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "cot_report.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 1063: character maps to <undefined>"
+      "name": "COT Report Analysis",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "cot_analysis": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "daily_consolidated.yml": {
       "name": "Daily Consolidated Tasks (Team)",
@@ -69,7 +172,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 15,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -87,15 +190,16 @@
       "name": ".NET Core Desktop",
       "triggers": [],
       "job_count": 1,
-      "step_count": 9,
+      "step_count": 10,
       "jobs": {
         "build": {
-          "step_count": 9,
+          "step_count": 10,
           "runs_on": "windows-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": true,
           "step_types": [
+            "action",
             "action",
             "action",
             "action",
@@ -145,7 +249,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -160,7 +264,27 @@
       "suggestions": []
     },
     "es_nq_critical_trading.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x9d in position 5828: character maps to <undefined>"
+      "name": "ES/NQ Critical Trading (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "es-nq-analysis": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 5,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "es_nq_news_sentiment.yml": {
       "name": "ES/NQ Futures News Sentiment",
@@ -171,8 +295,8 @@
         "analyze-futures-news": {
           "step_count": 5,
           "runs_on": "ubuntu-latest",
-          "timeout": "default",
-          "has_cache": false,
+          "timeout": 15,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -184,9 +308,7 @@
         }
       },
       "issues": [],
-      "suggestions": [
-        "Add timeout to job 'analyze-futures-news'"
-      ]
+      "suggestions": []
     },
     "failed_patterns.yml": {
       "name": "Failed Patterns Detection",
@@ -198,7 +320,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -213,7 +335,29 @@
       "suggestions": []
     },
     "install_dependencies_template.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 2550: character maps to <undefined>"
+      "name": "Universal Dependency Installation Template",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 6,
+      "jobs": {
+        "install-dependencies": {
+          "step_count": 6,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "intelligence_collection.yml": {
       "name": "Intelligence Collection (Team)",
@@ -225,7 +369,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 10,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -240,7 +384,31 @@
       "suggestions": []
     },
     "intermarket.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x90 in position 1007: character maps to <undefined>"
+      "name": "Intermarket Analysis",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "intermarket": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "microstructure.yml": {
       "name": "Microstructure Analysis",
@@ -252,7 +420,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -276,7 +444,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 10,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -291,7 +459,31 @@
       "suggestions": []
     },
     "mm_positioning.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 1011: character maps to <undefined>"
+      "name": "Market Maker Positioning",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "mm_positioning": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "news_sentiment.yml": {
       "name": "News & Sentiment (Team)",
@@ -303,7 +495,7 @@
           "step_count": 4,
           "runs_on": "ubuntu-latest",
           "timeout": 3,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -328,8 +520,8 @@
         "opex_calendar": {
           "step_count": 5,
           "runs_on": "ubuntu-latest",
-          "timeout": "default",
-          "has_cache": false,
+          "timeout": 15,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -341,9 +533,7 @@
         }
       },
       "issues": [],
-      "suggestions": [
-        "Add timeout to job 'opex_calendar'"
-      ]
+      "suggestions": []
     },
     "options_flow.yml": {
       "name": "Options Flow Analysis",
@@ -355,7 +545,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -379,7 +569,7 @@
           "step_count": 4,
           "runs_on": "ubuntu-latest",
           "timeout": 3,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -402,7 +592,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -426,7 +616,7 @@
           "step_count": 4,
           "runs_on": "ubuntu-latest",
           "timeout": 2,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -472,7 +662,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -496,7 +686,7 @@
           "step_count": 4,
           "runs_on": "ubuntu-latest",
           "timeout": 2,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -519,7 +709,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -543,7 +733,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -569,8 +759,8 @@
         "sector_rotation": {
           "step_count": 5,
           "runs_on": "ubuntu-latest",
-          "timeout": "default",
-          "has_cache": false,
+          "timeout": 15,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -582,9 +772,7 @@
         }
       },
       "issues": [],
-      "suggestions": [
-        "Add timeout to job 'sector_rotation'"
-      ]
+      "suggestions": []
     },
     "simple-ml-test.yml": {
       "name": "Simple ML Test",
@@ -596,7 +784,7 @@
           "step_count": 3,
           "runs_on": "ubuntu-latest",
           "timeout": 10,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -620,8 +808,8 @@
         "social_momentum": {
           "step_count": 5,
           "runs_on": "ubuntu-latest",
-          "timeout": "default",
-          "has_cache": false,
+          "timeout": 15,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -633,12 +821,34 @@
         }
       },
       "issues": [],
-      "suggestions": [
-        "Add timeout to job 'social_momentum'"
-      ]
+      "suggestions": []
     },
     "status-badges.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 13: character maps to <undefined>"
+      "name": "\ud83c\udf96\ufe0f Status Badges",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "update-badges": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 24,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "test-ml-enhanced.yml": {
       "name": "Test ML Enhanced",
@@ -650,7 +860,7 @@
           "step_count": 3,
           "runs_on": "ubuntu-latest",
           "timeout": 15,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -663,13 +873,138 @@
       "suggestions": []
     },
     "test_talib_fix.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x90 in position 702: character maps to <undefined>"
+      "name": "\ud83e\uddea Test TA-Lib Installation Fix",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "test-talib-fix": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "train-github-only.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8d in position 1088: character maps to <undefined>"
+      "name": "24/7 GitHub-Only ML/RL Training",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 12,
+      "jobs": {
+        "continuous-training": {
+          "step_count": 12,
+          "runs_on": "ubuntu-latest",
+          "timeout": 45,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "script",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
     },
     "ultimate_ml_rl_intel_system.yml": {
-      "error": "Failed to analyze: 'charmap' codec can't decode byte 0x8f in position 3166: character maps to <undefined>"
+      "name": "Ultimate ML/RL/Intel System (Team Optimized)",
+      "triggers": [],
+      "job_count": 4,
+      "step_count": 28,
+      "jobs": {
+        "collect-everything": {
+          "step_count": 11,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "train-everything": {
+          "step_count": 7,
+          "runs_on": "ubuntu-latest",
+          "timeout": 45,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "intelligence-integration": {
+          "step_count": 7,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "system-summary": {
+          "step_count": 3,
+          "runs_on": "ubuntu-latest",
+          "timeout": 10,
+          "has_cache": false,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": [
+        "Consider matrix strategy for ubuntu-latest jobs: ['collect-everything', 'train-everything', 'intelligence-integration', 'system-summary']"
+      ]
     },
     "volatility_surface.yml": {
       "name": "Volatility Surface Analysis",
@@ -681,7 +1016,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -705,7 +1040,7 @@
           "step_count": 5,
           "runs_on": "ubuntu-latest",
           "timeout": 30,
-          "has_cache": false,
+          "has_cache": true,
           "has_artifacts": false,
           "step_types": [
             "action",
@@ -721,11 +1056,11 @@
     }
   },
   "summary": {
-    "total_jobs": 28,
-    "total_steps": 133,
+    "total_jobs": 43,
+    "total_steps": 243,
     "optimization_hints": [
       "High step count detected - consider job consolidation",
-      "27 workflows could benefit from caching"
+      "2 workflows could benefit from caching"
     ]
   }
 }

@@ -73,12 +73,31 @@ class RepairSystem:
             
             # Load existing workflow or create new one
             if wf_path.exists():
+                # First, check for YAML syntax issues by reading raw content
+                with open(wf_path, 'r') as f:
+                    raw_content = f.read()
+                
+                # Fix common YAML syntax errors
+                if 'true:' in raw_content and 'on:' not in raw_content:
+                    raw_content = raw_content.replace('true:', 'on:')
+                    with open(wf_path, 'w') as f:
+                        f.write(raw_content)
+                    self.repairs_made.append(f"{wf_name}: Fixed YAML syntax (true: -> on:)")
+                    print(f"    🔧 Fixed YAML syntax in {wf_name}")
+                
+                # Now load the corrected YAML
                 with open(wf_path, 'r') as f:
                     workflow = yaml.safe_load(f) or {}
             else:
                 workflow = {}
             
             modified = False
+            
+            # Fix workflow structure issues
+            if True in workflow:  # Handle remaining True key issues
+                workflow['on'] = workflow.pop(True)
+                modified = True
+                self.repairs_made.append(f"{wf_name}: Fixed workflow trigger structure")
             
             # Fix common issues
             for issue in wf_data.get('issues', []):

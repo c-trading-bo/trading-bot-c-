@@ -1,11 +1,4 @@
 name: Supply Demand Zones Identifier
-true:
-  schedule:
-  - cron: '*/45 14-21 * * 1-5'
-  - cron: 0 21,23 * * 1-4
-  - cron: 0 0,2,4,6 * * 1-5
-  - cron: 0 7,9,11,13 * * 1-5
-  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
@@ -49,3 +42,10 @@ jobs:
 
         git push --force-with-lease || git push --force-with-lease || echo "Push failed,
         continuing..."'
+'on':
+  schedule:
+  - cron: '*/45 14-21 * * 1-5'
+  - cron: 0 21,23 * * 1-4
+  - cron: 0 0,2,4,6 * * 1-5
+  - cron: 0 7,9,11,13 * * 1-5
+  workflow_dispatch: null

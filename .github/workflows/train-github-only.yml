@@ -1,22 +1,4 @@
 name: 24/7 GitHub-Only ML/RL Training
-true:
-  schedule:
-  - cron: '*/30 * * * *'
-  workflow_dispatch:
-    inputs:
-      manual_test:
-        description: Run lightweight smoke tests
-        required: false
-        default: false
-        type: boolean
-      force_run:
-        description: Force run even if recent models exist
-        required: false
-        default: false
-        type: boolean
-  push:
-    branches:
-    - main
 concurrency:
   group: train-github-only
   cancel-in-progress: true
@@ -170,3 +152,21 @@ jobs:
         echo "Models packaged and uploaded successfully."
 
         '
+'on':
+  schedule:
+  - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      manual_test:
+        description: Run lightweight smoke tests
+        required: false
+        default: false
+        type: boolean
+      force_run:
+        description: Force run even if recent models exist
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+    - main

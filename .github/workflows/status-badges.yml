@@ -1,8 +1,4 @@
 name: "\U0001F396\uFE0F Status Badges"
-true:
-  schedule:
-  - cron: 0 */4 * * *
-  workflow_dispatch: null
 jobs:
   update-badges:
     runs-on: ubuntu-latest
@@ -152,3 +148,7 @@ jobs:
         \necho \"![Bot Status](https://img.shields.io/badge/Bot-Running-green)\"\n\
         echo \"![Learning](https://img.shields.io/badge/Learning-Active-blue)\""
     timeout-minutes: 24
+'on':
+  schedule:
+  - cron: 0 */4 * * *
+  workflow_dispatch: null

@@ -1,8 +1,4 @@
 name: ML Training Enhanced (Team)
-true:
-  schedule:
-  - cron: 0 */1 * * *
-  workflow_dispatch: null
 permissions:
   contents: write
   actions: read
@@ -54,3 +50,7 @@ jobs:
         \ user.name \"ML Bot\"\ngit add models/\ngit diff --staged --quiet || git\
         \ commit -m \"\xF0\u0178\xA4\u2013 Hourly ML model training $(date -u +'%Y-%m-%d\
         \ %H:%M')\"\ngit push --force-with-lease || echo \"Push failed, continuing...\""
+'on':
+  schedule:
+  - cron: 0 */1 * * *
+  workflow_dispatch: null

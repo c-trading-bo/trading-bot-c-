@@ -1,11 +1,4 @@
 name: Quality Assurance
-true:
-  push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
 jobs:
   quality-check:
     runs-on: ubuntu-latest
@@ -30,3 +23,10 @@ jobs:
         # black --check . || true
 
         '
+'on':
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main

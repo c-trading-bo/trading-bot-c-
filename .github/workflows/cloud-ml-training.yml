@@ -1,11 +1,4 @@
 name: Cloud ML Training Pipeline
-true:
-  schedule:
-  - cron: 0 */6 * * *
-  workflow_dispatch: null
-  push:
-    branches:
-    - main
 permissions:
   contents: write
   pull-requests: write
@@ -108,3 +101,10 @@ jobs:
         \ Upload: \u2705 Attempted\"\necho \"\"\necho \"\U0001F504 Next training scheduled\
         \ in 6 hours\"\necho \"\u23F0 Current time: $(date -u)\"\necho \"\U0001F4C8\
         \ Training frequency: Every 6 hours (4x daily)\"\n"
+'on':
+  schedule:
+  - cron: 0 */6 * * *
+  workflow_dispatch: null
+  push:
+    branches:
+    - main

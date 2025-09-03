@@ -1,10 +1,4 @@
 name: News & Sentiment (Team)
-true:
-  schedule:
-  - cron: '*/15 13-14 * * 1-5'
-  - cron: 0 15,16,18,19,20 * * 1-5
-  - cron: '*/30 * * * 0,6'
-  workflow_dispatch: null
 permissions:
   contents: read
   actions: read
@@ -71,3 +65,9 @@ jobs:
         \ \"\n      f\"Bearish: {sentiment_data['sentiment_distribution']['bearish']},\
         \ \"\n      f\"Neutral: {sentiment_data['sentiment_distribution']['neutral']}\"\
         )\n\nEOF"
+'on':
+  schedule:
+  - cron: '*/15 13-14 * * 1-5'
+  - cron: 0 15,16,18,19,20 * * 1-5
+  - cron: '*/30 * * * 0,6'
+  workflow_dispatch: null

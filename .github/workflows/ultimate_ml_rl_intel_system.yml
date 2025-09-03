@@ -1,27 +1,4 @@
 name: Ultimate ML/RL/Intel System (Team Optimized)
-true:
-  schedule:
-  - cron: '*/20 23-23 * * 0'
-  - cron: '*/20 0-4 * * 1-5'
-  - cron: '*/30 7-12 * * 1-5'
-  - cron: '*/15 14-15 * * 1-5'
-  - cron: '*/20 15-20 * * 1-5'
-  - cron: '*/15 20-21 * * 1-5'
-  - cron: '*/30 21-23 * * 1-4'
-  - cron: '*/20 21-22 * * 5'
-  - cron: 0 5,6 * * 1-5
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: Execution mode
-        required: true
-        default: full
-        type: choice
-        options:
-        - full
-        - data_only
-        - training_only
-        - intelligence_only
 env:
   PYTHON_VERSION: '3.9'
   TZ: UTC
@@ -685,3 +662,26 @@ jobs:
         \ --quiet || git commit -m \"\U0001F4CA System status update\"\ngit push --force-with-lease\
         \ || true"
     timeout-minutes: 10
+'on':
+  schedule:
+  - cron: '*/20 23-23 * * 0'
+  - cron: '*/20 0-4 * * 1-5'
+  - cron: '*/30 7-12 * * 1-5'
+  - cron: '*/15 14-15 * * 1-5'
+  - cron: '*/20 15-20 * * 1-5'
+  - cron: '*/15 20-21 * * 1-5'
+  - cron: '*/30 21-23 * * 1-4'
+  - cron: '*/20 21-22 * * 5'
+  - cron: 0 5,6 * * 1-5
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Execution mode
+        required: true
+        default: full
+        type: choice
+        options:
+        - full
+        - data_only
+        - training_only
+        - intelligence_only

@@ -1,6 +1,4 @@
 name: Test ML Enhanced
-true:
-  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
@@ -26,3 +24,5 @@ jobs:
         print(f'Python {sys.version}')\ntry:\n    import numpy as np\n    print('NumPy\
         \ available')\nexcept ImportError:\n    print('NumPy not available - would\
         \ need installation')\n\"\necho \"Enhanced ML test completed\""
+'on':
+  workflow_dispatch: null

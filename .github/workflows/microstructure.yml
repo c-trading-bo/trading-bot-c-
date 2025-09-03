@@ -1,10 +1,4 @@
 name: Microstructure Analysis
-true:
-  schedule:
-  - cron: '*/15 14-21 * * 1-5'
-  - cron: '*/30 21-23 * * 1-4'
-  - cron: 0 0,2,4,6,8,10,12 * * 1-5
-  workflow_dispatch: null
 permissions:
   contents: write
   pull-requests: write
@@ -48,3 +42,9 @@ jobs:
 
         git push --force-with-lease || git push --force-with-lease || echo "Push failed,
         continuing..."'
+'on':
+  schedule:
+  - cron: '*/15 14-21 * * 1-5'
+  - cron: '*/30 21-23 * * 1-4'
+  - cron: 0 0,2,4,6,8,10,12 * * 1-5
+  workflow_dispatch: null

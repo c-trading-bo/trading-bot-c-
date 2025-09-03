@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-09-03T23:02:57.784279",
+  "timestamp": "2025-09-03T22:58:52.347028",
   "version": "3.0-CLOUD-ULTIMATE",
   "repository": "/",
   "analysis": {
-    "timestamp": "2025-09-03T23:02:55.559604",
+    "timestamp": "2025-09-03T22:58:52.106411",
     "total_workflows": 40,
     "healthy_workflows": 40,
     "broken_workflows": [],
@@ -11,9 +11,9 @@
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
-    "total_monthly_minutes": 143624,
+    "total_monthly_minutes": 22980,
     "issues_found": [
-      "CRITICAL: Estimated 143624 minutes exceeds 20,000 limit!"
+      "CRITICAL: Estimated 22980 minutes exceeds 20,000 limit!"
     ]
   }
 }

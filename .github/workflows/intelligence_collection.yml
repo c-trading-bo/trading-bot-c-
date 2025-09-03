@@ -1,8 +1,4 @@
 name: Intelligence Collection (Team)
-true:
-  schedule:
-  - cron: 0 12,14,16,18,20,0 * * *
-  workflow_dispatch: null
 permissions:
   contents: write
   actions: read
@@ -109,3 +105,7 @@ jobs:
         \ || git commit -m \"\xF0\u0178\u201C\u0160 Intelligence collection $(date\
         \ -u +'%Y-%m-%d %H:%M')\"\ngit push --force-with-lease || echo \"Push failed,\
         \ continuing...\""
+'on':
+  schedule:
+  - cron: 0 12,14,16,18,20,0 * * *
+  workflow_dispatch: null

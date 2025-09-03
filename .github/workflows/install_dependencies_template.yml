@@ -1,6 +1,4 @@
 name: Universal Dependency Installation Template
-true:
-  workflow_call: null
 permissions:
   contents: write
   pull-requests: write
@@ -64,3 +62,5 @@ jobs:
         \  \npython -c \"import yfinance as yf; print('\u2705 yfinance: Data collection\
         \ working')\" || echo \"\u26A0\uFE0F yfinance: Not available\"\necho \"\U0001F389\
         \ Dependency verification complete!\""
+'on':
+  workflow_call: null
