@@ -1,15 +1,19 @@
-﻿name: Volatility Surface Analysis
+name: Volatility Surface Analysis
 on:
   schedule:
     - cron: '0 * * * *'  # Hourly (24/7)
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 jobs:
   volatility_surface:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi

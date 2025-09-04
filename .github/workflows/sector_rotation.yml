@@ -1,15 +1,19 @@
-﻿name: Sector Rotation Analysis
+name: Sector Rotation Analysis
 on:
   schedule:
     - cron: '30 22 * * *'  # Daily 22:30 UTC (5:30 PM EST)
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 jobs:
   sector_rotation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi

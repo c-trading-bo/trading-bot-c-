@@ -1,15 +1,19 @@
-﻿name: Failed Patterns Detection
+name: Failed Patterns Detection
 on:
   schedule:
     - cron: '*/15 14-21 * * 1-5'  # Every 15 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 jobs:
   failed_patterns:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi

@@ -6,6 +6,9 @@ on:
     - cron: '*/5 14-21 * * 1-5'  # UTC time for EST market hours (9:30 AM - 4:00 PM EST)
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   collect-news:
     runs-on: ubuntu-latest

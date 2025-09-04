@@ -1,15 +1,19 @@
-﻿name: Intermarket Correlations
+name: Intermarket Correlations
 on:
   schedule:
     - cron: '*/10 * * * *'  # Every 10 min (24/7)
   workflow_dispatch:
 
+
+permissions:
+  contents: write
+
 jobs:
   intermarket:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi

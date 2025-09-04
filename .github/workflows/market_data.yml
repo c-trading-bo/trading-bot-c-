@@ -6,6 +6,9 @@ on:
     - cron: '30 21 * * 1-5'
   workflow_dispatch:  # Allow manual triggering
 
+permissions:
+  contents: write
+
 jobs:
   collect-market-data:
     runs-on: ubuntu-latest
