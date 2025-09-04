@@ -1,0 +1,65 @@
+{
+  "timestamp": "2025-09-04T17:20:48.454166",
+  "analysis_mode": "comprehensive",
+  "session_type": "market_hours",
+  "workflow_run": "1",
+  "comprehensive_analysis": {
+    "timestamp": "2025-09-04T17:20:46.344763",
+    "analysis_mode": "comprehensive",
+    "session_type": "market_hours",
+    "lookback_period": 30,
+    "assets_analyzed": 10,
+    "successful_analysis": 0,
+    "market_conditions": {},
+    "individual_regimes": {
+      "SPY": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:44.468451"
+      },
+      "QQQ": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:44.681374"
+      },
+      "IWM": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:44.935807"
+      },
+      "TLT": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:45.166947"
+      },
+      "GLD": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:45.400861"
+      },
+      "BTC-USD": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:45.775461"
+      },
+      "^GSPC": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:45.934633"
+      },
+      "^IXIC": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:46.157152"
+      },
+      "^RUT": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-04T17:20:46.344597"
+      }
+    }
+  },
+  "ml_classification": {},
+  "market_summary": {
+    "overall_regime": "UNKNOWN",
+    "health_score": 0,
+    "stress_level": "UNKNOWN",
+    "trend_clarity": "UNKNOWN",
+    "regime_consistency": "UNKNOWN",
+    "total_assets": 10,
+    "successful_analysis": 0
+  },
+  "regime_alerts": [],
+  "historical_comparison": {}
+}
