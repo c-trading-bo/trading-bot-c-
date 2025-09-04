@@ -28,8 +28,8 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --upgrade pip
-        pip install --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy requests
+        pip install --quiet --no-warn-script-location --upgrade pip
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 yfinance pandas numpy requests
         
     - name: ES/NQ Real-Time Analysis
       run: |

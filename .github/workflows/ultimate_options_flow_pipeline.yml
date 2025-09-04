@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN || github.token }}
 
       - name: "🐍 Setup Python Environment"
         uses: actions/setup-python@v5
@@ -60,24 +60,24 @@ jobs:
 
       - name: "📦 Install Comprehensive Options Analysis Stack"
         run: |
-          pip install --upgrade pip setuptools wheel
+          pip install --quiet --no-warn-script-location --upgrade pip setuptools wheel
           
           # Core financial data stack
-          pip install yfinance pandas numpy scipy
+          pip install --quiet --no-warn-script-location yfinance pandas numpy scipy
           
           # Advanced analysis tools
-          pip install ta pandas-ta 
-          pip install beautifulsoup4 requests
-          pip install fredapi pytrends
+          pip install --quiet --no-warn-script-location ta pandas-ta 
+          pip install --quiet --no-warn-script-location beautifulsoup4 requests
+          pip install --quiet --no-warn-script-location fredapi pytrends
           
           # Options-specific libraries
-          pip install py_vollib mibian
+          pip install --quiet --no-warn-script-location py_vollib mibian
           
           # Visualization and reporting
-          pip install matplotlib seaborn plotly
+          pip install --quiet --no-warn-script-location matplotlib seaborn plotly
           
           # Fast computation
-          pip install numba cython
+          pip install --quiet --no-warn-script-location numba cython
           
           echo "📈 Ultimate options analysis stack installed!"
 

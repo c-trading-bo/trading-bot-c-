@@ -12,6 +12,7 @@ permissions:
 jobs:
   generate-signals:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # 🛡️ Prevent hanging
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -38,8 +39,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install pandas numpy scikit-learn joblib requests
+        python -m pip install --quiet --no-warn-script-location --upgrade pip
+        pip install --quiet --no-warn-script-location pandas numpy scikit-learn joblib requests
         
     - name: Generate trading signals
       run: |

@@ -41,7 +41,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0  # Full history for analysis
     
@@ -88,24 +88,24 @@ jobs:
     
     - name: Install Core Python Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 --upgrade pip
         # Essential core dependencies only
-        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
         # Technical analysis (with fallbacks)
-        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install --quiet --no-warn-script-location ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
         # Lightweight ML dependencies
-        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 scikit-learn
         # Data collection essentials
-        pip install --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
         # News processing essentials
-        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
         
     - name: Install Optional Heavy Dependencies
       continue-on-error: true
       run: |
         # These are optional - workflow continues if they fail
-        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
-        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Simplified & Robust)
@@ -584,7 +584,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
         ref: main  # Get latest data
@@ -596,8 +596,8 @@ jobs:
     
     - name: Install ML/RL Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
     
     # ----------------------------------------
     # TRAIN NEURAL BANDITS
@@ -872,7 +872,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
         ref: main  # Get latest updates
@@ -884,7 +884,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
     
     - name: Generate Trading Signals
       run: |
@@ -1195,7 +1195,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
     

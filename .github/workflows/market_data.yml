@@ -12,6 +12,7 @@ permissions:
 jobs:
   collect-market-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # 🛡️ Prevent hanging
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -40,8 +41,8 @@ jobs:
     # ⚡ SPEED OPTIMIZATION: Minimal dependency installation
     - name: Install dependencies (optimized)
       run: |
-        python -m pip install --upgrade pip --quiet
-        pip install requests pandas numpy yfinance --only-if-needed --quiet
+        python -m pip install --quiet --no-warn-script-location --upgrade pip --quiet
+        pip install --quiet --no-warn-script-location requests pandas numpy yfinance --only-if-needed --quiet
         
     # ⚡ SPEED OPTIMIZATION: Parallel data collection
     - name: Collect market data (optimized)

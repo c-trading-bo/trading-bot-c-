@@ -13,12 +13,13 @@ permissions:
 jobs:
   zones_identifier:
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # 🛡️ Prevent hanging
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: pip install --quiet --no-warn-script-location yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/identify_zones.py
       - run: |
           git config user.name "GitHub Actions"
