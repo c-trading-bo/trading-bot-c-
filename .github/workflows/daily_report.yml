@@ -1,0 +1,51 @@
+﻿name: Intelligence - Daily Report
+
+on:
+  schedule:
+    # Run before market open at 8:00 AM ET (13:00 UTC) on weekdays
+    - cron: '0 13 * * 1-5'
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  generate-signals:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas numpy scikit-learn joblib requests
+        
+    - name: Generate trading signals
+      run: |
+        python Intelligence/scripts/generate_signals.py
+        
+    - name: Generate daily report
+      run: |
+        python Intelligence/scripts/generate_daily_report.py
+        
+    - name: Upload signals and reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: daily-intelligence-${{ github.run_number }}
+        path: |
+          Intelligence/data/signals/
+          Intelligence/reports/
+        retention-days: 30
+        
+    - name: Commit signals and reports (if changes)
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Intelligence/data/signals/ Intelligence/reports/
+        git diff --staged --quiet || git commit -m "Intelligence: Update signals and daily report [$(date '+%Y-%m-%d %H:%M:%S')]"
+        git push

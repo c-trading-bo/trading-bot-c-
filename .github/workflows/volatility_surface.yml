@@ -1,15 +1,22 @@
-name: Fixed Workflow
+﻿name: Volatility Surface Analysis
 on:
+  schedule:
+    - cron: '0 * * * *'  # Hourly (24/7)
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  build:
+  volatility_surface:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup
-      run: echo "Workflow fixed"
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/volatility_surface.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update volatility surface analysis"
+          git push

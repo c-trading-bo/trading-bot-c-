@@ -1,15 +1,28 @@
-name: Fixed Workflow
+﻿name: auto-label-automerge
+
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    types: [opened, reopened, synchronize]
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
-  build:
+  label:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup
-      run: echo "Workflow fixed"
+      - name: Add automerge label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'automerge';
+            const {owner, repo} = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            try {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [label] });
+            } catch (e) {
+              core.warning(`Failed to add label: ${e.message}`);
+            }

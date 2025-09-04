@@ -1,0 +1,945 @@
+﻿name: "≡ƒÜÇ Live Trading Bot Dashboard"
+
+on:
+  schedule:
+    - cron: '*/1 * * * *'  # Every minute for real-time updates
+  workflow_dispatch:        # Manual trigger
+  push:
+    branches: ['main', 'copilot/*']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  DASHBOARD_DIR: "live-dashboard"
+
+jobs:
+  build-dashboard:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "≡ƒôÑ Checkout Code"
+        uses: actions/checkout@v4
+        
+      - name: "≡ƒÉì Setup Python"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: "≡ƒôª Install Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas python-dateutil
+          
+      - name: "≡ƒöì Generate Live Dashboard Data"
+        run: |
+          mkdir -p ${{ env.DASHBOARD_DIR }}
+          
+          # Create the comprehensive dashboard data generator
+          cat > generate_live_dashboard.py << 'EOF'
+          import json
+          import requests
+          import datetime
+          import os
+          from pathlib import Path
+          import time
+          
+          def get_github_api_data():
+              """Get comprehensive GitHub data for dashboard"""
+              try:
+                  headers = {
+                      'Accept': 'application/vnd.github.v3+json',
+                      'Authorization': f'token ${{ secrets.GITHUB_TOKEN }}',
+                      'User-Agent': 'TradingBot-Dashboard/1.0'
+                  }
+                  
+                  repo = '${{ github.repository }}'
+                  base_url = f'https://api.github.com/repos/{repo}'
+                  
+                  # Get workflow runs
+                  workflows_resp = requests.get(f'{base_url}/actions/workflows', headers=headers)
+                  runs_resp = requests.get(f'{base_url}/actions/runs', headers=headers, params={'per_page': 50})
+                  
+                  # Get repository info
+                  repo_resp = requests.get(base_url, headers=headers)
+                  
+                  # Get releases (model versions)
+                  releases_resp = requests.get(f'{base_url}/releases', headers=headers, params={'per_page': 10})
+                  
+                  if all(r.status_code == 200 for r in [workflows_resp, runs_resp, repo_resp, releases_resp]):
+                      return {
+                          'workflows': workflows_resp.json(),
+                          'runs': runs_resp.json(),
+                          'repo': repo_resp.json(),
+                          'releases': releases_resp.json()
+                      }
+                  else:
+                      print(f"API errors: workflows={workflows_resp.status_code}, runs={runs_resp.status_code}, repo={repo_resp.status_code}, releases={releases_resp.status_code}")
+                      return None
+              except Exception as e:
+                  print(f"Error getting GitHub data: {e}")
+                  return None
+          
+          def analyze_bot_status(github_data):
+              """Analyze current bot training and deployment status"""
+              if not github_data:
+                  return {
+                      'status': 'UNKNOWN',
+                      'message': 'Unable to fetch GitHub data',
+                      'training_active': False,
+                      'last_training': None,
+                      'success_rate': 0,
+                      'model_version': 'Unknown',
+                      'deployment_status': 'Unknown'
+                  }
+              
+              runs = github_data['runs']['workflow_runs']
+              releases = github_data['releases']
+              
+              # Analyze training runs
+              training_runs = [r for r in runs if any(keyword in r['name'].lower() 
+                              for keyword in ['train', 'ml', 'learning', 'model'])]
+              
+              total_training_runs = len(training_runs)
+              successful_runs = len([r for r in training_runs if r['conclusion'] == 'success'])
+              failed_runs = len([r for r in training_runs if r['conclusion'] == 'failure'])
+              in_progress_runs = len([r for r in training_runs if r['status'] == 'in_progress'])
+              
+              success_rate = (successful_runs / total_training_runs * 100) if total_training_runs > 0 else 0
+              
+              # Determine current status
+              if in_progress_runs > 0:
+                  status = 'TRAINING'
+                  message = f'{in_progress_runs} training run(s) in progress'
+              elif training_runs and training_runs[0]['conclusion'] == 'success':
+                  status = 'ACTIVE'
+                  message = 'Latest training completed successfully'
+              elif training_runs and training_runs[0]['conclusion'] == 'failure':
+                  status = 'ERROR'
+                  message = 'Latest training failed'
+              else:
+                  status = 'IDLE'
+                  message = 'No recent training activity'
+              
+              # Get latest model version
+              model_version = 'No releases'
+              if releases:
+                  model_version = releases[0]['tag_name']
+              
+              return {
+                  'status': status,
+                  'message': message,
+                  'training_active': in_progress_runs > 0,
+                  'last_training': training_runs[0]['created_at'] if training_runs else None,
+                  'success_rate': round(success_rate, 1),
+                  'model_version': model_version,
+                  'deployment_status': 'Deployed' if releases else 'No deployment',
+                  'total_runs': total_training_runs,
+                  'successful_runs': successful_runs,
+                  'failed_runs': failed_runs,
+                  'recent_runs': training_runs[:10]
+              }
+          
+          def generate_live_status():
+              """Generate comprehensive live status for dashboard"""
+              github_data = get_github_api_data()
+              bot_status = analyze_bot_status(github_data)
+              
+              # Calculate uptime (simplified - based on recent successful runs)
+              uptime_percentage = min(bot_status['success_rate'], 100)
+              
+              # Generate system health score
+              health_score = 0
+              if bot_status['success_rate'] >= 80:
+                  health_score = 95
+              elif bot_status['success_rate'] >= 60:
+                  health_score = 75
+              elif bot_status['success_rate'] >= 40:
+                  health_score = 50
+              else:
+                  health_score = 25
+              
+              return {
+                  'timestamp': datetime.datetime.utcnow().isoformat(),
+                  'bot_status': bot_status,
+                  'system_health': {
+                      'score': health_score,
+                      'uptime': uptime_percentage,
+                      'data_quality': 85,  # Placeholder
+                      'connection_status': 'Connected' if bot_status['status'] != 'ERROR' else 'Disconnected'
+                  },
+                  'github_integration': {
+                      'api_accessible': github_data is not None,
+                      'workflows_count': len(github_data['workflows']['workflows']) if github_data else 0,
+                      'recent_activity': len([r for r in github_data['runs']['workflow_runs'][:10] 
+                                            if (datetime.datetime.now() - datetime.datetime.fromisoformat(r['created_at'].replace('Z', '+00:00'))).days < 1]) if github_data else 0
+                  },
+                  'features': {
+                      'cloud_learning': bot_status['training_active'],
+                      'local_trading': False,  # Will be detected separately
+                      'auto_deployment': True,
+                      'real_time_monitoring': True,
+                      'bot_control': True,
+                      'multi_mode_support': True
+                  }
+              }
+          
+          def save_dashboard_files():
+              """Save all dashboard files"""
+              status = generate_live_status()
+              
+              # Save status JSON
+              with open('${{ env.DASHBOARD_DIR }}/status.json', 'w') as f:
+                  json.dump(status, f, indent=2)
+              
+              # Save simplified status for external consumption
+              simple_status = {
+                  'status': status['bot_status']['status'],
+                  'message': status['bot_status']['message'],
+                  'health_score': status['system_health']['score'],
+                  'success_rate': status['bot_status']['success_rate'],
+                  'model_version': status['bot_status']['model_version'],
+                  'timestamp': status['timestamp']
+              }
+              
+              with open('${{ env.DASHBOARD_DIR }}/simple_status.json', 'w') as f:
+                  json.dump(simple_status, f, indent=2)
+              
+              print("Γ£à Dashboard data generated successfully")
+              print(f"≡ƒôè Status: {status['bot_status']['status']}")
+              print(f"≡ƒÄ» Success Rate: {status['bot_status']['success_rate']}%")
+              print(f"≡ƒÅÑ Health Score: {status['system_health']['score']}")
+              print(f"≡ƒôª Model Version: {status['bot_status']['model_version']}")
+          
+          if __name__ == "__main__":
+              save_dashboard_files()
+          EOF
+          
+          python generate_live_dashboard.py
+          
+      - name: "≡ƒÄ¿ Build Live Dashboard HTML"
+        run: |
+          # Create the main dashboard HTML
+          cat > ${{ env.DASHBOARD_DIR }}/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>≡ƒñû Trading Bot - Live Dashboard</title>
+              <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>≡ƒñû</text></svg>">
+              <style>
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body { 
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                      background: linear-gradient(135deg, #0a0e16 0%, #161b22 100%); 
+                      color: #e0e6ed; 
+                      min-height: 100vh;
+                  }
+                  
+                  .header {
+                      background: rgba(22, 27, 34, 0.8);
+                      backdrop-filter: blur(10px);
+                      border-bottom: 1px solid #30363d;
+                      padding: 16px 24px;
+                      position: sticky;
+                      top: 0;
+                      z-index: 100;
+                  }
+                  .header-content {
+                      max-width: 1400px;
+                      margin: 0 auto;
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                  }
+                  .logo {
+                      display: flex;
+                      align-items: center;
+                      gap: 12px;
+                      font-size: 24px;
+                      font-weight: bold;
+                      color: #4CAF50;
+                  }
+                  .status-indicator {
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                      padding: 8px 16px;
+                      background: rgba(76, 175, 80, 0.1);
+                      border: 1px solid #4CAF50;
+                      border-radius: 20px;
+                      font-size: 14px;
+                  }
+                  .status-dot {
+                      width: 8px;
+                      height: 8px;
+                      border-radius: 50%;
+                      background: #4CAF50;
+                      animation: pulse 2s infinite;
+                  }
+                  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+                  
+                  .container {
+                      max-width: 1400px;
+                      margin: 0 auto;
+                      padding: 24px;
+                  }
+                  
+                  .dashboard-grid {
+                      display: grid;
+                      grid-template-columns: 1fr 1fr 1fr;
+                      gap: 24px;
+                      margin-bottom: 24px;
+                  }
+                  
+                  .card {
+                      background: rgba(22, 27, 34, 0.6);
+                      backdrop-filter: blur(10px);
+                      border: 1px solid #30363d;
+                      border-radius: 12px;
+                      padding: 24px;
+                      transition: transform 0.2s ease, box-shadow 0.2s ease;
+                  }
+                  .card:hover {
+                      transform: translateY(-2px);
+                      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                  }
+                  
+                  .card-title {
+                      font-size: 18px;
+                      font-weight: 600;
+                      margin-bottom: 16px;
+                      display: flex;
+                      align-items: center;
+                      gap: 8px;
+                  }
+                  
+                  .metric-value {
+                      font-size: 32px;
+                      font-weight: bold;
+                      margin-bottom: 8px;
+                  }
+                  .metric-value.good { color: #4CAF50; }
+                  .metric-value.warning { color: #ffa657; }
+                  .metric-value.error { color: #f44336; }
+                  
+                  .metric-label {
+                      font-size: 14px;
+                      color: #8b949e;
+                  }
+                  
+                  .controls-section {
+                      background: rgba(22, 27, 34, 0.6);
+                      backdrop-filter: blur(10px);
+                      border: 1px solid #30363d;
+                      border-radius: 12px;
+                      padding: 24px;
+                      margin-bottom: 24px;
+                  }
+                  
+                  .controls-grid {
+                      display: grid;
+                      grid-template-columns: 1fr 1fr 1fr;
+                      gap: 16px;
+                  }
+                  
+                  .control-group {
+                      background: rgba(13, 17, 23, 0.5);
+                      border-radius: 8px;
+                      padding: 16px;
+                  }
+                  
+                  .control-title {
+                      font-size: 16px;
+                      font-weight: 600;
+                      margin-bottom: 12px;
+                      color: #4CAF50;
+                  }
+                  
+                  .btn {
+                      background: #238636;
+                      border: 1px solid #238636;
+                      color: white;
+                      padding: 10px 16px;
+                      border-radius: 6px;
+                      cursor: pointer;
+                      font-size: 14px;
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                      text-decoration: none;
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 8px;
+                      margin: 4px 8px 4px 0;
+                  }
+                  .btn:hover {
+                      background: #2ea043;
+                      transform: translateY(-1px);
+                  }
+                  .btn.secondary {
+                      background: #21262d;
+                      border-color: #30363d;
+                  }
+                  .btn.secondary:hover {
+                      background: #30363d;
+                  }
+                  .btn.danger {
+                      background: #da3633;
+                      border-color: #da3633;
+                  }
+                  .btn.danger:hover {
+                      background: #f85149;
+                  }
+                  
+                  .mode-selector {
+                      display: flex;
+                      background: rgba(13, 17, 23, 0.5);
+                      border-radius: 8px;
+                      padding: 4px;
+                      margin-top: 8px;
+                  }
+                  .mode-option {
+                      flex: 1;
+                      padding: 8px 12px;
+                      text-align: center;
+                      background: transparent;
+                      border: none;
+                      color: #8b949e;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      font-size: 12px;
+                      font-weight: 500;
+                      transition: all 0.2s ease;
+                  }
+                  .mode-option.active {
+                      background: #4CAF50;
+                      color: white;
+                  }
+                  .mode-option:hover:not(.active) {
+                      background: rgba(255, 255, 255, 0.05);
+                      color: #e0e6ed;
+                  }
+                  
+                  .status-grid {
+                      display: grid;
+                      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                      gap: 16px;
+                      margin-top: 24px;
+                  }
+                  
+                  .status-item {
+                      background: rgba(13, 17, 23, 0.5);
+                      border-radius: 8px;
+                      padding: 16px;
+                      text-align: center;
+                  }
+                  
+                  .status-icon {
+                      font-size: 24px;
+                      margin-bottom: 8px;
+                  }
+                  
+                  .status-text {
+                      font-size: 14px;
+                      color: #8b949e;
+                  }
+                  
+                  .feature-status {
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 8px 0;
+                      border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+                  }
+                  .feature-status:last-child {
+                      border-bottom: none;
+                  }
+                  
+                  .feature-name {
+                      font-size: 14px;
+                      color: #e0e6ed;
+                  }
+                  
+                  .feature-indicator {
+                      width: 8px;
+                      height: 8px;
+                      border-radius: 50%;
+                  }
+                  .feature-indicator.active {
+                      background: #4CAF50;
+                      box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+                  }
+                  .feature-indicator.inactive {
+                      background: #8b949e;
+                  }
+                  
+                  .refresh-info {
+                      position: fixed;
+                      bottom: 16px;
+                      right: 16px;
+                      background: rgba(13, 17, 23, 0.9);
+                      border: 1px solid #30363d;
+                      border-radius: 8px;
+                      padding: 8px 12px;
+                      font-size: 12px;
+                      color: #8b949e;
+                  }
+                  
+                  .loading {
+                      opacity: 0.6;
+                      pointer-events: none;
+                  }
+                  
+                  @media (max-width: 768px) {
+                      .dashboard-grid,
+                      .controls-grid {
+                          grid-template-columns: 1fr;
+                      }
+                      .container {
+                          padding: 16px;
+                      }
+                      .header {
+                          padding: 12px 16px;
+                      }
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <div class="header-content">
+                      <div class="logo">
+                          <span>≡ƒñû</span>
+                          <span>Trading Bot Dashboard</span>
+                      </div>
+                      <div class="status-indicator" id="connection-status">
+                          <div class="status-dot"></div>
+                          <span>Connected</span>
+                      </div>
+                  </div>
+              </div>
+              
+              <div class="container">
+                  <!-- Main Status Dashboard -->
+                  <div class="dashboard-grid">
+                      <div class="card">
+                          <div class="card-title">≡ƒÄ» Bot Status</div>
+                          <div class="metric-value good" id="bot-status">ACTIVE</div>
+                          <div class="metric-label" id="bot-message">Cloud learning active</div>
+                      </div>
+                      
+                      <div class="card">
+                          <div class="card-title">≡ƒôè Success Rate</div>
+                          <div class="metric-value good" id="success-rate">85.2%</div>
+                          <div class="metric-label">Training Performance</div>
+                      </div>
+                      
+                      <div class="card">
+                          <div class="card-title">≡ƒÅÑ System Health</div>
+                          <div class="metric-value good" id="health-score">95</div>
+                          <div class="metric-label">Overall Health Score</div>
+                      </div>
+                  </div>
+                  
+                  <!-- Bot Controls -->
+                  <div class="controls-section">
+                      <h2 style="margin-bottom: 16px; color: #4CAF50;">≡ƒÄ« Bot Controls</h2>
+                      
+                      <div class="controls-grid">
+                          <div class="control-group">
+                              <div class="control-title">≡ƒÜÇ Bot Management</div>
+                              <button class="btn" onclick="launchBot('local')">
+                                  <span>Γû╢∩╕Å</span> Launch Local Bot
+                              </button>
+                              <button class="btn secondary" onclick="stopBot()">
+                                  <span>ΓÅ╣∩╕Å</span> Stop Bot
+                              </button>
+                              <button class="btn secondary" onclick="restartBot()">
+                                  <span>≡ƒöä</span> Restart Bot
+                              </button>
+                          </div>
+                          
+                          <div class="control-group">
+                              <div class="control-title">ΓÜÖ∩╕Å Training Controls</div>
+                              <button class="btn" onclick="triggerTraining()">
+                                  <span>≡ƒºá</span> Start Training
+                              </button>
+                              <button class="btn secondary" onclick="openTuner()">
+                                  <span>≡ƒöº</span> Open Tuner
+                              </button>
+                              <button class="btn secondary" onclick="viewLogs()">
+                                  <span>≡ƒôï</span> View Logs
+                              </button>
+                          </div>
+                          
+                          <div class="control-group">
+                              <div class="control-title">≡ƒÄ» Trading Mode</div>
+                              <div class="mode-selector">
+                                  <button class="mode-option active" onclick="setMode('paper')">PAPER</button>
+                                  <button class="mode-option" onclick="setMode('shadow')">SHADOW</button>
+                                  <button class="mode-option" onclick="setMode('live')">LIVE</button>
+                              </div>
+                              <button class="btn" onclick="applyMode()" style="margin-top: 8px; width: 100%;">
+                                  Apply Mode
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <!-- System Status -->
+                  <div class="card">
+                      <div class="card-title">≡ƒöº System Features</div>
+                      <div id="features-list">
+                          <div class="feature-status">
+                              <span class="feature-name">Γÿü∩╕Å Cloud Learning</span>
+                              <div class="feature-indicator active"></div>
+                          </div>
+                          <div class="feature-status">
+                              <span class="feature-name">≡ƒÆ╗ Local Trading</span>
+                              <div class="feature-indicator inactive"></div>
+                          </div>
+                          <div class="feature-status">
+                              <span class="feature-name">≡ƒÜÇ Auto Deployment</span>
+                              <div class="feature-indicator active"></div>
+                          </div>
+                          <div class="feature-status">
+                              <span class="feature-name">≡ƒôè Real-time Monitoring</span>
+                              <div class="feature-indicator active"></div>
+                          </div>
+                          <div class="feature-status">
+                              <span class="feature-name">≡ƒÄ« Bot Control</span>
+                              <div class="feature-indicator active"></div>
+                          </div>
+                          <div class="feature-status">
+                              <span class="feature-name">≡ƒÄ» Multi-mode Support</span>
+                              <div class="feature-indicator active"></div>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <!-- Quick Links -->
+                  <div class="status-grid">
+                      <div class="status-item">
+                          <div class="status-icon">≡ƒôï</div>
+                          <div class="status-text">
+                              <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/actions" target="_blank" class="btn secondary">
+                                  GitHub Actions
+                              </a>
+                          </div>
+                      </div>
+                      
+                      <div class="status-item">
+                          <div class="status-icon">≡ƒÆ╗</div>
+                          <div class="status-text">
+                              <button class="btn secondary" onclick="connectLocalDashboard()">
+                                  Connect Local Dashboard
+                              </button>
+                          </div>
+                      </div>
+                      
+                      <div class="status-item">
+                          <div class="status-icon">≡ƒôª</div>
+                          <div class="status-text">
+                              <a href="https://github.com/kevinsuero072897-collab/trading-bot-c-/releases" target="_blank" class="btn secondary">
+                                  Model Releases
+                              </a>
+                          </div>
+                      </div>
+                      
+                      <div class="status-item">
+                          <div class="status-icon">≡ƒöº</div>
+                          <div class="status-text">
+                              <button class="btn secondary" onclick="openSettings()">
+                                  Settings
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+              
+              <div class="refresh-info" id="refresh-info">
+                  Last updated: <span id="last-update">Loading...</span>
+              </div>
+              
+              <script>
+                  let currentMode = 'paper';
+                  let localBotConnected = false;
+                  let dashboardData = null;
+                  
+                  // Load dashboard data
+                  async function loadDashboardData() {
+                      try {
+                          const response = await fetch('./status.json');
+                          if (response.ok) {
+                              dashboardData = await response.json();
+                              updateDashboard(dashboardData);
+                              checkLocalBotConnection();
+                          }
+                      } catch (error) {
+                          console.log('Error loading dashboard data:', error);
+                          showOfflineMode();
+                      }
+                  }
+                  
+                  function updateDashboard(data) {
+                      const botStatus = data.bot_status || {};
+                      const systemHealth = data.system_health || {};
+                      const features = data.features || {};
+                      
+                      // Update main metrics
+                      document.getElementById('bot-status').textContent = botStatus.status || 'UNKNOWN';
+                      document.getElementById('bot-status').className = `metric-value ${getStatusClass(botStatus.status)}`;
+                      document.getElementById('bot-message').textContent = botStatus.message || 'Status unknown';
+                      
+                      document.getElementById('success-rate').textContent = (botStatus.success_rate || 0) + '%';
+                      document.getElementById('success-rate').className = `metric-value ${getHealthClass(botStatus.success_rate)}`;
+                      
+                      document.getElementById('health-score').textContent = systemHealth.score || 0;
+                      document.getElementById('health-score').className = `metric-value ${getHealthClass(systemHealth.score)}`;
+                      
+                      // Update features
+                      updateFeatureStatus('cloud_learning', features.cloud_learning);
+                      updateFeatureStatus('local_trading', features.local_trading || localBotConnected);
+                      updateFeatureStatus('auto_deployment', features.auto_deployment);
+                      updateFeatureStatus('real_time_monitoring', features.real_time_monitoring);
+                      updateFeatureStatus('bot_control', features.bot_control);
+                      updateFeatureStatus('multi_mode_support', features.multi_mode_support);
+                      
+                      // Update last update time
+                      const lastUpdate = new Date(data.timestamp).toLocaleTimeString();
+                      document.getElementById('last-update').textContent = lastUpdate;
+                  }
+                  
+                  function getStatusClass(status) {
+                      switch(status) {
+                          case 'ACTIVE':
+                          case 'TRAINING':
+                              return 'good';
+                          case 'ERROR':
+                          case 'FAILED':
+                              return 'error';
+                          case 'IDLE':
+                          case 'WAITING':
+                              return 'warning';
+                          default:
+                              return 'warning';
+                      }
+                  }
+                  
+                  function getHealthClass(value) {
+                      if (value >= 80) return 'good';
+                      if (value >= 60) return 'warning';
+                      return 'error';
+                  }
+                  
+                  function updateFeatureStatus(featureName, isActive) {
+                      const features = document.querySelectorAll('.feature-status');
+                      features.forEach(feature => {
+                          const name = feature.querySelector('.feature-name').textContent.toLowerCase();
+                          if (name.includes(featureName.replace('_', ' '))) {
+                              const indicator = feature.querySelector('.feature-indicator');
+                              indicator.className = `feature-indicator ${isActive ? 'active' : 'inactive'}`;
+                          }
+                      });
+                  }
+                  
+                  function showOfflineMode() {
+                      document.getElementById('connection-status').innerHTML = `
+                          <div class="status-dot" style="background: #f44336;"></div>
+                          <span>Offline Mode</span>
+                      `;
+                      document.getElementById('bot-status').textContent = 'OFFLINE';
+                      document.getElementById('bot-status').className = 'metric-value error';
+                      document.getElementById('bot-message').textContent = 'Dashboard running in offline mode';
+                  }
+                  
+                  // Bot control functions
+                  async function launchBot(mode = 'local') {
+                      try {
+                          showNotification(`Launching bot in ${mode} mode...`);
+                          
+                          // Try to trigger via local connection first
+                          if (localBotConnected) {
+                              await fetch('http://localhost:5050/api/bot/start', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ mode: currentMode })
+                              });
+                          } else {
+                              // Fallback to GitHub Actions trigger
+                              showNotification('Local bot not connected. Use GitHub Actions to start training.');
+                              window.open('https://github.com/kevinsuero072897-collab/trading-bot-c-/actions', '_blank');
+                          }
+                      } catch (error) {
+                          showNotification('Error launching bot. Check console for details.', 'error');
+                          console.error('Launch error:', error);
+                      }
+                  }
+                  
+                  async function stopBot() {
+                      try {
+                          showNotification('Stopping bot...');
+                          if (localBotConnected) {
+                              await fetch('http://localhost:5050/api/bot/stop', { method: 'POST' });
+                          } else {
+                              showNotification('Local bot not connected. Use GitHub Actions to manage workflows.');
+                          }
+                      } catch (error) {
+                          showNotification('Error stopping bot', 'error');
+                      }
+                  }
+                  
+                  async function restartBot() {
+                      await stopBot();
+                      setTimeout(() => launchBot(), 2000);
+                  }
+                  
+                  async function triggerTraining() {
+                      showNotification('Triggering training workflow...');
+                      window.open('https://github.com/kevinsuero072897-collab/trading-bot-c-/actions/workflows/train-continuous-clean.yml', '_blank');
+                  }
+                  
+                  function openTuner() {
+                      if (localBotConnected) {
+                          window.open('http://localhost:5050/dashboard', '_blank');
+                      } else {
+                          showNotification('Local bot not connected. Start local bot first.');
+                      }
+                  }
+                  
+                  function viewLogs() {
+                      window.open('https://github.com/kevinsuero072897-collab/trading-bot-c-/actions', '_blank');
+                  }
+                  
+                  function setMode(mode) {
+                      currentMode = mode;
+                      document.querySelectorAll('.mode-option').forEach(btn => {
+                          btn.classList.remove('active');
+                      });
+                      event.target.classList.add('active');
+                  }
+                  
+                  async function applyMode() {
+                      try {
+                          showNotification(`Switching to ${currentMode.toUpperCase()} mode...`);
+                          if (localBotConnected) {
+                              await fetch('http://localhost:5050/api/bot/mode', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ mode: currentMode })
+                              });
+                          } else {
+                              showNotification(`${currentMode.toUpperCase()} mode will be applied when bot starts.`);
+                          }
+                      } catch (error) {
+                          showNotification('Error applying mode', 'error');
+                      }
+                  }
+                  
+                  async function connectLocalDashboard() {
+                      try {
+                          const response = await fetch('http://localhost:5050/api/status');
+                          if (response.ok) {
+                              localBotConnected = true;
+                              showNotification('Connected to local bot!');
+                              updateFeatureStatus('local_trading', true);
+                              document.getElementById('connection-status').innerHTML = `
+                                  <div class="status-dot"></div>
+                                  <span>Local Bot Connected</span>
+                              `;
+                          }
+                      } catch (error) {
+                          showNotification('Local bot not found. Start the bot locally first.');
+                      }
+                  }
+                  
+                  async function checkLocalBotConnection() {
+                      try {
+                          const response = await fetch('http://localhost:5050/api/status');
+                          localBotConnected = response.ok;
+                          updateFeatureStatus('local_trading', localBotConnected);
+                      } catch (error) {
+                          localBotConnected = false;
+                          updateFeatureStatus('local_trading', false);
+                      }
+                  }
+                  
+                  function openSettings() {
+                      showNotification('Settings panel coming soon...');
+                  }
+                  
+                  function showNotification(message, type = 'info') {
+                      const notification = document.createElement('div');
+                      notification.style.cssText = `
+                          position: fixed;
+                          top: 20px;
+                          right: 20px;
+                          background: ${type === 'error' ? '#da3633' : '#238636'};
+                          color: white;
+                          padding: 12px 20px;
+                          border-radius: 6px;
+                          z-index: 1000;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                      `;
+                      notification.textContent = message;
+                      document.body.appendChild(notification);
+                      
+                      setTimeout(() => {
+                          notification.remove();
+                      }, 3000);
+                  }
+                  
+                  // Initialize dashboard
+                  loadDashboardData();
+                  
+                  // Auto-refresh every 30 seconds
+                  setInterval(loadDashboardData, 30000);
+                  
+                  // Check local bot connection every 10 seconds
+                  setInterval(checkLocalBotConnection, 10000);
+              </script>
+          </body>
+          </html>
+          EOF
+          
+      - name: "≡ƒôä Setup GitHub Pages"
+        uses: actions/configure-pages@v3
+        
+      - name: "≡ƒôñ Upload Pages Artifact"
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ${{ env.DASHBOARD_DIR }}
+          
+      - name: "≡ƒôè Summary Report"
+        run: |
+          echo "≡ƒÜÇ Live Dashboard Generated Successfully!"
+          echo "============================================"
+          
+          if [ -f "${{ env.DASHBOARD_DIR }}/status.json" ]; then
+              echo "Γ£à Dashboard data generated"
+              cat ${{ env.DASHBOARD_DIR }}/status.json | head -20
+          fi
+          
+          echo ""
+          echo "≡ƒöù Access URLs:"
+          echo "≡ƒôè Live Dashboard: https://kevinsuero072897-collab.github.io/trading-bot-c-/"
+          echo "≡ƒôï GitHub Actions: https://github.com/kevinsuero072897-collab/trading-bot-c-/actions"
+          echo "≡ƒÆ╗ Local Dashboard: http://localhost:5050/dashboard (when bot running)"
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build-dashboard
+    steps:
+      - name: "≡ƒÜÇ Deploy to GitHub Pages"
+        id: deployment
+        uses: actions/deploy-pages@v2

@@ -1,15 +1,22 @@
-name: Fixed Workflow
+﻿name: Microstructure Analysis
 on:
+  schedule:
+    - cron: '*/5 9-15 * * 1-5'  # Every 5 min RTH (9 AM - 3 PM UTC, Mon-Fri)
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  build:
+  microstructure:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup
-      run: echo "Workflow fixed"
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/microstructure.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update microstructure analysis"
+          git push
