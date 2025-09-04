@@ -49,44 +49,29 @@ jobs:
         run: |
           pip install requests pyyaml
       
-      - name: 🧠 Run Copilot AI Brain
+      - name: 🧠 Run AI Brain Analysis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
+          echo "🧠 Starting Copilot Enterprise AI Brain..."
           python .github/copilot_mechanic/copilot_ai_brain.py
       
-      - name: 📊 Generate AI Report
+      - name: 📊 Upload AI Reports
+        uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          echo "## 🧠 Copilot Enterprise AI Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ -f .github/copilot_mechanic/knowledge/brain_memory.json ]; then
-            echo "### 📚 Knowledge Base Stats" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
-            head -20 .github/copilot_mechanic/knowledge/brain_memory.json >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ AI Actions Taken" >> $GITHUB_STEP_SUMMARY
-          echo "- Workflows analyzed" >> $GITHUB_STEP_SUMMARY
-          echo "- Issues diagnosed" >> $GITHUB_STEP_SUMMARY
-          echo "- Fixes applied (if any)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "*Powered by Copilot Enterprise*" >> $GITHUB_STEP_SUMMARY
+        with:
+          name: ai-brain-reports
+          path: |
+            .github/copilot_mechanic/fixes/
+            .github/copilot_mechanic/knowledge/
+          retention-days: 30
       
-      - name: 🚀 Commit AI Knowledge Updates
+      - name: 📈 Update AI Status
         if: always()
         run: |
-          git config --local user.email "ai@copilot-enterprise.com"
-          git config --local user.name "Copilot Enterprise AI"
-          
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .github/copilot_mechanic/knowledge/
-            git add .github/copilot_mechanic/fixes/
-            git commit -m "🧠 AI Knowledge Update: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" || true
-            git push || true
-          fi
+          echo "🎯 AI Brain analysis completed"
+          echo "📊 Check artifacts for detailed reports"
