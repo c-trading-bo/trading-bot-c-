@@ -3,8 +3,15 @@
 on:
   schedule:
     # Run nightly at 2:00 AM EST (07:00 UTC)
-    - cron: "'0 7 * * *'
-  workflow_dispatch:  "  #  🛡️ Prevent hanging
+    - cron: '0 7 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  train-models:
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -36,9 +43,9 @@ on:
     # ⚡ SPEED OPTIMIZATION: Only install if requirements changed
     - name: Install ML dependencies (optimized)
       run: |
-        python -m pip install --quiet --no-warn-script-location --upgrade pip
+        python -m pip install --upgrade pip
         # Install only if requirements changed or cache miss
-        pip install --quiet --no-warn-script-location pandas numpy scikit-learn xgboost lightgbm joblib --only-if-needed
+        pip install pandas numpy scikit-learn xgboost lightgbm joblib --only-if-needed
         
     # ⚡ SPEED OPTIMIZATION: Parallel execution of independent tasks
     - name: Build features and train models (parallel jobs)
@@ -57,7 +64,7 @@ on:
     - name: Upload trained models (optimized)
       uses: actions/upload-artifact@v4
       with:
-    - name: ml-models-${{ github.run_number }}
+        name: ml-models-${{ github.run_number }}
         path: |
           Intelligence/models/*.pkl
           Intelligence/models/*.joblib
