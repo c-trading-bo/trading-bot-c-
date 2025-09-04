@@ -1,55 +1,40 @@
 {
-  "timestamp": "2025-09-04T19:56:01.316745",
+  "timestamp": "2025-09-04T20:58:22.495206",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "total_articles_processed": 9,
+  "total_articles_processed": 13,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.175,
+      "sentiment_score": 0.35833333333333334,
       "article_count": 1,
       "articles": [
         {
-          "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
-          "published": "2025-09-03T09:45:46Z",
+          "title": "Why it\u2019s getting easier for active managers to beat the S&P 500 in 2025",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/why-its-getting-easier-for-active-managers-to-beat-the-s-p-500-in-2025-6aec9d2d?mod=mw_rss_topstories",
+          "published": "Thu, 04 Sep 2025 20:13:00 GMT",
           "relevance_keywords": [
             "S&P"
           ]
         }
       ],
-      "signal": "NEUTRAL",
+      "signal": "BULLISH",
       "confidence": 0.1,
       "sources": [
-        "yahoo_finance"
+        "marketwatch"
       ]
     },
     "NQ": {
-      "sentiment_score": 0.175,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
-          "published": "2025-09-03T09:45:46Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        }
-      ],
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
       "signal": "NEUTRAL",
-      "confidence": 0.1,
-      "sources": [
-        "yahoo_finance"
-      ]
+      "confidence": 0.0,
+      "sources": []
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -68,18 +53,19 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.178,
+      "sentiment_score": 0.2375,
       "article_count": 2,
       "articles": [
         {
-          "title": "Crypto Exchange Volume Hits YTD High of $1.8 Trillion, Here Are Key Drivers",
-          "sentiment": 0.055999999999999994,
-          "textblob_score": 0.08,
+          "title": "Bitcoin, XRP, Ethereum Rise. Why Cryptos Are Poised to Charge Higher.",
+          "sentiment": 0.175,
+          "textblob_score": 0.25,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/crypto-exchange-volume-hits-ytd-095438398.html",
-          "published": "2025-09-03T09:54:38Z",
+          "url": "https://www.barrons.com/articles/bitcoin-price-xrp-ethereum-crypto-figure-ipo-88c6e65a?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-03T12:23:00Z",
           "relevance_keywords": [
+            "Bitcoin",
             "crypto"
           ]
         },
@@ -104,41 +90,90 @@
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.07399999999999998,
-      "article_count": 4,
+      "sentiment_score": 0.14871364688552186,
+      "article_count": 8,
       "articles": [
         {
-          "title": "Mortgage and refinance interest rates today, September 3, 2025: A small reversal in direction",
-          "sentiment": -0.175,
-          "textblob_score": -0.25,
+          "title": "Alibaba (BABA) Reinvents Itself as AI + Everyday Consumption App, Analyst Says",
+          "sentiment": -0.13999999999999999,
+          "textblob_score": -0.2,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/personal-finance/mortgages/article/mortgage-refinance-rates-today-wednesday-september-3-2025-100052541.html",
-          "published": "2025-09-03T10:00:52Z",
+          "url": "https://finance.yahoo.com/news/alibaba-baba-reinvents-itself-ai-122720774.html",
+          "published": "2025-09-03T12:27:20Z",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Treasury Yields Reach Lowest Levels in Months Before Jobs Report",
-          "sentiment": -0.125,
-          "textblob_score": 0.25,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-04/treasury-yields-lowest-in-months-as-jobs-data-back-rate-cuts",
-          "published": "Thu, 04 Sep 2025 13:38:33 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Here Comes a Jobs Report Where the Stakes Are High",
-          "sentiment": 0.17933333333333332,
-          "textblob_score": 0.2561904761904762,
+          "title": "EV Armageddon? Tesla, GM, Ford EV sales will be cut in half when tax credit expires, analyst says.",
+          "sentiment": -0.11666666666666665,
+          "textblob_score": -0.16666666666666666,
           "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/ev-armageddon-tesla-gm-ford-ev-sales-will-be-cut-in-half-when-tax-credit-expires-analyst-says-124602947.html",
+          "published": "2025-09-03T12:46:02Z",
+          "relevance_keywords": [
+            "Tesla",
+            "EV"
+          ]
+        },
+        {
+          "title": "Figma Shares Tumble on Weak Sales Growth Outlook After IPO",
+          "sentiment": -0.20937499999999998,
+          "textblob_score": -0.15625,
+          "keyword_score": -0.3333333333333333,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/newsletters/2025-09-04/here-comes-a-jobs-report-where-the-stakes-are-high",
-          "published": "Thu, 04 Sep 2025 18:59:34 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-03/figma-declines-on-uninspiring-sales-growth-forecast-after-ipo",
+          "published": "Wed, 03 Sep 2025 20:20:08 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Broadcom\u2019s Upbeat Forecast Fails to Wow Investors After Rally",
+          "sentiment": 0.174,
+          "textblob_score": -0.18,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
+          "published": "Thu, 04 Sep 2025 20:17:48 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Affirm 'Firing on All Pistons' in Pay Now, Buy Later Boom",
+          "sentiment": 0.39804713804713804,
+          "textblob_score": 0.1400673400673401,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/affirm-ceo-company-firing-on-all-pistons-video",
+          "published": "Thu, 04 Sep 2025 20:30:15 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Miran Touts Fed Independence at Confirmation Hearing | Bloomberg Businessweek Daily 9/4/2025",
+          "sentiment": 0.06370370370370368,
+          "textblob_score": -0.051851851851851864,
+          "keyword_score": 0.3333333333333333,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/bloomberg-businessweek-daily-9-4-2025-video",
+          "published": "Thu, 04 Sep 2025 20:25:48 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "China\u2019s DeepSeek Develops Advanced AI Agents",
+          "sentiment": 0.6033333333333333,
+          "textblob_score": 0.43333333333333335,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/china-s-deepseek-develops-advanced-ai-agents-video",
+          "published": "Thu, 04 Sep 2025 20:19:10 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -157,7 +192,7 @@
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.4,
+      "confidence": 0.8,
       "sources": [
         "yahoo_finance",
         "bloomberg",
@@ -173,26 +208,39 @@
       "sources": []
     },
     "AAPL": {
-      "sentiment_score": 0.175,
-      "article_count": 1,
+      "sentiment_score": 0.052,
+      "article_count": 2,
       "articles": [
         {
-          "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
+          "title": "Google and Apple stock prices are on the rise after the search giant avoided harsh consequences in antitrust case",
+          "sentiment": -0.06999999999999999,
+          "textblob_score": -0.1,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
-          "published": "2025-09-03T09:45:46Z",
+          "url": "https://finance.yahoo.com/news/google-apple-stock-prices-rise-123500084.html",
+          "published": "2025-09-03T12:35:00Z",
+          "relevance_keywords": [
+            "Apple"
+          ]
+        },
+        {
+          "title": "Broadcom\u2019s Upbeat Forecast Fails to Wow Investors After Rally",
+          "sentiment": 0.174,
+          "textblob_score": -0.18,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
+          "published": "Thu, 04 Sep 2025 20:17:48 GMT",
           "relevance_keywords": [
             "Apple"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.1,
+      "confidence": 0.2,
       "sources": [
-        "yahoo_finance"
+        "yahoo_finance",
+        "bloomberg"
       ]
     }
   },
