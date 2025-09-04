@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-04T21:56:10.710178",
+  "timestamp": "2025-09-04T22:35:01.395581",
   "total_articles": 15,
   "keywords_searched": [
     "stock market",
@@ -15,17 +15,17 @@
       "keyword": "stock market"
     },
     {
-      "title": "BFM Bourse : 16h / 17h \u2013 13 / 06",
-      "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/bfm-bourse-16h-17h-13-06_EN-202506130572.html",
-      "source": "bfmtv.com",
-      "date": "20250613T170000Z",
-      "keyword": "stock market"
-    },
-    {
       "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
       "url": "http://www.haberler.com/finans/borsa/",
       "source": "haberler.com",
       "date": "20250902T144500Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "BFM Bourse : 16h / 17h \u2013 13 / 06",
+      "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/bfm-bourse-16h-17h-13-06_EN-202506130572.html",
+      "source": "bfmtv.com",
+      "date": "20250613T170000Z",
       "keyword": "stock market"
     },
     {
