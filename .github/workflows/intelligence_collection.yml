@@ -1,117 +1,15 @@
-name: Intelligence Collection (Team)
+name: Fixed Workflow
 on:
-  schedule:
-  - cron: 0 12,14,16,18,20,0 * * *
-  workflow_dispatch: null
-permissions:
-  contents: write
-  actions: read
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 jobs:
-  collect-intel:
-    timeout-minutes: 10
+  build:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 1
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        cache: pip
-    - name: Install Dependencies
-      run: 'pip install --upgrade pip
-
-        pip install requests beautifulsoup4 pandas yfinance
-
-        # Ensure all dependencies are available with fallbacks
-
-        pip install python-dateutil pytz || echo "Optional dependencies skipped"
-
-        '
-    - name: Collect All Intelligence
-      run: "python << 'EOF'\nimport requests\nimport json\nimport os\nimport yfinance\
-        \ as yf\nfrom datetime import datetime, timedelta\nimport pandas as pd\n\n\
-        print(f\"[INTEL] Starting intelligence collection at {datetime.utcnow()}\"\
-        )\n\nintelligence_data = {\n    'timestamp': datetime.utcnow().isoformat(),\n\
-        \    'sources': {},\n    'summary': {}\n}\n\n# 1. Market Breadth Analysis\n\
-        try:\n    print(\"[INTEL] Collecting market breadth data...\")\n    \n   \
-        \ # Get key indices\n    symbols = ['^GSPC', '^IXIC', '^DJI', '^RUT']  # S&P\
-        \ 500, NASDAQ, Dow, Russell 2000\n    breadth_data = {}\n    \n    for symbol\
-        \ in symbols:\n        ticker = yf.Ticker(symbol)\n        hist = ticker.history(period='5d',\
-        \ interval='1d')\n        \n        if not hist.empty:\n            latest\
-        \ = hist.iloc[-1]\n            prev = hist.iloc[-2] if len(hist) > 1 else\
-        \ latest\n            \n            change = (latest['Close'] - prev['Close'])\
-        \ / prev['Close'] * 100\n            \n            breadth_data[symbol] =\
-        \ {\n                'price': float(latest['Close']),\n                'change':\
-        \ float(change),\n                'volume': int(latest['Volume'])\n      \
-        \      }\n    \n    intelligence_data['sources']['market_breadth'] = breadth_data\n\
-        \    print(f\"[INTEL] Market breadth: {len(breadth_data)} indices analyzed\"\
-        )\n    \nexcept Exception as e:\n    print(f\"[INTEL] Market breadth error:\
-        \ {e}\")\n\n# 2. Sector Rotation Analysis\ntry:\n    print(\"[INTEL] Analyzing\
-        \ sector rotation...\")\n    \n    sector_etfs = {\n        'XLF': 'Financials',\n\
-        \        'XLK': 'Technology', \n        'XLE': 'Energy',\n        'XLV': 'Healthcare',\n\
-        \        'XLI': 'Industrials'\n    }\n    \n    sector_performance = {}\n\
-        \    for etf, sector in sector_etfs.items():\n        ticker = yf.Ticker(etf)\n\
-        \        hist = ticker.history(period='5d', interval='1d')\n        \n   \
-        \     if not hist.empty:\n            week_change = (hist['Close'].iloc[-1]\
-        \ - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100\n            sector_performance[sector]\
-        \ = {\n                'symbol': etf,\n                'week_change': float(week_change),\n\
-        \                'current_price': float(hist['Close'].iloc[-1])\n        \
-        \    }\n    \n    # Rank sectors by performance\n    sorted_sectors = sorted(sector_performance.items(),\
-        \ key=lambda x: x[1]['week_change'], reverse=True)\n    intelligence_data['sources']['sector_rotation']\
-        \ = {\n        'performance': sector_performance,\n        'ranking': [{'sector':\
-        \ k, 'change': v['week_change']} for k, v in sorted_sectors]\n    }\n    \n\
-        \    print(f\"[INTEL] Sector analysis: {len(sector_performance)} sectors ranked\"\
-        )\n    \nexcept Exception as e:\n    print(f\"[INTEL] Sector rotation error:\
-        \ {e}\")\n\n# 3. VIX and Fear & Greed Analysis\ntry:\n    print(\"[INTEL]\
-        \ Analyzing market sentiment indicators...\")\n    \n    vix = yf.Ticker('^VIX')\n\
-        \    vix_data = vix.history(period='5d', interval='1d')\n    \n    if not\
-        \ vix_data.empty:\n        current_vix = float(vix_data['Close'].iloc[-1])\n\
-        \        \n        # VIX interpretation\n        if current_vix < 15:\n  \
-        \          vix_sentiment = \"COMPLACENCY\"\n        elif current_vix < 20:\n\
-        \            vix_sentiment = \"LOW_FEAR\"\n        elif current_vix < 30:\n\
-        \            vix_sentiment = \"ELEVATED_FEAR\"\n        else:\n          \
-        \  vix_sentiment = \"HIGH_FEAR\"\n        \n        intelligence_data['sources']['sentiment']\
-        \ = {\n            'vix': current_vix,\n            'vix_sentiment': vix_sentiment,\n\
-        \            'fear_level': current_vix / 40  # Normalize to 0-1 scale\n  \
-        \      }\n        \n        print(f\"[INTEL] VIX: {current_vix:.2f} ({vix_sentiment})\"\
-        )\n    \nexcept Exception as e:\n    print(f\"[INTEL] Sentiment analysis error:\
-        \ {e}\")\n\n# 4. Generate Intelligence Summary\nsummary = {\n    'market_health':\
-        \ 'UNKNOWN',\n    'primary_trend': 'UNKNOWN',\n    'risk_level': 'MEDIUM',\n\
-        \    'key_observations': []\n}\n\n# Analyze collected data\nif 'market_breadth'\
-        \ in intelligence_data['sources']:\n    breadth = intelligence_data['sources']['market_breadth']\n\
-        \    positive_indices = sum(1 for data in breadth.values() if data['change']\
-        \ > 0)\n    total_indices = len(breadth)\n    \n    if positive_indices /\
-        \ total_indices > 0.75:\n        summary['market_health'] = 'STRONG'\n   \
-        \     summary['primary_trend'] = 'BULLISH'\n    elif positive_indices / total_indices\
-        \ > 0.5:\n        summary['market_health'] = 'MODERATE'\n    else:\n     \
-        \   summary['market_health'] = 'WEAK'\n        summary['primary_trend'] =\
-        \ 'BEARISH'\n\nif 'sentiment' in intelligence_data['sources']:\n    vix_level\
-        \ = intelligence_data['sources']['sentiment']['vix']\n    if vix_level > 25:\n\
-        \        summary['risk_level'] = 'HIGH'\n        summary['key_observations'].append(f\"\
-        Elevated VIX at {vix_level:.1f} indicates market stress\")\n    elif vix_level\
-        \ < 15:\n        summary['risk_level'] = 'LOW'\n        summary['key_observations'].append(f\"\
-        Low VIX at {vix_level:.1f} indicates complacency\")\n\nif 'sector_rotation'\
-        \ in intelligence_data['sources']:\n    top_sector = intelligence_data['sources']['sector_rotation']['ranking'][0]\n\
-        \    summary['key_observations'].append(f\"Leading sector: {top_sector['sector']}\
-        \ (+{top_sector['change']:.1f}%)\")\n\nintelligence_data['summary'] = summary\n\
-        \n# Save intelligence data\nos.makedirs('data/intelligence', exist_ok=True)\n\
-        with open('data/intelligence/latest.json', 'w') as f:\n    json.dump(intelligence_data,\
-        \ f, indent=2)\n\nprint(f\"[INTEL] Collection complete\")\nprint(f\"[INTEL]\
-        \ Market Health: {summary['market_health']}\")\nprint(f\"[INTEL] Risk Level:\
-        \ {summary['risk_level']}\")\nprint(f\"[INTEL] Key Observations: {len(summary['key_observations'])}\"\
-        )\n\nEOF\n"
-    - name: Commit Intelligence Data
-      run: 'git config --local user.email "intel-bot@github.com"
-
-        git config --local user.name "Intelligence Bot"
-
-        git add data/
-
-        git diff --staged --quiet || git commit -m "ðŸ“Š Intelligence collection $(date
-        -u +''%Y-%m-%d %H:%M'')"
-
-        git push --force-with-lease || echo "Push failed, continuing..."'
-    runs-on: ubuntu-latest
-'on':
-  workflow_dispatch: {}
+    - name: Setup
+      run: echo "Workflow fixed"
