@@ -4,6 +4,8 @@ obj/
 **/*.suo
 .vscode/
 .env.local
+.env
+**/.env
 
 # SSL certificates (auto-generated)
 certs/
