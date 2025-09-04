@@ -1,0 +1,223 @@
+{
+  "timestamp": "2025-09-04T18:56:59.554280",
+  "analysis_mode": "comprehensive",
+  "market_session": "regular",
+  "total_articles_processed": 10,
+  "sentiment_threshold": 0.3,
+  "instruments": {
+    "ES": {
+      "sentiment_score": 0.3,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Is Boston Scientific Stock Outperforming the S&P 500?",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/boston-scientific-stock-outperforming-p-083522690.html",
+          "published": "2025-09-03T08:35:22Z",
+          "relevance_keywords": [
+            "S&P"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "yahoo_finance"
+      ]
+    },
+    "NQ": {
+      "sentiment_score": -0.3,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Is Microchip Technology Stock Underperforming the Nasdaq?",
+          "sentiment": -0.3,
+          "textblob_score": 0.0,
+          "keyword_score": -1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/microchip-technology-stock-underperforming-nasdaq-091544117.html",
+          "published": "2025-09-03T09:15:44Z",
+          "relevance_keywords": [
+            "Nasdaq"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "yahoo_finance"
+      ]
+    },
+    "SPY": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
+    },
+    "QQQ": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
+    },
+    "BTC": {
+      "sentiment_score": 0.3,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Crypto Rally Falters as Trump Tokens, Stocks Come Under Pressure",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/crypto-rally-falters-as-trump-tokens-stocks-come-under-pressure",
+          "published": "Thu, 04 Sep 2025 17:55:54 GMT",
+          "relevance_keywords": [
+            "crypto"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
+    },
+    "TSLA": {
+      "sentiment_score": 0.31777777777777777,
+      "article_count": 3,
+      "articles": [
+        {
+          "title": "Google\u2019s Big Win Is Even Bigger for Apple",
+          "sentiment": 0.18666666666666665,
+          "textblob_score": 0.26666666666666666,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-03T09:30:00Z",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "House of Gucci Author Talks Giorgio Armani's Passing",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/house-of-gucci-author-talks-giorgio-armani-s-passing-video",
+          "published": "Thu, 04 Sep 2025 17:59:33 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "It will take a doozy of a jobs report to derail investor expectations for a September rate cut",
+          "sentiment": 0.41666666666666663,
+          "textblob_score": 0.16666666666666666,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/it-will-take-a-doozy-of-a-jobs-report-to-derail-investor-expectations-for-a-september-rate-cut-49100c49?mod=mw_rss_topstories",
+          "published": "Thu, 04 Sep 2025 18:18:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.3,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "marketwatch"
+      ]
+    },
+    "NVDA": {
+      "sentiment_score": -0.12,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Broadcom Earnings Run Headlong Into Stock\u2019s $730 Billion Rally",
+          "sentiment": -0.12,
+          "textblob_score": -0.6,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-earnings-run-headlong-into-stock-s-730-billion-rally",
+          "published": "Thu, 04 Sep 2025 08:46:01 GMT",
+          "relevance_keywords": [
+            "artificial intelligence"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.19722222222222222,
+      "article_count": 3,
+      "articles": [
+        {
+          "title": "Google\u2019s Big Win Is Even Bigger for Apple",
+          "sentiment": 0.18666666666666665,
+          "textblob_score": 0.26666666666666666,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-03T09:30:00Z",
+          "relevance_keywords": [
+            "Apple"
+          ]
+        },
+        {
+          "title": "Smaller Banks Tackle $395 Billion Bond Headache With Share Sales",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/smaller-banks-tackle-395-billion-bond-headache-with-share-sales",
+          "published": "Thu, 04 Sep 2025 18:12:42 GMT",
+          "relevance_keywords": [
+            "Apple"
+          ]
+        },
+        {
+          "title": "Ultragenyx Pharmaceutical Inc. (RARE) Presents At Cantor Global Healthcare Conference 2025 Transcript",
+          "sentiment": 0.105,
+          "textblob_score": 0.15,
+          "keyword_score": 0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4819641-ultragenyx-pharmaceutical-inc-rare-presents-at-cantor-global-healthcare-conference-2025?source=feed_all_articles",
+          "published": "Thu, 04 Sep 2025 14:27:06 -0400",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.3,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "seeking_alpha"
+      ]
+    }
+  },
+  "sources_used": [
+    "yahoo_finance",
+    "bloomberg",
+    "reuters",
+    "marketwatch",
+    "cnbc",
+    "seeking_alpha"
+  ]
+}

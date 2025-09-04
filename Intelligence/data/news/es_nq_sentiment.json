@@ -1,22 +1,22 @@
 {
-  "timestamp": "2025-09-03T23:37:55.959939",
+  "timestamp": "2025-09-04T19:01:43.722994",
+  "market_session": "regular",
+  "total_futures_articles": 0,
   "ES": {
     "sentiment": 0.0,
     "articles": [],
     "signal": "NEUTRAL",
-    "article_count": 0
+    "keywords_found": [],
+    "article_count": 0,
+    "unique_keywords": []
   },
   "NQ": {
-    "sentiment": 0.03571428571428571,
-    "articles": [
-      {
-        "title": "Bitcoin firm backed by Trump brothers jumps 110% in debut before pulling back. Is it a buy?",
-        "sentiment": 0.03571428571428571,
-        "source": "marketwatch",
-        "time": "Wed, 03 Sep 2025 22:35:00 GMT"
-      }
-    ],
+    "sentiment": 0.0,
+    "articles": [],
     "signal": "NEUTRAL",
-    "article_count": 1
-  }
+    "keywords_found": [],
+    "article_count": 0,
+    "unique_keywords": []
+  },
+  "analysis_type": "futures_deep_dive"
 }

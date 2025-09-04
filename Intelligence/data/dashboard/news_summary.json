@@ -1,0 +1,377 @@
+{
+  "timestamp": "2025-09-04T19:01:46.707519",
+  "analysis_mode": "comprehensive",
+  "market_session": "regular",
+  "workflow_run": "2",
+  "comprehensive_sentiment": {
+    "timestamp": "2025-09-04T18:56:59.554280",
+    "analysis_mode": "comprehensive",
+    "market_session": "regular",
+    "total_articles_processed": 10,
+    "sentiment_threshold": 0.3,
+    "instruments": {
+      "ES": {
+        "sentiment_score": 0.3,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Is Boston Scientific Stock Outperforming the S&P 500?",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/boston-scientific-stock-outperforming-p-083522690.html",
+            "published": "2025-09-03T08:35:22Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
+      },
+      "NQ": {
+        "sentiment_score": -0.3,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Is Microchip Technology Stock Underperforming the Nasdaq?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/microchip-technology-stock-underperforming-nasdaq-091544117.html",
+            "published": "2025-09-03T09:15:44Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
+      },
+      "SPY": {
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
+      },
+      "QQQ": {
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
+      },
+      "BTC": {
+        "sentiment_score": 0.3,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Crypto Rally Falters as Trump Tokens, Stocks Come Under Pressure",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-04/crypto-rally-falters-as-trump-tokens-stocks-come-under-pressure",
+            "published": "Thu, 04 Sep 2025 17:55:54 GMT",
+            "relevance_keywords": [
+              "crypto"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "bloomberg"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.31777777777777777,
+        "article_count": 3,
+        "articles": [
+          {
+            "title": "Google\u2019s Big Win Is Even Bigger for Apple",
+            "sentiment": 0.18666666666666665,
+            "textblob_score": 0.26666666666666666,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-03T09:30:00Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "House of Gucci Author Talks Giorgio Armani's Passing",
+            "sentiment": 0.35,
+            "textblob_score": 0.5,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-04/house-of-gucci-author-talks-giorgio-armani-s-passing-video",
+            "published": "Thu, 04 Sep 2025 17:59:33 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "It will take a doozy of a jobs report to derail investor expectations for a September rate cut",
+            "sentiment": 0.41666666666666663,
+            "textblob_score": 0.16666666666666666,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/it-will-take-a-doozy-of-a-jobs-report-to-derail-investor-expectations-for-a-september-rate-cut-49100c49?mod=mw_rss_topstories",
+            "published": "Thu, 04 Sep 2025 18:18:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.3,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg",
+          "marketwatch"
+        ]
+      },
+      "NVDA": {
+        "sentiment_score": -0.12,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Broadcom Earnings Run Headlong Into Stock\u2019s $730 Billion Rally",
+            "sentiment": -0.12,
+            "textblob_score": -0.6,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-earnings-run-headlong-into-stock-s-730-billion-rally",
+            "published": "Thu, 04 Sep 2025 08:46:01 GMT",
+            "relevance_keywords": [
+              "artificial intelligence"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "bloomberg"
+        ]
+      },
+      "AAPL": {
+        "sentiment_score": 0.19722222222222222,
+        "article_count": 3,
+        "articles": [
+          {
+            "title": "Google\u2019s Big Win Is Even Bigger for Apple",
+            "sentiment": 0.18666666666666665,
+            "textblob_score": 0.26666666666666666,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-03T09:30:00Z",
+            "relevance_keywords": [
+              "Apple"
+            ]
+          },
+          {
+            "title": "Smaller Banks Tackle $395 Billion Bond Headache With Share Sales",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-04/smaller-banks-tackle-395-billion-bond-headache-with-share-sales",
+            "published": "Thu, 04 Sep 2025 18:12:42 GMT",
+            "relevance_keywords": [
+              "Apple"
+            ]
+          },
+          {
+            "title": "Ultragenyx Pharmaceutical Inc. (RARE) Presents At Cantor Global Healthcare Conference 2025 Transcript",
+            "sentiment": 0.105,
+            "textblob_score": 0.15,
+            "keyword_score": 0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4819641-ultragenyx-pharmaceutical-inc-rare-presents-at-cantor-global-healthcare-conference-2025?source=feed_all_articles",
+            "published": "Thu, 04 Sep 2025 14:27:06 -0400",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.3,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg",
+          "seeking_alpha"
+        ]
+      }
+    },
+    "sources_used": [
+      "yahoo_finance",
+      "bloomberg",
+      "reuters",
+      "marketwatch",
+      "cnbc",
+      "seeking_alpha"
+    ]
+  },
+  "futures_analysis": {
+    "timestamp": "2025-09-04T19:01:43.722994",
+    "market_session": "regular",
+    "total_futures_articles": 0,
+    "ES": {
+      "sentiment": 0.0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "keywords_found": [],
+      "article_count": 0,
+      "unique_keywords": []
+    },
+    "NQ": {
+      "sentiment": 0.0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "keywords_found": [],
+      "article_count": 0,
+      "unique_keywords": []
+    },
+    "analysis_type": "futures_deep_dive"
+  },
+  "gdelt_data": {
+    "timestamp": "2025-09-04T18:56:56.892579",
+    "total_articles": 15,
+    "keywords_searched": [
+      "stock market",
+      "trading",
+      "futures"
+    ],
+    "articles": [
+      {
+        "title": "Borsa neden d\u00fc\u015ft\u00fc ? 13 Haziran 2025 Cuma Borsa \u0130stanbul BIST 100 endeksi ile borsa bug\u00fcn neden d\u00fc\u015f\u00fcyor ? ",
+        "url": "https://www.haberturk.com/borsa-neden-dustu-13-haziran-2025-cuma-borsa-istanbul-bist-100-endeksi-ile-borsa-bugun-neden-dusuyor-3799153",
+        "source": "haberturk.com",
+        "date": "20250613T161500Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "BFM Bourse : 16h / 17h \u2013 13 / 06",
+        "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/bfm-bourse-16h-17h-13-06_EN-202506130572.html",
+        "source": "bfmtv.com",
+        "date": "20250613T170000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "USA Today : Le patron de Boeing annule sa visite au Salon du Bourget , par John Plassard \u2013 13 / 06",
+        "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/usa-today-le-patron-de-boeing-annule-sa-visite-au-salon-du-bourget-par-john-plassard-13-06_EN-202506130526.html",
+        "source": "bfmtv.com",
+        "date": "20250613T144500Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
+        "url": "http://www.haberler.com/finans/borsa/",
+        "source": "haberler.com",
+        "date": "20250902T144500Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 19 A\u011fustos 2025 Sal\u0131 ) ",
+        "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-19-agustos-2025-sali/511732/",
+        "source": "finans.mynet.com",
+        "date": "20250819T103000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
+        "url": "https://www.koreastardaily.com/tc/news/159375",
+        "source": "koreastardaily.com",
+        "date": "20250822T063000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Why Dayforce Shares Are Trading Higher By Around 21 %; Here Are 20 Stocks Moving Premarket - Advent Technologies Hldgs ( NASDAQ : ADN ), Adaptimmune Therapeutics ( NASDAQ : ADAP ) ",
+        "url": "https://www.benzinga.com/news/25/08/47181278/why-dayforce-shares-are-trading-higher-by-around-21-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250818T131500Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Forex Trading Application : Your Gateway to the Currency Markets",
+        "url": "https://news.webindia123.com/news/Articles/Business/20250820/4351850.html",
+        "source": "news.webindia123.com",
+        "date": "20250820T070000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Why RH Shares Are Trading Higher By Around 18 %; Here Are 20 Stocks Moving Premarket - bioAffinity Technologies ( NASDAQ : BIAF ), Adobe ( NASDAQ : ADBE ) ",
+        "url": "https://www.benzinga.com/trading-ideas/movers/25/06/45920832/why-rh-shares-are-trading-higher-by-around-18-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250613T093000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "JustMarkets Trading App : Nigeria Fastest Growing Trading P",
+        "url": "https://punchng.com/justmarkets-trading-app-a-review-on-nigerias-fastest-growing-forex-app/",
+        "source": "punchng.com",
+        "date": "20250820T093000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "\u671f\u8d27\u4e1a\u53c8\u4e00\u6b21\u9ad8\u5c42  \u5927\u6362\u8840  |\u5e7f\u53d1|\u8bc1\u5238|\u4e2d\u671f\u534f|\u671f\u8d27\u5e02\u573a _ \u7f51\u6613\u8ba2\u9605",
+        "url": "https://www.163.com/dy/article/K84R0E8S0519DTSV.html",
+        "source": "163.com",
+        "date": "20250829T063000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u6052\u9038\u77f3\u5316 ( 000703 ): \u671f\u8d27\u5957\u671f\u4fdd\u503c\u4e1a\u52a1\u7ba1\u7406\u5236\u5ea6 - CFi . CN \u4e2d\u8d22\u7f51",
+        "url": "http://www.cfi.net.cn/p20250818003177.html",
+        "source": "cfi.net.cn",
+        "date": "20250818T144500Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u7ade\u4e89\u683c\u5c40\u751f\u53d8 \uff01 \u4e0a\u5e02\u671f\u8d27\u516c\u53f8\u8425\u6536  \u4e09\u8dcc\u4e00\u5347  |\u738b\u9a8f|\u5f18\u4e1a\u671f\u8d27|\u6c38\u5b89\u671f\u8d27",
+        "url": "https://www.163.com/dy/article/K8JU07K00519DTSV.html",
+        "source": "163.com",
+        "date": "20250904T030000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u671f\u8d27\u5e02\u573a\u4ea4\u6295\u6d3b\u8dc3 -- \u7ecf\u6d4e \u00b7 \u79d1\u6280 -- \u4eba\u6c11\u7f51",
+        "url": "http://finance.people.com.cn/n1/2025/0726/c1004-40530039.html",
+        "source": "finance.people.com.cn",
+        "date": "20250726T043000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u671f\u8d27\u4e1a\u8fce\u6765\u4e92\u8054\u7f51\u8425\u9500\u7ba1\u7406\u65b0\u89c4 10\u67089\u65e5\u8d77\u6b63\u5f0f\u5b9e\u65bd _ \u671f\u8d27 _ \u91d1\u878d\u9891\u9053\u9996\u9875 _ \u8d22\u7ecf\u7f51 - CAIJING . COM . CN",
+        "url": "http://finance.caijing.com.cn/20250826/5109314.shtml",
+        "source": "finance.caijing.com.cn",
+        "date": "20250826T041500Z",
+        "keyword": "futures"
+      }
+    ]
+  },
+  "overall_market_sentiment": "NEUTRAL",
+  "high_confidence_signals": [],
+  "data_sources_used": [
+    "yahoo_finance",
+    "bloomberg",
+    "reuters",
+    "marketwatch",
+    "cnbc",
+    "seeking_alpha"
+  ]
+}
