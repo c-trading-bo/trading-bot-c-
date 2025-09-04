@@ -1,0 +1,47 @@
+{
+  "SPY": {
+    "price": 645.9299926757812,
+    "implied_vol": 0.7482283068053814,
+    "delta_approx": 0.5,
+    "gamma_approx": 0.7217158111694876,
+    "theta_approx": -12.918599853515625,
+    "vega_approx": 1.851823733671056,
+    "timestamp": "2025-09-04T15:39:42.124932"
+  },
+  "QQQ": {
+    "price": 571.8150024414062,
+    "implied_vol": 1.2876161967423925,
+    "delta_approx": 0.5,
+    "gamma_approx": 0.4737441152992797,
+    "theta_approx": -11.436300048828125,
+    "vega_approx": 1.6393426606552925,
+    "timestamp": "2025-09-04T15:39:42.187446"
+  },
+  "AAPL": {
+    "price": 236.92999267578125,
+    "implied_vol": 2.8662220284372064,
+    "delta_approx": 0.5,
+    "gamma_approx": 0.5136365667492294,
+    "theta_approx": -4.738599853515625,
+    "vega_approx": 0.6792571774504192,
+    "timestamp": "2025-09-04T15:39:42.241418"
+  },
+  "TSLA": {
+    "price": 335.2749938964844,
+    "implied_vol": 3.8823824864059517,
+    "delta_approx": 0.5,
+    "gamma_approx": 0.2679700901759969,
+    "theta_approx": -6.705499877929688,
+    "vega_approx": 0.9612035329586691,
+    "timestamp": "2025-09-04T15:39:42.319733"
+  },
+  "NVDA": {
+    "price": 170.5,
+    "implied_vol": 2.8438272882574616,
+    "delta_approx": 0.5,
+    "gamma_approx": 0.7193797429230195,
+    "theta_approx": -3.41,
+    "vega_approx": 0.488808307666549,
+    "timestamp": "2025-09-04T15:39:42.375466"
+  }
+}
