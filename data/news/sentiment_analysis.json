@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-04T20:58:22.495206",
+  "timestamp": "2025-09-04T21:56:13.418918",
   "analysis_mode": "comprehensive",
-  "market_session": "regular",
-  "total_articles_processed": 13,
+  "market_session": "extended",
+  "total_articles_processed": 16,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.35833333333333334,
-      "article_count": 1,
+      "sentiment_score": 0.32916666666666666,
+      "article_count": 2,
       "articles": [
         {
           "title": "Why it\u2019s getting easier for active managers to beat the S&P 500 in 2025",
@@ -20,21 +20,49 @@
           "relevance_keywords": [
             "S&P"
           ]
+        },
+        {
+          "title": "VOO Vs. JEPI: The Latter Is Likely To Outperform The S&P 500 In 2025",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4819730-voo-vs-jepi-the-latter-likely-to-outperform-the-sp500-in-2025?source=feed_all_articles",
+          "published": "Thu, 04 Sep 2025 17:28:42 -0400",
+          "relevance_keywords": [
+            "S&P"
+          ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.1,
+      "confidence": 0.2,
       "sources": [
-        "marketwatch"
+        "marketwatch",
+        "seeking_alpha"
       ]
     },
     "NQ": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": 0.09545454545454544,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Invesco QQQ Sponsor Spotlight",
+          "sentiment": 0.09545454545454544,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/invesco-qqq-sponsor-spotlight-video",
+          "published": "Thu, 04 Sep 2025 20:53:52 GMT",
+          "relevance_keywords": [
+            "QQQ"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -45,38 +73,52 @@
       "sources": []
     },
     "QQQ": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": 0.09545454545454544,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Invesco QQQ Sponsor Spotlight",
+          "sentiment": 0.09545454545454544,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/invesco-qqq-sponsor-spotlight-video",
+          "published": "Thu, 04 Sep 2025 20:53:52 GMT",
+          "relevance_keywords": [
+            "Invesco QQQ"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
     },
     "BTC": {
-      "sentiment_score": 0.2375,
+      "sentiment_score": 0.23249999999999998,
       "article_count": 2,
       "articles": [
         {
-          "title": "Bitcoin, XRP, Ethereum Rise. Why Cryptos Are Poised to Charge Higher.",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
+          "title": "Is It Too Late To Buy Bitcoin?",
+          "sentiment": 0.09,
+          "textblob_score": -0.3,
+          "keyword_score": 1.0,
           "source": "yahoo_finance",
-          "url": "https://www.barrons.com/articles/bitcoin-price-xrp-ethereum-crypto-figure-ipo-88c6e65a?siteid=yhoof2&yptr=yahoo",
-          "published": "2025-09-03T12:23:00Z",
+          "url": "https://finance.yahoo.com/news/too-buy-bitcoin-135653365.html",
+          "published": "2025-09-03T13:56:53Z",
           "relevance_keywords": [
-            "Bitcoin",
-            "crypto"
+            "Bitcoin"
           ]
         },
         {
-          "title": "This group could put a stop to crypto and private equity in your 401(k)",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
+          "title": "KuCoin Presents KuMining: Embodying \"Simple Mining, Smart Gains\" for Effortless Crypto Accumulation",
+          "sentiment": 0.375,
+          "textblob_score": 0.10714285714285714,
           "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/401-k-plans-are-opening-to-private-equity-and-crypto-but-this-group-could-put-a-stop-to-it-8602693a?mod=mw_rss_topstories",
-          "published": "Thu, 04 Sep 2025 19:17:00 GMT",
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/kucoin-presents-kumining-embodying-simple-140500553.html",
+          "published": "2025-09-03T14:05:00Z",
           "relevance_keywords": [
             "crypto"
           ]
@@ -85,36 +127,70 @@
       "signal": "NEUTRAL",
       "confidence": 0.2,
       "sources": [
-        "yahoo_finance",
-        "marketwatch"
+        "yahoo_finance"
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.14871364688552186,
-      "article_count": 8,
+      "sentiment_score": 0.16162012987012986,
+      "article_count": 7,
       "articles": [
         {
-          "title": "Alibaba (BABA) Reinvents Itself as AI + Everyday Consumption App, Analyst Says",
-          "sentiment": -0.13999999999999999,
-          "textblob_score": -0.2,
-          "keyword_score": 0,
+          "title": "'Cyber Incident' Severely Disrupts Jaguar Land Rover Production",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/alibaba-baba-reinvents-itself-ai-122720774.html",
-          "published": "2025-09-03T12:27:20Z",
+          "url": "https://finance.yahoo.com/news/cyber-incident-severely-disrupts-jaguar-134659453.html",
+          "published": "2025-09-03T13:46:59Z",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "EV Armageddon? Tesla, GM, Ford EV sales will be cut in half when tax credit expires, analyst says.",
-          "sentiment": -0.11666666666666665,
-          "textblob_score": -0.16666666666666666,
+          "title": "Tesla Now Has an India Problem. What Does That Mean for Hard-Hit TSLA Stock?",
+          "sentiment": -0.21875,
+          "textblob_score": -0.3125,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/ev-armageddon-tesla-gm-ford-ev-sales-will-be-cut-in-half-when-tax-credit-expires-analyst-says-124602947.html",
-          "published": "2025-09-03T12:46:02Z",
+          "url": "https://finance.yahoo.com/news/tesla-now-india-problem-does-140833058.html",
+          "published": "2025-09-03T14:08:33Z",
           "relevance_keywords": [
-            "Tesla",
+            "Tesla"
+          ]
+        },
+        {
+          "title": "Lots More on the Big Problem With the Monthly Jobs Report",
+          "sentiment": 0.175,
+          "textblob_score": 0.25,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/steven-englander-previews-the-august-jobs-report",
+          "published": "Thu, 04 Sep 2025 21:36:12 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Lots More on the Problems With the Monthly Jobs Report (Podcast)",
+          "sentiment": 0.400625,
+          "textblob_score": 0.14375000000000002,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/audio/2025-09-04/what-wrong-with-the-monthly-jobs-report-odd-lots",
+          "published": "Thu, 04 Sep 2025 21:23:44 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Don Garber on World Cup 2026 & MLS Growth",
+          "sentiment": 0.2718409090909091,
+          "textblob_score": -0.040227272727272737,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/don-garber-on-world-cup-2026-mls-growth-video",
+          "published": "Thu, 04 Sep 2025 21:07:44 GMT",
+          "relevance_keywords": [
             "EV"
           ]
         },
@@ -131,68 +207,20 @@
           ]
         },
         {
-          "title": "Broadcom\u2019s Upbeat Forecast Fails to Wow Investors After Rally",
-          "sentiment": 0.174,
-          "textblob_score": -0.18,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
-          "published": "Thu, 04 Sep 2025 20:17:48 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Affirm 'Firing on All Pistons' in Pay Now, Buy Later Boom",
-          "sentiment": 0.39804713804713804,
-          "textblob_score": 0.1400673400673401,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-04/affirm-ceo-company-firing-on-all-pistons-video",
-          "published": "Thu, 04 Sep 2025 20:30:15 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Miran Touts Fed Independence at Confirmation Hearing | Bloomberg Businessweek Daily 9/4/2025",
-          "sentiment": 0.06370370370370368,
-          "textblob_score": -0.051851851851851864,
-          "keyword_score": 0.3333333333333333,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-04/bloomberg-businessweek-daily-9-4-2025-video",
-          "published": "Thu, 04 Sep 2025 20:25:48 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "China\u2019s DeepSeek Develops Advanced AI Agents",
-          "sentiment": 0.6033333333333333,
-          "textblob_score": 0.43333333333333335,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-04/china-s-deepseek-develops-advanced-ai-agents-video",
-          "published": "Thu, 04 Sep 2025 20:19:10 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "It will take a doozy of a jobs report to derail investor expectations for a September rate cut",
-          "sentiment": 0.41666666666666663,
-          "textblob_score": 0.16666666666666666,
+          "title": "Broadcom shares rise as it sees 63% growth in AI sales and gives a rosy forecast",
+          "sentiment": 0.412,
+          "textblob_score": 0.16,
           "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/it-will-take-a-doozy-of-a-jobs-report-to-derail-investor-expectations-for-a-september-rate-cut-49100c49?mod=mw_rss_topstories",
-          "published": "Thu, 04 Sep 2025 18:18:00 GMT",
+          "url": "https://www.marketwatch.com/story/broadcom-sees-63-growth-in-ai-sales-and-gives-a-rosy-forecast-why-isnt-its-stock-rising-more-e2c79ebe?mod=mw_rss_topstories",
+          "published": "Thu, 04 Sep 2025 21:19:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.8,
+      "confidence": 0.7,
       "sources": [
         "yahoo_finance",
         "bloomberg",
@@ -200,39 +228,54 @@
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
-    },
-    "AAPL": {
-      "sentiment_score": 0.052,
-      "article_count": 2,
+      "sentiment_score": 0.22125,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Google and Apple stock prices are on the rise after the search giant avoided harsh consequences in antitrust case",
-          "sentiment": -0.06999999999999999,
-          "textblob_score": -0.1,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/google-apple-stock-prices-rise-123500084.html",
-          "published": "2025-09-03T12:35:00Z",
-          "relevance_keywords": [
-            "Apple"
-          ]
-        },
-        {
-          "title": "Broadcom\u2019s Upbeat Forecast Fails to Wow Investors After Rally",
-          "sentiment": 0.174,
-          "textblob_score": -0.18,
+          "title": "Broadcom CEO Promises That AI Sales Outlook Will Improve in 2026",
+          "sentiment": 0.22125,
+          "textblob_score": -0.11249999999999999,
           "keyword_score": 1.0,
           "source": "bloomberg",
           "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
           "published": "Thu, 04 Sep 2025 20:17:48 GMT",
           "relevance_keywords": [
+            "artificial intelligence"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.19772727272727272,
+      "article_count": 2,
+      "articles": [
+        {
+          "title": "Stocks Climb as Alphabet and Apple Rally and Bond Yields Stabilize",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/stocks-climb-alphabet-apple-rally-135730966.html",
+          "published": "2025-09-03T13:57:30Z",
+          "relevance_keywords": [
             "Apple"
+          ]
+        },
+        {
+          "title": "Invesco QQQ Sponsor Spotlight",
+          "sentiment": 0.09545454545454544,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-04/invesco-qqq-sponsor-spotlight-video",
+          "published": "Thu, 04 Sep 2025 20:53:52 GMT",
+          "relevance_keywords": [
+            "Mac"
           ]
         }
       ],
