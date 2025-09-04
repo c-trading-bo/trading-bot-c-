@@ -1,14 +1,19 @@
 name: 🧠 Copilot Enterprise AI Mechanic
 
 on:
+  # Regular health checks every 2 hours
+  schedule:
+    - cron: '0 */2 * * *'  # Every 2 hours (12 times per day)
+  
+  # Immediate response to workflow failures
   workflow_run:
     workflows: ["*"]
     types:
       - completed
+    branches: [main]
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
   
-  # schedule:
-  #   - cron: '*/30 * * * *'  # Every 30 minutes - DISABLED temporarily
-  
+  # Manual trigger for on-demand analysis
   workflow_dispatch:
     inputs:
       action:
