@@ -1,7 +1,9 @@
 name: Intermarket Correlations
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Every 10 min (24/7)
+    # OPTIMIZED INTERMARKET (TIER 4)
+    - cron: '0 16 * * 1-5'  # Daily at 11 AM EST (market hours)
+    # Total: 1 run/day
   workflow_dispatch:
 
 

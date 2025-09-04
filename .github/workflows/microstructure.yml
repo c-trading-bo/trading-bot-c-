@@ -1,7 +1,9 @@
 ﻿name: Microstructure Analysis
 on:
   schedule:
-    - cron: '*/5 14-21 * * 1-5'  # Every 5 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
+    # OPTIMIZED MICROSTRUCTURE ANALYSIS (TIER 1)
+    # Market hours focus - Budget optimized
+    - cron: '*/30 14-21 * * 1-5'  # Every 30 min market hours (16 runs/day)
   workflow_dispatch:
 
 permissions:

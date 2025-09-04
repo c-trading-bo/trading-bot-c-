@@ -1,7 +1,9 @@
 name: Overnight Session Analysis
 on:
   schedule:
-    - cron: '0 8 * * *'  # Daily 8:00 UTC (3:00 AM EST)
+    # OPTIMIZED OVERNIGHT (TIER 4)
+    - cron: '0 22 * * 1-4'  # Weeknights at 5 PM EST (after market close)
+    # Total: 4 runs/week
   workflow_dispatch:
 
 

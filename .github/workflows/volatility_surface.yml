@@ -1,7 +1,9 @@
 name: Volatility Surface Analysis
 on:
   schedule:
-    - cron: '0 * * * *'  # Hourly (24/7)
+    # OPTIMIZED VOLATILITY SURFACE (TIER 4)
+    - cron: '0 14 * * 1-5'  # Daily at 9 AM EST (pre-market)
+    # Total: 1 run/day
   workflow_dispatch:
 
 

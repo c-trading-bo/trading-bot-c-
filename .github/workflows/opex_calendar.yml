@@ -1,7 +1,9 @@
 name: OPEX Calendar Tracking
 on:
   schedule:
-    - cron: '0 10 * * 1'  # Mondays 10:00 UTC
+    # OPTIMIZED OPEX CALENDAR (TIER 5)
+    - cron: '0 7 15 * *'  # Monthly on 15th at 2 AM EST
+    # Total: 1 run/month
   workflow_dispatch:
 
 

@@ -1,7 +1,9 @@
 name: Supply Demand Zones Identifier
 on:
   schedule:
-    - cron: '*/30 14-21 * * 1-5'  # Every 30 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
+    # OPTIMIZED ZONES IDENTIFIER (TIER 4)
+    - cron: '0 13 * * 1-5'  # Daily at 8 AM EST (pre-market analysis)
+    # Total: 1 run/day
   workflow_dispatch:
 
 

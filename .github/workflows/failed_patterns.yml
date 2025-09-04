@@ -1,7 +1,8 @@
 name: Failed Patterns Detection
 on:
   schedule:
-    - cron: '*/15 14-21 * * 1-5'  # Every 15 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
+    # OPTIMIZED PATTERN ANALYSIS (TIER 3)
+    - cron: '0 */6 * * 1-5'  # Every 6 hours on weekdays (4 runs/day)
   workflow_dispatch:
 
 
