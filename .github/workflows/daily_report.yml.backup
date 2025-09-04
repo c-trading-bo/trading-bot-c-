@@ -1,6 +1,6 @@
 ﻿name: Intelligence - Daily Report
 
-"on":
+on:
   schedule:
     # 24/7 TRADING INTELLIGENCE REPORTS (SESSION-ALIGNED REPORTING)
     # Asian Session Opening Report (18:00 CT)

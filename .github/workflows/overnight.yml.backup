@@ -1,5 +1,5 @@
 name: Overnight Session Analysis
-"on":
+on:
   schedule:
     # 24/7 OVERNIGHT SESSION ANALYSIS (ENTERPRISE OPTIMIZED)
     # ASIAN SESSION ANALYSIS (18:00-23:59 CT - NQ Primary)

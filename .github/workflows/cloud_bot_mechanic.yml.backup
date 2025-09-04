@@ -1,6 +1,6 @@
 name: "🤖 Cloud Bot Mechanic - System Health Monitor"
 
-"on":
+on:
   schedule:
     # 24/7 SYSTEM HEALTH MONITORING (ENTERPRISE RELIABILITY)
     # Continuous monitoring with higher frequency during active trading

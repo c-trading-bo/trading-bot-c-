@@ -1,5 +1,5 @@
 name: Volatility Surface Analysis
-"on":
+on:
   schedule:
     # 24/7 VOLATILITY SURFACE MONITORING (CRITICAL FOR OPTIONS TRADING)
     # Asian Session (18:00-23:59 CT) - Monitor crypto/futures volatility

@@ -1,6 +1,6 @@
 name: "🔍📊 ULTIMATE Market Regime Detection Pipeline (Mega-System)"
 
-"on":
+on:
   schedule:
     # 24/7 REGIME DETECTION FOR GLOBAL MARKETS (ENTERPRISE OPTIMIZED)
     # Asian Session (18:00-23:59 CT) - NQ primary focus

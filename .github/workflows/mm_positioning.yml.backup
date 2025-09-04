@@ -1,5 +1,5 @@
 name: Market Maker Positioning
-"on":
+on:
   schedule:
     # 24/7 MARKET MAKER POSITIONING (CRITICAL FOR LIQUIDITY ANALYSIS)
     # Asian Session (18:00-23:59 CT) - Monitor Asian MM activity

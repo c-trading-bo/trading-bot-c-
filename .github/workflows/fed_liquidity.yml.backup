@@ -1,5 +1,5 @@
 name: Fed Liquidity Analysis
-"on":
+on:
   schedule:
     # ENHANCED FED LIQUIDITY MONITORING (CRITICAL FOR MACRO TRADING)
     # Daily Fed data monitoring during active periods

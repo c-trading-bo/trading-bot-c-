@@ -1,6 +1,6 @@
 name: "🔨⚡ ULTIMATE Build & CI Pipeline (Mega-System)"
 
-"on":
+on:
   push:
     branches: [main, master]
   pull_request:

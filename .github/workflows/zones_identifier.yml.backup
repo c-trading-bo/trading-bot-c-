@@ -1,5 +1,5 @@
 name: Supply Demand Zones Identifier
-"on":
+on:
   schedule:
     # 24/7 SUPPLY/DEMAND ZONES ANALYSIS (CRITICAL FOR LEVEL TRADING)
     # Asian Session (18:00-23:59 CT) - NQ key level identification

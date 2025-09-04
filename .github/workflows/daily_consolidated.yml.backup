@@ -1,6 +1,6 @@
 name: Daily Consolidated Tasks (Team)
 
-"on":
+on:
   schedule:
     # 24/7 CONSOLIDATED TASKS (SESSION-ALIGNED MAINTENANCE)
     # Asian Session Daily Tasks (19:00 CT)
