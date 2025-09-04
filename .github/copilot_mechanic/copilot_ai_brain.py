@@ -35,9 +35,9 @@ class GitHubCopilotAIBrain:
             print("📋 Using basic pattern analysis only")
         
         self.thresholds = {
-            'auto_fix': 0.85,
-            'pr_create': 0.60,
-            'log_only': 0.30
+            'auto_fix': 0.95,  # Only auto-fix with 95%+ confidence
+            'pr_create': 0.85,  # Create PR with 85%+ confidence  
+            'log_only': 0.50   # Log analysis with 50%+ confidence
         }
         
         self.knowledge_base = {

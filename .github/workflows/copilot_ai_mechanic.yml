@@ -6,8 +6,8 @@ on:
     types:
       - completed
   
-  schedule:
-    - cron: '*/30 * * * *'  # Every 30 minutes
+  # schedule:
+  #   - cron: '*/30 * * * *'  # Every 30 minutes - DISABLED temporarily
   
   workflow_dispatch:
     inputs:

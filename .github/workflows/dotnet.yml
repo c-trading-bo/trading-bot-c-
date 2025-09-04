@@ -1,4 +1,5 @@
-name: Fixed Workflow
+name: .NET Build and Test
+
 on:
   workflow_dispatch:
   push:
@@ -9,7 +10,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v4
-    - name: Setup
-      run: echo "Workflow fixed"
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore TopstepX.Bot.sln
+    
+    - name: Build
+      run: dotnet build TopstepX.Bot.sln --no-restore --configuration Release
+    
+    - name: Test
+      run: dotnet test TopstepX.Bot.sln --no-build --configuration Release --verbosity normal
