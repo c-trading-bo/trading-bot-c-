@@ -15,14 +15,27 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-    - name: Checkout repository
+    - name: 📥 Checkout Repository (Optimized)
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 1  # ⚡ Speed: Only latest commit
       
-    - name: Set up Python
+    - name: 🐍 Setup Python with Caching
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-        
+        cache: 'pip'  # ⚡ Speed: Cache pip packages
+
+    # ⚡ SPEED OPTIMIZATION: Cache Python dependencies
+    - name: 💾 Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-daily_report-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-daily_report-
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -30,11 +43,15 @@ jobs:
         
     - name: Generate trading signals
       run: |
-        python Intelligence/scripts/generate_signals.py
+        # ⚡ Speed: Timeout protection
+        timeout 300 python Intelligence/scripts/generate_signals.py
+        echo "Completed or timed out safely"
         
     - name: Generate daily report
       run: |
-        python Intelligence/scripts/generate_daily_report.py
+        # ⚡ Speed: Timeout protection
+        timeout 300 python Intelligence/scripts/generate_daily_report.py
+        echo "Completed or timed out safely"
         
     - name: Upload signals and reports
       uses: actions/upload-artifact@v4

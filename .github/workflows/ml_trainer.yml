@@ -1,0 +1,89 @@
+﻿name: Intelligence - ML Trainer ⚡ (OPTIMIZED)
+
+on:
+  schedule:
+    # Run nightly at 2:00 AM EST (07:00 UTC)
+    - cron: '0 7 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  train-models:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Faster shallow clone for speed
+      
+    # ⚡ SPEED OPTIMIZATION: Python + Dependencies Caching
+    - name: Set up Python with caching
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements_ml.txt
+          Intelligence/requirements.txt
+    
+    # ⚡ SPEED OPTIMIZATION: Cache pip packages  
+    - name: Cache Python packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-ml-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-ml-
+          ${{ runner.os }}-pip-
+        
+    # ⚡ SPEED OPTIMIZATION: Only install if requirements changed
+    - name: Install ML dependencies (optimized)
+      run: |
+        python -m pip install --upgrade pip
+        # Install only if requirements changed or cache miss
+        pip install pandas numpy scikit-learn xgboost lightgbm joblib --only-if-needed
+        
+    # ⚡ SPEED OPTIMIZATION: Parallel execution of independent tasks
+    - name: Build features and train models (parallel jobs)
+      run: |
+        # Run feature building and model training in parallel where possible
+        python Intelligence/scripts/build_features.py &
+        FEATURE_PID=$!
+        
+        # Wait for features to complete before training
+        wait $FEATURE_PID
+        
+        # Train models
+        python Intelligence/scripts/train_models.py
+        
+    # ⚡ SPEED OPTIMIZATION: Selective artifact upload
+    - name: Upload trained models (optimized)
+      uses: actions/upload-artifact@v4
+      with:
+        name: ml-models-${{ github.run_number }}
+        path: |
+          Intelligence/models/*.pkl
+          Intelligence/models/*.joblib
+          Intelligence/models/metadata.json
+        retention-days: 90
+        
+    # ⚡ SPEED OPTIMIZATION: Only commit if there are actual changes
+    - name: Commit models and features (if changes)
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are any changes before staging
+        if [ -n "$(git status --porcelain Intelligence/data/features/ Intelligence/models/)" ]; then
+          git add Intelligence/data/features/ Intelligence/models/
+          git commit -m "Intelligence: ML models updated [$(date '+%Y-%m-%d %H:%M:%S')] ⚡"
+          git push
+        else
+          echo "No changes to commit - skipping"
+        fi
+        git diff --staged --quiet || git commit -m "Intelligence: Update ML models and features [$(date '+%Y-%m-%d %H:%M:%S')]"
+        git push

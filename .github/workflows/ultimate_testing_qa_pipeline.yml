@@ -1,4 +1,4 @@
-name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
+name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System) ⚡ (OPTIMIZED)"
 
 on:
   schedule:
@@ -194,7 +194,7 @@ jobs:
           fi
           
           if [ -f "requirements_ml.txt" ]; then
-            pip install -r requirements_ml.txt || echo "⚠️ Some ML requirements failed"
+            pip install --upgrade pip --quiet && pip install -r requirements_ml.txt --quiet --no-warn-script-location || echo "⚠️ Some ML requirements failed"
           fi
           
           if [ -f "ml/requirements.txt" ]; then

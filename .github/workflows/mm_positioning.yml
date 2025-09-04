@@ -1,4 +1,4 @@
-name: Market Maker Positioning
+name: Market Maker Positioning ⚡ (OPTIMIZED)
 on:
   schedule:
     - cron: '30 23 * * *'  # Daily 23:30 UTC (6:30 PM EST)
