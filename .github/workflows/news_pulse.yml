@@ -2,8 +2,8 @@
 
 on:
   schedule:
-    # Run every 5 minutes during market hours (9:30 AM - 4:00 PM ET on weekdays)
-    - cron: '*/5 13-21 * * 1-5'  # UTC time for ET market hours
+    # Run every 5 minutes during market hours (9:30 AM - 4:00 PM EST on weekdays)
+    - cron: '*/5 14-21 * * 1-5'  # UTC time for EST market hours (9:30 AM - 4:00 PM EST)
   workflow_dispatch:  # Allow manual triggering
 
 jobs:

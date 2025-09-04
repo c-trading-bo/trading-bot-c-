@@ -1,7 +1,7 @@
 ﻿name: Options Flow Analysis
 on:
   schedule:
-    - cron: '*/15 9-15 * * 1-5'  # Every 15 min RTH (9 AM - 3 PM UTC, Mon-Fri)
+    - cron: '*/15 14-21 * * 1-5'  # Every 15 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
   workflow_dispatch:
 
 jobs:

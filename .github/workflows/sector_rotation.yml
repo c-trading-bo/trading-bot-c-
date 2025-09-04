@@ -1,7 +1,7 @@
 ﻿name: Sector Rotation Analysis
 on:
   schedule:
-    - cron: '30 22 * * *'  # Daily 22:30 UTC
+    - cron: '30 22 * * *'  # Daily 22:30 UTC (5:30 PM EST)
   workflow_dispatch:
 
 jobs:

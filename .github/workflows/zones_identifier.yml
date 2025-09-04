@@ -1,7 +1,7 @@
 ﻿name: Supply Demand Zones Identifier
 on:
   schedule:
-    - cron: '*/30 9-15 * * 1-5'  # Every 30 min RTH (9 AM - 3 PM UTC, Mon-Fri)
+    - cron: '*/30 14-21 * * 1-5'  # Every 30 min RTH (9:30 AM - 4:00 PM EST, Mon-Fri)
   workflow_dispatch:
 
 jobs:

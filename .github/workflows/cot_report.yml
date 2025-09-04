@@ -1,7 +1,7 @@
 ﻿name: COT Report Analysis
 on:
   schedule:
-    - cron: '30 20 * * 5'  # Fridays 20:30 UTC
+    - cron: '30 20 * * 5'  # Fridays 20:30 UTC (3:30 PM EST)
   workflow_dispatch:
 
 jobs:

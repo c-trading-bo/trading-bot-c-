@@ -2,7 +2,7 @@
 
 on:
   schedule:
-    # Run after market close at 4:30 PM ET (21:30 UTC) on weekdays
+    # Run after market close at 4:30 PM EST (21:30 UTC) on weekdays
     - cron: '30 21 * * 1-5'
   workflow_dispatch:  # Allow manual triggering
 
