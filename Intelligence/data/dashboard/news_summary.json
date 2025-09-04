@@ -1,27 +1,27 @@
 {
-  "timestamp": "2025-09-04T19:01:46.707519",
+  "timestamp": "2025-09-04T20:00:50.313022",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "workflow_run": "2",
+  "workflow_run": "5",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-04T18:56:59.554280",
+    "timestamp": "2025-09-04T19:56:01.316745",
     "analysis_mode": "comprehensive",
     "market_session": "regular",
-    "total_articles_processed": 10,
+    "total_articles_processed": 9,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.3,
+        "sentiment_score": 0.175,
         "article_count": 1,
         "articles": [
           {
-            "title": "Is Boston Scientific Stock Outperforming the S&P 500?",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
+            "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
+            "sentiment": 0.175,
+            "textblob_score": 0.25,
+            "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/boston-scientific-stock-outperforming-p-083522690.html",
-            "published": "2025-09-03T08:35:22Z",
+            "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
+            "published": "2025-09-03T09:45:46Z",
             "relevance_keywords": [
               "S&P"
             ]
@@ -34,17 +34,17 @@
         ]
       },
       "NQ": {
-        "sentiment_score": -0.3,
+        "sentiment_score": 0.175,
         "article_count": 1,
         "articles": [
           {
-            "title": "Is Microchip Technology Stock Underperforming the Nasdaq?",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
+            "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
+            "sentiment": 0.175,
+            "textblob_score": 0.25,
+            "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/microchip-technology-stock-underperforming-nasdaq-091544117.html",
-            "published": "2025-09-03T09:15:44Z",
+            "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
+            "published": "2025-09-03T09:45:46Z",
             "relevance_keywords": [
               "Nasdaq"
             ]
@@ -73,52 +73,77 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.3,
-        "article_count": 1,
+        "sentiment_score": 0.178,
+        "article_count": 2,
         "articles": [
           {
-            "title": "Crypto Rally Falters as Trump Tokens, Stocks Come Under Pressure",
+            "title": "Crypto Exchange Volume Hits YTD High of $1.8 Trillion, Here Are Key Drivers",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/crypto-exchange-volume-hits-ytd-095438398.html",
+            "published": "2025-09-03T09:54:38Z",
+            "relevance_keywords": [
+              "crypto"
+            ]
+          },
+          {
+            "title": "This group could put a stop to crypto and private equity in your 401(k)",
             "sentiment": 0.3,
             "textblob_score": 0.0,
             "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/crypto-rally-falters-as-trump-tokens-stocks-come-under-pressure",
-            "published": "Thu, 04 Sep 2025 17:55:54 GMT",
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/401-k-plans-are-opening-to-private-equity-and-crypto-but-this-group-could-put-a-stop-to-it-8602693a?mod=mw_rss_topstories",
+            "published": "Thu, 04 Sep 2025 19:17:00 GMT",
             "relevance_keywords": [
               "crypto"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
+        "confidence": 0.2,
         "sources": [
-          "bloomberg"
+          "yahoo_finance",
+          "marketwatch"
         ]
       },
       "TSLA": {
-        "sentiment_score": 0.31777777777777777,
-        "article_count": 3,
+        "sentiment_score": 0.07399999999999998,
+        "article_count": 4,
         "articles": [
           {
-            "title": "Google\u2019s Big Win Is Even Bigger for Apple",
-            "sentiment": 0.18666666666666665,
-            "textblob_score": 0.26666666666666666,
+            "title": "Mortgage and refinance interest rates today, September 3, 2025: A small reversal in direction",
+            "sentiment": -0.175,
+            "textblob_score": -0.25,
             "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-03T09:30:00Z",
+            "url": "https://finance.yahoo.com/personal-finance/mortgages/article/mortgage-refinance-rates-today-wednesday-september-3-2025-100052541.html",
+            "published": "2025-09-03T10:00:52Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "House of Gucci Author Talks Giorgio Armani's Passing",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
+            "title": "Treasury Yields Reach Lowest Levels in Months Before Jobs Report",
+            "sentiment": -0.125,
+            "textblob_score": 0.25,
+            "keyword_score": -1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-04/treasury-yields-lowest-in-months-as-jobs-data-back-rate-cuts",
+            "published": "Thu, 04 Sep 2025 13:38:33 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Here Comes a Jobs Report Where the Stakes Are High",
+            "sentiment": 0.17933333333333332,
+            "textblob_score": 0.2561904761904762,
             "keyword_score": 0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-04/house-of-gucci-author-talks-giorgio-armani-s-passing-video",
-            "published": "Thu, 04 Sep 2025 17:59:33 GMT",
+            "url": "https://www.bloomberg.com/news/newsletters/2025-09-04/here-comes-a-jobs-report-where-the-stakes-are-high",
+            "published": "Thu, 04 Sep 2025 18:59:34 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -136,8 +161,8 @@
             ]
           }
         ],
-        "signal": "BULLISH",
-        "confidence": 0.3,
+        "signal": "NEUTRAL",
+        "confidence": 0.4,
         "sources": [
           "yahoo_finance",
           "bloomberg",
@@ -145,75 +170,34 @@
         ]
       },
       "NVDA": {
-        "sentiment_score": -0.12,
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
+      },
+      "AAPL": {
+        "sentiment_score": 0.175,
         "article_count": 1,
         "articles": [
           {
-            "title": "Broadcom Earnings Run Headlong Into Stock\u2019s $730 Billion Rally",
-            "sentiment": -0.12,
-            "textblob_score": -0.6,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-earnings-run-headlong-into-stock-s-730-billion-rally",
-            "published": "Thu, 04 Sep 2025 08:46:01 GMT",
+            "title": "Nasdaq, S&P 500 end higher with Alphabet, Apple, rate-cut hopes; Dow dips",
+            "sentiment": 0.175,
+            "textblob_score": 0.25,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/p-500-nasdaq-futures-gain-094546733.html",
+            "published": "2025-09-03T09:45:46Z",
             "relevance_keywords": [
-              "artificial intelligence"
+              "Apple"
             ]
           }
         ],
         "signal": "NEUTRAL",
         "confidence": 0.1,
         "sources": [
-          "bloomberg"
-        ]
-      },
-      "AAPL": {
-        "sentiment_score": 0.19722222222222222,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "Google\u2019s Big Win Is Even Bigger for Apple",
-            "sentiment": 0.18666666666666665,
-            "textblob_score": 0.26666666666666666,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.wsj.com/tech/googles-big-win-is-even-bigger-for-apple-6a4ffc40?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-03T09:30:00Z",
-            "relevance_keywords": [
-              "Apple"
-            ]
-          },
-          {
-            "title": "Smaller Banks Tackle $395 Billion Bond Headache With Share Sales",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/smaller-banks-tackle-395-billion-bond-headache-with-share-sales",
-            "published": "Thu, 04 Sep 2025 18:12:42 GMT",
-            "relevance_keywords": [
-              "Apple"
-            ]
-          },
-          {
-            "title": "Ultragenyx Pharmaceutical Inc. (RARE) Presents At Cantor Global Healthcare Conference 2025 Transcript",
-            "sentiment": 0.105,
-            "textblob_score": 0.15,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4819641-ultragenyx-pharmaceutical-inc-rare-presents-at-cantor-global-healthcare-conference-2025?source=feed_all_articles",
-            "published": "Thu, 04 Sep 2025 14:27:06 -0400",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.3,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg",
-          "seeking_alpha"
+          "yahoo_finance"
         ]
       }
     },
@@ -227,7 +211,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-04T19:01:43.722994",
+    "timestamp": "2025-09-04T20:00:47.333927",
     "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
@@ -249,7 +233,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-04T18:56:56.892579",
+    "timestamp": "2025-09-04T19:55:58.937074",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
