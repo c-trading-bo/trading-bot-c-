@@ -5,6 +5,15 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  schedule:
+    # SCHEDULED BUILD MAINTENANCE (ENTERPRISE CI/CD)
+    # Daily maintenance builds
+    - cron: '0 6 * * *'                  # Daily maintenance build at 1 AM EST
+    # Weekly comprehensive builds
+    - cron: '0 8 * * 1'                  # Weekly comprehensive build Monday 3 AM EST
+    # Monthly release candidate builds
+    - cron: '0 10 1 * *'                 # Monthly release build 1st at 5 AM EST
+    # Total: ~10 builds/month for maintenance and release management
   workflow_dispatch:
     inputs:
       build_mode:
@@ -399,3 +408,15 @@ jobs:
           echo ""
           echo "🚀 Ultimate Build & CI Pipeline - Your development powerhouse!"
           echo "=============================================="
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Build CI results to BotCore format..."
+          
+          # Run data integration script for build results
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "ultimate_build_ci_pipeline" \
+            --data-path "artifacts/" \
+            --output-path "Intelligence/data/integrated/build_ci_status.json"
+          
+          echo "✅ BotCore build CI integration complete"

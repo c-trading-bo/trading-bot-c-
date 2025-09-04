@@ -1,9 +1,16 @@
 name: Supply Demand Zones Identifier
 on:
   schedule:
-    # OPTIMIZED ZONES IDENTIFIER (TIER 4)
-    - cron: '0 13 * * 1-5'  # Daily at 8 AM EST (pre-market analysis)
-    # Total: 1 run/day
+    # 24/7 SUPPLY/DEMAND ZONES ANALYSIS (CRITICAL FOR LEVEL TRADING)
+    # Asian Session (18:00-23:59 CT) - NQ key level identification
+    - cron: '0 0,2,4 * * *'              # Every 2 hours Asian session
+    # European Session (02:00-05:00 CT) - ES key level identification
+    - cron: '30 8,10 * * *'              # Every 2 hours European session
+    # US Session (08:30-16:00 CT) - Real-time zone identification
+    - cron: '0 14,16,18,20 * * 1-5'      # Every 2 hours US session
+    # Extended Hours Zone Updates
+    - cron: '15 6,12,22 * * *'           # Extended hours zone analysis
+    # Total: ~13 runs/day = 91 runs/week for continuous zone identification
   workflow_dispatch:
 
 
@@ -20,9 +27,24 @@ jobs:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/identify_zones.py
-      - run: |
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Supply/Demand Zones analysis to BotCore format..."
+          
+          # Run data integration script for zones data
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "zones_identifier" \
+            --data-path "Intelligence/data/zones.json" \
+            --output-path "Intelligence/data/integrated/supply_demand_zones.json"
+          
+          echo "✅ BotCore zones integration complete"
+
+      - name: "📤 Commit Integrated Data"
+        run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update supply/demand zones analysis"
-          git push
+          git diff --quiet || git commit -m "🎯 Supply/Demand Zones: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git push || echo "No changes to push"

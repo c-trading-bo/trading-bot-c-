@@ -1,9 +1,17 @@
 name: Fed Liquidity Analysis
 on:
   schedule:
-    # OPTIMIZED FED LIQUIDITY (TIER 5)
-    - cron: '0 8 1 * *'  # Monthly on 1st at 3 AM EST
-    # Total: 1 run/month
+    # ENHANCED FED LIQUIDITY MONITORING (CRITICAL FOR MACRO TRADING)
+    # Daily Fed data monitoring during active periods
+    - cron: '0 10 * * 1-5'           # Daily at 5 AM EST for overnight Fed operations
+    - cron: '0 16 * * 1-5'           # Daily at 11 AM EST pre-market Fed analysis
+    # FOMC meeting weeks - increased frequency
+    - cron: '0 14,20 * * 2,3,4'      # Extra monitoring during typical FOMC weeks
+    # Weekly comprehensive Fed liquidity analysis
+    - cron: '0 3 * * 1'              # Weekly deep analysis Monday 10 PM EST
+    # Monthly Fed balance sheet deep dive
+    - cron: '0 5 1 * *'              # Monthly comprehensive analysis
+    # Total: ~15 runs/week for enhanced Fed liquidity tracking
   workflow_dispatch:
 
 
@@ -20,9 +28,23 @@ jobs:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/fed_liquidity.py
-      - run: |
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Fed Liquidity analysis to BotCore format..."
+          
+          # Run data integration script for Fed liquidity data
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "fed_liquidity" \
+            --data-path "Intelligence/data/fed_liquidity.json" \
+            --output-path "Intelligence/data/integrated/fed_liquidity_analysis.json"
+          
+          echo "✅ BotCore Fed liquidity integration complete"
+
+      - name: "📤 Commit Integrated Data"
+        run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add Intelligence/data/
-          git diff --quiet || git commit -m "Update Fed liquidity analysis"
-          git push
+          git add Intelligence/data/integrated/ Intelligence/data/
+          git diff --quiet || git commit -m "🏦 Fed Liquidity: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git push || echo "No changes to push"

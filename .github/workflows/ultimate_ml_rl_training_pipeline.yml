@@ -2,10 +2,14 @@ name: "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System)"
 
 on:
   schedule:
-    # OPTIMIZED ML/RL TRAINING (TIER 3)
-    # Reduced training frequency for budget
-    - cron: '0 2,14 * * *'    # 2x daily: 2 AM EST and 9 AM EST
-    # Total: 2 runs/day
+    # ULTIMATE ML/RL TRAINING (ENTERPRISE CONTINUOUS LEARNING)
+    # INTENSIVE TRAINING: Multiple daily sessions for 24/7 trading
+    - cron: '0 */6 * * *'            # Every 6 hours = 4x daily training
+    # SESSION-SPECIFIC TRAINING: Train on fresh session data
+    - cron: '30 5,11,17,23 * * *'    # End of each major trading session
+    # WEEKEND DEEP TRAINING: Extended training on full week data
+    - cron: '0 4 * * 0'              # Sunday 4 AM deep training
+    # Total: 33 runs/week = Continuous adaptive learning
   workflow_dispatch:
     inputs:
       training_mode:
@@ -622,3 +626,15 @@ jobs:
           echo ""
           echo "🚀 This MEGA-SYSTEM is now your single ML/RL powerhouse!"
           echo "=============================================="
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting ML/RL Training results to BotCore format..."
+          
+          # Run data integration script for ML features and models
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "ultimate_ml_rl_training_pipeline" \
+            --data-path "models/" \
+            --output-path "Intelligence/data/integrated/ml_training_models.json"
+          
+          echo "✅ BotCore ML training integration complete"

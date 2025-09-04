@@ -2,10 +2,16 @@ name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
 
 on:
   schedule:
-    # OPTIMIZED TESTING QA (TIER 5)
-    # Essential quality assurance only
-    - cron: '0 3 * * 1-5'  # Daily at 10 PM EST (after data collection)
-    # Total: 1 run/day
+    # 24/7 TESTING & QUALITY ASSURANCE (CONTINUOUS VALIDATION)
+    # Asian Session QA (21:00 CT) - Validate Asian session processes
+    - cron: '0 3 * * *'                  # Asian session quality assurance
+    # European Session QA (05:00 CT) - Validate European session processes
+    - cron: '0 11 * * *'                 # European session quality assurance
+    # US Session QA (after hours) - Validate US session processes
+    - cron: '0 5 * * 1-5'                # US after-hours quality assurance
+    # Weekend Comprehensive QA
+    - cron: '0 8,16 * * 0,6'             # Weekend comprehensive testing
+    # Total: ~7 runs/week for continuous quality validation
   workflow_dispatch:
     inputs:
       test_mode:
@@ -942,3 +948,15 @@ jobs:
           echo ""
           echo "🚀 Ultimate Testing & QA Pipeline - Quality assurance mastery!"
           echo "=============================================="
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Testing QA results to BotCore format..."
+          
+          # Run data integration script for testing results
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "ultimate_testing_qa_pipeline" \
+            --data-path "test-results/" \
+            --output-path "Intelligence/data/integrated/testing_qa_status.json"
+          
+          echo "✅ BotCore testing QA integration complete"

@@ -2,10 +2,14 @@ name: "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System)"
 
 on:
   schedule:
-    # OPTIMIZED OPTIONS FLOW ANALYSIS (TIER 2)
-    # Reduced frequency for budget compliance
-    - cron: '*/30 14-21 * * 1-5'  # Every 30 min market hours (16 runs/day)
-    # Total: 16 runs/day optimized for budget
+    # ULTIMATE OPTIONS FLOW ANALYSIS (ENTERPRISE OPTIMIZED)
+    # PRIMARY: Live options during US market hours
+    - cron: '*/20 14-21 * * 1-5'     # Every 20 min market hours (24 runs/day)
+    # SECONDARY: Pre/post market analysis for overnight ES/NQ strategies  
+    - cron: '0 13,22 * * 1-5'        # Pre-market & after-hours analysis (2 runs/day)
+    # WEEKEND: Position analysis for Sunday futures open
+    - cron: '0 21 * * 0'             # Sunday evening analysis (1 run/week)
+    # Total: 131 runs/week = Maximum options intelligence
   workflow_dispatch:
     inputs:
       analysis_mode:
@@ -431,13 +435,25 @@ jobs:
           
           EOF
 
-      - name: "💾 Commit Options Analysis Results"
+      - name: "� Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Ultimate Options Flow analysis to BotCore format..."
+          
+          # Run data integration script for options flow data
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "ultimate_options_flow_pipeline" \
+            --data-path "Intelligence/data/options_flow.json" \
+            --output-path "Intelligence/data/integrated/options_flow_analysis.json"
+          
+          echo "✅ BotCore options flow integration complete"
+
+      - name: "�💾 Commit Options Analysis Results"
         run: |
           git config --local user.email "ultimate-options@bot.com"
           git config --local user.name "Ultimate Options Flow Pipeline"
           
           # Add all options data
-          git add data/options/ Intelligence/data/ 2>/dev/null || true
+          git add Intelligence/data/integrated/ data/options/ Intelligence/data/ 2>/dev/null || true
           
           # Check if there are changes
           if git diff --staged --quiet; then

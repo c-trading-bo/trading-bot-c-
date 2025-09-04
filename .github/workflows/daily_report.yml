@@ -2,8 +2,20 @@
 
 on:
   schedule:
-    # Run before market open at 8:00 AM EST (13:00 UTC) on weekdays
-    - cron: '0 13 * * 1-5'
+    # 24/7 TRADING INTELLIGENCE REPORTS (SESSION-ALIGNED REPORTING)
+    # Asian Session Opening Report (18:00 CT)
+    - cron: '0 0 * * *'                  # Asian session opening report
+    # European Session Opening Report (02:00 CT)  
+    - cron: '0 8 * * *'                  # European session opening report
+    # US Pre-Market Report (07:30 CT)
+    - cron: '30 13 * * 1-5'              # US pre-market report
+    # US Mid-Session Report (12:00 CT)
+    - cron: '0 18 * * 1-5'               # US mid-session report
+    # US After-Hours Report (17:00 CT)
+    - cron: '0 23 * * 1-5'               # US after-hours report
+    # Weekend Comprehensive Report
+    - cron: '0 14 * * 0'                 # Sunday comprehensive week-ahead report
+    # Total: ~6 reports/day = 42 reports/week for complete session coverage
   workflow_dispatch:  # Allow manual triggering
 
 permissions:
@@ -44,11 +56,24 @@ jobs:
           Intelligence/data/signals/
           Intelligence/reports/
         retention-days: 30
+
+    - name: "🔗 Integrate with BotCore Decision Engine"
+      run: |
+        echo "🔗 Converting Daily Report analysis to BotCore format..."
         
-    - name: Commit signals and reports (if changes)
+        # Run data integration script for daily intelligence reports
+        python Intelligence/scripts/workflow_data_integration.py \
+          --workflow-type "daily_report" \
+          --data-path "Intelligence/reports/daily_report.json" \
+          --output-path "Intelligence/data/integrated/daily_intelligence_summary.json"
+        
+        echo "✅ BotCore daily report integration complete"
+
+    - name: "📤 Commit Integrated Data and Reports"
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git add Intelligence/data/integrated/
         git add Intelligence/data/signals/ Intelligence/reports/
-        git diff --staged --quiet || git commit -m "Intelligence: Update signals and daily report [$(date '+%Y-%m-%d %H:%M:%S')]"
-        git push
+        git diff --staged --quiet || git commit -m "📊 Daily Intelligence: BotCore-integrated report and signals [$(date '+%Y-%m-%d %H:%M:%S')]"
+        git push || echo "No changes to push"

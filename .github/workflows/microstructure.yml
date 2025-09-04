@@ -1,9 +1,16 @@
 ﻿name: Microstructure Analysis
 on:
   schedule:
-    # OPTIMIZED MICROSTRUCTURE ANALYSIS (TIER 1)
-    # Market hours focus - Budget optimized
-    - cron: '*/30 14-21 * * 1-5'  # Every 30 min market hours (16 runs/day)
+    # 24/7 MICROSTRUCTURE ANALYSIS (CRITICAL FOR HIGH-FREQUENCY TRADING)
+    # Asian Session (18:00-23:59 CT) - High-frequency NQ microstructure
+    - cron: '*/15 0-5 * * *'             # Every 15 minutes Asian session
+    # European Session (02:00-05:00 CT) - ES microstructure focus
+    - cron: '*/20 8-11 * * *'            # Every 20 minutes European session
+    # US Session (08:30-16:00 CT) - Maximum microstructure frequency
+    - cron: '*/10 14-21 * * 1-5'         # Every 10 minutes US session
+    # Extended Hours Microstructure
+    - cron: '*/30 6-7,12-13,22-23 * * *' # Every 30 minutes extended hours
+    # Total: ~72 runs/day = 504 runs/week for real-time microstructure
   workflow_dispatch:
 
 permissions:
@@ -19,9 +26,24 @@ jobs:
           python-version: '3.9'
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/microstructure.py
-      - run: |
+
+      - name: "🔗 Integrate with BotCore Decision Engine"
+        run: |
+          echo "🔗 Converting Microstructure analysis to BotCore format..."
+          
+          # Run data integration script for microstructure data
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "microstructure" \
+            --data-path "Intelligence/data/microstructure.json" \
+            --output-path "Intelligence/data/integrated/microstructure_analysis.json"
+          
+          echo "✅ BotCore microstructure integration complete"
+
+      - name: "📤 Commit Integrated Data"
+        run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
+          git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "Update microstructure analysis"
-          git push
+          git diff --quiet || git commit -m "🔬 Microstructure: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git push || echo "No changes to push"

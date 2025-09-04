@@ -1,0 +1,585 @@
+{
+  "total_workflows": 27,
+  "scheduled_workflows": 0,
+  "integrated_workflows": 3,
+  "missing_schedule": [
+    "daily_report",
+    "failed_patterns",
+    "fed_liquidity",
+    "intermarket",
+    "market_data",
+    "microstructure",
+    "ml_trainer",
+    "mm_positioning",
+    "opex_calendar",
+    "overnight",
+    "seasonality",
+    "test_optimization",
+    "ultimate_build_ci_pipeline",
+    "ultimate_data_collection_pipeline",
+    "ultimate_ml_rl_training_pipeline",
+    "ultimate_news_sentiment_pipeline",
+    "ultimate_options_flow_pipeline",
+    "ultimate_regime_detection_pipeline",
+    "ultimate_testing_qa_pipeline",
+    "volatility_surface",
+    "zones_identifier"
+  ],
+  "missing_integration": [
+    "daily_report",
+    "failed_patterns",
+    "fed_liquidity",
+    "intermarket",
+    "market_data",
+    "microstructure",
+    "ml_trainer",
+    "mm_positioning",
+    "opex_calendar",
+    "overnight",
+    "seasonality",
+    "test_optimization",
+    "ultimate_build_ci_pipeline",
+    "ultimate_ml_rl_training_pipeline",
+    "ultimate_options_flow_pipeline",
+    "ultimate_testing_qa_pipeline",
+    "volatility_surface",
+    "zones_identifier"
+  ],
+  "workflow_details": {
+    "daily_report": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\daily_report.yml"
+    },
+    "failed_patterns": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\failed_patterns.yml"
+    },
+    "fed_liquidity": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\fed_liquidity.yml"
+    },
+    "intermarket": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\intermarket.yml"
+    },
+    "market_data": {
+      "category": "market_analysis",
+      "priority": "medium",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\market_data.yml"
+    },
+    "microstructure": {
+      "category": "market_analysis",
+      "priority": "medium",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\microstructure.yml"
+    },
+    "ml_trainer": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ml_trainer.yml"
+    },
+    "mm_positioning": {
+      "category": "risk_management",
+      "priority": "critical",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\mm_positioning.yml"
+    },
+    "opex_calendar": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\opex_calendar.yml"
+    },
+    "overnight": {
+      "category": "market_analysis",
+      "priority": "medium",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\overnight.yml"
+    },
+    "seasonality": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\seasonality.yml"
+    },
+    "test_optimization": {
+      "category": "infrastructure",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\test_optimization.yml"
+    },
+    "ultimate_build_ci_pipeline": {
+      "category": "infrastructure",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_build_ci_pipeline.yml"
+    },
+    "ultimate_data_collection_pipeline": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": true,
+        "integration_steps": [
+          "\ud83c\udfc1 Ultimate Data Collection Summary"
+        ],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_data_collection_pipeline.yml"
+    },
+    "ultimate_ml_rl_training_pipeline": {
+      "category": "intelligence",
+      "priority": "high",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_ml_rl_training_pipeline.yml"
+    },
+    "ultimate_news_sentiment_pipeline": {
+      "category": "intelligence",
+      "priority": "high",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": true,
+        "integration_steps": [
+          "\ud83e\udde0 Run Intelligence News Collection (Legacy Compatibility)",
+          "\ud83c\udfc1 Ultimate News & Sentiment Summary",
+          "\ud83d\udd17 Integrate with BotCore Decision Engine",
+          "\ud83d\udce4 Commit Integrated Data"
+        ],
+        "botcore_mentions": 7,
+        "data_format_conversion": true,
+        "git_commit_integration": true,
+        "workflow_data_integration": true
+      },
+      "file_path": ".github\\workflows\\ultimate_news_sentiment_pipeline.yml"
+    },
+    "ultimate_options_flow_pipeline": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_options_flow_pipeline.yml"
+    },
+    "ultimate_regime_detection_pipeline": {
+      "category": "intelligence",
+      "priority": "high",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": true,
+        "integration_steps": [
+          "\ud83e\udde0 Run Intelligence Regime Detector (Legacy Compatibility)"
+        ],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_regime_detection_pipeline.yml"
+    },
+    "ultimate_testing_qa_pipeline": {
+      "category": "infrastructure",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\ultimate_testing_qa_pipeline.yml"
+    },
+    "volatility_surface": {
+      "category": "market_analysis",
+      "priority": "medium",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\volatility_surface.yml"
+    },
+    "zones_identifier": {
+      "category": "other",
+      "priority": "low",
+      "schedule": {
+        "has_schedule": false,
+        "has_cron": false,
+        "cron_expressions": [],
+        "session_coverage": {
+          "asian": false,
+          "european": false,
+          "us": false,
+          "extended": false
+        },
+        "frequency_assessment": "none"
+      },
+      "integration": {
+        "has_integration": false,
+        "integration_steps": [],
+        "botcore_mentions": 0,
+        "data_format_conversion": false,
+        "git_commit_integration": false,
+        "workflow_data_integration": false
+      },
+      "file_path": ".github\\workflows\\zones_identifier.yml"
+    }
+  },
+  "verification_timestamp": "2025-09-04T17:27:04.140606"
+}
