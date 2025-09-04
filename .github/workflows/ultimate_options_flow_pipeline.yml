@@ -1,4 +1,4 @@
-name: "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System) ⚡ (OPTIMIZED)"
+name: "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System)"
 
 on:
   schedule:
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "🐍 Setup Python Environment"
         uses: actions/setup-python@v5
@@ -60,24 +60,24 @@ jobs:
 
       - name: "📦 Install Comprehensive Options Analysis Stack"
         run: |
-          pip install --quiet --no-warn-script-location --upgrade pip setuptools wheel
+          pip install --upgrade pip setuptools wheel
           
           # Core financial data stack
-          pip install --quiet --no-warn-script-location yfinance pandas numpy scipy
+          pip install yfinance pandas numpy scipy
           
           # Advanced analysis tools
-          pip install --quiet --no-warn-script-location ta pandas-ta 
-          pip install --quiet --no-warn-script-location beautifulsoup4 requests
-          pip install --quiet --no-warn-script-location fredapi pytrends
+          pip install ta pandas-ta 
+          pip install beautifulsoup4 requests
+          pip install fredapi pytrends
           
           # Options-specific libraries
-          pip install --quiet --no-warn-script-location py_vollib mibian
+          pip install py_vollib mibian
           
           # Visualization and reporting
-          pip install --quiet --no-warn-script-location matplotlib seaborn plotly
+          pip install matplotlib seaborn plotly
           
           # Fast computation
-          pip install --quiet --no-warn-script-location numba cython
+          pip install numba cython
           
           echo "📈 Ultimate options analysis stack installed!"
 

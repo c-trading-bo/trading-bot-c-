@@ -1,4 +1,4 @@
-name: "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System) ⚡ (OPTIMIZED)"
+name: "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System)"
 
 on:
   schedule:
@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "🐍 Setup Python (Multi-Version Support)"
         uses: actions/setup-python@v5
@@ -58,29 +58,29 @@ jobs:
 
       - name: "📦 Install MASSIVE ML/RL Stack (All Dependencies)"
         run: |
-          pip install --quiet --no-warn-script-location --upgrade pip setuptools wheel
+          pip install --upgrade pip setuptools wheel
           
           # Core ML/Data Science Stack
-          pip install --quiet --no-warn-script-location torch torchvision torchaudio numpy pandas scikit-learn
-          pip install --quiet --no-warn-script-location xgboost lightgbm catboost
-          pip install --quiet --no-warn-script-location matplotlib seaborn plotly
+          pip install torch torchvision torchaudio numpy pandas scikit-learn
+          pip install xgboost lightgbm catboost
+          pip install matplotlib seaborn plotly
           
           # RL Stack
-          pip install --quiet --no-warn-script-location stable-baselines3[extra]
-          pip install --quiet --no-warn-script-location gymnasium gymnasium[atari]
-          pip install --quiet --no-warn-script-location tensorflow tensorflow-probability
+          pip install stable-baselines3[extra]
+          pip install gymnasium gymnasium[atari]
+          pip install tensorflow tensorflow-probability
           
           # Advanced ML
-          pip install --quiet --no-warn-script-location bayesian-optimization optuna
-          pip install --quiet --no-warn-script-location ta onnx onnxruntime skl2onnx
-          pip install --quiet --no-warn-script-location joblib dill pickle5
+          pip install bayesian-optimization optuna
+          pip install ta onnx onnxruntime skl2onnx
+          pip install joblib dill pickle5
           
           # Financial/Trading
-          pip install --quiet --no-warn-script-location yfinance pandas-ta
-          pip install --quiet --no-warn-script-location quantlib-python
+          pip install yfinance pandas-ta
+          pip install quantlib-python
           
           # Testing/Validation
-          pip install --quiet --no-warn-script-location pytest pytest-cov
+          pip install pytest pytest-cov
           
           echo "🎯 Ultimate ML/RL stack installed successfully!"
 

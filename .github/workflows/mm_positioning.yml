@@ -1,4 +1,4 @@
-name: Market Maker Positioning ⚡ (OPTIMIZED)
+name: Market Maker Positioning
 on:
   schedule:
     - cron: '30 23 * * *'  # Daily 23:30 UTC (6:30 PM EST)
@@ -11,13 +11,12 @@ permissions:
 jobs:
   mm_positioning:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 🛡️ Prevent hanging
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - run: pip install --quiet --no-warn-script-location yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/mm_positioning.py
       - run: |
           git config user.name "GitHub Actions"

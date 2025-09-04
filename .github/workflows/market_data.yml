@@ -3,16 +3,8 @@
 on:
   schedule:
     # Run after market close at 4:30 PM EST (21:30 UTC) on weekdays
-    - cron: '30 21 * * 1-5'
-  workflow_dispatch:  # Allow manual triggering
-
-permissions:
-  contents: write
-
-jobs:
-  collect-market-data:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30  # 🛡️ Prevent hanging
+    - cron: "'30 21 * * 1-5'
+  workflow_dispatch:  "  #  🛡️ Prevent hanging
     if: github.ref == 'refs/heads/main'
     
     steps:
@@ -58,7 +50,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: hashFiles('Intelligence/data/raw/indices/*') != ''
       with:
-        name: market-data-${{ github.run_number }}
+    - name: market-data-${{ github.run_number }}
         path: |
           Intelligence/data/raw/indices/*.csv
           Intelligence/data/raw/indices/*.json

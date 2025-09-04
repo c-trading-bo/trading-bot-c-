@@ -1,4 +1,4 @@
-name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System) ⚡ (OPTIMIZED)"
+name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
 
 on:
   schedule:
@@ -74,7 +74,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
       - name: "🐍 Setup Python Environment"
@@ -156,49 +156,49 @@ jobs:
       - name: "📦 Install Comprehensive Testing Stack"
         run: |
           echo "📦 Installing ultimate testing stack..."
-          pip install --quiet --no-warn-script-location --upgrade pip setuptools wheel
+          pip install --upgrade pip setuptools wheel
           
           # Core testing frameworks
-          pip install --quiet --no-warn-script-location pytest pytest-cov pytest-xdist pytest-mock
-          pip install --quiet --no-warn-script-location unittest-xml-reporting coverage
+          pip install pytest pytest-cov pytest-xdist pytest-mock
+          pip install unittest-xml-reporting coverage
           
           # Financial libraries (with TA-Lib)
-          pip install --quiet --no-warn-script-location numpy pandas scipy
-          pip install --quiet --no-warn-script-location yfinance pandas-ta
-          pip install --quiet --no-warn-script-location TA-Lib || echo "⚠️ TA-Lib Python package installation attempted"
+          pip install numpy pandas scipy
+          pip install yfinance pandas-ta
+          pip install TA-Lib || echo "⚠️ TA-Lib Python package installation attempted"
           
           # ML/AI testing
-          pip install --quiet --no-warn-script-location scikit-learn xgboost lightgbm
-          pip install --quiet --no-warn-script-location torch torchvision || echo "⚠️ PyTorch optional"
-          pip install --quiet --no-warn-script-location tensorflow || echo "⚠️ TensorFlow optional"
+          pip install scikit-learn xgboost lightgbm
+          pip install torch torchvision || echo "⚠️ PyTorch optional"
+          pip install tensorflow || echo "⚠️ TensorFlow optional"
           
           # Data validation
-          pip install --quiet --no-warn-script-location pandas-profiling great-expectations
-          pip install --quiet --no-warn-script-location jsonschema cerberus
+          pip install pandas-profiling great-expectations
+          pip install jsonschema cerberus
           
           # API testing
-          pip install --quiet --no-warn-script-location requests httpx aiohttp
-          pip install --quiet --no-warn-script-location responses requests-mock
+          pip install requests httpx aiohttp
+          pip install responses requests-mock
           
           # Quality assurance
-          pip install --quiet --no-warn-script-location flake8 black mypy bandit
-          pip install --quiet --no-warn-script-location pylint prospector
+          pip install flake8 black mypy bandit
+          pip install pylint prospector
           
           # Performance testing
-          pip install --quiet --no-warn-script-location memory-profiler psutil
-          pip install --quiet --no-warn-script-location py-spy || echo "⚠️ py-spy optional"
+          pip install memory-profiler psutil
+          pip install py-spy || echo "⚠️ py-spy optional"
           
           # Additional dependencies from requirements
           if [ -f "requirements.txt" ]; then
-            pip install --quiet --no-warn-script-location -r requirements.txt || echo "⚠️ Some requirements failed"
+            pip install -r requirements.txt || echo "⚠️ Some requirements failed"
           fi
           
           if [ -f "requirements_ml.txt" ]; then
-            pip install --quiet --no-warn-script-location --upgrade pip --quiet && pip install --quiet --no-warn-script-location -r requirements_ml.txt --quiet --no-warn-script-location || echo "⚠️ Some ML requirements failed"
+            pip install -r requirements_ml.txt || echo "⚠️ Some ML requirements failed"
           fi
           
           if [ -f "ml/requirements.txt" ]; then
-            pip install --quiet --no-warn-script-location -r ml/requirements.txt || echo "⚠️ Some ML requirements failed"
+            pip install -r ml/requirements.txt || echo "⚠️ Some ML requirements failed"
           fi
           
           echo "✅ Ultimate testing stack installed!"
@@ -303,7 +303,7 @@ jobs:
               
               headers = {
                   'Accept': 'application/vnd.github.v3+json',
-                  'Authorization': f'token ${{ secrets.GITHUB_TOKEN || github.token }}'
+                  'Authorization': f'token ${{ secrets.GITHUB_TOKEN }}'
               }
               
               repo = '${{ github.repository }}'
@@ -709,7 +709,7 @@ jobs:
           echo "🔒 Running security and vulnerability scanning..."
           
           # Install security tools
-          pip install --quiet --no-warn-script-location bandit safety semgrep || echo "⚠️ Some security tools failed to install"
+          pip install bandit safety semgrep || echo "⚠️ Some security tools failed to install"
           
           # Bandit security scan
           if command -v bandit >/dev/null 2>&1; then

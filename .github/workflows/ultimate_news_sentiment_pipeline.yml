@@ -1,4 +1,4 @@
-name: "📰🎯 ULTIMATE News & Sentiment Analysis Pipeline (Mega-System) ⚡ (OPTIMIZED)"
+name: "📰🎯 ULTIMATE News & Sentiment Analysis Pipeline (Mega-System)"
 
 on:
   schedule:
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: "🐍 Setup Python Environment"
         uses: actions/setup-python@v5
@@ -60,21 +60,21 @@ jobs:
 
       - name: "📦 Install Comprehensive News Analysis Stack"
         run: |
-          pip install --quiet --no-warn-script-location --upgrade pip setuptools wheel
+          pip install --upgrade pip setuptools wheel
           
           # Core news processing
-          pip install --quiet --no-warn-script-location feedparser requests beautifulsoup4
-          pip install --quiet --no-warn-script-location pandas numpy scipy
+          pip install feedparser requests beautifulsoup4
+          pip install pandas numpy scipy
           
           # Advanced NLP and sentiment analysis
-          pip install --quiet --no-warn-script-location textblob nltk vaderSentiment
-          pip install --quiet --no-warn-script-location transformers torch
+          pip install textblob nltk vaderSentiment
+          pip install transformers torch
           
           # Financial news sources
-          pip install --quiet --no-warn-script-location gdelt alpha-vantage finnhub-python
+          pip install gdelt alpha-vantage finnhub-python
           
           # Additional utilities
-          pip install --quiet --no-warn-script-location pytz python-dateutil
+          pip install pytz python-dateutil
           
           # Download NLTK data
           python -c "import nltk; nltk.download('punkt'); nltk.download('vader_lexicon')"

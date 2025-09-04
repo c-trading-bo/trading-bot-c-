@@ -1,4 +1,4 @@
-name: Volatility Surface Analysis ⚡ (OPTIMIZED)
+name: Volatility Surface Analysis
 on:
   schedule:
     # OPTIMIZED VOLATILITY SURFACE (TIER 4)
@@ -13,13 +13,12 @@ permissions:
 jobs:
   volatility_surface:
     runs-on: ubuntu-latest
-    timeout-minutes: 30  # 🛡️ Prevent hanging
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - run: pip install --quiet --no-warn-script-location yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/volatility_surface.py
       - run: |
           git config user.name "GitHub Actions"
