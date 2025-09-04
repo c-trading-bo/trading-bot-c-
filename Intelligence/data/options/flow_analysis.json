@@ -10,7 +10,7 @@
     "high_low_ratio": 0.08480555794472432,
     "signal_strength": 0.09529357829454266,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:16.066190",
+    "timestamp": "2025-09-04T21:42:16.990835",
     "market_open": true
   },
   "QQQ": {
@@ -24,7 +24,7 @@
     "high_low_ratio": 0.11217644706502063,
     "signal_strength": 0.07033624209478022,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:16.470335",
+    "timestamp": "2025-09-04T21:42:17.150620",
     "market_open": true
   },
   "IWM": {
@@ -38,7 +38,7 @@
     "high_low_ratio": 0.18023841592748246,
     "signal_strength": 0.08048553725069094,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:16.823304",
+    "timestamp": "2025-09-04T21:42:17.338917",
     "market_open": true
   },
   "AAPL": {
@@ -52,7 +52,7 @@
     "high_low_ratio": 0.1084555811899194,
     "signal_strength": 0.09651614885839874,
     "signal_type": "BULLISH_BREAKOUT",
-    "timestamp": "2025-09-04T21:28:17.332217",
+    "timestamp": "2025-09-04T21:42:17.575928",
     "market_open": true
   },
   "TSLA": {
@@ -66,7 +66,7 @@
     "high_low_ratio": 0.16549103717247823,
     "signal_strength": 0.07191506196557854,
     "signal_type": "VWAP_DEVIATION",
-    "timestamp": "2025-09-04T21:28:17.787006",
+    "timestamp": "2025-09-04T21:42:17.739374",
     "market_open": true
   },
   "NVDA": {
@@ -80,7 +80,7 @@
     "high_low_ratio": 0.3140173281735095,
     "signal_strength": 0.060777277516643344,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:18.117735",
+    "timestamp": "2025-09-04T21:42:17.928701",
     "market_open": true
   },
   "GLD": {
@@ -94,7 +94,7 @@
     "high_low_ratio": 0.041331629618148624,
     "signal_strength": 0.02902823306659457,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:18.437702",
+    "timestamp": "2025-09-04T21:42:18.104298",
     "market_open": true
   },
   "TLT": {
@@ -108,7 +108,7 @@
     "high_low_ratio": 0.06882032390884038,
     "signal_strength": 0.08518315366067532,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:18.826439",
+    "timestamp": "2025-09-04T21:42:18.308247",
     "market_open": true
   },
   "XLF": {
@@ -122,7 +122,7 @@
     "high_low_ratio": 0.07404834355493767,
     "signal_strength": 0.08181186680918426,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:19.187425",
+    "timestamp": "2025-09-04T21:42:18.510908",
     "market_open": true
   },
   "XLE": {
@@ -136,7 +136,7 @@
     "high_low_ratio": 0.10667103447945016,
     "signal_strength": 0.07038148777986247,
     "signal_type": "NEUTRAL",
-    "timestamp": "2025-09-04T21:28:19.597421",
+    "timestamp": "2025-09-04T21:42:18.758004",
     "market_open": true
   }
 }
