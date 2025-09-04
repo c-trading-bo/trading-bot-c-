@@ -1,24 +1,16 @@
 {
-  "timestamp": "2025-09-04T20:12:04.360940",
+  "timestamp": "2025-09-04T20:31:06.328776",
   "analysis_mode": "comprehensive",
   "total_symbols": 10,
   "high_activity_count": 5,
   "alerts": [
     {
       "symbol": "SPY",
-      "price": 649.010009765625,
+      "price": 648.989990234375,
       "signal": "NEUTRAL",
-      "strength": 0.08378655401984582,
-      "volume_spike": 2.222763543448197,
-      "momentum": 0.21308538400134958
-    },
-    {
-      "symbol": "IWM",
-      "price": 236.5800018310547,
-      "signal": "NEUTRAL",
-      "strength": 0.09940625641340625,
-      "volume_spike": 2.1821719192672693,
-      "momentum": 0.47139788703325003
+      "strength": 0.09529357829454266,
+      "volume_spike": 2.616718891719763,
+      "momentum": 0.2099941851533866
     },
     {
       "symbol": "AAPL",
@@ -40,9 +32,17 @@
       "symbol": "XLF",
       "price": 54.040000915527344,
       "signal": "NEUTRAL",
-      "strength": 0.08336845088257831,
-      "volume_spike": 2.443320138616874,
+      "strength": 0.08181186680918426,
+      "volume_spike": 2.3910722989479876,
       "momentum": 0.10188071603954933
+    },
+    {
+      "symbol": "XLE",
+      "price": 89.06999969482422,
+      "signal": "NEUTRAL",
+      "strength": 0.07038148777986247,
+      "volume_spike": 2.15022370752854,
+      "momentum": -0.061711422357117816
     }
   ]
 }
