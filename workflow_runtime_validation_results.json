@@ -1,0 +1,967 @@
+{
+  "timestamp": "2025-09-05T14:18:23.783019",
+  "total_workflows": 27,
+  "ready_to_run": 13,
+  "needs_fixes": 6,
+  "major_issues": 8,
+  "workflow_results": {
+    "failed_patterns.yml": {
+      "workflow_name": "failed_patterns.yml",
+      "timestamp": "2025-09-05T14:18:23.783041",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/failed_patterns.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/15 9:30-16 * * 1-5",
+          "*/30 10-13,20-23 * * 1-5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "ultimate_options_flow_pipeline.yml": {
+      "workflow_name": "ultimate_options_flow_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:23.958569",
+      "validation_score": 62.0,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/scan_options.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 9,
+      "python_test": {
+        "python_scripts_found": 5,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/scan_options.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/30 9:30-16 * * 1-5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    },
+    "fed_liquidity.yml": {
+      "workflow_name": "fed_liquidity.yml",
+      "timestamp": "2025-09-05T14:18:24.155959",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/fed_liquidity.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 14 * * 2,4"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "daily_report.yml": {
+      "workflow_name": "daily_report.yml",
+      "timestamp": "2025-09-05T14:18:24.320435",
+      "validation_score": 72.5,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/generate_signals.py': 'working', 'Intelligence/scripts/generate_daily_report.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 5,
+      "python_test": {
+        "python_scripts_found": 4,
+        "python_scripts_working": 3,
+        "script_test_results": {
+          "Intelligence/scripts/generate_signals.py": "working",
+          "Intelligence/scripts/generate_daily_report.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "45 7,15 * * 1-5",
+          "0 20 * * 1-5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    },
+    "market_data.yml": {
+      "workflow_name": "market_data.yml",
+      "timestamp": "2025-09-05T14:18:24.609496",
+      "validation_score": 70.0,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/collect_market_data.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 3,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/collect_market_data.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "31 16 * * 1-5",
+          "0 0,8,16 * * 0,6"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    },
+    "ultimate_data_collection_pipeline.yml": {
+      "workflow_name": "ultimate_data_collection_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:24.782187",
+      "validation_score": 58.57142857142857,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/collect_market_data.py': 'working', 'Intelligence/scripts/collect_intelligence.py': 'file_not_found', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 10,
+      "python_test": {
+        "python_scripts_found": 7,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/collect_market_data.py": "working",
+          "Intelligence/scripts/collect_intelligence.py": "file_not_found",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 5,16 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "portfolio_heat.yml": {
+      "workflow_name": "portfolio_heat.yml",
+      "timestamp": "2025-09-05T14:18:25.001254",
+      "validation_score": 50.0,
+      "issues_found": [
+        "Some Python scripts failing: {}"
+      ],
+      "recommendations": [],
+      "commands_found": 2,
+      "python_test": {
+        "python_scripts_found": 1,
+        "python_scripts_working": 0,
+        "script_test_results": {}
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/10 13-21 * * 1-5",
+          "*/20 12-17,1-3 * * 1-5",
+          "0 */2 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "ultimate_ml_rl_intel_system.yml": {
+      "workflow_name": "ultimate_ml_rl_intel_system.yml",
+      "timestamp": "2025-09-05T14:18:25.012915",
+      "validation_score": 50.0,
+      "issues_found": [
+        "Some Python scripts failing: {}"
+      ],
+      "recommendations": [],
+      "commands_found": 18,
+      "python_test": {
+        "python_scripts_found": 7,
+        "python_scripts_working": 0,
+        "script_test_results": {}
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/5 13-21 * * 1-5",
+          "*/10 12-17 * * 1-5",
+          "*/10 21-23 * * 1-5",
+          "*/30 1-5 * * *",
+          "0 */2 * * 0"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "ultimate_build_ci_pipeline.yml": {
+      "workflow_name": "ultimate_build_ci_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:25.094971",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 12,
+      "python_test": {
+        "python_scripts_found": 1,
+        "python_scripts_working": 1,
+        "script_test_results": {
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 2 * * 6"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "zones_identifier.yml": {
+      "workflow_name": "zones_identifier.yml",
+      "timestamp": "2025-09-05T14:18:25.176803",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/identify_zones.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "15 8,11,14,17 * * 1-5",
+          "0 10 * * 0,6"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "overnight.yml": {
+      "workflow_name": "overnight.yml",
+      "timestamp": "2025-09-05T14:18:25.344213",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/overnight_analysis.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 3,8 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "microstructure.yml": {
+      "workflow_name": "microstructure.yml",
+      "timestamp": "2025-09-05T14:18:25.512442",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/microstructure.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/5 9:30-10:30,14:30-16 * * 1-5",
+          "*/10 10:30-14:30 * * 1-5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "seasonality.yml": {
+      "workflow_name": "seasonality.yml",
+      "timestamp": "2025-09-05T14:18:25.679450",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/seasonality_patterns.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 10 * * 1"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "options_flow.yml": {
+      "workflow_name": "options_flow.yml",
+      "timestamp": "2025-09-05T14:18:25.844172",
+      "validation_score": 70.0,
+      "issues_found": [],
+      "recommendations": [
+        "Workflow requires manual trigger or event-based activation"
+      ],
+      "commands_found": 3,
+      "python_test": {
+        "python_scripts_found": 1,
+        "python_scripts_working": 1,
+        "script_test_results": {
+          "Intelligence/scripts/scan_options.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": false,
+        "schedule_valid": false,
+        "cron_expressions": [],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    },
+    "es_nq_critical_trading.yml": {
+      "workflow_name": "es_nq_critical_trading.yml",
+      "timestamp": "2025-09-05T14:18:25.967152",
+      "validation_score": 50.0,
+      "issues_found": [
+        "Some Python scripts failing: {}"
+      ],
+      "recommendations": [],
+      "commands_found": 2,
+      "python_test": {
+        "python_scripts_found": 1,
+        "python_scripts_working": 0,
+        "script_test_results": {}
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/3 13-21 * * 1-5",
+          "*/5 10-13 * * 1-5",
+          "*/5 21-23 * * 1-5",
+          "*/15 1-10 * * 1-5,0",
+          "*/30 23-23 * * 0"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "intermarket.yml": {
+      "workflow_name": "intermarket.yml",
+      "timestamp": "2025-09-05T14:18:25.981980",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/correlations.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "*/20 10-2 * * *",
+          "0 22-6 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "ultimate_ml_rl_training_pipeline.yml": {
+      "workflow_name": "ultimate_ml_rl_training_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:26.147473",
+      "validation_score": 58.0,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/prepare_data.py': 'working', 'Intelligence/scripts/build_features.py': 'working', 'train_cvar_ppo.py': 'file_not_found', 'Intelligence/scripts/train_models.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 19,
+      "python_test": {
+        "python_scripts_found": 15,
+        "python_scripts_working": 4,
+        "script_test_results": {
+          "Intelligence/scripts/prepare_data.py": "working",
+          "Intelligence/scripts/build_features.py": "working",
+          "train_cvar_ppo.py": "file_not_found",
+          "Intelligence/scripts/train_models.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 6,18 * * 1-5",
+          "0 2 * * 6"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "es_nq_correlation_matrix.yml": {
+      "workflow_name": "es_nq_correlation_matrix.yml",
+      "timestamp": "2025-09-05T14:18:26.593731",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/correlations.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 */2 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "ml_trainer.yml": {
+      "workflow_name": "ml_trainer.yml",
+      "timestamp": "2025-09-05T14:18:26.761882",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 3,
+        "python_scripts_working": 3,
+        "script_test_results": {
+          "Intelligence/scripts/build_features.py": "working",
+          "Intelligence/scripts/train_models.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 5,17 * * 1-5",
+          "0 10 * * 0"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "volatility_surface.yml": {
+      "workflow_name": "volatility_surface.yml",
+      "timestamp": "2025-09-05T14:18:27.055711",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/volatility_surface.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0,30 9,12,15 * * 1-5",
+          "0 18,2 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "cloud_bot_mechanic.yml": {
+      "workflow_name": "cloud_bot_mechanic.yml",
+      "timestamp": "2025-09-05T14:18:27.226178",
+      "validation_score": 50.0,
+      "issues_found": [
+        "Some Python scripts failing: {'cloud_mechanic_core.py': 'file_not_found'}"
+      ],
+      "recommendations": [],
+      "commands_found": 10,
+      "python_test": {
+        "python_scripts_found": 7,
+        "python_scripts_working": 0,
+        "script_test_results": {
+          "cloud_mechanic_core.py": "file_not_found"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 */6 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "ultimate_regime_detection_pipeline.yml": {
+      "workflow_name": "ultimate_regime_detection_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:27.271243",
+      "validation_score": 62.0,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/regime_detector.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 9,
+      "python_test": {
+        "python_scripts_found": 5,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/regime_detector.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 7,19 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    },
+    "mm_positioning.yml": {
+      "workflow_name": "mm_positioning.yml",
+      "timestamp": "2025-09-05T14:18:27.478999",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/mm_positioning.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "30 11,15,23 * * *"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "ultimate_testing_qa_pipeline.yml": {
+      "workflow_name": "ultimate_testing_qa_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:27.643035",
+      "validation_score": 58.18181818181818,
+      "issues_found": [
+        "Some Python scripts failing: {'ml/train_adaptive_learning.py': 'working', 'Intelligence/scripts/collect_market_data.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 14,
+      "python_test": {
+        "python_scripts_found": 11,
+        "python_scripts_working": 3,
+        "script_test_results": {
+          "ml/train_adaptive_learning.py": "working",
+          "Intelligence/scripts/collect_market_data.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 3 * * 0"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "ultimate_news_sentiment_pipeline.yml": {
+      "workflow_name": "ultimate_news_sentiment_pipeline.yml",
+      "timestamp": "2025-09-05T14:18:27.885925",
+      "validation_score": 58.57142857142857,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/collect_news.py': 'working', 'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 11,
+      "python_test": {
+        "python_scripts_found": 7,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/collect_news.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 6,9,12,15,18 * * 1-5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_major_fixes"
+    },
+    "opex_calendar.yml": {
+      "workflow_name": "opex_calendar.yml",
+      "timestamp": "2025-09-05T14:18:28.143634",
+      "validation_score": 80.0,
+      "issues_found": [],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 2,
+        "script_test_results": {
+          "Intelligence/scripts/opex_tracker.py": "working",
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 13 * * 1,3,5"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "ready_to_run"
+    },
+    "daily_consolidated.yml": {
+      "workflow_name": "daily_consolidated.yml",
+      "timestamp": "2025-09-05T14:18:28.307092",
+      "validation_score": 65.0,
+      "issues_found": [
+        "Some Python scripts failing: {'Intelligence/scripts/workflow_data_integration.py': 'working'}"
+      ],
+      "recommendations": [],
+      "commands_found": 4,
+      "python_test": {
+        "python_scripts_found": 2,
+        "python_scripts_working": 1,
+        "script_test_results": {
+          "Intelligence/scripts/workflow_data_integration.py": "working"
+        }
+      },
+      "dependency_check": {
+        "uses_python": true,
+        "uses_node": false,
+        "uses_docker": false,
+        "uses_custom_actions": false,
+        "missing_dependencies": [],
+        "dependency_score": 100
+      },
+      "schedule_check": {
+        "has_schedule": true,
+        "schedule_valid": true,
+        "cron_expressions": [
+          "0 12 * * *",
+          "0 16 * * 0"
+        ],
+        "next_expected_run": null,
+        "schedule_frequency": "none"
+      },
+      "status": "needs_minor_fixes"
+    }
+  }
+}

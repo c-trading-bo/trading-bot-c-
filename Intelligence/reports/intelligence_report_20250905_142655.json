@@ -1,0 +1,30 @@
+{
+  "collection_timestamp": "2025-09-05T14:26:55.755865",
+  "market_sentiment": {
+    "timestamp": "2025-09-05T14:26:55.755874",
+    "vix_analysis": {
+      "error": "Failed to perform, curl: (6) Could not resolve host: guce.yahoo.com. See https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+    },
+    "put_call_ratio": {
+      "error": "Failed to perform, curl: (6) Could not resolve host: guce.yahoo.com. See https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+    },
+    "insider_trading": {
+      "insider_buys": "Limited data available",
+      "insider_sells": "Limited data available",
+      "net_activity": "NEUTRAL",
+      "note": "Requires premium data source integration",
+      "updated": "2025-09-05T14:26:55.913863"
+    },
+    "institutional_flows": {
+      "error": "Failed to perform, curl: (6) Could not resolve host: guce.yahoo.com. See https://curl.se/libcurl/c/libcurl-errors.html first for more details."
+    }
+  },
+  "economic_indicators": {
+    "treasury_yields": {},
+    "yield_curve_slope": "UNKNOWN",
+    "economic_sentiment": "RISK_OFF",
+    "updated": "2025-09-05T14:26:55.954556"
+  },
+  "collection_status": "COMPLETED",
+  "data_quality": "HIGH"
+}

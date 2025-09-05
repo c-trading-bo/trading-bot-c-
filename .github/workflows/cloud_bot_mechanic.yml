@@ -143,9 +143,10 @@ jobs:
         run: |
           echo "🔥 Launching Ultimate AI Cloud Mechanic with full features..."
           if [ -f "Intelligence/mechanic/cloud/cloud_mechanic_core.py" ]; then
-            cd Intelligence/mechanic/cloud
             export ULTIMATE_MODE=true
-            python cloud_mechanic_core.py
+            export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+            export GITHUB_REPOSITORY="${{ github.event.repository.name }}"
+            python Intelligence/mechanic/cloud/cloud_mechanic_core.py
             echo "✅ Ultimate AI Cloud Mechanic execution completed!"
           else
             echo "⚠️ Ultimate AI Cloud Mechanic not found, using built-in emergency mode"

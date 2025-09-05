@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-09-05T14:26:50.615532",
+  "timestamp": "2025-09-05T14:25:30.389360",
   "version": "3.0-CLOUD-ULTIMATE",
   "repository": "c-trading-bo/trading-bot-c-",
   "analysis": {
-    "timestamp": "2025-09-05T14:26:49.790615",
+    "timestamp": "2025-09-05T14:25:29.563327",
     "total_workflows": 27,
     "healthy_workflows": 23,
     "broken_workflows": [

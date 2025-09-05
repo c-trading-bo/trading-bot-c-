@@ -1,0 +1,668 @@
+{
+  "timestamp": "2025-09-05T14:21:52.728237",
+  "total_workflows": 27,
+  "successful_workflows": 2,
+  "failed_workflows": 5,
+  "partially_working_workflows": 20,
+  "workflow_details": {
+    "failed_patterns.yml": {
+      "workflow_name": "failed_patterns.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "failed_patterns.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/failed_patterns.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_options_flow_pipeline.yml": {
+      "workflow_name": "ultimate_options_flow_pipeline.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "scan_options.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/scan_options.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "fed_liquidity.yml": {
+      "workflow_name": "fed_liquidity.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "fed_liquidity.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/fed_liquidity.py\", line 6, in <module>\n    import pandas as pd\nModuleNotFoundError: No m",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "daily_report.yml": {
+      "workflow_name": "daily_report.yml",
+      "scripts_found": 3,
+      "scripts_executed": 3,
+      "scripts_successful": 1,
+      "execution_details": {
+        "generate_signals.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/generate_signals.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundError: N",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "generate_daily_report.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/generate_daily_report.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundErr",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "help_failed",
+        "daily_report_script": "failed"
+      }
+    },
+    "market_data.yml": {
+      "workflow_name": "market_data.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "collect_market_data.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/collect_market_data.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundErr",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_data_collection_pipeline.yml": {
+      "workflow_name": "ultimate_data_collection_pipeline.yml",
+      "scripts_found": 3,
+      "scripts_executed": 3,
+      "scripts_successful": 1,
+      "execution_details": {
+        "collect_market_data.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/collect_market_data.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundErr",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "collect_intelligence.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/collect_intelligence.py\", line 14, in <module>\n    import pandas as pd\nModuleNotFoundErr",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "help_failed",
+        "market_data_script": "failed"
+      }
+    },
+    "portfolio_heat.yml": {
+      "workflow_name": "portfolio_heat.yml",
+      "scripts_found": 0,
+      "scripts_executed": 0,
+      "scripts_successful": 0,
+      "execution_details": {},
+      "overall_status": "no_python_scripts",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_ml_rl_intel_system.yml": {
+      "workflow_name": "ultimate_ml_rl_intel_system.yml",
+      "scripts_found": 0,
+      "scripts_executed": 0,
+      "scripts_successful": 0,
+      "execution_details": {},
+      "overall_status": "no_python_scripts",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_build_ci_pipeline.yml": {
+      "workflow_name": "ultimate_build_ci_pipeline.yml",
+      "scripts_found": 1,
+      "scripts_executed": 1,
+      "scripts_successful": 1,
+      "execution_details": {
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "all_scripts_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "zones_identifier.yml": {
+      "workflow_name": "zones_identifier.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "identify_zones.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/identify_zones.py\", line 2, in <module>\n    import yfinance as yf\nModuleNotFoundError: N",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "overnight.yml": {
+      "workflow_name": "overnight.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "overnight_analysis.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/overnight_analysis.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundErro",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "microstructure.yml": {
+      "workflow_name": "microstructure.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "microstructure.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/microstructure.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: N",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "seasonality.yml": {
+      "workflow_name": "seasonality.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "seasonality_patterns.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/seasonality_patterns.py\", line 6, in <module>\n    import pandas as pd\nModuleNotFoundErro",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "options_flow.yml": {
+      "workflow_name": "options_flow.yml",
+      "scripts_found": 1,
+      "scripts_executed": 1,
+      "scripts_successful": 0,
+      "execution_details": {
+        "scan_options.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/scan_options.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        }
+      },
+      "overall_status": "scripts_failing",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "es_nq_critical_trading.yml": {
+      "workflow_name": "es_nq_critical_trading.yml",
+      "scripts_found": 0,
+      "scripts_executed": 0,
+      "scripts_successful": 0,
+      "execution_details": {},
+      "overall_status": "no_python_scripts",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "intermarket.yml": {
+      "workflow_name": "intermarket.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "correlations.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/correlations.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_ml_rl_training_pipeline.yml": {
+      "workflow_name": "ultimate_ml_rl_training_pipeline.yml",
+      "scripts_found": 5,
+      "scripts_executed": 5,
+      "scripts_successful": 1,
+      "execution_details": {
+        "prepare_data.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/prepare_data.py\", line 10, in <module>\n    import pandas as pd\nModuleNotFoundError: No m",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "build_features.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/build_features.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "train_cvar_ppo.py": {
+          "status": "file_not_found",
+          "message": "Script train_cvar_ppo.py not found"
+        },
+        "train_models.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/train_models.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundError: No mo",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "help_failed",
+        "cvar_ppo_script": "failed"
+      }
+    },
+    "es_nq_correlation_matrix.yml": {
+      "workflow_name": "es_nq_correlation_matrix.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "correlations.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/correlations.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ml_trainer.yml": {
+      "workflow_name": "ml_trainer.yml",
+      "scripts_found": 3,
+      "scripts_executed": 3,
+      "scripts_successful": 1,
+      "execution_details": {
+        "build_features.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/build_features.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "train_models.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/train_models.py\", line 7, in <module>\n    import pandas as pd\nModuleNotFoundError: No mo",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "volatility_surface.yml": {
+      "workflow_name": "volatility_surface.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "volatility_surface.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/volatility_surface.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundErro",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "cloud_bot_mechanic.yml": {
+      "workflow_name": "cloud_bot_mechanic.yml",
+      "scripts_found": 1,
+      "scripts_executed": 1,
+      "scripts_successful": 0,
+      "execution_details": {
+        "cloud_mechanic_core.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/mechanic/cloud/cloud_mechanic_core.py\", line 19, in <module>\n    from croniter import croniter\nM",
+          "returncode": 1,
+          "method": "direct_execution"
+        }
+      },
+      "overall_status": "scripts_failing",
+      "specific_test": {
+        "status": "executed_with_errors",
+        "returncode": 1,
+        "output_length": 0,
+        "has_output": false,
+        "error_output": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/mechanic/cloud/cloud_mechanic_core.py\", line 19, in <module>\n    from croniter import croniter\nM"
+      }
+    },
+    "ultimate_regime_detection_pipeline.yml": {
+      "workflow_name": "ultimate_regime_detection_pipeline.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "regime_detector.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/regime_detector.py\", line 6, in <module>\n    import pandas as pd\nModuleNotFoundError: No",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "mm_positioning.yml": {
+      "workflow_name": "mm_positioning.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "mm_positioning.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/mm_positioning.py\", line 6, in <module>\n    import pandas as pd\nModuleNotFoundError: No ",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_testing_qa_pipeline.yml": {
+      "workflow_name": "ultimate_testing_qa_pipeline.yml",
+      "scripts_found": 3,
+      "scripts_executed": 3,
+      "scripts_successful": 2,
+      "execution_details": {
+        "train_adaptive_learning.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "",
+          "method": "help_flag"
+        },
+        "collect_market_data.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/collect_market_data.py\", line 7, in <module>\n    import yfinance as yf\nModuleNotFoundErr",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "ultimate_news_sentiment_pipeline.yml": {
+      "workflow_name": "ultimate_news_sentiment_pipeline.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "collect_news.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/collect_news.py\", line 8, in <module>\n    import pandas as pd\nModuleNotFoundError: No mo",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "opex_calendar.yml": {
+      "workflow_name": "opex_calendar.yml",
+      "scripts_found": 2,
+      "scripts_executed": 2,
+      "scripts_successful": 1,
+      "execution_details": {
+        "opex_tracker.py": {
+          "status": "executed_with_errors",
+          "message": "Script ran but returned non-zero exit code",
+          "stderr": "Traceback (most recent call last):\n  File \"/home/runner/work/trading-bot-c-/trading-bot-c-/Intelligence/scripts/opex_tracker.py\", line 6, in <module>\n    import pandas as pd\nModuleNotFoundError: No mo",
+          "returncode": 1,
+          "method": "direct_execution"
+        },
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "partially_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    },
+    "daily_consolidated.yml": {
+      "workflow_name": "daily_consolidated.yml",
+      "scripts_found": 1,
+      "scripts_executed": 1,
+      "scripts_successful": 1,
+      "execution_details": {
+        "workflow_data_integration.py": {
+          "status": "success",
+          "message": "Script responds to --help",
+          "stdout": "usage: workflow_data_integration.py [-h] --workflow-type WORKFLOW_TYPE\n                                    --data-path DATA_PATH\n                                    [--output-format OUTPUT_FORMAT]\n   ",
+          "method": "help_flag"
+        }
+      },
+      "overall_status": "all_scripts_working",
+      "specific_test": {
+        "status": "no_specific_test"
+      }
+    }
+  }
+}

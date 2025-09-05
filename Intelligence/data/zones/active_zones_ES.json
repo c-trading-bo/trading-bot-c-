@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-03T01:59:49.486422",
+  "timestamp": "2025-09-05T14:26:41.345151",
   "symbol": "ES=F",
   "supply_zones": [
     {
@@ -9,11 +9,11 @@
       "zone_bottom": 5722.75,
       "strength": 85.5,
       "volume": 45000,
-      "created_date": "2025-09-01T01:59:49.486422",
+      "created_date": "2025-09-03T14:26:41.345176",
       "touches": 3,
       "holds": 2,
       "breaks": 1,
-      "last_test": "2025-09-02T21:59:49.486422",
+      "last_test": "2025-09-05T10:26:41.345199",
       "active": true
     },
     {
@@ -23,11 +23,11 @@
       "zone_bottom": 5747.75,
       "strength": 92.0,
       "volume": 67000,
-      "created_date": "2025-08-29T01:59:49.486422",
+      "created_date": "2025-08-31T14:26:41.345220",
       "touches": 4,
       "holds": 4,
       "breaks": 0,
-      "last_test": "2025-09-02T17:59:49.486422",
+      "last_test": "2025-09-05T06:26:41.345237",
       "active": true
     }
   ],
@@ -39,11 +39,11 @@
       "zone_bottom": 5672.75,
       "strength": 78.2,
       "volume": 52000,
-      "created_date": "2025-08-31T01:59:49.486422",
+      "created_date": "2025-09-02T14:26:41.345256",
       "touches": 2,
       "holds": 2,
       "breaks": 0,
-      "last_test": "2025-09-02T19:59:49.486422",
+      "last_test": "2025-09-05T08:26:41.345278",
       "active": true
     },
     {
@@ -53,11 +53,11 @@
       "zone_bottom": 5647.75,
       "strength": 88.7,
       "volume": 71000,
-      "created_date": "2025-08-27T01:59:49.486422",
+      "created_date": "2025-08-29T14:26:41.345298",
       "touches": 5,
       "holds": 4,
       "breaks": 1,
-      "last_test": "2025-09-02T13:59:49.486422",
+      "last_test": "2025-09-05T02:26:41.345322",
       "active": true
     }
   ],

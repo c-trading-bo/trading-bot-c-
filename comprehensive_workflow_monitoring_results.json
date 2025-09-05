@@ -1,0 +1,703 @@
+{
+  "diagnosis_results": {
+    "timestamp": "2025-09-05T14:23:15.695247",
+    "total_workflows": 27,
+    "workflows_diagnosed": 27,
+    "issues_found": 29,
+    "fixes_applied": 1,
+    "workflow_status": {
+      "failed_patterns.yml": {
+        "workflow_name": "failed_patterns.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/failed_patterns.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/failed_patterns.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_options_flow_pipeline.yml": {
+        "workflow_name": "ultimate_options_flow_pipeline.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/scan_options.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/scan_options.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "fed_liquidity.yml": {
+        "workflow_name": "fed_liquidity.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/fed_liquidity.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/fed_liquidity.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "daily_report.yml": {
+        "workflow_name": "daily_report.yml",
+        "issues_found": 2,
+        "issues": [
+          "Script Intelligence/scripts/generate_signals.py: Missing modules: ['pandas']",
+          "Script Intelligence/scripts/generate_daily_report.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas",
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/generate_signals.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/generate_daily_report.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "market_data.yml": {
+        "workflow_name": "market_data.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/collect_market_data.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/collect_market_data.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_data_collection_pipeline.yml": {
+        "workflow_name": "ultimate_data_collection_pipeline.yml",
+        "issues_found": 2,
+        "issues": [
+          "Script Intelligence/scripts/collect_market_data.py: Missing modules: ['yfinance']",
+          "Script Intelligence/scripts/collect_intelligence.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance",
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/collect_market_data.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/collect_intelligence.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "portfolio_heat.yml": {
+        "workflow_name": "portfolio_heat.yml",
+        "issues_found": 0,
+        "issues": [],
+        "recommendations": [],
+        "script_issues": {},
+        "execution_readiness": "ready"
+      },
+      "ultimate_ml_rl_intel_system.yml": {
+        "workflow_name": "ultimate_ml_rl_intel_system.yml",
+        "issues_found": 0,
+        "issues": [],
+        "recommendations": [],
+        "script_issues": {},
+        "execution_readiness": "ready"
+      },
+      "ultimate_build_ci_pipeline.yml": {
+        "workflow_name": "ultimate_build_ci_pipeline.yml",
+        "issues_found": 0,
+        "issues": [],
+        "recommendations": [],
+        "script_issues": {
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "ready"
+      },
+      "zones_identifier.yml": {
+        "workflow_name": "zones_identifier.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/identify_zones.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/identify_zones.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "overnight.yml": {
+        "workflow_name": "overnight.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/overnight_analysis.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/overnight_analysis.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "microstructure.yml": {
+        "workflow_name": "microstructure.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/microstructure.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/microstructure.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "seasonality.yml": {
+        "workflow_name": "seasonality.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/seasonality_patterns.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/seasonality_patterns.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "options_flow.yml": {
+        "workflow_name": "options_flow.yml",
+        "issues_found": 2,
+        "issues": [
+          "Script Intelligence/scripts/scan_options.py: Missing modules: ['yfinance']",
+          "No triggers defined in workflow"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/scan_options.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "es_nq_critical_trading.yml": {
+        "workflow_name": "es_nq_critical_trading.yml",
+        "issues_found": 0,
+        "issues": [],
+        "recommendations": [],
+        "script_issues": {},
+        "execution_readiness": "ready"
+      },
+      "intermarket.yml": {
+        "workflow_name": "intermarket.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/correlations.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/correlations.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_ml_rl_training_pipeline.yml": {
+        "workflow_name": "ultimate_ml_rl_training_pipeline.yml",
+        "issues_found": 4,
+        "issues": [
+          "Script Intelligence/scripts/prepare_data.py: Missing modules: ['pandas']",
+          "Script Intelligence/scripts/build_features.py: Missing modules: ['pandas']",
+          "Script train_cvar_ppo.py: File not found",
+          "Script Intelligence/scripts/train_models.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas",
+          "Install missing modules: pip install pandas",
+          "Create missing script: train_cvar_ppo.py",
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/prepare_data.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/build_features.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "train_cvar_ppo.py": {
+            "status": "missing",
+            "issue": "File not found",
+            "recommendations": [
+              "Create missing script: train_cvar_ppo.py"
+            ]
+          },
+          "Intelligence/scripts/train_models.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_major_fixes",
+        "fixes_applied": 1
+      },
+      "es_nq_correlation_matrix.yml": {
+        "workflow_name": "es_nq_correlation_matrix.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/correlations.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/correlations.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ml_trainer.yml": {
+        "workflow_name": "ml_trainer.yml",
+        "issues_found": 2,
+        "issues": [
+          "Script Intelligence/scripts/build_features.py: Missing modules: ['pandas']",
+          "Script Intelligence/scripts/train_models.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas",
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/build_features.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/train_models.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "volatility_surface.yml": {
+        "workflow_name": "volatility_surface.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/volatility_surface.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/volatility_surface.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "cloud_bot_mechanic.yml": {
+        "workflow_name": "cloud_bot_mechanic.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/mechanic/cloud/cloud_mechanic_core.py: Missing modules: ['croniter']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install croniter"
+        ],
+        "script_issues": {
+          "Intelligence/mechanic/cloud/cloud_mechanic_core.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['croniter']",
+            "recommendations": [
+              "Install missing modules: pip install croniter"
+            ]
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_regime_detection_pipeline.yml": {
+        "workflow_name": "ultimate_regime_detection_pipeline.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/regime_detector.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/regime_detector.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "mm_positioning.yml": {
+        "workflow_name": "mm_positioning.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/mm_positioning.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/mm_positioning.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_testing_qa_pipeline.yml": {
+        "workflow_name": "ultimate_testing_qa_pipeline.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/collect_market_data.py: Missing modules: ['yfinance']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install yfinance"
+        ],
+        "script_issues": {
+          "ml/train_adaptive_learning.py": {
+            "status": "working",
+            "issue": null
+          },
+          "Intelligence/scripts/collect_market_data.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['yfinance']",
+            "recommendations": [
+              "Install missing modules: pip install yfinance"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "ultimate_news_sentiment_pipeline.yml": {
+        "workflow_name": "ultimate_news_sentiment_pipeline.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/collect_news.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/collect_news.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "opex_calendar.yml": {
+        "workflow_name": "opex_calendar.yml",
+        "issues_found": 1,
+        "issues": [
+          "Script Intelligence/scripts/opex_tracker.py: Missing modules: ['pandas']"
+        ],
+        "recommendations": [
+          "Install missing modules: pip install pandas"
+        ],
+        "script_issues": {
+          "Intelligence/scripts/opex_tracker.py": {
+            "status": "missing_dependencies",
+            "issue": "Missing modules: ['pandas']",
+            "recommendations": [
+              "Install missing modules: pip install pandas"
+            ]
+          },
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "needs_minor_fixes",
+        "fixes_applied": 0
+      },
+      "daily_consolidated.yml": {
+        "workflow_name": "daily_consolidated.yml",
+        "issues_found": 0,
+        "issues": [],
+        "recommendations": [],
+        "script_issues": {
+          "Intelligence/scripts/workflow_data_integration.py": {
+            "status": "working",
+            "issue": null
+          }
+        },
+        "execution_readiness": "ready"
+      }
+    }
+  },
+  "monitoring_report": {
+    "health_score": 57.407407407407405,
+    "ready_workflows": [
+      "portfolio_heat.yml",
+      "ultimate_ml_rl_intel_system.yml",
+      "ultimate_build_ci_pipeline.yml",
+      "es_nq_critical_trading.yml",
+      "daily_consolidated.yml"
+    ],
+    "minor_fix_workflows": [
+      "failed_patterns.yml",
+      "ultimate_options_flow_pipeline.yml",
+      "fed_liquidity.yml",
+      "daily_report.yml",
+      "market_data.yml",
+      "ultimate_data_collection_pipeline.yml",
+      "zones_identifier.yml",
+      "overnight.yml",
+      "microstructure.yml",
+      "seasonality.yml",
+      "options_flow.yml",
+      "intermarket.yml",
+      "es_nq_correlation_matrix.yml",
+      "ml_trainer.yml",
+      "volatility_surface.yml",
+      "cloud_bot_mechanic.yml",
+      "ultimate_regime_detection_pipeline.yml",
+      "mm_positioning.yml",
+      "ultimate_testing_qa_pipeline.yml",
+      "ultimate_news_sentiment_pipeline.yml",
+      "opex_calendar.yml"
+    ],
+    "major_fix_workflows": [
+      "ultimate_ml_rl_training_pipeline.yml"
+    ],
+    "fixes_applied": 1,
+    "remaining_issues": 28
+  },
+  "fix_log": [
+    "Created missing script: train_cvar_ppo.py"
+  ]
+}
