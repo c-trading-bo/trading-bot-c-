@@ -1,4 +1,4 @@
-﻿name: Intelligence - Market Data ⚡ (OPTIMIZED)
+name: Intelligence - Market Data âš¡ (OPTIMIZED)
 
 "on":
   schedule:
@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   collect-market-data:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     
@@ -26,14 +27,14 @@ jobs:
       with:
         fetch-depth: 1  # Shallow clone for speed
       
-    # ⚡ SPEED OPTIMIZATION: Python + Dependencies Caching
+    # âš¡ SPEED OPTIMIZATION: Python + Dependencies Caching
     - name: Set up Python with caching
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
         cache: 'pip'
         
-    # ⚡ SPEED OPTIMIZATION: Cache dependencies
+    # âš¡ SPEED OPTIMIZATION: Cache dependencies
     - name: Cache Python packages
       uses: actions/cache@v4
       with:
@@ -43,13 +44,13 @@ jobs:
           ${{ runner.os }}-pip-market-
           ${{ runner.os }}-pip-
         
-    # ⚡ SPEED OPTIMIZATION: Minimal dependency installation
+    # âš¡ SPEED OPTIMIZATION: Minimal dependency installation
     - name: Install dependencies (optimized)
       run: |
         python -m pip install --upgrade pip --quiet
         pip install requests pandas numpy yfinance --only-if-needed --quiet
         
-    # ⚡ SPEED OPTIMIZATION: Parallel data collection
+    # âš¡ SPEED OPTIMIZATION: Parallel data collection
     - name: Collect market data (optimized)
       run: |
         # Run market data collection with timeout and error handling
@@ -58,7 +59,7 @@ jobs:
           exit 0
         }
         
-    # ⚡ SPEED OPTIMIZATION: Conditional artifact upload
+    # âš¡ SPEED OPTIMIZATION: Conditional artifact upload
     - name: Upload market data (if new data)
       uses: actions/upload-artifact@v4
       if: hashFiles('Intelligence/data/raw/indices/*') != ''
@@ -69,10 +70,10 @@ jobs:
           Intelligence/data/raw/indices/*.json
         retention-days: 30
 
-    # 🔗 BotCore Integration
-    - name: "🔗 Integrate with BotCore Decision Engine"
+    # ðŸ”— BotCore Integration
+    - name: "ðŸ”— Integrate with BotCore Decision Engine"
       run: |
-        echo "🔗 Converting Market Data to BotCore format..."
+        echo "ðŸ”— Converting Market Data to BotCore format..."
         
         # Run data integration script for market data
         python Intelligence/scripts/workflow_data_integration.py \
@@ -80,10 +81,10 @@ jobs:
           --data-path "Intelligence/data/raw/indices/" \
           --output-path "Intelligence/data/integrated/market_data_feed.json"
         
-        echo "✅ BotCore market data integration complete"
+        echo "âœ… BotCore market data integration complete"
         
-    # ⚡ SPEED OPTIMIZATION: Smart commit (only if changes)
-    - name: "📤 Commit Integrated Market Data"
+    # âš¡ SPEED OPTIMIZATION: Smart commit (only if changes)
+    - name: "ðŸ“¤ Commit Integrated Market Data"
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
@@ -91,8 +92,9 @@ jobs:
         # Only commit if there are actual changes
         if [ -n "$(git status --porcelain Intelligence/)" ]; then
           git add Intelligence/data/integrated/ Intelligence/data/raw/indices/
-          git commit -m "📊 Market Data: BotCore-integrated feed [$(date '+%Y-%m-%d %H:%M:%S')] ⚡"
+          git commit -m "ðŸ“Š Market Data: BotCore-integrated feed [$(date '+%Y-%m-%d %H:%M:%S')] âš¡"
           git push
         else
           echo "No new market data - skipping commit"
         fi
+

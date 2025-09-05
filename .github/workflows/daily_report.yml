@@ -1,4 +1,4 @@
-﻿name: Intelligence - Daily Report
+name: Intelligence - Daily Report
 
 "on":
   schedule:
@@ -23,6 +23,7 @@ permissions:
 
 jobs:
   generate-signals:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     
@@ -57,9 +58,9 @@ jobs:
           Intelligence/reports/
         retention-days: 30
 
-    - name: "🔗 Integrate with BotCore Decision Engine"
+    - name: "ðŸ”— Integrate with BotCore Decision Engine"
       run: |
-        echo "🔗 Converting Daily Report analysis to BotCore format..."
+        echo "ðŸ”— Converting Daily Report analysis to BotCore format..."
         
         # Run data integration script for daily intelligence reports
         python Intelligence/scripts/workflow_data_integration.py \
@@ -67,13 +68,14 @@ jobs:
           --data-path "Intelligence/reports/daily_report.json" \
           --output-path "Intelligence/data/integrated/daily_intelligence_summary.json"
         
-        echo "✅ BotCore daily report integration complete"
+        echo "âœ… BotCore daily report integration complete"
 
-    - name: "📤 Commit Integrated Data and Reports"
+    - name: "ðŸ“¤ Commit Integrated Data and Reports"
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add Intelligence/data/integrated/
         git add Intelligence/data/signals/ Intelligence/reports/
-        git diff --staged --quiet || git commit -m "📊 Daily Intelligence: BotCore-integrated report and signals [$(date '+%Y-%m-%d %H:%M:%S')]"
+        git diff --staged --quiet || git commit -m "ðŸ“Š Daily Intelligence: BotCore-integrated report and signals [$(date '+%Y-%m-%d %H:%M:%S')]"
         git push || echo "No changes to push"
+

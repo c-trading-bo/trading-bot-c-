@@ -1207,6 +1207,7 @@ jobs:
   # ============================================
   system-summary:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: [collect-everything, train-everything, intelligence-integration]
     if: always()
     

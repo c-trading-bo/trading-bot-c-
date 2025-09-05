@@ -1,4 +1,4 @@
-﻿name: Microstructure Analysis
+name: Microstructure Analysis
 "on":
   schedule:
     # 24/7 MICROSTRUCTURE ANALYSIS (CRITICAL FOR HIGH-FREQUENCY TRADING)
@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   microstructure:
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,9 +28,9 @@ jobs:
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/microstructure.py
 
-      - name: "🔗 Integrate with BotCore Decision Engine"
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
         run: |
-          echo "🔗 Converting Microstructure analysis to BotCore format..."
+          echo "ðŸ”— Converting Microstructure analysis to BotCore format..."
           
           # Run data integration script for microstructure data
           python Intelligence/scripts/workflow_data_integration.py \
@@ -37,13 +38,14 @@ jobs:
             --data-path "Intelligence/data/microstructure.json" \
             --output-path "Intelligence/data/integrated/microstructure_analysis.json"
           
-          echo "✅ BotCore microstructure integration complete"
+          echo "âœ… BotCore microstructure integration complete"
 
-      - name: "📤 Commit Integrated Data"
+      - name: "ðŸ“¤ Commit Integrated Data"
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "🔬 Microstructure: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git diff --quiet || git commit -m "ðŸ”¬ Microstructure: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
           git push || echo "No changes to push"
+

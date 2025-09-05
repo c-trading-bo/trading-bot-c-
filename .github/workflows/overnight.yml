@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   overnight:
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,9 +27,9 @@ jobs:
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/overnight_analysis.py
 
-      - name: "🔗 Integrate with BotCore Decision Engine"
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
         run: |
-          echo "🔗 Converting Overnight Session analysis to BotCore format..."
+          echo "ðŸ”— Converting Overnight Session analysis to BotCore format..."
           
           # Run data integration script for overnight trading signals
           python Intelligence/scripts/workflow_data_integration.py \
@@ -36,13 +37,14 @@ jobs:
             --data-path "Intelligence/data/overnight_analysis.json" \
             --output-path "Intelligence/data/integrated/overnight_trading_signals.json"
           
-          echo "✅ BotCore overnight integration complete"
+          echo "âœ… BotCore overnight integration complete"
 
-      - name: "📤 Commit Integrated Data"
+      - name: "ðŸ“¤ Commit Integrated Data"
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "🌙 Overnight Analysis: BotCore-integrated trading signals $(date -u +%Y%m%d_%H%M%S)"
+          git diff --quiet || git commit -m "ðŸŒ™ Overnight Analysis: BotCore-integrated trading signals $(date -u +%Y%m%d_%H%M%S)"
           git push || echo "No changes to push"
+

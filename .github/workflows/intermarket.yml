@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   intermarket:
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,9 +29,9 @@ jobs:
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/correlations.py
       
-      - name: "🔗 Integrate with BotCore Decision Engine"
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
         run: |
-          echo "🔗 Converting Intermarket analysis to BotCore format..."
+          echo "ðŸ”— Converting Intermarket analysis to BotCore format..."
           
           # Run data integration script for correlation analysis
           python Intelligence/scripts/workflow_data_integration.py \
@@ -38,12 +39,13 @@ jobs:
             --data-path "Intelligence/data/" \
             --output-path "Intelligence/data/integrated/intermarket_correlation.json"
           
-          echo "✅ BotCore intermarket integration complete"
+          echo "âœ… BotCore intermarket integration complete"
       
       - run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add Intelligence/data/
           git add Intelligence/data/integrated/
-          git diff --quiet || git commit -m "🔗 Intermarket: BotCore-integrated correlation analysis $(date -u +%Y%m%d_%H%M%S)"
+          git diff --quiet || git commit -m "ðŸ”— Intermarket: BotCore-integrated correlation analysis $(date -u +%Y%m%d_%H%M%S)"
           git push
+

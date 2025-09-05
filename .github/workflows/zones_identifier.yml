@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   zones_identifier:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,9 +29,9 @@ jobs:
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/identify_zones.py
 
-      - name: "🔗 Integrate with BotCore Decision Engine"
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
         run: |
-          echo "🔗 Converting Supply/Demand Zones analysis to BotCore format..."
+          echo "ðŸ”— Converting Supply/Demand Zones analysis to BotCore format..."
           
           # Run data integration script for zones data
           python Intelligence/scripts/workflow_data_integration.py \
@@ -38,13 +39,14 @@ jobs:
             --data-path "Intelligence/data/zones.json" \
             --output-path "Intelligence/data/integrated/supply_demand_zones.json"
           
-          echo "✅ BotCore zones integration complete"
+          echo "âœ… BotCore zones integration complete"
 
-      - name: "📤 Commit Integrated Data"
+      - name: "ðŸ“¤ Commit Integrated Data"
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "🎯 Supply/Demand Zones: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git diff --quiet || git commit -m "ðŸŽ¯ Supply/Demand Zones: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
           git push || echo "No changes to push"
+

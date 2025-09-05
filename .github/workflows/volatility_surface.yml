@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   volatility_surface:
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,9 +29,9 @@ jobs:
       - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
       - run: python Intelligence/scripts/volatility_surface.py
 
-      - name: "🔗 Integrate with BotCore Decision Engine"
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
         run: |
-          echo "🔗 Converting Volatility Surface analysis to BotCore format..."
+          echo "ðŸ”— Converting Volatility Surface analysis to BotCore format..."
           
           # Run data integration script for volatility surface data
           python Intelligence/scripts/workflow_data_integration.py \
@@ -38,13 +39,14 @@ jobs:
             --data-path "Intelligence/data/volatility_surface.json" \
             --output-path "Intelligence/data/integrated/volatility_surface_analysis.json"
           
-          echo "✅ BotCore volatility surface integration complete"
+          echo "âœ… BotCore volatility surface integration complete"
 
-      - name: "📤 Commit Integrated Data"
+      - name: "ðŸ“¤ Commit Integrated Data"
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git add Intelligence/data/integrated/
           git add Intelligence/data/
-          git diff --quiet || git commit -m "📈 Volatility Surface: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
+          git diff --quiet || git commit -m "ðŸ“ˆ Volatility Surface: BotCore-integrated analysis $(date -u +%Y%m%d_%H%M%S)"
           git push || echo "No changes to push"
+
