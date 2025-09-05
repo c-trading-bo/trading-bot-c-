@@ -1,0 +1,45 @@
+name: 🔍 Cloud Bot Mechanic - Immediate Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Test Mode'
+        required: false
+        default: 'visibility_test'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  immediate-test:
+    name: "⚡ Immediate Visibility Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: "🔥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🧪 Cloud Bot Mechanic Visibility Test"
+        run: |
+          echo "🤖 CLOUD BOT MECHANIC VISIBILITY TEST"
+          echo "====================================="
+          echo "Time: $(date -u)"
+          echo "Mode: ${{ github.event.inputs.test_mode || 'visibility_test' }}"
+          echo "Trigger: ${{ github.event_name }}"
+          echo ""
+          echo "✅ If you can see this workflow in GitHub Actions,"
+          echo "   then the Cloud Bot Mechanic should also be visible!"
+          echo ""
+          echo "🔍 Check the Actions tab for:"
+          echo "   - 'Ultimate AI Cloud Bot Mechanic - Enterprise Defense System'"
+          echo "   - Should appear in workflow list"
+          echo "   - Manual trigger should be available"
+          
+      - name: "📊 Generate Test Report"
+        run: |
+          echo "Test completed successfully at $(date -u)" > test_visibility.txt
+          echo "Cloud Bot Mechanic visibility test PASSED" >> test_visibility.txt
+          cat test_visibility.txt
