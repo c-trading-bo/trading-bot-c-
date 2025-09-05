@@ -14,7 +14,7 @@ namespace TradingBot.Tests;
 /// Comprehensive integration test for the advanced system components
 /// Tests MLMemoryManager, WorkflowOrchestrationManager, and their integration
 /// </summary>
-public class AdvancedSystemIntegrationTest
+public class Program
 {
     public static async Task<int> Main(string[] args)
     {
@@ -232,23 +232,26 @@ public class AdvancedSystemIntegrationTest
         }
     }
     
-    private static List<Bar> CreateTestBars()
+    private static List<BotCore.Models.Bar> CreateTestBars()
     {
-        var bars = new List<Bar>();
+        var bars = new List<BotCore.Models.Bar>();
         var random = new Random();
         var basePrice = 4500.00m;
         
         for (int i = 0; i < 50; i++)
         {
             var price = basePrice + (decimal)(random.NextDouble() * 20 - 10);
-            bars.Add(new Bar
+            var startTime = DateTime.UtcNow.AddMinutes(-i);
+            bars.Add(new BotCore.Models.Bar
             {
+                Start = startTime,
+                Ts = ((DateTimeOffset)startTime).ToUnixTimeMilliseconds(),
+                Symbol = "ES",
                 Open = price,
                 High = price + (decimal)(random.NextDouble() * 5),
                 Low = price - (decimal)(random.NextDouble() * 5),
                 Close = price + (decimal)(random.NextDouble() * 4 - 2),
-                Volume = 1000 + random.Next(0, 500),
-                Timestamp = DateTime.UtcNow.AddMinutes(-i)
+                Volume = 1000 + random.Next(0, 500)
             });
         }
         
