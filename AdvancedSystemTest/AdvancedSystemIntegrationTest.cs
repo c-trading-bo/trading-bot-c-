@@ -37,6 +37,7 @@ public class Program
             // Add BotCore advanced services
             services.AddMLMemoryManagement();
             services.AddEnhancedMLModelManager();
+            services.AddEconomicEventManagement();
             
             // Add UnifiedOrchestrator services
             services.AddWorkflowOrchestration();
@@ -64,6 +65,9 @@ public class Program
             // Test WorkflowOrchestrationManager
             await TestWorkflowOrchestration(serviceProvider);
             
+            // Test EconomicEventManager
+            await TestEconomicEventManager(serviceProvider);
+            
             // Test integrated system
             await TestIntegratedSystem(integrationService);
             
@@ -72,7 +76,7 @@ public class Program
             
             Console.WriteLine();
             Console.WriteLine("✅ All tests completed successfully!");
-            Console.WriteLine("🎯 MLMemoryManager and WorkflowOrchestrationManager are fully integrated and working");
+            Console.WriteLine("🎯 MLMemoryManager, WorkflowOrchestrationManager, and EconomicEventManager are fully integrated and working");
             
             // Cleanup
             integrationService.Dispose();
@@ -163,6 +167,49 @@ public class Program
         Console.WriteLine();
     }
     
+    private static async Task TestEconomicEventManager(IServiceProvider serviceProvider)
+    {
+        Console.WriteLine("📊 Testing Economic Event Manager...");
+        
+        var economicEventManager = serviceProvider.GetService<IEconomicEventManager>();
+        
+        if (economicEventManager == null)
+        {
+            Console.WriteLine("❌ EconomicEventManager not found");
+            return;
+        }
+        
+        // Test upcoming events
+        var upcomingEvents = await economicEventManager.GetUpcomingEventsAsync(TimeSpan.FromHours(24));
+        Console.WriteLine($"   📅 Found {upcomingEvents.Count()} upcoming events in next 24 hours");
+        
+        // Test high impact events
+        var highImpactEvents = await economicEventManager.GetEventsByImpactAsync(EventImpact.High);
+        Console.WriteLine($"   ⚠️ Found {highImpactEvents.Count()} high-impact events");
+        
+        foreach (var economicEvent in highImpactEvents.Take(3))
+        {
+            Console.WriteLine($"      • {economicEvent.Name} ({economicEvent.Currency}) - {economicEvent.Impact} impact at {economicEvent.ScheduledTime:yyyy-MM-dd HH:mm}");
+        }
+        
+        // Test trading restrictions
+        var tradingAllowedES = !await economicEventManager.ShouldRestrictTradingAsync("ES", TimeSpan.FromHours(2));
+        var tradingAllowedNQ = !await economicEventManager.ShouldRestrictTradingAsync("NQ", TimeSpan.FromHours(2));
+        
+        Console.WriteLine($"   🛡️ Trading allowed for ES: {(tradingAllowedES ? "✅" : "❌")}");
+        Console.WriteLine($"   🛡️ Trading allowed for NQ: {(tradingAllowedNQ ? "✅" : "❌")}");
+        
+        // Test trading restriction details
+        var restrictionES = await economicEventManager.GetTradingRestrictionAsync("ES");
+        if (restrictionES.IsRestricted)
+        {
+            Console.WriteLine($"      📋 ES restriction: {restrictionES.Reason} until {restrictionES.RestrictedUntil:yyyy-MM-dd HH:mm}");
+        }
+        
+        Console.WriteLine("✅ Economic Event Manager test completed");
+        Console.WriteLine();
+    }
+    
     private static async Task TestIntegratedSystem(AdvancedSystemIntegrationService integrationService)
     {
         Console.WriteLine("🔗 Testing Integrated System...");
@@ -192,6 +239,13 @@ public class Program
         
         Console.WriteLine($"   🎯 Optimized position size multiplier: {positionMultiplier:F2}");
         
+        // Test trading allowance with economic events
+        var isTradingAllowedES = await integrationService.IsTradingAllowedAsync("ES");
+        var isTradingAllowedNQ = await integrationService.IsTradingAllowedAsync("NQ");
+        
+        Console.WriteLine($"   🛡️ Trading allowed for ES: {(isTradingAllowedES ? "✅" : "❌")}");
+        Console.WriteLine($"   🛡️ Trading allowed for NQ: {(isTradingAllowedNQ ? "✅" : "❌")}");
+        
         Console.WriteLine("✅ Integrated System test completed");
         Console.WriteLine();
     }
@@ -200,7 +254,7 @@ public class Program
     {
         Console.WriteLine("📊 System Status Summary:");
         
-        var status = integrationService.GetSystemStatus();
+        var status = await integrationService.GetSystemStatusAsync();
         
         Console.WriteLine($"   🏥 Overall Health: {(status.IsHealthy ? "✅ Healthy" : "❌ Issues Detected")}");
         Console.WriteLine($"   ⏰ Status Time: {status.Timestamp:yyyy-MM-dd HH:mm:ss}");

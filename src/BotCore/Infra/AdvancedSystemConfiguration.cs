@@ -22,6 +22,16 @@ public static class AdvancedSystemConfiguration
     }
     
     /// <summary>
+    /// Register economic event management services
+    /// </summary>
+    public static IServiceCollection AddEconomicEventManagement(this IServiceCollection services)
+    {
+        services.AddSingleton<IEconomicEventManager, EconomicEventManager>();
+        
+        return services;
+    }
+    
+    /// <summary>
     /// Register enhanced ML model manager with memory management
     /// </summary>
     public static IServiceCollection AddEnhancedMLModelManager(this IServiceCollection services)
@@ -59,6 +69,14 @@ public static class AdvancedSystemConfiguration
         {
             await dataFeedManager.InitializeDataFeedsAsync();
             logger.LogInformation("[Advanced-System] Redundant data feeds initialized");
+        }
+        
+        // Initialize economic event management
+        var economicEventManager = serviceProvider.GetService<IEconomicEventManager>();
+        if (economicEventManager != null)
+        {
+            await economicEventManager.InitializeAsync();
+            logger.LogInformation("[Advanced-System] Economic event management initialized");
         }
         
         logger.LogInformation("[Advanced-System] Advanced system components initialized successfully");

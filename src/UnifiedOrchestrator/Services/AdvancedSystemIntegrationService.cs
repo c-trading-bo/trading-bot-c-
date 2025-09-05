@@ -16,6 +16,7 @@ public class AdvancedSystemIntegrationService : IDisposable
     private readonly IMLMemoryManager? _mlMemoryManager;
     private readonly IWorkflowOrchestrationManager? _workflowOrchestrationManager;
     private readonly RedundantDataFeedManager? _dataFeedManager;
+    private readonly IEconomicEventManager? _economicEventManager;
     private readonly StrategyMlModelManager? _strategyMlManager;
     private readonly Timer _systemHealthTimer;
     private bool _disposed = false;
@@ -25,12 +26,14 @@ public class AdvancedSystemIntegrationService : IDisposable
         IMLMemoryManager? mlMemoryManager = null,
         IWorkflowOrchestrationManager? workflowOrchestrationManager = null,
         RedundantDataFeedManager? dataFeedManager = null,
+        IEconomicEventManager? economicEventManager = null,
         StrategyMlModelManager? strategyMlManager = null)
     {
         _logger = logger;
         _mlMemoryManager = mlMemoryManager;
         _workflowOrchestrationManager = workflowOrchestrationManager;
         _dataFeedManager = dataFeedManager;
+        _economicEventManager = economicEventManager;
         _strategyMlManager = strategyMlManager;
         
         _systemHealthTimer = new Timer(CheckSystemHealth, null, Timeout.Infinite, Timeout.Infinite);
@@ -66,6 +69,13 @@ public class AdvancedSystemIntegrationService : IDisposable
             {
                 await _dataFeedManager.InitializeDataFeedsAsync();
                 _logger.LogInformation("[Advanced-Integration] Redundant data feeds initialized");
+            }
+
+            // Initialize economic event management
+            if (_economicEventManager != null)
+            {
+                await _economicEventManager.InitializeAsync();
+                _logger.LogInformation("[Advanced-Integration] Economic event management initialized");
             }
 
             // Start system health monitoring
@@ -147,7 +157,7 @@ public class AdvancedSystemIntegrationService : IDisposable
     /// <summary>
     /// Get comprehensive system status
     /// </summary>
-    public AdvancedSystemStatus GetSystemStatus()
+    public async Task<AdvancedSystemStatus> GetSystemStatusAsync()
     {
         var status = new AdvancedSystemStatus
         {
@@ -209,14 +219,37 @@ public class AdvancedSystemIntegrationService : IDisposable
             // Additional data feed health checks could be added here
         }
 
+        // Check economic event management
+        if (_economicEventManager != null)
+        {
+            try
+            {
+                // Check for upcoming high-impact events
+                var upcomingEvents = await _economicEventManager.GetEventsByImpactAsync(EventImpact.High);
+                status.Components["Economic Event Manager"] = true;
+                
+                var criticalEvents = upcomingEvents.Where(e => e.Impact >= EventImpact.Critical).ToList();
+                if (criticalEvents.Any())
+                {
+                    status.Issues.Add($"Critical economic events approaching: {criticalEvents.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                status.Components["Economic Event Manager"] = false;
+                status.Issues.Add($"Economic Event Manager error: {ex.Message}");
+                status.IsHealthy = false;
+            }
+        }
+
         return status;
     }
 
-    private void CheckSystemHealth(object? state)
+    private async void CheckSystemHealth(object? state)
     {
         try
         {
-            var status = GetSystemStatus();
+            var status = await GetSystemStatusAsync();
             
             if (!status.IsHealthy)
             {
@@ -288,6 +321,38 @@ public class AdvancedSystemIntegrationService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Check if trading is allowed for a symbol considering economic events
+    /// </summary>
+    public async Task<bool> IsTradingAllowedAsync(string symbol)
+    {
+        if (_economicEventManager == null)
+        {
+            _logger.LogDebug("[Advanced-Integration] Economic event manager not available, allowing trading for {Symbol}", symbol);
+            return true;
+        }
+
+        try
+        {
+            var shouldRestrict = await _economicEventManager.ShouldRestrictTradingAsync(symbol, TimeSpan.FromHours(1));
+            
+            if (shouldRestrict)
+            {
+                var restriction = await _economicEventManager.GetTradingRestrictionAsync(symbol);
+                _logger.LogWarning("[Advanced-Integration] Trading restricted for {Symbol}: {Reason}", 
+                    symbol, restriction.Reason);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Advanced-Integration] Error checking trading allowance for {Symbol}", symbol);
+            return true; // Default to allow trading on error
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed) return;
@@ -300,6 +365,7 @@ public class AdvancedSystemIntegrationService : IDisposable
         _mlMemoryManager?.Dispose();
         _workflowOrchestrationManager?.Dispose();
         _dataFeedManager?.Dispose();
+        (_economicEventManager as IDisposable)?.Dispose();
         _strategyMlManager?.Dispose();
         
         GC.SuppressFinalize(this);
