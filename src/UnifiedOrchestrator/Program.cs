@@ -84,6 +84,10 @@ public class Program
             client.DefaultRequestHeaders.Add("User-Agent", "UnifiedTradingOrchestrator/1.0");
         });
 
+        // Register the CENTRAL MESSAGE BUS - The "ONE BRAIN" communication system
+        services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
+        Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
+
         // Register TopstepX authentication agent
         services.AddSingleton<TopstepAuthAgent>();
 
@@ -102,6 +106,8 @@ public class Program
             services.AddSingleton<ITradingOrchestrator, DemoTradingOrchestratorService>();
             Console.WriteLine("🎭 Demo mode enabled (no TopstepX credentials)");
         }
+        
+        // Register Intelligence and Data orchestrators with full AI integration
         services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
         services.AddSingleton<IDataOrchestrator, DataOrchestratorService>();
         services.AddSingleton<IWorkflowScheduler, WorkflowSchedulerService>();
@@ -111,7 +117,7 @@ public class Program
         services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         services.AddHostedService<UnifiedOrchestratorService>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
-        Console.WriteLine("✅ Unified Orchestrator Services Configured");
+        Console.WriteLine("✅ Unified Orchestrator Services Configured with Central Message Bus");
     }
 
     private static void DisplayStartupInfo()

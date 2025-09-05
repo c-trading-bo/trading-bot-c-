@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.UnifiedOrchestrator.Interfaces;
+using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using System.Collections.Concurrent;
 using BotCore;
@@ -29,13 +30,16 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
     private bool _isRunning = false;
     private DateTime _startTime = DateTime.UtcNow;
 
+    private readonly ICentralMessageBus _messageBus;
+
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
         IServiceProvider serviceProvider,
         ITradingOrchestrator tradingOrchestrator,
         IIntelligenceOrchestrator intelligenceOrchestrator,
         IDataOrchestrator dataOrchestrator,
-        IWorkflowScheduler scheduler)
+        IWorkflowScheduler scheduler,
+        ICentralMessageBus messageBus)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -43,6 +47,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         _intelligenceOrchestrator = intelligenceOrchestrator;
         _dataOrchestrator = dataOrchestrator;
         _scheduler = scheduler;
+        _messageBus = messageBus;
     }
 
     #region IHostedService Implementation
@@ -78,14 +83,22 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
 
         try
         {
-            // Initialize all sub-orchestrators
+            // Start the central message bus FIRST - this is the "ONE BRAIN" communication system
+            _logger.LogInformation("🧠 Starting Central Message Bus - ONE BRAIN communication...");
+            await _messageBus.StartAsync(cancellationToken);
+            
+            // Initialize all sub-orchestrators with message bus integration
             await _tradingOrchestrator.ConnectAsync(cancellationToken);
             
             // Register all unified workflows (consolidating from all previous orchestrators)
             await RegisterAllWorkflowsAsync();
             
+            // Initialize shared state in the brain
+            _messageBus.UpdateSharedState("system.status", "initialized");
+            _messageBus.UpdateSharedState("orchestrator.active_workflows", _workflows.Count);
+            
             _isInitialized = true;
-            _logger.LogInformation("✅ Unified Orchestrator System initialized successfully");
+            _logger.LogInformation("✅ Unified Orchestrator System initialized successfully with Central Message Bus");
         }
         catch (Exception ex)
         {
@@ -125,6 +138,9 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
 
         await _scheduler.StopAsync(cancellationToken);
         await _tradingOrchestrator.DisconnectAsync();
+        
+        // Stop the central message bus last
+        await _messageBus.StopAsync(cancellationToken);
         
         _cancellationTokenSource.Cancel();
         _isRunning = false;
@@ -185,11 +201,17 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
 
             var startTime = DateTime.UtcNow;
             
-            // Execute all actions in the workflow
+            // Publish workflow start event to the central message bus for coordination
+            await _messageBus.PublishAsync("workflow.started", new { WorkflowId = workflowId, Name = workflow.Name }, cancellationToken);
+            
+            // Execute all actions in the workflow with central brain coordination
             foreach (var action in workflow.Actions)
             {
                 context.Logs.Add($"Executing action: {action}");
                 await ExecuteActionAsync(action, context, cancellationToken);
+                
+                // Publish action completion for real-time monitoring
+                await _messageBus.PublishAsync("workflow.action_completed", new { WorkflowId = workflowId, Action = action }, cancellationToken);
             }
 
             var duration = DateTime.UtcNow - startTime;
@@ -214,6 +236,12 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     return existing;
                 });
 
+            // Update central brain state with workflow success
+            _messageBus.UpdateSharedState($"workflow.{workflowId}.last_success", DateTime.UtcNow);
+            
+            // Publish workflow completion for coordination
+            await _messageBus.PublishAsync("workflow.completed", new { WorkflowId = workflowId, Success = true, Duration = duration }, cancellationToken);
+
             _logger.LogInformation("✅ Workflow completed successfully: {WorkflowId} in {Duration}ms", 
                 workflowId, duration.TotalMilliseconds);
 
@@ -236,6 +264,12 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             workflow.Metrics.LastExecution = DateTime.UtcNow;
             workflow.Metrics.LastFailure = DateTime.UtcNow;
             workflow.Metrics.LastError = ex.Message;
+
+            // Update central brain state with workflow failure
+            _messageBus.UpdateSharedState($"workflow.{workflowId}.last_error", ex.Message);
+            
+            // Publish workflow failure for coordination
+            await _messageBus.PublishAsync("workflow.failed", new { WorkflowId = workflowId, Error = ex.Message }, cancellationToken);
 
             _logger.LogError(ex, "❌ Workflow execution failed: {WorkflowId}", workflowId);
 
