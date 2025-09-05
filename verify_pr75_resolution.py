@@ -18,9 +18,6 @@ def run_command(cmd, cwd=None):
         return False, "", str(e)
 
 def main():
-    repo_path = r"C:\Users\kevin\Downloads\C# ai bot"
-    os.chdir(repo_path)
-    
     print("🔍 PR #75 STATUS VERIFICATION & WORKFLOW HEALTH CHECK")
     print("=" * 70)
     
