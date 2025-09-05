@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.UnifiedOrchestrator.Infrastructure;
+using BotCore.Infra;
 
 namespace TradingBot.UnifiedOrchestrator;
 
@@ -71,6 +73,9 @@ public class Program
             {
                 // Configure unified orchestrator services
                 ConfigureUnifiedServices(services);
+                
+                // Register initialization as hosted service
+                services.AddHostedService<AdvancedSystemInitializationService>();
             });
 
     private static void ConfigureUnifiedServices(IServiceCollection services)
@@ -87,6 +92,30 @@ public class Program
         // Register the CENTRAL MESSAGE BUS - The "ONE BRAIN" communication system
         services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
+
+        // ================================================================================
+        // ADVANCED SYSTEM COMPONENTS - ALL FEATURES INTEGRATED INTO ONE BRAIN
+        // ================================================================================
+        
+        // Register ML Memory Management - Prevents memory leaks and optimizes model lifecycle
+        services.AddMLMemoryManagement();
+        Console.WriteLine("🧠 ML Memory Management integrated - Memory leak prevention enabled");
+        
+        // Register Enhanced ML Model Manager with memory management integration
+        services.AddEnhancedMLModelManager();
+        Console.WriteLine("🤖 Enhanced ML Model Manager integrated - Model lifecycle optimized");
+        
+        // Register Economic Event Management - Trading restrictions during high-impact events
+        services.AddEconomicEventManagement();
+        Console.WriteLine("📈 Economic Event Management integrated - Trading protection enabled");
+        
+        // Register Workflow Orchestration - Prevents workflow collisions and manages priorities
+        services.AddWorkflowOrchestration();
+        Console.WriteLine("⚡ Workflow Orchestration integrated - Collision prevention enabled");
+        
+        // Register Advanced System Integration Service - The UNIFIED COORDINATOR
+        services.AddSingleton<AdvancedSystemIntegrationService>();
+        Console.WriteLine("🌟 Advanced System Integration Service registered - UNIFIED BRAIN COORDINATOR");
 
         // Register TopstepX authentication agent
         services.AddSingleton<TopstepAuthAgent>();
@@ -121,7 +150,7 @@ public class Program
         services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         services.AddHostedService<UnifiedOrchestratorService>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
-        Console.WriteLine("✅ Unified Orchestrator Services Configured with Central Message Bus");
+        Console.WriteLine("✅ UNIFIED ORCHESTRATOR SERVICES CONFIGURED - ALL FEATURES INTEGRATED INTO ONE BRAIN");
     }
 
     private static void DisplayStartupInfo()
@@ -140,11 +169,20 @@ public class Program
         Console.WriteLine();
         
         Console.WriteLine("🔧 UNIFIED COMPONENTS:");
-        Console.WriteLine("  • TradingOrchestratorService    - TopstepX connectivity & trading");
-        Console.WriteLine("  • IntelligenceOrchestratorService - ML/RL models & predictions");
-        Console.WriteLine("  • DataOrchestratorService       - Data collection & reporting");
-        Console.WriteLine("  • WorkflowSchedulerService      - Unified workflow scheduling");
-        Console.WriteLine("  • UnifiedOrchestratorService    - Master coordinator");
+        Console.WriteLine("  • TradingOrchestratorService       - TopstepX connectivity & trading");
+        Console.WriteLine("  • IntelligenceOrchestratorService  - ML/RL models & predictions");
+        Console.WriteLine("  • DataOrchestratorService          - Data collection & reporting");
+        Console.WriteLine("  • WorkflowSchedulerService         - Unified workflow scheduling");
+        Console.WriteLine("  • UnifiedOrchestratorService       - Master coordinator");
+        Console.WriteLine();
+        
+        Console.WriteLine("🌟 ADVANCED SYSTEM COMPONENTS - ALL INTEGRATED:");
+        Console.WriteLine("  • MLMemoryManager                  - Memory leak prevention & model lifecycle");
+        Console.WriteLine("  • WorkflowOrchestrationManager     - Collision prevention & priority management");
+        Console.WriteLine("  • RedundantDataFeedManager         - High availability data feeds");
+        Console.WriteLine("  • EconomicEventManager             - Trading restrictions during events");
+        Console.WriteLine("  • AdvancedSystemIntegrationService - UNIFIED BRAIN COORDINATOR");
+        Console.WriteLine("  • StrategyMlModelManager           - Enhanced ML model management");
         Console.WriteLine();
         
         Console.WriteLine("🌐 TOPSTEPX INTEGRATION:");
@@ -226,5 +264,64 @@ public static class UnifiedOrchestratorExtensions
 ╚═══════════════════════════════════════════════════════════════════════════════════╝";
         
         return summary;
+    }
+}
+
+/// <summary>
+/// Hosted service that initializes all advanced system components during startup
+/// This ensures everything is properly integrated into the unified orchestrator brain
+/// </summary>
+public class AdvancedSystemInitializationService : IHostedService
+{
+    private readonly ILogger<AdvancedSystemInitializationService> _logger;
+    private readonly IServiceProvider _serviceProvider;
+
+    public AdvancedSystemInitializationService(
+        ILogger<AdvancedSystemInitializationService> logger,
+        IServiceProvider serviceProvider)
+    {
+        _logger = logger;
+        _serviceProvider = serviceProvider;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🚀 Initializing ALL Advanced System Components for Unified Orchestrator Brain");
+
+        try
+        {
+            // Initialize BotCore advanced system components
+            await AdvancedSystemConfiguration.InitializeAdvancedSystemAsync(_serviceProvider);
+            _logger.LogInformation("✅ BotCore advanced components initialized");
+
+            // Initialize workflow orchestration
+            await WorkflowOrchestrationConfiguration.InitializeWorkflowOrchestrationAsync(_serviceProvider);
+            _logger.LogInformation("✅ Workflow orchestration initialized");
+
+            // Wire workflow orchestration with existing services
+            WorkflowOrchestrationConfiguration.WireWorkflowOrchestration(_serviceProvider);
+            _logger.LogInformation("✅ Workflow orchestration wired with existing services");
+
+            // Initialize the unified advanced system integration service
+            var integrationService = _serviceProvider.GetService<AdvancedSystemIntegrationService>();
+            if (integrationService != null)
+            {
+                await integrationService.InitializeAsync();
+                _logger.LogInformation("✅ Advanced System Integration Service initialized - UNIFIED BRAIN ACTIVE");
+            }
+
+            _logger.LogInformation("🌟 ALL ADVANCED SYSTEM COMPONENTS SUCCESSFULLY INTEGRATED INTO UNIFIED ORCHESTRATOR BRAIN");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to initialize advanced system components");
+            throw;
+        }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🛑 Advanced System Initialization Service stopping");
+        return Task.CompletedTask;
     }
 }
