@@ -1,0 +1,187 @@
+{
+  "timestamp": "2025-09-04T23:38:07.958900",
+  "total_workflows": 31,
+  "scheduled_count": 0,
+  "unscheduled_count": 0,
+  "broken_count": 35,
+  "scheduling_coverage_percentage": 0.0,
+  "scheduled_workflows": [],
+  "unscheduled_workflows": [],
+  "broken_workflows": [
+    {
+      "file": "cloud_bot_mechanic.yml",
+      "issue": "Processing error: argument of type 'NoneType' is not iterable",
+      "severity": "high"
+    },
+    {
+      "file": "daily_consolidated.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "daily_report.bom_backup_20250904_193702.yml",
+      "issue": "UTF-8 BOM encoding",
+      "severity": "high"
+    },
+    {
+      "file": "daily_report.bom_backup_20250904_193702.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "daily_report.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "es_nq_correlation_matrix.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "es_nq_critical_trading.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "failed_patterns.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "fed_liquidity.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "intermarket.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "market_data.bom_backup_20250904_193702.yml",
+      "issue": "UTF-8 BOM encoding",
+      "severity": "high"
+    },
+    {
+      "file": "market_data.bom_backup_20250904_193702.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "market_data.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "microstructure.bom_backup_20250904_193702.yml",
+      "issue": "UTF-8 BOM encoding",
+      "severity": "high"
+    },
+    {
+      "file": "microstructure.bom_backup_20250904_193702.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "microstructure.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ml_trainer.bom_backup_20250904_193702.yml",
+      "issue": "UTF-8 BOM encoding",
+      "severity": "high"
+    },
+    {
+      "file": "ml_trainer.bom_backup_20250904_193702.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ml_trainer.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "mm_positioning.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "opex_calendar.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "overnight.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "portfolio_heat.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "seasonality.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "test_optimization.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_build_ci_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_data_collection_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_ml_rl_intel_system.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_ml_rl_training_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_news_sentiment_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_options_flow_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_regime_detection_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "ultimate_testing_qa_pipeline.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "volatility_surface.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    },
+    {
+      "file": "zones_identifier.yml",
+      "issue": "No triggers defined",
+      "severity": "critical"
+    }
+  ]
+}
