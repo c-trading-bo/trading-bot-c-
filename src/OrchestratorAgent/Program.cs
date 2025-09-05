@@ -13,6 +13,7 @@ using BotCore.Config;
 using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
 using OrchestratorAgent.Intelligence;
+using OrchestratorAgent.Critical;
 using System.Linq;
 using System.Net.Http.Json;
 using Dashboard;
@@ -633,6 +634,27 @@ namespace OrchestratorAgent
                         try { http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", tokenNow); } catch { }
                     }
                     await userHub.ConnectAsync(tokenNow!, accountId, cts.Token);
+
+                    // ===== CRITICAL SYSTEM INITIALIZATION =====
+                    // Initialize critical trading system components for production-ready execution
+                    var criticalSystemManager = new CriticalSystemManager(loggerFactory.CreateLogger<CriticalSystemManager>());
+                    try
+                    {
+                        if (userHub.Connection != null)
+                        {
+                            await criticalSystemManager.InitializeAsync(userHub.Connection, cts.Token);
+                            log.LogInformation("[Orchestrator] ✅ Critical trading systems initialized successfully");
+                        }
+                        else
+                        {
+                            log.LogWarning("[Orchestrator] ⚠️ UserHub connection is null, skipping critical system initialization");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.LogError(ex, "[Orchestrator] ❌ Failed to initialize critical trading systems");
+                        throw;
+                    }
 
                     // Resolve roots and contracts from env (with REST fallback)
                     var apiClient = new ApiClient(http, loggerFactory.CreateLogger<ApiClient>(), apiBase);
