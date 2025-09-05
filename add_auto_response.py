@@ -5,7 +5,7 @@ Makes it respond automatically when other workflows fail
 """
 
 def add_auto_response_triggers():
-    workflow_path = r"C:\Users\kevin\Downloads\C# ai bot\.github\workflows\cloud_bot_mechanic.yml"
+    workflow_path = ".github/workflows/cloud_bot_mechanic.yml"
     
     print("🚨 Adding auto-response triggers to Cloud Mechanic...")
     

@@ -513,7 +513,7 @@
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-05T13:48:05.416505",
+    "timestamp": "2025-09-05T14:08:58.366492",
     "total_workflows": 27,
     "healthy_workflows": 23,
     "broken_workflows": [
@@ -523,9 +523,9 @@
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
-    "total_monthly_minutes": 138442,
+    "total_monthly_minutes": 138502,
     "issues_found": [
-      "CRITICAL: Estimated 138442 minutes exceeds 20,000 limit!"
+      "CRITICAL: Estimated 138502 minutes exceeds 20,000 limit!"
     ]
   },
   "quality-assurance.yml": {
@@ -635,7 +635,7 @@
       "*/30 23-23 * * 0"
     ],
     "estimated_minutes": 10,
-    "runs_per_month": 220,
+    "runs_per_month": 221,
     "jobs": {
       "es-nq-analysis": {
         "timeout": 5,
@@ -769,7 +769,7 @@
       "0 */2 * * 0"
     ],
     "estimated_minutes": 50,
-    "runs_per_month": 55,
+    "runs_per_month": 56,
     "jobs": {
       "collect-everything": {
         "timeout": 15,

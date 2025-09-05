@@ -30,7 +30,7 @@ def test_cloud_mechanic_features():
         env=env,
         capture_output=True,
         text=True,
-        cwd=r"C:\Users\kevin\Downloads\C# ai bot"
+        cwd=os.getcwd()
         )
         
         execution_time = (datetime.now() - start_time).total_seconds()

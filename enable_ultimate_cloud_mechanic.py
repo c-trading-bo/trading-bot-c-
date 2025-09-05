@@ -6,7 +6,7 @@ Adds ULTIMATE_MODE and proper execution to the cloud mechanic workflow
 import re
 
 def enable_ultimate_mode():
-    workflow_path = r"C:\Users\kevin\Downloads\C# ai bot\.github\workflows\cloud_bot_mechanic.yml"
+    workflow_path = ".github/workflows/cloud_bot_mechanic.yml"
     
     print("🔧 Enabling Ultimate AI Cloud Mechanic...")
     

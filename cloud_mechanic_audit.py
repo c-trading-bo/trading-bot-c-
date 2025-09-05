@@ -56,12 +56,12 @@ def audit_cloud_mechanic_features():
                     break
                 except (UnicodeDecodeError, UnicodeError):
                     continue
-                if feature.replace('_', '') in content.replace('_', '').lower():
-                    audit_results['basic_features'][feature] = 'PRESENT'
-                    print(f"✅ {feature}: {description}")
-                else:
-                    audit_results['basic_features'][feature] = 'MISSING'
-                    print(f"❌ {feature}: {description}")
+            if feature.replace('_', '') in content.replace('_', '').lower():
+                audit_results['basic_features'][feature] = 'PRESENT'
+                print(f"✅ {feature}: {description}")
+            else:
+                audit_results['basic_features'][feature] = 'MISSING'
+                print(f"❌ {feature}: {description}")
         else:
             audit_results['basic_features'][feature] = 'FILE_MISSING'
             print(f"⚠️  {feature}: Core file missing")

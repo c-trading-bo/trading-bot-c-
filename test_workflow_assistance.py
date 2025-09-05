@@ -108,5 +108,4 @@ def test_inter_workflow_assistance():
     return score >= 80
 
 if __name__ == "__main__":
-    os.chdir(r"C:\Users\kevin\Downloads\C# ai bot")
     test_inter_workflow_assistance()

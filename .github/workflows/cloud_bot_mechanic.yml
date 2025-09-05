@@ -38,6 +38,40 @@
     branches:
       - main
 
+  # 🚨 AUTO-RESPONSE: Triggers when ANY workflow fails
+  workflow_run:
+    workflows:
+      - "Ultimate ML+RL Training Pipeline"
+      - "Ultimate Data Collection Pipeline"
+      - "Ultimate News Sentiment Pipeline"
+      - "Ultimate Options Flow Pipeline"
+      - "Ultimate Regime Detection Pipeline"
+      - "Ultimate Testing & QA Pipeline"
+      - "Ultimate ML+RL Intel System"
+      - "Ultimate Build CI Pipeline"
+      - "Daily Consolidated"
+      - "Portfolio Heat"
+      - "Volatility Surface Analysis"
+      - "ES/NQ Correlation Matrix"
+      - "ES/NQ Critical Trading"
+      - "Intermarket Correlations"
+      - "Seasonality Patterns Analysis"
+      - "Microstructure"
+      - "Fed Liquidity"
+      - "MM Positioning"
+      - "Social Momentum"
+      - "Congressional Trades"
+      - "COT Report"
+      - "Failed Patterns"
+      - "Zones Identifier"
+      - "ML Model Training"
+      - "Data Collection"
+      - "Options Flow"
+    types:
+      - completed
+    branches:
+      - main
+
 
   workflow_dispatch:
     inputs:

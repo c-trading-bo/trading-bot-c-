@@ -4,7 +4,7 @@ Add Ultimate AI Cloud Mechanic to the latest workflow
 """
 
 def add_ultimate_ai_step():
-    workflow_path = r"C:\Users\kevin\Downloads\C# ai bot\.github\workflows\cloud_bot_mechanic.yml"
+    workflow_path = ".github/workflows/cloud_bot_mechanic.yml"
     
     print("🚀 Adding Ultimate AI Cloud Mechanic step...")
     
