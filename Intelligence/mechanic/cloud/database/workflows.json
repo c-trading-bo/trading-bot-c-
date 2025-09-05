@@ -39,16 +39,17 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 0 * * *"
+      "0 12 * * *",
+      "0 16 * * 0"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 30,
+    "estimated_minutes": 17,
+    "runs_per_month": 4,
     "jobs": {
       "daily-tasks": {
         "timeout": 15,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -92,16 +93,16 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 */3 * * *"
+      "0 */2 * * *"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 240,
+    "estimated_minutes": 17,
+    "runs_per_month": 360,
     "jobs": {
       "correlation_matrix": {
         "timeout": 30,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -130,21 +131,22 @@
   "failed_patterns.yml": {
     "name": "Failed Patterns Detection",
     "file": "failed_patterns.yml",
-    "issues": [],
+    "issues": [
+      "Invalid cron: */15 9:30-16 * * 1-5"
+    ],
     "optimizations": [],
     "schedules": [
-      "*/20 13-21 * * 1-5",
-      "0 0-12,22-23 * * 1-5",
-      "0 */4 * * 0,6"
+      "*/15 9:30-16 * * 1-5",
+      "*/30 10-13,20-23 * * 1-5"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 48,
+    "estimated_minutes": 17,
+    "runs_per_month": 328,
     "jobs": {
       "failed_patterns": {
-        "timeout": 30,
+        "timeout": 15,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -170,21 +172,23 @@
   "microstructure.yml": {
     "name": "Microstructure Analysis",
     "file": "microstructure.yml",
-    "issues": [],
+    "issues": [
+      "Invalid cron: */5 9:30-10:30,14:30-16 * * 1-5",
+      "Invalid cron: */10 10:30-14:30 * * 1-5"
+    ],
     "optimizations": [],
     "schedules": [
-      "*/15 14-21 * * 1-5",
-      "*/30 21-23 * * 1-4",
-      "0 0,2,4,6,8,10,12 * * 1-5"
+      "*/5 9:30-10:30,14:30-16 * * 1-5",
+      "*/10 10:30-14:30 * * 1-5"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 154,
+    "estimated_minutes": 17,
+    "runs_per_month": 0,
     "jobs": {
       "microstructure": {
-        "timeout": 30,
+        "timeout": 25,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -229,43 +233,35 @@
     }
   },
   "opex_calendar.yml": {
-    "name": "OPEX Calendar Monitor",
+    "name": "OPEX Calendar Tracking",
     "file": "opex_calendar.yml",
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 10 * * 1",
-      "0 15 15-21 * 5"
+      "0 13 * * 1,3,5"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 11,
+    "estimated_minutes": 17,
+    "runs_per_month": 12,
     "jobs": {
       "opex_calendar": {
         "timeout": 15,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
   "options_flow.yml": {
     "name": "Options Flow Analysis",
     "file": "options_flow.yml",
-    "issues": [],
-    "optimizations": [],
-    "schedules": [
-      "*/15 14-21 * * 1-5"
+    "issues": [
+      "Invalid workflow trigger: missing \"on:\" section"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 704,
-    "jobs": {
-      "options_flow": {
-        "timeout": 30,
-        "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
-      }
-    }
+    "optimizations": [],
+    "schedules": [],
+    "estimated_minutes": 5,
+    "runs_per_month": 0,
+    "jobs": {}
   },
   "options_flow_analysis.yml": {
     "name": "Options Flow Analysis (Team)",
@@ -294,16 +290,16 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 5 * * 1-5"
+      "0 3,8 * * *"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 22,
+    "estimated_minutes": 17,
+    "runs_per_month": 60,
     "jobs": {
       "overnight": {
-        "timeout": 30,
+        "timeout": 25,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -313,16 +309,12 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "*/30 23 * * 0",
-      "*/30 0-6 * * 1-5",
-      "*/30 7-13 * * 1-5",
-      "*/15 14-21 * * 1-5",
-      "*/20 21-23 * * 1-4",
-      "*/20 21-22 * * 5",
-      "0 0,6,12,18 * * 6,0"
+      "*/10 13-21 * * 1-5",
+      "*/20 12-17,1-3 * * 1-5",
+      "0 */2 * * *"
     ],
     "estimated_minutes": 7,
-    "runs_per_month": 32,
+    "runs_per_month": 360,
     "jobs": {
       "manage-heat": {
         "timeout": 2,
@@ -395,16 +387,16 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 11 * * 1"
+      "0 10 * * 1"
     ],
-    "estimated_minutes": 15,
+    "estimated_minutes": 17,
     "runs_per_month": 4,
     "jobs": {
       "seasonality": {
-        "timeout": 30,
+        "timeout": 20,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -486,16 +478,17 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "0 */4 * * *"
+      "0,30 9,12,15 * * 1-5",
+      "0 18,2 * * *"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 180,
+    "estimated_minutes": 17,
+    "runs_per_month": 60,
     "jobs": {
       "volatility_surface": {
-        "timeout": 30,
+        "timeout": 25,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -505,37 +498,34 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "*/45 14-21 * * 1-5",
-      "0 21,23 * * 1-4",
-      "0 0,2,4,6 * * 1-5",
-      "0 7,9,11,13 * * 1-5"
+      "15 8,11,14,17 * * 1-5",
+      "0 10 * * 0,6"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 88,
+    "estimated_minutes": 17,
+    "runs_per_month": 10,
     "jobs": {
       "zones_identifier": {
-        "timeout": 30,
+        "timeout": 20,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
   "last_analysis": {
-    "timestamp": "2025-09-03T23:07:08.288436",
-    "total_workflows": 40,
-    "healthy_workflows": 39,
+    "timestamp": "2025-09-05T13:48:05.416505",
+    "total_workflows": 27,
+    "healthy_workflows": 23,
     "broken_workflows": [
-      "dotnet.yml"
+      "options_flow.yml"
     ],
     "slow_workflows": [],
     "expensive_workflows": [],
     "schedule_conflicts": [],
     "optimization_opportunities": [],
-    "total_monthly_minutes": 143624,
+    "total_monthly_minutes": 138442,
     "issues_found": [
-      "dotnet.yml: Analysis error - while parsing a block mapping\n  in \"<unicode string>\", line 1, column 1:\n    name: build\n    ^\nexpected <block end>, but found '-'\n  in \"<unicode string>\", line 23, column 1:\n    - push\n    ^",
-      "CRITICAL: Estimated 143624 minutes exceeds 20,000 limit!"
+      "CRITICAL: Estimated 138442 minutes exceeds 20,000 limit!"
     ]
   },
   "quality-assurance.yml": {
@@ -575,23 +565,21 @@
     }
   },
   "cloud_bot_mechanic.yml": {
-    "name": "\ud83c\udf29\ufe0f Cloud Bot Mechanic (Ultimate)",
+    "name": "Ultimate AI Cloud Bot Mechanic - Enterprise Defense System",
     "file": "cloud_bot_mechanic.yml",
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "*/10 * * * *",
-      "0 * * * *",
       "0 */6 * * *"
     ],
-    "estimated_minutes": 20,
+    "estimated_minutes": 25,
     "runs_per_month": 120,
     "jobs": {
-      "cloud-mechanic": {
-        "timeout": 15,
+      "ultimate-defense-system": {
+        "timeout": 20,
         "runs_on": "ubuntu-latest",
-        "steps": 14,
-        "estimated_minutes": 15
+        "steps": 12,
+        "estimated_minutes": 20
       }
     }
   },
@@ -640,18 +628,14 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "*/10 23-23 * * 0",
-      "*/10 0-4 * * 1-5",
-      "*/15 7-12 * * 1-5",
-      "*/15 13-14 * * 1-5",
-      "*/5 14-15 * * 1-5",
-      "*/10 15-20 * * 1-5",
-      "*/5 20-21 * * 1-5",
-      "*/15 21-23 * * 1-4",
-      "*/10 21-22 * * 5"
+      "*/3 13-21 * * 1-5",
+      "*/5 10-13 * * 1-5",
+      "*/5 21-23 * * 1-5",
+      "*/15 1-10 * * 1-5,0",
+      "*/30 23-23 * * 0"
     ],
     "estimated_minutes": 10,
-    "runs_per_month": 60,
+    "runs_per_month": 220,
     "jobs": {
       "es-nq-analysis": {
         "timeout": 5,
@@ -679,21 +663,22 @@
     }
   },
   "intermarket.yml": {
-    "name": "Intermarket Analysis",
+    "name": "Intermarket Correlations",
     "file": "intermarket.yml",
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "30 */4 * * *"
+      "*/20 10-2 * * *",
+      "0 22-6 * * *"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 180,
+    "estimated_minutes": 17,
+    "runs_per_month": 270,
     "jobs": {
       "intermarket": {
-        "timeout": 15,
+        "timeout": 25,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -703,16 +688,16 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "15 * * * *"
+      "30 11,15,23 * * *"
     ],
-    "estimated_minutes": 15,
-    "runs_per_month": 720,
+    "estimated_minutes": 17,
+    "runs_per_month": 90,
     "jobs": {
       "mm_positioning": {
-        "timeout": 15,
+        "timeout": 20,
         "runs_on": "ubuntu-latest",
-        "steps": 5,
-        "estimated_minutes": 10
+        "steps": 6,
+        "estimated_minutes": 12
       }
     }
   },
@@ -777,18 +762,14 @@
     "issues": [],
     "optimizations": [],
     "schedules": [
-      "*/20 23-23 * * 0",
-      "*/20 0-4 * * 1-5",
-      "*/30 7-12 * * 1-5",
-      "*/15 14-15 * * 1-5",
-      "*/20 15-20 * * 1-5",
-      "*/15 20-21 * * 1-5",
-      "*/30 21-23 * * 1-4",
-      "*/20 21-22 * * 5",
-      "0 5,6 * * 1-5"
+      "*/5 13-21 * * 1-5",
+      "*/10 12-17 * * 1-5",
+      "*/10 21-23 * * 1-5",
+      "*/30 1-5 * * *",
+      "0 */2 * * 0"
     ],
-    "estimated_minutes": 54,
-    "runs_per_month": 44,
+    "estimated_minutes": 50,
+    "runs_per_month": 55,
     "jobs": {
       "collect-everything": {
         "timeout": 15,
@@ -799,20 +780,235 @@
       "train-everything": {
         "timeout": 45,
         "runs_on": "ubuntu-latest",
-        "steps": 7,
-        "estimated_minutes": 14
+        "steps": 6,
+        "estimated_minutes": 12
       },
       "intelligence-integration": {
         "timeout": 15,
         "runs_on": "ubuntu-latest",
-        "steps": 7,
-        "estimated_minutes": 14
+        "steps": 6,
+        "estimated_minutes": 12
       },
       "system-summary": {
-        "timeout": 10,
+        "timeout": 360,
         "runs_on": "ubuntu-latest",
         "steps": 3,
         "estimated_minutes": 6
+      }
+    }
+  },
+  "daily_report.yml": {
+    "name": "Intelligence - Daily Report",
+    "file": "daily_report.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "45 7,15 * * 1-5",
+      "0 20 * * 1-5"
+    ],
+    "estimated_minutes": 21,
+    "runs_per_month": 21,
+    "jobs": {
+      "generate-signals": {
+        "timeout": 30,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "fed_liquidity.yml": {
+    "name": "Fed Liquidity Analysis",
+    "file": "fed_liquidity.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 14 * * 2,4"
+    ],
+    "estimated_minutes": 17,
+    "runs_per_month": 8,
+    "jobs": {
+      "fed_liquidity": {
+        "timeout": 20,
+        "runs_on": "ubuntu-latest",
+        "steps": 6,
+        "estimated_minutes": 12
+      }
+    }
+  },
+  "market_data.yml": {
+    "name": "Intelligence - Market Data \u00e2\u0161\u00a1 (OPTIMIZED)",
+    "file": "market_data.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "31 16 * * 1-5",
+      "0 0,8,16 * * 0,6"
+    ],
+    "estimated_minutes": 21,
+    "runs_per_month": 29,
+    "jobs": {
+      "collect-market-data": {
+        "timeout": 20,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "ml_trainer.yml": {
+    "name": "Intelligence - ML Trainer \u00e2\u0161\u00a1 (OPTIMIZED)",
+    "file": "ml_trainer.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 5,17 * * 1-5",
+      "0 10 * * 0"
+    ],
+    "estimated_minutes": 21,
+    "runs_per_month": 5,
+    "jobs": {
+      "train-models": {
+        "timeout": 45,
+        "runs_on": "ubuntu-latest",
+        "steps": 8,
+        "estimated_minutes": 16
+      }
+    }
+  },
+  "ultimate_build_ci_pipeline.yml": {
+    "name": "\ud83d\udd28\u26a1 ULTIMATE Build & CI Pipeline (Mega-System)",
+    "file": "ultimate_build_ci_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 2 * * 6"
+    ],
+    "estimated_minutes": 25,
+    "runs_per_month": 5,
+    "jobs": {
+      "ultimate-build-and-ci": {
+        "timeout": 20,
+        "runs_on": "ubuntu-latest",
+        "steps": 17,
+        "estimated_minutes": 20
+      }
+    }
+  },
+  "ultimate_data_collection_pipeline.yml": {
+    "name": "\ud83d\udcca\ud83d\udd04 ULTIMATE Data Collection Pipeline (Mega-System)",
+    "file": "ultimate_data_collection_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 5,16 * * *"
+    ],
+    "estimated_minutes": 20,
+    "runs_per_month": 60,
+    "jobs": {
+      "ultimate-data-collection": {
+        "timeout": 15,
+        "runs_on": "ubuntu-latest",
+        "steps": 13,
+        "estimated_minutes": 15
+      }
+    }
+  },
+  "ultimate_ml_rl_training_pipeline.yml": {
+    "name": "\ud83d\ude80\ud83e\udde0 ULTIMATE ML/RL Training Pipeline (Mega-System)",
+    "file": "ultimate_ml_rl_training_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 6,18 * * 1-5",
+      "0 2 * * 6"
+    ],
+    "estimated_minutes": 50,
+    "runs_per_month": 5,
+    "jobs": {
+      "ultimate-ml-rl-mega-training": {
+        "timeout": 45,
+        "runs_on": "ubuntu-latest",
+        "steps": 23,
+        "estimated_minutes": 45
+      }
+    }
+  },
+  "ultimate_news_sentiment_pipeline.yml": {
+    "name": "\ud83d\udcf0\ud83c\udfaf ULTIMATE News & Sentiment Analysis Pipeline (Mega-System)",
+    "file": "ultimate_news_sentiment_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 6,9,12,15,18 * * 1-5"
+    ],
+    "estimated_minutes": 13,
+    "runs_per_month": 102,
+    "jobs": {
+      "ultimate-news-sentiment-analysis": {
+        "timeout": 8,
+        "runs_on": "ubuntu-latest",
+        "steps": 14,
+        "estimated_minutes": 8
+      }
+    }
+  },
+  "ultimate_options_flow_pipeline.yml": {
+    "name": "\ud83d\udcc8\ud83d\udc8e ULTIMATE Options Flow Analysis Pipeline (Mega-System)",
+    "file": "ultimate_options_flow_pipeline.yml",
+    "issues": [
+      "Invalid cron: */30 9:30-16 * * 1-5"
+    ],
+    "optimizations": [],
+    "schedules": [
+      "*/30 9:30-16 * * 1-5"
+    ],
+    "estimated_minutes": 13,
+    "runs_per_month": 0,
+    "jobs": {
+      "ultimate-options-flow-analysis": {
+        "timeout": 8,
+        "runs_on": "ubuntu-latest",
+        "steps": 11,
+        "estimated_minutes": 8
+      }
+    }
+  },
+  "ultimate_regime_detection_pipeline.yml": {
+    "name": "\ud83d\udd0d\ud83d\udcca ULTIMATE Market Regime Detection Pipeline (Mega-System)",
+    "file": "ultimate_regime_detection_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 7,19 * * *"
+    ],
+    "estimated_minutes": 15,
+    "runs_per_month": 60,
+    "jobs": {
+      "ultimate-regime-detection": {
+        "timeout": 10,
+        "runs_on": "ubuntu-latest",
+        "steps": 11,
+        "estimated_minutes": 10
+      }
+    }
+  },
+  "ultimate_testing_qa_pipeline.yml": {
+    "name": "\ud83d\udd0d\u2705 ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)",
+    "file": "ultimate_testing_qa_pipeline.yml",
+    "issues": [],
+    "optimizations": [],
+    "schedules": [
+      "0 3 * * 0"
+    ],
+    "estimated_minutes": 41,
+    "runs_per_month": 5,
+    "jobs": {
+      "ultimate-testing-system": {
+        "timeout": 45,
+        "runs_on": "ubuntu-latest",
+        "steps": 18,
+        "estimated_minutes": 36
       }
     }
   }

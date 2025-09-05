@@ -1,9 +1,43 @@
-name: "Ultimate AI Cloud Bot Mechanic - Enterprise Defense System"
+﻿name: "Ultimate AI Cloud Bot Mechanic - Enterprise Defense System"
 
 "on":
   # Optimized schedule for 20,000 minute budget
   schedule:
     - cron: '0 */6 * * *'
+  # 🚨 AUTO-RESPONSE: Triggers when ANY workflow fails
+  workflow_run:
+    workflows:
+      - "Ultimate ML+RL Training Pipeline"
+      - "Ultimate Data Collection Pipeline"
+      - "Ultimate News Sentiment Pipeline"
+      - "Ultimate Options Flow Pipeline"
+      - "Ultimate Regime Detection Pipeline"
+      - "Ultimate Testing & QA Pipeline"
+      - "Ultimate ML+RL Intel System"
+      - "Ultimate Build CI Pipeline"
+      - "Daily Consolidated"
+      - "Portfolio Heat"
+      - "Volatility Surface Analysis"
+      - "ES/NQ Correlation Matrix"
+      - "ES/NQ Critical Trading"
+      - "Intermarket Correlations"
+      - "Seasonality Patterns Analysis"
+      - "Microstructure"
+      - "Fed Liquidity"
+      - "MM Positioning"
+      - "Social Momentum"
+      - "Congressional Trades"
+      - "COT Report"
+      - "Failed Patterns"
+      - "Zones Identifier"
+      - "ML Model Training"
+      - "Data Collection"
+      - "Options Flow"
+    types:
+      - completed
+    branches:
+      - main
+
 
   workflow_dispatch:
     inputs:
@@ -71,6 +105,21 @@ jobs:
           pip install --upgrade pip
           pip install requests pandas numpy pyyaml gitpython
           pip install openai anthropic
+      - name: "🚀 Execute Ultimate AI Cloud Mechanic"
+        run: |
+          echo "🔥 Launching Ultimate AI Cloud Mechanic with full features..."
+          if [ -f "Intelligence/mechanic/cloud/cloud_mechanic_core.py" ]; then
+            cd Intelligence/mechanic/cloud
+            export ULTIMATE_MODE=true
+            python cloud_mechanic_core.py
+            echo "✅ Ultimate AI Cloud Mechanic execution completed!"
+          else
+            echo "⚠️ Ultimate AI Cloud Mechanic not found, using built-in emergency mode"
+          fi
+        env:
+          ULTIMATE_MODE: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: "Initialize AI Defense Brain"
         run: |
