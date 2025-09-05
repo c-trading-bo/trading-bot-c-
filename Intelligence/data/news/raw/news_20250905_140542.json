@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-05T14:05:42.975523",
+  "article_count": 60,
+  "avg_sentiment": 0.015000000000000001,
+  "news_intensity": 1.0,
+  "volatility_score": 0,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 0
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "His Girlfriend's 'Hardcore Narcissist' Parents Treat Her Like An ATM. Dad Takes $500 From Her Account For Golf While She's $190k In Debt",
+      "summary": "",
+      "published": "2025-09-04T02:12:28Z",
+      "link": "https://finance.yahoo.com/news/girlfriends-hardcore-narcissist-parents-treat-021228778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nasdaq unveils new listing rules to clamp down on stock manipulation, Chinese firms",
+      "summary": "",
+      "published": "2025-09-04T02:46:28Z",
+      "link": "https://finance.yahoo.com/news/nasdaq-proposes-tighter-listing-rules-024628479.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Online grocer Rohlik bets on services, advertising as it mulls IPO",
+      "summary": "",
+      "published": "2025-09-04T04:02:17Z",
+      "link": "https://finance.yahoo.com/news/online-grocer-rohlik-bets-services-040217219.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Duke Energy Stock Outperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-04T04:03:16Z",
+      "link": "https://finance.yahoo.com/news/duke-energy-stock-outperforming-dow-040316988.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump Family's Stake Swells To $1.46 Billion As American Bitcoin Makes Stock Market Debut",
+      "summary": "",
+      "published": "2025-09-04T02:14:32Z",
+      "link": "https://finance.yahoo.com/news/trump-familys-stake-swells-1-021432873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ExxonMobil considers sale of European chemical plants, FT reports",
+      "summary": "",
+      "published": "2025-09-04T04:24:49Z",
+      "link": "https://finance.yahoo.com/news/exxonmobil-considers-sale-european-chemical-042449814.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wall Street rises to a record with hopes for cuts to interest rates",
+      "summary": "",
+      "published": "2025-09-04T04:26:40Z",
+      "link": "https://finance.yahoo.com/news/asian-shares-higher-wall-street-042640853.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Golden Canary: What Precious Metals Are Saying About the Economy",
+      "summary": "",
+      "published": "2025-09-04T04:30:00Z",
+      "link": "https://www.barrons.com/articles/gold-record-prices-fed-dollar-inflation-2c97720b?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Asia's Wealthy Families Are Going All-In on Crypto\u2014Here's How Much They're Betting",
+      "summary": "",
+      "published": "2025-09-04T02:16:04Z",
+      "link": "https://finance.yahoo.com/news/asias-wealthy-families-going-crypto-021604324.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Innodata Is Making AI Models Smarter. Buy the Stock.",
+      "summary": "",
+      "published": "2025-09-04T05:00:00Z",
+      "link": "https://www.barrons.com/articles/innodata-stock-pick-ai-model-training-data-accuracy-2ee4d5a8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Vanguard Is Dipping Into Active Stock ETFs. What Investors Should Know.",
+      "summary": "",
+      "published": "2025-09-04T06:00:00Z",
+      "link": "https://www.barrons.com/articles/vanguard-active-funds-38f74fcb?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Chip Demand From Automotive Market Is Unlikely to Recover Soon, Soitec CEO Says",
+      "summary": "",
+      "published": "2025-09-04T06:12:00Z",
+      "link": "https://www.wsj.com/tech/chip-demand-from-automotive-market-is-unlikely-to-recover-soon-soitec-ceo-says-97c6e1a9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "JPMorgan to launch digital retail bank in Germany in 2026",
+      "summary": "",
+      "published": "2025-09-04T06:22:13Z",
+      "link": "https://finance.yahoo.com/news/jpmorgan-launch-german-digital-retail-062213265.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US Fed to Host Payments Innovation Conference on Crypto and AI",
+      "summary": "",
+      "published": "2025-09-04T02:23:09Z",
+      "link": "https://finance.yahoo.com/news/us-fed-host-payments-innovation-022309403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Amphenol Stock: Is APH Outperforming the Technology Sector?",
+      "summary": "",
+      "published": "2025-09-04T05:49:18Z",
+      "link": "https://finance.yahoo.com/news/amphenol-stock-aph-outperforming-technology-054918424.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "His Girlfriend's 'Hardcore Narcissist' Parents Treat Her Like An ATM. Dad Takes $500 From Her Account For Golf While She's $190k In Debt",
+      "summary": "",
+      "published": "2025-09-04T02:12:28Z",
+      "link": "https://finance.yahoo.com/news/girlfriends-hardcore-narcissist-parents-treat-021228778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nasdaq unveils new listing rules to clamp down on stock manipulation, Chinese firms",
+      "summary": "",
+      "published": "2025-09-04T02:46:28Z",
+      "link": "https://finance.yahoo.com/news/nasdaq-proposes-tighter-listing-rules-024628479.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Online grocer Rohlik bets on services, advertising as it mulls IPO",
+      "summary": "",
+      "published": "2025-09-04T04:02:17Z",
+      "link": "https://finance.yahoo.com/news/online-grocer-rohlik-bets-services-040217219.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Duke Energy Stock Outperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-04T04:03:16Z",
+      "link": "https://finance.yahoo.com/news/duke-energy-stock-outperforming-dow-040316988.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump Family's Stake Swells To $1.46 Billion As American Bitcoin Makes Stock Market Debut",
+      "summary": "",
+      "published": "2025-09-04T02:14:32Z",
+      "link": "https://finance.yahoo.com/news/trump-familys-stake-swells-1-021432873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ExxonMobil considers sale of European chemical plants, FT reports",
+      "summary": "",
+      "published": "2025-09-04T04:24:49Z",
+      "link": "https://finance.yahoo.com/news/exxonmobil-considers-sale-european-chemical-042449814.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wall Street rises to a record with hopes for cuts to interest rates",
+      "summary": "",
+      "published": "2025-09-04T04:26:40Z",
+      "link": "https://finance.yahoo.com/news/asian-shares-higher-wall-street-042640853.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Golden Canary: What Precious Metals Are Saying About the Economy",
+      "summary": "",
+      "published": "2025-09-04T04:30:00Z",
+      "link": "https://www.barrons.com/articles/gold-record-prices-fed-dollar-inflation-2c97720b?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Asia's Wealthy Families Are Going All-In on Crypto\u2014Here's How Much They're Betting",
+      "summary": "",
+      "published": "2025-09-04T02:16:04Z",
+      "link": "https://finance.yahoo.com/news/asias-wealthy-families-going-crypto-021604324.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Innodata Is Making AI Models Smarter. Buy the Stock.",
+      "summary": "",
+      "published": "2025-09-04T05:00:00Z",
+      "link": "https://www.barrons.com/articles/innodata-stock-pick-ai-model-training-data-accuracy-2ee4d5a8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Vanguard Is Dipping Into Active Stock ETFs. What Investors Should Know.",
+      "summary": "",
+      "published": "2025-09-04T06:00:00Z",
+      "link": "https://www.barrons.com/articles/vanguard-active-funds-38f74fcb?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Chip Demand From Automotive Market Is Unlikely to Recover Soon, Soitec CEO Says",
+      "summary": "",
+      "published": "2025-09-04T06:12:00Z",
+      "link": "https://www.wsj.com/tech/chip-demand-from-automotive-market-is-unlikely-to-recover-soon-soitec-ceo-says-97c6e1a9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "JPMorgan to launch digital retail bank in Germany in 2026",
+      "summary": "",
+      "published": "2025-09-04T06:22:13Z",
+      "link": "https://finance.yahoo.com/news/jpmorgan-launch-german-digital-retail-062213265.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US Fed to Host Payments Innovation Conference on Crypto and AI",
+      "summary": "",
+      "published": "2025-09-04T02:23:09Z",
+      "link": "https://finance.yahoo.com/news/us-fed-host-payments-innovation-022309403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Amphenol Stock: Is APH Outperforming the Technology Sector?",
+      "summary": "",
+      "published": "2025-09-04T05:49:18Z",
+      "link": "https://finance.yahoo.com/news/amphenol-stock-aph-outperforming-technology-054918424.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "His Girlfriend's 'Hardcore Narcissist' Parents Treat Her Like An ATM. Dad Takes $500 From Her Account For Golf While She's $190k In Debt",
+      "summary": "",
+      "published": "2025-09-04T02:12:28Z",
+      "link": "https://finance.yahoo.com/news/girlfriends-hardcore-narcissist-parents-treat-021228778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nasdaq unveils new listing rules to clamp down on stock manipulation, Chinese firms",
+      "summary": "",
+      "published": "2025-09-04T02:46:28Z",
+      "link": "https://finance.yahoo.com/news/nasdaq-proposes-tighter-listing-rules-024628479.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Online grocer Rohlik bets on services, advertising as it mulls IPO",
+      "summary": "",
+      "published": "2025-09-04T04:02:17Z",
+      "link": "https://finance.yahoo.com/news/online-grocer-rohlik-bets-services-040217219.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Duke Energy Stock Outperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-04T04:03:16Z",
+      "link": "https://finance.yahoo.com/news/duke-energy-stock-outperforming-dow-040316988.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump Family's Stake Swells To $1.46 Billion As American Bitcoin Makes Stock Market Debut",
+      "summary": "",
+      "published": "2025-09-04T02:14:32Z",
+      "link": "https://finance.yahoo.com/news/trump-familys-stake-swells-1-021432873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ExxonMobil considers sale of European chemical plants, FT reports",
+      "summary": "",
+      "published": "2025-09-04T04:24:49Z",
+      "link": "https://finance.yahoo.com/news/exxonmobil-considers-sale-european-chemical-042449814.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wall Street rises to a record with hopes for cuts to interest rates",
+      "summary": "",
+      "published": "2025-09-04T04:26:40Z",
+      "link": "https://finance.yahoo.com/news/asian-shares-higher-wall-street-042640853.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
