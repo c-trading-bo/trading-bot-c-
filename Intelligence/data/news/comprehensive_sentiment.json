@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-05T04:43:50.343798",
+  "timestamp": "2025-09-05T06:46:17.100512",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 7,
+  "total_articles_processed": 8,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -76,99 +76,106 @@
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.41521464646464645,
-      "article_count": 3,
+      "sentiment_score": 0.2316770833333333,
+      "article_count": 5,
       "articles": [
         {
-          "title": "Unilever Plans on \u2018Refreshing\u2019 Top Leaders Amid Broad Restructuring",
-          "sentiment": 0.24791666666666667,
-          "textblob_score": 0.3541666666666667,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.wsj.com/business/unilever-plans-on-refreshing-top-leaders-amid-broad-restructuring-2e84a4f5?siteid=yhoof2&yptr=yahoo",
-          "published": "2025-09-03T16:47:00Z",
+          "title": "India\u2019s Longer-Tenor Bonds Lure Buyers as Fiscal Worries Ease",
+          "sentiment": 0.27499999999999997,
+          "textblob_score": -0.03571428571428571,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/india-s-longer-tenor-bonds-lure-buyers-as-fiscal-worries-ease",
+          "published": "Fri, 05 Sep 2025 06:27:58 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "DeepSeek's New AI Model Brings Fight to Alibaba",
-          "sentiment": 0.4177272727272727,
-          "textblob_score": 0.16818181818181818,
+          "title": "Chinese Funds Look to Beijing to Engineer Rally That Keeps Going",
+          "sentiment": 0.27999999999999997,
+          "textblob_score": -0.028571428571428577,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-05/deepseek-s-new-ai-model-brings-fight-to-alibaba-video",
-          "published": "Fri, 05 Sep 2025 04:37:30 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/china-s-fund-managers-rest-hopes-for-slow-bull-run-on-government",
+          "published": "Fri, 05 Sep 2025 00:21:22 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Cheap Valuations, DeepSeek Make China Attractive: CLSA",
-          "sentiment": 0.58,
-          "textblob_score": 0.4,
+          "title": "Citi: Expect Gold to Climb to $3,600 Over Next Months",
+          "sentiment": 0.36671875,
+          "textblob_score": 0.0953125,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-05/cheap-valuations-deepseek-make-china-attractive-clsa-video",
-          "published": "Fri, 05 Sep 2025 04:36:14 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-05/citi-expect-gold-to-climb-to-3-600-over-next-months-video",
+          "published": "Fri, 05 Sep 2025 05:31:34 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Gallarati: Numbness to Geopolitics Risky for Oil Markets",
+          "sentiment": -0.06333333333333331,
+          "textblob_score": -0.2333333333333333,
+          "keyword_score": 0.3333333333333333,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-05/gallarati-numbness-to-geopolitics-risky-for-oil-markets-video",
+          "published": "Fri, 05 Sep 2025 05:26:19 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Citi and UBS Units Settle With CFTC Over Compliance Claims",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/citi-ubs-resolve-cftc-compliance-claims-in-enforcement-sprint",
+          "published": "Fri, 05 Sep 2025 00:41:30 GMT",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
-      "signal": "BULLISH",
-      "confidence": 0.3,
+      "signal": "NEUTRAL",
+      "confidence": 0.5,
       "sources": [
-        "yahoo_finance",
         "bloomberg"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.09,
+      "sentiment_score": 0.6018749999999999,
       "article_count": 1,
       "articles": [
         {
-          "title": "Trump Hosts Tech Leaders at White House Dinner",
-          "sentiment": 0.09,
-          "textblob_score": -0.3,
+          "title": "Nvidia Just Scored a Major Market Share Win. Should You Buy NVDA Stock Here?",
+          "sentiment": 0.6018749999999999,
+          "textblob_score": 0.43125,
           "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-05/trump-hosts-tech-leaders-at-white-house-dinner-video",
-          "published": "Fri, 05 Sep 2025 03:31:17 GMT",
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/nvidia-just-scored-major-market-190250876.html",
+          "published": "2025-09-03T19:02:50Z",
           "relevance_keywords": [
-            "artificial intelligence"
+            "Nvidia"
           ]
         }
       ],
-      "signal": "NEUTRAL",
+      "signal": "BULLISH",
       "confidence": 0.1,
       "sources": [
-        "bloomberg"
+        "yahoo_finance"
       ]
     },
     "AAPL": {
-      "sentiment_score": 0.09,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Trump Hosts Tech Leaders at White House Dinner",
-          "sentiment": 0.09,
-          "textblob_score": -0.3,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-05/trump-hosts-tech-leaders-at-white-house-dinner-video",
-          "published": "Fri, 05 Sep 2025 03:31:17 GMT",
-          "relevance_keywords": [
-            "Apple",
-            "Tim Cook"
-          ]
-        }
-      ],
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
       "signal": "NEUTRAL",
-      "confidence": 0.1,
-      "sources": [
-        "bloomberg"
-      ]
+      "confidence": 0.0,
+      "sources": []
     }
   },
   "sources_used": [
