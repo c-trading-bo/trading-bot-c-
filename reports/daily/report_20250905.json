@@ -1,6 +1,6 @@
 {
   "date": "2025-09-05",
-  "timestamp": "2025-09-05T00:38:25.348609",
+  "timestamp": "2025-09-05T02:19:55.668685",
   "data_quality": {
     "data/es_nq": {
       "file_count": 0,
@@ -8,7 +8,7 @@
     },
     "data/options": {
       "file_count": 3,
-      "latest_file": "data/options/flow_analysis.json",
+      "latest_file": "data/options/greeks_analysis.json",
       "status": "OK"
     },
     "data/sentiment": {
@@ -43,9 +43,9 @@
     "uptime_score": 0.41666666666666663,
     "data_coverage": 0.3333333333333333,
     "model_coverage": 0.5,
-    "workflow_success_rate": 0.865080203987315,
-    "data_freshness_score": 0.9041764395843755,
-    "model_accuracy_score": 0.8395634265099157,
+    "workflow_success_rate": 0.939186323059115,
+    "data_freshness_score": 0.8389602362327001,
+    "model_accuracy_score": 0.8697197729167823,
     "system_reliability": 0.41666666666666663
   },
   "recommendations": [
