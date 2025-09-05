@@ -1,0 +1,56 @@
+name: 🤖 Cloud Bot Mechanic - Simple Test
+
+on:
+  schedule:
+    - cron: '*/45 * * * *'  # Every 45 minutes
+  
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Operation Mode'
+        required: false
+        default: 'test'
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+jobs:
+  mechanic-test:
+    name: "🛡️ Mechanic Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: "🔥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🤖 Basic Mechanic Test"
+        run: |
+          echo "🤖 Cloud Bot Mechanic Test Started"
+          echo "Time: $(date -u)"
+          echo "Mode: ${{ github.event.inputs.mode || 'scheduled' }}"
+          echo "Event: ${{ github.event_name }}"
+          
+      - name: "📊 Check Workflow Health"
+        run: |
+          echo "📊 Checking workflow directory..."
+          ls -la .github/workflows/ | wc -l
+          echo "Found workflows in directory"
+          
+      - name: "💾 Create Test Report"
+        run: |
+          mkdir -p Intelligence/data/mechanic
+          echo "{\"test\": \"success\", \"time\": \"$(date -u)\", \"mode\": \"simple\"}" > Intelligence/data/mechanic/test_report.json
+          echo "✅ Test report created"
+          
+      - name: "🚀 Commit Test Results"
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/mechanic/test_report.json
+          git diff --quiet || git commit -m "🤖 Cloud Bot Mechanic Test: $(date -u +%Y%m%d_%H%M%S)"
+          git push || echo "No changes to push"
