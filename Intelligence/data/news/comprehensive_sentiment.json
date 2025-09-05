@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-05T03:50:47.579251",
+  "timestamp": "2025-09-05T04:43:50.343798",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 13,
+  "total_articles_processed": 7,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -76,116 +76,56 @@
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.0775568181818182,
-      "article_count": 8,
+      "sentiment_score": 0.41521464646464645,
+      "article_count": 3,
       "articles": [
         {
-          "title": "Why REV Group Stock Popped Today",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/why-rev-group-stock-popped-155022691.html",
-          "published": "2025-09-03T15:50:22Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "AT&T Inc. (T)\u2019s \u201cJust Doing Everything Right,\u201d Says Jim Cramer",
-          "sentiment": 0.19999999999999998,
-          "textblob_score": 0.2857142857142857,
+          "title": "Unilever Plans on \u2018Refreshing\u2019 Top Leaders Amid Broad Restructuring",
+          "sentiment": 0.24791666666666667,
+          "textblob_score": 0.3541666666666667,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/t-inc-t-just-doing-161300983.html",
-          "published": "2025-09-03T16:13:00Z",
+          "url": "https://www.wsj.com/business/unilever-plans-on-refreshing-top-leaders-amid-broad-restructuring-2e84a4f5?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-03T16:47:00Z",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Luxury Sneaker Maker Golden Goose is Ready to Revive IPO When Markets Allow, CFO Says",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.wsj.com/business/luxury-sneaker-maker-golden-goose-is-ready-to-revive-ipo-when-markets-allow-cfo-says-2ca03e7f?siteid=yhoof2&yptr=yahoo",
-          "published": "2025-09-03T16:13:00Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Layoffs rise, job openings fall to lowest level in 10 months: BLS",
-          "sentiment": -0.3,
-          "textblob_score": 0.0,
-          "keyword_score": -1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/layoffs-rise-job-openings-fall-155100768.html",
-          "published": "2025-09-03T15:51:00Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Palantir Technologies Inc. (PLTR)\u2019s CEO Is The Smartest Person Ever To Live, Says Jim Cramer",
-          "sentiment": 0.09545454545454544,
-          "textblob_score": 0.13636363636363635,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/palantir-technologies-inc-pltr-ceo-161241729.html",
-          "published": "2025-09-03T16:12:41Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Citi, UBS Resolve CFTC Compliance Claims in Enforcement \u2018Sprint\u2019",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
+          "title": "DeepSeek's New AI Model Brings Fight to Alibaba",
+          "sentiment": 0.4177272727272727,
+          "textblob_score": 0.16818181818181818,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-05/citi-ubs-resolve-cftc-compliance-claims-in-enforcement-sprint",
-          "published": "Fri, 05 Sep 2025 00:41:30 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-05/deepseek-s-new-ai-model-brings-fight-to-alibaba-video",
+          "published": "Fri, 05 Sep 2025 04:37:30 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "China\u2019s Fund Managers Rest Hopes for Slow Bull Run on Beijing",
-          "sentiment": 0.25,
-          "textblob_score": -0.07142857142857144,
+          "title": "Cheap Valuations, DeepSeek Make China Attractive: CLSA",
+          "sentiment": 0.58,
+          "textblob_score": 0.4,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-05/china-s-fund-managers-rest-hopes-for-slow-bull-run-on-government",
-          "published": "Fri, 05 Sep 2025 00:21:22 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Fed's Goolsbee: 'Tariffs Are Terrible'",
-          "sentiment": -0.39999999999999997,
-          "textblob_score": -1.0,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-05/fed-s-goolsbee-tariffs-are-terrible-video",
-          "published": "Fri, 05 Sep 2025 00:10:21 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-05/cheap-valuations-deepseek-make-china-attractive-clsa-video",
+          "published": "Fri, 05 Sep 2025 04:36:14 GMT",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
-      "signal": "NEUTRAL",
-      "confidence": 0.8,
+      "signal": "BULLISH",
+      "confidence": 0.3,
       "sources": [
         "yahoo_finance",
         "bloomberg"
       ]
     },
     "NVDA": {
-      "sentiment_score": -0.16499999999999998,
-      "article_count": 2,
+      "sentiment_score": 0.09,
+      "article_count": 1,
       "articles": [
         {
           "title": "Trump Hosts Tech Leaders at White House Dinner",
@@ -198,23 +138,10 @@
           "relevance_keywords": [
             "artificial intelligence"
           ]
-        },
-        {
-          "title": "Broadcom to Help OpenAI Create AI Chip to Take On Nvidia",
-          "sentiment": -0.42,
-          "textblob_score": -0.6,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
-          "published": "Thu, 04 Sep 2025 20:17:48 GMT",
-          "relevance_keywords": [
-            "Nvidia",
-            "artificial intelligence"
-          ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.2,
+      "confidence": 0.1,
       "sources": [
         "bloomberg"
       ]
