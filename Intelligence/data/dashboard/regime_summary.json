@@ -1,10 +1,10 @@
 {
-  "timestamp": "2025-09-04T23:53:04.111073",
+  "timestamp": "2025-09-05T04:27:42.132465",
   "analysis_mode": "comprehensive",
   "session_type": "extended",
-  "workflow_run": "7",
+  "workflow_run": "10",
   "comprehensive_analysis": {
-    "timestamp": "2025-09-04T23:53:02.059732",
+    "timestamp": "2025-09-05T04:27:40.037405",
     "analysis_mode": "comprehensive",
     "session_type": "extended",
     "lookback_period": 30,
@@ -14,39 +14,39 @@
     "individual_regimes": {
       "SPY": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:00.948729"
+        "timestamp": "2025-09-05T04:27:37.998564"
       },
       "QQQ": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.101130"
+        "timestamp": "2025-09-05T04:27:38.237287"
       },
       "IWM": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.280289"
+        "timestamp": "2025-09-05T04:27:38.530258"
       },
       "TLT": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.474927"
+        "timestamp": "2025-09-05T04:27:38.802421"
       },
       "GLD": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.581045"
+        "timestamp": "2025-09-05T04:27:38.991082"
       },
       "BTC-USD": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.758526"
+        "timestamp": "2025-09-05T04:27:39.487256"
       },
       "^GSPC": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.858223"
+        "timestamp": "2025-09-05T04:27:39.717562"
       },
       "^IXIC": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:01.963307"
+        "timestamp": "2025-09-05T04:27:39.876983"
       },
       "^RUT": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-04T23:53:02.059631"
+        "timestamp": "2025-09-05T04:27:40.037293"
       }
     }
   },
