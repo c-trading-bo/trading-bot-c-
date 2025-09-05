@@ -111,6 +111,10 @@ public class Program
         services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
         services.AddSingleton<IDataOrchestrator, DataOrchestratorService>();
         services.AddSingleton<IWorkflowScheduler, WorkflowSchedulerService>();
+        
+        // Register Cloud Data Integration - Links 27 GitHub workflows to trading decisions
+        services.AddSingleton<ICloudDataIntegration, CloudDataIntegrationService>();
+        Console.WriteLine("🌐 Cloud Data Integration enabled - GitHub workflows linked to trading");
 
         // Register the main unified orchestrator as both interface and hosted service
         services.AddSingleton<UnifiedOrchestratorService>();

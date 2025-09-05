@@ -19,6 +19,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
     private readonly ILogger<TradingOrchestratorService> _logger;
     private readonly HttpClient _httpClient;
     private readonly TopstepAuthAgent _authAgent;
+    private readonly ICentralMessageBus _messageBus;
     
     // TopstepX Connections
     private HubConnection? _userHub;
@@ -44,11 +45,13 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
     public TradingOrchestratorService(
         ILogger<TradingOrchestratorService> logger,
         HttpClient httpClient,
-        TopstepAuthAgent authAgent)
+        TopstepAuthAgent authAgent,
+        ICentralMessageBus messageBus)
     {
         _logger = logger;
         _httpClient = httpClient;
         _authAgent = authAgent;
+        _messageBus = messageBus;
         _riskEngine = new RiskEngine();
         
         // Set TopstepX base URL
@@ -120,7 +123,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
             throw new InvalidOperationException("Not connected to TopstepX");
         }
 
-        _logger.LogInformation("📊 Executing ES/NQ trading analysis and signals...");
+        _logger.LogInformation("📊 Executing ES/NQ trading analysis with cloud intelligence...");
 
         try
         {
@@ -130,21 +133,42 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
 
             context.Logs.Add($"ES Price: {esData?.LastPrice}, NQ Price: {nqData?.LastPrice}");
 
-            // Run strategy analysis
+            // 🌐 GET CLOUD INTELLIGENCE - This is where the 27 GitHub workflows influence trading!
+            var esCloudRecommendation = _messageBus.GetSharedState<CloudTradingRecommendation>("cloud.trading_recommendation.ES");
+            var nqCloudRecommendation = _messageBus.GetSharedState<CloudTradingRecommendation>("cloud.trading_recommendation.NQ");
+            
+            if (esCloudRecommendation != null)
+            {
+                _logger.LogInformation("🧠 ES Cloud Intelligence: {Signal} (confidence: {Confidence:P1}) - {Reasoning}", 
+                    esCloudRecommendation.Signal, esCloudRecommendation.Confidence, esCloudRecommendation.Reasoning);
+                context.Logs.Add($"ES Cloud Signal: {esCloudRecommendation.Signal} ({esCloudRecommendation.Confidence:P1})");
+            }
+            
+            if (nqCloudRecommendation != null)
+            {
+                _logger.LogInformation("🧠 NQ Cloud Intelligence: {Signal} (confidence: {Confidence:P1}) - {Reasoning}", 
+                    nqCloudRecommendation.Signal, nqCloudRecommendation.Confidence, nqCloudRecommendation.Reasoning);
+                context.Logs.Add($"NQ Cloud Signal: {nqCloudRecommendation.Signal} ({nqCloudRecommendation.Confidence:P1})");
+            }
+
+            // Run strategy analysis with cloud intelligence integration
             foreach (var strategy in _strategies.Values)
             {
                 if (strategy is IESNQStrategy esNqStrategy)
                 {
                     var signals = await esNqStrategy.AnalyzeAsync(esData, nqData, cancellationToken);
                     
-                    foreach (var signal in signals)
+                    foreach (var originalSignal in signals)
                     {
-                        await ProcessTradingSignalAsync(signal, context, cancellationToken);
+                        // 🎯 ENHANCE SIGNAL WITH CLOUD INTELLIGENCE
+                        var enhancedSignal = EnhanceSignalWithCloudIntelligence(originalSignal, esCloudRecommendation, nqCloudRecommendation);
+                        
+                        await ProcessTradingSignalAsync(enhancedSignal, context, cancellationToken);
                     }
                 }
             }
 
-            context.Logs.Add("ES/NQ trading analysis completed");
+            context.Logs.Add("ES/NQ trading analysis completed with cloud intelligence integration");
         }
         catch (Exception ex)
         {
@@ -515,8 +539,12 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
     {
         public string Symbol { get; set; } = string.Empty;
         public string Direction { get; set; } = string.Empty;
+        public string Side => Direction; // Alias for compatibility
         public decimal Price { get; set; }
         public DateTime Timestamp { get; set; }
+        public decimal PositionSize { get; set; } = 1;
+        public double Confidence { get; set; } = 0.5;
+        public string Reasoning { get; set; } = string.Empty;
     }
 
     public class OrderBook
@@ -543,6 +571,81 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
     public void Dispose()
     {
         DisconnectAsync().GetAwaiter().GetResult();
+    }
+    
+    /// <summary>
+    /// Enhance trading signal with cloud intelligence from 27 GitHub workflows
+    /// This is where cloud data actually influences trading decisions!
+    /// </summary>
+    private TradingSignal EnhanceSignalWithCloudIntelligence(
+        TradingSignal originalSignal, 
+        CloudTradingRecommendation? esCloudRec, 
+        CloudTradingRecommendation? nqCloudRec)
+    {
+        // Get relevant cloud recommendation based on symbol
+        var cloudRec = originalSignal.Symbol == "ES" ? esCloudRec : nqCloudRec;
+        
+        if (cloudRec == null || cloudRec.Signal == "ERROR")
+        {
+            _logger.LogInformation("⚠️ No cloud intelligence available for {Symbol}", originalSignal.Symbol);
+            return originalSignal; // Return original signal if no cloud data
+        }
+
+        var enhancedSignal = new TradingSignal
+        {
+            Symbol = originalSignal.Symbol,
+            Direction = originalSignal.Direction,
+            Price = originalSignal.Price,
+            Timestamp = originalSignal.Timestamp,
+            PositionSize = originalSignal.PositionSize,
+            Confidence = originalSignal.Confidence,
+            Reasoning = originalSignal.Reasoning
+        };
+        
+        // 🧠 CLOUD INTELLIGENCE INTEGRATION
+        
+        // 1. Confidence Adjustment - Cloud adds or reduces confidence
+        var cloudConfidenceMultiplier = cloudRec.Confidence;
+        enhancedSignal.Confidence *= cloudConfidenceMultiplier;
+        
+        // 2. Signal Direction Validation - Cloud can override or confirm
+        if (cloudRec.Signal == "BUY" && originalSignal.Side == "SELL")
+        {
+            _logger.LogWarning("🔄 Cloud intelligence conflicts: Original={OriginalSide}, Cloud={CloudSignal} - reducing confidence", 
+                originalSignal.Side, cloudRec.Signal);
+            enhancedSignal.Confidence *= 0.5; // Reduce confidence on conflict
+        }
+        else if (cloudRec.Signal == "SELL" && originalSignal.Side == "BUY")
+        {
+            _logger.LogWarning("🔄 Cloud intelligence conflicts: Original={OriginalSide}, Cloud={CloudSignal} - reducing confidence", 
+                originalSignal.Side, cloudRec.Signal);
+            enhancedSignal.Confidence *= 0.5; // Reduce confidence on conflict
+        }
+        else if (cloudRec.Signal == originalSignal.Side)
+        {
+            _logger.LogInformation("✅ Cloud intelligence confirms: {Side} - boosting confidence", originalSignal.Side);
+            enhancedSignal.Confidence *= 1.2; // Boost confidence on confirmation
+        }
+        
+        // 3. Position Size Adjustment - Cloud influences position sizing
+        if (cloudRec.Confidence > 0.7)
+        {
+            enhancedSignal.PositionSize = Math.Min(enhancedSignal.PositionSize * 1.1m, 5); // Max 10% increase, cap at 5 contracts
+            _logger.LogInformation("📈 High cloud confidence - increasing position size to {PositionSize}", enhancedSignal.PositionSize);
+        }
+        else if (cloudRec.Confidence < 0.3)
+        {
+            enhancedSignal.PositionSize = Math.Max(enhancedSignal.PositionSize * 0.8m, 1); // Max 20% decrease, min 1 contract
+            _logger.LogInformation("📉 Low cloud confidence - reducing position size to {PositionSize}", enhancedSignal.PositionSize);
+        }
+
+        // 4. Add cloud reasoning to signal
+        enhancedSignal.Reasoning += $" | Cloud: {cloudRec.Signal} ({cloudRec.Confidence:P1}) - {cloudRec.Reasoning}";
+        
+        _logger.LogInformation("🧠 Signal enhanced with cloud intelligence: {Symbol} {Side} - Original confidence: {OriginalConf:P1}, Enhanced: {EnhancedConf:P1}", 
+            enhancedSignal.Symbol, enhancedSignal.Side, originalSignal.Confidence, enhancedSignal.Confidence);
+            
+        return enhancedSignal;
     }
 
     #endregion

@@ -67,7 +67,8 @@ public enum WorkflowType
     DataCollection,
     MachineLearning,
     Portfolio,
-    Analytics
+    Analytics,
+    CloudIntegration
 }
 
 /// <summary>
@@ -126,4 +127,16 @@ public class WorkflowExecutionResult
     public Dictionary<string, object> Results { get; set; } = new();
     public TimeSpan Duration { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Cloud trading recommendation from 27 GitHub workflows intelligence
+/// </summary>
+public class CloudTradingRecommendation
+{
+    public string Symbol { get; set; } = "";
+    public DateTime Timestamp { get; set; }
+    public string Signal { get; set; } = "NEUTRAL"; // BUY, SELL, NEUTRAL, ERROR
+    public double Confidence { get; set; }
+    public string Reasoning { get; set; } = "";
 }

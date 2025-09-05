@@ -20,6 +20,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
     private readonly IIntelligenceOrchestrator _intelligenceOrchestrator;
     private readonly IDataOrchestrator _dataOrchestrator;
     private readonly IWorkflowScheduler _scheduler;
+    private readonly ICloudDataIntegration _cloudDataIntegration;
     
     private readonly ConcurrentDictionary<string, UnifiedWorkflow> _workflows = new();
     private readonly ConcurrentDictionary<string, List<WorkflowExecutionContext>> _executionHistory = new();
@@ -39,7 +40,8 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         IIntelligenceOrchestrator intelligenceOrchestrator,
         IDataOrchestrator dataOrchestrator,
         IWorkflowScheduler scheduler,
-        ICentralMessageBus messageBus)
+        ICentralMessageBus messageBus,
+        ICloudDataIntegration cloudDataIntegration)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -48,6 +50,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         _dataOrchestrator = dataOrchestrator;
         _scheduler = scheduler;
         _messageBus = messageBus;
+        _cloudDataIntegration = cloudDataIntegration;
     }
 
     #region IHostedService Implementation
@@ -333,7 +336,14 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
 
     private async Task ExecuteActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        // Route actions to appropriate orchestrators based on action type
+        // Handle cloud integration actions first
+        if (action == "syncCloudData" || action == "updateCloudIntelligence" || action == "integrateCloudSignals")
+        {
+            await ExecuteCloudIntegrationActionAsync(action, context, cancellationToken);
+            return;
+        }
+
+        // Route other actions to appropriate orchestrators based on action type
         if (_tradingOrchestrator.CanExecute(action))
         {
             await _tradingOrchestrator.ExecuteActionAsync(action, context, cancellationToken);
@@ -349,6 +359,56 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         else
         {
             _logger.LogWarning("⚠️ No executor found for action: {Action}", action);
+        }
+    }
+
+    private async Task ExecuteCloudIntegrationActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🌐 Executing cloud integration action: {Action}", action);
+        
+        try
+        {
+            switch (action)
+            {
+                case "syncCloudData":
+                    await _cloudDataIntegration.SyncCloudDataForTradingAsync(cancellationToken);
+                    _logger.LogInformation("✅ Cloud data synced successfully");
+                    break;
+                    
+                case "updateCloudIntelligence":
+                    // Get recommendations for ES and NQ
+                    var esRecommendation = await _cloudDataIntegration.GetTradingRecommendationAsync("ES", cancellationToken);
+                    var nqRecommendation = await _cloudDataIntegration.GetTradingRecommendationAsync("NQ", cancellationToken);
+                    
+                    // Update the brain with recommendations
+                    await _messageBus.PublishAsync("cloud.trading_recommendation.ES", esRecommendation, cancellationToken);
+                    await _messageBus.PublishAsync("cloud.trading_recommendation.NQ", nqRecommendation, cancellationToken);
+                    
+                    _logger.LogInformation("✅ Cloud intelligence updated: ES={ESSignal} ({ESConfidence:P1}), NQ={NQSignal} ({NQConfidence:P1})", 
+                        esRecommendation.Signal, esRecommendation.Confidence, 
+                        nqRecommendation.Signal, nqRecommendation.Confidence);
+                    break;
+                    
+                case "integrateCloudSignals":
+                    // Publish cloud readiness signal to trading strategies
+                    await _messageBus.PublishAsync("trading.cloud_ready", new { 
+                        Timestamp = DateTime.UtcNow,
+                        CloudDataAvailable = true,
+                        Message = "Cloud intelligence is ready for trading decisions"
+                    }, cancellationToken);
+                    
+                    _logger.LogInformation("✅ Cloud signals integrated - trading strategies notified");
+                    break;
+                    
+                default:
+                    _logger.LogWarning("⚠️ Unknown cloud integration action: {Action}", action);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Cloud integration action failed: {Action}", action);
+            throw;
         }
     }
 
@@ -404,6 +464,23 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     Overnight = "0 */2 * * *"         // Every 2 hours
                 },
                 Actions = new[] { "calculateRisk", "checkThresholds", "adjustPositions" }
+            },
+            
+            new UnifiedWorkflow
+            {
+                Id = "cloud-data-integration",
+                Name = "Cloud Data Integration",
+                Description = "Sync all 27 GitHub workflow results into trading decisions",
+                Priority = 1,
+                BudgetAllocation = 2000,
+                Type = WorkflowType.CloudIntegration,
+                Schedule = new WorkflowSchedule
+                {
+                    MarketHours = "*/3 * * * *",      // Every 3 minutes during market hours
+                    ExtendedHours = "*/10 * * * *",   // Every 10 minutes extended
+                    Overnight = "*/30 * * * *"        // Every 30 minutes overnight
+                },
+                Actions = new[] { "syncCloudData", "updateCloudIntelligence", "integrateCloudSignals" }
             },
 
             new UnifiedWorkflow

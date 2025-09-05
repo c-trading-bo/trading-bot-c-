@@ -10,6 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 public class DemoTradingOrchestratorService : ITradingOrchestrator
 {
     private readonly ILogger<DemoTradingOrchestratorService> _logger;
+    private readonly ICentralMessageBus _messageBus;
     private bool _isConnected = false;
 
     public IReadOnlyList<string> SupportedActions { get; } = new[]
@@ -20,9 +21,12 @@ public class DemoTradingOrchestratorService : ITradingOrchestrator
         "scanOptionsFlow", "detectDarkPools", "trackSmartMoney"
     };
 
-    public DemoTradingOrchestratorService(ILogger<DemoTradingOrchestratorService> logger)
+    public DemoTradingOrchestratorService(
+        ILogger<DemoTradingOrchestratorService> logger,
+        ICentralMessageBus messageBus)
     {
         _logger = logger;
+        _messageBus = messageBus;
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -43,9 +47,27 @@ public class DemoTradingOrchestratorService : ITradingOrchestrator
 
     public async Task ExecuteESNQTradingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("📊 [DEMO MODE] Executing ES/NQ trading analysis...");
+        _logger.LogInformation("📊 [DEMO MODE] Executing ES/NQ trading analysis with cloud intelligence...");
         
         await Task.Delay(200, cancellationToken);
+        
+        // 🌐 GET CLOUD INTELLIGENCE IN DEMO MODE TOO
+        var esCloudRecommendation = _messageBus.GetSharedState<CloudTradingRecommendation>("cloud.trading_recommendation.ES");
+        var nqCloudRecommendation = _messageBus.GetSharedState<CloudTradingRecommendation>("cloud.trading_recommendation.NQ");
+        
+        if (esCloudRecommendation != null)
+        {
+            _logger.LogInformation("🧠 [DEMO] ES Cloud Intelligence: {Signal} (confidence: {Confidence:P1})", 
+                esCloudRecommendation.Signal, esCloudRecommendation.Confidence);
+            context.Logs.Add($"[DEMO] ES Cloud Signal: {esCloudRecommendation.Signal} ({esCloudRecommendation.Confidence:P1})");
+        }
+        
+        if (nqCloudRecommendation != null)
+        {
+            _logger.LogInformation("🧠 [DEMO] NQ Cloud Intelligence: {Signal} (confidence: {Confidence:P1})", 
+                nqCloudRecommendation.Signal, nqCloudRecommendation.Confidence);
+            context.Logs.Add($"[DEMO] NQ Cloud Signal: {nqCloudRecommendation.Signal} ({nqCloudRecommendation.Confidence:P1})");
+        }
         
         context.Logs.Add("[DEMO] ES Price: $5,025.75, NQ Price: $17,485.25");
         context.Logs.Add("[DEMO] Bullish signal detected on ES");
