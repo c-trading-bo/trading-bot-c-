@@ -1,7 +1,11 @@
 {
   "summary": {
     "date": "2025-09-05",
+<<<<<<< HEAD
     "time": "14:26:38 UTC",
+=======
+    "time": "21:47:01 UTC",
+>>>>>>> 7bf196b (Fix critical system issues and implement comprehensive trading safety systems (#88))
     "status": "Active",
     "regime": "Volatile",
     "regime_confidence": 0.36,
@@ -84,5 +88,9 @@
     },
     "technical": {}
   },
+<<<<<<< HEAD
   "generated_at": "2025-09-05T14:26:38.889907"
+=======
+  "generated_at": "2025-09-05T21:47:01.391210"
+>>>>>>> 7bf196b (Fix critical system issues and implement comprehensive trading safety systems (#88))
 }
