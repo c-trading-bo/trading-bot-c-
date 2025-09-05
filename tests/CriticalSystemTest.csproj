@@ -9,11 +9,12 @@
 
   <ItemGroup>
     <Compile Remove="*.cs" />
-    <Compile Include="CriticalSystemTest.cs" />
+    <Compile Include="AdvancedComponentsTest.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../src/BotCore/BotCore.csproj" />
+    <ProjectReference Include="../src/OrchestratorAgent/OrchestratorAgent.csproj" />
   </ItemGroup>
 
   <ItemGroup>
