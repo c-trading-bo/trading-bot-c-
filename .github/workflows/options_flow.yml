@@ -1,8 +1,10 @@
 name: Options Flow Analysis
 on:
   schedule:
-    # OPTIMIZED OPTIONS FLOW - BUDGET 50K (35% reduction)
-    - cron: '*/20 14-21 * * 1-5'  # Every 20 min RTH only (vs 15 min)
+    - cron: '*/5 13-14,19-21 * * 1-5'  # High frequency during open/close (9:30-10:30 AM, 3:00-4:00 PM EST)
+    - cron: '*/10 14-19 * * 1-5'       # Mid-day analysis (10:30 AM - 3:00 PM EST)
+    - cron: '*/30 12-17,1-2 * * 1-5'  # Pre/post market (4:00-9:30 AM, 4:00-6:00 PM EST)
+
   workflow_dispatch:
 
 

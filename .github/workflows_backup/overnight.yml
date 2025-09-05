@@ -1,0 +1,50 @@
+name: Overnight Session Analysis
+"on":
+  schedule:
+    # 24/7 OVERNIGHT SESSION ANALYSIS (ENTERPRISE OPTIMIZED)
+    # ASIAN SESSION ANALYSIS (18:00-23:59 CT - NQ Primary)
+    - cron: '0 0,2,4 * * *'          # Every 2 hours Asian session
+    # EUROPEAN SESSION ANALYSIS (00:00-05:00 CT - ES Primary) 
+    - cron: '30 6,8,10 * * *'        # Every 2 hours European session
+    # AFTER HOURS ANALYSIS (16:00-18:00 CT - Earnings Focus)
+    - cron: '0 22,23 * * *'          # Every hour after hours
+    # Total: 24 runs/week = Continuous overnight coverage
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+
+jobs:
+  overnight:
+    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/overnight_analysis.py
+
+      - name: "ðŸ”— Integrate with BotCore Decision Engine"
+        run: |
+          echo "ðŸ”— Converting Overnight Session analysis to BotCore format..."
+          
+          # Run data integration script for overnight trading signals
+          python Intelligence/scripts/workflow_data_integration.py \
+            --workflow-type "overnight" \
+            --data-path "Intelligence/data/overnight_analysis.json" \
+            --output-path "Intelligence/data/integrated/overnight_trading_signals.json"
+          
+          echo "âœ… BotCore overnight integration complete"
+
+      - name: "ðŸ“¤ Commit Integrated Data"
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/integrated/
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "ðŸŒ™ Overnight Analysis: BotCore-integrated trading signals $(date -u +%Y%m%d_%H%M%S)"
+          git push || echo "No changes to push"
+

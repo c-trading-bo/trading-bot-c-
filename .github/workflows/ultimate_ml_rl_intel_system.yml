@@ -1,24 +1,15 @@
-# Ultimate 24/7 ML/RL/Intelligence System - Master Orchestrator
+﻿# Ultimate 24/7 ML/RL/Intelligence System - Master Orchestrator
 name: Ultimate ML/RL/Intel System (Team Optimized)
 
 "on":
   schedule:
-    # OPTIMIZED 24/5 ML/RL SYSTEM - BUDGET 50K (29% reduction)
-    
-    # MARKET HOURS (Highest Priority - Every 10 min)
-    - cron: '*/10 14-21 * * 1-5'        # US market hours 9:30 AM - 4 PM EST
-    
-    # HIGH VOLATILITY (Every 5 min during open/close)
-    - cron: '*/5 14-15 * * 1-5'         # Market open volatility
-    - cron: '*/5 20-21 * * 1-5'         # Market close volatility
-    
-    # PRE/AFTER MARKET (Medium Priority - Every 30 min)  
-    - cron: '*/30 13-14,21-22 * * 1-5'  # Pre-market & after hours
-    
-    # OVERNIGHT/WEEKEND (Low Priority - Every 2 hours)
-    - cron: '0 */2 * * *'               # Overnight and weekend coverage
-    
-    # Total: ~28 runs/day (vs 44 current) = 36% reduction
+    - cron: '*/5 13-21 * * 1-5'      # Market hours (9:30 AM - 4:00 PM EST)
+    - cron: '*/10 12-17 * * 1-5'     # Pre-market (8:00 AM - 1:00 PM EST)
+    - cron: '*/10 21-23 * * 1-5'     # Post-market (5:00 PM - 7:00 PM EST)
+    - cron: '*/30 1-5 * * *'         # Overnight (9:00 PM - 1:00 AM EST)
+    - cron: '0 */2 * * 0'            # Sunday only (futures reopen 6PM EST)
+    # Saturday: FUTURES CLOSED - No fresh ES/NQ data to collect or train on
+
   workflow_dispatch:
     inputs:
       mode:

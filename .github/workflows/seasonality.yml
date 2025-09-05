@@ -1,16 +1,8 @@
 name: Seasonality Patterns Analysis
 "on":
   schedule:
-    # ENHANCED SEASONALITY PATTERNS (ENTERPRISE FREQUENCY)
-    # Daily seasonality updates for intraday patterns
-    - cron: '0 6 * * *'              # Daily at 1 AM EST for overnight analysis
-    - cron: '0 12 * * 1-5'           # Daily at 7 AM EST pre-market analysis  
-    - cron: '0 18 * * 1-5'           # Daily at 1 PM EST mid-session analysis
-    # Weekly comprehensive seasonality analysis
-    - cron: '0 2 * * 1'              # Weekly deep analysis Monday 9 PM EST
-    # Monthly seasonality pattern updates
-    - cron: '0 4 1 * *'              # Monthly comprehensive update
-    # Total: ~17 runs/week for enhanced seasonality tracking
+    - cron: '0 10 * * 1'
+
   workflow_dispatch:
 
 

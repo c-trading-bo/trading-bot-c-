@@ -2,16 +2,9 @@ name: Intelligence - ML Trainer âš¡ (OPTIMIZED)
 
 "on":
   schedule:
-    # 24/7 ML MODEL TRAINING (CONTINUOUS LEARNING SYSTEM)
-    # Asian Session Training (20:00 CT) - NQ-focused models
-    - cron: '0 2 * * *'                  # Asian session model training
-    # European Session Training (04:00 CT) - ES-focused models
-    - cron: '0 10 * * *'                 # European session model training
-    # US Session Training (22:00 CT) - Comprehensive model training
-    - cron: '0 4 * * 1-5'                # US after-hours model training
-    # Weekend Intensive Training
-    - cron: '0 6,12,18 * * 0,6'          # Weekend intensive training sessions
-    # Total: ~9 runs/week for continuous model improvement
+    - cron: '0 5,17 * * 1-5'
+    - cron: '0 10 * * 0'
+
   workflow_dispatch:  # Allow manual triggering
 
 permissions:

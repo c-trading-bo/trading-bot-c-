@@ -1,17 +1,8 @@
 name: Fed Liquidity Analysis
 "on":
   schedule:
-    # ENHANCED FED LIQUIDITY MONITORING (CRITICAL FOR MACRO TRADING)
-    # Daily Fed data monitoring during active periods
-    - cron: '0 10 * * 1-5'           # Daily at 5 AM EST for overnight Fed operations
-    - cron: '0 16 * * 1-5'           # Daily at 11 AM EST pre-market Fed analysis
-    # FOMC meeting weeks - increased frequency
-    - cron: '0 14,20 * * 2,3,4'      # Extra monitoring during typical FOMC weeks
-    # Weekly comprehensive Fed liquidity analysis
-    - cron: '0 3 * * 1'              # Weekly deep analysis Monday 10 PM EST
-    # Monthly Fed balance sheet deep dive
-    - cron: '0 5 1 * *'              # Monthly comprehensive analysis
-    # Total: ~15 runs/week for enhanced Fed liquidity tracking
+    - cron: '0 14 * * 2,4'
+
   workflow_dispatch:
 
 

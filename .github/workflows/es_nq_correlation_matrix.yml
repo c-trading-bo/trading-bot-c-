@@ -1,16 +1,8 @@
 name: ES/NQ Correlation Matrix Analysis
 "on":
   schedule:
-    # 24/7 ES/NQ CORRELATION ANALYSIS (CRITICAL FOR FUTURES TRADING)
-    # Asian Session (18:00-23:59 CT) - NQ dominance correlation tracking
-    - cron: '0,30 0,1,2,3,4,5 * * *'    # Every 30 minutes Asian session
-    # European Session (02:00-05:00 CT) - ES focus correlation analysis
-    - cron: '15,45 8,9,10,11 * * *'     # Every 30 minutes European session
-    # US Session (08:30-16:00 CT) - Maximum correlation monitoring
-    - cron: '0,20,40 14,15,16,17,18,19,20,21 * * 1-5'  # Every 20 minutes US session
-    # Extended Hours Correlation Monitoring  
-    - cron: '10,50 6,7,12,13,22,23 * * *'  # 40-minute intervals extended hours
-    # Total: ~48 runs/day = 336 runs/week for real-time correlation tracking
+    - cron: '0 */2 * * *'
+
   workflow_dispatch:
 
 permissions:

@@ -1,0 +1,115 @@
+name: Intelligence - ML Trainer âš¡ (OPTIMIZED)
+
+"on":
+  schedule:
+    # 24/7 ML MODEL TRAINING (CONTINUOUS LEARNING SYSTEM)
+    # Asian Session Training (20:00 CT) - NQ-focused models
+    - cron: '0 2 * * *'                  # Asian session model training
+    # European Session Training (04:00 CT) - ES-focused models
+    - cron: '0 10 * * *'                 # European session model training
+    # US Session Training (22:00 CT) - Comprehensive model training
+    - cron: '0 4 * * 1-5'                # US after-hours model training
+    # Weekend Intensive Training
+    - cron: '0 6,12,18 * * 0,6'          # Weekend intensive training sessions
+    # Total: ~9 runs/week for continuous model improvement
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  train-models:
+    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Faster shallow clone for speed
+      
+    # âš¡ SPEED OPTIMIZATION: Python + Dependencies Caching
+    - name: Set up Python with caching
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: |
+          requirements_ml.txt
+          Intelligence/requirements.txt
+    
+    # âš¡ SPEED OPTIMIZATION: Cache pip packages  
+    - name: Cache Python packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-ml-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-ml-
+          ${{ runner.os }}-pip-
+        
+    # âš¡ SPEED OPTIMIZATION: Only install if requirements changed
+    - name: Install ML dependencies (optimized)
+      run: |
+        python -m pip install --upgrade pip
+        # Install only if requirements changed or cache miss
+        pip install pandas numpy scikit-learn xgboost lightgbm joblib --only-if-needed
+        
+    # âš¡ SPEED OPTIMIZATION: Parallel execution of independent tasks
+    - name: Build features and train models (parallel jobs)
+      run: |
+        # Run feature building and model training in parallel where possible
+        python Intelligence/scripts/build_features.py &
+        FEATURE_PID=$!
+        
+        # Wait for features to complete before training
+        wait $FEATURE_PID
+        
+        # Train models
+        python Intelligence/scripts/train_models.py
+        
+    # âš¡ SPEED OPTIMIZATION: Selective artifact upload
+    - name: Upload trained models (optimized)
+      uses: actions/upload-artifact@v4
+      with:
+        name: ml-models-${{ github.run_number }}
+        path: |
+          Intelligence/models/*.pkl
+          Intelligence/models/*.joblib
+          Intelligence/models/metadata.json
+        retention-days: 90
+        
+    # âš¡ SPEED OPTIMIZATION: Only commit if there are actual changes
+    - name: Commit models and features (if changes)
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are any changes before staging
+        if [ -n "$(git status --porcelain Intelligence/data/features/ Intelligence/models/)" ]; then
+          git add Intelligence/data/features/ Intelligence/models/
+          git commit -m "Intelligence: ML models updated [$(date '+%Y-%m-%d %H:%M:%S')] âš¡"
+          git push
+        else
+          echo "No changes to commit - skipping"
+        fi
+
+    - name: "ðŸ”— Integrate with BotCore Decision Engine"
+      run: |
+        echo "ðŸ”— Converting ML Training results to BotCore format..."
+        
+        # Run data integration script for ML models
+        python Intelligence/scripts/workflow_data_integration.py \
+          --workflow-type "ml_trainer" \
+          --data-path "Intelligence/models/" \
+          --output-path "Intelligence/data/integrated/ml_models_status.json"
+        
+        echo "âœ… BotCore ML trainer integration complete"
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Intelligence/data/integrated/
+        git diff --staged --quiet || git commit -m "ðŸ¤– ML Trainer: BotCore-integrated models $(date -u +%Y%m%d_%H%M%S)"
+        git push
+

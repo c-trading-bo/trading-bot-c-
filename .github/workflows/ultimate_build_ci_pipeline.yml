@@ -6,14 +6,8 @@ name: "🔨⚡ ULTIMATE Build & CI Pipeline (Mega-System)"
   pull_request:
     branches: [main, master]
   schedule:
-    # SCHEDULED BUILD MAINTENANCE (ENTERPRISE CI/CD)
-    # Daily maintenance builds
-    - cron: '0 6 * * *'                  # Daily maintenance build at 1 AM EST
-    # Weekly comprehensive builds
-    - cron: '0 8 * * 1'                  # Weekly comprehensive build Monday 3 AM EST
-    # Monthly release candidate builds
-    - cron: '0 10 1 * *'                 # Monthly release build 1st at 5 AM EST
-    # Total: ~10 builds/month for maintenance and release management
+    - cron: '0 2 * * 6'
+
   workflow_dispatch:
     inputs:
       build_mode:

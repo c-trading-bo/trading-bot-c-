@@ -3,68 +3,8 @@ name: "Ultimate AI Cloud Bot Mechanic - Enterprise Defense System"
 "on":
   # Optimized schedule for 20,000 minute budget
   schedule:
-    # Smart monitoring - Every 45 minutes (32 runs/day)
-    - cron: '*/45 * * * *'
+    - cron: '0 */6 * * *'
 
-    # Enhanced monitoring during market hours (EST: 9:30 AM - 4:00 PM)
-    - cron: '*/15 9-16 * * 1-5'
-
-    # Deep analysis cycles - Every 4 hours (6 runs/day)
-    - cron: '0 */4 * * *'
-
-    # Daily deep optimization at 2 AM EST
-    - cron: '0 2 * * *'
-
-    # Weekend maintenance - Every 8 hours
-    - cron: '0 */8 * * 0,6'
-
-  # Ultimate workflow failure defense - Triggers on ANY workflow failure
-  workflow_run:
-    workflows:
-      # Ultimate Pipelines
-      - "Ultimate ML+RL Training Pipeline"
-      - "Ultimate Data Collection Pipeline"
-      - "Ultimate News Sentiment Pipeline"
-      - "Ultimate Options Flow Pipeline"
-      - "Ultimate Regime Detection Pipeline"
-      - "Ultimate Testing & QA Pipeline"
-      - "Ultimate ML+RL Intel System"
-      - "Ultimate Build CI Pipeline"
-
-      # Analysis Workflows
-      - "Daily Consolidated"
-      - "Portfolio Heat"
-      - "Volatility Surface Analysis"
-      - "ES/NQ Correlation Matrix"
-      - "ES/NQ Critical Trading"
-      - "Intermarket Correlations"
-      - "Seasonality Patterns Analysis"
-      - "Microstructure"
-      - "Fed Liquidity"
-      - "MM Positioning"
-      - "Social Momentum"
-      - "Congressional Trades"
-      - "COT Report"
-      - "Failed Patterns"
-      - "Zones Identifier"
-      - "Sector Rotation"
-      - "Rebalancing"
-      - "OPEX Calendar"
-
-      # Training & Intelligence
-      - "ML Model Training"
-      - "Data Collection"
-      - "News Sentiment"
-      - "Options Flow"
-      - "Regime Detection"
-      - "Testing & QA"
-      - "Build CI"
-    types:
-      - completed
-    branches:
-      - main
-
-  # Manual control triggers
   workflow_dispatch:
     inputs:
       mode:

@@ -2,14 +2,9 @@ name: "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System)"
 
 "on":
   schedule:
-    # ULTIMATE ML/RL TRAINING (ENTERPRISE CONTINUOUS LEARNING)
-    # INTENSIVE TRAINING: Multiple daily sessions for 24/7 trading
-    - cron: '0 */6 * * *'            # Every 6 hours = 4x daily training
-    # SESSION-SPECIFIC TRAINING: Train on fresh session data
-    - cron: '30 5,11,17,23 * * *'    # End of each major trading session
-    # WEEKEND DEEP TRAINING: Extended training on full week data
-    - cron: '0 4 * * 0'              # Sunday 4 AM deep training
-    # Total: 33 runs/week = Continuous adaptive learning
+    - cron: '0 6,18 * * 1-5'
+    - cron: '0 2 * * 6'
+
   workflow_dispatch:
     inputs:
       training_mode:

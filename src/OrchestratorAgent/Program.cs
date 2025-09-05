@@ -12,6 +12,7 @@ using BotCore.Strategy;
 using BotCore.Config;
 using OrchestratorAgent.Infra;
 using OrchestratorAgent.Ops;
+using OrchestratorAgent.Intelligence;
 using System.Linq;
 using System.Net.Http.Json;
 using Dashboard;
@@ -810,9 +811,9 @@ namespace OrchestratorAgent
                         });
                         webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
                         
-                        // Add Local Bot Mechanic Integration
-                        webBuilder.Services.AddSingleton<OrchestratorAgent.Intelligence.LocalBotMechanicIntegration>();
-                        webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<OrchestratorAgent.Intelligence.LocalBotMechanicIntegration>());
+                        // Add Workflow Integration Services
+                        webBuilder.Services.AddSingleton<OrchestratorAgent.Intelligence.WorkflowIntegrationService>();
+                        // Note: Intelligence integration pending project references fix
                         
                         var web = webBuilder.Build();
                         web.UseDefaultFiles();

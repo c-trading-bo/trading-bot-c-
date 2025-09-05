@@ -2,14 +2,8 @@ name: "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System)"
 
 "on":
   schedule:
-    # ULTIMATE OPTIONS FLOW ANALYSIS (ENTERPRISE OPTIMIZED)
-    # PRIMARY: Live options during US market hours
-    - cron: '*/20 14-21 * * 1-5'     # Every 20 min market hours (24 runs/day)
-    # SECONDARY: Pre/post market analysis for overnight ES/NQ strategies  
-    - cron: '0 13,22 * * 1-5'        # Pre-market & after-hours analysis (2 runs/day)
-    # WEEKEND: Position analysis for Sunday futures open
-    - cron: '0 21 * * 0'             # Sunday evening analysis (1 run/week)
-    # Total: 131 runs/week = Maximum options intelligence
+    - cron: '*/30 9:30-16 * * 1-5'
+
   workflow_dispatch:
     inputs:
       analysis_mode:

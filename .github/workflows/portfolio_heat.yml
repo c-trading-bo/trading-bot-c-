@@ -2,21 +2,10 @@ name: Portfolio Heat Management (Team)
 
 "on":
   schedule:
-    # OPTIMIZED PORTFOLIO HEAT - BUDGET 50K (35% reduction)
-    
-    # MARKET HOURS: Every 20 min (vs 15 min current)
-    - cron: '*/20 14-21 * * 1-5'        # US market hours
-    
-    # EXTENDED HOURS: Every 45 min (vs 30 min current)  
-    - cron: '*/45 13-14,21-23 * * 1-5'  # Pre/after market
-    
-    # WEEKENDS: Every 3 hours (vs 6 hours current)
-    - cron: '0 */3 * * 6,0'             # Weekend monitoring
-    
-    # OVERNIGHT: Every 4 hours
-    - cron: '0 0,4,8,12 * * 1-5'        # Overnight coverage
-    
-    # Total: ~12 runs/day (vs 18 current) = 33% reduction
+    - cron: '*/10 13-21 * * 1-5'      # Market hours (9:30 AM - 4:00 PM EST)
+    - cron: '*/20 12-17,1-3 * * 1-5' # Pre/post market (4:00 AM - 9:30 AM, 4:00 PM - 8:00 PM EST)
+    - cron: '0 */2 * * *'             # Overnight every 2 hours
+
   workflow_dispatch:
 
 permissions:

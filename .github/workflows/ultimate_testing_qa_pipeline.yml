@@ -2,16 +2,8 @@ name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
 
 "on":
   schedule:
-    # 24/7 TESTING & QUALITY ASSURANCE (CONTINUOUS VALIDATION)
-    # Asian Session QA (21:00 CT) - Validate Asian session processes
-    - cron: '0 3 * * *'                  # Asian session quality assurance
-    # European Session QA (05:00 CT) - Validate European session processes
-    - cron: '0 11 * * *'                 # European session quality assurance
-    # US Session QA (after hours) - Validate US session processes
-    - cron: '0 5 * * 1-5'                # US after-hours quality assurance
-    # Weekend Comprehensive QA
-    - cron: '0 8,16 * * 0,6'             # Weekend comprehensive testing
-    # Total: ~7 runs/week for continuous quality validation
+    - cron: '0 3 * * 0'
+
   workflow_dispatch:
     inputs:
       test_mode:

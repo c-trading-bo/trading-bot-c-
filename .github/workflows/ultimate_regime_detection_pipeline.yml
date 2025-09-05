@@ -2,16 +2,8 @@ name: "🔍📊 ULTIMATE Market Regime Detection Pipeline (Mega-System)"
 
 "on":
   schedule:
-    # 24/7 REGIME DETECTION FOR GLOBAL MARKETS (ENTERPRISE OPTIMIZED)
-    # Asian Session (18:00-23:59 CT) - NQ primary focus
-    - cron: '0 0,2,4 * * *'          # Every 2 hours Asian session
-    # European Session (02:00-05:00 CT) - ES primary focus  
-    - cron: '15 8,9,10,11 * * *'     # Every hour European session
-    # US Session (08:30-16:00 CT) - Both ES/NQ active
-    - cron: '30 14,15,16,17,18,19,20,21,22 * * 1-5'  # Every hour US session
-    # After Hours & Weekend Monitoring
-    - cron: '45 5,6,7,12,13,23 * * *'   # Extended hours coverage
-    # Total: ~21 runs/day = 147 runs/week for continuous regime monitoring
+    - cron: '0 7,19 * * *'
+
   workflow_dispatch:
     inputs:
       analysis_mode:

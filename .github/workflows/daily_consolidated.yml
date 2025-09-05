@@ -2,16 +2,10 @@ name: Daily Consolidated Tasks (Team)
 
 "on":
   schedule:
-    # 24/7 CONSOLIDATED TASKS (SESSION-ALIGNED MAINTENANCE)
-    # Asian Session Daily Tasks (19:00 CT)
-    - cron: '0 1 * * *'                  # Asian session daily consolidation
-    # European Session Daily Tasks (03:00 CT)
-    - cron: '0 9 * * *'                  # European session daily consolidation
-    # US Session Daily Tasks (09:00 CT)
-    - cron: '0 15 * * 1-5'               # US session daily consolidation
-    # After Hours Daily Tasks (18:00 CT)
-    - cron: '0 0 * * *'                  # After hours daily consolidation
-    # Total: 4 runs/day = 28 runs/week for comprehensive daily maintenance
+    - cron: '0 12 * * *'    # 8:00 AM EST daily
+    - cron: '0 16 * * 0'    # 12:00 PM EST Sunday only (futures data available)
+    # Saturday: FUTURES CLOSED - Skip weekend ES/NQ data collection
+
   workflow_dispatch:
 
 permissions:

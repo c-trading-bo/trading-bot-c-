@@ -1,16 +1,9 @@
 name: Volatility Surface Analysis
 "on":
   schedule:
-    # 24/7 VOLATILITY SURFACE MONITORING (CRITICAL FOR OPTIONS TRADING)
-    # Asian Session (18:00-23:59 CT) - Monitor crypto/futures volatility
-    - cron: '0 0,2,4 * * *'              # Every 2 hours Asian session
-    # European Session (02:00-05:00 CT) - Monitor FX/indices volatility  
-    - cron: '30 8,9,10,11 * * *'         # Every hour European session
-    # US Session (08:30-16:00 CT) - Maximum volatility monitoring
-    - cron: '0,30 14,15,16,17,18,19,20,21 * * 1-5'  # Every 30 minutes US session
-    # After Hours Volatility Monitoring
-    - cron: '15 6,7,12,13,22,23 * * *'   # Extended hours coverage
-    # Total: ~27 runs/day = 189 runs/week for continuous volatility analysis
+    - cron: '0,30 9,12,15 * * 1-5'
+    - cron: '0 18,2 * * *'
+
   workflow_dispatch:
 
 

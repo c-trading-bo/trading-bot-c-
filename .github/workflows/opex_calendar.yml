@@ -1,15 +1,8 @@
 name: OPEX Calendar Tracking
 "on":
   schedule:
-    # ENHANCED OPEX CALENDAR TRACKING (CRITICAL FOR OPTIONS EXPIRY)
-    # Daily OPEX monitoring during high-activity periods
-    - cron: '0 13 * * 1-5'               # Daily at 8 AM EST pre-market
-    - cron: '0 19 * * 5'                 # Friday at 2 PM EST for weekly expiry
-    # Monthly OPEX week intensive monitoring
-    - cron: '0 14,16,18,20 15-21 * *'    # Every 2 hours during monthly OPEX week
-    # Quarterly OPEX intensive monitoring
-    - cron: '0 */2 15-21 3,6,9,12 *'     # Every 2 hours during quarterly OPEX week
-    # Total: ~12 runs/week with intensive OPEX period coverage
+    - cron: '0 13 * * 1,3,5'
+
   workflow_dispatch:
 
 
