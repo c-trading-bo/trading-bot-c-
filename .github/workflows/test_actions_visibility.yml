@@ -1,0 +1,43 @@
+name: 🧪 WORKFLOW TEST - Manual Trigger Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_message:
+        description: 'Test message to verify workflow is working'
+        required: false
+        default: 'Actions tab test successful!'
+  
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/test_actions_visibility.yml'
+
+permissions:
+  contents: write
+  actions: read
+  id-token: write
+
+jobs:
+  test-actions-visibility:
+    name: "🔍 Test Actions Tab Visibility"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: "✅ Actions Tab Working!"
+        run: |
+          echo "🎉 SUCCESS: GitHub Actions is working!"
+          echo "📅 Timestamp: $(date -u)"
+          echo "💬 Test Message: ${{ github.event.inputs.test_message || 'Automatic trigger from push' }}"
+          echo "🔧 Triggered by: ${{ github.event_name }}"
+          echo "🚀 Repository: ${{ github.repository }}"
+          echo "🌟 This proves workflows can run and show up in Actions tab!"
+          
+      - name: "📊 Environment Info"
+        run: |
+          echo "Runner OS: ${{ runner.os }}"
+          echo "GitHub Actor: ${{ github.actor }}"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Run Number: ${{ github.run_number }}"
