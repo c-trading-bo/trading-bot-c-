@@ -242,6 +242,50 @@ namespace OrchestratorAgent.Intelligence
             }
         }
 
+        /// <summary>
+        /// Get ultimate metrics from the cloud mechanic
+        /// </summary>
+        public async Task<string?> GetUltimateMetricsAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromSeconds(30);
+                
+                var response = await client.GetAsync("http://localhost:5051/mechanic/ultimate-metrics");
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get ultimate metrics");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Trigger intelligent workflow preparation
+        /// </summary>
+        public async Task<bool> TriggerIntelligentPreparationAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMinutes(5); // Longer timeout for preparation
+                
+                var response = await client.PostAsync("http://localhost:5051/mechanic/prepare-workflows", null);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to trigger intelligent preparation");
+                return false;
+            }
+        }
+
         public void Dispose()
         {
             if (_disposed)
