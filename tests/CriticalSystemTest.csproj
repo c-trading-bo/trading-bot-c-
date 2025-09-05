@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <Compile Remove="*.cs" />
-    <Compile Include="AdvancedComponentsTest.cs" />
+    <Compile Include="SimpleAdvancedTest.cs" />
   </ItemGroup>
 
   <ItemGroup>
