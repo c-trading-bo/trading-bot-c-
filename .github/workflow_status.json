@@ -1,0 +1,19 @@
+{
+  "last_check": "2025-09-05T03:04:02.834454",
+  "workflows_validated": true,
+  "schedules_active": [
+    "es_nq_critical_trading.yml",
+    "ultimate_ml_rl_intel_system.yml",
+    "daily_consolidated.yml",
+    "volatility_surface.yml",
+    "es_nq_correlation_matrix.yml"
+  ],
+  "saturday_optimization": "ENABLED",
+  "next_expected_runs": {
+    "es_nq_critical": "Every 3-15 minutes during market hours",
+    "ml_rl_system": "Every 5-30 minutes depending on time",
+    "daily_consolidated": "8 AM EST daily, 12 PM EST Sunday",
+    "volatility_surface": "9:00, 9:30, 12:00, 12:30, 15:00, 15:30 on market days",
+    "correlation_matrix": "Every 2 hours"
+  }
+}
