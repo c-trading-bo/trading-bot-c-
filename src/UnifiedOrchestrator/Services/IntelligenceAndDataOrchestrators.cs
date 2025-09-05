@@ -109,8 +109,13 @@ public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
             PricePrediction = lstmTask.Result?.Prediction ?? 0m,
             SignalStrength = transformerTask.Result?.Strength ?? 0m,
             RiskScore = xgboostTask.Result?.RiskScore ?? 0m,
-            MarketRegime = regimeTask.Result?.Regime ?? "UNKNOWN",
-            Confidence = CalculateEnsembleConfidence(neuralBanditsTask, lstmTask, transformerTask, xgboostTask, regimeTask),
+            MarketRegime = regimeTask.Result?.CurrentRegime ?? "UNKNOWN",
+            Confidence = CalculateEnsembleConfidence(
+                neuralBanditsTask.ContinueWith(t => (dynamic?)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion), 
+                lstmTask.ContinueWith(t => (dynamic?)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion), 
+                transformerTask.ContinueWith(t => (dynamic?)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion), 
+                xgboostTask.ContinueWith(t => (dynamic?)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion), 
+                regimeTask.ContinueWith(t => (dynamic?)t.Result, TaskContinuationOptions.OnlyOnRanToCompletion)),
             Timestamp = DateTime.UtcNow
         };
         
@@ -495,6 +500,8 @@ public class DataOrchestratorService : IDataOrchestrator
         
         context.Parameters["daily_report"] = report;
     }
+
+    #endregion
 
     #region Private Methods
 
