@@ -1,0 +1,42 @@
+=== GITHUB ACTIONS MINUTES CALCULATION ===
+
+ULTRA HIGH-FREQUENCY WORKFLOWS (Market Hours):
+• ES/NQ Critical Trading: Every 5-10 min → ~2,400 runs/month
+• Microstructure: Every 5 min (6h/day) → ~1,560 runs/month  
+• Options Flow: Every 15 min (6h/day) → ~520 runs/month
+• Failed Patterns: Every 15 min (6h/day) → ~520 runs/month
+
+HIGH-FREQUENCY WORKFLOWS:
+• Ultimate ML/RL Intel: Every 15-20 min → ~1,400 runs/month
+• Portfolio Heat: Every 15-20 min → ~1,400 runs/month
+• Ultimate Data Collection: Every 15-20 min → ~1,400 runs/month
+• Ultimate News Sentiment: Every 15-30 min → ~1,000 runs/month
+
+24/7 CONTINUOUS WORKFLOWS:
+• Intermarket: Every 10 min (24/7) → ~4,320 runs/month
+• Volatility Surface: Every 60 min (24/7) → ~720 runs/month
+• Cloud Bot Mechanic: Every 45 min (24/7) → ~960 runs/month
+• ES/NQ Correlation: Every 3 hours (24/7) → ~240 runs/month
+
+DAILY/WEEKLY WORKFLOWS:
+• 15+ Daily workflows → ~450 runs/month
+• Ultimate Training Pipeline: Every 6h → ~120 runs/month
+• Ultimate Testing QA: Daily → ~90 runs/month
+• 4 Weekly workflows → ~17 runs/month
+
+=== MONTHLY TOTALS ===
+Total Workflow Runs: ~16,647 runs/month
+Average Runtime: 3-5 minutes per workflow
+Total Minutes: ~66,588 minutes/month
+
+GitHub Free Tier: 2,000 minutes/month
+Your Usage: ~66,588 minutes/month
+Overage: ~64,588 minutes (~$323/month at GitHub pricing)
+
+=== RECOMMENDATIONS ===
+1. Consider GitHub Pro ($4/month) = 3,000 minutes
+2. Or GitHub Team ($4/user/month) = 3,000 minutes  
+3. For enterprise: GitHub Enterprise ($21/user/month) = 50,000 minutes
+4. You'll likely need the Enterprise plan or pay overages
+
+Your system is designed for institutional-grade 24/7 trading operations!

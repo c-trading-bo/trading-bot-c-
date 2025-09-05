@@ -1,0 +1,27 @@
+name: Options Flow Analysis
+on:
+  schedule:
+    # OPTIMIZED OPTIONS FLOW - BUDGET 50K (35% reduction)
+    - cron: '*/20 14-21 * * 1-5'  # Every 20 min RTH only (vs 15 min)
+  workflow_dispatch:
+
+
+permissions:
+  contents: write
+
+jobs:
+  options_flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - run: pip install yfinance pandas numpy scipy requests beautifulsoup4 ta pytrends fredapi
+      - run: python Intelligence/scripts/scan_options.py
+      - run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add Intelligence/data/
+          git diff --quiet || git commit -m "Update options flow analysis"
+          git push

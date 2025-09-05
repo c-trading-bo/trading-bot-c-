@@ -1,0 +1,184 @@
+name: 🛡️ Cloud Bot Mechanic - Enterprise Defense
+
+on:
+  schedule:
+    # OPTIMIZED CLOUD BOT MECHANIC - BUDGET 50K (60% reduction)
+    - cron: '0 */2 * * 1-5'             # Every 2 hours market days
+    - cron: '0 */4 * * 6,0'             # Every 4 hours weekends
+    
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Operation Mode'
+        required: false
+        default: 'full-defense'
+        type: choice
+        options:
+          - monitor
+          - auto-fix
+          - full-defense
+
+permissions:
+  contents: write
+  actions: read
+  issues: write
+
+jobs:
+  enterprise-defense:
+    name: "🛡️ Enterprise Defense System"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: "🔥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🐍 Setup Python Environment"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: "📦 Install Dependencies"
+        run: |
+          pip install --upgrade pip
+          pip install requests pandas numpy pyyaml gitpython
+
+      - name: "🧠 Initialize Defense Brain"
+        run: |
+          echo "🤖 CLOUD BOT MECHANIC ENTERPRISE DEFENSE SYSTEM"
+          echo "=============================================="
+          echo "Time: $(date -u)"
+          echo "Mode: ${{ github.event.inputs.mode || 'full-defense' }}"
+          echo "Event: ${{ github.event_name }}"
+          echo ""
+          
+      - name: "🔍 Workflow Health Analysis"
+        run: |
+          python -c "
+          import os
+          import yaml
+          import json
+          from datetime import datetime, timedelta
+          
+          print('🔍 WORKFLOW HEALTH ANALYSIS')
+          print('=' * 40)
+          
+          workflow_dir = '.github/workflows'
+          workflows = []
+          
+          for file in os.listdir(workflow_dir):
+              if file.endswith('.yml'):
+                  filepath = os.path.join(workflow_dir, file)
+                  try:
+                      with open(filepath, 'r', encoding='utf-8') as f:
+                          data = yaml.safe_load(f)
+                      if data and 'name' in data:
+                          workflows.append({
+                              'file': file,
+                              'name': data['name'],
+                              'triggers': list(data.get('on', {}).keys()) if 'on' in data else []
+                          })
+                  except Exception as e:
+                      print(f'⚠️  Error parsing {file}: {e}')
+          
+          print(f'✅ Total workflows: {len(workflows)}')
+          
+          # Check for critical workflows
+          critical_workflows = [
+              'Ultimate ML/RL/Intel System',
+              'ES/NQ Critical Trading',
+              'Ultimate Data Collection',
+              'Ultimate ML/RL Training'
+          ]
+          
+          found_critical = 0
+          for workflow in workflows:
+              for critical in critical_workflows:
+                  if critical.lower() in workflow['name'].lower():
+                      found_critical += 1
+                      print(f'✅ Found: {workflow[\"name\"]}')
+                      break
+          
+          print(f'✅ Critical workflows found: {found_critical}/{len(critical_workflows)}')
+          "
+          
+      - name: "🔧 Auto-Fix Analysis"
+        if: github.event.inputs.mode == 'auto-fix' || github.event.inputs.mode == 'full-defense'
+        run: |
+          echo "🔧 AUTO-FIX ANALYSIS MODE"
+          echo "========================"
+          
+          # Check for common issues
+          python -c "
+          import os
+          import re
+          
+          issues_found = []
+          fixes_applied = []
+          
+          # Check workflow files for common problems
+          workflow_dir = '.github/workflows'
+          for file in os.listdir(workflow_dir):
+              if file.endswith('.yml'):
+                  filepath = os.path.join(workflow_dir, file)
+                  with open(filepath, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  # Check for UTF-8 BOM
+                  if content.startswith('\ufeff'):
+                      issues_found.append(f'{file}: UTF-8 BOM detected')
+                  
+                  # Check for common syntax issues
+                  if re.search(r'on:\s*\n\s*schedule:', content, re.MULTILINE):
+                      # Valid schedule format
+                      pass
+                  elif 'schedule:' in content and 'on:' in content:
+                      if not re.search(r'on:\s*\n.*schedule:', content, re.DOTALL):
+                          issues_found.append(f'{file}: Possible schedule syntax issue')
+          
+          print(f'🔍 Issues scanned: {len(issues_found)}')
+          for issue in issues_found:
+              print(f'⚠️  {issue}')
+          
+          if not issues_found:
+              print('✅ No common issues detected')
+          "
+
+      - name: "📊 Generate Defense Report"
+        run: |
+          mkdir -p Intelligence/data/mechanic
+          python -c "
+          import json
+          from datetime import datetime
+          
+          report = {
+              'timestamp': datetime.utcnow().isoformat() + 'Z',
+              'mode': '${{ github.event.inputs.mode || 'full-defense' }}',
+              'event': '${{ github.event_name }}',
+              'status': 'active',
+              'system': 'enterprise-defense',
+              'version': '2.0-streamlined'
+          }
+          
+          with open('Intelligence/data/mechanic/defense_report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          
+          print('✅ Defense report generated')
+          "
+
+      - name: "💾 Commit Defense Results"
+        run: |
+          git config user.name "Cloud Bot Mechanic"
+          git config user.email "mechanic@cloudbot.ai"
+          
+          if [ -f "Intelligence/data/mechanic/defense_report.json" ]; then
+            git add Intelligence/data/mechanic/defense_report.json
+            git diff --quiet || git commit -m "🛡️ Cloud Bot Mechanic Defense: $(date -u +%Y%m%d_%H%M%S)"
+            git push || echo "No changes to push"
+          fi
+          
+          echo "🛡️ Enterprise Defense System scan completed successfully!"

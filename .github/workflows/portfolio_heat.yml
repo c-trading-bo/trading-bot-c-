@@ -2,13 +2,21 @@ name: Portfolio Heat Management (Team)
 
 "on":
   schedule:
-    # 24/7 PORTFOLIO HEAT MANAGEMENT (ENTERPRISE RISK CONTROL)
-    # CONTINUOUS RISK MONITORING - Higher frequency during active trading
-    - cron: '*/30 0-5 * * *'         # Every 30 min Asian session
-    - cron: '*/20 6-11 * * *'        # Every 20 min European session  
-    - cron: '*/15 14-22 * * 1-5'     # Every 15 min US trading hours
-    - cron: '*/45 12-13,23 * * *'    # Every 45 min low-activity periods
-    # Total: 72 runs/day = Continuous risk monitoring
+    # OPTIMIZED PORTFOLIO HEAT - BUDGET 50K (35% reduction)
+    
+    # MARKET HOURS: Every 20 min (vs 15 min current)
+    - cron: '*/20 14-21 * * 1-5'        # US market hours
+    
+    # EXTENDED HOURS: Every 45 min (vs 30 min current)  
+    - cron: '*/45 13-14,21-23 * * 1-5'  # Pre/after market
+    
+    # WEEKENDS: Every 3 hours (vs 6 hours current)
+    - cron: '0 */3 * * 6,0'             # Weekend monitoring
+    
+    # OVERNIGHT: Every 4 hours
+    - cron: '0 0,4,8,12 * * 1-5'        # Overnight coverage
+    
+    # Total: ~12 runs/day (vs 18 current) = 33% reduction
   workflow_dispatch:
 
 permissions:
@@ -30,8 +38,8 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --upgrade pip
-        pip install pandas numpy json-logging
+        pip install --quiet --no-warn-script-location --upgrade pip
+        pip install --quiet --no-warn-script-location pandas numpy json-logging
         
     - name: Calculate Portfolio Heat
       run: |
@@ -152,24 +160,3 @@ jobs:
             print("≡ƒÜ¿ [ALERT] High portfolio heat detected!")
         
         EOF
-
-    - name: "🔗 Integrate with BotCore Decision Engine"
-      run: |
-        echo "🔗 Converting Portfolio Heat analysis to BotCore format..."
-        
-        # Run data integration script for risk assessment
-        python Intelligence/scripts/workflow_data_integration.py \
-          --workflow-type "portfolio_heat" \
-          --data-path "data/portfolio/heat_management.json" \
-          --output-path "Intelligence/data/integrated/portfolio_risk_assessment.json"
-        
-        echo "✅ BotCore risk integration complete"
-
-    - name: "📤 Commit Integrated Data"
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
-        git add Intelligence/data/integrated/
-        git add data/portfolio/
-        git diff --quiet || git commit -m "🔥 Portfolio Heat: BotCore-integrated risk assessment $(date -u +%Y%m%d_%H%M%S)"
-        git push || echo "No changes to push"

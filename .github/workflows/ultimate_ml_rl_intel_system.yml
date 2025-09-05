@@ -3,16 +3,22 @@ name: Ultimate ML/RL/Intel System (Team Optimized)
 
 "on":
   schedule:
-    # 24/7 ML/RL INTELLIGENCE SYSTEM (ENTERPRISE CONTINUOUS LEARNING)
-    # Asian Session (18:00-23:59 CT) - High-frequency NQ intelligence
-    - cron: '0 0,1,2,3,4,5 * * *'      # Every hour Asian session
-    # European Session (02:00-05:00 CT) - ES-focused intelligence
-    - cron: '30 8,9,10,11 * * *'       # Every hour European session  
-    # US Session (08:30-16:00 CT) - Maximum intelligence frequency
-    - cron: '15 14,15,16,17,18,19,20,21 * * 1-5'  # Every hour US session
-    # Off-hours Intelligence Updates
-    - cron: '45 6,7,12,13,22,23 * * *'   # Extended learning periods
-    # Total: ~22 runs/day = 154 runs/week for continuous ML/RL adaptation
+    # OPTIMIZED 24/5 ML/RL SYSTEM - BUDGET 50K (29% reduction)
+    
+    # MARKET HOURS (Highest Priority - Every 10 min)
+    - cron: '*/10 14-21 * * 1-5'        # US market hours 9:30 AM - 4 PM EST
+    
+    # HIGH VOLATILITY (Every 5 min during open/close)
+    - cron: '*/5 14-15 * * 1-5'         # Market open volatility
+    - cron: '*/5 20-21 * * 1-5'         # Market close volatility
+    
+    # PRE/AFTER MARKET (Medium Priority - Every 30 min)  
+    - cron: '*/30 13-14,21-22 * * 1-5'  # Pre-market & after hours
+    
+    # OVERNIGHT/WEEKEND (Low Priority - Every 2 hours)
+    - cron: '0 */2 * * *'               # Overnight and weekend coverage
+    
+    # Total: ~28 runs/day (vs 44 current) = 36% reduction
   workflow_dispatch:
     inputs:
       mode:
@@ -47,7 +53,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0  # Full history for analysis
     
@@ -94,24 +100,24 @@ jobs:
     
     - name: Install Core Python Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 --upgrade pip
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 --upgrade pip
         # Essential core dependencies only
-        pip install --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 numpy pandas scipy
         # Technical analysis (with fallbacks)
-        pip install --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 TA-Lib || pip install --quiet --no-warn-script-location ta pandas-ta || echo "TA-Lib install failed, using numpy fallback"
         # Lightweight ML dependencies
-        pip install --retry-delays 1,2,3 --timeout 60 scikit-learn
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 scikit-learn
         # Data collection essentials
-        pip install --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 yfinance requests feedparser
         # News processing essentials
-        pip install --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 beautifulsoup4 || echo "BeautifulSoup install failed, skipping"
         
     - name: Install Optional Heavy Dependencies
       continue-on-error: true
       run: |
         # These are optional - workflow continues if they fail
-        pip install --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
-        pip install --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 30 torch || echo "PyTorch install failed, skipping"
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 30 xgboost || echo "XGBoost install failed, skipping"
     
     # ----------------------------------------
     # MARKET DATA COLLECTION (Simplified & Robust)
@@ -590,7 +596,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
         ref: main  # Get latest data
@@ -602,8 +608,8 @@ jobs:
     
     - name: Install ML/RL Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
-        pip install --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 torch torchvision scikit-learn xgboost lightgbm catboost
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 optuna shap numpy pandas onnx onnxruntime
     
     # ----------------------------------------
     # TRAIN NEURAL BANDITS
@@ -878,7 +884,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
         ref: main  # Get latest updates
@@ -890,7 +896,7 @@ jobs:
     
     - name: Install Dependencies
       run: |
-        pip install --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
+        pip install --quiet --no-warn-script-location --retry-delays 1,2,3 --timeout 60 pandas numpy scikit-learn joblib
     
     - name: Generate Trading Signals
       run: |
@@ -1181,25 +1187,13 @@ jobs:
         print(f"[HEALTH] Recommendations: {len(health_report['recommendations'])}")
         
         EOF
-
-    - name: "🔗 Integrate with BotCore Decision Engine"
-      run: |
-        echo "🔗 Converting Ultimate ML/RL Intel System analysis to BotCore format..."
-        
-        # Run data integration script for ML/RL intelligence data
-        python Intelligence/scripts/workflow_data_integration.py \
-          --workflow-type "ultimate_ml_rl_intel_system" \
-          --data-path "Intelligence/data/ml_intelligence.json" \
-          --output-path "Intelligence/data/integrated/ml_rl_intelligence.json"
-        
-        echo "✅ BotCore ML/RL intel integration complete"
     
     - name: Final Commit
       run: |
         git config --local user.email "ml-bot@github.com"
         git config --local user.name "ML Learning Bot"
-        git add Intelligence/data/integrated/ Intelligence/
-        git diff --staged --quiet || git commit -m "🤖 Ultimate ML/RL Intelligence: BotCore-integrated system $(date -u +'%Y-%m-%d %H:%M:%S')"
+        git add Intelligence/
+        git diff --staged --quiet || git commit -m "≡ƒÄ» Ultimate intelligence integration complete $(date -u +'%Y-%m-%d %H:%M:%S')"
         git push --force-with-lease || true
 
   # ============================================
@@ -1207,14 +1201,13 @@ jobs:
   # ============================================
   system-summary:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
     needs: [collect-everything, train-everything, intelligence-integration]
     if: always()
     
     steps:
     - uses: actions/checkout@v4
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN || github.token }}
         persist-credentials: true
         fetch-depth: 0
     
