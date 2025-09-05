@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UpdaterAgent", "src\Updater
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrchestratorAgent", "src\OrchestratorAgent\OrchestratorAgent.csproj", "{E204619C-78D3-4442-A953-EC0C200A592C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnifiedOrchestrator", "src\UnifiedOrchestrator\UnifiedOrchestrator.csproj", "{F7E5B8A1-1234-4567-8901-234567890123}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +75,18 @@ Global
 		{E204619C-78D3-4442-A953-EC0C200A592C}.Release|x64.Build.0 = Release|Any CPU
 		{E204619C-78D3-4442-A953-EC0C200A592C}.Release|x86.ActiveCfg = Release|Any CPU
 		{E204619C-78D3-4442-A953-EC0C200A592C}.Release|x86.Build.0 = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|x64.Build.0 = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Debug|x86.Build.0 = Debug|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|x64.ActiveCfg = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|x64.Build.0 = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|x86.ActiveCfg = Release|Any CPU
+		{F7E5B8A1-1234-4567-8901-234567890123}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -82,5 +96,6 @@ Global
 		{F985D5D1-B873-4DB0-AE70-A52964AD8688} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{4D4F6E97-8D43-41A1-8694-7117D238846A} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{E204619C-78D3-4442-A953-EC0C200A592C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{F7E5B8A1-1234-4567-8901-234567890123} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
