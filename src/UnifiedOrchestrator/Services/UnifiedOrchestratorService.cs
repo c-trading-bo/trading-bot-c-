@@ -21,6 +21,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
     private readonly IDataOrchestrator _dataOrchestrator;
     private readonly IWorkflowScheduler _scheduler;
     private readonly ICloudDataIntegration _cloudDataIntegration;
+    private readonly AdvancedSystemIntegrationService? _advancedSystemIntegration;
     
     private readonly ConcurrentDictionary<string, UnifiedWorkflow> _workflows = new();
     private readonly ConcurrentDictionary<string, List<WorkflowExecutionContext>> _executionHistory = new();
@@ -41,7 +42,8 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         IDataOrchestrator dataOrchestrator,
         IWorkflowScheduler scheduler,
         ICentralMessageBus messageBus,
-        ICloudDataIntegration cloudDataIntegration)
+        ICloudDataIntegration cloudDataIntegration,
+        AdvancedSystemIntegrationService? advancedSystemIntegration = null)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -51,6 +53,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         _scheduler = scheduler;
         _messageBus = messageBus;
         _cloudDataIntegration = cloudDataIntegration;
+        _advancedSystemIntegration = advancedSystemIntegration;
     }
 
     #region IHostedService Implementation
@@ -306,11 +309,42 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             Uptime = DateTime.UtcNow - _startTime
         };
 
-        // Add component status
+        // Add basic component status
         status.ComponentStatus["TradingOrchestrator"] = "Connected";
         status.ComponentStatus["IntelligenceOrchestrator"] = "Active";
         status.ComponentStatus["DataOrchestrator"] = "Running";
         status.ComponentStatus["Scheduler"] = _isRunning ? "Running" : "Stopped";
+        status.ComponentStatus["CentralMessageBus"] = "Active";
+
+        // Add advanced system components status
+        if (_advancedSystemIntegration != null)
+        {
+            try
+            {
+                var advancedStatus = await _advancedSystemIntegration.GetSystemStatusAsync();
+                status.ComponentStatus["AdvancedSystemIntegration"] = advancedStatus.IsHealthy ? "Healthy" : "Unhealthy";
+                
+                // Add individual component status from advanced system
+                foreach (var component in advancedStatus.Components)
+                {
+                    status.ComponentStatus[component.Key] = component.Value ? "Active" : "Inactive";
+                }
+                
+                // Add any system issues to the status
+                if (advancedStatus.Issues.Any())
+                {
+                    status.ComponentStatus["SystemIssues"] = string.Join("; ", advancedStatus.Issues);
+                }
+            }
+            catch (Exception ex)
+            {
+                status.ComponentStatus["AdvancedSystemIntegration"] = $"Error: {ex.Message}";
+            }
+        }
+        else
+        {
+            status.ComponentStatus["AdvancedSystemIntegration"] = "Not Available";
+        }
 
         return status;
     }
@@ -343,7 +377,37 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             return;
         }
 
-        // Route other actions to appropriate orchestrators based on action type
+        // Handle advanced system actions - Economic event checks, memory management, etc.
+        if (action.StartsWith("check") || action.StartsWith("validate") || action.StartsWith("optimize"))
+        {
+            await ExecuteAdvancedSystemActionAsync(action, context, cancellationToken);
+            return;
+        }
+
+        // Execute through advanced system integration if available for better coordination
+        if (_advancedSystemIntegration != null)
+        {
+            var actionName = $"unified-action-{action}";
+            var success = await _advancedSystemIntegration.ExecuteWorkflowWithAdvancedCoordinationAsync(
+                actionName,
+                async () => await ExecuteBasicActionAsync(action, context, cancellationToken),
+                GetResourcesForAction(action));
+                
+            if (!success)
+            {
+                _logger.LogWarning("⚠️ Action {Action} was queued due to resource conflicts", action);
+            }
+        }
+        else
+        {
+            // Fallback to basic execution
+            await ExecuteBasicActionAsync(action, context, cancellationToken);
+        }
+    }
+
+    private async Task ExecuteBasicActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        // Route actions to appropriate orchestrators based on action type
         if (_tradingOrchestrator.CanExecute(action))
         {
             await _tradingOrchestrator.ExecuteActionAsync(action, context, cancellationToken);
@@ -360,6 +424,71 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         {
             _logger.LogWarning("⚠️ No executor found for action: {Action}", action);
         }
+    }
+
+    private async Task ExecuteAdvancedSystemActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🌟 Executing advanced system action: {Action}", action);
+        
+        if (_advancedSystemIntegration == null)
+        {
+            _logger.LogWarning("⚠️ Advanced system integration not available for action: {Action}", action);
+            return;
+        }
+
+        try
+        {
+            switch (action)
+            {
+                case "checkTradingAllowed":
+                    var symbol = context.Parameters.ContainsKey("symbol") ? context.Parameters["symbol"].ToString() : "ES";
+                    var isAllowed = await _advancedSystemIntegration.IsTradingAllowedAsync(symbol ?? "ES");
+                    context.Parameters["tradingAllowed"] = isAllowed;
+                    _logger.LogInformation("✅ Trading allowed check for {Symbol}: {IsAllowed}", symbol, isAllowed);
+                    break;
+                    
+                case "validateSystemHealth":
+                    var systemStatus = await _advancedSystemIntegration.GetSystemStatusAsync();
+                    context.Parameters["systemHealthy"] = systemStatus.IsHealthy;
+                    context.Parameters["systemStatus"] = systemStatus;
+                    _logger.LogInformation("✅ System health validation: {IsHealthy}", systemStatus.IsHealthy);
+                    break;
+                    
+                case "optimizePositionSize":
+                    var strategyId = context.Parameters.GetValueOrDefault("strategyId")?.ToString() ?? "default";
+                    var positionSymbol = context.Parameters.GetValueOrDefault("symbol")?.ToString() ?? "ES";
+                    var multiplier = await _advancedSystemIntegration.GetOptimizedPositionSizeAsync(
+                        strategyId, positionSymbol, 0, 0, 0, 0, new List<BotCore.Models.Bar>());
+                    context.Parameters["positionMultiplier"] = multiplier;
+                    _logger.LogInformation("✅ Position size optimized for {Strategy}-{Symbol}: {Multiplier}", 
+                        strategyId, positionSymbol, multiplier);
+                    break;
+                    
+                default:
+                    _logger.LogWarning("⚠️ Unknown advanced system action: {Action}", action);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Advanced system action failed: {Action}", action);
+            throw;
+        }
+    }
+
+    private List<string> GetResourcesForAction(string action)
+    {
+        // Define resource requirements for different actions
+        return action switch
+        {
+            "analyzeESNQ" => new List<string> { "market_data", "ml_model" },
+            "checkSignals" => new List<string> { "signal_processor" },
+            "executeTrades" => new List<string> { "trading_engine", "position_manager" },
+            "runMLModels" => new List<string> { "ml_model", "memory_manager" },
+            "calculateRisk" => new List<string> { "risk_calculator", "portfolio_data" },
+            "generateReport" => new List<string> { "data_aggregator", "report_generator" },
+            _ => new List<string>()
+        };
     }
 
     private async Task ExecuteCloudIntegrationActionAsync(string action, WorkflowExecutionContext context, CancellationToken cancellationToken)
@@ -436,7 +565,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             {
                 Id = "es-nq-critical-trading",
                 Name = "ES/NQ Critical Trading",
-                Description = "Critical ES and NQ futures trading signals",
+                Description = "Critical ES and NQ futures trading signals with advanced system protection",
                 Priority = 1,
                 BudgetAllocation = 8640,
                 Type = WorkflowType.Trading,
@@ -446,14 +575,14 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     ExtendedHours = "*/15 * * * *",   // Every 15 minutes
                     Overnight = "*/30 * * * *"        // Every 30 minutes
                 },
-                Actions = new[] { "analyzeESNQ", "checkSignals", "executeTrades" }
+                Actions = new[] { "checkTradingAllowed", "validateSystemHealth", "analyzeESNQ", "checkSignals", "optimizePositionSize", "executeTrades" }
             },
             
             new UnifiedWorkflow
             {
                 Id = "portfolio-heat-management",
                 Name = "Portfolio Heat Management",
-                Description = "Real-time risk monitoring and portfolio heat management",
+                Description = "Real-time risk monitoring and portfolio heat management with advanced memory optimization",
                 Priority = 1,
                 BudgetAllocation = 4880,
                 Type = WorkflowType.RiskManagement,
@@ -463,7 +592,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     ExtendedHours = "*/30 * * * *",   // Every 30 minutes
                     Overnight = "0 */2 * * *"         // Every 2 hours
                 },
-                Actions = new[] { "calculateRisk", "checkThresholds", "adjustPositions" }
+                Actions = new[] { "validateSystemHealth", "calculateRisk", "checkThresholds", "optimizePositionSize", "adjustPositions" }
             },
             
             new UnifiedWorkflow
@@ -487,7 +616,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             {
                 Id = "ml-rl-intel-system",
                 Name = "Ultimate ML/RL Intel System",
-                Description = "Master ML/RL orchestrator for predictions and learning",
+                Description = "Master ML/RL orchestrator for predictions and learning with advanced memory management",
                 Priority = 1,
                 BudgetAllocation = 6480,
                 Type = WorkflowType.MachineLearning,
@@ -497,7 +626,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     ExtendedHours = "*/20 * * * *",   // Every 20 minutes
                     Overnight = "0 * * * *"           // Every hour
                 },
-                Actions = new[] { "runMLModels", "updateRL", "generatePredictions" }
+                Actions = new[] { "validateSystemHealth", "runMLModels", "updateRL", "generatePredictions", "optimizePositionSize" }
             },
 
             // TIER 2: HIGH PRIORITY WORKFLOWS
