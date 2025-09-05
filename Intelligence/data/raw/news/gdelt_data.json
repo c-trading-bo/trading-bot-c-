@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-05T06:46:14.967503",
+  "timestamp": "2025-09-05T12:42:49.618715",
   "total_articles": 15,
   "keywords_searched": [
     "stock market",
@@ -15,13 +15,6 @@
       "keyword": "stock market"
     },
     {
-      "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
-      "url": "http://www.haberler.com/finans/borsa/",
-      "source": "haberler.com",
-      "date": "20250902T144500Z",
-      "keyword": "stock market"
-    },
-    {
       "title": "BFM Bourse : 16h / 17h \u2013 13 / 06",
       "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/bfm-bourse-16h-17h-13-06_EN-202506130572.html",
       "source": "bfmtv.com",
@@ -33,6 +26,13 @@
       "url": "https://www.bfmtv.com/economie/replay-emissions/bfm-bourse/usa-today-le-patron-de-boeing-annule-sa-visite-au-salon-du-bourget-par-john-plassard-13-06_EN-202506130526.html",
       "source": "bfmtv.com",
       "date": "20250613T144500Z",
+      "keyword": "stock market"
+    },
+    {
+      "title": "Canl\u0131 Borsa Takip - BIST 100 ve BIST 30 Endeksi",
+      "url": "http://www.haberler.com/finans/borsa/",
+      "source": "haberler.com",
+      "date": "20250902T144500Z",
       "keyword": "stock market"
     },
     {

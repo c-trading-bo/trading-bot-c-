@@ -1,14 +1,30 @@
 {
-  "timestamp": "2025-09-05T06:51:04.511946",
+  "timestamp": "2025-09-05T12:47:34.429024",
   "market_session": "extended",
-  "total_futures_articles": 0,
+  "total_futures_articles": 1,
   "ES": {
-    "sentiment": 0.0,
-    "articles": [],
-    "signal": "NEUTRAL",
-    "keywords_found": [],
-    "article_count": 0,
-    "unique_keywords": []
+    "sentiment": -0.388,
+    "articles": [
+      {
+        "title": "Trump Says Chip Tariffs Coming; Broadcom, OpenAI to Ship AI Semis in 2026 | Bloomberg Brief 9/5/2025",
+        "sentiment": -0.388,
+        "textblob_score": 0.019999999999999997,
+        "futures_keyword_score": -1.0,
+        "source": "bloomberg_futures",
+        "published": "Fri, 05 Sep 2025 11:42:22 GMT",
+        "keywords_matched": [
+          "equity futures"
+        ]
+      }
+    ],
+    "signal": "BEARISH",
+    "keywords_found": [
+      "equity futures"
+    ],
+    "article_count": 1,
+    "unique_keywords": [
+      "equity futures"
+    ]
   },
   "NQ": {
     "sentiment": 0.0,
