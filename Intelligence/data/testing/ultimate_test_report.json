@@ -1,16 +1,16 @@
 {
-  "timestamp": "2025-09-05T05:01:46.194917",
+  "timestamp": "2025-09-05T05:16:21.667951",
   "test_mode": "comprehensive",
   "test_type": "all",
   "target_components": "all",
-  "workflow_run": "21",
+  "workflow_run": "22",
   "test_results": {
     "talib_validation": "PASSED",
     "unit_tests": "COMPLETED",
     "integration_tests": "COMPLETED",
     "ml_validation": "PASSED",
     "quality_assurance": "COMPLETED",
-    "security_scan": "COMPLETED",
+    "security_scan": "SKIPPED",
     "performance_test": "COMPLETED"
   },
   "quality_assessment": {
@@ -41,17 +41,11 @@
     },
     "overall_score": 66.05772811918064
   },
-  "security_scan": {
-    "bandit": {
-      "total_issues": 176,
-      "high_severity": 7
-    }
-  },
+  "security_scan": {},
   "performance_metrics": {},
   "overall_status": "GOOD",
   "recommendations": [
     "Increase test coverage - currently below 50%",
-    "Improve workflow reliability - success rate below 80%",
-    "Address high-severity security issues found by Bandit"
+    "Improve workflow reliability - success rate below 80%"
   ]
 }
