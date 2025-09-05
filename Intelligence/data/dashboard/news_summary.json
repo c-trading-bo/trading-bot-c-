@@ -1,19 +1,43 @@
 {
-  "timestamp": "2025-09-05T00:02:40.220767",
+  "timestamp": "2025-09-05T02:50:24.868207",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "15",
+  "workflow_run": "17",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-04T23:57:45.671930",
+    "timestamp": "2025-09-05T02:45:35.762977",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 7,
+    "total_articles_processed": 15,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": -0.3,
-        "article_count": 1,
+        "sentiment_score": -0.05625,
+        "article_count": 3,
         "articles": [
+          {
+            "title": "Is Elevance Health Stock Underperforming the S&P 500?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/elevance-health-stock-underperforming-p-145336864.html",
+            "published": "2025-09-03T14:53:36Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          },
+          {
+            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
+            "sentiment": 0.43124999999999997,
+            "textblob_score": 0.1875,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
+            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          },
           {
             "title": "S&P 500 books record as falling rates bring \u2018relief\u2019 \u2014 but beware the \u2018tale of two bond markets\u2019",
             "sentiment": -0.3,
@@ -28,18 +52,60 @@
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
+        "confidence": 0.3,
         "sources": [
+          "yahoo_finance",
+          "bloomberg",
           "marketwatch"
         ]
       },
       "NQ": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": -0.05625,
+        "article_count": 3,
+        "articles": [
+          {
+            "title": "Is Progressive Corporation Stock Underperforming the Nasdaq?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/progressive-corporation-stock-underperforming-nasdaq-145940151.html",
+            "published": "2025-09-03T14:59:40Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          },
+          {
+            "title": "Is Palo Alto Networks Stock Underperforming the Nasdaq?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/palo-alto-networks-stock-underperforming-150534091.html",
+            "published": "2025-09-03T15:05:34Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          },
+          {
+            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
+            "sentiment": 0.43124999999999997,
+            "textblob_score": 0.1875,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
+            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.3,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg"
+        ]
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -58,97 +124,138 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "TSLA": {
-        "sentiment_score": 0.1755681818181818,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "US States, Orsted Venture Challenge Trump Wind Farm Stoppage",
-            "sentiment": 0.25625,
-            "textblob_score": -0.0625,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/orsted-sues-trump-administration-in-bid-to-salvage-us-wind-farm",
-            "published": "Thu, 04 Sep 2025 13:10:03 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "AI Helping Us Connect to Customers: 1-800-Flowers CEO",
-            "sentiment": 0.09545454545454544,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-04/ai-helping-us-connect-to-customers-1-800-flowers-ceo-video",
-            "published": "Thu, 04 Sep 2025 22:21:25 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Lots More on the Big Problem With the Monthly Jobs Report",
-            "sentiment": 0.175,
-            "textblob_score": 0.25,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/steven-englander-previews-the-august-jobs-report",
-            "published": "Thu, 04 Sep 2025 21:36:12 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.3,
-        "sources": [
-          "bloomberg"
-        ]
-      },
-      "NVDA": {
-        "sentiment_score": 0.2475,
+        "sentiment_score": 0.3,
         "article_count": 1,
         "articles": [
           {
-            "title": "Broadcom CEO Promises Big Improvement for AI Outlook in 2026",
-            "sentiment": 0.2475,
-            "textblob_score": -0.075,
+            "title": "This group could put a stop to crypto and private equity in your 401(k)",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
             "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
-            "published": "Thu, 04 Sep 2025 20:17:48 GMT",
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/401-k-plans-are-opening-to-private-equity-and-crypto-but-this-group-could-put-a-stop-to-it-8602693a?mod=mw_rss_topstories",
+            "published": "Fri, 05 Sep 2025 02:23:00 GMT",
             "relevance_keywords": [
-              "artificial intelligence"
+              "crypto"
             ]
           }
         ],
         "signal": "NEUTRAL",
         "confidence": 0.1,
         "sources": [
+          "marketwatch"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.05625,
+        "article_count": 5,
+        "articles": [
+          {
+            "title": "Is Elevance Health Stock Underperforming the S&P 500?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/elevance-health-stock-underperforming-p-145336864.html",
+            "published": "2025-09-03T14:53:36Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Citi, UBS Resolve CFTC Compliance Claims in Enforcement \u2018Sprint\u2019",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-05/citi-ubs-resolve-cftc-compliance-claims-in-enforcement-sprint",
+            "published": "Fri, 05 Sep 2025 00:41:30 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "China\u2019s Fund Managers Rest Hopes for Slow Bull Run on Beijing",
+            "sentiment": 0.25,
+            "textblob_score": -0.07142857142857144,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-05/china-s-fund-managers-rest-hopes-for-slow-bull-run-on-government",
+            "published": "Fri, 05 Sep 2025 00:21:22 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Fed's Goolsbee: 'Tariffs Are Terrible'",
+            "sentiment": -0.39999999999999997,
+            "textblob_score": -1.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/fed-s-goolsbee-tariffs-are-terrible-video",
+            "published": "Fri, 05 Sep 2025 00:10:21 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
+            "sentiment": 0.43124999999999997,
+            "textblob_score": 0.1875,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
+            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.5,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg"
+        ]
+      },
+      "NVDA": {
+        "sentiment_score": -0.42,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Broadcom to Help OpenAI Create AI Chip to Take on Nvidia",
+            "sentiment": -0.42,
+            "textblob_score": -0.6,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
+            "published": "Thu, 04 Sep 2025 20:17:48 GMT",
+            "relevance_keywords": [
+              "Nvidia",
+              "artificial intelligence"
+            ]
+          }
+        ],
+        "signal": "BEARISH",
+        "confidence": 0.1,
+        "sources": [
           "bloomberg"
         ]
       },
       "AAPL": {
-        "sentiment_score": 0.2783333333333333,
+        "sentiment_score": 0.5683333333333334,
         "article_count": 2,
         "articles": [
           {
-            "title": "Apple dodged a $20 billion hit, thanks to Google antitrust ruling",
-            "sentiment": 0.13999999999999999,
-            "textblob_score": 0.2,
-            "keyword_score": 0,
+            "title": "Macy\u2019s Stock Soars 21%. Earnings Were Good but Same-Store Sales Were Better.",
+            "sentiment": 0.72,
+            "textblob_score": 0.6,
+            "keyword_score": 1.0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/apple-dodged-a-20-billion-hit-thanks-to-google-antitrust-ruling-163056806.html",
-            "published": "2025-09-03T16:30:56Z",
+            "url": "https://www.barrons.com/articles/macys-earnings-stock-price-6a9b2081?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-03T15:05:00Z",
             "relevance_keywords": [
-              "Apple"
+              "Mac"
             ]
           },
           {
@@ -164,7 +271,7 @@
             ]
           }
         ],
-        "signal": "NEUTRAL",
+        "signal": "BULLISH",
         "confidence": 0.2,
         "sources": [
           "yahoo_finance",
@@ -182,7 +289,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-05T00:02:38.286181",
+    "timestamp": "2025-09-05T02:50:22.056435",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -204,7 +311,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-04T23:57:43.099069",
+    "timestamp": "2025-09-05T02:45:33.700347",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
