@@ -1,6 +1,6 @@
 ﻿name: Intelligence - Market Data ⚡ (OPTIMIZED)
 
-"on":
+on:
   schedule:
     # 24/7 MARKET DATA COLLECTION (ENTERPRISE REAL-TIME)
     # CONTINUOUS DATA FEED: Different intervals for different sessions

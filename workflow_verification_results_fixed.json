@@ -1,0 +1,305 @@
+{
+  "verification_time": "2025-09-04T23:50:01.263087",
+  "summary": {
+    "total_workflows": 27,
+    "scheduled_workflows": 0,
+    "integrated_workflows": 27,
+    "fully_complete": 0
+  },
+  "detailed_results": [
+    {
+      "file": "cloud_bot_mechanic.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance",
+        "RSS Feeds"
+      ]
+    },
+    {
+      "file": "daily_consolidated.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "daily_report.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": []
+    },
+    {
+      "file": "es_nq_correlation_matrix.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "es_nq_critical_trading.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "failed_patterns.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "fed_liquidity.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "intermarket.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "market_data.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "microstructure.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "ml_trainer.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": []
+    },
+    {
+      "file": "mm_positioning.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "opex_calendar.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "overnight.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "portfolio_heat.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": []
+    },
+    {
+      "file": "seasonality.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "test_optimization.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": []
+    },
+    {
+      "file": "ultimate_build_ci_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": []
+    },
+    {
+      "file": "ultimate_data_collection_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "ultimate_ml_rl_intel_system.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance",
+        "RSS Feeds"
+      ]
+    },
+    {
+      "file": "ultimate_ml_rl_training_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "ultimate_news_sentiment_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "RSS Feeds",
+        "HTTP Requests",
+        "Generic API"
+      ]
+    },
+    {
+      "file": "ultimate_options_flow_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "ultimate_regime_detection_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "ultimate_testing_qa_pipeline.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance",
+        "RSS Feeds",
+        "HTTP Requests",
+        "Generic API"
+      ]
+    },
+    {
+      "file": "volatility_surface.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    },
+    {
+      "file": "zones_identifier.yml",
+      "has_schedule": false,
+      "has_integration": true,
+      "schedule_info": {
+        "error": "No \"on\" section found"
+      },
+      "apis": [
+        "Yahoo Finance"
+      ]
+    }
+  ]
+}

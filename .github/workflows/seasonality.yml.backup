@@ -1,5 +1,5 @@
 name: Seasonality Patterns Analysis
-"on":
+on:
   schedule:
     # ENHANCED SEASONALITY PATTERNS (ENTERPRISE FREQUENCY)
     # Daily seasonality updates for intraday patterns

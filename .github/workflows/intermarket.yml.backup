@@ -1,5 +1,5 @@
 name: Intermarket Correlations
-"on":
+on:
   schedule:
     # 24/7 INTERMARKET CORRELATION ANALYSIS (GLOBAL MARKET RELATIONSHIPS)
     # Asian Session (18:00-23:59 CT) - Monitor Asian market correlations

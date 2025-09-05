@@ -1,6 +1,6 @@
 ﻿name: Intelligence - ML Trainer ⚡ (OPTIMIZED)
 
-"on":
+on:
   schedule:
     # 24/7 ML MODEL TRAINING (CONTINUOUS LEARNING SYSTEM)
     # Asian Session Training (20:00 CT) - NQ-focused models

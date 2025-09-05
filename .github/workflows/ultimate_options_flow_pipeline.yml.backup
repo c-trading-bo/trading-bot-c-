@@ -1,6 +1,6 @@
 name: "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System)"
 
-"on":
+on:
   schedule:
     # ULTIMATE OPTIONS FLOW ANALYSIS (ENTERPRISE OPTIMIZED)
     # PRIMARY: Live options during US market hours

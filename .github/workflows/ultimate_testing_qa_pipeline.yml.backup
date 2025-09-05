@@ -1,6 +1,6 @@
 name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
 
-"on":
+on:
   schedule:
     # 24/7 TESTING & QUALITY ASSURANCE (CONTINUOUS VALIDATION)
     # Asian Session QA (21:00 CT) - Validate Asian session processes

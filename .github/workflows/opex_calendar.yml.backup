@@ -1,5 +1,5 @@
 name: OPEX Calendar Tracking
-"on":
+on:
   schedule:
     # ENHANCED OPEX CALENDAR TRACKING (CRITICAL FOR OPTIONS EXPIRY)
     # Daily OPEX monitoring during high-activity periods

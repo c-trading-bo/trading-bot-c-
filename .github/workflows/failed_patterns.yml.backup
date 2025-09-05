@@ -1,5 +1,5 @@
 name: Failed Patterns Detection
-"on":
+on:
   schedule:
     # 24/7 FAILED PATTERNS DETECTION (CRITICAL FOR AVOIDING FALSE SIGNALS)
     # Asian Session (18:00-23:59 CT) - Monitor NQ pattern failures

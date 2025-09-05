@@ -1,5 +1,5 @@
 name: ES/NQ Correlation Matrix Analysis
-"on":
+on:
   schedule:
     # 24/7 ES/NQ CORRELATION ANALYSIS (CRITICAL FOR FUTURES TRADING)
     # Asian Session (18:00-23:59 CT) - NQ dominance correlation tracking

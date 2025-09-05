@@ -1,6 +1,6 @@
 name: "📰🎯 ULTIMATE News & Sentiment Analysis Pipeline (Mega-System)"
 
-"on":
+on:
   schedule:
     # 24/7 NEWS SENTIMENT MONITORING (CRITICAL FOR GLOBAL TRADING)
     # Asian Session (18:00-23:59 CT) - Monitor Asian market news

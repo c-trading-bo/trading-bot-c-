@@ -1,5 +1,5 @@
 ﻿name: Microstructure Analysis
-"on":
+on:
   schedule:
     # 24/7 MICROSTRUCTURE ANALYSIS (CRITICAL FOR HIGH-FREQUENCY TRADING)
     # Asian Session (18:00-23:59 CT) - High-frequency NQ microstructure

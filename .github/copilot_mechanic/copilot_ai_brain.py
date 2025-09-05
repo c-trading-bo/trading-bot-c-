@@ -263,8 +263,13 @@ AUTO_ACTION: {action}
 '''
     
     # For backwards compatibility
-    def analyze_workflow_failure(self, prompt: str, context: Dict = None) -> str:
-        return self.copilot_analyze(prompt, context)
+    def analyze_workflow_failure(self, prompt: str, context: str = None) -> str:
+        # Convert string context to dict if needed
+        if isinstance(context, str):
+            context_dict = {'description': context}
+        else:
+            context_dict = context or {}
+        return self.copilot_analyze(prompt, context_dict)
     
     def get_recent_failures(self, workflow_name: str, limit: int = 5) -> List[Dict]:
         headers = {
@@ -320,6 +325,45 @@ AUTO_ACTION: {action}
                 return f.read()
         except:
             return ''
+
+    def learn_fix(self, workflow_run: Dict, fix_data: Dict) -> None:
+        """
+        Learn from a successful fix for future reference
+        
+        Args:
+            workflow_run: Information about the workflow run that was fixed
+            fix_data: Details about the fix that was applied
+        """
+        try:
+            # Extract workflow name for categorization
+            workflow_name = workflow_run.get('name', 'unknown_workflow')
+            
+            # Create fix entry
+            fix_entry = {
+                'timestamp': datetime.utcnow().isoformat(),
+                'workflow': workflow_name,
+                'root_cause': fix_data.get('root_cause', 'unknown'),
+                'fix_type': fix_data.get('fix_type', 'manual'),
+                'fix_code': fix_data.get('fix_code', ''),
+                'confidence': fix_data.get('confidence', 0),
+                'success': True
+            }
+            
+            # Store in knowledge base
+            if workflow_name not in self.knowledge_base['learned_fixes']:
+                self.knowledge_base['learned_fixes'][workflow_name] = []
+            
+            self.knowledge_base['learned_fixes'][workflow_name].append(fix_entry)
+            
+            # Keep only the last 10 fixes per workflow to prevent memory bloat
+            if len(self.knowledge_base['learned_fixes'][workflow_name]) > 10:
+                self.knowledge_base['learned_fixes'][workflow_name] = \
+                    self.knowledge_base['learned_fixes'][workflow_name][-10:]
+            
+            print(f"✅ Learned fix for {workflow_name} (confidence: {fix_data.get('confidence', 0)}%)")
+            
+        except Exception as e:
+            print(f"⚠️ Failed to learn fix: {e}")
 
 # Backwards compatibility
 CopilotEnterpriseAIBrain = GitHubCopilotAIBrain

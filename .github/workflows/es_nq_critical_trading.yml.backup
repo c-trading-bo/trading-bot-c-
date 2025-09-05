@@ -1,6 +1,6 @@
 name: ES/NQ Critical Trading (Team)
 
-"on":
+on:
   schedule:
     # ES/NQ CRITICAL 24/7 FUTURES TRADING (ENTERPRISE OPTIMIZED)
     # ASIAN SESSION (NQ Primary - Tech Heavy Trading)

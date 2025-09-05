@@ -1,6 +1,6 @@
 name: "🔍 WORKFLOW TEST - Quick Health Check"
 
-"on":
+on:
   schedule:
     # 24/7 WORKFLOW OPTIMIZATION TESTING
     # Weekly comprehensive testing

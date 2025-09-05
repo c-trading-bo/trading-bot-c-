@@ -1,6 +1,6 @@
 name: Portfolio Heat Management (Team)
 
-"on":
+on:
   schedule:
     # 24/7 PORTFOLIO HEAT MANAGEMENT (ENTERPRISE RISK CONTROL)
     # CONTINUOUS RISK MONITORING - Higher frequency during active trading

@@ -1,6 +1,6 @@
 name: "📊🔄 ULTIMATE Data Collection Pipeline (Mega-System)"
 
-"on":
+on:
   schedule:
     # 24/7 ULTIMATE DATA COLLECTION (ENTERPRISE REAL-TIME SYSTEM)
     # Asian Session (18:00-23:59 CT) - High-frequency NQ/crypto data
