@@ -43,11 +43,13 @@ namespace BotCore.ML
     /// <summary>
     /// ML model manager that integrates ONNX models with strategy execution.
     /// Provides position sizing, signal filtering, and execution quality predictions.
+    /// Enhanced with memory management capabilities.
     /// </summary>
     public sealed class StrategyMlModelManager : IDisposable
     {
         private readonly ILogger _logger;
         private readonly string _modelsPath;
+        private readonly IMLMemoryManager? _memoryManager;
         private bool _disposed;
 
         // Model file paths
@@ -57,16 +59,85 @@ namespace BotCore.ML
 
         public bool IsEnabled => Environment.GetEnvironmentVariable("RL_ENABLED") == "1";
 
-        public StrategyMlModelManager(ILogger logger)
+        public StrategyMlModelManager(ILogger logger, IMLMemoryManager? memoryManager = null)
         {
             _logger = logger;
+            _memoryManager = memoryManager;
             _modelsPath = Path.Combine(AppContext.BaseDirectory, "models", "rl");
 
             _rlSizerPath = Path.Combine(_modelsPath, "latest_rl_sizer.onnx");
             _metaClassifierPath = Path.Combine(_modelsPath, "latest_meta_classifier.onnx");
             _execQualityPath = Path.Combine(_modelsPath, "latest_exec_quality.onnx");
 
-            _logger.LogInformation("[ML-Manager] Initialized - RL enabled: {Enabled}", IsEnabled);
+            _logger.LogInformation("[ML-Manager] Initialized - RL enabled: {Enabled}, Memory management: {MemoryEnabled}", 
+                IsEnabled, _memoryManager != null);
+        }
+
+        /// <summary>
+        /// Load ML model using memory manager if available
+        /// </summary>
+        private async Task<T?> LoadModelWithMemoryManagementAsync<T>(string modelPath, string modelType) where T : class
+        {
+            if (_memoryManager != null)
+            {
+                try
+                {
+                    var version = GetModelVersion(modelPath);
+                    return await _memoryManager.LoadModelAsync<T>(modelPath, version);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[ML-Manager] Memory manager failed to load {ModelType}, falling back to direct loading", modelType);
+                }
+            }
+            
+            // Fallback to direct loading
+            return await LoadModelDirectAsync<T>(modelPath);
+        }
+        
+        /// <summary>
+        /// Direct model loading without memory management
+        /// </summary>
+        private async Task<T?> LoadModelDirectAsync<T>(string modelPath) where T : class
+        {
+            await Task.Delay(50); // Simulate loading time
+            
+            if (!File.Exists(modelPath))
+            {
+                return null;
+            }
+            
+            // TODO: Implement actual ONNX model loading
+            return Activator.CreateInstance<T>();
+        }
+        
+        /// <summary>
+        /// Get model version from file metadata or timestamp
+        /// </summary>
+        private string GetModelVersion(string modelPath)
+        {
+            try
+            {
+                if (File.Exists(modelPath))
+                {
+                    var lastWrite = File.GetLastWriteTime(modelPath);
+                    return lastWrite.ToString("yyyyMMdd-HHmmss");
+                }
+            }
+            catch
+            {
+                // Ignore errors
+            }
+            
+            return "unknown";
+        }
+
+        /// <summary>
+        /// Get memory usage statistics from memory manager
+        /// </summary>
+        public MLMemoryManager.MemorySnapshot? GetMemorySnapshot()
+        {
+            return _memoryManager?.GetMemorySnapshot();
         }
 
         /// <summary>
@@ -322,6 +393,7 @@ namespace BotCore.ML
             if (_disposed) return;
             _disposed = true;
 
+            _memoryManager?.Dispose();
             _logger.LogInformation("[ML-Manager] Disposed");
         }
     }
