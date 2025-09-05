@@ -1,43 +1,19 @@
 {
-  "timestamp": "2025-09-05T02:50:24.868207",
+  "timestamp": "2025-09-05T06:51:07.359505",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "17",
+  "workflow_run": "24",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-05T02:45:35.762977",
+    "timestamp": "2025-09-05T06:46:17.100512",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 15,
+    "total_articles_processed": 8,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": -0.05625,
-        "article_count": 3,
+        "sentiment_score": -0.3,
+        "article_count": 1,
         "articles": [
-          {
-            "title": "Is Elevance Health Stock Underperforming the S&P 500?",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/elevance-health-stock-underperforming-p-145336864.html",
-            "published": "2025-09-03T14:53:36Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          },
-          {
-            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
-            "sentiment": 0.43124999999999997,
-            "textblob_score": 0.1875,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
-            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          },
           {
             "title": "S&P 500 books record as falling rates bring \u2018relief\u2019 \u2014 but beware the \u2018tale of two bond markets\u2019",
             "sentiment": -0.3,
@@ -52,60 +28,18 @@
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.3,
+        "confidence": 0.1,
         "sources": [
-          "yahoo_finance",
-          "bloomberg",
           "marketwatch"
         ]
       },
       "NQ": {
-        "sentiment_score": -0.05625,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "Is Progressive Corporation Stock Underperforming the Nasdaq?",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/progressive-corporation-stock-underperforming-nasdaq-145940151.html",
-            "published": "2025-09-03T14:59:40Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          },
-          {
-            "title": "Is Palo Alto Networks Stock Underperforming the Nasdaq?",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/palo-alto-networks-stock-underperforming-150534091.html",
-            "published": "2025-09-03T15:05:34Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          },
-          {
-            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
-            "sentiment": 0.43124999999999997,
-            "textblob_score": 0.1875,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
-            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.3,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -147,37 +81,25 @@
         ]
       },
       "TSLA": {
-        "sentiment_score": 0.05625,
+        "sentiment_score": 0.2316770833333333,
         "article_count": 5,
         "articles": [
           {
-            "title": "Is Elevance Health Stock Underperforming the S&P 500?",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/elevance-health-stock-underperforming-p-145336864.html",
-            "published": "2025-09-03T14:53:36Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Citi, UBS Resolve CFTC Compliance Claims in Enforcement \u2018Sprint\u2019",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
+            "title": "India\u2019s Longer-Tenor Bonds Lure Buyers as Fiscal Worries Ease",
+            "sentiment": 0.27499999999999997,
+            "textblob_score": -0.03571428571428571,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-05/citi-ubs-resolve-cftc-compliance-claims-in-enforcement-sprint",
-            "published": "Fri, 05 Sep 2025 00:41:30 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-05/india-s-longer-tenor-bonds-lure-buyers-as-fiscal-worries-ease",
+            "published": "Fri, 05 Sep 2025 06:27:58 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "China\u2019s Fund Managers Rest Hopes for Slow Bull Run on Beijing",
-            "sentiment": 0.25,
-            "textblob_score": -0.07142857142857144,
+            "title": "Chinese Funds Look to Beijing to Engineer Rally That Keeps Going",
+            "sentiment": 0.27999999999999997,
+            "textblob_score": -0.028571428571428577,
             "keyword_score": 1.0,
             "source": "bloomberg",
             "url": "https://www.bloomberg.com/news/articles/2025-09-05/china-s-fund-managers-rest-hopes-for-slow-bull-run-on-government",
@@ -187,25 +109,37 @@
             ]
           },
           {
-            "title": "Fed's Goolsbee: 'Tariffs Are Terrible'",
-            "sentiment": -0.39999999999999997,
-            "textblob_score": -1.0,
+            "title": "Citi: Expect Gold to Climb to $3,600 Over Next Months",
+            "sentiment": 0.36671875,
+            "textblob_score": 0.0953125,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-05/fed-s-goolsbee-tariffs-are-terrible-video",
-            "published": "Fri, 05 Sep 2025 00:10:21 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/citi-expect-gold-to-climb-to-3-600-over-next-months-video",
+            "published": "Fri, 05 Sep 2025 05:31:34 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Dow, S&P, Nasdaq Rise Before ADP Jobs Report | The Close 9/4/2025",
-            "sentiment": 0.43124999999999997,
-            "textblob_score": 0.1875,
+            "title": "Gallarati: Numbness to Geopolitics Risky for Oil Markets",
+            "sentiment": -0.06333333333333331,
+            "textblob_score": -0.2333333333333333,
+            "keyword_score": 0.3333333333333333,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-05/gallarati-numbness-to-geopolitics-risky-for-oil-markets-video",
+            "published": "Fri, 05 Sep 2025 05:26:19 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Citi and UBS Units Settle With CFTC Over Compliance Claims",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-05/the-close-9-4-2025-video",
-            "published": "Fri, 05 Sep 2025 00:03:49 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-05/citi-ubs-resolve-cftc-compliance-claims-in-enforcement-sprint",
+            "published": "Fri, 05 Sep 2025 00:41:30 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -214,69 +148,39 @@
         "signal": "NEUTRAL",
         "confidence": 0.5,
         "sources": [
-          "yahoo_finance",
           "bloomberg"
         ]
       },
       "NVDA": {
-        "sentiment_score": -0.42,
+        "sentiment_score": 0.6018749999999999,
         "article_count": 1,
         "articles": [
           {
-            "title": "Broadcom to Help OpenAI Create AI Chip to Take on Nvidia",
-            "sentiment": -0.42,
-            "textblob_score": -0.6,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
-            "published": "Thu, 04 Sep 2025 20:17:48 GMT",
-            "relevance_keywords": [
-              "Nvidia",
-              "artificial intelligence"
-            ]
-          }
-        ],
-        "signal": "BEARISH",
-        "confidence": 0.1,
-        "sources": [
-          "bloomberg"
-        ]
-      },
-      "AAPL": {
-        "sentiment_score": 0.5683333333333334,
-        "article_count": 2,
-        "articles": [
-          {
-            "title": "Macy\u2019s Stock Soars 21%. Earnings Were Good but Same-Store Sales Were Better.",
-            "sentiment": 0.72,
-            "textblob_score": 0.6,
+            "title": "Nvidia Just Scored a Major Market Share Win. Should You Buy NVDA Stock Here?",
+            "sentiment": 0.6018749999999999,
+            "textblob_score": 0.43125,
             "keyword_score": 1.0,
             "source": "yahoo_finance",
-            "url": "https://www.barrons.com/articles/macys-earnings-stock-price-6a9b2081?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-03T15:05:00Z",
+            "url": "https://finance.yahoo.com/news/nvidia-just-scored-major-market-190250876.html",
+            "published": "2025-09-03T19:02:50Z",
             "relevance_keywords": [
-              "Mac"
-            ]
-          },
-          {
-            "title": "Macquarie Buys Stake in Portugal Hospital Group for \u20ac310 Million",
-            "sentiment": 0.41666666666666663,
-            "textblob_score": 0.16666666666666666,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-04/macquarie-buys-stake-in-portugal-hospital-group-for-310-million",
-            "published": "Thu, 04 Sep 2025 23:11:57 GMT",
-            "relevance_keywords": [
-              "Mac"
+              "Nvidia"
             ]
           }
         ],
         "signal": "BULLISH",
-        "confidence": 0.2,
+        "confidence": 0.1,
         "sources": [
-          "yahoo_finance",
-          "bloomberg"
+          "yahoo_finance"
         ]
+      },
+      "AAPL": {
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       }
     },
     "sources_used": [
@@ -289,7 +193,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-05T02:50:22.056435",
+    "timestamp": "2025-09-05T06:51:04.511946",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -311,7 +215,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-05T02:45:33.700347",
+    "timestamp": "2025-09-05T06:46:14.967503",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -426,7 +330,7 @@
       }
     ]
   },
-  "overall_market_sentiment": "NEUTRAL",
+  "overall_market_sentiment": "BULLISH",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",

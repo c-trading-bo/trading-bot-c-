@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-09-05T05:53:12.700014",
+  "test_mode": "comprehensive",
+  "test_type": "all",
+  "target_components": "all",
+  "workflow_run": "24",
+  "test_results": {
+    "talib_validation": "PASSED",
+    "unit_tests": "COMPLETED",
+    "integration_tests": "COMPLETED",
+    "ml_validation": "PASSED",
+    "quality_assurance": "COMPLETED",
+    "security_scan": "SKIPPED",
+    "performance_test": "COMPLETED"
+  },
+  "quality_assessment": {
+    "timestamp": "2025-09-05T04:59:19.872610",
+    "test_mode": "comprehensive",
+    "workflow_quality": {
+      "total_runs": 50,
+      "successful_runs": 21,
+      "failed_runs": 28,
+      "success_rate": 42.0,
+      "health_status": "POOR"
+    },
+    "code_quality": {
+      "python_files": 179,
+      "total_lines": 35431,
+      "test_files": 20,
+      "test_coverage": 11.1731843575419,
+      "quality_score": 56.1731843575419
+    },
+    "dependency_health": {
+      "requirements_files": 6,
+      "total_dependencies": 43,
+      "installable_deps": 4,
+      "health_score": 100.0
+    },
+    "system_health": {
+      "error": "name 'sys' is not defined"
+    },
+    "overall_score": 66.05772811918064
+  },
+  "security_scan": {},
+  "performance_metrics": {},
+  "overall_status": "GOOD",
+  "recommendations": [
+    "Increase test coverage - currently below 50%",
+    "Improve workflow reliability - success rate below 80%"
+  ]
+}
