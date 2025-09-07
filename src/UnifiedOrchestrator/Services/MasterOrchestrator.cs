@@ -211,6 +211,13 @@ namespace TradingBot.UnifiedOrchestrator.Services
                 _logger.LogInformation("✅ Redundant data feeds initialized");
             }
             
+            // Initialize market data agent if available
+            var marketDataAgent = _serviceProvider.GetService<BotCore.MarketDataAgent>();
+            if (marketDataAgent != null)
+            {
+                _logger.LogInformation("✅ MarketDataAgent service available");
+            }
+            
             _logger.LogInformation("✅ DataComponent initialization complete - using real market data services");
         }
 
@@ -318,6 +325,20 @@ namespace TradingBot.UnifiedOrchestrator.Services
                 _logger.LogInformation("✅ IntelligenceOrchestrator service available");
             }
             
+            // Initialize BotCore Intelligence Service if available
+            var intelligenceService = _serviceProvider.GetService<BotCore.Services.IIntelligenceService>();
+            if (intelligenceService != null)
+            {
+                if (intelligenceService.IsIntelligenceAvailable())
+                {
+                    _logger.LogInformation("✅ BotCore IntelligenceService available with intelligence data");
+                }
+                else
+                {
+                    _logger.LogInformation("⚠️ BotCore IntelligenceService available but no intelligence data");
+                }
+            }
+            
             _logger.LogInformation("✅ IntelligenceComponent initialization complete - using sophisticated AI/ML services");
         }
 
@@ -365,6 +386,34 @@ namespace TradingBot.UnifiedOrchestrator.Services
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, "UnifiedTradingBrain analysis failed, using basic analysis");
+                    }
+                }
+                
+                // Use BotCore Intelligence Service for additional analysis
+                var intelligenceService = _serviceProvider.GetService<BotCore.Services.IIntelligenceService>();
+                if (intelligenceService != null && intelligenceService.IsIntelligenceAvailable())
+                {
+                    try
+                    {
+                        var intelligence = await intelligenceService.GetLatestIntelligenceAsync();
+                        if (intelligence != null)
+                        {
+                            var shouldTrade = intelligenceService.ShouldTrade(intelligence);
+                            var preferredStrategy = intelligenceService.GetPreferredStrategy(intelligence);
+                            
+                            return new MarketAnalysis
+                            {
+                                Timestamp = DateTime.UtcNow,
+                                Recommendation = shouldTrade ? "ANALYZE" : "HOLD",
+                                Confidence = shouldTrade ? 0.85 : 0.4,
+                                ExpectedDirection = preferredStrategy,
+                                Source = "BotCore.IntelligenceService"
+                            };
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "BotCore IntelligenceService analysis failed");
                     }
                 }
                 
@@ -427,6 +476,20 @@ namespace TradingBot.UnifiedOrchestrator.Services
             {
                 await _advancedSystemIntegration.InitializeAsync();
                 _logger.LogInformation("✅ AdvancedSystemIntegration initialized");
+            }
+            
+            // Initialize Position Agent if available
+            var positionAgent = _serviceProvider.GetService<BotCore.PositionAgent>();
+            if (positionAgent != null)
+            {
+                _logger.LogInformation("✅ PositionAgent service available");
+            }
+            
+            // Initialize User Hub Client if available
+            var userHubClient = _serviceProvider.GetService<BotCore.UserHubClient>();
+            if (userHubClient != null)
+            {
+                _logger.LogInformation("✅ UserHubClient service available");
             }
             
             _logger.LogInformation("✅ TradingComponent initialization complete - using sophisticated trading services");

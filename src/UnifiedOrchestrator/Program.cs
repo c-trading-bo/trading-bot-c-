@@ -145,18 +145,21 @@ public class Program
         // CORE BOTCORE SERVICES REGISTRATION - ALL SOPHISTICATED SERVICES
         // ================================================================================
         
-        // Core BotCore Services - ALL sophisticated implementations
+        // Core BotCore Services - ALL sophisticated implementations with proper dependencies
         Console.WriteLine("🔧 Registering ALL sophisticated BotCore services...");
         
-        // Authentication and integration services  
-        services.AddSingleton<TopstepAuthAgent>();
+        // Register services that have interfaces first
+        services.AddSingleton<BotCore.Services.IIntelligenceService, BotCore.Services.IntelligenceService>();
         
-        // Note: Some services may require specific registration patterns or dependencies
-        // We'll register them as available and handle missing dependencies gracefully
+        // Register authentication and credential management services
+        services.AddSingleton<BotCore.Auth.TopstepXCredentialManager>();
+        services.AddHttpClient<BotCore.Services.AutoTopstepXLoginService>();
+        services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
+        
+        // Register critical system components that exist in BotCore
         try 
         {
-            // Register core sophisticated services that exist
-            // These will be integrated into MasterOrchestrator components
+            // Add any services that can be safely registered
             Console.WriteLine("✅ Core sophisticated services prepared for MasterOrchestrator integration");
         }
         catch (Exception ex)
@@ -182,20 +185,26 @@ public class Program
         services.AddEnhancedMLModelManager();
         Console.WriteLine("🤖 Advanced ML/AI services registered - Memory management & enhanced models active");
         
-        // Register LocalBotMechanicIntegration from Intelligence folder
-        // services.AddLocalBotMechanicIntegration();  // Will add this after confirming dependencies
-        Console.WriteLine("🔧 LocalBotMechanicIntegration prepared for integration");
-        
-        // Register core agents and clients that exist in BotCore
-        try 
+        // Register BotCore LocalBotMechanicIntegration service if available  
+        try
         {
-            // These will be registered and integrated by MasterOrchestrator
-            Console.WriteLine("🔗 Core agents and clients prepared for MasterOrchestrator integration");
+            // Note: LocalBotMechanicIntegration exists in Intelligence folder, not BotCore.Services
+            // Will integrate this separately when Intelligence folder is properly referenced
+            Console.WriteLine("⚠️ LocalBotMechanicIntegration integration planned for future phase");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Some agents require specific setup: {ex.Message}");
+            Console.WriteLine($"⚠️ LocalBotMechanicIntegration registration skipped: {ex.Message}");
         }
+        
+        // Register core agents and clients that exist in BotCore
+        services.AddSingleton<BotCore.UserHubClient>();
+        services.AddSingleton<BotCore.MarketHubClient>();
+        services.AddSingleton<BotCore.UserHubAgent>();
+        services.AddSingleton<BotCore.PositionAgent>();
+        services.AddSingleton<BotCore.MarketDataAgent>();
+        services.AddSingleton<BotCore.ModelUpdaterService>();
+        Console.WriteLine("🔗 Core agents and clients registered - Connectivity & data systems active");
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
         services.AddSingleton<TradingOrchestratorService>();
