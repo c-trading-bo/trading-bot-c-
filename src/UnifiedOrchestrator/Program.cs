@@ -96,14 +96,11 @@ public class Program
             })
             .ConfigureServices((context, services) =>
             {
-                // Configure unified orchestrator services
+                // ==============================================
+                // THE ONE AND ONLY ORCHESTRATOR - MASTER BRAIN
+                // ==============================================
+                // Configure unified orchestrator services FIRST
                 ConfigureUnifiedServices(services);
-                
-                // Register initialization as hosted service
-                services.AddHostedService<AdvancedSystemInitializationService>();
-                
-                // Register auto paper trading configuration
-                services.AddHostedService<AutoPaperTradingConfiguration>();
             });
 
     private static void ConfigureUnifiedServices(IServiceCollection services)
@@ -123,28 +120,19 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // ================================================================================
-        // ADVANCED SYSTEM COMPONENTS - ALL FEATURES INTEGRATED INTO ONE BRAIN
+        // REPLACE ALL OTHER ORCHESTRATORS WITH MASTER ORCHESTRATOR
         // ================================================================================
         
-        // Register ML Memory Management - Prevents memory leaks and optimizes model lifecycle
-        services.AddMLMemoryManagement();
-        Console.WriteLine("🧠 ML Memory Management integrated - Memory leak prevention enabled");
-        
-        // Register Enhanced ML Model Manager with memory management integration
-        services.AddEnhancedMLModelManager();
-        Console.WriteLine("🤖 Enhanced ML Model Manager integrated - Model lifecycle optimized");
-        
-        // Register Economic Event Management - Trading restrictions during high-impact events
-        services.AddEconomicEventManagement();
-        Console.WriteLine("📈 Economic Event Management integrated - Trading protection enabled");
-        
-        // Register Workflow Orchestration - Prevents workflow collisions and manages priorities
-        services.AddWorkflowOrchestration();
-        Console.WriteLine("⚡ Workflow Orchestration integrated - Collision prevention enabled");
-        
-        // Register Advanced System Integration Service - The UNIFIED COORDINATOR
-        services.AddSingleton<AdvancedSystemIntegrationService>();
-        Console.WriteLine("🌟 Advanced System Integration Service registered - UNIFIED BRAIN COORDINATOR");
+        // Register the MASTER ORCHESTRATOR - THE ONE BRAIN
+        services.AddSingleton<MasterOrchestrator>();
+        services.AddHostedService(provider => provider.GetRequiredService<MasterOrchestrator>());
+        Console.WriteLine("� MASTER ORCHESTRATOR registered - ONE BRAIN CONTROLS ALL");
+
+        // REMOVE ALL OTHER ORCHESTRATOR REGISTRATIONS
+        // services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>(); // REMOVED
+        // services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>(); // REMOVED  
+        // services.AddSingleton<IDataOrchestrator, DataOrchestratorService>(); // REMOVED
+        // services.AddHostedService<UnifiedOrchestratorService>(); // REMOVED
 
         // Register TopstepX authentication agent
         services.AddSingleton<TopstepAuthAgent>();
@@ -181,45 +169,37 @@ public class Program
             Console.WriteLine("⚠️ UCB Manager disabled - Set ENABLE_UCB=1 to enable");
         }
 
-        // Register orchestrator components - Auto-detect paper trading mode
-        var paperMode = Environment.GetEnvironmentVariable("PAPER_MODE") == "1" || 
-                       Environment.GetEnvironmentVariable("AUTO_PAPER_TRADING") == "1";
-        var enableTopstepX = Environment.GetEnvironmentVariable("ENABLE_TOPSTEPX") == "1";
+        // Auto-detect paper trading mode
         var hasCredentials = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_JWT")) ||
                            (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME")) &&
                             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY")));
 
-        if (paperMode && enableTopstepX && hasCredentials)
+        if (hasCredentials)
         {
-            services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
-            Console.WriteLine("🎯 Paper Trading mode enabled - Connected to TopstepX for simulated trading");
-        }
-        else if (hasCredentials)
-        {
-            services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
-            Console.WriteLine("✅ Live TopstepX mode enabled");
+            // Remove old orchestrator registrations - everything goes through MASTER ORCHESTRATOR
+            // services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>(); // REMOVED
+            Console.WriteLine("✅ Trading functionality integrated into Master Orchestrator");
         }
         else
         {
-            services.AddSingleton<ITradingOrchestrator, DemoTradingOrchestratorService>();
-            Console.WriteLine("🎭 Demo mode enabled (no TopstepX credentials)");
+            Console.WriteLine("⚠️ No TopstepX credentials - Master Orchestrator will run in simulation mode");
         }
         
-        // Register Intelligence and Data orchestrators with full AI integration
-        services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
-        services.AddSingleton<IDataOrchestrator, DataOrchestratorService>();
-        services.AddSingleton<IWorkflowScheduler, WorkflowSchedulerService>();
+        // REMOVED: OLD ORCHESTRATOR REGISTRATIONS - EVERYTHING NOW THROUGH MASTER ORCHESTRATOR
+        // services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>(); // REMOVED
+        // services.AddSingleton<IDataOrchestrator, DataOrchestratorService>(); // REMOVED
+        // services.AddSingleton<IWorkflowScheduler, WorkflowSchedulerService>(); // REMOVED
         
         // Register Cloud Data Integration - Links 27 GitHub workflows to trading decisions
         services.AddSingleton<ICloudDataIntegration, CloudDataIntegrationService>();
         Console.WriteLine("🌐 Cloud Data Integration enabled - GitHub workflows linked to trading");
 
-        // Register the main unified orchestrator as both interface and hosted service
-        services.AddSingleton<UnifiedOrchestratorService>();
-        services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
-        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        // REMOVED: MAIN UNIFIED ORCHESTRATOR - REPLACED BY MASTER ORCHESTRATOR
+        // services.AddSingleton<UnifiedOrchestratorService>(); // REMOVED
+        // services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>()); // REMOVED  
+        // services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>()); // REMOVED
 
-        Console.WriteLine("✅ UNIFIED ORCHESTRATOR SERVICES CONFIGURED - ALL FEATURES INTEGRATED INTO ONE BRAIN");
+        Console.WriteLine("✅ MASTER ORCHESTRATOR SERVICES CONFIGURED - ONE BRAIN CONTROLS ALL");
     }
 
     private static void DisplayStartupInfo()
