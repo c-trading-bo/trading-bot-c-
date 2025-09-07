@@ -1,0 +1,51 @@
+{
+  "ModelPaths": {
+    "NeuralUCB": "models/rl/latest_neural_ucb.onnx",
+    "RLSizer": "models/rl/latest_rl_sizer.onnx", 
+    "MetaClassifier": "models/rl/latest_meta_classifier.onnx",
+    "ExecQuality": "models/rl/latest_exec_quality.onnx",
+    "LSTMPredictor": "models/ml/lstm_predictor_v1.onnx",
+    "PPOAgent": "models/rl/ppo_agent_v1.onnx",
+    "RandomForest": "models/ml/rf_classifier_v1.pkl"
+  },
+  "ModelSettings": {
+    "MaxMemoryMB": 8192,
+    "ModelTimeoutMs": 5000,
+    "EnableModelCaching": true,
+    "MaxCachedModels": 10,
+    "ModelWarmupSamples": 5,
+    "EnableMemoryMonitoring": true,
+    "MemoryCleanupIntervalMinutes": 5,
+    "UnusedModelTimeoutMinutes": 30
+  },
+  "Features": {
+    "DefaultInputDimension": 10,
+    "StandardFeatures": [
+      "price",
+      "volume", 
+      "atr",
+      "rsi",
+      "ema_20",
+      "ema_50",
+      "volatility",
+      "spread",
+      "time_of_day",
+      "day_of_week"
+    ],
+    "ExtendedFeatures": [
+      "bollinger_upper",
+      "bollinger_lower", 
+      "macd",
+      "signal_strength",
+      "market_regime",
+      "session_type"
+    ]
+  },
+  "ModelVersioning": {
+    "EnableVersionControl": true,
+    "MaxVersionsPerModel": 3,
+    "PerformanceThresholdForRollback": 0.05,
+    "ABTestingEnabled": false,
+    "ModelPerformanceTrackingEnabled": true
+  }
+}

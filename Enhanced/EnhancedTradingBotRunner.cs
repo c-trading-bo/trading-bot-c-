@@ -145,8 +145,8 @@ namespace TradingBot.Enhanced
 
             return etHour switch
             {
-                >= 9.5 and < 16 => "🔥 MARKET HOURS - High Activity",
-                >= 4 and < 9.5 => "🌅 PRE-MARKET - Building Momentum", 
+                >= 9 and < 16 => "🔥 MARKET HOURS - High Activity",
+                >= 4 and < 9 => "🌅 PRE-MARKET - Building Momentum", 
                 >= 16 and < 20 => "🌆 AFTER-HOURS - Extended Trading",
                 _ => "🌙 OVERNIGHT - Low Activity"
             };

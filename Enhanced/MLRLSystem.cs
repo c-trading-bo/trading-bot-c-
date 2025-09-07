@@ -1,9 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Diagnostics;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Diagnostics;
 
 namespace TradingBot.Enhanced.MachineLearning
 {
@@ -18,6 +24,7 @@ namespace TradingBot.Enhanced.MachineLearning
         private readonly Dictionary<string, RLAgent> _rlAgents;
         private readonly MLRLMetrics _metrics;
         private readonly string _dataPath;
+        private readonly MLMemoryManager _memoryManager;
 
         public MLRLIntelligenceSystem()
         {
@@ -26,6 +33,10 @@ namespace TradingBot.Enhanced.MachineLearning
             _metrics = new MLRLMetrics();
             _dataPath = Path.Combine("Enhanced", "Data");
             Directory.CreateDirectory(_dataPath);
+            _memoryManager = new MLMemoryManager();
+            
+            // Initialize memory management
+            _ = Task.Run(async () => await _memoryManager.InitializeMemoryManagement());
         }
 
         private Dictionary<string, MLModel> InitializeMLModels()
@@ -436,8 +447,8 @@ namespace TradingBot.Enhanced.MachineLearning
 
             return etHour switch
             {
-                >= 9.5 and < 16 => "MARKET",
-                >= 4 and < 9.5 => "PRE_MARKET", 
+                >= 9 and < 16 => "MARKET",
+                >= 4 and < 9 => "PRE_MARKET", 
                 >= 16 and < 20 => "AFTER_HOURS",
                 _ => "OVERNIGHT"
             };
@@ -547,5 +558,325 @@ namespace TradingBot.Enhanced.MachineLearning
         public decimal AverageRLReward { get; set; } = 19.4m;
         public int ModelsActive { get; set; } = 5;
         public int AgentsActive { get; set; } = 3;
+    }
+
+    // ================================================================================
+    // COMPONENT 6: MEMORY LEAK PREVENTION IN ML PIPELINE
+    // ================================================================================
+
+    public class MLMemoryManager
+    {
+        private readonly ConcurrentDictionary<string, ModelVersion> _activeModels = new();
+        private readonly Queue<ModelVersion> _modelHistory = new();
+        private readonly Timer _garbageCollector;
+        private readonly Timer _memoryMonitor;
+        private const long MAX_MEMORY_BYTES = 8L * 1024 * 1024 * 1024; // 8GB
+        private const int MAX_MODEL_VERSIONS = 3;
+        
+        public class ModelVersion
+        {
+            public string ModelId { get; set; } = string.Empty;
+            public string Version { get; set; } = string.Empty;
+            public object? Model { get; set; }
+            public long MemoryFootprint { get; set; }
+            public DateTime LoadedAt { get; set; }
+            public int UsageCount { get; set; }
+            public DateTime LastUsed { get; set; }
+            public WeakReference? WeakRef { get; set; }
+        }
+        
+        public class MemorySnapshot
+        {
+            public long TotalMemory { get; set; }
+            public long UsedMemory { get; set; }
+            public long MLMemory { get; set; }
+            public Dictionary<string, long> ModelMemory { get; set; } = new();
+            public int LoadedModels { get; set; }
+            public int CachedPredictions { get; set; }
+            public List<string> MemoryLeaks { get; set; } = new();
+        }
+        
+        public async Task InitializeMemoryManagement()
+        {
+            // Start garbage collection timer
+            _garbageCollector = new Timer(CollectGarbage, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+            
+            // Start memory monitoring
+            _memoryMonitor = new Timer(MonitorMemory, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+            
+            // Setup memory pressure notifications
+            GC.RegisterForFullGCNotification(10, 10);
+            StartGCMonitoring();
+        }
+        
+        public async Task<T?> LoadModel<T>(string modelPath, string version) where T : class
+        {
+            var modelId = Path.GetFileNameWithoutExtension(modelPath);
+            var versionKey = $"{modelId}_{version}";
+            
+            // Check if model already loaded
+            if (_activeModels.TryGetValue(versionKey, out var existing))
+            {
+                existing.UsageCount++;
+                existing.LastUsed = DateTime.UtcNow;
+                return existing.Model as T;
+            }
+            
+            // Check memory before loading
+            await EnsureMemoryAvailable();
+            
+            // Load model
+            var model = await LoadModelFromDisk<T>(modelPath);
+            
+            // Measure memory footprint
+            var memoryBefore = GC.GetTotalMemory(false);
+            var modelVersion = new ModelVersion
+            {
+                ModelId = modelId,
+                Version = version,
+                Model = model,
+                LoadedAt = DateTime.UtcNow,
+                UsageCount = 1,
+                LastUsed = DateTime.UtcNow,
+                WeakRef = new WeakReference(model)
+            };
+            
+            GC.Collect(2, GCCollectionMode.Forced);
+            modelVersion.MemoryFootprint = GC.GetTotalMemory(false) - memoryBefore;
+            
+            _activeModels[versionKey] = modelVersion;
+            _modelHistory.Enqueue(modelVersion);
+            
+            // Cleanup old versions
+            await CleanupOldVersions(modelId);
+            
+            return model;
+        }
+        
+        private async Task<T?> LoadModelFromDisk<T>(string modelPath) where T : class
+        {
+            // Simulate model loading
+            await Task.Delay(100);
+            return default(T);
+        }
+        
+        private async Task EnsureMemoryAvailable()
+        {
+            var currentMemory = GC.GetTotalMemory(false);
+            
+            if (currentMemory > MAX_MEMORY_BYTES * 0.8)
+            {
+                // Aggressive cleanup
+                await AggressiveCleanup();
+                
+                // Force GC
+                GC.Collect(2, GCCollectionMode.Forced, true);
+                GC.WaitForPendingFinalizers();
+                GC.Collect(2, GCCollectionMode.Forced, true);
+                
+                // Recheck
+                currentMemory = GC.GetTotalMemory(false);
+                
+                if (currentMemory > MAX_MEMORY_BYTES * 0.9)
+                {
+                    throw new OutOfMemoryException($"ML memory limit reached: {currentMemory / 1024 / 1024}MB");
+                }
+            }
+        }
+        
+        private async Task CleanupOldVersions(string modelId)
+        {
+            var versions = _activeModels.Values
+                .Where(m => m.ModelId == modelId)
+                .OrderByDescending(m => m.Version)
+                .ToList();
+            
+            if (versions.Count > MAX_MODEL_VERSIONS)
+            {
+                // Keep only recent versions
+                var toRemove = versions.Skip(MAX_MODEL_VERSIONS);
+                
+                foreach (var version in toRemove)
+                {
+                    var key = $"{version.ModelId}_{version.Version}";
+                    if (_activeModels.TryRemove(key, out var removed))
+                    {
+                        // Dispose if IDisposable
+                        if (removed.Model is IDisposable disposable)
+                        {
+                            disposable.Dispose();
+                        }
+                        
+                        // Clear strong reference
+                        removed.Model = null;
+                        
+                        LogMemoryAction($"Removed old model version: {key}");
+                    }
+                }
+            }
+        }
+        
+        private void CollectGarbage(object? state)
+        {
+            try
+            {
+                var beforeMemory = GC.GetTotalMemory(false);
+                
+                // Remove unused models
+                var unusedModels = _activeModels.Values
+                    .Where(m => DateTime.UtcNow - m.LastUsed > TimeSpan.FromMinutes(30))
+                    .ToList();
+                
+                foreach (var model in unusedModels)
+                {
+                    var key = $"{model.ModelId}_{model.Version}";
+                    if (_activeModels.TryRemove(key, out var removed))
+                    {
+                        if (removed.Model is IDisposable disposable)
+                        {
+                            disposable.Dispose();
+                        }
+                        removed.Model = null;
+                    }
+                }
+                
+                // Clear training data caches
+                ClearTrainingDataCache();
+                
+                // Compact large object heap
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                
+                // Collect garbage
+                GC.Collect(2, GCCollectionMode.Forced, true);
+                GC.WaitForPendingFinalizers();
+                GC.Collect(2, GCCollectionMode.Forced, true);
+                
+                var afterMemory = GC.GetTotalMemory(false);
+                var freedMemory = (beforeMemory - afterMemory) / 1024 / 1024;
+                
+                if (freedMemory > 100) // More than 100MB freed
+                {
+                    LogMemoryAction($"Garbage collection freed {freedMemory}MB");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("Garbage collection failed", ex);
+            }
+        }
+        
+        private void MonitorMemory(object? state)
+        {
+            var snapshot = new MemorySnapshot
+            {
+                TotalMemory = GC.GetTotalMemory(false),
+                UsedMemory = Process.GetCurrentProcess().WorkingSet64,
+                ModelMemory = new Dictionary<string, long>(),
+                MemoryLeaks = new List<string>()
+            };
+            
+            // Calculate ML memory usage
+            long mlMemory = 0;
+            foreach (var model in _activeModels.Values)
+            {
+                snapshot.ModelMemory[model.ModelId] = model.MemoryFootprint;
+                mlMemory += model.MemoryFootprint;
+                
+                // Check for memory leaks
+                if (model.WeakRef?.IsAlive == true && model.UsageCount == 0 && 
+                    DateTime.UtcNow - model.LastUsed > TimeSpan.FromHours(1))
+                {
+                    snapshot.MemoryLeaks.Add($"Potential leak: {model.ModelId} still in memory");
+                }
+            }
+            
+            snapshot.MLMemory = mlMemory;
+            snapshot.LoadedModels = _activeModels.Count;
+            
+            // Alert if memory usage is high
+            var memoryPercentage = (double)snapshot.UsedMemory / MAX_MEMORY_BYTES * 100;
+            
+            if (memoryPercentage > 90)
+            {
+                SendCriticalAlert($"CRITICAL: Memory usage at {memoryPercentage:F1}%");
+                Task.Run(async () => await AggressiveCleanup());
+            }
+            else if (memoryPercentage > 75)
+            {
+                SendWarning($"High memory usage: {memoryPercentage:F1}%");
+            }
+            
+            // Log snapshot
+            LogMemorySnapshot(snapshot);
+        }
+        
+        private async Task AggressiveCleanup()
+        {
+            LogMemoryAction("Starting aggressive memory cleanup");
+            
+            // 1. Clear all prediction caches
+            ClearAllCaches();
+            
+            // 2. Unload least recently used models
+            var modelsToUnload = _activeModels.Values
+                .OrderBy(m => m.LastUsed)
+                .Take(_activeModels.Count / 2)
+                .ToList();
+            
+            foreach (var model in modelsToUnload)
+            {
+                var key = $"{model.ModelId}_{model.Version}";
+                if (_activeModels.TryRemove(key, out var removed))
+                {
+                    if (removed.Model is IDisposable disposable)
+                    {
+                        disposable.Dispose();
+                    }
+                    removed.Model = null;
+                }
+            }
+            
+            // 3. Clear training queues
+            ClearTrainingQueues();
+            
+            // 4. Force immediate GC
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            GC.WaitForPendingFinalizers();
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            
+            LogMemoryAction("Aggressive cleanup completed");
+        }
+        
+        private void StartGCMonitoring()
+        {
+            Task.Run(() =>
+            {
+                while (true)
+                {
+                    GCNotificationStatus status = GC.WaitForFullGCApproach();
+                    if (status == GCNotificationStatus.Succeeded)
+                    {
+                        LogMemoryAction("Full GC approaching - preparing cleanup");
+                        ClearNonEssentialData();
+                    }
+                    
+                    status = GC.WaitForFullGCComplete();
+                    if (status == GCNotificationStatus.Succeeded)
+                    {
+                        LogMemoryAction("Full GC completed");
+                    }
+                }
+            });
+        }
+        
+        private void ClearTrainingDataCache() { /* Implementation */ }
+        private void ClearAllCaches() { /* Implementation */ }
+        private void ClearTrainingQueues() { /* Implementation */ }
+        private void ClearNonEssentialData() { /* Implementation */ }
+        private void LogMemoryAction(string message) => Console.WriteLine($"[MemoryManager] {message}");
+        private void LogError(string message, Exception ex) => Console.WriteLine($"[MemoryManager] ERROR: {message} - {ex.Message}");
+        private void LogMemorySnapshot(MemorySnapshot snapshot) => Console.WriteLine($"[MemoryManager] Memory: {snapshot.UsedMemory / 1024 / 1024}MB, Models: {snapshot.LoadedModels}");
+        private void SendCriticalAlert(string message) => Console.WriteLine($"[CRITICAL] {message}");
+        private void SendWarning(string message) => Console.WriteLine($"[WARNING] {message}");
     }
 }
