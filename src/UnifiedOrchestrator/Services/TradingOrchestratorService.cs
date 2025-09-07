@@ -248,13 +248,68 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
                 var nqBrainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
                     "NQ", nqEnv, levels, sampleBars, _riskEngine, cancellationToken);
 
-                _logger.LogInformation("🧠 [AI-DECISIONS] ES: {Strategy} ({Confidence:P1}), NQ: {NQStrategy} ({NQConfidence:P1}) | Active Strategies: S2,S3,S6,S11",
-                    esBrainDecision.RecommendedStrategy, esBrainDecision.ModelConfidence,
-                    nqBrainDecision.RecommendedStrategy, nqBrainDecision.ModelConfidence);
+                // 🎯 UCB INTEGRATION: Get multi-armed bandit recommendations if UCB service is available
+                string? ucbStrategy = null;
+                
+                if (_ucbManager != null)
+                {
+                    try
+                    {
+                        // Create MarketData for UCB recommendation with sample/default data
+                        // In a real implementation, this would come from actual market data feeds
+                        var marketData = new BotCore.ML.MarketData
+                        {
+                            ESPrice = 4800m,      // Default ES price - should come from real data
+                            NQPrice = 16000m,     // Default NQ price - should come from real data
+                            ESVolume = 100000,    // Sample volume
+                            NQVolume = 50000,     // Sample volume
+                            ES_ATR = esEnv.atr ?? 20m,    // Use ATR from environment if available
+                            NQ_ATR = nqEnv.atr ?? 80m,    // Use ATR from environment if available
+                            VIX = 20m,            // Default VIX
+                            TICK = 0,             // Neutral TICK
+                            ADD = 0,              // Neutral ADD
+                            Correlation = 0.8m,   // Default ES/NQ correlation
+                            RSI_ES = 50m,         // Neutral RSI
+                            RSI_NQ = 50m,         // Neutral RSI
+                            PrimaryInstrument = "ES"
+                        };
+                        
+                        var ucbResult = await _ucbManager.GetRecommendationAsync(marketData, cancellationToken);
+                        ucbStrategy = ucbResult?.Strategy;
+                        
+                        _logger.LogInformation("🎯 [UCB] Multi-armed bandit recommendation: {Strategy} (confidence: {Confidence:F2}, trade: {ShouldTrade})", 
+                            ucbStrategy ?? "None", ucbResult?.Confidence ?? 0.0, ucbResult?.Trade ?? false);
+                    }
+                    catch (Exception ucbEx)
+                    {
+                        _logger.LogWarning(ucbEx, "⚠️ [UCB] Failed to get recommendations - using Brain only");
+                    }
+                }
 
-                // Process AI-enhanced candidates instead of traditional signals
+                _logger.LogInformation("🧠 [AI-DECISIONS] ES: {Strategy} ({Confidence:P1}), NQ: {NQStrategy} ({NQConfidence:P1}) | UCB: {UCBStrategy} | Active Strategies: S2,S3,S6,S11",
+                    esBrainDecision.RecommendedStrategy, esBrainDecision.ModelConfidence,
+                    nqBrainDecision.RecommendedStrategy, nqBrainDecision.ModelConfidence,
+                    ucbStrategy ?? "None");
+
+                // 🎯 ENHANCED: Process AI-enhanced candidates with UCB filtering
                 foreach (var candidate in esBrainDecision.EnhancedCandidates)
                 {
+                    // Apply UCB strategy filtering if available
+                    bool shouldProcessCandidate = true;
+                    if (!string.IsNullOrEmpty(ucbStrategy))
+                    {
+                        // Only process candidates that match UCB recommendation or are high confidence
+                        shouldProcessCandidate = candidate.strategy_id.Contains(ucbStrategy, StringComparison.OrdinalIgnoreCase) ||
+                                               esBrainDecision.ModelConfidence > 0.8m;
+                        
+                        if (!shouldProcessCandidate)
+                        {
+                            _logger.LogInformation("🎯 [UCB-FILTER] Skipping ES candidate {Strategy} - UCB recommends {UCBStrategy}", 
+                                candidate.strategy_id, ucbStrategy);
+                            continue;
+                        }
+                    }
+
                     var aiSignal = ConvertCandidateToTradingSignal(candidate, "ES", esBrainDecision);
                     await ProcessAITradingSignalAsync(aiSignal, esBrainDecision, context, cancellationToken);
                     context.Logs.Add($"🧠 AI ES Signal: {candidate.strategy_id} {candidate.side} @ {candidate.entry:F2} (Confidence: {esBrainDecision.ModelConfidence:P1})");
@@ -262,6 +317,22 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
 
                 foreach (var candidate in nqBrainDecision.EnhancedCandidates)
                 {
+                    // Apply UCB strategy filtering if available
+                    bool shouldProcessCandidate = true;
+                    if (!string.IsNullOrEmpty(ucbStrategy))
+                    {
+                        // Only process candidates that match UCB recommendation or are high confidence
+                        shouldProcessCandidate = candidate.strategy_id.Contains(ucbStrategy, StringComparison.OrdinalIgnoreCase) ||
+                                               nqBrainDecision.ModelConfidence > 0.8m;
+                        
+                        if (!shouldProcessCandidate)
+                        {
+                            _logger.LogInformation("🎯 [UCB-FILTER] Skipping NQ candidate {Strategy} - UCB recommends {UCBStrategy}", 
+                                candidate.strategy_id, ucbStrategy);
+                            continue;
+                        }
+                    }
+
                     var aiSignal = ConvertCandidateToTradingSignal(candidate, "NQ", nqBrainDecision);
                     await ProcessAITradingSignalAsync(aiSignal, nqBrainDecision, context, cancellationToken);
                     context.Logs.Add($"🧠 AI NQ Signal: {candidate.strategy_id} {candidate.side} @ {candidate.entry:F2} (Confidence: {nqBrainDecision.ModelConfidence:P1})");
