@@ -563,7 +563,14 @@ namespace TradingBot.Enhanced.MachineLearning
     // ================================================================================
     // COMPONENT 6: MEMORY LEAK PREVENTION IN ML PIPELINE
     // ================================================================================
-
+    
+    /// <summary>
+    /// DEPRECATED: This MLMemoryManager implementation has been consolidated into BotCore.ML.MLMemoryManager
+    /// Use BotCore.ML.MLMemoryManager for all ML memory management functionality.
+    /// The BotCore version includes proper ONNX integration and comprehensive error handling.
+    /// This implementation is kept for backward compatibility but should not be used for new code.
+    /// </summary>
+    [Obsolete("Use BotCore.ML.MLMemoryManager instead. This duplicate implementation will be removed in a future version.")]
     public class MLMemoryManager
     {
         private readonly ConcurrentDictionary<string, ModelVersion> _activeModels = new();

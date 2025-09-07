@@ -14,6 +14,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using System.Data.SQLite;
@@ -274,8 +276,44 @@ namespace TradingBot.Critical
                     FOREIGN KEY (OrderId) REFERENCES OrderAudit(OrderId)
                 );
                 
+                CREATE TABLE IF NOT EXISTS OrphanedFills (
+                    FillId TEXT PRIMARY KEY,
+                    OrderId TEXT,
+                    FillTime DATETIME,
+                    FillPrice DECIMAL,
+                    FillQuantity INTEGER,
+                    Commission DECIMAL,
+                    Exchange TEXT,
+                    LiquidityType TEXT,
+                    DetectedAt DATETIME,
+                    Status TEXT DEFAULT 'UNRESOLVED'
+                );
+                
+                CREATE TABLE IF NOT EXISTS EmergencyPositions (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    OrderId TEXT,
+                    FillPrice DECIMAL,
+                    FillQuantity INTEGER,
+                    FillTime DATETIME,
+                    Exchange TEXT,
+                    RecordedAt DATETIME,
+                    Status TEXT DEFAULT 'UNMATCHED',
+                    Resolution TEXT
+                );
+                
+                CREATE TABLE IF NOT EXISTS SystemAlerts (
+                    AlertId TEXT PRIMARY KEY,
+                    AlertType TEXT,
+                    AlertData TEXT,
+                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    Status TEXT DEFAULT 'ACTIVE'
+                );
+                
                 CREATE INDEX IF NOT EXISTS idx_order_time ON OrderAudit(SubmittedTime);
                 CREATE INDEX IF NOT EXISTS idx_fill_order ON FillAudit(OrderId);
+                CREATE INDEX IF NOT EXISTS idx_orphaned_time ON OrphanedFills(DetectedAt);
+                CREATE INDEX IF NOT EXISTS idx_emergency_time ON EmergencyPositions(RecordedAt);
+                CREATE INDEX IF NOT EXISTS idx_alerts_time ON SystemAlerts(CreatedAt);
             ";
             
             _database.Open();
@@ -328,7 +366,57 @@ namespace TradingBot.Critical
         {
             _logger.LogError("[CRITICAL] Orphaned fill detected: OrderId={OrderId} Price={Price} Qty={Qty}", 
                 fillData.OrderId, fillData.Price, fillData.Quantity);
-            // TODO: Implement orphaned fill handling
+            
+            try
+            {
+                // 1. Create orphaned fill record for investigation
+                var orphanedFill = new FillRecord
+                {
+                    FillId = Guid.NewGuid().ToString(),
+                    OrderId = fillData.OrderId,
+                    FillTime = DateTime.UtcNow,
+                    FillPrice = fillData.Price,
+                    FillQuantity = fillData.Quantity,
+                    Commission = fillData.Commission,
+                    Exchange = fillData.Exchange,
+                    LiquidityType = fillData.LiquidityType
+                };
+                
+                // 2. Store in orphaned fills database for audit
+                await LogOrphanedFillAsync(orphanedFill);
+                
+                // 3. Alert system operators immediately
+                await AlertOrphanedFill(orphanedFill);
+                
+                // 4. Attempt to recover order information from TopstepX
+                var recoveredOrder = await AttemptOrderRecoveryAsync(fillData.OrderId);
+                
+                if (recoveredOrder != null)
+                {
+                    _logger.LogWarning("[RECOVERY] Successfully recovered orphaned order: {OrderId}", fillData.OrderId);
+                    
+                    // Add to pending orders and process the fill normally
+                    _pendingOrders[recoveredOrder.OrderId] = recoveredOrder;
+                    await ProcessFillEvent(fillData);
+                }
+                else
+                {
+                    _logger.LogError("[CRITICAL] Could not recover order for orphaned fill: {OrderId}", fillData.OrderId);
+                    
+                    // Create emergency position record to track unmatched position
+                    await CreateEmergencyPositionRecord(fillData);
+                    
+                    // Trigger emergency protocols
+                    await TriggerEmergencyProtocols(fillData);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CRITICAL] Failed to handle orphaned fill for OrderId={OrderId}", fillData.OrderId);
+                
+                // Last resort: Emergency shutdown if we can't handle the orphaned fill
+                await AlertCriticalFailure($"Orphaned fill handling failed for OrderId={fillData.OrderId}", ex);
+            }
         }
 
         private void LogVerifiedExecution(OrderRecord order)
@@ -362,15 +450,93 @@ namespace TradingBot.Critical
 
         private async Task AlertOrderFailure(OrderRecord order, string reason)
         {
-            // TODO: Implement alerting system
-            await Task.CompletedTask;
+            try
+            {
+                var alert = new
+                {
+                    AlertType = "ORDER_FAILURE",
+                    OrderId = order.OrderId,
+                    ClientOrderId = order.ClientOrderId,
+                    Symbol = order.Symbol,
+                    Side = order.Side,
+                    Quantity = order.Quantity,
+                    Price = order.Price,
+                    Reason = reason,
+                    Timestamp = DateTime.UtcNow,
+                    Severity = "HIGH"
+                };
+                
+                // Log structured alert
+                _logger.LogError("[ALERT] ORDER_FAILURE: {Alert}", JsonSerializer.Serialize(alert));
+                
+                // Send to monitoring systems (extend as needed)
+                await SendSlackAlert($"🚨 Order Failure: {order.Symbol} {order.Side} {order.Quantity}@{order.Price:F2} - {reason}");
+                await SendEmailAlert("Trading Alert: Order Failure", JsonSerializer.Serialize(alert, new JsonSerializerOptions { WriteIndented = true }));
+                
+                // Store alert in database for tracking
+                await StoreAlertAsync(alert);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CRITICAL] Failed to send order failure alert for {OrderId}", order.OrderId);
+            }
         }
 
         private async Task<string?> QueryOrderStatus(string orderId)
         {
-            // TODO: Implement TopstepX order status query
-            await Task.CompletedTask;
-            return null;
+            try
+            {
+                // Query TopstepX Order API for current status
+                var httpClient = new HttpClient();
+                httpClient.BaseAddress = new Uri("https://api.topstepx.com");
+                
+                // Add authorization header if available
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_JWT")))
+                {
+                    httpClient.DefaultRequestHeaders.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Environment.GetEnvironmentVariable("TOPSTEPX_JWT"));
+                }
+                
+                var searchRequest = new
+                {
+                    orderId = orderId,
+                    fromDate = DateTime.UtcNow.AddDays(-1).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    toDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                };
+                
+                var response = await httpClient.PostAsJsonAsync("/api/Order/search", searchRequest);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var result = JsonSerializer.Deserialize<JsonElement>(content);
+                    
+                    if (result.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+                    {
+                        var orders = data.EnumerateArray();
+                        var order = orders.FirstOrDefault(o => 
+                            o.TryGetProperty("orderId", out var id) && id.GetString() == orderId);
+                        
+                        if (order.ValueKind != JsonValueKind.Undefined && order.TryGetProperty("status", out var status))
+                        {
+                            var orderStatus = status.GetString();
+                            _logger.LogDebug("[ORDER_QUERY] Retrieved status for {OrderId}: {Status}", orderId, orderStatus);
+                            return orderStatus;
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[ORDER_QUERY] Failed to query order status: {StatusCode}", response.StatusCode);
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ORDER_QUERY] Exception querying order status for {OrderId}", orderId);
+                return null;
+            }
         }
 
         private void HandleLostOrder(OrderRecord order)
@@ -389,6 +555,225 @@ namespace TradingBot.Critical
         {
             var data = $"{order.OrderId}{order.Symbol}{order.Quantity}{string.Join(",", fills.Select(f => f.FillId))}";
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(data)));
+        }
+
+        // Additional helper methods for orphaned fill handling
+        private async Task LogOrphanedFillAsync(FillRecord orphanedFill)
+        {
+            try
+            {
+                const string sql = @"INSERT INTO OrphanedFills (FillId, OrderId, FillTime, FillPrice, FillQuantity, Commission, Exchange, LiquidityType, DetectedAt) 
+                                   VALUES (@FillId, @OrderId, @FillTime, @FillPrice, @FillQuantity, @Commission, @Exchange, @LiquidityType, @DetectedAt)";
+                using var cmd = new SQLiteCommand(sql, _database);
+                cmd.Parameters.AddWithValue("@FillId", orphanedFill.FillId);
+                cmd.Parameters.AddWithValue("@OrderId", orphanedFill.OrderId);
+                cmd.Parameters.AddWithValue("@FillTime", orphanedFill.FillTime);
+                cmd.Parameters.AddWithValue("@FillPrice", orphanedFill.FillPrice);
+                cmd.Parameters.AddWithValue("@FillQuantity", orphanedFill.FillQuantity);
+                cmd.Parameters.AddWithValue("@Commission", orphanedFill.Commission);
+                cmd.Parameters.AddWithValue("@Exchange", orphanedFill.Exchange);
+                cmd.Parameters.AddWithValue("@LiquidityType", orphanedFill.LiquidityType);
+                cmd.Parameters.AddWithValue("@DetectedAt", DateTime.UtcNow);
+                cmd.ExecuteNonQuery();
+                
+                _logger.LogInformation("[ORPHANED_FILL] Logged orphaned fill: {FillId} for OrderId: {OrderId}", 
+                    orphanedFill.FillId, orphanedFill.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to log orphaned fill: {FillId}", orphanedFill.FillId);
+            }
+        }
+
+        private async Task AlertOrphanedFill(FillRecord orphanedFill)
+        {
+            try
+            {
+                var alert = new
+                {
+                    AlertType = "ORPHANED_FILL",
+                    FillId = orphanedFill.FillId,
+                    OrderId = orphanedFill.OrderId,
+                    FillPrice = orphanedFill.FillPrice,
+                    FillQuantity = orphanedFill.FillQuantity,
+                    Commission = orphanedFill.Commission,
+                    Exchange = orphanedFill.Exchange,
+                    Timestamp = DateTime.UtcNow,
+                    Severity = "CRITICAL"
+                };
+
+                _logger.LogError("[CRITICAL_ALERT] ORPHANED_FILL: {Alert}", JsonSerializer.Serialize(alert));
+                
+                // Send immediate alerts (implement as needed)
+                await SendSlackAlert($"🚨 CRITICAL: Orphaned fill detected! OrderId: {orphanedFill.OrderId}, Qty: {orphanedFill.FillQuantity}, Price: {orphanedFill.FillPrice:F2}");
+                await SendEmailAlert("CRITICAL: Orphaned Fill Detected", JsonSerializer.Serialize(alert, new JsonSerializerOptions { WriteIndented = true }));
+                await StoreAlertAsync(alert);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to send orphaned fill alert for FillId: {FillId}", orphanedFill.FillId);
+            }
+        }
+
+        private async Task<OrderRecord?> AttemptOrderRecoveryAsync(string orderId)
+        {
+            try
+            {
+                _logger.LogInformation("[RECOVERY] Attempting to recover order: {OrderId}", orderId);
+                
+                // Try to query TopstepX for the order details
+                var orderStatus = await QueryOrderStatus(orderId);
+                
+                if (!string.IsNullOrEmpty(orderStatus))
+                {
+                    // Create a basic order record based on available information
+                    // Note: In a real implementation, you'd want to query full order details
+                    var recoveredOrder = new OrderRecord
+                    {
+                        OrderId = orderId,
+                        ClientOrderId = $"RECOVERED_{orderId}",
+                        SubmittedTime = DateTime.UtcNow.AddMinutes(-30), // Estimate
+                        Symbol = "UNKNOWN", // Would need to query this
+                        Side = "UNKNOWN",   // Would need to query this
+                        Quantity = 0,       // Would need to query this
+                        Price = 0m,         // Would need to query this
+                        Status = orderStatus,
+                        IsVerified = false,
+                        ExecutionProof = string.Empty,
+                        PartialFills = new List<PartialFill>()
+                    };
+
+                    _logger.LogWarning("[RECOVERY] Partially recovered order: {OrderId} with status: {Status}", orderId, orderStatus);
+                    return recoveredOrder;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RECOVERY] Failed to recover order: {OrderId}", orderId);
+                return null;
+            }
+        }
+
+        private async Task CreateEmergencyPositionRecord(FillEventData fillData)
+        {
+            try
+            {
+                const string sql = @"INSERT INTO EmergencyPositions (OrderId, FillPrice, FillQuantity, FillTime, Exchange, RecordedAt, Status) 
+                                   VALUES (@OrderId, @FillPrice, @FillQuantity, @FillTime, @Exchange, @RecordedAt, @Status)";
+                using var cmd = new SQLiteCommand(sql, _database);
+                cmd.Parameters.AddWithValue("@OrderId", fillData.OrderId);
+                cmd.Parameters.AddWithValue("@FillPrice", fillData.Price);
+                cmd.Parameters.AddWithValue("@FillQuantity", fillData.Quantity);
+                cmd.Parameters.AddWithValue("@FillTime", DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@Exchange", fillData.Exchange);
+                cmd.Parameters.AddWithValue("@RecordedAt", DateTime.UtcNow);
+                cmd.Parameters.AddWithValue("@Status", "UNMATCHED");
+                cmd.ExecuteNonQuery();
+
+                _logger.LogError("[EMERGENCY] Created emergency position record for OrderId: {OrderId}", fillData.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to create emergency position record for OrderId: {OrderId}", fillData.OrderId);
+            }
+        }
+
+        private async Task TriggerEmergencyProtocols(FillEventData fillData)
+        {
+            try
+            {
+                _logger.LogError("[EMERGENCY] Triggering emergency protocols for OrderId: {OrderId}", fillData.OrderId);
+                
+                // 1. Alert all monitoring systems
+                await AlertCriticalFailure($"Emergency protocols triggered for orphaned fill: OrderId={fillData.OrderId}", null);
+                
+                // 2. Create incident record
+                var incident = new
+                {
+                    IncidentId = Guid.NewGuid().ToString(),
+                    Type = "ORPHANED_FILL_EMERGENCY",
+                    OrderId = fillData.OrderId,
+                    Details = JsonSerializer.Serialize(fillData),
+                    Timestamp = DateTime.UtcNow,
+                    Status = "ACTIVE"
+                };
+                
+                await StoreAlertAsync(incident);
+                
+                // 3. Notify operations team
+                await SendSlackAlert($"🆘 EMERGENCY: Protocols triggered for orphaned fill! OrderId: {fillData.OrderId}");
+                
+                _logger.LogError("[EMERGENCY] Emergency protocols completed for OrderId: {OrderId}", fillData.OrderId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to execute emergency protocols for OrderId: {OrderId}", fillData.OrderId);
+            }
+        }
+
+        private async Task AlertCriticalFailure(string message, Exception? exception)
+        {
+            try
+            {
+                var alert = new
+                {
+                    AlertType = "CRITICAL_FAILURE",
+                    Message = message,
+                    Exception = exception?.ToString(),
+                    Timestamp = DateTime.UtcNow,
+                    Severity = "CRITICAL"
+                };
+
+                _logger.LogCritical("[CRITICAL_FAILURE] {Message}", message);
+                if (exception != null)
+                {
+                    _logger.LogCritical(exception, "[CRITICAL_FAILURE] Exception details");
+                }
+
+                await SendSlackAlert($"🆘 CRITICAL FAILURE: {message}");
+                await SendEmailAlert("CRITICAL SYSTEM FAILURE", JsonSerializer.Serialize(alert, new JsonSerializerOptions { WriteIndented = true }));
+                await StoreAlertAsync(alert);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to send critical failure alert");
+            }
+        }
+
+        // Placeholder alert methods (implement with actual services)
+        private async Task SendSlackAlert(string message)
+        {
+            // TODO: Implement Slack webhook integration
+            _logger.LogWarning("[SLACK_ALERT] {Message}", message);
+            await Task.CompletedTask;
+        }
+
+        private async Task SendEmailAlert(string subject, string body)
+        {
+            // TODO: Implement email notification service
+            _logger.LogWarning("[EMAIL_ALERT] Subject: {Subject}", subject);
+            await Task.CompletedTask;
+        }
+
+        private async Task StoreAlertAsync(object alert)
+        {
+            try
+            {
+                const string sql = @"INSERT INTO SystemAlerts (AlertId, AlertType, AlertData, CreatedAt) 
+                                   VALUES (@AlertId, @AlertType, @AlertData, @CreatedAt)";
+                using var cmd = new SQLiteCommand(sql, _database);
+                cmd.Parameters.AddWithValue("@AlertId", Guid.NewGuid().ToString());
+                cmd.Parameters.AddWithValue("@AlertType", alert.GetType().GetProperty("AlertType")?.GetValue(alert)?.ToString() ?? "UNKNOWN");
+                cmd.Parameters.AddWithValue("@AlertData", JsonSerializer.Serialize(alert));
+                cmd.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ERROR] Failed to store alert in database");
+            }
         }
 
         public void Dispose()

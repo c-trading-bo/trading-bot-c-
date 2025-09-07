@@ -96,19 +96,66 @@ namespace BotCore.ML
         }
         
         /// <summary>
-        /// Direct model loading without memory management
+        /// Direct ONNX model loading with proper error handling and validation
         /// </summary>
-        private async Task<T?> LoadModelDirectAsync<T>(string modelPath) where T : class
+        private Task<T?> LoadModelDirectAsync<T>(string modelPath) where T : class
         {
-            await Task.Delay(50); // Simulate loading time
-            
-            if (!File.Exists(modelPath))
+            try
             {
-                return null;
+                if (!File.Exists(modelPath))
+                {
+                    _logger.LogWarning("[StrategyML] Model file not found: {ModelPath}", modelPath);
+                    return Task.FromResult<T?>(null);
+                }
+
+                _logger.LogInformation("[StrategyML] Loading ONNX model: {ModelPath}", modelPath);
+
+                // Use ONNX Runtime for .onnx files
+                if (Path.GetExtension(modelPath).ToLowerInvariant() == ".onnx")
+                {
+                    var sessionOptions = new Microsoft.ML.OnnxRuntime.SessionOptions
+                    {
+                        EnableCpuMemArena = true,
+                        EnableMemoryPattern = true,
+                        ExecutionMode = Microsoft.ML.OnnxRuntime.ExecutionMode.ORT_PARALLEL,
+                        GraphOptimizationLevel = Microsoft.ML.OnnxRuntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+                    };
+
+                    var session = new Microsoft.ML.OnnxRuntime.InferenceSession(modelPath, sessionOptions);
+                    
+                    // Validate model can be used
+                    var inputMetadata = session.InputMetadata;
+                    var outputMetadata = session.OutputMetadata;
+                    
+                    _logger.LogInformation("[StrategyML] ONNX model loaded - Inputs: {InputCount}, Outputs: {OutputCount}", 
+                        inputMetadata.Count, outputMetadata.Count);
+
+                    // Return session if T is compatible
+                    if (typeof(T).IsAssignableFrom(typeof(Microsoft.ML.OnnxRuntime.InferenceSession)))
+                    {
+                        return Task.FromResult<T?>(session as T);
+                    }
+
+                    // Dispose if type mismatch
+                    session.Dispose();
+                    _logger.LogWarning("[StrategyML] Type mismatch for ONNX model: expected {ExpectedType}", typeof(T).Name);
+                    return Task.FromResult<T?>(null);
+                }
+
+                // For non-ONNX files, log warning
+                _logger.LogWarning("[StrategyML] Non-ONNX model loading not implemented for: {ModelPath}", modelPath);
+                return Task.FromResult<T?>(null);
             }
-            
-            // TODO: Implement actual ONNX model loading
-            return Activator.CreateInstance<T>();
+            catch (Microsoft.ML.OnnxRuntime.OnnxRuntimeException ex)
+            {
+                _logger.LogError(ex, "[StrategyML] ONNX Runtime error loading: {ModelPath} - {Error}", modelPath, ex.Message);
+                return Task.FromResult<T?>(null);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StrategyML] Unexpected error loading model: {ModelPath}", modelPath);
+                return Task.FromResult<T?>(null);
+            }
         }
         
         /// <summary>

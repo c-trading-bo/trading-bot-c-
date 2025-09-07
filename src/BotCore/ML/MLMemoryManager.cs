@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime;
@@ -12,6 +13,7 @@ namespace BotCore.ML;
 public class MLMemoryManager : IMLMemoryManager
 {
     private readonly ILogger<MLMemoryManager> _logger;
+    private readonly OnnxModelLoader _onnxLoader;
     private readonly ConcurrentDictionary<string, ModelVersion> _activeModels = new();
     private readonly Queue<ModelVersion> _modelHistory = new();
     private readonly Timer _garbageCollector;
@@ -45,15 +47,16 @@ public class MLMemoryManager : IMLMemoryManager
         public List<string> MemoryLeaks { get; set; } = new();
     }
 
-    public MLMemoryManager(ILogger<MLMemoryManager> logger)
+    public MLMemoryManager(ILogger<MLMemoryManager> logger, OnnxModelLoader onnxLoader)
     {
         _logger = logger;
+        _onnxLoader = onnxLoader;
         
         // Initialize timers
         _garbageCollector = new Timer(CollectGarbage, null, Timeout.Infinite, Timeout.Infinite);
         _memoryMonitor = new Timer(MonitorMemory, null, Timeout.Infinite, Timeout.Infinite);
         
-        _logger.LogInformation("[ML-Memory] MLMemoryManager initialized");
+        _logger.LogInformation("[ML-Memory] MLMemoryManager initialized with ONNX support");
     }
 
     /// <summary>
@@ -149,21 +152,44 @@ public class MLMemoryManager : IMLMemoryManager
     }
 
     /// <summary>
-    /// Placeholder for actual model loading - integrate with existing ONNX loading
+    /// Load ML model using proper ONNX runtime with error handling and validation
     /// </summary>
     private async Task<T?> LoadModelFromDiskAsync<T>(string modelPath) where T : class
     {
-        // TODO: Integrate with existing ONNX model loading from StrategyMlModelManager
-        await Task.Delay(100); // Simulate loading time
-        
-        if (!File.Exists(modelPath))
+        try
         {
-            _logger.LogWarning("[ML-Memory] Model file not found: {ModelPath}", modelPath);
+            if (!File.Exists(modelPath))
+            {
+                _logger.LogWarning("[ML-Memory] Model file not found: {ModelPath}", modelPath);
+                return null;
+            }
+
+            // For ONNX models (.onnx extension)
+            if (Path.GetExtension(modelPath).ToLowerInvariant() == ".onnx")
+            {
+                var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
+                if (session != null && typeof(T).IsAssignableFrom(typeof(InferenceSession)))
+                {
+                    return session as T;
+                }
+                
+                _logger.LogWarning("[ML-Memory] ONNX model type mismatch for: {ModelPath}", modelPath);
+                return null;
+            }
+            
+            // For other model types, try generic instantiation with proper logging
+            _logger.LogWarning("[ML-Memory] Non-ONNX model loading not yet implemented: {ModelPath}", modelPath);
+            
+            // Log the attempted type for debugging
+            _logger.LogDebug("[ML-Memory] Attempted to load type {Type} from {ModelPath}", typeof(T).Name, modelPath);
+            
             return null;
         }
-        
-        // For now, return a placeholder - this should integrate with actual ONNX loading
-        return Activator.CreateInstance<T>();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ML-Memory] Failed to load model from disk: {ModelPath}", modelPath);
+            throw new InvalidOperationException($"Model loading failed for {modelPath}", ex);
+        }
     }
 
     private async Task EnsureMemoryAvailableAsync()

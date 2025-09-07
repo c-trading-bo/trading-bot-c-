@@ -316,8 +316,322 @@ public class RedundantDataFeedManager : IDisposable
 
     private void CheckDataConsistency(object? state)
     {
-        // Implementation for checking data consistency across feeds
-        // This would compare prices from different feeds and detect outliers
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var symbols = new[] { "ES", "NQ", "YM", "RTY" }; // Common futures symbols
+                
+                foreach (var symbol in symbols)
+                {
+                    await CheckSymbolConsistencyAsync(symbol);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DataConsistency] Error during consistency check");
+            }
+        });
+    }
+
+    private async Task CheckSymbolConsistencyAsync(string symbol)
+    {
+        try
+        {
+            var consistency = new DataConsistencyResult
+            {
+                Symbol = symbol,
+                CheckTime = DateTime.UtcNow,
+                FeedData = new Dictionary<string, MarketDataSnapshot>()
+            };
+
+            // Collect data from all healthy feeds
+            var healthyFeeds = _dataFeeds.Where(f => 
+                _feedHealth.TryGetValue(f.FeedName, out var h) && h.IsHealthy).ToList();
+
+            if (healthyFeeds.Count < 2)
+            {
+                _logger.LogDebug("[DataConsistency] Insufficient feeds for consistency check: {Symbol}", symbol);
+                return;
+            }
+
+            // Gather market data from each feed
+            var tasks = healthyFeeds.Select(async feed =>
+            {
+                try
+                {
+                    var startTime = DateTime.UtcNow;
+                    var data = await feed.GetMarketDataAsync(symbol);
+                    var responseTime = DateTime.UtcNow - startTime;
+
+                    if (data != null && ValidateMarketData(data))
+                    {
+                        consistency.FeedData[feed.FeedName] = new MarketDataSnapshot
+                        {
+                            FeedName = feed.FeedName,
+                            Price = data.Price,
+                            Bid = data.Bid,
+                            Ask = data.Ask,
+                            Volume = data.Volume,
+                            Timestamp = data.Timestamp,
+                            ResponseTime = responseTime,
+                            DataAge = DateTime.UtcNow - data.Timestamp
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "[DataConsistency] Failed to get data from {FeedName} for {Symbol}", 
+                        feed.FeedName, symbol);
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            // Analyze consistency if we have enough data
+            if (consistency.FeedData.Count >= 2)
+            {
+                AnalyzeDataConsistency(consistency);
+                
+                // Take action on inconsistencies
+                if (!consistency.IsConsistent)
+                {
+                    await HandleDataInconsistencyAsync(consistency);
+                }
+                
+                // Log periodic status
+                if (DateTime.UtcNow.Second % 30 == 0) // Every 30 seconds
+                {
+                    LogConsistencyStatus(consistency);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[DataConsistency] Error checking consistency for {Symbol}", symbol);
+        }
+    }
+
+    private void AnalyzeDataConsistency(DataConsistencyResult consistency)
+    {
+        if (consistency.FeedData.Count < 2) return;
+
+        var snapshots = consistency.FeedData.Values.ToList();
+        
+        // Analyze price consistency
+        var prices = snapshots.Select(s => s.Price).ToList();
+        var avgPrice = prices.Average();
+        var maxDeviation = prices.Max(p => Math.Abs(p - avgPrice) / avgPrice);
+        var priceStdDev = CalculateStandardDeviation(prices.Select(p => (double)p));
+
+        // Analyze bid-ask consistency  
+        var spreads = snapshots.Where(s => s.Ask > s.Bid).Select(s => s.Ask - s.Bid).ToList();
+        var avgSpread = spreads.Any() ? spreads.Average() : 0m;
+        var spreadDeviation = spreads.Any() ? spreads.Max(s => Math.Abs(s - avgSpread) / avgSpread) : 0m;
+
+        // Analyze data freshness
+        var dataAges = snapshots.Select(s => s.DataAge.TotalSeconds).ToList();
+        var maxAge = dataAges.Max();
+        var avgAge = dataAges.Average();
+
+        // Set consistency metrics
+        consistency.PriceDeviation = maxDeviation;
+        consistency.PriceStandardDeviation = (decimal)priceStdDev;
+        consistency.SpreadDeviation = spreadDeviation;
+        consistency.MaxDataAge = TimeSpan.FromSeconds(maxAge);
+        consistency.AverageDataAge = TimeSpan.FromSeconds(avgAge);
+
+        // Determine overall consistency
+        consistency.IsConsistent = 
+            maxDeviation < 0.001m && // 0.1% price tolerance
+            spreadDeviation < 0.05m && // 5% spread tolerance  
+            maxAge < 30; // 30 second freshness tolerance
+
+        // Identify outliers
+        if (!consistency.IsConsistent)
+        {
+            // Find price outliers
+            foreach (var snapshot in snapshots)
+            {
+                var deviation = Math.Abs(snapshot.Price - avgPrice) / avgPrice;
+                if (deviation == maxDeviation && deviation > 0.001m)
+                {
+                    consistency.OutlierFeeds.Add(snapshot.FeedName);
+                    consistency.Issues.Add($"Price outlier: {snapshot.FeedName} deviates by {deviation:P2}");
+                }
+            }
+
+            // Find stale data
+            foreach (var snapshot in snapshots)
+            {
+                if (snapshot.DataAge.TotalSeconds > 30)
+                {
+                    consistency.Issues.Add($"Stale data: {snapshot.FeedName} is {snapshot.DataAge.TotalSeconds:F1}s old");
+                }
+            }
+
+            // Find slow feeds
+            foreach (var snapshot in snapshots)
+            {
+                if (snapshot.ResponseTime.TotalMilliseconds > 500)
+                {
+                    consistency.Issues.Add($"Slow response: {snapshot.FeedName} took {snapshot.ResponseTime.TotalMilliseconds:F0}ms");
+                }
+            }
+        }
+    }
+
+    private async Task HandleDataInconsistencyAsync(DataConsistencyResult consistency)
+    {
+        try
+        {
+            _logger.LogWarning("[DataConsistency] Inconsistency detected for {Symbol}: {Issues}", 
+                consistency.Symbol, string.Join("; ", consistency.Issues));
+
+            // Update feed health scores for outliers
+            foreach (var outlierFeed in consistency.OutlierFeeds)
+            {
+                if (_feedHealth.TryGetValue(outlierFeed, out var health))
+                {
+                    health.DataQualityScore *= 0.95; // Reduce quality score
+                    _logger.LogWarning("[DataConsistency] Reduced quality score for {FeedName} to {Score:F2}", 
+                        outlierFeed, health.DataQualityScore);
+                }
+            }
+
+            // Create consistency alert
+            var alert = new
+            {
+                AlertType = "DATA_INCONSISTENCY",
+                Symbol = consistency.Symbol,
+                PriceDeviation = consistency.PriceDeviation,
+                Issues = consistency.Issues,
+                FeedCount = consistency.FeedData.Count,
+                OutlierFeeds = consistency.OutlierFeeds,
+                Timestamp = DateTime.UtcNow,
+                Severity = consistency.PriceDeviation > 0.005m ? "HIGH" : "MEDIUM"
+            };
+
+            // Store alert (implement based on your alerting system)
+            await StoreConsistencyAlertAsync(alert);
+
+            // If deviation is severe, trigger failover
+            if (consistency.PriceDeviation > 0.01m) // 1% deviation
+            {
+                _logger.LogError("[DataConsistency] SEVERE inconsistency detected for {Symbol}: {Deviation:P2}", 
+                    consistency.Symbol, consistency.PriceDeviation);
+                
+                // Consider switching primary feed or halting trading
+                await ConsiderFeedFailoverAsync(consistency);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[DataConsistency] Error handling inconsistency for {Symbol}", consistency.Symbol);
+        }
+    }
+
+    private void LogConsistencyStatus(DataConsistencyResult consistency)
+    {
+        var feedNames = string.Join(", ", consistency.FeedData.Keys);
+        var avgPrice = consistency.FeedData.Values.Average(s => s.Price);
+        
+        if (consistency.IsConsistent)
+        {
+            _logger.LogDebug("[DataConsistency] ✅ {Symbol} consistent across {FeedCount} feeds: avg=${AvgPrice:F2}, deviation={Deviation:P3}", 
+                consistency.Symbol, consistency.FeedData.Count, avgPrice, consistency.PriceDeviation);
+        }
+        else
+        {
+            _logger.LogInformation("[DataConsistency] ⚠️ {Symbol} inconsistent: deviation={Deviation:P2}, issues={IssueCount}", 
+                consistency.Symbol, consistency.PriceDeviation, consistency.Issues.Count);
+        }
+    }
+
+    private double CalculateStandardDeviation(IEnumerable<double> values)
+    {
+        var data = values.ToList();
+        if (data.Count <= 1) return 0.0;
+        
+        var mean = data.Average();
+        var variance = data.Sum(x => Math.Pow(x - mean, 2)) / (data.Count - 1);
+        return Math.Sqrt(variance);
+    }
+
+    private async Task StoreConsistencyAlertAsync(object alert)
+    {
+        try
+        {
+            // Store in database or send to monitoring system
+            _logger.LogWarning("[DataConsistency] ALERT: {Alert}", System.Text.Json.JsonSerializer.Serialize(alert));
+            
+            // TODO: Implement actual storage (database, metrics system, etc.)
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[DataConsistency] Failed to store consistency alert");
+        }
+    }
+
+    private async Task ConsiderFeedFailoverAsync(DataConsistencyResult consistency)
+    {
+        try
+        {
+            // If primary feed is an outlier, switch to a consensus feed
+            if (_primaryFeed != null && consistency.OutlierFeeds.Contains(_primaryFeed.FeedName))
+            {
+                // Find best consensus feed (non-outlier with highest quality score)
+                var consensusFeed = _dataFeeds
+                    .Where(f => !consistency.OutlierFeeds.Contains(f.FeedName))
+                    .Where(f => _feedHealth.TryGetValue(f.FeedName, out var h) && h.IsHealthy)
+                    .OrderByDescending(f => _feedHealth.GetValueOrDefault(f.FeedName)?.DataQualityScore ?? 0)
+                    .FirstOrDefault();
+
+                if (consensusFeed != null)
+                {
+                    _logger.LogWarning("[DataConsistency] Switching primary feed from {OldFeed} to {NewFeed} due to data inconsistency", 
+                        _primaryFeed.FeedName, consensusFeed.FeedName);
+                    
+                    _primaryFeed = consensusFeed;
+                    OnFeedFailover?.Invoke(this, consensusFeed.FeedName);
+                }
+            }
+            
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[DataConsistency] Error during feed failover consideration");
+        }
+    }
+
+    // Data structures for consistency checking
+    public class DataConsistencyResult
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public DateTime CheckTime { get; set; }
+        public Dictionary<string, MarketDataSnapshot> FeedData { get; set; } = new();
+        public bool IsConsistent { get; set; }
+        public decimal PriceDeviation { get; set; }
+        public decimal PriceStandardDeviation { get; set; }
+        public decimal SpreadDeviation { get; set; }
+        public TimeSpan MaxDataAge { get; set; }
+        public TimeSpan AverageDataAge { get; set; }
+        public List<string> OutlierFeeds { get; set; } = new();
+        public List<string> Issues { get; set; } = new();
+    }
+
+    public class MarketDataSnapshot
+    {
+        public string FeedName { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Bid { get; set; }
+        public decimal Ask { get; set; }
+        public decimal Volume { get; set; }
+        public DateTime Timestamp { get; set; }
+        public TimeSpan ResponseTime { get; set; }
+        public TimeSpan DataAge { get; set; }
     }
 
     private double CalculateDataQuality(MarketData? data)
