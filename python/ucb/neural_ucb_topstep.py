@@ -352,3 +352,21 @@ class UCBIntegration:
         except Exception as e:
             print(f"❌ [UCB] Error resetting daily: {e}")
             return json.dumps({"status": "error", "message": str(e)})
+    
+    def save_state(self):
+        """Save the current model state to disk"""
+        try:
+            if hasattr(self.model, '_save_state'):
+                self.model._save_state()
+            elif hasattr(self.model, 'persistence_path') and self.model.persistence_path:
+                # Manual save using pickle if _save_state doesn't exist
+                import pickle
+                with open(self.model.persistence_path, 'wb') as f:
+                    pickle.dump({
+                        'daily_pnl': getattr(self.model, 'daily_pnl', 0.0),
+                        'current_drawdown': getattr(self.model, 'current_drawdown', 0.0),
+                        'account_balance': getattr(self.model, 'account_balance', 50000.0),
+                        'strategy_stats': getattr(self.model, 'strategy_stats', {}),
+                    }, f)
+        except Exception as e:
+            print(f"⚠️ [UCB] Warning: Could not save state: {e}")

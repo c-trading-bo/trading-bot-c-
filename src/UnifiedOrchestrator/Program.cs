@@ -8,6 +8,7 @@ using TradingBot.UnifiedOrchestrator.Infrastructure;
 using BotCore.Infra;
 using BotCore.Brain;
 using BotCore.ML;
+using BotCore.Market;
 using DotNetEnv;
 
 namespace TradingBot.UnifiedOrchestrator;
@@ -89,6 +90,9 @@ public class Program
                 logging.ClearProviders();
                 logging.AddConsole();
                 logging.SetMinimumLevel(LogLevel.Information);
+                // REDUCE NOISE - Override Microsoft and System logging
+                logging.AddFilter("Microsoft", LogLevel.Warning);
+                logging.AddFilter("System", LogLevel.Warning);
             })
             .ConfigureServices((context, services) =>
             {
@@ -153,13 +157,23 @@ public class Program
         services.AddSingleton<UnifiedTradingBrain>();
         Console.WriteLine("🧠 Unified Trading Brain registered - Core AI intelligence enabled");
         
-        // Register UCB Manager (optional) - Auto-detect if UCB service is available
-        var ucbUrl = Environment.GetEnvironmentVariable("UCB_SERVICE_URL") ?? "http://localhost:8001";
+        // Register RedundantDataFeedManager - Multi-feed market data redundancy
+        services.AddSingleton<RedundantDataFeedManager>();
+        Console.WriteLine("📡 RedundantDataFeedManager registered - Multi-feed redundancy enabled");
+        
+        // Register UCB Manager with HttpClient - Auto-detect if UCB service is available
+        var ucbUrl = Environment.GetEnvironmentVariable("UCB_SERVICE_URL") ?? "http://localhost:5000";
         var enableUcb = Environment.GetEnvironmentVariable("ENABLE_UCB") != "0"; // Default to enabled
         
         if (enableUcb)
         {
-            services.AddSingleton<UCBManager>();
+            services.AddHttpClient<UCBManager>(client =>
+            {
+                client.BaseAddress = new Uri(ucbUrl);
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.Add("User-Agent", "TradingBot-UCB/1.0");
+            });
+            
             Console.WriteLine($"🎯 UCB Manager registered - UCB service at {ucbUrl}");
         }
         else

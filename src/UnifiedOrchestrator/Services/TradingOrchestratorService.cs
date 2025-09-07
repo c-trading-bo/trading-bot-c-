@@ -278,7 +278,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
                         ucbStrategy = ucbResult?.Strategy;
                         
                         _logger.LogInformation("🎯 [UCB] Multi-armed bandit recommendation: {Strategy} (confidence: {Confidence:F2}, trade: {ShouldTrade})", 
-                            ucbStrategy ?? "None", ucbResult?.Confidence ?? 0.0, ucbResult?.Trade ?? false);
+                            ucbStrategy ?? "None", ucbResult?.Confidence ?? 0.0m, ucbResult?.Trade ?? false);
                     }
                     catch (Exception ucbEx)
                     {

@@ -1,12 +1,22 @@
-from fastapi import FastAPI, Request, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import json
 import os
 import sys
-import traceback
-from contextlib import asynccontextmanager
+import math
+import asyncio
+from datetime import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Make sure model is importable
 ROOT = os.path.abspath(os.path.dirname(__file__))
@@ -15,188 +25,192 @@ if ROOT not in sys.path:
 
 from neural_ucb_topstep import UCBIntegration
 
-# Global UCB instance with persistence
-ucb: UCBIntegration = None
-
+# ==============================================
+# LIFESPAN MANAGEMENT WITH LOCK
+# ==============================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize UCB on startup, cleanup on shutdown"""
-    global ucb
-    try:
-        persistence_path = os.getenv("UCB_PERSISTENCE_PATH", "ucb_state.pkl")
-        weights_path = os.getenv("UCB_WEIGHTS_PATH", "neural_ucb_topstep.pth")
-        
-        print(f"🚀 [FastAPI] Starting UCB service...")
-        print(f"📁 [FastAPI] Persistence: {persistence_path}")
-        print(f"🧠 [FastAPI] Weights: {weights_path}")
-        
-        ucb = UCBIntegration(weights_path=weights_path, persistence_path=persistence_path)
-        print(f"✅ [FastAPI] UCB service ready!")
-        
-        yield
-        
-    except Exception as e:
-        print(f"❌ [FastAPI] Startup error: {e}")
-        raise
-    finally:
-        # Cleanup on shutdown
-        if ucb and hasattr(ucb.model, '_save_state'):
-            try:
-                ucb.model._save_state()
-                print("💾 [FastAPI] State saved on shutdown")
-            except Exception as e:
-                print(f"⚠️ [FastAPI] Error saving state: {e}")
+    logger.info("🚀 UCB API starting...")
+    
+    # Initialize UCB
+    persistence_path = os.getenv("UCB_PERSISTENCE_PATH", "ucb_state.pkl")
+    weights_path = os.getenv("UCB_WEIGHTS_PATH", "neural_ucb_topstep.pth")
+    app.state.ucb = UCBIntegration(weights_path=weights_path, persistence_path=persistence_path)
+    
+    # Create async lock for thread safety
+    app.state.lock = asyncio.Lock()
+    
+    # Start state persistence task
+    app.state.persistence_task = asyncio.create_task(
+        state_persistence_loop(app.state.ucb, app.state.lock)
+    )
+    
+    logger.info("✅ UCB API ready for trading")
+    yield
+    
+    # Shutdown
+    logger.info("🛑 UCB API stopping...")
+    app.state.persistence_task.cancel()
+    
+    # Save final state
+    async with app.state.lock:
+        app.state.ucb.save_state()
+    logger.info("💾 Final state saved")
 
-app = FastAPI(
-    title="UCB Trading Service",
-    description="Neural UCB for TopStep ES/NQ Trading",
-    version="1.0.0",
-    lifespan=lifespan
-)
+app = FastAPI(title="UCB Service", lifespan=lifespan)
 
-# Add CORS for development
+# ==============================================
+# CORS CONFIGURATION (EXPLICIT)
+# ==============================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[],  # No CORS in production
+    allow_methods=[],
+    allow_headers=[]
 )
 
-@app.get("/")
-async def root():
-    return {"status": "UCB Trading Service", "ready": ucb is not None}
+# ==============================================
+# HELPER FUNCTIONS
+# ==============================================
+def _nz(x):
+    """Safely convert to float, handling None and NaN"""
+    return 0.0 if x is None or (isinstance(x, float) and math.isnan(x)) else float(x)
+
+async def state_persistence_loop(ucb, lock, interval=60):
+    """Auto-save state every interval seconds with lock"""
+    while True:
+        await asyncio.sleep(interval)
+        async with lock:
+            ucb.save_state()
+            logger.info(f"Auto-saved state: PnL=${ucb.model.daily_pnl:.2f}")
+
+# ==============================================
+# API ENDPOINTS WITH PROPER LOCKING
+# ==============================================
+
+# Maximum request body size (64KB)
+MAX_BODY_BYTES = 64 * 1024
+
+@app.post("/ucb/recommend")
+async def recommend(
+    req: Request, 
+    content_type: str = Header(None),
+    x_req_id: str = Header(None, alias="X-Req-Id")
+):
+    """Get trading recommendation based on market data"""
+    # Validate content type
+    if not (content_type and "application/json" in content_type.lower()):
+        raise HTTPException(status_code=415, detail="Content-Type must be application/json")
+    
+    body = await req.body()
+    if len(body) > MAX_BODY_BYTES:
+        raise HTTPException(status_code=413, detail="Payload too large")
+    
+    if x_req_id:
+        logger.info(f"[{x_req_id}] Processing recommendation request ({len(body)} bytes)")
+    
+    # Read-only operation, but optionally lock for absolute serialization
+    # async with app.state.lock:  # Uncomment if you want strict serialization
+    rec_json = app.state.ucb.get_recommendation(body.decode("utf-8"))
+    
+    result = json.loads(rec_json)
+    
+    if x_req_id:
+        logger.info(f"[{x_req_id}] Recommendation: {result.get('strategy')} | Size: {result.get('position_size')}")
+    
+    return JSONResponse(content=result)
+
+@app.post("/ucb/update_pnl")
+async def update_pnl(
+    req: Request,
+    x_req_id: str = Header(None, alias="X-Req-Id")
+):
+    """Update model with trade PnL - LOCKED FOR SAFETY"""
+    data = await req.json()
+    strategy = data.get("strategy", "")
+    pnl = float(data.get("pnl", 0.0))
+    
+    if x_req_id:
+        logger.info(f"[{x_req_id}] PnL update: {strategy} = ${pnl:.2f}")
+    
+    # Lock for state mutation
+    async with app.state.lock:
+        out = app.state.ucb.update_pnl(strategy, pnl)
+        app.state.ucb.save_state()  # Use UCBIntegration's save method
+    
+    return JSONResponse(content=json.loads(out))
+
+@app.post("/ucb/reset_daily")
+async def reset_daily(x_req_id: str = Header(None, alias="X-Req-Id")):
+    """Reset daily statistics - LOCKED FOR SAFETY"""
+    if x_req_id:
+        logger.info(f"[{x_req_id}] Daily reset requested")
+    
+    # Lock for state mutation
+    async with app.state.lock:
+        out = app.state.ucb.reset_daily()
+        app.state.ucb.save_state()  # Use UCBIntegration's save method
+    
+    return JSONResponse(content=json.loads(out))
+
+@app.get("/ucb/limits")
+async def limits():
+    """Get current risk limits without market data - READ ONLY"""
+    trade_blocked, msg, level = app.state.ucb.model.should_stop_trading()
+    
+    return JSONResponse(content={
+        "can_trade": not trade_blocked,
+        "reason": msg if trade_blocked else "OK",
+        "warning": msg if level == "warning" else None,
+        "current_drawdown": _nz(app.state.ucb.model.current_drawdown),
+        "daily_pnl": _nz(app.state.ucb.model.daily_pnl),
+        "account_balance": _nz(app.state.ucb.model.account_balance)
+    })
 
 @app.get("/health")
 async def health():
     """Health check endpoint"""
-    if ucb is None:
-        raise HTTPException(status_code=503, detail="UCB not initialized")
-    
     return {
         "status": "healthy",
-        "model_loaded": True,
-        "daily_pnl": ucb.model.daily_pnl,
-        "current_drawdown": ucb.model.current_drawdown,
-        "strategy_count": len(ucb.model.strategy_stats)
+        "service": "UCB Trading API",
+        "timestamp": datetime.utcnow().isoformat(),
+        "model_loaded": hasattr(app.state, 'ucb')
     }
 
-@app.post("/ucb/recommend")
-async def recommend(req: Request):
-    """Get trading recommendation from UCB model"""
-    if ucb is None:
-        raise HTTPException(status_code=503, detail="UCB not initialized")
+@app.get("/metrics")
+async def metrics():
+    """Basic metrics endpoint - READ ONLY"""
+    if not hasattr(app.state, 'ucb'):
+        return {"error": "Model not loaded"}
     
-    try:
-        body = await req.body()
-        if not body:
-            raise HTTPException(status_code=400, detail="Empty request body")
-        
-        # Forward raw JSON string directly to Python model
-        rec_json = ucb.get_recommendation(body.decode("utf-8"))
-        rec_dict = json.loads(rec_json)
-        
-        return JSONResponse(content=rec_dict)
-        
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid JSON: {str(e)}")
-    except Exception as e:
-        print(f"❌ [FastAPI] Error in recommend: {e}")
-        print(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={"trade": False, "reason": f"Internal error: {str(e)}"}
-        )
-
-@app.post("/ucb/update_pnl")
-async def update_pnl(req: Request):
-    """Update strategy P&L for learning"""
-    if ucb is None:
-        raise HTTPException(status_code=503, detail="UCB not initialized")
+    stats = {}
+    for sid, perf in app.state.ucb.model.strategy_stats.items():
+        # Find strategy name
+        for strat in ["opening_drive", "vwap_reversion", "correlation_divergence", 
+                     "closing_squeeze", "momentum_continuation"]:
+            if app.state.ucb.model._stable_sid(strat) == sid:
+                stats[strat] = {
+                    "trades": perf.get("trades", 0),
+                    "win_rate": perf["wins"] / max(perf["trades"], 1) if "wins" in perf else 0,
+                    "total_pnl": perf.get("total_pnl", 0)
+                }
+                break
     
-    try:
-        data = await req.json()
-        strategy = data.get("strategy", "")
-        pnl = float(data.get("pnl", 0.0))
-        
-        if not strategy:
-            raise HTTPException(status_code=400, detail="Missing strategy parameter")
-        
-        out = ucb.update_pnl(strategy, pnl)
-        result = json.loads(out)
-        
-        return JSONResponse(content=result)
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid pnl value: {str(e)}")
-    except Exception as e:
-        print(f"❌ [FastAPI] Error in update_pnl: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": str(e)}
-        )
-
-@app.post("/ucb/reset_daily")
-async def reset_daily():
-    """Reset daily P&L and drawdown stats"""
-    if ucb is None:
-        raise HTTPException(status_code=503, detail="UCB not initialized")
-    
-    try:
-        out = ucb.reset_daily()
-        result = json.loads(out)
-        
-        return JSONResponse(content=result)
-        
-    except Exception as e:
-        print(f"❌ [FastAPI] Error in reset_daily: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "message": str(e)}
-        )
-
-@app.get("/ucb/stats")
-async def get_stats():
-    """Get current UCB statistics"""
-    if ucb is None:
-        raise HTTPException(status_code=503, detail="UCB not initialized")
-    
-    try:
-        stats = {
-            "daily_pnl": ucb.model.daily_pnl,
-            "current_drawdown": ucb.model.current_drawdown,
-            "account_balance": ucb.model.account_balance,
-            "strategy_stats": ucb.model.strategy_stats,
-            "active_strategies": len(ucb.model.strategy_stats),
-            "compliance_ok": ucb.model.should_stop_trading()[0] != True
-        }
-        
-        return JSONResponse(content=stats)
-        
-    except Exception as e:
-        print(f"❌ [FastAPI] Error in get_stats: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+    return {
+        "strategies": stats,
+        "daily_pnl": _nz(app.state.ucb.model.daily_pnl),
+        "current_drawdown": _nz(app.state.ucb.model.current_drawdown),
+        "account_balance": _nz(app.state.ucb.model.account_balance),
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 if __name__ == "__main__":
-    # Production settings
-    import logging
-    logging.basicConfig(level=logging.INFO)
-    
-    host = os.getenv("UCB_HOST", "0.0.0.0")
-    port = int(os.getenv("UCB_PORT", "5000"))
-    
-    print(f"🚀 Starting UCB FastAPI server on {host}:{port}")
-    print("⚠️  IMPORTANT: Keep this single-process (no --workers > 1)")
-    print("📊 UCB stats live in memory and sync across requests")
-    
+    # BIND TO LOCALHOST ONLY
     uvicorn.run(
         app, 
-        host=host, 
-        port=port,
-        timeout_keep_alive=5,  # Fast timeout for production
-        access_log=True,
-        log_level="info"
+        host="127.0.0.1",  # Localhost only
+        port=5000, 
+        timeout_keep_alive=5,
+        log_level="info",
+        access_log=True
     )
