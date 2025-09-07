@@ -99,11 +99,16 @@ public class RedundantDataFeedManager : IDisposable
         AddDataFeed(new TopstepXDataFeed { Priority = 1 });
         AddDataFeed(new BackupDataFeed { Priority = 2 });
         
-        // Sort by priority
-        _dataFeeds.Sort((a, b) => a.Priority.CompareTo(b.Priority));
-
-        // Connect to all feeds
-        foreach (var feed in _dataFeeds)
+        // Connect to all feeds with thread safety
+        List<IDataFeed> feedsCopy;
+        lock (_dataFeeds)
+        {
+            // Sort by priority
+            _dataFeeds.Sort((a, b) => a.Priority.CompareTo(b.Priority));
+            feedsCopy = new List<IDataFeed>(_dataFeeds);
+        }
+        
+        foreach (var feed in feedsCopy)
         {
             try
             {
@@ -266,7 +271,14 @@ public class RedundantDataFeedManager : IDisposable
         {
             try
             {
-                foreach (var feed in _dataFeeds)
+                // Create a copy of the list to avoid concurrent modification
+                List<IDataFeed> feedsCopy;
+                lock (_dataFeeds)
+                {
+                    feedsCopy = new List<IDataFeed>(_dataFeeds);
+                }
+                
+                foreach (var feed in feedsCopy)
                 {
                     var startTime = DateTime.UtcNow;
                     
