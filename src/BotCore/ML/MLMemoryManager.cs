@@ -2,8 +2,32 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime;
+using Microsoft.ML.OnnxRuntime;
 
 namespace BotCore.ML;
+
+/// <summary>
+/// ONNX Model Wrapper for ML Memory Manager
+/// Wraps InferenceSession for consistent interface and memory management
+/// </summary>
+public class OnnxModelWrapper : IDisposable
+{
+    public InferenceSession Session { get; }
+    public string ModelPath { get; }
+    public DateTime LoadedAt { get; } = DateTime.UtcNow;
+    
+    public OnnxModelWrapper(InferenceSession session, string modelPath)
+    {
+        Session = session ?? throw new ArgumentNullException(nameof(session));
+        ModelPath = modelPath ?? throw new ArgumentNullException(nameof(modelPath));
+    }
+    
+    public void Dispose()
+    {
+        Session?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+}
 
 /// <summary>
 /// ML Memory Management System for preventing memory leaks in the ML pipeline
@@ -149,12 +173,11 @@ public class MLMemoryManager : IMLMemoryManager
     }
 
     /// <summary>
-    /// Placeholder for actual model loading - integrate with existing ONNX loading
+    /// Load actual ONNX model from disk using Microsoft.ML.OnnxRuntime
     /// </summary>
     private async Task<T?> LoadModelFromDiskAsync<T>(string modelPath) where T : class
     {
-        // TODO: Integrate with existing ONNX model loading from StrategyMlModelManager
-        await Task.Delay(100); // Simulate loading time
+        await Task.CompletedTask; // Keep async signature for consistency
         
         if (!File.Exists(modelPath))
         {
@@ -162,8 +185,47 @@ public class MLMemoryManager : IMLMemoryManager
             return null;
         }
         
-        // For now, return a placeholder - this should integrate with actual ONNX loading
-        return Activator.CreateInstance<T>();
+        try
+        {
+            _logger.LogInformation("[ML-Memory] Loading ONNX model from: {ModelPath}", modelPath);
+            
+            // Load ONNX model using Microsoft.ML.OnnxRuntime
+            if (modelPath.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase))
+            {
+                // Create ONNX inference session with optimized settings
+                var sessionOptions = new Microsoft.ML.OnnxRuntime.SessionOptions
+                {
+                    EnableMemoryPattern = true,
+                    EnableCpuMemArena = true,
+                    ExecutionMode = Microsoft.ML.OnnxRuntime.ExecutionMode.ORT_PARALLEL,
+                    GraphOptimizationLevel = Microsoft.ML.OnnxRuntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+                };
+                
+                var session = new Microsoft.ML.OnnxRuntime.InferenceSession(modelPath, sessionOptions);
+                
+                // Wrap in our model wrapper interface
+                var modelWrapper = new OnnxModelWrapper(session, modelPath);
+                
+                _logger.LogInformation("[ML-Memory] Successfully loaded ONNX model: {ModelPath}", modelPath);
+                return modelWrapper as T;
+            }
+            else if (modelPath.EndsWith(".pkl", StringComparison.OrdinalIgnoreCase))
+            {
+                // Handle scikit-learn models (fallback for now)
+                _logger.LogWarning("[ML-Memory] PKL models not yet supported, skipping: {ModelPath}", modelPath);
+                return null;
+            }
+            else
+            {
+                _logger.LogError("[ML-Memory] Unsupported model format: {ModelPath}", modelPath);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ML-Memory] Failed to load model: {ModelPath}", modelPath);
+            return null;
+        }
     }
 
     private async Task EnsureMemoryAvailableAsync()

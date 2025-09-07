@@ -35,9 +35,9 @@ namespace TopstepX.Bot.Core.Services
         
         public class TradingSystemConfiguration
         {
-            public string TopstepXApiBaseUrl { get; set; } = "https://api.topstepx.com";
-            public string UserHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/user";
-            public string MarketHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/market";
+            public string TopstepXApiBaseUrl { get; set; } = Environment.GetEnvironmentVariable("TOPSTEPX_API_URL") ?? "https://api.topstepx.com";
+            public string UserHubUrl { get; set; } = Environment.GetEnvironmentVariable("TOPSTEPX_USER_HUB_URL") ?? "https://rtc.topstepx.com/hubs/user";
+            public string MarketHubUrl { get; set; } = Environment.GetEnvironmentVariable("TOPSTEPX_MARKET_HUB_URL") ?? "https://rtc.topstepx.com/hubs/market";
             public string AccountId { get; set; } = string.Empty;
             public bool EnableDryRunMode { get; set; } = true;
             public bool EnableAutoExecution { get; set; } = false;

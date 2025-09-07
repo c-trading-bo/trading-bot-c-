@@ -32,7 +32,18 @@ public sealed class TopstepAuthAgent
             throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
         }
 
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        var responseBody = await resp.Content.ReadAsStringAsync(ct);
+        using var doc = JsonDocument.Parse(responseBody);
+        
+        // Check if authentication was successful
+        if (doc.RootElement.TryGetProperty("success", out var successProp) && 
+            successProp.GetBoolean() == false)
+        {
+            var errorCode = doc.RootElement.TryGetProperty("errorCode", out var errCodeProp) ? errCodeProp.GetInt32() : 0;
+            var errorMessage = doc.RootElement.TryGetProperty("errorMessage", out var errMsgProp) ? errMsgProp.GetString() : "Unknown error";
+            throw new HttpRequestException($"TopstepX authentication failed - Error Code: {errorCode}, Message: {errorMessage ?? "No message"}");
+        }
+        
         return doc.RootElement.GetProperty("token").GetString()!;
     }
 
