@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-06T02:25:12.222665",
+  "article_count": 60,
+  "avg_sentiment": 0.045000000000000005,
+  "news_intensity": 1.0,
+  "volatility_score": 6,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 6
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "StubHub, Netskope to Begin IPO Marketing as Soon as Monday",
+      "summary": "",
+      "published": "2025-09-04T20:18:31Z",
+      "link": "https://finance.yahoo.com/news/stubhub-netskope-begin-ipo-marketing-201831136.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Docusign Raises Outlook as AI Tools Gain Traction With Bigger Customers",
+      "summary": "",
+      "published": "2025-09-04T20:18:00Z",
+      "link": "https://www.wsj.com/business/earnings/docusign-raises-outlook-as-ai-tools-gain-traction-with-bigger-customers-ba47d39d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "These Stocks Moved the Most Today: Figma, T. Rowe Price, Credo, Salesforce, American Eagle, HPE, Ciena, and More",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/stock-movers-2ca26bf1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "VinFast Stock Drops After EV Maker Posts Wider-Than-Expected Loss",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/vinfast-earnings-stock-price-4261b29d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Ares CEO Arougheti Sees PE and Sports Investing Colliding",
+      "summary": "",
+      "published": "2025-09-04T20:17:57Z",
+      "link": "https://finance.yahoo.com/video/ares-ceo-arougheti-sees-pe-201757172.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "GE Aerospace Moves Toward Hybrid Electric Engines. The Stock Is Up.",
+      "summary": "",
+      "published": "2025-09-04T20:31:00Z",
+      "link": "https://www.barrons.com/articles/ge-aerospace-stock-electric-engine-7cecd627?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "\u201cI Don\u2019t Really Care About\u201d Fortinet, Inc. (FTNT), Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:33:24Z",
+      "link": "https://finance.yahoo.com/news/don-t-really-care-fortinet-203324459.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Believes Broadcom Inc. (AVGO) Just Has The Best CEO",
+      "summary": "",
+      "published": "2025-09-04T20:32:29Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-believes-broadcom-inc-203229528.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Pop in Macy\u2019s Stock?",
+      "summary": "",
+      "published": "2025-09-04T20:16:18Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-pop-macy-201618221.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "HPE 'Aggressively' Adopting Agentic AI Says CEO",
+      "summary": "",
+      "published": "2025-09-04T20:29:28Z",
+      "link": "https://finance.yahoo.com/video/hpe-aggressively-adopting-agentic-ai-202928952.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Swings to Profit, Beats on Sales Outlook",
+      "summary": "",
+      "published": "2025-09-04T20:34:00Z",
+      "link": "https://www.wsj.com/business/earnings/broadcom-swings-to-profit-beats-on-sales-outlook-c196d802?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Airbus Stock Catches an Upgrade. That\u2019s Good for Boeing, Too.",
+      "summary": "",
+      "published": "2025-09-04T20:34:00Z",
+      "link": "https://www.barrons.com/articles/airbus-stock-upgrade-boeing-a59bc30c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon cuts forecasts, blames tariffs and product issues",
+      "summary": "",
+      "published": "2025-09-04T20:15:46Z",
+      "link": "https://finance.yahoo.com/news/lululemon-slashes-annual-sales-profit-201546142.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "People Believe Intuit Inc. (INTU)\u2019s Model Isn\u2019t Working, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:32:58Z",
+      "link": "https://finance.yahoo.com/news/people-believe-intuit-inc-intu-203258595.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bloomberg analyst says altcoin ETF approvals unlikely to trigger a traditional alt season",
+      "summary": "",
+      "published": "2025-09-04T20:30:41Z",
+      "link": "https://finance.yahoo.com/news/bloomberg-analyst-says-altcoin-etf-203041252.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Microsoft (MSFT) Tightens Chinese Access to Cyber Early Warning System",
+      "summary": "",
+      "published": "2025-09-04T20:37:12Z",
+      "link": "https://finance.yahoo.com/news/microsoft-msft-tightens-chinese-access-203712914.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "People Love McDonald\u2019s Corporation (MCD) Because Of Value, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:38:43Z",
+      "link": "https://finance.yahoo.com/news/people-love-mcdonald-corporation-mcd-203843453.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Shares Investment Legend Charlie Munger\u2019s Advice For Costco Wholesale Corporation (COST)",
+      "summary": "",
+      "published": "2025-09-04T20:38:00Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-shares-investment-legend-203800894.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Lucid Stock Is Tanking. It Isn\u2018t About Fundamentals.",
+      "summary": "",
+      "published": "2025-09-04T20:14:00Z",
+      "link": "https://www.barrons.com/articles/lucid-stock-reverse-split-price-11437aea?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Lumen Technologies Stock Was Rocketing Higher Today",
+      "summary": "",
+      "published": "2025-09-04T20:17:00Z",
+      "link": "https://finance.yahoo.com/news/why-lumen-technologies-stock-rocketing-201700522.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "StubHub, Netskope to Begin IPO Marketing as Soon as Monday",
+      "summary": "",
+      "published": "2025-09-04T20:18:31Z",
+      "link": "https://finance.yahoo.com/news/stubhub-netskope-begin-ipo-marketing-201831136.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Docusign Raises Outlook as AI Tools Gain Traction With Bigger Customers",
+      "summary": "",
+      "published": "2025-09-04T20:18:00Z",
+      "link": "https://www.wsj.com/business/earnings/docusign-raises-outlook-as-ai-tools-gain-traction-with-bigger-customers-ba47d39d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "These Stocks Moved the Most Today: Figma, T. Rowe Price, Credo, Salesforce, American Eagle, HPE, Ciena, and More",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/stock-movers-2ca26bf1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "VinFast Stock Drops After EV Maker Posts Wider-Than-Expected Loss",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/vinfast-earnings-stock-price-4261b29d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Ares CEO Arougheti Sees PE and Sports Investing Colliding",
+      "summary": "",
+      "published": "2025-09-04T20:17:57Z",
+      "link": "https://finance.yahoo.com/video/ares-ceo-arougheti-sees-pe-201757172.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "GE Aerospace Moves Toward Hybrid Electric Engines. The Stock Is Up.",
+      "summary": "",
+      "published": "2025-09-04T20:31:00Z",
+      "link": "https://www.barrons.com/articles/ge-aerospace-stock-electric-engine-7cecd627?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "\u201cI Don\u2019t Really Care About\u201d Fortinet, Inc. (FTNT), Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:33:24Z",
+      "link": "https://finance.yahoo.com/news/don-t-really-care-fortinet-203324459.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Believes Broadcom Inc. (AVGO) Just Has The Best CEO",
+      "summary": "",
+      "published": "2025-09-04T20:32:29Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-believes-broadcom-inc-203229528.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Pop in Macy\u2019s Stock?",
+      "summary": "",
+      "published": "2025-09-04T20:16:18Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-pop-macy-201618221.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "HPE 'Aggressively' Adopting Agentic AI Says CEO",
+      "summary": "",
+      "published": "2025-09-04T20:29:28Z",
+      "link": "https://finance.yahoo.com/video/hpe-aggressively-adopting-agentic-ai-202928952.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Swings to Profit, Beats on Sales Outlook",
+      "summary": "",
+      "published": "2025-09-04T20:34:00Z",
+      "link": "https://www.wsj.com/business/earnings/broadcom-swings-to-profit-beats-on-sales-outlook-c196d802?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Airbus Stock Catches an Upgrade. That\u2019s Good for Boeing, Too.",
+      "summary": "",
+      "published": "2025-09-04T20:34:00Z",
+      "link": "https://www.barrons.com/articles/airbus-stock-upgrade-boeing-a59bc30c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon cuts forecasts, blames tariffs and product issues",
+      "summary": "",
+      "published": "2025-09-04T20:15:46Z",
+      "link": "https://finance.yahoo.com/news/lululemon-slashes-annual-sales-profit-201546142.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "People Believe Intuit Inc. (INTU)\u2019s Model Isn\u2019t Working, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:32:58Z",
+      "link": "https://finance.yahoo.com/news/people-believe-intuit-inc-intu-203258595.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bloomberg analyst says altcoin ETF approvals unlikely to trigger a traditional alt season",
+      "summary": "",
+      "published": "2025-09-04T20:30:41Z",
+      "link": "https://finance.yahoo.com/news/bloomberg-analyst-says-altcoin-etf-203041252.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Microsoft (MSFT) Tightens Chinese Access to Cyber Early Warning System",
+      "summary": "",
+      "published": "2025-09-04T20:37:12Z",
+      "link": "https://finance.yahoo.com/news/microsoft-msft-tightens-chinese-access-203712914.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "People Love McDonald\u2019s Corporation (MCD) Because Of Value, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:38:43Z",
+      "link": "https://finance.yahoo.com/news/people-love-mcdonald-corporation-mcd-203843453.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Shares Investment Legend Charlie Munger\u2019s Advice For Costco Wholesale Corporation (COST)",
+      "summary": "",
+      "published": "2025-09-04T20:38:00Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-shares-investment-legend-203800894.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Lucid Stock Is Tanking. It Isn\u2018t About Fundamentals.",
+      "summary": "",
+      "published": "2025-09-04T20:14:00Z",
+      "link": "https://www.barrons.com/articles/lucid-stock-reverse-split-price-11437aea?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Lumen Technologies Stock Was Rocketing Higher Today",
+      "summary": "",
+      "published": "2025-09-04T20:17:00Z",
+      "link": "https://finance.yahoo.com/news/why-lumen-technologies-stock-rocketing-201700522.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "StubHub, Netskope to Begin IPO Marketing as Soon as Monday",
+      "summary": "",
+      "published": "2025-09-04T20:18:31Z",
+      "link": "https://finance.yahoo.com/news/stubhub-netskope-begin-ipo-marketing-201831136.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Docusign Raises Outlook as AI Tools Gain Traction With Bigger Customers",
+      "summary": "",
+      "published": "2025-09-04T20:18:00Z",
+      "link": "https://www.wsj.com/business/earnings/docusign-raises-outlook-as-ai-tools-gain-traction-with-bigger-customers-ba47d39d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "These Stocks Moved the Most Today: Figma, T. Rowe Price, Credo, Salesforce, American Eagle, HPE, Ciena, and More",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/stock-movers-2ca26bf1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "VinFast Stock Drops After EV Maker Posts Wider-Than-Expected Loss",
+      "summary": "",
+      "published": "2025-09-04T20:29:00Z",
+      "link": "https://www.barrons.com/articles/vinfast-earnings-stock-price-4261b29d?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Ares CEO Arougheti Sees PE and Sports Investing Colliding",
+      "summary": "",
+      "published": "2025-09-04T20:17:57Z",
+      "link": "https://finance.yahoo.com/video/ares-ceo-arougheti-sees-pe-201757172.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "GE Aerospace Moves Toward Hybrid Electric Engines. The Stock Is Up.",
+      "summary": "",
+      "published": "2025-09-04T20:31:00Z",
+      "link": "https://www.barrons.com/articles/ge-aerospace-stock-electric-engine-7cecd627?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "\u201cI Don\u2019t Really Care About\u201d Fortinet, Inc. (FTNT), Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T20:33:24Z",
+      "link": "https://finance.yahoo.com/news/don-t-really-care-fortinet-203324459.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Believes Broadcom Inc. (AVGO) Just Has The Best CEO",
+      "summary": "",
+      "published": "2025-09-04T20:32:29Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-believes-broadcom-inc-203229528.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Pop in Macy\u2019s Stock?",
+      "summary": "",
+      "published": "2025-09-04T20:16:18Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-pop-macy-201618221.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "HPE 'Aggressively' Adopting Agentic AI Says CEO",
+      "summary": "",
+      "published": "2025-09-04T20:29:28Z",
+      "link": "https://finance.yahoo.com/video/hpe-aggressively-adopting-agentic-ai-202928952.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

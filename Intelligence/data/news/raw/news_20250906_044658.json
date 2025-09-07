@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-06T04:46:58.303938",
+  "article_count": 60,
+  "avg_sentiment": 2.7755575615628915e-18,
+  "news_intensity": 1.0,
+  "volatility_score": 18,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": true,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 18
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Lululemon Cuts Outlook as U.S. Sales Underperform",
+      "summary": "",
+      "published": "2025-09-04T21:45:00Z",
+      "link": "https://www.wsj.com/business/earnings/lululemon-cuts-fiscal-year-outlook-as-u-s-sales-underperform-ac4500d9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom, Docusign, Smith & Wesson: Stocks to Watch Afterhours",
+      "summary": "",
+      "published": "2025-09-04T21:46:45Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-broadcom-docusign-stocks-to-watch-afterhours-4ZcwPexyhFFDomDy63ig?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cotton Posts Mixed Action on Thursday",
+      "summary": "",
+      "published": "2025-09-04T21:48:40Z",
+      "link": "https://finance.yahoo.com/news/cotton-posts-mixed-action-thursday-214840701.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Bulls Rally Back to Close Higher",
+      "summary": "",
+      "published": "2025-09-04T21:48:39Z",
+      "link": "https://finance.yahoo.com/news/corn-bulls-rally-back-close-214839733.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Best low- and no-down-payment mortgage lenders of 2025",
+      "summary": "",
+      "published": "2024-12-30T17:01:21Z",
+      "link": "https://finance.yahoo.com/personal-finance/mortgages/article/best-low-and-no-down-payment-mortgage-lenders-170121918.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Shares Drop After Apparel Maker Says Tariffs Will Hurt Profits",
+      "summary": "",
+      "published": "2025-09-04T21:51:15Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-shares-drop-after-apparel-maker-says-tariffs-will-hurt-profits-MMrsXAxBZwZJlq212UTf?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock details a trade designed to capitalize on a US dollar that will stay historically weak for years",
+      "summary": "",
+      "published": "2025-09-04T21:58:21Z",
+      "link": "https://finance.yahoo.com/news/blackrock-details-trade-designed-capitalize-215821863.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Private Equity Says Its Fund Values Don\u2019t Come From Dartboards",
+      "summary": "",
+      "published": "2025-09-04T22:12:00Z",
+      "link": "https://www.barrons.com/articles/private-equity-fund-values-18f84fad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Recap: The Goldman Touch",
+      "summary": "",
+      "published": "2025-09-04T21:30:02Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/heard-on-the-street-recap-the-goldman-touch-7HfSxyfUiEpctr9eUaQ5?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BRB weighs new bid for Master after Brazil central bank blocks deal, source says",
+      "summary": "",
+      "published": "2025-09-04T22:10:49Z",
+      "link": "https://finance.yahoo.com/news/brb-weighs-bid-master-brazil-221049403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Delivers Beat-And-Raise Report On AI Strength",
+      "summary": "",
+      "published": "2025-09-04T22:13:58Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-avgo-fiscal-q3-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Phreesia PHR Q2 2026 Earnings Call Transcript",
+      "summary": "",
+      "published": "2025-09-04T22:03:17Z",
+      "link": "https://finance.yahoo.com/news/phreesia-phr-q2-2026-earnings-220317128.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "TQL offers $2,000 resignation incentive to workers",
+      "summary": "",
+      "published": "2025-09-04T21:25:36Z",
+      "link": "https://finance.yahoo.com/news/tql-offers-2-000-resignation-212536369.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Figma Stock Plunges After Disappointing Post-IPO Report",
+      "summary": "",
+      "published": "2025-09-04T21:18:59Z",
+      "link": "https://www.investors.com/news/technology/figma-stock-q2-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Irth Capital raising assets for constructivist fund, Abbot to lead effort",
+      "summary": "",
+      "published": "2025-09-04T22:26:08Z",
+      "link": "https://finance.yahoo.com/news/irth-capital-raising-assets-constructivist-222608445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Abercrombie & Fitch is betting on its NFL deal as rival scooped up Travis Kelce",
+      "summary": "",
+      "published": "2025-09-04T21:13:24Z",
+      "link": "https://finance.yahoo.com/news/abercrombie--fitch-is-betting-on-its-nfl-deal-as-rival-scooped-up-travis-kelce-211324860.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Salesforce Stock Drops on Weak Forecast: Important Price Levels to Keep an Eye On",
+      "summary": "",
+      "published": "2025-09-04T22:07:09Z",
+      "link": "https://finance.yahoo.com/news/salesforce-stock-drops-weak-forecast-220709967.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Cerence AI Files Lawsuit Against Apple, Alleging Patent Infringement",
+      "summary": "",
+      "published": "2025-09-04T22:29:00Z",
+      "link": "https://www.wsj.com/tech/cerence-ai-files-lawsuit-against-apple-alleging-patent-infringement-9b7131aa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Record EV Sales Drive Auto Market Ahead of Credit End",
+      "summary": "",
+      "published": "2025-09-04T21:06:00Z",
+      "link": "https://www.wsj.com/business/autos/record-ev-sales-drive-auto-market-ahead-of-credit-end-3a55b366?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trading Day: Rallying into payrolls",
+      "summary": "",
+      "published": "2025-09-04T21:05:49Z",
+      "link": "https://finance.yahoo.com/news/trading-day-rallying-payrolls-210549470.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Cuts Outlook as U.S. Sales Underperform",
+      "summary": "",
+      "published": "2025-09-04T21:45:00Z",
+      "link": "https://www.wsj.com/business/earnings/lululemon-cuts-fiscal-year-outlook-as-u-s-sales-underperform-ac4500d9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom, Docusign, Smith & Wesson: Stocks to Watch Afterhours",
+      "summary": "",
+      "published": "2025-09-04T21:46:45Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-broadcom-docusign-stocks-to-watch-afterhours-4ZcwPexyhFFDomDy63ig?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cotton Posts Mixed Action on Thursday",
+      "summary": "",
+      "published": "2025-09-04T21:48:40Z",
+      "link": "https://finance.yahoo.com/news/cotton-posts-mixed-action-thursday-214840701.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Bulls Rally Back to Close Higher",
+      "summary": "",
+      "published": "2025-09-04T21:48:39Z",
+      "link": "https://finance.yahoo.com/news/corn-bulls-rally-back-close-214839733.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Best low- and no-down-payment mortgage lenders of 2025",
+      "summary": "",
+      "published": "2024-12-30T17:01:21Z",
+      "link": "https://finance.yahoo.com/personal-finance/mortgages/article/best-low-and-no-down-payment-mortgage-lenders-170121918.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Shares Drop After Apparel Maker Says Tariffs Will Hurt Profits",
+      "summary": "",
+      "published": "2025-09-04T21:51:15Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-shares-drop-after-apparel-maker-says-tariffs-will-hurt-profits-MMrsXAxBZwZJlq212UTf?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock details a trade designed to capitalize on a US dollar that will stay historically weak for years",
+      "summary": "",
+      "published": "2025-09-04T21:58:21Z",
+      "link": "https://finance.yahoo.com/news/blackrock-details-trade-designed-capitalize-215821863.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Private Equity Says Its Fund Values Don\u2019t Come From Dartboards",
+      "summary": "",
+      "published": "2025-09-04T22:12:00Z",
+      "link": "https://www.barrons.com/articles/private-equity-fund-values-18f84fad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Recap: The Goldman Touch",
+      "summary": "",
+      "published": "2025-09-04T21:30:02Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/heard-on-the-street-recap-the-goldman-touch-7HfSxyfUiEpctr9eUaQ5?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BRB weighs new bid for Master after Brazil central bank blocks deal, source says",
+      "summary": "",
+      "published": "2025-09-04T22:10:49Z",
+      "link": "https://finance.yahoo.com/news/brb-weighs-bid-master-brazil-221049403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Delivers Beat-And-Raise Report On AI Strength",
+      "summary": "",
+      "published": "2025-09-04T22:13:58Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-avgo-fiscal-q3-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Phreesia PHR Q2 2026 Earnings Call Transcript",
+      "summary": "",
+      "published": "2025-09-04T22:03:17Z",
+      "link": "https://finance.yahoo.com/news/phreesia-phr-q2-2026-earnings-220317128.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "TQL offers $2,000 resignation incentive to workers",
+      "summary": "",
+      "published": "2025-09-04T21:25:36Z",
+      "link": "https://finance.yahoo.com/news/tql-offers-2-000-resignation-212536369.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Figma Stock Plunges After Disappointing Post-IPO Report",
+      "summary": "",
+      "published": "2025-09-04T21:18:59Z",
+      "link": "https://www.investors.com/news/technology/figma-stock-q2-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Irth Capital raising assets for constructivist fund, Abbot to lead effort",
+      "summary": "",
+      "published": "2025-09-04T22:26:08Z",
+      "link": "https://finance.yahoo.com/news/irth-capital-raising-assets-constructivist-222608445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Abercrombie & Fitch is betting on its NFL deal as rival scooped up Travis Kelce",
+      "summary": "",
+      "published": "2025-09-04T21:13:24Z",
+      "link": "https://finance.yahoo.com/news/abercrombie--fitch-is-betting-on-its-nfl-deal-as-rival-scooped-up-travis-kelce-211324860.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Salesforce Stock Drops on Weak Forecast: Important Price Levels to Keep an Eye On",
+      "summary": "",
+      "published": "2025-09-04T22:07:09Z",
+      "link": "https://finance.yahoo.com/news/salesforce-stock-drops-weak-forecast-220709967.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Cerence AI Files Lawsuit Against Apple, Alleging Patent Infringement",
+      "summary": "",
+      "published": "2025-09-04T22:29:00Z",
+      "link": "https://www.wsj.com/tech/cerence-ai-files-lawsuit-against-apple-alleging-patent-infringement-9b7131aa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Record EV Sales Drive Auto Market Ahead of Credit End",
+      "summary": "",
+      "published": "2025-09-04T21:06:00Z",
+      "link": "https://www.wsj.com/business/autos/record-ev-sales-drive-auto-market-ahead-of-credit-end-3a55b366?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trading Day: Rallying into payrolls",
+      "summary": "",
+      "published": "2025-09-04T21:05:49Z",
+      "link": "https://finance.yahoo.com/news/trading-day-rallying-payrolls-210549470.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Cuts Outlook as U.S. Sales Underperform",
+      "summary": "",
+      "published": "2025-09-04T21:45:00Z",
+      "link": "https://www.wsj.com/business/earnings/lululemon-cuts-fiscal-year-outlook-as-u-s-sales-underperform-ac4500d9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom, Docusign, Smith & Wesson: Stocks to Watch Afterhours",
+      "summary": "",
+      "published": "2025-09-04T21:46:45Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-broadcom-docusign-stocks-to-watch-afterhours-4ZcwPexyhFFDomDy63ig?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cotton Posts Mixed Action on Thursday",
+      "summary": "",
+      "published": "2025-09-04T21:48:40Z",
+      "link": "https://finance.yahoo.com/news/cotton-posts-mixed-action-thursday-214840701.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Bulls Rally Back to Close Higher",
+      "summary": "",
+      "published": "2025-09-04T21:48:39Z",
+      "link": "https://finance.yahoo.com/news/corn-bulls-rally-back-close-214839733.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Best low- and no-down-payment mortgage lenders of 2025",
+      "summary": "",
+      "published": "2024-12-30T17:01:21Z",
+      "link": "https://finance.yahoo.com/personal-finance/mortgages/article/best-low-and-no-down-payment-mortgage-lenders-170121918.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Shares Drop After Apparel Maker Says Tariffs Will Hurt Profits",
+      "summary": "",
+      "published": "2025-09-04T21:51:15Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-shares-drop-after-apparel-maker-says-tariffs-will-hurt-profits-MMrsXAxBZwZJlq212UTf?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock details a trade designed to capitalize on a US dollar that will stay historically weak for years",
+      "summary": "",
+      "published": "2025-09-04T21:58:21Z",
+      "link": "https://finance.yahoo.com/news/blackrock-details-trade-designed-capitalize-215821863.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Private Equity Says Its Fund Values Don\u2019t Come From Dartboards",
+      "summary": "",
+      "published": "2025-09-04T22:12:00Z",
+      "link": "https://www.barrons.com/articles/private-equity-fund-values-18f84fad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Recap: The Goldman Touch",
+      "summary": "",
+      "published": "2025-09-04T21:30:02Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/heard-on-the-street-recap-the-goldman-touch-7HfSxyfUiEpctr9eUaQ5?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BRB weighs new bid for Master after Brazil central bank blocks deal, source says",
+      "summary": "",
+      "published": "2025-09-04T22:10:49Z",
+      "link": "https://finance.yahoo.com/news/brb-weighs-bid-master-brazil-221049403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    }
+  ]
+}

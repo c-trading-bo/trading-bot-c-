@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-06T05:44:32.762117",
+  "article_count": 60,
+  "avg_sentiment": 0.03666666666666667,
+  "news_intensity": 1.0,
+  "volatility_score": 0,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 0
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Fosun unit to divest 40% stake in Portugal's Luz Saude to Macquarie-linked firm",
+      "summary": "",
+      "published": "2025-09-04T22:44:36Z",
+      "link": "https://finance.yahoo.com/news/hong-kongs-fosun-divest-stake-224436224.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Why Oklo Stock Tumbled by Almost 4% on Thursday",
+      "summary": "",
+      "published": "2025-09-04T22:43:40Z",
+      "link": "https://finance.yahoo.com/news/why-oklo-stock-tumbled-almost-224340490.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Alphabet (GOOGL) Outlook: Analysts See Google TPUs as Strong NVIDIA Alternative",
+      "summary": "",
+      "published": "2025-09-04T22:50:31Z",
+      "link": "https://finance.yahoo.com/news/alphabet-googl-outlook-analysts-see-225031838.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom (AVGO) Remains a Top Pick as Cantor Fitzgerald Lifts Price Target to $350",
+      "summary": "",
+      "published": "2025-09-04T22:54:09Z",
+      "link": "https://finance.yahoo.com/news/broadcom-avgo-remains-top-pick-225409122.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Apple Stock (AAPL) Backed by Analysts Ahead of iPhone Launch Event",
+      "summary": "",
+      "published": "2025-09-04T22:56:41Z",
+      "link": "https://finance.yahoo.com/news/apple-stock-aapl-backed-analysts-225717444.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Alibaba (BABA) Stock Gets Boost as Analysts See AI Cloud Growth Ahead",
+      "summary": "",
+      "published": "2025-09-04T23:00:11Z",
+      "link": "https://finance.yahoo.com/news/alibaba-baba-stock-gets-boost-230011637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Debenhams Group Plans to Sell PrettyLittleThing, Close Distribution Center",
+      "summary": "",
+      "published": "2025-09-04T22:43:45Z",
+      "link": "https://finance.yahoo.com/news/debenhams-group-plans-sell-prettylittlething-224345009.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ASML Stock Still a Buy Despite Tariff and Booking Headwinds",
+      "summary": "",
+      "published": "2025-09-04T23:05:13Z",
+      "link": "https://finance.yahoo.com/news/asml-stock-still-buy-despite-230513808.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cerence AI Files Lawsuit Against Apple, Alleging Patent Infringement",
+      "summary": "",
+      "published": "2025-09-04T22:29:00Z",
+      "link": "https://www.wsj.com/tech/cerence-ai-files-lawsuit-against-apple-alleging-patent-infringement-9b7131aa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Irth Capital raising assets for constructivist fund, Abbot to lead effort",
+      "summary": "",
+      "published": "2025-09-04T22:26:08Z",
+      "link": "https://finance.yahoo.com/news/irth-capital-raising-assets-constructivist-222608445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Delivers Beat-And-Raise Report On AI Strength",
+      "summary": "",
+      "published": "2025-09-04T22:13:58Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-avgo-fiscal-q3-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tether Issues $2B USDT as Crypto Markets Decline, Largest Mint in 9 Months",
+      "summary": "",
+      "published": "2025-09-04T22:48:36Z",
+      "link": "https://finance.yahoo.com/news/tether-issues-2b-usdt-crypto-224836759.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Private Equity Says Its Fund Values Don\u2019t Come From Dartboards",
+      "summary": "",
+      "published": "2025-09-04T22:12:00Z",
+      "link": "https://www.barrons.com/articles/private-equity-fund-values-18f84fad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BRB weighs new bid for Master after Brazil central bank blocks deal, source says",
+      "summary": "",
+      "published": "2025-09-04T22:10:49Z",
+      "link": "https://finance.yahoo.com/news/brb-weighs-bid-master-brazil-221049403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Morgan Stanley Names Palo Alto Networks (PANW) a Top Pick, Raises PT to $216",
+      "summary": "",
+      "published": "2025-09-04T23:09:59Z",
+      "link": "https://finance.yahoo.com/news/morgan-stanley-names-palo-alto-230959591.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Demand for EVs Drives Auto Industry Sales",
+      "summary": "",
+      "published": "2025-09-04T23:18:36Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/demand-for-evs-drives-auto-industry-sales-p8bU1DyZ6dafWpHWWSOW?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Kraken Acquires Breakout to Enable Leveraged Bitcoin Trading With Funded Accounts",
+      "summary": "",
+      "published": "2025-09-04T22:37:59Z",
+      "link": "https://finance.yahoo.com/news/kraken-acquires-breakout-enable-leveraged-223759071.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Best low- and no-down-payment mortgage lenders of 2025",
+      "summary": "",
+      "published": "2024-12-30T17:01:21Z",
+      "link": "https://finance.yahoo.com/personal-finance/mortgages/article/best-low-and-no-down-payment-mortgage-lenders-170121918.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Analysts See Big Upside Ahead for Astera Labs (ALAB)",
+      "summary": "",
+      "published": "2025-09-04T23:21:11Z",
+      "link": "https://finance.yahoo.com/news/why-analysts-see-big-upside-232111735.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Shares Drop After Apparel Maker Says Tariffs Will Hurt Profits",
+      "summary": "",
+      "published": "2025-09-04T21:51:15Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-shares-drop-after-apparel-maker-says-tariffs-will-hurt-profits-MMrsXAxBZwZJlq212UTf?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Is She 'Being Cheap' For Not Wanting A $60K Truck And $850 Monthly Payment While They're Still Renting? Her Husband Thinks So",
+      "summary": "",
+      "published": "2025-09-04T22:30:17Z",
+      "link": "https://finance.yahoo.com/news/she-being-cheap-not-wanting-223017574.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cerence AI Files Lawsuit Against Apple, Alleging Patent Infringement",
+      "summary": "",
+      "published": "2025-09-04T22:29:00Z",
+      "link": "https://www.wsj.com/tech/cerence-ai-files-lawsuit-against-apple-alleging-patent-infringement-9b7131aa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Irth Capital raising assets for constructivist fund, Abbot to lead effort",
+      "summary": "",
+      "published": "2025-09-04T22:26:08Z",
+      "link": "https://finance.yahoo.com/news/irth-capital-raising-assets-constructivist-222608445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Fosun unit to divest 40% stake in Portugal's Luz Saude to Macquarie-linked firm",
+      "summary": "",
+      "published": "2025-09-04T22:44:36Z",
+      "link": "https://finance.yahoo.com/news/hong-kongs-fosun-divest-stake-224436224.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Alphabet (GOOGL) Outlook: Analysts See Google TPUs as Strong NVIDIA Alternative",
+      "summary": "",
+      "published": "2025-09-04T22:50:31Z",
+      "link": "https://finance.yahoo.com/news/alphabet-googl-outlook-analysts-see-225031838.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Today's moving stocks: American Eagle, Figma, T. Rowe Price, Amazon, Sanofi",
+      "summary": "",
+      "published": "2025-09-04T22:28:51Z",
+      "link": "https://finance.yahoo.com/news/todays-moving-stocks-american-eagle-222851118.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Delivers Beat-And-Raise Report On AI Strength",
+      "summary": "",
+      "published": "2025-09-04T22:13:58Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-avgo-fiscal-q3-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Private Equity Says Its Fund Values Don\u2019t Come From Dartboards",
+      "summary": "",
+      "published": "2025-09-04T22:12:00Z",
+      "link": "https://www.barrons.com/articles/private-equity-fund-values-18f84fad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BRB weighs new bid for Master after Brazil central bank blocks deal, source says",
+      "summary": "",
+      "published": "2025-09-04T22:10:49Z",
+      "link": "https://finance.yahoo.com/news/brb-weighs-bid-master-brazil-221049403.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom (AVGO) Remains a Top Pick as Cantor Fitzgerald Lifts Price Target to $350",
+      "summary": "",
+      "published": "2025-09-04T22:54:09Z",
+      "link": "https://finance.yahoo.com/news/broadcom-avgo-remains-top-pick-225409122.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Texas Roadhouse Stock Slipped Today",
+      "summary": "",
+      "published": "2025-09-04T22:28:00Z",
+      "link": "https://finance.yahoo.com/news/why-texas-roadhouse-stock-slipped-222800591.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Best low- and no-down-payment mortgage lenders of 2025",
+      "summary": "",
+      "published": "2024-12-30T17:01:21Z",
+      "link": "https://finance.yahoo.com/personal-finance/mortgages/article/best-low-and-no-down-payment-mortgage-lenders-170121918.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Shares Drop After Apparel Maker Says Tariffs Will Hurt Profits",
+      "summary": "",
+      "published": "2025-09-04T21:51:15Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-shares-drop-after-apparel-maker-says-tariffs-will-hurt-profits-MMrsXAxBZwZJlq212UTf?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Apple Stock (AAPL) Backed by Analysts Ahead of iPhone Launch Event",
+      "summary": "",
+      "published": "2025-09-04T22:56:41Z",
+      "link": "https://finance.yahoo.com/news/apple-stock-aapl-backed-analysts-225717444.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Bulls Rally Back to Close Higher",
+      "summary": "",
+      "published": "2025-09-04T21:48:39Z",
+      "link": "https://finance.yahoo.com/news/corn-bulls-rally-back-close-214839733.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Kraken Acquires Breakout to Enable Leveraged Bitcoin Trading With Funded Accounts",
+      "summary": "",
+      "published": "2025-09-04T22:37:59Z",
+      "link": "https://finance.yahoo.com/news/kraken-acquires-breakout-enable-leveraged-223759071.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Cotton Posts Mixed Action on Thursday",
+      "summary": "",
+      "published": "2025-09-04T21:48:40Z",
+      "link": "https://finance.yahoo.com/news/cotton-posts-mixed-action-thursday-214840701.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom, Docusign, Smith & Wesson: Stocks to Watch Afterhours",
+      "summary": "",
+      "published": "2025-09-04T21:46:45Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/lululemon-broadcom-docusign-stocks-to-watch-afterhours-4ZcwPexyhFFDomDy63ig?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Cuts Outlook as U.S. Sales Underperform",
+      "summary": "",
+      "published": "2025-09-04T21:45:00Z",
+      "link": "https://www.wsj.com/business/earnings/lululemon-cuts-fiscal-year-outlook-as-u-s-sales-underperform-ac4500d9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Alibaba (BABA) Stock Gets Boost as Analysts See AI Cloud Growth Ahead",
+      "summary": "",
+      "published": "2025-09-04T23:00:11Z",
+      "link": "https://finance.yahoo.com/news/alibaba-baba-stock-gets-boost-230011637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Kraken Acquires Breakout to Enable Leveraged Bitcoin Trading With Funded Accounts",
+      "summary": "",
+      "published": "2025-09-04T22:37:59Z",
+      "link": "https://finance.yahoo.com/news/kraken-acquires-breakout-enable-leveraged-223759071.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Fosun unit to divest 40% stake in Portugal's Luz Saude to Macquarie-linked firm",
+      "summary": "",
+      "published": "2025-09-04T22:44:36Z",
+      "link": "https://finance.yahoo.com/news/hong-kongs-fosun-divest-stake-224436224.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Alphabet (GOOGL) Outlook: Analysts See Google TPUs as Strong NVIDIA Alternative",
+      "summary": "",
+      "published": "2025-09-04T22:50:31Z",
+      "link": "https://finance.yahoo.com/news/alphabet-googl-outlook-analysts-see-225031838.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom (AVGO) Remains a Top Pick as Cantor Fitzgerald Lifts Price Target to $350",
+      "summary": "",
+      "published": "2025-09-04T22:54:09Z",
+      "link": "https://finance.yahoo.com/news/broadcom-avgo-remains-top-pick-225409122.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cerence AI Files Lawsuit Against Apple, Alleging Patent Infringement",
+      "summary": "",
+      "published": "2025-09-04T22:29:00Z",
+      "link": "https://www.wsj.com/tech/cerence-ai-files-lawsuit-against-apple-alleging-patent-infringement-9b7131aa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Debenhams Group Plans to Sell PrettyLittleThing, Close Distribution Center",
+      "summary": "",
+      "published": "2025-09-04T22:43:45Z",
+      "link": "https://finance.yahoo.com/news/debenhams-group-plans-sell-prettylittlething-224345009.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Apple Stock (AAPL) Backed by Analysts Ahead of iPhone Launch Event",
+      "summary": "",
+      "published": "2025-09-04T22:56:41Z",
+      "link": "https://finance.yahoo.com/news/apple-stock-aapl-backed-analysts-225717444.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Irth Capital raising assets for constructivist fund, Abbot to lead effort",
+      "summary": "",
+      "published": "2025-09-04T22:26:08Z",
+      "link": "https://finance.yahoo.com/news/irth-capital-raising-assets-constructivist-222608445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Alibaba (BABA) Stock Gets Boost as Analysts See AI Cloud Growth Ahead",
+      "summary": "",
+      "published": "2025-09-04T23:00:11Z",
+      "link": "https://finance.yahoo.com/news/alibaba-baba-stock-gets-boost-230011637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom Delivers Beat-And-Raise Report On AI Strength",
+      "summary": "",
+      "published": "2025-09-04T22:13:58Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-avgo-fiscal-q3-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

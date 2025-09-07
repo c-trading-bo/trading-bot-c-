@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-07T04:15:39.406785",
+  "article_count": 60,
+  "avg_sentiment": 0.06000000000000001,
+  "news_intensity": 1.0,
+  "volatility_score": 12,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": true,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 12
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P, Nasdaq, Dow fall as weak jobs data sparks Wall Street worries",
+      "summary": "",
+      "published": "2025-09-05T17:21:16Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-nasdaq-dow-fall-as-weak-jobs-data-sparks-wall-street-worries-172116750.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Fade on Economic Concerns after Weak US Unemployment Report",
+      "summary": "",
+      "published": "2025-09-05T20:57:26Z",
+      "link": "https://finance.yahoo.com/news/stocks-fade-economic-concerns-weak-205726630.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:58:00Z",
+      "link": "https://www.wsj.com/articles/financial-services-roundup-market-talk-85cb8565?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Did Palantir Stock Drop Today?",
+      "summary": "",
+      "published": "2025-09-05T20:58:13Z",
+      "link": "https://finance.yahoo.com/news/why-did-palantir-stock-drop-205813240.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Timing Is Everything For This Niche Chipmaker",
+      "summary": "",
+      "published": "2025-09-05T21:00:27Z",
+      "link": "https://www.investors.com/news/technology/sitime-stock-sitm-chipmaker-precision-timing-leader/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Score: Macy\u2019s, Kraft Heinz, Tesla and More Stocks That Defined the Week",
+      "summary": "",
+      "published": "2025-09-05T21:02:00Z",
+      "link": "https://www.wsj.com/finance/stocks/macys-kraft-heinz-tesla-american-eagle-alphabet-7cab387e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Up 300%, This Artificial Intelligence (AI) Upstart Has Room to Soar",
+      "summary": "",
+      "published": "2025-09-05T21:00:00Z",
+      "link": "https://finance.yahoo.com/news/300-artificial-intelligence-ai-upstart-210000654.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.5,
+      "has_numbers": true
+    },
+    {
+      "title": "Broadcom stock soars as Wall Street cheers AI chips as 'leading alternative' to Nvidia",
+      "summary": "",
+      "published": "2025-09-05T16:53:49Z",
+      "link": "https://finance.yahoo.com/news/broadcom-stock-soars-as-wall-street-cheers-ai-chips-as-leading-alternative-to-nvidia-165349027.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Bonds Rally, Stocks Drop After Jobs Report Amplifies Concerns for Economy",
+      "summary": "",
+      "published": "2025-09-05T21:09:00Z",
+      "link": "https://www.wsj.com/finance/stocks/bonds-rally-stocks-drop-after-jobs-report-amplifies-concerns-for-economy-41f87c6a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Regulators Team Up for 24-Hour Trading and Event Betting",
+      "summary": "",
+      "published": "2025-09-05T21:10:00Z",
+      "link": "https://www.barrons.com/articles/sec-cftc-rules-24-hour-trading-9f8d7562?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shuffle Board: Sheertex Parent Names BonLook Founder CEO",
+      "summary": "",
+      "published": "2025-09-05T21:00:00Z",
+      "link": "https://finance.yahoo.com/news/shuffle-board-sheertex-parent-names-210000454.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Chip Business Fuels Broadcom's Strong Quarterly Report",
+      "summary": "",
+      "published": "2025-09-05T21:12:16Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-jumps-ai-chip-sales-growth/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "China Plans to Sideline Lithium Competition. Albemarle Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:37:00Z",
+      "link": "https://www.barrons.com/articles/china-plans-to-sideline-lithium-competition-albemarle-stock-rises-b93b754c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Screw the money \u2014 Anthropic\u2019s $1.5B copyright settlement sucks for writers",
+      "summary": "",
+      "published": "2025-09-05T20:59:21Z",
+      "link": "https://finance.yahoo.com/news/screw-money-anthropic-1-5b-205921708.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P, Nasdaq, Dow fall as weak jobs data sparks Wall Street worries",
+      "summary": "",
+      "published": "2025-09-05T17:21:16Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-nasdaq-dow-fall-as-weak-jobs-data-sparks-wall-street-worries-172116750.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Fade on Economic Concerns after Weak US Unemployment Report",
+      "summary": "",
+      "published": "2025-09-05T20:57:26Z",
+      "link": "https://finance.yahoo.com/news/stocks-fade-economic-concerns-weak-205726630.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:58:00Z",
+      "link": "https://www.wsj.com/articles/financial-services-roundup-market-talk-85cb8565?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Did Palantir Stock Drop Today?",
+      "summary": "",
+      "published": "2025-09-05T20:58:13Z",
+      "link": "https://finance.yahoo.com/news/why-did-palantir-stock-drop-205813240.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Timing Is Everything For This Niche Chipmaker",
+      "summary": "",
+      "published": "2025-09-05T21:00:27Z",
+      "link": "https://www.investors.com/news/technology/sitime-stock-sitm-chipmaker-precision-timing-leader/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Score: Macy\u2019s, Kraft Heinz, Tesla and More Stocks That Defined the Week",
+      "summary": "",
+      "published": "2025-09-05T21:02:00Z",
+      "link": "https://www.wsj.com/finance/stocks/macys-kraft-heinz-tesla-american-eagle-alphabet-7cab387e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Up 300%, This Artificial Intelligence (AI) Upstart Has Room to Soar",
+      "summary": "",
+      "published": "2025-09-05T21:00:00Z",
+      "link": "https://finance.yahoo.com/news/300-artificial-intelligence-ai-upstart-210000654.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.5,
+      "has_numbers": true
+    },
+    {
+      "title": "Broadcom stock soars as Wall Street cheers AI chips as 'leading alternative' to Nvidia",
+      "summary": "",
+      "published": "2025-09-05T16:53:49Z",
+      "link": "https://finance.yahoo.com/news/broadcom-stock-soars-as-wall-street-cheers-ai-chips-as-leading-alternative-to-nvidia-165349027.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Bonds Rally, Stocks Drop After Jobs Report Amplifies Concerns for Economy",
+      "summary": "",
+      "published": "2025-09-05T21:09:00Z",
+      "link": "https://www.wsj.com/finance/stocks/bonds-rally-stocks-drop-after-jobs-report-amplifies-concerns-for-economy-41f87c6a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Regulators Team Up for 24-Hour Trading and Event Betting",
+      "summary": "",
+      "published": "2025-09-05T21:10:00Z",
+      "link": "https://www.barrons.com/articles/sec-cftc-rules-24-hour-trading-9f8d7562?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shuffle Board: Sheertex Parent Names BonLook Founder CEO",
+      "summary": "",
+      "published": "2025-09-05T21:00:00Z",
+      "link": "https://finance.yahoo.com/news/shuffle-board-sheertex-parent-names-210000454.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Chip Business Fuels Broadcom's Strong Quarterly Report",
+      "summary": "",
+      "published": "2025-09-05T21:12:16Z",
+      "link": "https://www.investors.com/news/technology/broadcom-stock-jumps-ai-chip-sales-growth/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "China Plans to Sideline Lithium Competition. Albemarle Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:37:00Z",
+      "link": "https://www.barrons.com/articles/china-plans-to-sideline-lithium-competition-albemarle-stock-rises-b93b754c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Screw the money \u2014 Anthropic\u2019s $1.5B copyright settlement sucks for writers",
+      "summary": "",
+      "published": "2025-09-05T20:59:21Z",
+      "link": "https://finance.yahoo.com/news/screw-money-anthropic-1-5b-205921708.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P, Nasdaq, Dow fall as weak jobs data sparks Wall Street worries",
+      "summary": "",
+      "published": "2025-09-05T17:21:16Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-nasdaq-dow-fall-as-weak-jobs-data-sparks-wall-street-worries-172116750.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Fade on Economic Concerns after Weak US Unemployment Report",
+      "summary": "",
+      "published": "2025-09-05T20:57:26Z",
+      "link": "https://finance.yahoo.com/news/stocks-fade-economic-concerns-weak-205726630.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:58:00Z",
+      "link": "https://www.wsj.com/articles/financial-services-roundup-market-talk-85cb8565?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Did Palantir Stock Drop Today?",
+      "summary": "",
+      "published": "2025-09-05T20:58:13Z",
+      "link": "https://finance.yahoo.com/news/why-did-palantir-stock-drop-205813240.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Timing Is Everything For This Niche Chipmaker",
+      "summary": "",
+      "published": "2025-09-05T21:00:27Z",
+      "link": "https://www.investors.com/news/technology/sitime-stock-sitm-chipmaker-precision-timing-leader/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Score: Macy\u2019s, Kraft Heinz, Tesla and More Stocks That Defined the Week",
+      "summary": "",
+      "published": "2025-09-05T21:02:00Z",
+      "link": "https://www.wsj.com/finance/stocks/macys-kraft-heinz-tesla-american-eagle-alphabet-7cab387e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

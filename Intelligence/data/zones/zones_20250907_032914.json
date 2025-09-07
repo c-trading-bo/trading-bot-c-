@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-07T04:47:09.946417",
+  "timestamp": "2025-09-07T03:29:14.847523",
   "symbol": "ES=F",
   "current_price": 6489.75,
   "supply_zones": [
@@ -26,6 +26,17 @@
       "active": true
     },
     {
+      "price_level": 6414.5,
+      "zone_top": 6427.329,
+      "zone_bottom": 6401.671,
+      "strength": 47.197409993368964,
+      "volume": 156636,
+      "timeframe": "1h",
+      "created": "2025-08-07T09:00:00-04:00",
+      "touches": 0,
+      "active": true
+    },
+    {
       "price_level": 6541.75,
       "zone_top": 6554.8335,
       "zone_bottom": 6528.6665,
@@ -33,17 +44,6 @@
       "volume": 204311,
       "timeframe": "1h",
       "created": "2025-09-05T09:00:00-04:00",
-      "touches": 0,
-      "active": true
-    },
-    {
-      "price_level": 6476.0,
-      "zone_top": 6488.952,
-      "zone_bottom": 6463.048,
-      "strength": 34.94073587892359,
-      "volume": 264676,
-      "timeframe": "1h",
-      "created": "2025-08-29T15:00:00-04:00",
       "touches": 0,
       "active": true
     },
@@ -131,7 +131,7 @@
       "zone_top": 6384.4935,
       "zone_bottom": 6359.0065,
       "strength": 56.864975097062626,
-      "volume": 188791,
+      "volume": 188790,
       "timeframe": "1h",
       "created": "2025-09-02T11:00:00-04:00",
       "touches": 0,
@@ -149,17 +149,6 @@
       "active": true
     },
     {
-      "price_level": 6362.75,
-      "zone_top": 6375.4755000000005,
-      "zone_bottom": 6350.0244999999995,
-      "strength": 38.67446699909694,
-      "volume": 301669,
-      "timeframe": "1h",
-      "created": "2025-08-20T10:00:00-04:00",
-      "touches": 0,
-      "active": true
-    },
-    {
       "price_level": 6410.25,
       "zone_top": 6423.0705,
       "zone_bottom": 6397.4295,
@@ -171,27 +160,38 @@
       "active": true
     },
     {
-      "price_level": 6426.5,
-      "zone_top": 6439.353,
-      "zone_bottom": 6413.647,
-      "strength": 28.183797232156742,
-      "volume": 107052,
+      "price_level": 6362.75,
+      "zone_top": 6375.4755000000005,
+      "zone_bottom": 6350.0244999999995,
+      "strength": 36.7112960854372,
+      "volume": 301669,
       "timeframe": "1h",
-      "created": "2025-09-03T14:00:00-04:00",
+      "created": "2025-08-20T10:00:00-04:00",
+      "touches": 0,
+      "active": true
+    },
+    {
+      "price_level": 6372.5,
+      "zone_top": 6385.245,
+      "zone_bottom": 6359.755,
+      "strength": 35.00332433806563,
+      "volume": 131958,
+      "timeframe": "1h",
+      "created": "2025-09-02T12:00:00-04:00",
       "touches": 0,
       "active": true
     }
   ],
-  "poc": 6488.8125,
+  "poc": 6485.0,
   "nearest_supply": {
     "price": 6535.75,
     "distance": 46.0,
     "strength": 49.919669497360566
   },
   "nearest_demand": {
-    "price": 6426.5,
-    "distance": 63.25,
-    "strength": 28.183797232156742
+    "price": 6410.25,
+    "distance": 79.5,
+    "strength": 37.02837542874961
   },
   "statistics": {
     "total_supply_zones": 6,

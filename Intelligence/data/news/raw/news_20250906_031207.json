@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-06T03:12:07.650411",
+  "article_count": 60,
+  "avg_sentiment": 0.11333333333333338,
+  "news_intensity": 1.0,
+  "volatility_score": 30,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": true,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 30
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Record EV Sales Drive Auto Market Ahead of Credit End",
+      "summary": "",
+      "published": "2025-09-04T21:06:00Z",
+      "link": "https://www.wsj.com/business/autos/record-ev-sales-drive-auto-market-ahead-of-credit-end-3a55b366?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stripe enlists a who\u2019s who, including Anthropic, OpenAI, and Paradigm, to build a new blockchain",
+      "summary": "",
+      "published": "2025-09-04T21:07:34Z",
+      "link": "https://finance.yahoo.com/news/stripe-enlists-including-anthropic-openai-210734287.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Abercrombie & Fitch is betting on its NFL deal as rival scooped up Travis Kelce",
+      "summary": "",
+      "published": "2025-09-04T21:13:24Z",
+      "link": "https://finance.yahoo.com/news/abercrombie--fitch-is-betting-on-its-nfl-deal-as-rival-scooped-up-travis-kelce-211324860.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trading Day: Rallying into payrolls",
+      "summary": "",
+      "published": "2025-09-04T21:05:49Z",
+      "link": "https://finance.yahoo.com/news/trading-day-rallying-payrolls-210549470.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Samsara Earnings Top Wall Street Targets. Sales Guidance Above Views.",
+      "summary": "",
+      "published": "2025-09-04T21:04:55Z",
+      "link": "https://www.investors.com/news/technology/samsara-stock-iot-samsara-earnings-fiscal-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Types of International ETFs To Consider Buying, According To Fidelity",
+      "summary": "",
+      "published": "2025-09-04T21:05:11Z",
+      "link": "https://finance.yahoo.com/news/3-types-international-etfs-consider-210511226.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Smith & Wesson First-Quarter Loss Widens as Sales Slip",
+      "summary": "",
+      "published": "2025-09-04T21:03:00Z",
+      "link": "https://www.wsj.com/business/earnings/smith-wesson-first-quarter-loss-widens-as-sales-slip-d86a516e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Supported by Fed Rate Cut Expectations",
+      "summary": "",
+      "published": "2025-09-04T21:00:34Z",
+      "link": "https://finance.yahoo.com/news/stocks-supported-fed-rate-cut-210034125.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Figma Stock Plunges After Disappointing Post-IPO Report",
+      "summary": "",
+      "published": "2025-09-04T21:18:59Z",
+      "link": "https://www.investors.com/news/technology/figma-stock-q2-2025-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T21:00:00Z",
+      "link": "https://www.wsj.com/business/basic-materials-roundup-market-talk-77712c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Did NuScale Power Stock (SMR) Plummet Today?",
+      "summary": "",
+      "published": "2025-09-04T21:11:58Z",
+      "link": "https://finance.yahoo.com/news/why-did-nuscale-power-stock-211158689.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:58:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-5f9af75f?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/business/auto-transport-roundup-market-talk-e6a9bf79?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Rally as Hopes for Rate Cuts Build",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/finance/stocks/stocks-rally-as-hopes-for-rate-cuts-build-d2f47c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom's Revenue Reaches Record High on Strong AI Demand",
+      "summary": "",
+      "published": "2025-09-04T21:12:05Z",
+      "link": "https://finance.yahoo.com/news/broadcoms-revenue-reaches-record-high-211205477.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:55:00Z",
+      "link": "https://www.wsj.com/finance/banking/financial-services-roundup-market-talk-5ddc4906?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "UiPath Boosts Outlook After Swinging to Profit",
+      "summary": "",
+      "published": "2025-09-04T20:56:00Z",
+      "link": "https://www.wsj.com/business/earnings/uipath-boosts-outlook-after-swinging-to-profit-59ba5ba2?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Sydney Sweeney's Great Jeans Just Tripped This $815 Million Stock Move",
+      "summary": "",
+      "published": "2025-09-04T20:53:55Z",
+      "link": "https://www.investors.com/news/american-eagle-aeo-stock-sydney-sweeney-brand-reset-travis-kelce-earnings-customers/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Plunge in Figma Stock?",
+      "summary": "",
+      "published": "2025-09-04T20:52:04Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-plunge-figma-205204893.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Why AppLovin Stock Bumped Higher Today",
+      "summary": "",
+      "published": "2025-09-04T21:15:56Z",
+      "link": "https://finance.yahoo.com/news/why-applovin-stock-bumped-higher-211556194.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Smith & Wesson First-Quarter Loss Widens as Sales Slip",
+      "summary": "",
+      "published": "2025-09-04T21:03:00Z",
+      "link": "https://www.wsj.com/business/earnings/smith-wesson-first-quarter-loss-widens-as-sales-slip-d86a516e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Ethereum ETFs Bleed Amid $301M BTC Inflow, Yet Whales Buy More ETH \u2013 Here\u2019s Why",
+      "summary": "",
+      "published": "2025-09-04T21:00:41Z",
+      "link": "https://finance.yahoo.com/news/ethereum-etfs-bleed-amid-301m-210041289.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Record EV Sales Drive Auto Market Ahead of Credit End",
+      "summary": "",
+      "published": "2025-09-04T21:06:00Z",
+      "link": "https://www.wsj.com/business/autos/record-ev-sales-drive-auto-market-ahead-of-credit-end-3a55b366?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Supported by Fed Rate Cut Expectations",
+      "summary": "",
+      "published": "2025-09-04T21:00:34Z",
+      "link": "https://finance.yahoo.com/news/stocks-supported-fed-rate-cut-210034125.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T21:00:00Z",
+      "link": "https://www.wsj.com/business/basic-materials-roundup-market-talk-77712c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/business/auto-transport-roundup-market-talk-e6a9bf79?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Types of International ETFs To Consider Buying, According To Fidelity",
+      "summary": "",
+      "published": "2025-09-04T21:05:11Z",
+      "link": "https://finance.yahoo.com/news/3-types-international-etfs-consider-210511226.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Rally as Hopes for Rate Cuts Build",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/finance/stocks/stocks-rally-as-hopes-for-rate-cuts-build-d2f47c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trading Day: Rallying into payrolls",
+      "summary": "",
+      "published": "2025-09-04T21:05:49Z",
+      "link": "https://finance.yahoo.com/news/trading-day-rallying-payrolls-210549470.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:58:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-5f9af75f?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Samsara Earnings Top Wall Street Targets. Sales Guidance Above Views.",
+      "summary": "",
+      "published": "2025-09-04T21:04:55Z",
+      "link": "https://www.investors.com/news/technology/samsara-stock-iot-samsara-earnings-fiscal-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stripe enlists a who\u2019s who, including Anthropic, OpenAI, and Paradigm, to build a new blockchain",
+      "summary": "",
+      "published": "2025-09-04T21:07:34Z",
+      "link": "https://finance.yahoo.com/news/stripe-enlists-including-anthropic-openai-210734287.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "UiPath Boosts Outlook After Swinging to Profit",
+      "summary": "",
+      "published": "2025-09-04T20:56:00Z",
+      "link": "https://www.wsj.com/business/earnings/uipath-boosts-outlook-after-swinging-to-profit-59ba5ba2?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Abercrombie & Fitch is betting on its NFL deal as rival scooped up Travis Kelce",
+      "summary": "",
+      "published": "2025-09-04T21:13:24Z",
+      "link": "https://finance.yahoo.com/news/abercrombie--fitch-is-betting-on-its-nfl-deal-as-rival-scooped-up-travis-kelce-211324860.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Did NuScale Power Stock (SMR) Plummet Today?",
+      "summary": "",
+      "published": "2025-09-04T21:11:58Z",
+      "link": "https://finance.yahoo.com/news/why-did-nuscale-power-stock-211158689.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:55:00Z",
+      "link": "https://www.wsj.com/finance/banking/financial-services-roundup-market-talk-5ddc4906?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Sydney Sweeney's Great Jeans Just Tripped This $815 Million Stock Move",
+      "summary": "",
+      "published": "2025-09-04T20:53:55Z",
+      "link": "https://www.investors.com/news/american-eagle-aeo-stock-sydney-sweeney-brand-reset-travis-kelce-earnings-customers/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:53:00Z",
+      "link": "https://www.wsj.com/business/tech-media-telecom-roundup-market-talk-f838f20c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Plunge in Figma Stock?",
+      "summary": "",
+      "published": "2025-09-04T20:52:04Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-plunge-figma-205204893.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom's Revenue Reaches Record High on Strong AI Demand",
+      "summary": "",
+      "published": "2025-09-04T21:12:05Z",
+      "link": "https://finance.yahoo.com/news/broadcoms-revenue-reaches-record-high-211205477.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Smith & Wesson First-Quarter Loss Widens as Sales Slip",
+      "summary": "",
+      "published": "2025-09-04T21:03:00Z",
+      "link": "https://www.wsj.com/business/earnings/smith-wesson-first-quarter-loss-widens-as-sales-slip-d86a516e?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Ethereum ETFs Bleed Amid $301M BTC Inflow, Yet Whales Buy More ETH \u2013 Here\u2019s Why",
+      "summary": "",
+      "published": "2025-09-04T21:00:41Z",
+      "link": "https://finance.yahoo.com/news/ethereum-etfs-bleed-amid-301m-210041289.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Record EV Sales Drive Auto Market Ahead of Credit End",
+      "summary": "",
+      "published": "2025-09-04T21:06:00Z",
+      "link": "https://www.wsj.com/business/autos/record-ev-sales-drive-auto-market-ahead-of-credit-end-3a55b366?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Supported by Fed Rate Cut Expectations",
+      "summary": "",
+      "published": "2025-09-04T21:00:34Z",
+      "link": "https://finance.yahoo.com/news/stocks-supported-fed-rate-cut-210034125.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T21:00:00Z",
+      "link": "https://www.wsj.com/business/basic-materials-roundup-market-talk-77712c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/business/auto-transport-roundup-market-talk-e6a9bf79?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Types of International ETFs To Consider Buying, According To Fidelity",
+      "summary": "",
+      "published": "2025-09-04T21:05:11Z",
+      "link": "https://finance.yahoo.com/news/3-types-international-etfs-consider-210511226.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Rally as Hopes for Rate Cuts Build",
+      "summary": "",
+      "published": "2025-09-04T20:57:00Z",
+      "link": "https://www.wsj.com/finance/stocks/stocks-rally-as-hopes-for-rate-cuts-build-d2f47c64?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trading Day: Rallying into payrolls",
+      "summary": "",
+      "published": "2025-09-04T21:05:49Z",
+      "link": "https://finance.yahoo.com/news/trading-day-rallying-payrolls-210549470.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-04T20:58:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-5f9af75f?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-09-07T04:47:09.946417",
+  "timestamp": "2025-09-07T00:51:27.464616",
   "symbol": "ES=F",
-  "current_price": 6489.75,
+  "current_price": 6488.75,
   "supply_zones": [
     {
       "price_level": 5520.0,
@@ -22,6 +22,17 @@
       "volume": 82422,
       "timeframe": "1h",
       "created": "2025-09-05T08:00:00-04:00",
+      "touches": 0,
+      "active": true
+    },
+    {
+      "price_level": 6414.5,
+      "zone_top": 6427.329,
+      "zone_bottom": 6401.671,
+      "strength": 47.197409993368964,
+      "volume": 156636,
+      "timeframe": "1h",
+      "created": "2025-08-07T09:00:00-04:00",
       "touches": 0,
       "active": true
     },
@@ -55,17 +66,6 @@
       "volume": 131833,
       "timeframe": "1h",
       "created": "2025-08-19T09:00:00-04:00",
-      "touches": 0,
-      "active": true
-    },
-    {
-      "price_level": 6475.25,
-      "zone_top": 6488.2005,
-      "zone_bottom": 6462.2995,
-      "strength": 21.256038647342997,
-      "volume": 66052,
-      "timeframe": "1h",
-      "created": "2025-08-25T14:00:00-04:00",
       "touches": 0,
       "active": true
     }
@@ -171,27 +171,27 @@
       "active": true
     },
     {
-      "price_level": 6426.5,
-      "zone_top": 6439.353,
-      "zone_bottom": 6413.647,
-      "strength": 28.183797232156742,
-      "volume": 107052,
+      "price_level": 6334.5,
+      "zone_top": 6347.169,
+      "zone_bottom": 6321.831,
+      "strength": 28.35203780271707,
+      "volume": 118717,
       "timeframe": "1h",
-      "created": "2025-09-03T14:00:00-04:00",
+      "created": "2025-08-07T14:00:00-04:00",
       "touches": 0,
       "active": true
     }
   ],
-  "poc": 6488.8125,
+  "poc": 6485.0,
   "nearest_supply": {
     "price": 6535.75,
-    "distance": 46.0,
+    "distance": 47.0,
     "strength": 49.919669497360566
   },
   "nearest_demand": {
-    "price": 6426.5,
-    "distance": 63.25,
-    "strength": 28.183797232156742
+    "price": 6410.25,
+    "distance": 78.5,
+    "strength": 37.02837542874961
   },
   "statistics": {
     "total_supply_zones": 6,

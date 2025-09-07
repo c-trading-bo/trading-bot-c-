@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-07T03:02:21.313917",
+  "article_count": 60,
+  "avg_sentiment": 0.06833333333333333,
+  "news_intensity": 1.0,
+  "volatility_score": 8,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": true,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 8
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Anthony Scaramucci Admits He Failed To Understand Bitcoin For 8 Years Before Finally Becoming A Believer: 'I Was Very Negative'",
+      "summary": "",
+      "published": "2025-09-05T20:30:15Z",
+      "link": "https://finance.yahoo.com/news/anthony-scaramucci-admits-failed-understand-203015035.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Powerball jackpot skyrockets to $1.8 billion. Here's what the winner will take home after taxes.",
+      "summary": "",
+      "published": "2023-10-12T14:53:55Z",
+      "link": "https://finance.yahoo.com/personal-finance/taxes/article/powerball-after-taxes-145355982.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Surges to New Highs as Weak Jobs Data Fuels Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-05T20:30:33Z",
+      "link": "https://finance.yahoo.com/news/gold-surges-highs-weak-jobs-203033138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Rivian Is Laying Off Workers. The EV Pain Is Coming.",
+      "summary": "",
+      "published": "2025-09-05T20:29:00Z",
+      "link": "https://www.barrons.com/articles/rivian-stock-price-layoffs-ev-756f83f6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks to Watch Recap: Kenvue, Broadcom, Alphabet, AMD",
+      "summary": "",
+      "published": "2025-09-05T20:29:16Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/stocks-to-watch-friday-broadcom-docusign-lululemon-EcxVFrYeOLMZVy1B9ahR?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Trump Crypto Rally Just Sparked Wall Street's Biggest IPO Rush Since 2021\u2014Here's Why Smart Money Is Finally Going Public",
+      "summary": "",
+      "published": "2025-09-05T20:35:30Z",
+      "link": "https://finance.yahoo.com/news/trump-crypto-rally-just-sparked-203530426.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T20:27:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slides As Nasdaq Scores Weekly Gains; Nvidia Breaks Key Level As Tesla Rises (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T20:25:29Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Slip After Weak Jobs Report",
+      "summary": "",
+      "published": "2025-09-05T20:22:00Z",
+      "link": "https://www.wsj.com/finance/stocks/nikkei-rises-1-3-auto-technology-stocks-gain-28f33521?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Byte-Sized AI: Walmart Partners With OpenAI for Employee Training; Nvidia Links With Intel Spinout on Physical AI",
+      "summary": "",
+      "published": "2025-09-05T20:26:04Z",
+      "link": "https://finance.yahoo.com/news/byte-sized-ai-walmart-partners-202604146.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "China Plans to Sideline Lithium Competition. Albemarle Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:37:00Z",
+      "link": "https://www.barrons.com/articles/china-plans-to-sideline-lithium-competition-albemarle-stock-rises-b93b754c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "GE Vernova Inc. (GEV) \u201cIs The One You Want To Buy,\u201d Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-05T20:20:58Z",
+      "link": "https://finance.yahoo.com/news/ge-vernova-inc-gev-one-202058138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "JPLD Gathers $313M",
+      "summary": "",
+      "published": "2025-09-05T20:19:52Z",
+      "link": "https://finance.yahoo.com/news/jpld-gathers-313m-201952521.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "These Stocks Moved the Most Today: Broadcom, Nvidia, Lululemon, Tesla, Samsara, Kenvue, Guidewire, and More",
+      "summary": "",
+      "published": "2025-09-05T20:20:00Z",
+      "link": "https://www.barrons.com/articles/stock-movers-098b68bb?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "401(k) millionaires reach an all-time high. Here\u2019s the No. 1 thing most Gen Xers and boomers did to get there.",
+      "summary": "",
+      "published": "2025-09-05T20:24:00Z",
+      "link": "https://finance.yahoo.com/news/401-k-millionaires-reach-time-040100193.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Employers Need Certainty Around Tariffs, Not Lower Rates",
+      "summary": "",
+      "published": "2025-09-05T20:20:00Z",
+      "link": "https://www.barrons.com/articles/labor-market-interest-rates-hiring-jobs-1ad584d3?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tesla Stock Rises After Board Proposes Vast Pay Package for Musk",
+      "summary": "",
+      "published": "2025-09-05T20:19:49Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/tesla-stock-rises-after-board-proposes-vast-pay-package-for-musk-mVhA63fmiwaNUZjJwb5R?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks Slip After Weak Jobs Report",
+      "summary": "",
+      "published": "2025-09-05T20:22:00Z",
+      "link": "https://www.wsj.com/finance/stocks/nikkei-rises-1-3-auto-technology-stocks-gain-28f33521?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Time to Buy?",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://finance.yahoo.com/news/time-buy-202300791.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "GE Vernova Inc. (GEV) \u201cIs The One You Want To Buy,\u201d Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-05T20:20:58Z",
+      "link": "https://finance.yahoo.com/news/ge-vernova-inc-gev-one-202058138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Tesla Stock Rises After Board Proposes Vast Pay Package for Musk",
+      "summary": "",
+      "published": "2025-09-05T20:19:49Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/tesla-stock-rises-after-board-proposes-vast-pay-package-for-musk-mVhA63fmiwaNUZjJwb5R?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "JPLD Gathers $313M",
+      "summary": "",
+      "published": "2025-09-05T20:19:52Z",
+      "link": "https://finance.yahoo.com/news/jpld-gathers-313m-201952521.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "These Stocks Moved the Most Today: Broadcom, Nvidia, Lululemon, Tesla, Samsara, Kenvue, Guidewire, and More",
+      "summary": "",
+      "published": "2025-09-05T20:20:00Z",
+      "link": "https://www.barrons.com/articles/stock-movers-098b68bb?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "401(k) millionaires reach an all-time high. Here\u2019s the No. 1 thing most Gen Xers and boomers did to get there.",
+      "summary": "",
+      "published": "2025-09-05T20:24:00Z",
+      "link": "https://finance.yahoo.com/news/401-k-millionaires-reach-time-040100193.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Employers Need Certainty Around Tariffs, Not Lower Rates",
+      "summary": "",
+      "published": "2025-09-05T20:20:00Z",
+      "link": "https://www.barrons.com/articles/labor-market-interest-rates-hiring-jobs-1ad584d3?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slides As Nasdaq Scores Weekly Gains; Nvidia Breaks Key Level As Tesla Rises (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T20:25:29Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "ZoomInfo, International Money Express, and More Stocks See Action From Activist Investors",
+      "summary": "",
+      "published": "2025-09-05T20:16:00Z",
+      "link": "https://www.barrons.com/articles/zoominfo-international-money-express-and-more-stocks-see-action-from-activist-investors-b44f7dfa?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Figma (FIG) Nosedives 19.9% After Earnings Results",
+      "summary": "",
+      "published": "2025-09-05T20:15:39Z",
+      "link": "https://finance.yahoo.com/news/figma-fig-nosedives-19-9-184739142.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Mortgage rates fall to lowest daily level since October 2024",
+      "summary": "",
+      "published": "2025-09-05T20:22:43Z",
+      "link": "https://finance.yahoo.com/news/mortgage-rates-fall-lowest-daily-202243652.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy the Post-Earnings Pop in Broadcom Stock?",
+      "summary": "",
+      "published": "2025-09-05T20:12:53Z",
+      "link": "https://finance.yahoo.com/news/buy-post-earnings-pop-broadcom-201253678.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "What AI Bubble? Vistra Makes A Powerful Run As AI Data Centers Fuel Nuclear Growth.",
+      "summary": "",
+      "published": "2025-09-05T20:12:53Z",
+      "link": "https://www.investors.com/research/the-new-america/vistra-stock-nuclear-power-ai-data-center-s-p-500/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T20:27:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Rivian Is Laying Off Workers. The EV Pain Is Coming.",
+      "summary": "",
+      "published": "2025-09-05T20:29:00Z",
+      "link": "https://www.barrons.com/articles/rivian-stock-price-layoffs-ev-756f83f6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "10-year Treasury tumbles to early April low as weak jobs report raises chances of a half-point Fed rate cut",
+      "summary": "",
+      "published": "2025-09-05T20:19:00Z",
+      "link": "https://finance.yahoo.com/news/10-treasury-tumbles-early-april-201900812.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Dollar Tumbles on Weak US Unemployment Report",
+      "summary": "",
+      "published": "2025-09-05T20:08:30Z",
+      "link": "https://finance.yahoo.com/news/dollar-tumbles-weak-us-unemployment-200830312.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Small-Cap Financials Are Powering Ahead. The Charts Point to More.",
+      "summary": "",
+      "published": "2025-09-05T20:08:00Z",
+      "link": "https://www.barrons.com/articles/small-cap-financials-are-powering-ahead-the-charts-point-to-more-05057779?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Anthony Scaramucci Admits He Failed To Understand Bitcoin For 8 Years Before Finally Becoming A Believer: 'I Was Very Negative'",
+      "summary": "",
+      "published": "2025-09-05T20:30:15Z",
+      "link": "https://finance.yahoo.com/news/anthony-scaramucci-admits-failed-understand-203015035.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Powerball jackpot skyrockets to $1.8 billion. Here's what the winner will take home after taxes.",
+      "summary": "",
+      "published": "2023-10-12T14:53:55Z",
+      "link": "https://finance.yahoo.com/personal-finance/taxes/article/powerball-after-taxes-145355982.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Surges to New Highs as Weak Jobs Data Fuels Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-05T20:30:33Z",
+      "link": "https://finance.yahoo.com/news/gold-surges-highs-weak-jobs-203033138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Rivian Is Laying Off Workers. The EV Pain Is Coming.",
+      "summary": "",
+      "published": "2025-09-05T20:29:00Z",
+      "link": "https://www.barrons.com/articles/rivian-stock-price-layoffs-ev-756f83f6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stocks to Watch Recap: Kenvue, Broadcom, Alphabet, AMD",
+      "summary": "",
+      "published": "2025-09-05T20:29:16Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/stocks-to-watch-friday-broadcom-docusign-lululemon-EcxVFrYeOLMZVy1B9ahR?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Trump Crypto Rally Just Sparked Wall Street's Biggest IPO Rush Since 2021\u2014Here's Why Smart Money Is Finally Going Public",
+      "summary": "",
+      "published": "2025-09-05T20:35:30Z",
+      "link": "https://finance.yahoo.com/news/trump-crypto-rally-just-sparked-203530426.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T20:27:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slides As Nasdaq Scores Weekly Gains; Nvidia Breaks Key Level As Tesla Rises (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T20:25:29Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

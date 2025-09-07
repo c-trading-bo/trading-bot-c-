@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-07T03:53:43.952228",
+  "article_count": 60,
+  "avg_sentiment": 0.09833333333333336,
+  "news_intensity": 1.0,
+  "volatility_score": 4,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": true,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 4
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Why BioNTech Stock Crushed the Market Today",
+      "summary": "",
+      "published": "2025-09-05T20:41:28Z",
+      "link": "https://finance.yahoo.com/news/why-biontech-stock-crushed-market-204128761.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom stock soars as Wall Street cheers AI chips as 'leading alternative' to Nvidia",
+      "summary": "",
+      "published": "2025-09-05T16:53:49Z",
+      "link": "https://finance.yahoo.com/news/broadcom-stock-soars-as-wall-street-cheers-ai-chips-as-leading-alternative-to-nvidia-165349027.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "China Plans to Sideline Lithium Competition. Albemarle Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:37:00Z",
+      "link": "https://www.barrons.com/articles/china-plans-to-sideline-lithium-competition-albemarle-stock-rises-b93b754c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Lucid Stock Soared Today",
+      "summary": "",
+      "published": "2025-09-05T20:39:25Z",
+      "link": "https://finance.yahoo.com/news/why-lucid-stock-soared-today-203925938.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Powerball jackpot skyrockets to $1.8 billion. Here's what the winner will take home after taxes.",
+      "summary": "",
+      "published": "2023-10-12T14:53:55Z",
+      "link": "https://finance.yahoo.com/personal-finance/taxes/article/powerball-after-taxes-145355982.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Surges to New Highs as Weak Jobs Data Fuels Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-05T20:30:33Z",
+      "link": "https://finance.yahoo.com/news/gold-surges-highs-weak-jobs-203033138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Salesforce Stock Bumped Almost 3% Higher Today",
+      "summary": "",
+      "published": "2025-09-05T20:43:13Z",
+      "link": "https://finance.yahoo.com/news/why-salesforce-stock-bumped-almost-204313773.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Stocks to Watch Recap: Kenvue, Broadcom, Alphabet, AMD",
+      "summary": "",
+      "published": "2025-09-05T20:29:16Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/stocks-to-watch-friday-broadcom-docusign-lululemon-EcxVFrYeOLMZVy1B9ahR?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rivian Is Laying Off Workers. The EV Pain Is Coming.",
+      "summary": "",
+      "published": "2025-09-05T20:29:00Z",
+      "link": "https://www.barrons.com/articles/rivian-stock-price-layoffs-ev-756f83f6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T20:27:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Public Keys: Big ETH Stakes, AI Boost for Bitcoin Miners and 24/7 Trading",
+      "summary": "",
+      "published": "2025-09-05T20:44:10Z",
+      "link": "https://finance.yahoo.com/news/public-keys-big-eth-stakes-204410697.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slides As Nasdaq Scores Weekly Gains; Nvidia Breaks Key Level As Tesla Rises (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T20:25:29Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here's How You Can Earn $100 In Passive Income By Investing In McDonald's Stock",
+      "summary": "",
+      "published": "2025-09-05T20:38:26Z",
+      "link": "https://finance.yahoo.com/news/heres-earn-100-passive-income-203826388.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why BioNTech Stock Crushed the Market Today",
+      "summary": "",
+      "published": "2025-09-05T20:41:28Z",
+      "link": "https://finance.yahoo.com/news/why-biontech-stock-crushed-market-204128761.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom stock soars as Wall Street cheers AI chips as 'leading alternative' to Nvidia",
+      "summary": "",
+      "published": "2025-09-05T16:53:49Z",
+      "link": "https://finance.yahoo.com/news/broadcom-stock-soars-as-wall-street-cheers-ai-chips-as-leading-alternative-to-nvidia-165349027.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "China Plans to Sideline Lithium Competition. Albemarle Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:37:00Z",
+      "link": "https://www.barrons.com/articles/china-plans-to-sideline-lithium-competition-albemarle-stock-rises-b93b754c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Lucid Stock Soared Today",
+      "summary": "",
+      "published": "2025-09-05T20:39:25Z",
+      "link": "https://finance.yahoo.com/news/why-lucid-stock-soared-today-203925938.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "McDonald's criticizes US restaurant industry for uneven wage policies",
+      "summary": "",
+      "published": "2025-09-05T20:35:11Z",
+      "link": "https://finance.yahoo.com/news/mcdonalds-presses-end-tipped-wages-203511810.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Powerball jackpot skyrockets to $1.8 billion. Here's what the winner will take home after taxes.",
+      "summary": "",
+      "published": "2023-10-12T14:53:55Z",
+      "link": "https://finance.yahoo.com/personal-finance/taxes/article/powerball-after-taxes-145355982.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Surges to New Highs as Weak Jobs Data Fuels Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-05T20:30:33Z",
+      "link": "https://finance.yahoo.com/news/gold-surges-highs-weak-jobs-203033138.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Salesforce Stock Bumped Almost 3% Higher Today",
+      "summary": "",
+      "published": "2025-09-05T20:43:13Z",
+      "link": "https://finance.yahoo.com/news/why-salesforce-stock-bumped-almost-204313773.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Stocks to Watch Recap: Kenvue, Broadcom, Alphabet, AMD",
+      "summary": "",
+      "published": "2025-09-05T20:29:16Z",
+      "link": "https://www.wsj.com/livecoverage/jobs-report-august-stock-market-today-09-05-2025/card/stocks-to-watch-friday-broadcom-docusign-lululemon-EcxVFrYeOLMZVy1B9ahR?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rivian Is Laying Off Workers. The EV Pain Is Coming.",
+      "summary": "",
+      "published": "2025-09-05T20:29:00Z",
+      "link": "https://www.barrons.com/articles/rivian-stock-price-layoffs-ev-756f83f6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T20:27:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Public Keys: Big ETH Stakes, AI Boost for Bitcoin Miners and 24/7 Trading",
+      "summary": "",
+      "published": "2025-09-05T20:44:10Z",
+      "link": "https://finance.yahoo.com/news/public-keys-big-eth-stakes-204410697.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slides As Nasdaq Scores Weekly Gains; Nvidia Breaks Key Level As Tesla Rises (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T20:25:29Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T20:23:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here's How You Can Earn $100 In Passive Income By Investing In McDonald's Stock",
+      "summary": "",
+      "published": "2025-09-05T20:38:26Z",
+      "link": "https://finance.yahoo.com/news/heres-earn-100-passive-income-203826388.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Ahead of Micam, Italian Footwear Industry Continues to See Declines in Q2 as Tariff Uncertainty Remains",
+      "summary": "",
+      "published": "2025-09-05T20:44:58Z",
+      "link": "https://finance.yahoo.com/news/ahead-micam-italian-footwear-industry-204458086.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom stock soars as Wall Street cheers AI chips as 'leading alternative' to Nvidia",
+      "summary": "",
+      "published": "2025-09-05T16:53:49Z",
+      "link": "https://finance.yahoo.com/news/broadcom-stock-soars-as-wall-street-cheers-ai-chips-as-leading-alternative-to-nvidia-165349027.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech, Media & Telecom Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:52:00Z",
+      "link": "https://www.wsj.com/articles/tech-media-telecom-roundup-market-talk-9cd0b424?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Auto & Transport Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:55:00Z",
+      "link": "https://www.wsj.com/articles/auto-transport-roundup-market-talk-b7fde7e7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Solana Treasury Company SOL Strategies to Begin Trading on Nasdaq",
+      "summary": "",
+      "published": "2025-09-05T20:46:08Z",
+      "link": "https://finance.yahoo.com/news/solana-treasury-company-sol-strategies-204608223.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Jobs Report Was Bad. It\u2019s Hitting Bank and Brokerage Stocks.",
+      "summary": "",
+      "published": "2025-09-05T20:39:00Z",
+      "link": "https://www.barrons.com/advisor/articles/charles-schwab-robinhood-bank-stocks-fall-6a58c871?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Basic Materials Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:56:00Z",
+      "link": "https://www.wsj.com/articles/basic-materials-roundup-market-talk-29997244?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Energy & Utilities Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:57:00Z",
+      "link": "https://www.wsj.com/business/energy-utilities-roundup-market-talk-96a070f7?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Financial Services Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-05T20:58:00Z",
+      "link": "https://www.wsj.com/articles/financial-services-roundup-market-talk-85cb8565?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Public Keys: Big ETH Stakes, AI Boost for Bitcoin Miners and 24/7 Trading",
+      "summary": "",
+      "published": "2025-09-05T20:44:10Z",
+      "link": "https://finance.yahoo.com/news/public-keys-big-eth-stakes-204410697.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

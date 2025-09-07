@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-06T00:01:00.130342",
+  "article_count": 60,
+  "avg_sentiment": -0.020000000000000004,
+  "news_intensity": 1.0,
+  "volatility_score": 0,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 0
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Kraft Heinz Cuts the Cheese, But This 1 Trade Offers a Chance to Profit on KHC Stock After Its Breakup",
+      "summary": "",
+      "published": "2025-09-04T16:43:44Z",
+      "link": "https://finance.yahoo.com/news/kraft-heinz-cuts-cheese-1-164344641.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Salesforce Stock Fell 8.5% This Morning",
+      "summary": "",
+      "published": "2025-09-04T16:41:20Z",
+      "link": "https://finance.yahoo.com/news/why-salesforce-stock-fell-8-164120028.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "U.S. Crude Oil Stockpiles Post Unexpected Increase",
+      "summary": "",
+      "published": "2025-09-04T16:44:00Z",
+      "link": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-stockpiles-post-unexpected-increase-737a03f1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Crude Oil Prices Fall as Weekly EIA Crude Inventories Unexpectedly Build",
+      "summary": "",
+      "published": "2025-09-04T16:41:43Z",
+      "link": "https://finance.yahoo.com/news/crude-oil-prices-fall-weekly-164143854.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. Chime: Which fintech offers a better banking experience?",
+      "summary": "",
+      "published": "2025-04-18T14:22:39Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-chime-142239074.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Constellation Brands, Inc. (STZ): Things Got Worse Just When You Thought They Couldn\u2019t! Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T16:40:49Z",
+      "link": "https://finance.yahoo.com/news/constellation-brands-inc-stz-things-164049486.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arbitrum floats $40m token incentive reward for DeFi users",
+      "summary": "",
+      "published": "2025-09-04T16:41:31Z",
+      "link": "https://finance.yahoo.com/news/arbitrum-floats-40m-token-incentive-164131830.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold is 'highest conviction' commodities trade with $5,000 in sight, Goldman Sachs says",
+      "summary": "",
+      "published": "2025-09-04T16:44:47Z",
+      "link": "https://finance.yahoo.com/news/gold-is-highest-conviction-commodities-trade-with-5000-in-sight-goldman-sachs-says-164447970.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. TD Bank: Which bank is a better fit for you?",
+      "summary": "",
+      "published": "2025-02-28T17:34:15Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-td-bank-173415811.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Delta Gold vs. Delta Platinum: Which card offers more Delta savings?",
+      "summary": "",
+      "published": "2024-08-22T16:58:10Z",
+      "link": "https://finance.yahoo.com/personal-finance/credit-cards/comparison/delta-gold-vs-platinum-210956535.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Texas Instruments Stock Is Falling. Tariffs May Be the Culprit.",
+      "summary": "",
+      "published": "2025-09-04T16:37:00Z",
+      "link": "https://www.barrons.com/articles/texas-instruments-stock-tariffs-demand-89bf3813?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy FIGR Stock After the Figure Technology IPO?",
+      "summary": "",
+      "published": "2025-09-04T16:37:05Z",
+      "link": "https://finance.yahoo.com/news/buy-figr-stock-figure-technology-163705120.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "US jobs slowdown triggers fall in global borrowing costs",
+      "summary": "",
+      "published": "2025-09-04T16:36:21Z",
+      "link": "https://finance.yahoo.com/news/us-jobs-slowdown-triggers-fall-163621728.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Jenius Bank vs. SoFi: Which online-only bank is better?",
+      "summary": "",
+      "published": "2024-11-14T20:22:45Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/jenius-bank-vs-sofi-202245084.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "While auto sales charged higher in August, a murky fall outlook weighs on automakers",
+      "summary": "",
+      "published": "2025-09-04T16:50:13Z",
+      "link": "https://finance.yahoo.com/news/while-auto-sales-charged-higher-in-august-a-murky-fall-outlook-weighs-on-automakers-165013883.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "T. Rowe Price Gets A $1 Billion Boost From Goldman Sachs",
+      "summary": "",
+      "published": "2025-09-04T16:52:27Z",
+      "link": "https://www.investors.com/news/t-rowe-price-stock-goldman-sachs-to-make-1-billion-investment-stock-market/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "20th Consecutive Profitable Quarter for REX American Resources \u2013 Quarterly Update Report",
+      "summary": "",
+      "published": "2025-09-04T16:52:49Z",
+      "link": "https://finance.yahoo.com/news/20th-consecutive-profitable-quarter-rex-165249737.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump-Backed World Liberty Token Falls 50% From Peak\u2014But Early Buyers Are Still in Profit",
+      "summary": "",
+      "published": "2025-09-04T16:35:45Z",
+      "link": "https://finance.yahoo.com/news/trump-backed-world-liberty-token-163545443.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Amazon's Satellite Internet Service Lands This Major Airline. Get Ready For 1 Gbps Speeds.",
+      "summary": "",
+      "published": "2025-09-04T16:31:21Z",
+      "link": "https://www.investors.com/news/amazon-stock-satellite-internet-jetblue/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "What credit cardholders should know for 2025: Predictions, interest rates, changing benefits, and more",
+      "summary": "",
+      "published": "2024-12-19T21:54:23Z",
+      "link": "https://finance.yahoo.com/personal-finance/credit-cards/article/what-credit-cardholders-should-know-2025-215423049.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Kraft Heinz Cuts the Cheese, But This 1 Trade Offers a Chance to Profit on KHC Stock After Its Breakup",
+      "summary": "",
+      "published": "2025-09-04T16:43:44Z",
+      "link": "https://finance.yahoo.com/news/kraft-heinz-cuts-cheese-1-164344641.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Salesforce Stock Fell 8.5% This Morning",
+      "summary": "",
+      "published": "2025-09-04T16:41:20Z",
+      "link": "https://finance.yahoo.com/news/why-salesforce-stock-fell-8-164120028.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "U.S. Crude Oil Stockpiles Post Unexpected Increase",
+      "summary": "",
+      "published": "2025-09-04T16:44:00Z",
+      "link": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-stockpiles-post-unexpected-increase-737a03f1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Crude Oil Prices Fall as Weekly EIA Crude Inventories Unexpectedly Build",
+      "summary": "",
+      "published": "2025-09-04T16:41:43Z",
+      "link": "https://finance.yahoo.com/news/crude-oil-prices-fall-weekly-164143854.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. Chime: Which fintech offers a better banking experience?",
+      "summary": "",
+      "published": "2025-04-18T14:22:39Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-chime-142239074.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Constellation Brands, Inc. (STZ): Things Got Worse Just When You Thought They Couldn\u2019t! Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T16:40:49Z",
+      "link": "https://finance.yahoo.com/news/constellation-brands-inc-stz-things-164049486.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arbitrum floats $40m token incentive reward for DeFi users",
+      "summary": "",
+      "published": "2025-09-04T16:41:31Z",
+      "link": "https://finance.yahoo.com/news/arbitrum-floats-40m-token-incentive-164131830.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold is 'highest conviction' commodities trade with $5,000 in sight, Goldman Sachs says",
+      "summary": "",
+      "published": "2025-09-04T16:44:47Z",
+      "link": "https://finance.yahoo.com/news/gold-is-highest-conviction-commodities-trade-with-5000-in-sight-goldman-sachs-says-164447970.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. TD Bank: Which bank is a better fit for you?",
+      "summary": "",
+      "published": "2025-02-28T17:34:15Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-td-bank-173415811.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Delta Gold vs. Delta Platinum: Which card offers more Delta savings?",
+      "summary": "",
+      "published": "2024-08-22T16:58:10Z",
+      "link": "https://finance.yahoo.com/personal-finance/credit-cards/comparison/delta-gold-vs-platinum-210956535.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Texas Instruments Stock Is Falling. Tariffs May Be the Culprit.",
+      "summary": "",
+      "published": "2025-09-04T16:37:00Z",
+      "link": "https://www.barrons.com/articles/texas-instruments-stock-tariffs-demand-89bf3813?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Should You Buy FIGR Stock After the Figure Technology IPO?",
+      "summary": "",
+      "published": "2025-09-04T16:37:05Z",
+      "link": "https://finance.yahoo.com/news/buy-figr-stock-figure-technology-163705120.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "US jobs slowdown triggers fall in global borrowing costs",
+      "summary": "",
+      "published": "2025-09-04T16:36:21Z",
+      "link": "https://finance.yahoo.com/news/us-jobs-slowdown-triggers-fall-163621728.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Jenius Bank vs. SoFi: Which online-only bank is better?",
+      "summary": "",
+      "published": "2024-11-14T20:22:45Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/jenius-bank-vs-sofi-202245084.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "While auto sales charged higher in August, a murky fall outlook weighs on automakers",
+      "summary": "",
+      "published": "2025-09-04T16:50:13Z",
+      "link": "https://finance.yahoo.com/news/while-auto-sales-charged-higher-in-august-a-murky-fall-outlook-weighs-on-automakers-165013883.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "T. Rowe Price Gets A $1 Billion Boost From Goldman Sachs",
+      "summary": "",
+      "published": "2025-09-04T16:52:27Z",
+      "link": "https://www.investors.com/news/t-rowe-price-stock-goldman-sachs-to-make-1-billion-investment-stock-market/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "20th Consecutive Profitable Quarter for REX American Resources \u2013 Quarterly Update Report",
+      "summary": "",
+      "published": "2025-09-04T16:52:49Z",
+      "link": "https://finance.yahoo.com/news/20th-consecutive-profitable-quarter-rex-165249737.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump-Backed World Liberty Token Falls 50% From Peak\u2014But Early Buyers Are Still in Profit",
+      "summary": "",
+      "published": "2025-09-04T16:35:45Z",
+      "link": "https://finance.yahoo.com/news/trump-backed-world-liberty-token-163545443.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "Amazon's Satellite Internet Service Lands This Major Airline. Get Ready For 1 Gbps Speeds.",
+      "summary": "",
+      "published": "2025-09-04T16:31:21Z",
+      "link": "https://www.investors.com/news/amazon-stock-satellite-internet-jetblue/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "What credit cardholders should know for 2025: Predictions, interest rates, changing benefits, and more",
+      "summary": "",
+      "published": "2024-12-19T21:54:23Z",
+      "link": "https://finance.yahoo.com/personal-finance/credit-cards/article/what-credit-cardholders-should-know-2025-215423049.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Kraft Heinz Cuts the Cheese, But This 1 Trade Offers a Chance to Profit on KHC Stock After Its Breakup",
+      "summary": "",
+      "published": "2025-09-04T16:43:44Z",
+      "link": "https://finance.yahoo.com/news/kraft-heinz-cuts-cheese-1-164344641.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Salesforce Stock Fell 8.5% This Morning",
+      "summary": "",
+      "published": "2025-09-04T16:41:20Z",
+      "link": "https://finance.yahoo.com/news/why-salesforce-stock-fell-8-164120028.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": true
+    },
+    {
+      "title": "U.S. Crude Oil Stockpiles Post Unexpected Increase",
+      "summary": "",
+      "published": "2025-09-04T16:44:00Z",
+      "link": "https://www.wsj.com/business/energy-oil/u-s-crude-oil-stockpiles-post-unexpected-increase-737a03f1?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Crude Oil Prices Fall as Weekly EIA Crude Inventories Unexpectedly Build",
+      "summary": "",
+      "published": "2025-09-04T16:41:43Z",
+      "link": "https://finance.yahoo.com/news/crude-oil-prices-fall-weekly-164143854.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. Chime: Which fintech offers a better banking experience?",
+      "summary": "",
+      "published": "2025-04-18T14:22:39Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-chime-142239074.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Constellation Brands, Inc. (STZ): Things Got Worse Just When You Thought They Couldn\u2019t! Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-04T16:40:49Z",
+      "link": "https://finance.yahoo.com/news/constellation-brands-inc-stz-things-164049486.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arbitrum floats $40m token incentive reward for DeFi users",
+      "summary": "",
+      "published": "2025-09-04T16:41:31Z",
+      "link": "https://finance.yahoo.com/news/arbitrum-floats-40m-token-incentive-164131830.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold is 'highest conviction' commodities trade with $5,000 in sight, Goldman Sachs says",
+      "summary": "",
+      "published": "2025-09-04T16:44:47Z",
+      "link": "https://finance.yahoo.com/news/gold-is-highest-conviction-commodities-trade-with-5000-in-sight-goldman-sachs-says-164447970.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "SoFi vs. TD Bank: Which bank is a better fit for you?",
+      "summary": "",
+      "published": "2025-02-28T17:34:15Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/comparison/sofi-vs-td-bank-173415811.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Delta Gold vs. Delta Platinum: Which card offers more Delta savings?",
+      "summary": "",
+      "published": "2024-08-22T16:58:10Z",
+      "link": "https://finance.yahoo.com/personal-finance/credit-cards/comparison/delta-gold-vs-platinum-210956535.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
