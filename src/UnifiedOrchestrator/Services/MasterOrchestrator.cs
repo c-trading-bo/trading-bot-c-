@@ -200,9 +200,21 @@ namespace TradingBot.UnifiedOrchestrator.Services
             _serviceProvider = services;
             _sharedState = sharedState;
             _dataFeedManager = services.GetService<RedundantDataFeedManager>();
-            _newsEngine = services.GetService<BotCore.Services.NewsIntelligenceEngine>();
-            _zoneService = services.GetService<BotCore.Services.ZoneService>();
-            _correlationManager = services.GetService<BotCore.Services.ES_NQ_CorrelationManager>();
+            
+            // Gracefully handle services that might have missing dependencies
+            try
+            {
+                _newsEngine = services.GetService<BotCore.Services.NewsIntelligenceEngine>();
+                _zoneService = services.GetService<BotCore.Services.ZoneService>();
+                _correlationManager = services.GetService<BotCore.Services.ES_NQ_CorrelationManager>();
+            }
+            catch (Exception ex)
+            {
+                // Services with missing dependencies will be null, which is handled gracefully
+                var logger = services.GetService<ILogger<DataComponent>>();
+                logger?.LogWarning("Some data services have missing dependencies: {Message}", ex.Message);
+            }
+            
             _logger = services.GetRequiredService<ILogger<DataComponent>>();
         }
 
@@ -558,13 +570,25 @@ namespace TradingBot.UnifiedOrchestrator.Services
             _sharedState = sharedState;
             _tradingOrchestrator = services.GetService<TradingOrchestratorService>();
             _advancedSystemIntegration = services.GetService<AdvancedSystemIntegrationService>();
-            _emergencyStop = services.GetService<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
-            _portfolioHeatManager = services.GetService<BotCore.Services.ES_NQ_PortfolioHeatManager>();
-            _executionAnalyzer = services.GetService<BotCore.Services.ExecutionAnalyzer>();
-            _orderFillConfirmation = services.GetService<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
-            _positionTracking = services.GetService<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
-            _systemIntegration = services.GetService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
-            _topstepXService = services.GetService<BotCore.Services.TopstepXService>();
+            
+            // Gracefully handle services that might have missing dependencies
+            try
+            {
+                _emergencyStop = services.GetService<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
+                _portfolioHeatManager = services.GetService<BotCore.Services.ES_NQ_PortfolioHeatManager>();
+                _executionAnalyzer = services.GetService<BotCore.Services.ExecutionAnalyzer>();
+                _orderFillConfirmation = services.GetService<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
+                _positionTracking = services.GetService<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+                _systemIntegration = services.GetService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
+                _topstepXService = services.GetService<BotCore.Services.TopstepXService>();
+            }
+            catch (Exception ex)
+            {
+                // Services with missing dependencies will be null, which is handled gracefully
+                var logger = services.GetService<ILogger<TradingComponent>>();
+                logger?.LogWarning("Some trading services have missing dependencies: {Message}", ex.Message);
+            }
+            
             _logger = services.GetRequiredService<ILogger<TradingComponent>>();
         }
 
