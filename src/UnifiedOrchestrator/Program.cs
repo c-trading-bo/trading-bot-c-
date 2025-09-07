@@ -6,6 +6,9 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using BotCore.Infra;
+using BotCore.Brain;
+using BotCore.ML;
+using DotNetEnv;
 
 namespace TradingBot.UnifiedOrchestrator;
 
@@ -24,6 +27,9 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // Load .env files in priority order for auto TopstepX configuration
+        EnvironmentLoader.LoadEnvironmentFiles();
+        
         Console.WriteLine(@"
 ╔═══════════════════════════════════════════════════════════════════════════════════════╗
 ║                          🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀                    ║
@@ -55,8 +61,23 @@ public class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"❌ CRITICAL ERROR: {ex.Message}");
+            var errorMsg = $"❌ CRITICAL ERROR: {ex.Message}";
+            Console.WriteLine(errorMsg);
             Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+            
+            // Log to file for debugging and monitoring
+            try
+            {
+                var logPath = Path.Combine(Directory.GetCurrentDirectory(), "critical_errors.log");
+                var logEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss UTC}] {errorMsg}\n{ex.StackTrace}\n\n";
+                File.AppendAllText(logPath, logEntry);
+                Console.WriteLine($"Error logged to: {logPath}");
+            }
+            catch
+            {
+                Console.WriteLine("⚠️ Failed to write error log to file");
+            }
+            
             Environment.Exit(1);
         }
     }
@@ -76,6 +97,9 @@ public class Program
                 
                 // Register initialization as hosted service
                 services.AddHostedService<AdvancedSystemInitializationService>();
+                
+                // Register auto paper trading configuration
+                services.AddHostedService<AutoPaperTradingConfiguration>();
             });
 
     private static void ConfigureUnifiedServices(IServiceCollection services)
@@ -87,6 +111,7 @@ public class Program
         {
             client.BaseAddress = new Uri("https://api.topstepx.com");
             client.DefaultRequestHeaders.Add("User-Agent", "UnifiedTradingOrchestrator/1.0");
+            client.Timeout = TimeSpan.FromSeconds(30); // Prevent hanging on network issues
         });
 
         // Register the CENTRAL MESSAGE BUS - The "ONE BRAIN" communication system
@@ -120,12 +145,42 @@ public class Program
         // Register TopstepX authentication agent
         services.AddSingleton<TopstepAuthAgent>();
 
-        // Register orchestrator components (use demo mode if no credentials)
+        // ================================================================================
+        // AI/ML TRADING BRAIN REGISTRATION - DUAL ML APPROACH
+        // ================================================================================
+        
+        // Register the core unified trading brain
+        services.AddSingleton<UnifiedTradingBrain>();
+        Console.WriteLine("🧠 Unified Trading Brain registered - Core AI intelligence enabled");
+        
+        // Register UCB Manager (optional) - Auto-detect if UCB service is available
+        var ucbUrl = Environment.GetEnvironmentVariable("UCB_SERVICE_URL") ?? "http://localhost:8001";
+        var enableUcb = Environment.GetEnvironmentVariable("ENABLE_UCB") != "0"; // Default to enabled
+        
+        if (enableUcb)
+        {
+            services.AddSingleton<UCBManager>();
+            Console.WriteLine($"🎯 UCB Manager registered - UCB service at {ucbUrl}");
+        }
+        else
+        {
+            Console.WriteLine("⚠️ UCB Manager disabled - Set ENABLE_UCB=1 to enable");
+        }
+
+        // Register orchestrator components - Auto-detect paper trading mode
+        var paperMode = Environment.GetEnvironmentVariable("PAPER_MODE") == "1" || 
+                       Environment.GetEnvironmentVariable("AUTO_PAPER_TRADING") == "1";
+        var enableTopstepX = Environment.GetEnvironmentVariable("ENABLE_TOPSTEPX") == "1";
         var hasCredentials = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_JWT")) ||
                            (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME")) &&
                             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY")));
 
-        if (hasCredentials)
+        if (paperMode && enableTopstepX && hasCredentials)
+        {
+            services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
+            Console.WriteLine("🎯 Paper Trading mode enabled - Connected to TopstepX for simulated trading");
+        }
+        else if (hasCredentials)
         {
             services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
             Console.WriteLine("✅ Live TopstepX mode enabled");
@@ -148,7 +203,7 @@ public class Program
         // Register the main unified orchestrator as both interface and hosted service
         services.AddSingleton<UnifiedOrchestratorService>();
         services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
-        services.AddHostedService<UnifiedOrchestratorService>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
         Console.WriteLine("✅ UNIFIED ORCHESTRATOR SERVICES CONFIGURED - ALL FEATURES INTEGRATED INTO ONE BRAIN");
     }
@@ -323,5 +378,71 @@ public class AdvancedSystemInitializationService : IHostedService
     {
         _logger.LogInformation("🛑 Advanced System Initialization Service stopping");
         return Task.CompletedTask;
+    }
+}
+
+public static class EnvironmentLoader
+{
+    /// <summary>
+    /// Load environment files in priority order to auto-detect TopstepX credentials
+    /// Priority: .env.local > .env > system environment variables
+    /// </summary>
+    public static void LoadEnvironmentFiles()
+    {
+        var rootPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "..");
+        var currentPath = Directory.GetCurrentDirectory();
+        
+        // List of .env files to check in priority order (last loaded wins)
+        var envFiles = new[]
+        {
+            Path.Combine(rootPath, ".env"),           // Base configuration
+            Path.Combine(currentPath, ".env"),        // Local overrides
+            Path.Combine(rootPath, ".env.local"),     // Local credentials (highest priority)
+            Path.Combine(currentPath, ".env.local")   // Project-local credentials
+        };
+
+        var loadedFiles = new List<string>();
+        
+        foreach (var envFile in envFiles)
+        {
+            try
+            {
+                if (File.Exists(envFile))
+                {
+                    Env.Load(envFile);
+                    loadedFiles.Add(envFile);
+                    Console.WriteLine($"✅ Loaded environment file: {envFile}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Error loading {envFile}: {ex.Message}");
+            }
+        }
+
+        if (loadedFiles.Count == 0)
+        {
+            Console.WriteLine("⚠️ No .env files found - using system environment variables only");
+        }
+        else
+        {
+            Console.WriteLine($"📋 Loaded {loadedFiles.Count} environment file(s)");
+            
+            // Check if TopstepX credentials are available
+            var username = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
+            var apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
+            
+            if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
+            {
+                Console.WriteLine($"🔐 TopstepX credentials detected for: {username}");
+                Console.WriteLine("🎯 Auto paper trading mode will be enabled");
+            }
+            else
+            {
+                Console.WriteLine("⚠️ TopstepX credentials not found - demo mode will be used");
+            }
+        }
+        
+        Console.WriteLine();
     }
 }

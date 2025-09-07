@@ -265,8 +265,8 @@ namespace TradingBot.Enhanced.Intelligence
 
             return etHour switch
             {
-                >= 9.5 and < 16 => "MARKET",
-                >= 4 and < 9.5 => "PRE_MARKET",
+                >= 9 and < 16 => "MARKET",
+                >= 4 and < 9 => "PRE_MARKET",
                 >= 16 and < 20 => "AFTER_HOURS",
                 _ => "OVERNIGHT"
             };
