@@ -1,36 +1,52 @@
 {
-  "timestamp": "2025-09-05T14:30:57.112425",
+  "timestamp": "2025-09-08T07:14:57.527825",
   "analysis_mode": "comprehensive",
-  "session_type": "market_hours",
-  "workflow_run": "14",
+  "session_type": "extended",
+  "workflow_run": "20",
   "comprehensive_analysis": {
-    "timestamp": "2025-09-05T14:30:54.721076",
+    "timestamp": "2025-09-08T07:14:55.693022",
     "analysis_mode": "comprehensive",
-    "session_type": "market_hours",
+    "session_type": "extended",
     "lookback_period": 30,
-    "assets_analyzed": 6,
+    "assets_analyzed": 10,
     "successful_analysis": 0,
     "market_conditions": {},
     "individual_regimes": {
       "SPY": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-05T14:30:53.241617"
+        "timestamp": "2025-09-08T07:14:54.306097"
       },
       "QQQ": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-05T14:30:53.521730"
+        "timestamp": "2025-09-08T07:14:54.462530"
       },
       "IWM": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-05T14:30:53.952904"
+        "timestamp": "2025-09-08T07:14:54.646538"
       },
       "TLT": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-05T14:30:54.293763"
+        "timestamp": "2025-09-08T07:14:54.814034"
       },
       "GLD": {
         "error": "single positional indexer is out-of-bounds",
-        "timestamp": "2025-09-05T14:30:54.523287"
+        "timestamp": "2025-09-08T07:14:54.910813"
+      },
+      "BTC-USD": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-08T07:14:55.138011"
+      },
+      "^GSPC": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-08T07:14:55.331127"
+      },
+      "^IXIC": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-08T07:14:55.520501"
+      },
+      "^RUT": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-08T07:14:55.692933"
       }
     }
   },
@@ -41,7 +57,7 @@
     "stress_level": "UNKNOWN",
     "trend_clarity": "UNKNOWN",
     "regime_consistency": "UNKNOWN",
-    "total_assets": 6,
+    "total_assets": 10,
     "successful_analysis": 0
   },
   "regime_alerts": [],
