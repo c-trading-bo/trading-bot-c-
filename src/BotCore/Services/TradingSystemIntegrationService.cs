@@ -526,7 +526,7 @@ namespace TopstepX.Bot.Core.Services
                     return 50000m; // Fallback balance
                 }
 
-                var response = await _httpClient.GetAsync($"/api/Account?accountId={_configuration.AccountId}");
+                var response = await _httpClient.GetAsync($"/api/Account?accountId={_config.AccountId}");
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -570,7 +570,7 @@ namespace TopstepX.Bot.Core.Services
                 // Try to get risk limits from TopstepX account API
                 if (_httpClient.DefaultRequestHeaders.Authorization != null)
                 {
-                    var response = await _httpClient.GetAsync($"/api/Account/risk?accountId={_configuration.AccountId}");
+                    var response = await _httpClient.GetAsync($"/api/Account/risk?accountId={_config.AccountId}");
                     
                     if (response.IsSuccessStatusCode)
                     {
@@ -635,6 +635,7 @@ namespace TopstepX.Bot.Core.Services
                 };
             }
         }
+    }
     
     public class TradingSystemStatus
     {
