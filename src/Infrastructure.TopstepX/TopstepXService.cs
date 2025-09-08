@@ -7,6 +7,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text;
+using Trading.Safety;
 
 namespace BotCore.Services;
 
@@ -210,7 +211,12 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _hubConnection.Closed += async (error) =>
         {
-            _logger.LogWarning("[TOPSTEPX] Connection closed: {Error}", error?.Message ?? "Unknown reason");
+            _logger.LogWarning("[TOPSTEPX] Connection closed");
+            // Log the error details securely without exposing them
+            if (error != null)
+            {
+                _logger.LogDebug("Connection closed with error: {ErrorType}", error.GetType().Name);
+            }
 
             // Don't auto-reconnect immediately, let the timer handle it
             await Task.Delay(1000);
@@ -218,7 +224,11 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _hubConnection.Reconnecting += (error) =>
         {
-            _logger.LogInformation("[TOPSTEPX] Reconnecting: {Error}", error?.Message ?? "Network issue");
+            _logger.LogInformation("[TOPSTEPX] Attempting reconnection");
+            if (error != null)
+            {
+                _logger.LogDebug("Reconnecting due to: {ErrorType}", error.GetType().Name);
+            }
             return Task.CompletedTask;
         };
 

@@ -1,21 +1,25 @@
 using System;
+using Trading.Strategies;
 
 namespace BotCore.Utilities
 {
     /// <summary>
     /// Generates deterministic, human-readable strategy and execution IDs
     /// Replaces GetHashCode() usage with predictable, traceable identifiers
+    /// DEPRECATED: Use Trading.Strategies.StrategyIds instead
     /// </summary>
+    [Obsolete("Use Trading.Strategies.StrategyIds instead")]
     public static class DeterministicIdGenerator
     {
         /// <summary>
         /// Generate a deterministic strategy ID based on strategy name and date
         /// Replaces: strategy.GetHashCode() usage
+        /// DEPRECATED: Use StrategyIds.GenerateStrategyId instead
         /// </summary>
+        [Obsolete("Use StrategyIds.GenerateStrategyId instead")]
         public static string GenerateStrategyId(string strategyName, DateTime? date = null)
         {
-            var targetDate = date ?? DateTime.UtcNow;
-            return $"{strategyName}_{targetDate:yyyyMMdd}";
+            return StrategyIds.GenerateStrategyId(strategyName, date);
         }
         
         /// <summary>

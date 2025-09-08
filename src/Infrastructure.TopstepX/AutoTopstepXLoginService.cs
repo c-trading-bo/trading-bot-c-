@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using BotCore.Auth;
 using System.Text.Json;
+using Trading.Safety;
 
 namespace BotCore.Services;
 
@@ -154,7 +155,8 @@ public class AutoTopstepXLoginService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ TopstepX login failed: {Message}", ex.Message);
+            _logger.LogError(ex, "❌ TopstepX login failed");
+            // Don't expose internal error details in logs that might be visible to users
         }
     }
 

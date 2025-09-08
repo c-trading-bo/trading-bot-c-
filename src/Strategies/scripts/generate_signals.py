@@ -16,6 +16,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 import joblib
 
+# Import our confidence predictor to replace hardcoded values
+from ml.confidence_predictor import predict_confidence, vix_confidence, momentum_confidence, news_confidence
+
 # Suppress warnings for cleaner output
 warnings.filterwarnings('ignore')
 
@@ -140,16 +143,21 @@ class SignalGenerator:
             news_sentiment = latest.get('news_sentiment_numeric', 0)
             trend_strength = latest.get('trend_strength', 0)
             
-            # Simple regime classification
+            # Simple regime classification with ML confidence prediction
             if vix_level > 25:
                 regime = "Volatile"
-                confidence = min(0.8, (vix_level - 20) / 20)
+                confidence = vix_confidence(vix_level)  # Use ML model instead of hardcoded
             elif vix_level < 15 and abs(spx_change) < 1:
                 regime = "Ranging"
-                confidence = 0.6
+                confidence = predict_confidence(
+                    vix_level=vix_level,
+                    volatility=vix_level/100,
+                    momentum=abs(spx_change)/100,
+                    volume_ratio=1.0
+                )
             else:
-                regime = "Trending"
-                confidence = 0.7
+                regime = "Trending" 
+                confidence = momentum_confidence(spx_change, rsi=50)  # Use momentum-based confidence
             
             # Bias determination
             bias_score = news_sentiment * 0.3 + (spx_change / 2) * 0.7
@@ -328,18 +336,23 @@ class SignalGenerator:
             elif news_sentiment == 'bearish' and news_data.get('confidence', 50) > 70:
                 regime = "Trending"
             
-            # Adjust confidence based on news confidence
+            # Adjust confidence based on news confidence using ML model
             base_confidence = predictions['confidence']
-            news_confidence = news_data.get('confidence', 50) / 100.0
             
-            # Blend model confidence with news confidence
-            blended_confidence = (base_confidence * 0.6 + news_confidence * 0.4)
+            # Use ML-based news confidence instead of hardcoded values
+            ml_news_confidence = news_confidence(
+                news_intensity=news_data.get('intensity', 25),
+                market_sentiment=0.7 if news_sentiment == 'bullish' else (0.3 if news_sentiment == 'bearish' else 0.5)
+            )
+            
+            # Blend model confidence with ML news confidence
+            blended_confidence = (base_confidence * 0.6 + ml_news_confidence * 0.4)
             
             # Adjust primary bias based on news sentiment
             primary_bias = predictions['primary_bias']
-            if news_sentiment == 'bullish' and news_confidence > 0.7:
+            if news_sentiment == 'bullish' and ml_news_confidence > 0.7:
                 primary_bias = "Long"
-            elif news_sentiment == 'bearish' and news_confidence > 0.7:
+            elif news_sentiment == 'bearish' and ml_news_confidence > 0.7:
                 primary_bias = "Short"
             
             # Create trade setups

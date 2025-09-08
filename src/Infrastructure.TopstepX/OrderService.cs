@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using Trading.Safety;
 
 namespace TradingBot.Infrastructure.TopstepX;
 
@@ -57,13 +58,13 @@ public class OrderService : IOrderService
             // Check dry run mode
             if (_config.EnableDryRunMode)
             {
-                _logger.LogInformation("[ORDER] DRY_RUN: Would place {Side} {Qty} {Symbol} @ {Price} tag={Tag}", 
-                    request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag);
+                _logger.LogInformation("[ORDER] DRY_RUN: Would place {Side} {Qty} {Symbol} @ {Price} tag={Tag} account={AccountId}", 
+                    request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag, SecurityHelpers.MaskAccountId(request.AccountId));
                 return new OrderResult(true, Guid.NewGuid().ToString(), "DRY_RUN order simulated");
             }
 
-            _logger.LogInformation("[ORDER] LIVE: Placing {Side} {Qty} {Symbol} @ {Price} tag={Tag}", 
-                request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag);
+            _logger.LogInformation("[ORDER] LIVE: Placing {Side} {Qty} {Symbol} @ {Price} tag={Tag} account={AccountId}", 
+                request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag, SecurityHelpers.MaskAccountId(request.AccountId));
 
             // Real POST to /api/Order/place with retries and idempotency
             // This replaces: return Guid.NewGuid().ToString();
@@ -127,7 +128,7 @@ public class OrderService : IOrderService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ORDER] Unexpected error placing order");
-            return new OrderResult(false, null, $"Unexpected error: {ex.Message}");
+            return new OrderResult(false, null, SecurityHelpers.GetGenericErrorMessage(ex, _logger));
         }
     }
 
@@ -150,8 +151,8 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ORDER] Failed to get status for order {OrderId}", orderId);
-            throw;
+            _logger.LogError(ex, "[ORDER] Failed to get status for order {OrderId}", SecurityHelpers.MaskAccountId(orderId));
+            throw new InvalidOperationException(SecurityHelpers.GetGenericErrorMessage(ex, _logger));
         }
     }
 
@@ -164,7 +165,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ORDER] Failed to cancel order {OrderId}", orderId);
+            _logger.LogError(ex, "[ORDER] Failed to cancel order {OrderId}", SecurityHelpers.MaskAccountId(orderId));
             return false;
         }
     }
