@@ -32,7 +32,7 @@ public enum RiskBreachType
     DrawdownLimit
 }
 
-public class RiskManager : IRiskManager
+public class RiskManager : TradingBot.Abstractions.IRiskManager
 {
     private readonly ILogger<RiskManager> _logger;
     private readonly AppOptions _config;
@@ -42,13 +42,67 @@ public class RiskManager : IRiskManager
     private decimal _largestPosition = 0;
     private bool _isBreached = false;
 
-    public event Action<RiskBreach>? OnRiskBreach;
+    public event Action<TradingBot.Abstractions.RiskBreach>? OnRiskBreach;
+    public event Action<TradingBot.Abstractions.RiskBreach>? RiskBreachDetected;
     public bool IsRiskBreached => _isBreached;
 
     public RiskManager(ILogger<RiskManager> logger, IOptions<AppOptions> config)
     {
         _logger = logger;
         _config = config.Value;
+    }
+
+    public async Task<TradingBot.Abstractions.RiskAssessment> AssessRiskAsync(TradingBot.Abstractions.TradingDecision decision)
+    {
+        var riskAssessment = new TradingBot.Abstractions.RiskAssessment
+        {
+            RiskScore = CalculateRiskScore(decision),
+            MaxPositionSize = _config.MaxPositionSize,
+            CurrentExposure = Math.Abs(_largestPosition),
+            VaR = Math.Abs(_maxDrawdown),
+            RiskLevel = _isBreached ? "HIGH" : (_dailyPnL < _config.MaxDailyLoss / 2 ? "MEDIUM" : "LOW"),
+            Warnings = new List<string>(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Add warnings based on current risk state
+        if (_isBreached)
+        {
+            riskAssessment.Warnings.Add("Risk breach currently active");
+        }
+        
+        if (_dailyPnL < _config.MaxDailyLoss * 0.8m)
+        {
+            riskAssessment.Warnings.Add("Approaching maximum daily loss limit");
+        }
+
+        return await Task.FromResult(riskAssessment);
+    }
+
+    private decimal CalculateRiskScore(TradingBot.Abstractions.TradingDecision decision)
+    {
+        // Simple risk scoring algorithm
+        decimal riskScore = 0.1m; // Base risk
+
+        // Increase risk based on position size
+        if (decision.MaxPositionSize > _config.MaxPositionSize * 0.5m)
+        {
+            riskScore += 0.3m;
+        }
+
+        // Increase risk if approaching daily loss limit
+        if (_dailyPnL < _config.MaxDailyLoss * 0.5m)
+        {
+            riskScore += 0.4m;
+        }
+
+        // Decrease risk for high confidence signals
+        if (decision.Confidence > 0.8m)
+        {
+            riskScore -= 0.2m;
+        }
+
+        return Math.Max(0m, Math.Min(1m, riskScore));
     }
 
     public async Task<bool> ValidateOrderAsync(PlaceOrderRequest order)
@@ -192,7 +246,22 @@ public class RiskManager : IRiskManager
             File.AppendAllText(stateFile, logEntry);
 
             // Notify subscribers for safe unwind
-            OnRiskBreach?.Invoke(breach);
+            var abstractionsBreach = new TradingBot.Abstractions.RiskBreach
+            {
+                Type = breach.Type.ToString(),
+                Description = breach.Message,
+                Message = breach.Message,
+                CurrentValue = breach.CurrentValue,
+                Limit = breach.Limit,
+                Severity = 1.0m, // High severity for any breach
+                Timestamp = DateTime.UtcNow,
+                Details = new Dictionary<string, object>
+                {
+                    ["BreachType"] = breach.Type.ToString(),
+                    ["OriginalMessage"] = breach.Message
+                }
+            };
+            OnRiskBreach?.Invoke(abstractionsBreach);
             
             _logger.LogInformation("[RISK] Risk breach logged and notifications sent");
         }

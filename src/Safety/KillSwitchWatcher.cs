@@ -12,14 +12,7 @@ namespace Trading.Safety;
 /// Monitors kill.txt file and immediately halts all trading operations when detected
 /// Ensures safe system shutdown and state persistence
 /// </summary>
-public interface IKillSwitchWatcher
-{
-    event Action OnKillSwitchActivated;
-    Task StartWatchingAsync(CancellationToken cancellationToken = default);
-    bool IsKillSwitchActive { get; }
-}
-
-public class KillSwitchWatcher : IKillSwitchWatcher, IDisposable
+public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDisposable
 {
     private readonly ILogger<KillSwitchWatcher> _logger;
     private readonly AppOptions _config;
@@ -28,6 +21,7 @@ public class KillSwitchWatcher : IKillSwitchWatcher, IDisposable
     private bool _disposed = false;
 
     public event Action? OnKillSwitchActivated;
+    public event Action<bool>? KillSwitchToggled;
     public bool IsKillSwitchActive => _isActive;
 
     public KillSwitchWatcher(ILogger<KillSwitchWatcher> logger, IOptions<AppOptions> config)
@@ -47,6 +41,16 @@ public class KillSwitchWatcher : IKillSwitchWatcher, IDisposable
         
         _fileWatcher.Created += OnKillFileDetected;
         _fileWatcher.Changed += OnKillFileDetected;
+    }
+
+    public async Task<bool> IsKillSwitchActiveAsync()
+    {
+        return await Task.FromResult(_isActive);
+    }
+
+    public async Task StartWatchingAsync()
+    {
+        await StartWatchingAsync(CancellationToken.None);
     }
 
     public async Task StartWatchingAsync(CancellationToken cancellationToken = default)
@@ -107,8 +111,9 @@ public class KillSwitchWatcher : IKillSwitchWatcher, IDisposable
         
         try
         {
-            // Trigger event to notify all subscribers
+            // Trigger events to notify all subscribers
             OnKillSwitchActivated?.Invoke();
+            KillSwitchToggled?.Invoke(true);
             
             // Log activation to persistent state
             var stateFile = Path.Combine(Directory.GetCurrentDirectory(), "state", "kill_switch_activation.log");

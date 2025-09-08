@@ -142,9 +142,9 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // Register required interfaces with REAL Safety implementations
-        services.AddSingleton<SafetyProject::Trading.Safety.IKillSwitchWatcher, SafetyProject::Trading.Safety.KillSwitchWatcher>();
-        services.AddSingleton<SafetyProject::Trading.Safety.IRiskManager, SafetyProject::Trading.Safety.RiskManager>();
-        services.AddSingleton<SafetyProject::Trading.Safety.IHealthMonitor, SafetyProject::Trading.Safety.HealthMonitor>();
+        services.AddSingleton<TradingBot.Abstractions.IKillSwitchWatcher, SafetyProject::Trading.Safety.KillSwitchWatcher>();
+        services.AddSingleton<TradingBot.Abstractions.IRiskManager, SafetyProject::Trading.Safety.RiskManager>();
+        services.AddSingleton<TradingBot.Abstractions.IHealthMonitor, SafetyProject::Trading.Safety.HealthMonitor>();
 
         // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
