@@ -53,6 +53,8 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<MAMLLiveIntegration>();
         services.AddSingleton<NightlyParameterTuner>();
         services.AddSingleton<RLAdvisorSystem>();
+        services.AddSingleton<ObservabilityDashboard>();
+        services.AddSingleton<LineageTrackingSystem>();
 
         // Register main orchestrator
         services.AddSingleton<IntelligenceOrchestrator>();
