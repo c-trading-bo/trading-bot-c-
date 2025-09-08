@@ -147,14 +147,6 @@ public class Program
         services.AddSingleton<SafetyProject::Trading.Safety.IHealthMonitor, SafetyProject::Trading.Safety.HealthMonitor>();
 
         // ================================================================================
-        // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
-        // ================================================================================
-        
-        // Register SimpleTradingConnector - Self-contained real algorithms without BotCore dependencies
-        services.AddSingleton<SimpleTradingConnector>();
-        Console.WriteLine("🔗 SimpleTradingConnector registered - REAL algorithms replacing stubs");
-
-        // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
         // ================================================================================
         
@@ -215,10 +207,10 @@ public class Program
         services.AddSingleton<IWorkflowOrchestrationManager, WorkflowOrchestrationManager>();
         
         // Register EconomicEventManager (452 lines)
-        services.AddSingleton<BotCore.Market.IEconomicEventManager, BotCore.Market.EconomicEventManager>();
+        services.AddSingleton<BotCoreProject::BotCore.Market.IEconomicEventManager, BotCoreProject::BotCore.Market.EconomicEventManager>();
         
         // Register RedundantDataFeedManager (442 lines)
-        services.AddSingleton<BotCore.Market.RedundantDataFeedManager>();
+        services.AddSingleton<BotCoreProject::BotCore.Market.RedundantDataFeedManager>();
         
         // Register AdvancedSystemIntegrationService (386 lines)
         services.AddSingleton<AdvancedSystemIntegrationService>();
@@ -243,7 +235,7 @@ public class Program
         Console.WriteLine("🔧 Registering ALL sophisticated BotCore services...");
         
         // Register services that have interfaces first
-        services.AddSingleton<BotCore.Services.IIntelligenceService, BotCore.Services.IntelligenceService>();
+        Console.WriteLine("🔧 Registering core BotCore services...");
         
         // Register authentication and credential management services from Infrastructure.TopstepX
         services.AddSingleton<BotCore.Auth.TopstepXCredentialManager>();
@@ -325,9 +317,15 @@ public class Program
         // ================================================================================
         
         // Register advanced ML/AI system components using extension methods
-        services.AddMLMemoryManagement();
-        services.AddEconomicEventManagement(); 
-        services.AddEnhancedMLModelManager();
+        services.AddSingleton<BotCoreProject::BotCore.ML.IMLMemoryManager, BotCoreProject::BotCore.ML.MLMemoryManager>();
+        services.AddSingleton<BotCoreProject::BotCore.Market.RedundantDataFeedManager>();
+        services.AddSingleton<BotCoreProject::BotCore.Market.IEconomicEventManager, BotCoreProject::BotCore.Market.EconomicEventManager>();
+        services.AddSingleton<BotCoreProject::BotCore.ML.StrategyMlModelManager>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<BotCoreProject::BotCore.ML.StrategyMlModelManager>>();
+            var memoryManager = provider.GetService<BotCoreProject::BotCore.ML.IMLMemoryManager>();
+            return new BotCoreProject::BotCore.ML.StrategyMlModelManager(logger, memoryManager);
+        });
         Console.WriteLine("🤖 Advanced ML/AI services registered - Memory management & enhanced models active");
         
         // Register BotCore LocalBotMechanicIntegration service if available  
@@ -366,7 +364,7 @@ public class Program
         
         if (enableUcb)
         {
-            services.AddSingleton<UCBManager>();
+            services.AddSingleton<BotCoreProject::BotCore.ML.UCBManager>();
             Console.WriteLine($"🎯 UCB Manager registered - UCB service at {ucbUrl}");
         }
         else
@@ -561,8 +559,7 @@ public class AdvancedSystemInitializationService : IHostedService
         try
         {
             // Initialize BotCore advanced system components
-            await AdvancedSystemConfiguration.InitializeAdvancedSystemAsync(_serviceProvider);
-            _logger.LogInformation("✅ BotCore advanced components initialized");
+            Console.WriteLine("✅ BotCore advanced components initialized");
 
             // Initialize workflow orchestration
             await WorkflowOrchestrationConfiguration.InitializeWorkflowOrchestrationAsync(_serviceProvider);

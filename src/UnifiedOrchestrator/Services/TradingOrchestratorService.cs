@@ -1,15 +1,18 @@
+extern alias BotCoreProject;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.SignalR.Client;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.Abstractions;
-using BotCore;
-using BotCore.Models;
-using BotCore.Risk;
-using BotCore.Strategy;
-using BotCore.Brain;
 using System.Text.Json;
 using System.Net.Http.Json;
+
+// Import types from aliased BotCore project
+using IStrategy = BotCoreProject::BotCore.IStrategy;
+using Bar = BotCoreProject::BotCore.Models.Bar;
+using UnifiedTradingBrain = BotCoreProject::BotCore.Brain.UnifiedTradingBrain;
+using RiskEngine = BotCoreProject::BotCore.Risk.RiskEngine;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 

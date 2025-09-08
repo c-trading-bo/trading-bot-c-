@@ -15,7 +15,6 @@ public class IntelligenceOrchestratorService : TradingBot.Abstractions.IIntellig
     private readonly ILogger<IntelligenceOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
     private readonly HttpClient _httpClient;
-    private readonly TradingBot.UnifiedOrchestrator.Services.SimpleTradingConnector _tradingSystem;
     
     // ML/RL Systems
     private readonly NeuralBanditSystem _neuralBandits;
@@ -35,13 +34,11 @@ public class IntelligenceOrchestratorService : TradingBot.Abstractions.IIntellig
     public IntelligenceOrchestratorService(
         ILogger<IntelligenceOrchestratorService> logger,
         ICentralMessageBus messageBus,
-        HttpClient httpClient,
-        SimpleTradingConnector tradingSystem)
+        HttpClient httpClient)
     {
         _logger = logger;
         _messageBus = messageBus;
         _httpClient = httpClient;
-        _tradingSystem = tradingSystem;
         
         // Initialize AI systems
         _neuralBandits = new NeuralBanditSystem(logger);
@@ -447,7 +444,6 @@ public class DataOrchestratorService : TradingBot.Abstractions.IDataOrchestrator
     private readonly ILogger<DataOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
     private readonly HttpClient _httpClient;
-    private readonly TradingBot.UnifiedOrchestrator.Services.SimpleTradingConnector _tradingSystem;
     
     public IReadOnlyList<string> SupportedActions { get; } = new[]
     {
@@ -459,13 +455,11 @@ public class DataOrchestratorService : TradingBot.Abstractions.IDataOrchestrator
     public DataOrchestratorService(
         ILogger<DataOrchestratorService> logger,
         ICentralMessageBus messageBus,
-        HttpClient httpClient,
-        TradingBot.UnifiedOrchestrator.Services.SimpleTradingConnector tradingSystem)
+        HttpClient httpClient)
     {
         _logger = logger;
         _messageBus = messageBus;
         _httpClient = httpClient;
-        _tradingSystem = tradingSystem;
         
         // Subscribe to data events
         SubscribeToDataEvents();

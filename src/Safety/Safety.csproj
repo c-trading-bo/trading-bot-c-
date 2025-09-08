@@ -17,10 +17,10 @@
     <Compile Remove="Preflight.cs" />
     <Compile Remove="HealthzServer.cs" />
     <Compile Remove="SystemHealthMonitor.cs" />
-    <Compile Remove="SecurityHelpers.cs" />
     <Compile Remove="PositionTracker.cs" />
-    <Compile Remove="OrderFillConfirmationSystem.cs" />
   </ItemGroup>
+
+
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
