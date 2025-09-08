@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using Trading.Safety;
+using TradingBot.Abstractions;
 
 namespace TopstepX.Bot.Core.Services
 {

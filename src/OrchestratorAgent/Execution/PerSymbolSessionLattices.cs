@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using TradingBot.Abstractions;
 
 namespace OrchestratorAgent.Execution
 {
@@ -203,12 +204,6 @@ namespace OrchestratorAgent.Execution
         }
 
         private string GetKey(string symbol, SessionType session) => $"{symbol}_{session}";
-    }
-
-    public enum SessionType
-    {
-        RTH, // Regular Trading Hours (9:30 AM - 4:00 PM ET)
-        ETH  // Extended Trading Hours (4:00 PM - 9:30 AM ET)
     }
 
     public class SymbolSessionConfig

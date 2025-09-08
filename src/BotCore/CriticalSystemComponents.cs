@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using System.Data.SQLite;
 using Microsoft.Extensions.Logging;
-using Trading.Safety;
+using TradingBot.Abstractions;
 
 namespace TradingBot.Critical
 {

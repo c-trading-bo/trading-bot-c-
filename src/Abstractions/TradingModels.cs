@@ -320,6 +320,18 @@ public class UnifiedWorkflow
 }
 
 /// <summary>
+/// Trading session types - expanded to support all trading hours
+/// </summary>
+public enum SessionType
+{
+    Regular,    // Regular Trading Hours (9:30 AM - 4:00 PM ET)
+    Extended,   // Extended Trading Hours (4:00 PM - 9:30 AM ET)
+    Overnight,  // Overnight trading (10:00 PM - 6:00 AM ET)
+    RTH = Regular,  // Alias for Regular Trading Hours
+    ETH = Extended  // Alias for Extended Trading Hours
+}
+
+/// <summary>
 /// Unified schedule configuration supporting all timing patterns
 /// </summary>
 public class WorkflowSchedule

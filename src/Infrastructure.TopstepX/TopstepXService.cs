@@ -373,7 +373,8 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             // Subscribe to Level 2 data if enabled
-            var enableLevel2 = _configuration.GetValue<bool>("TopstepX:EnableLevel2", false);
+            var enableLevel2Section = _configuration.GetSection("TopstepX:EnableLevel2");
+            var enableLevel2 = enableLevel2Section.Exists() && bool.Parse(enableLevel2Section.Value ?? "false");
             if (enableLevel2)
             {
                 foreach (var symbol in symbols)
