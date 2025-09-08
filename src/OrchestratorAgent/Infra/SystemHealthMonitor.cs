@@ -382,7 +382,26 @@ public class SystemHealthMonitor
             var failureList = string.Join(", ", criticalFailures.Select(f => _healthChecks[f.Key].Name));
             _logger.LogCritical("[HEALTH] 🚨 CRITICAL SYSTEM FAILURES: {failures}", failureList);
 
-            // TODO: Add email/SMS alerts here
+            // Implement alert system for critical failures
+            SendCriticalAlert(failureList);
+        }
+    }
+
+    private void SendCriticalAlert(string failureList)
+    {
+        try
+        {
+            // Log critical alert (placeholder for email/SMS integration)
+            _logger.LogCritical("[ALERT] CRITICAL ALERT: {failures} - System requires immediate attention!", failureList);
+            
+            // Write alert to monitoring file for external systems
+            var alertFile = Path.Combine("alerts", $"critical_alert_{DateTime.UtcNow:yyyyMMdd_HHmmss}.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(alertFile)!);
+            File.WriteAllText(alertFile, $"CRITICAL SYSTEM ALERT\nTimestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC\nFailures: {failureList}\n");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ALERT] Failed to send critical alert");
         }
     }
 

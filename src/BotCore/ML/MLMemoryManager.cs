@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Microsoft.ML.OnnxRuntime;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime;
@@ -56,7 +55,7 @@ public class MLMemoryManager : IMLMemoryManager
         _garbageCollector = new Timer(CollectGarbage, null, Timeout.Infinite, Timeout.Infinite);
         _memoryMonitor = new Timer(MonitorMemory, null, Timeout.Infinite, Timeout.Infinite);
         
-        _logger.LogInformation("[ML-Memory] MLMemoryManager initialized with ONNX support");
+        _logger.LogInformation("[ML-Memory] MLMemoryManager initialized with real ONNX loader");
     }
 
     /// <summary>
@@ -104,7 +103,7 @@ public class MLMemoryManager : IMLMemoryManager
         
         try
         {
-            // Load model (placeholder - integrate with actual model loading)
+            // Load real ONNX model using OnnxModelLoader
             var model = await LoadModelFromDiskAsync<T>(modelPath);
             
             if (model == null)
@@ -152,43 +151,42 @@ public class MLMemoryManager : IMLMemoryManager
     }
 
     /// <summary>
-    /// Load ML model using proper ONNX runtime with error handling and validation
+    /// Load ONNX models using professional Microsoft.ML.OnnxRuntime integration
     /// </summary>
     private async Task<T?> LoadModelFromDiskAsync<T>(string modelPath) where T : class
     {
         try
         {
+            _logger.LogInformation("[ML-Memory] Loading ONNX model: {ModelPath}", modelPath);
+            
             if (!File.Exists(modelPath))
             {
                 _logger.LogWarning("[ML-Memory] Model file not found: {ModelPath}", modelPath);
                 return null;
             }
 
-            // For ONNX models (.onnx extension)
-            if (Path.GetExtension(modelPath).ToLowerInvariant() == ".onnx")
+            // Load ONNX model using professional OnnxModelLoader with validation
+            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
+            
+            if (session == null)
             {
-                var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
-                if (session != null && typeof(T).IsAssignableFrom(typeof(InferenceSession)))
-                {
-                    return session as T;
-                }
-                
-                _logger.LogWarning("[ML-Memory] ONNX model type mismatch for: {ModelPath}", modelPath);
+                _logger.LogError("[ML-Memory] Failed to load ONNX model: {ModelPath}", modelPath);
                 return null;
             }
+
+            // Log model metadata for verification
+            var inputCount = session.InputMetadata?.Count ?? 0;
+            var outputCount = session.OutputMetadata?.Count ?? 0;
+            _logger.LogInformation("[ML-Memory] ONNX model loaded successfully: {ModelPath}, Inputs: {InputCount}, Outputs: {OutputCount}", 
+                modelPath, inputCount, outputCount);
             
-            // For other model types, try generic instantiation with proper logging
-            _logger.LogWarning("[ML-Memory] Non-ONNX model loading not yet implemented: {ModelPath}", modelPath);
-            
-            // Log the attempted type for debugging
-            _logger.LogDebug("[ML-Memory] Attempted to load type {Type} from {ModelPath}", typeof(T).Name, modelPath);
-            
-            return null;
+            // Return the InferenceSession with proper type casting
+            return session as T;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ML-Memory] Failed to load model from disk: {ModelPath}", modelPath);
-            throw new InvalidOperationException($"Model loading failed for {modelPath}", ex);
+            _logger.LogError(ex, "[ML-Memory] Error loading ONNX model: {ModelPath}", modelPath);
+            return null;
         }
     }
 

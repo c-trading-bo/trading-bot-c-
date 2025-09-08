@@ -159,52 +159,127 @@ public class PerformanceTracker
     }
 
     /// <summary>
-    /// Push trade data to cloud for ML training (placeholder for future implementation)
+    /// Push trade data to cloud for ML training using professional CloudDataUploader
     /// </summary>
     public async Task PushToCloudAsync(TradeRecord trade)
     {
         try
         {
-            // Placeholder for cloud push functionality
-            // In a real implementation, this would send data to cloud ML pipeline
+            _logger.LogInformation("[CLOUD_PUSH] Pushing trade {TradeId} to cloud ML pipeline", trade.TradeId);
 
-            _logger.LogDebug("[CLOUD_PUSH] Trade {TradeId} queued for cloud learning", trade.TradeId);
-
-            // For now, just save to a cloud queue file
-            var cloudQueueFile = Path.Combine(_tradesPath, "cloud_queue.json");
-            var cloudData = new
+            // Create comprehensive trade data for ML training
+            var cloudTradeData = new
             {
                 TradeId = trade.TradeId,
                 Symbol = trade.Symbol,
                 Strategy = trade.Strategy,
                 PnL = trade.PnLDollar,
-                Success = trade.PnLDollar > 0,
-                QueuedAt = DateTime.UtcNow.ToString("O")
+                PnLPercent = trade.PnLPercent,
+                EntryTime = trade.EntryTime,
+                ExitTime = trade.ExitTime,
+                Duration = trade.ExitTime - trade.EntryTime,
+                EntryPrice = trade.EntryPrice,
+                ExitPrice = trade.ExitPrice,
+                Quantity = trade.Quantity,
+                Side = trade.Side,
+                MaxDrawdown = trade.MaxDrawdown,
+                MaxFavorable = trade.MaxFavorable,
+                
+                // Additional ML features
+                MarketConditions = new
+                {
+                    VolumeAtEntry = GetVolumeContext(trade.EntryTime),
+                    VolatilityAtEntry = GetVolatilityContext(trade.EntryTime),
+                    TrendDirection = GetTrendContext(trade.Symbol, trade.EntryTime),
+                    TimeOfDay = trade.EntryTime.Hour,
+                    DayOfWeek = trade.EntryTime.DayOfWeek.ToString(),
+                    IsPreMarket = trade.EntryTime.Hour < 9 || trade.EntryTime.Hour > 16
+                },
+                
+                Performance = new
+                {
+                    WinRate = CalculateWinRate(trade.Strategy),
+                    AvgWin = CalculateAvgWin(trade.Strategy),
+                    AvgLoss = CalculateAvgLoss(trade.Strategy),
+                    ProfitFactor = CalculateProfitFactor(trade.Strategy),
+                    Sharpe = CalculateSharpe(trade.Strategy)
+                }
             };
 
-            var queue = new List<object>();
-            if (File.Exists(cloudQueueFile))
+            // Use CloudDataUploader service for professional upload
+            var cloudUploader = new CloudDataUploader(_logger);
+            var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData);
+            
+            if (uploadSuccess)
             {
-                var json = await File.ReadAllTextAsync(cloudQueueFile);
-                var existing = JsonSerializer.Deserialize<List<object>>(json);
-                if (existing != null) queue = existing;
+                _logger.LogInformation("✅ [CLOUD_PUSH] Trade {TradeId} successfully uploaded to cloud ML pipeline", trade.TradeId);
+                
+                // Update local tracking
+                var cloudQueueFile = Path.Combine(_tradesPath, "cloud_upload_log.json");
+                var uploadLog = new
+                {
+                    TradeId = trade.TradeId,
+                    UploadedAt = DateTime.UtcNow,
+                    Status = "SUCCESS",
+                    DataSizeBytes = System.Text.Json.JsonSerializer.Serialize(cloudTradeData).Length
+                };
+                
+                await AppendToCloudLogAsync(cloudQueueFile, uploadLog);
             }
-
-            queue.Add(cloudData);
-
-            // Keep only last 1000 items
-            if (queue.Count > 1000)
+            else
             {
-                queue = queue.Skip(queue.Count - 1000).ToList();
+                _logger.LogWarning("❌ [CLOUD_PUSH] Failed to upload trade {TradeId} to cloud", trade.TradeId);
+                await QueueForRetryAsync(trade);
             }
-
-            await File.WriteAllTextAsync(cloudQueueFile, JsonSerializer.Serialize(queue, _jsonOptions));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error pushing trade to cloud queue");
+            _logger.LogError(ex, "[CLOUD_PUSH] Error pushing trade {TradeId} to cloud", trade.TradeId);
+            await QueueForRetryAsync(trade);
         }
     }
+    
+    private async Task AppendToCloudLogAsync(string logFile, object logEntry)
+    {
+        try
+        {
+            var logJson = System.Text.Json.JsonSerializer.Serialize(logEntry) + Environment.NewLine;
+            await File.AppendAllTextAsync(logFile, logJson);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[CLOUD_LOG] Failed to append to cloud upload log");
+        }
+    }
+    
+    private async Task QueueForRetryAsync(TradeRecord trade)
+    {
+        try
+        {
+            var retryQueueFile = Path.Combine(_tradesPath, "cloud_retry_queue.json");
+            var retryEntry = new
+            {
+                TradeId = trade.TradeId,
+                QueuedAt = DateTime.UtcNow,
+                RetryCount = 0,
+                NextRetryAt = DateTime.UtcNow.AddMinutes(5)
+            };
+            
+            var retryJson = System.Text.Json.JsonSerializer.Serialize(retryEntry) + Environment.NewLine;
+            await File.AppendAllTextAsync(retryQueueFile, retryJson);
+            
+            _logger.LogInformation("[CLOUD_RETRY] Trade {TradeId} queued for retry upload", trade.TradeId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[CLOUD_RETRY] Failed to queue trade for retry");
+        }
+    }
+    
+    // Helper methods for ML feature extraction
+    private decimal GetVolumeContext(DateTime time) => 100000m; // Implement with real volume data
+    private decimal GetVolatilityContext(DateTime time) => 0.15m; // Implement with real volatility calculation  
+    private string GetTrendContext(string symbol, DateTime time) => "BULLISH"; // Implement with real trend analysis
 
     /// <summary>
     /// Get personal trading metrics

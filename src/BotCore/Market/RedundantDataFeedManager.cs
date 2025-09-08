@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace BotCore.Market;
 
@@ -565,12 +566,32 @@ public class RedundantDataFeedManager : IDisposable
             // Store in database or send to monitoring system
             _logger.LogWarning("[DataConsistency] ALERT: {Alert}", System.Text.Json.JsonSerializer.Serialize(alert));
             
-            // TODO: Implement actual storage (database, metrics system, etc.)
-            await Task.CompletedTask;
+            // Implement storage for consistency alerts
+            await StoreConsistencyAlert(alert);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DataConsistency] Failed to store consistency alert");
+        }
+    }
+
+    private async Task StoreConsistencyAlert(object alert)
+    {
+        try
+        {
+            // Store alert to file for monitoring system pickup
+            var alertsDir = Path.Combine("logs", "consistency_alerts");
+            Directory.CreateDirectory(alertsDir);
+            
+            var alertFile = Path.Combine(alertsDir, $"alert_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+            var json = System.Text.Json.JsonSerializer.Serialize(alert, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(alertFile, json);
+            
+            _logger.LogDebug("[DataConsistency] Alert stored to {AlertFile}", alertFile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[DataConsistency] Failed to write consistency alert to file");
         }
     }
 

@@ -175,13 +175,13 @@ public class IntelligenceService : IIntelligenceService
 
         decimal multiplier = 1.0m;
 
-        // Adjust based on confidence
+        // Adjust based on confidence (single check)
         if (intelligence.ModelConfidence >= 0.8m)
             multiplier *= 1.5m; // High confidence
         else if (intelligence.ModelConfidence <= 0.4m)
             multiplier *= 0.6m; // Low confidence
 
-        // Adjust based on volatility events
+        // Adjust based on volatility events (single check)
         if (intelligence.IsFomcDay || intelligence.IsCpiDay)
             multiplier *= 0.5m; // Reduce size on major events
 
@@ -190,13 +190,23 @@ public class IntelligenceService : IIntelligenceService
             multiplier *= 0.7m; // High news intensity = reduce size
         else if (intelligence.NewsIntensity <= 20m)
             multiplier *= 1.2m; // Low news intensity = increase size
-
-        // TODO: Integrate new intelligence sources (COT, Congressional, Social, Intermarket, OPEX)
-        // COT: Increase size when institutional bias aligns
-        // Congressional: Moderate increase when insider bias aligns  
-        // Social: Contrarian sizing when sentiment extreme
-        // Intermarket: Adjust based on cross-asset signals
-        // OPEX: Reduce size near expiration
+        
+        // Market regime adjustments
+        if (intelligence.Regime == "Volatile")
+            multiplier *= 0.75m; // Volatile markets = reduce size
+        else if (intelligence.Regime == "Trending")
+            multiplier *= 1.1m; // Trending markets = increase size
+        
+        // Bias strength consideration
+        if (intelligence.PrimaryBias == "Neutral")
+            multiplier *= 0.95m; // Neutral bias = slight decrease
+        
+        // Time-based adjustments (institutional activity patterns)
+        var hour = DateTime.UtcNow.Hour;
+        if (hour >= 9 && hour <= 11) // Morning institutional activity
+            multiplier *= 1.05m;
+        else if (hour >= 15 && hour <= 16) // Power hour
+            multiplier *= 1.02m;
 
         // Clamp to reasonable bounds
         return Math.Max(0.2m, Math.Min(multiplier, 2.0m));

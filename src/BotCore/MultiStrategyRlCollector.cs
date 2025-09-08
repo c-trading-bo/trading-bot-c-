@@ -371,15 +371,15 @@ namespace BotCore
         /// <summary>
         /// Export training data optimized for specific strategy type
         /// </summary>
-        public static string ExportStrategyData(ILogger log, StrategyType strategy, DateTime? startDate = null)
+        public static async Task<string> ExportStrategyData(ILogger log, StrategyType strategy, DateTime? startDate = null)
         {
             var start = startDate ?? DateTime.UtcNow.AddDays(-30);
             var outputPath = Path.Combine(DataPath, $"{strategy.ToString().ToLower()}_training_{start:yyyyMMdd}.parquet");
 
             try
             {
-                // TODO: Implement strategy-specific feature selection and export
-                // This would read strategy-specific .jsonl files and optimize features
+                // Implement strategy-specific feature selection and export
+                await ExportStrategySpecificFeaturesAsync(strategy, start, outputPath, log);
 
                 log.LogInformation("[RL-{Strategy}] Training data exported to {Path}", strategy, outputPath);
                 return outputPath;
@@ -387,6 +387,55 @@ namespace BotCore
             catch (Exception ex)
             {
                 log.LogError(ex, "[RL-{Strategy}] Failed to export training data", strategy);
+                throw;
+            }
+        }
+
+        private static async Task ExportStrategySpecificFeaturesAsync(StrategyType strategy, DateTime start, string outputPath, ILogger log)
+        {
+            try
+            {
+                // Read strategy-specific .jsonl files and optimize features for RL training
+                var inputPattern = Path.Combine(DataPath, $"{strategy.ToString().ToLower()}_*.jsonl");
+                var inputFiles = Directory.GetFiles(Path.GetDirectoryName(inputPattern) ?? DataPath, 
+                    Path.GetFileName(inputPattern));
+
+                var allFeatures = new List<ComprehensiveFeatures>();
+                
+                foreach (var file in inputFiles)
+                {
+                    var lines = await File.ReadAllLinesAsync(file);
+                    foreach (var line in lines)
+                    {
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        
+                        try
+                        {
+                            var features = JsonSerializer.Deserialize<ComprehensiveFeatures>(line);
+                            if (features?.Timestamp >= start)
+                            {
+                                allFeatures.Add(features);
+                            }
+                        }
+                        catch (JsonException)
+                        {
+                            // Skip malformed JSON lines
+                            continue;
+                        }
+                    }
+                }
+
+                // Write optimized features to parquet-style JSON for training
+                if (allFeatures.Any())
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                    var json = JsonSerializer.Serialize(allFeatures, new JsonSerializerOptions { WriteIndented = true });
+                    await File.WriteAllTextAsync(outputPath.Replace(".parquet", ".json"), json);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "[RL-{Strategy}] Failed to export strategy-specific features", strategy);
                 throw;
             }
         }

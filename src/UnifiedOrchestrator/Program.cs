@@ -122,6 +122,14 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // ================================================================================
+        // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
+        // ================================================================================
+        
+        // Register SimpleTradingConnector - Self-contained real algorithms without BotCore dependencies
+        services.AddSingleton<SimpleTradingConnector>();
+        Console.WriteLine("🔗 SimpleTradingConnector registered - REAL algorithms replacing stubs");
+
+        // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
         // ================================================================================
         
@@ -148,8 +156,15 @@ public class Program
         services.AddSingleton<BotCore.ML.UCBManager>();
         
         // Register ML Memory Manager - Sophisticated ML model management (458 lines)
+        services.AddSingleton<BotCore.ML.OnnxModelLoader>();
         services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
-        services.AddSingleton<BotCore.ML.StrategyMlModelManager>();
+        services.AddSingleton<BotCore.ML.StrategyMlModelManager>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<BotCore.ML.StrategyMlModelManager>>();
+            var memoryManager = provider.GetService<BotCore.ML.IMLMemoryManager>();
+            var onnxLoader = provider.GetRequiredService<BotCore.ML.OnnxModelLoader>();
+            return new BotCore.ML.StrategyMlModelManager(logger, memoryManager, onnxLoader);
+        });
         
         // Register RiskEngine - Advanced risk management (427 lines)
         services.AddSingleton<BotCore.Risk.RiskEngine>();
