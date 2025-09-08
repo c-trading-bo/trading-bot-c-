@@ -43,7 +43,6 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
     private bool _isBreached = false;
 
     public event Action<TradingBot.Abstractions.RiskBreach>? OnRiskBreach;
-    public event Action<TradingBot.Abstractions.RiskBreach>? RiskBreachDetected;
     public bool IsRiskBreached => _isBreached;
 
     public RiskManager(ILogger<RiskManager> logger, IOptions<AppOptions> config)
