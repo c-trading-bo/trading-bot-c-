@@ -185,7 +185,7 @@ public class AutoTopstepXLoginService : BackgroundService
                         CurrentCredentials!.AccountId = AccountId;
                         Environment.SetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID", AccountId);
                         
-                        _logger.LogInformation("✅ Retrieved account ID: {AccountId}", AccountId);
+                        _logger.LogInformation("✅ Retrieved account ID");
                     }
                 }
             }

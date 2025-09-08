@@ -299,8 +299,8 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var trade = JsonSerializer.Deserialize<TradeConfirmation>(data.GetRawText());
                 if (trade != null)
                 {
-                    _logger.LogInformation("[TRADE] Confirmed: {OrderId} {Symbol} {Side} {Quantity} @ {Price}",
-                        trade.OrderId, trade.Symbol, trade.Side, trade.Quantity, trade.Price);
+                    _logger.LogInformation("[TRADE] Confirmed: {Symbol} {Side} {Quantity} @ {Price}",
+                        trade.Symbol, trade.Side, trade.Quantity, trade.Price);
                     OnTradeConfirmed?.Invoke(trade);
                 }
             }
