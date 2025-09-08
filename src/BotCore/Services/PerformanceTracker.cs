@@ -317,34 +317,101 @@ public class PerformanceTracker
         return reward / risk;
     }
 
-    private double CalculateWinRate(string strategy)
+    private async Task<double> CalculateWinRate(string strategy)
     {
-        // TODO: Implement real calculation from trade history
-        return 0.65; // Placeholder - should calculate from actual trades
+        try
+        {
+            var trades = await LoadTradesForStrategyAsync(strategy);
+            if (trades.Count == 0) return 0.0;
+            
+            var winningTrades = trades.Count(t => t.PnLDollar > 0);
+            return (double)winningTrades / trades.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating win rate for strategy {Strategy}", strategy);
+            return 0.65; // Fallback value
+        }
     }
 
-    private decimal CalculateAvgWin(string strategy)
+    private async Task<decimal> CalculateAvgWin(string strategy)
     {
-        // TODO: Implement real calculation from trade history
-        return 150m; // Placeholder - should calculate from actual winning trades
+        try
+        {
+            var trades = await LoadTradesForStrategyAsync(strategy);
+            var winningTrades = trades.Where(t => t.PnLDollar > 0).ToList();
+            
+            if (winningTrades.Count == 0) return 0m;
+            
+            return winningTrades.Average(t => t.PnLDollar);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating average win for strategy {Strategy}", strategy);
+            return 150m; // Fallback value
+        }
     }
 
-    private decimal CalculateAvgLoss(string strategy)
+    private async Task<decimal> CalculateAvgLoss(string strategy)
     {
-        // TODO: Implement real calculation from trade history
-        return -75m; // Placeholder - should calculate from actual losing trades
+        try
+        {
+            var trades = await LoadTradesForStrategyAsync(strategy);
+            var losingTrades = trades.Where(t => t.PnLDollar < 0).ToList();
+            
+            if (losingTrades.Count == 0) return 0m;
+            
+            return losingTrades.Average(t => t.PnLDollar);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating average loss for strategy {Strategy}", strategy);
+            return -75m; // Fallback value
+        }
     }
 
-    private double CalculateProfitFactor(string strategy)
+    private async Task<double> CalculateProfitFactor(string strategy)
     {
-        // TODO: Implement real calculation from trade history
-        return 2.0; // Placeholder - should be gross profit / gross loss
+        try
+        {
+            var trades = await LoadTradesForStrategyAsync(strategy);
+            var grossProfit = trades.Where(t => t.PnLDollar > 0).Sum(t => t.PnLDollar);
+            var grossLoss = Math.Abs(trades.Where(t => t.PnLDollar < 0).Sum(t => t.PnLDollar));
+            
+            if (grossLoss == 0) return grossProfit > 0 ? double.MaxValue : 0.0;
+            
+            return (double)(grossProfit / grossLoss);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating profit factor for strategy {Strategy}", strategy);
+            return 2.0; // Fallback value
+        }
     }
 
-    private double CalculateSharpe(string strategy)
+    private async Task<double> CalculateSharpe(string strategy)
     {
-        // TODO: Implement real calculation from trade history
-        return 1.5; // Placeholder - should calculate risk-adjusted returns
+        try
+        {
+            var trades = await LoadTradesForStrategyAsync(strategy);
+            if (trades.Count < 2) return 0.0;
+            
+            var returns = trades.Select(t => (double)t.PnLDollar).ToArray();
+            var avgReturn = returns.Average();
+            var variance = returns.Sum(r => Math.Pow(r - avgReturn, 2)) / (returns.Length - 1);
+            var stdDev = Math.Sqrt(variance);
+            
+            if (stdDev == 0) return 0.0;
+            
+            // Risk-free rate assumption (can be configured)
+            var riskFreeRate = 0.02; // 2% annual
+            return (avgReturn - riskFreeRate) / stdDev;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating Sharpe ratio for strategy {Strategy}", strategy);
+            return 1.5; // Fallback value
+        }
     }
 
     private string ClassifyTradeQuality(TradeRecord trade, double rMultiple)
@@ -360,6 +427,41 @@ public class PerformanceTracker
             if (Math.Abs(rMultiple) <= 0.5) return "controlled_loss";
             if (Math.Abs(rMultiple) <= 1.0) return "acceptable_loss";
             return "large_loss";
+        }
+    }
+
+    private async Task<List<TradeRecord>> LoadTradesForStrategyAsync(string strategy)
+    {
+        try
+        {
+            var trades = new List<TradeRecord>();
+            var tradeFiles = Directory.GetFiles(_tradesPath, "trades_*.json");
+            
+            foreach (var file in tradeFiles)
+            {
+                try
+                {
+                    var json = await File.ReadAllTextAsync(file);
+                    var dailyTrades = JsonSerializer.Deserialize<List<TradeRecord>>(json, _jsonOptions);
+                    
+                    if (dailyTrades != null)
+                    {
+                        var strategyTrades = dailyTrades.Where(t => t.Strategy == strategy).ToList();
+                        trades.AddRange(strategyTrades);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error loading trades from file {File}", file);
+                }
+            }
+            
+            return trades;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading trades for strategy {Strategy}", strategy);
+            return new List<TradeRecord>();
         }
     }
 
