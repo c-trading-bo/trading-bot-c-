@@ -83,13 +83,13 @@ namespace BotCore.Brain
             _modelManager = modelManager;
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
-            var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxNeuralNetwork>();
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
-            var neuralNetwork = new OnnxNeuralNetwork(onnxLoader, "models/strategy_selection.onnx", logger);
+            var neuralNetworkLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxNeuralNetwork>();
+            var neuralNetwork = new OnnxNeuralNetwork(onnxLoader, neuralNetworkLogger, "models/strategy_selection.onnx");
             _strategySelector = new NeuralUcbBandit(neuralNetwork);
             
             // Initialize confidence network for model confidence prediction
-            _confidenceNetwork = new OnnxNeuralNetwork(onnxLoader, "models/confidence_prediction.onnx", logger);
+            _confidenceNetwork = new OnnxNeuralNetwork(onnxLoader, neuralNetworkLogger, "models/confidence_prediction.onnx");
             
             _logger.LogInformation("🧠 [UNIFIED-BRAIN] Initialized - Ready to make intelligent trading decisions");
         }

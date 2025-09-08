@@ -13,8 +13,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Autopilot.cs" />
+    <Compile Remove="Preflight.cs" />
+    <Compile Remove="HealthzServer.cs" />
+    <Compile Remove="SystemHealthMonitor.cs" />
+    <Compile Remove="SecurityHelpers.cs" />
+    <Compile Remove="PositionTracker.cs" />
+    <Compile Remove="OrderFillConfirmationSystem.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
+    <ProjectReference Include="../BotCore/BotCore.csproj" />
   </ItemGroup>
 
 </Project>

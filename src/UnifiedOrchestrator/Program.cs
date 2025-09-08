@@ -11,7 +11,6 @@ using BotCore.Infra;
 using BotCore.Brain;
 using BotCore.ML;
 using BotCore.Market;
-using Trading.Safety;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -124,9 +123,9 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // Register required interfaces with REAL Safety implementations
-        services.AddSingleton<IKillSwitchWatcher, KillSwitchWatcher>();
-        services.AddSingleton<IRiskManager, RiskManager>();
-        services.AddSingleton<IHealthMonitor, HealthMonitor>();
+        services.AddSingleton<IKillSwitchWatcher, SimpleKillSwitchWatcher>();
+        services.AddSingleton<IRiskManager, SimpleRiskManager>();
+        services.AddSingleton<IHealthMonitor, SimpleHealthMonitor>();
 
         // ================================================================================
         // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
