@@ -1,8 +1,17 @@
+extern alias BotCoreProject;
+
 using Microsoft.Extensions.Logging;
-using BotCore.ML;
-using BotCore.Market;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
+
+// Import types from aliased BotCore project
+using IMLMemoryManager = BotCoreProject::BotCore.ML.IMLMemoryManager;
+using MLMemoryManager = BotCoreProject::BotCore.ML.MLMemoryManager;
+using RedundantDataFeedManager = BotCoreProject::BotCore.Market.RedundantDataFeedManager;
+using IEconomicEventManager = BotCoreProject::BotCore.Market.IEconomicEventManager;
+using StrategyMlModelManager = BotCoreProject::BotCore.ML.StrategyMlModelManager;
+using Bar = BotCoreProject::BotCore.Models.Bar;
+using EventImpact = BotCoreProject::BotCore.Market.EventImpact;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -277,7 +286,7 @@ public class AdvancedSystemIntegrationService : IDisposable
         decimal atr,
         decimal score,
         decimal qScore,
-        IList<BotCore.Models.Bar> bars)
+        IList<Bar> bars)
     {
         if (_strategyMlManager == null)
         {
