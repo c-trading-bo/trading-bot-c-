@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-05T15:49:20.999787",
+  "article_count": 60,
+  "avg_sentiment": 0.1583333333333333,
+  "news_intensity": 1.0,
+  "volatility_score": 10,
+  "events": {
+    "fomc_detected": true,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 10
+  },
+  "regime_hint": "volatile",
+  "articles": [
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "UnitedHealth Group Incorporated (UNH): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:35Z",
+      "link": "https://finance.yahoo.com/news/unitedhealth-group-incorporated-unh-bull-153235637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackLine, Inc. (BL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:23Z",
+      "link": "https://finance.yahoo.com/news/blackline-inc-bl-bull-case-153223943.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Credo Technology Group Holding Ltd (CRDO): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:09Z",
+      "link": "https://finance.yahoo.com/news/credo-technology-group-holding-ltd-153209129.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Exelixis, Inc. (EXEL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:50Z",
+      "link": "https://finance.yahoo.com/news/exelixis-inc-exel-bull-case-153150532.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Gap, Inc. (GAP): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:37Z",
+      "link": "https://finance.yahoo.com/news/gap-inc-gap-bull-case-153137951.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Medpace Holdings, Inc. (MEDP): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:26Z",
+      "link": "https://finance.yahoo.com/news/medpace-holdings-inc-medp-bull-153126542.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "MidCap Financial Investment Corporation (MFIC): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:14Z",
+      "link": "https://finance.yahoo.com/news/midcap-financial-investment-corporation-mfic-153114005.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Qualys, Inc. (QLYS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:03Z",
+      "link": "https://finance.yahoo.com/news/qualys-inc-qlys-bull-case-153103778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "EchoStar Corporation (SATS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:47Z",
+      "link": "https://finance.yahoo.com/news/echostar-corporation-sats-bull-case-153047632.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Semtech Corporation (SMTC): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:36Z",
+      "link": "https://finance.yahoo.com/news/semtech-corporation-smtc-bull-case-153036509.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "5 Reasons You Should Assume You\u2019ll Live to 100 When Planning for Retirement",
+      "summary": "",
+      "published": "2025-09-05T15:30:35Z",
+      "link": "https://finance.yahoo.com/news/5-reasons-assume-ll-live-153035445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ServiceTitan, Inc. (TTAN): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:23Z",
+      "link": "https://finance.yahoo.com/news/servicetitan-inc-ttan-bull-case-153023524.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Crane Company (CR): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:29:58Z",
+      "link": "https://finance.yahoo.com/news/crane-company-cr-bull-case-152958677.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Est\u00e9e Lauder Companies Inc. (EL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:29:47Z",
+      "link": "https://finance.yahoo.com/news/est-e-lauder-companies-inc-152947049.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Otis Worldwide Corporation (OTIS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:28:57Z",
+      "link": "https://finance.yahoo.com/news/otis-worldwide-corporation-otis-bull-152857972.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Pineapple Financial Stock Rockets On Bold Move Into Injective Treasury",
+      "summary": "",
+      "published": "2025-09-05T15:28:58Z",
+      "link": "https://finance.yahoo.com/news/pineapple-financial-stock-rockets-bold-152858326.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Top Stock Movers Now: Broadcom, Docusign, Lululemon, and More",
+      "summary": "",
+      "published": "2025-09-05T15:36:33Z",
+      "link": "https://finance.yahoo.com/news/top-stock-movers-now-broadcom-153633857.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nebius Group N.V. (NBIS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:34:01Z",
+      "link": "https://finance.yahoo.com/news/nebius-group-n-v-nbis-153401876.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "UnitedHealth Group Incorporated (UNH): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:35Z",
+      "link": "https://finance.yahoo.com/news/unitedhealth-group-incorporated-unh-bull-153235637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackLine, Inc. (BL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:23Z",
+      "link": "https://finance.yahoo.com/news/blackline-inc-bl-bull-case-153223943.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Jobs Report Seals Federal Reserve Interest Rate Cut",
+      "summary": "",
+      "published": "2025-09-05T15:32:28Z",
+      "link": "https://finance.yahoo.com/news/jobs-report-seals-federal-interest-153228448.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Credo Technology Group Holding Ltd (CRDO): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:09Z",
+      "link": "https://finance.yahoo.com/news/credo-technology-group-holding-ltd-153209129.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Exelixis, Inc. (EXEL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:50Z",
+      "link": "https://finance.yahoo.com/news/exelixis-inc-exel-bull-case-153150532.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "The Gap, Inc. (GAP): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:37Z",
+      "link": "https://finance.yahoo.com/news/gap-inc-gap-bull-case-153137951.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Medpace Holdings, Inc. (MEDP): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:26Z",
+      "link": "https://finance.yahoo.com/news/medpace-holdings-inc-medp-bull-153126542.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "MidCap Financial Investment Corporation (MFIC): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:14Z",
+      "link": "https://finance.yahoo.com/news/midcap-financial-investment-corporation-mfic-153114005.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Qualys, Inc. (QLYS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:03Z",
+      "link": "https://finance.yahoo.com/news/qualys-inc-qlys-bull-case-153103778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "EchoStar Corporation (SATS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:47Z",
+      "link": "https://finance.yahoo.com/news/echostar-corporation-sats-bull-case-153047632.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "5 Reasons You Should Assume You\u2019ll Live to 100 When Planning for Retirement",
+      "summary": "",
+      "published": "2025-09-05T15:30:35Z",
+      "link": "https://finance.yahoo.com/news/5-reasons-assume-ll-live-153035445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Semtech Corporation (SMTC): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:36Z",
+      "link": "https://finance.yahoo.com/news/semtech-corporation-smtc-bull-case-153036509.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "ServiceTitan, Inc. (TTAN): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:30:23Z",
+      "link": "https://finance.yahoo.com/news/servicetitan-inc-ttan-bull-case-153023524.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Crane Company (CR): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:29:58Z",
+      "link": "https://finance.yahoo.com/news/crane-company-cr-bull-case-152958677.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Google hit with $3.45 billion EU antitrust fine over adtech practices",
+      "summary": "",
+      "published": "2025-09-05T15:21:09Z",
+      "link": "https://finance.yahoo.com/news/google-hit-3-45-billion-152109473.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Top Stock Movers Now: Broadcom, Docusign, Lululemon, and More",
+      "summary": "",
+      "published": "2025-09-05T15:36:33Z",
+      "link": "https://finance.yahoo.com/news/top-stock-movers-now-broadcom-153633857.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nebius Group N.V. (NBIS): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:34:01Z",
+      "link": "https://finance.yahoo.com/news/nebius-group-n-v-nbis-153401876.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "UnitedHealth Group Incorporated (UNH): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:35Z",
+      "link": "https://finance.yahoo.com/news/unitedhealth-group-incorporated-unh-bull-153235637.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackLine, Inc. (BL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:23Z",
+      "link": "https://finance.yahoo.com/news/blackline-inc-bl-bull-case-153223943.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Tether Held Talks to Invest in Gold Mining: Report",
+      "summary": "",
+      "published": "2025-09-05T15:34:24Z",
+      "link": "https://finance.yahoo.com/video/tether-held-talks-invest-gold-153424317.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Credo Technology Group Holding Ltd (CRDO): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:32:09Z",
+      "link": "https://finance.yahoo.com/news/credo-technology-group-holding-ltd-153209129.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Exelixis, Inc. (EXEL): A Bull Case Theory",
+      "summary": "",
+      "published": "2025-09-05T15:31:50Z",
+      "link": "https://finance.yahoo.com/news/exelixis-inc-exel-bull-case-153150532.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    }
+  ]
+}

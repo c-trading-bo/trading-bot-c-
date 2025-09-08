@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-09-05T14:30:55.937887",
+  "regime_analysis": {
+    "regime_type": "transitioning",
+    "trend_strength": "moderate",
+    "adx_value": 22.3,
+    "atr_value": 5.44,
+    "transition_probability": 0.3
+  },
+  "generated_by": "regime_detector"
+}

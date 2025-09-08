@@ -1,0 +1,67 @@
+{
+  "timestamp": "2025-09-03T07:54:54.271441",
+  "total_checks": 105950,
+  "passed": 0,
+  "failed": 105950,
+  "critical_issues": 870,
+  "by_category": {
+    "risk_management": {
+      "passed": 0,
+      "failed": 243
+    },
+    "trading_logic": {
+      "passed": 0,
+      "failed": 146
+    },
+    "algorithms": {
+      "passed": 0,
+      "failed": 85
+    },
+    "semantic": {
+      "passed": 0,
+      "failed": 105476
+    }
+  },
+  "by_severity": {
+    "CRITICAL": 870,
+    "HIGH": 174,
+    "MEDIUM": 76,
+    "LOW": 104830
+  },
+  "top_issues": [
+    {
+      "rule": "position_sizing_limit",
+      "details": "Function 'analyze_mm_positioning' lacks maximum position size check",
+      "file": "Intelligence\\scripts\\mm_positioning.py",
+      "suggestion": "Add: if position_size > max_position_size: position_size = max_position_size"
+    },
+    {
+      "rule": "position_sizing_limit",
+      "details": "Function 'get_size' lacks maximum position size check",
+      "file": "ml\\rl_env\\Lib\\site-packages\\mpl_toolkits\\axes_grid1\\axes_size.py",
+      "suggestion": "Add: if position_size > max_position_size: position_size = max_position_size"
+    },
+    {
+      "rule": "position_sizing_limit",
+      "details": "Function 'get_size' lacks maximum position size check",
+      "file": "ml\\rl_env\\Lib\\site-packages\\mpl_toolkits\\axes_grid1\\axes_size.py",
+      "suggestion": "Add: if position_size > max_position_size: position_size = max_position_size"
+    },
+    {
+      "rule": "position_sizing_limit",
+      "details": "Function 'get_size' lacks maximum position size check",
+      "file": "ml\\rl_env\\Lib\\site-packages\\mpl_toolkits\\axes_grid1\\axes_size.py",
+      "suggestion": "Add: if position_size > max_position_size: position_size = max_position_size"
+    },
+    {
+      "rule": "position_sizing_limit",
+      "details": "Function 'get_size' lacks maximum position size check",
+      "file": "ml\\rl_env\\Lib\\site-packages\\mpl_toolkits\\axes_grid1\\axes_size.py",
+      "suggestion": "Add: if position_size > max_position_size: position_size = max_position_size"
+    }
+  ],
+  "recommendations": [
+    "URGENT: Fix all CRITICAL issues immediately",
+    "Strengthen risk management across all strategies"
+  ]
+}

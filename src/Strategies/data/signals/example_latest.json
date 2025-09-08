@@ -1,0 +1,27 @@
+{
+  "date": "2024-09-01",
+  "regime": "Trending",
+  "newsIntensity": 45.2,
+  "isCpiDay": false,
+  "isFomcDay": false,
+  "modelConfidence": 0.73,
+  "primaryBias": "Long",
+  "setups": [
+    {
+      "timeWindow": "Opening30Min",
+      "direction": "Long",
+      "confidenceScore": 0.68,
+      "suggestedRiskMultiple": 1.2,
+      "rationale": "Trending market with positive news sentiment"
+    },
+    {
+      "timeWindow": "Afternoon",
+      "direction": "Long",
+      "confidenceScore": 0.52,
+      "suggestedRiskMultiple": 0.8,
+      "rationale": "Sustained bullish momentum"
+    }
+  ],
+  "generatedAt": "2024-09-01T13:00:00Z",
+  "version": "1.0"
+}

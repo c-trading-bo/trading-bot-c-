@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-09-03T23:02:39.509329",
+  "version": "3.0-CLOUD-ULTIMATE",
+  "repository": "/",
+  "analysis": {
+    "timestamp": "2025-09-03T23:02:39.232083",
+    "total_workflows": 40,
+    "healthy_workflows": 7,
+    "broken_workflows": [
+      "auto-label-automerge.yml",
+      "ci.yml",
+      "cloud-ml-training.yml",
+      "cloud_bot_mechanic.yml",
+      "daily_consolidated.yml",
+      "dotnet-desktop.yml",
+      "dotnet.yml",
+      "es_nq_correlation_matrix.yml",
+      "es_nq_critical_trading.yml",
+      "es_nq_news_sentiment.yml",
+      "failed_patterns.yml",
+      "install_dependencies_template.yml",
+      "intelligence_collection.yml",
+      "microstructure.yml",
+      "ml_training_enhanced.yml",
+      "news_sentiment.yml",
+      "options_flow.yml",
+      "options_flow_analysis.yml",
+      "overnight.yml",
+      "portfolio_heat.yml",
+      "quality-assurance.yml",
+      "rebalancing.yml",
+      "regime_detection.yml",
+      "regime_detector.yml",
+      "seasonality.yml",
+      "simple-ml-test.yml",
+      "status-badges.yml",
+      "test-ml-enhanced.yml",
+      "test_talib_fix.yml",
+      "train-github-only.yml",
+      "ultimate_ml_rl_intel_system.yml",
+      "volatility_surface.yml",
+      "zones_identifier.yml"
+    ],
+    "slow_workflows": [],
+    "expensive_workflows": [],
+    "schedule_conflicts": [],
+    "optimization_opportunities": [],
+    "total_monthly_minutes": 22980,
+    "issues_found": [
+      "CRITICAL: Estimated 22980 minutes exceeds 20,000 limit!"
+    ]
+  }
+}

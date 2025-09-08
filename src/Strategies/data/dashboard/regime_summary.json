@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-09-05T14:30:57.112425",
+  "analysis_mode": "comprehensive",
+  "session_type": "market_hours",
+  "workflow_run": "14",
+  "comprehensive_analysis": {
+    "timestamp": "2025-09-05T14:30:54.721076",
+    "analysis_mode": "comprehensive",
+    "session_type": "market_hours",
+    "lookback_period": 30,
+    "assets_analyzed": 6,
+    "successful_analysis": 0,
+    "market_conditions": {},
+    "individual_regimes": {
+      "SPY": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-05T14:30:53.241617"
+      },
+      "QQQ": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-05T14:30:53.521730"
+      },
+      "IWM": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-05T14:30:53.952904"
+      },
+      "TLT": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-05T14:30:54.293763"
+      },
+      "GLD": {
+        "error": "single positional indexer is out-of-bounds",
+        "timestamp": "2025-09-05T14:30:54.523287"
+      }
+    }
+  },
+  "ml_classification": {},
+  "market_summary": {
+    "overall_regime": "UNKNOWN",
+    "health_score": 0,
+    "stress_level": "UNKNOWN",
+    "trend_clarity": "UNKNOWN",
+    "regime_consistency": "UNKNOWN",
+    "total_assets": 6,
+    "successful_analysis": 0
+  },
+  "regime_alerts": [],
+  "historical_comparison": {}
+}

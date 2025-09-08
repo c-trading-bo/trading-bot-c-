@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-05T14:14:36.220765",
+  "article_count": 60,
+  "avg_sentiment": 0.005000000000000001,
+  "news_intensity": 1.0,
+  "volatility_score": 4,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 4
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow climb as jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T12:40:13Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-climb-as-jobs-report-shows-dramatic-slowdown-124013294.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Rises On Surprise Jobs Report; Tesla Rallies, Nvidia Sells Off (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T13:47:21Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Sora Ventures Launches $1 Billion Bitcoin Treasury Fund To Accelerate Corporate Adoption Across Asia",
+      "summary": "",
+      "published": "2025-09-05T13:45:13Z",
+      "link": "https://finance.yahoo.com/news/sora-ventures-launches-1-billion-134513282.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Samsara Stock Rising Sharply on Earnings. IoT Company Won Some Big Customers.",
+      "summary": "",
+      "published": "2025-09-05T13:39:00Z",
+      "link": "https://www.barrons.com/articles/samsara-earnings-stock-price-a6eb86e6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tesla Stock Eyes Buy Points As Board Floats $1 Trillion Elon Musk Pay Package",
+      "summary": "",
+      "published": "2025-09-05T13:37:26Z",
+      "link": "https://www.investors.com/news/tesla-stock-buy-points-board-1-trillion-pay-package-elon-musk/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T13:36:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Challenging Q2 for Caleres as sales, profit sink",
+      "summary": "",
+      "published": "2025-09-05T13:44:02Z",
+      "link": "https://finance.yahoo.com/news/challenging-q2-caleres-sales-profit-134402355.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bond Market Gives a Green Light to Rate Cuts",
+      "summary": "",
+      "published": "2025-09-05T13:28:43Z",
+      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-090525/card/bond-market-gives-a-green-light-to-rate-cuts-HB41ffuTT3qWUU6wvOqE?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Nasdaq unveils new listing rules to clamp down on stock manipulation, Chinese firms",
+      "summary": "",
+      "published": "2025-09-04T02:46:28Z",
+      "link": "https://finance.yahoo.com/news/nasdaq-proposes-tighter-listing-rules-024628479.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Porsche AG to Leave Germany\u2019s DAX Index After Taking Hit From U.S. Tariffs",
+      "summary": "",
+      "published": "2025-09-04T06:46:00Z",
+      "link": "https://www.wsj.com/business/autos/porsche-ag-to-leave-germanys-dax-index-after-taking-hit-from-u-s-tariffs-84ad143b?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arevon obtains $250m tax equity commitment for Kelso Solar Project in Missouri",
+      "summary": "",
+      "published": "2025-09-05T13:43:03Z",
+      "link": "https://finance.yahoo.com/news/arevon-obtains-250m-tax-equity-134303534.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "How Is Altria Group's Stock Performance Compared to Other Consumer Defensive Stocks?",
+      "summary": "",
+      "published": "2025-09-04T06:35:38Z",
+      "link": "https://finance.yahoo.com/news/altria-groups-stock-performance-compared-063538963.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Consumers Say They Are Pessimistic. Their Spending Trends Suggest the Opposite.",
+      "summary": "",
+      "published": "2025-09-04T06:30:00Z",
+      "link": "https://www.barrons.com/articles/consumers-spending-economy-labor-bank-america-6901a42a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Gilead Sciences Stock Underperforming the Nasdaq?",
+      "summary": "",
+      "published": "2025-09-04T06:57:18Z",
+      "link": "https://finance.yahoo.com/news/gilead-sciences-stock-underperforming-nasdaq-065718765.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Lowe\u2019s CEO Marvin Ellison Is Prepared for a Housing Rebound",
+      "summary": "",
+      "published": "2025-09-04T07:00:00Z",
+      "link": "https://www.barrons.com/articles/lowes-ceo-marvin-ellison-housing-market-21995b68?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Alphabet Within Striking Range of $3 Trillion as Key Risk Clears",
+      "summary": "",
+      "published": "2025-09-05T13:36:50Z",
+      "link": "https://finance.yahoo.com/news/alphabet-within-striking-range-3-101002011.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump Sons\u2019 Crypto Bet Pays Off As American Bitcoin Stock Doubles, Adding $1.5B to Their Wealth",
+      "summary": "",
+      "published": "2025-09-04T01:57:55Z",
+      "link": "https://finance.yahoo.com/news/trump-sons-crypto-bet-pays-015755116.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nasdaq unveils new listing rules to clamp down on stock manipulation, Chinese firms",
+      "summary": "",
+      "published": "2025-09-04T02:46:28Z",
+      "link": "https://finance.yahoo.com/news/nasdaq-proposes-tighter-listing-rules-024628479.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Online grocer Rohlik bets on services, advertising as it mulls IPO",
+      "summary": "",
+      "published": "2025-09-04T04:02:17Z",
+      "link": "https://finance.yahoo.com/news/online-grocer-rohlik-bets-services-040217219.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "His Girlfriend's 'Hardcore Narcissist' Parents Treat Her Like An ATM. Dad Takes $500 From Her Account For Golf While She's $190k In Debt",
+      "summary": "",
+      "published": "2025-09-04T02:12:28Z",
+      "link": "https://finance.yahoo.com/news/girlfriends-hardcore-narcissist-parents-treat-021228778.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Duke Energy Stock Outperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-04T04:03:16Z",
+      "link": "https://finance.yahoo.com/news/duke-energy-stock-outperforming-dow-040316988.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ExxonMobil considers sale of European chemical plants, FT reports",
+      "summary": "",
+      "published": "2025-09-04T04:24:49Z",
+      "link": "https://finance.yahoo.com/news/exxonmobil-considers-sale-european-chemical-042449814.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wall Street rises to a record with hopes for cuts to interest rates",
+      "summary": "",
+      "published": "2025-09-04T04:26:40Z",
+      "link": "https://finance.yahoo.com/news/asian-shares-higher-wall-street-042640853.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The Golden Canary: What Precious Metals Are Saying About the Economy",
+      "summary": "",
+      "published": "2025-09-04T04:30:00Z",
+      "link": "https://www.barrons.com/articles/gold-record-prices-fed-dollar-inflation-2c97720b?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump Family's Stake Swells To $1.46 Billion As American Bitcoin Makes Stock Market Debut",
+      "summary": "",
+      "published": "2025-09-04T02:14:32Z",
+      "link": "https://finance.yahoo.com/news/trump-familys-stake-swells-1-021432873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Innodata Is Making AI Models Smarter. Buy the Stock.",
+      "summary": "",
+      "published": "2025-09-04T05:00:00Z",
+      "link": "https://www.barrons.com/articles/innodata-stock-pick-ai-model-training-data-accuracy-2ee4d5a8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Vanguard Is Dipping Into Active Stock ETFs. What Investors Should Know.",
+      "summary": "",
+      "published": "2025-09-04T06:00:00Z",
+      "link": "https://www.barrons.com/articles/vanguard-active-funds-38f74fcb?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Amphenol Stock: Is APH Outperforming the Technology Sector?",
+      "summary": "",
+      "published": "2025-09-04T05:49:18Z",
+      "link": "https://finance.yahoo.com/news/amphenol-stock-aph-outperforming-technology-054918424.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Asia's Wealthy Families Are Going All-In on Crypto\u2014Here's How Much They're Betting",
+      "summary": "",
+      "published": "2025-09-04T02:16:04Z",
+      "link": "https://finance.yahoo.com/news/asias-wealthy-families-going-crypto-021604324.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Chip Demand From Automotive Market Is Unlikely to Recover Soon, Soitec CEO Says",
+      "summary": "",
+      "published": "2025-09-04T06:12:00Z",
+      "link": "https://www.wsj.com/tech/chip-demand-from-automotive-market-is-unlikely-to-recover-soon-soitec-ceo-says-97c6e1a9?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "JPMorgan to launch digital retail bank in Germany in 2026",
+      "summary": "",
+      "published": "2025-09-04T06:22:13Z",
+      "link": "https://finance.yahoo.com/news/jpmorgan-launch-german-digital-retail-062213265.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow climb as jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T12:40:13Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-climb-as-jobs-report-shows-dramatic-slowdown-124013294.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Rises On Surprise Jobs Report; Tesla Rallies, Nvidia Sells Off (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T13:47:21Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Sora Ventures Launches $1 Billion Bitcoin Treasury Fund To Accelerate Corporate Adoption Across Asia",
+      "summary": "",
+      "published": "2025-09-05T13:45:13Z",
+      "link": "https://finance.yahoo.com/news/sora-ventures-launches-1-billion-134513282.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Samsara Stock Rising Sharply on Earnings. IoT Company Won Some Big Customers.",
+      "summary": "",
+      "published": "2025-09-05T13:39:00Z",
+      "link": "https://www.barrons.com/articles/samsara-earnings-stock-price-a6eb86e6?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tesla Stock Eyes Buy Points As Board Floats $1 Trillion Elon Musk Pay Package",
+      "summary": "",
+      "published": "2025-09-05T13:37:26Z",
+      "link": "https://www.investors.com/news/tesla-stock-buy-points-board-1-trillion-pay-package-elon-musk/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Elon Musk Needs $1 Trillion in \u2018Motivation,\u2019 Says Tesla Board. The Stock Rises.",
+      "summary": "",
+      "published": "2025-09-05T13:36:00Z",
+      "link": "https://www.barrons.com/articles/elon-musk-pay-package-tesla-stock-bb7b8303?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Challenging Q2 for Caleres as sales, profit sink",
+      "summary": "",
+      "published": "2025-09-05T13:44:02Z",
+      "link": "https://finance.yahoo.com/news/challenging-q2-caleres-sales-profit-134402355.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shares of Chinese AI chipmaker Cambricon tumble on profit-booking",
+      "summary": "",
+      "published": "2025-09-04T02:09:08Z",
+      "link": "https://finance.yahoo.com/news/shares-chinese-ai-chip-maker-020908481.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bond Market Gives a Green Light to Rate Cuts",
+      "summary": "",
+      "published": "2025-09-05T13:28:43Z",
+      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-090525/card/bond-market-gives-a-green-light-to-rate-cuts-HB41ffuTT3qWUU6wvOqE?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

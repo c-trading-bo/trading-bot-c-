@@ -1,0 +1,6 @@
+{
+  "level": "CRITICAL",
+  "title": "Minute Usage Exceeds Limit!",
+  "message": "Using 138502/20000 minutes",
+  "timestamp": "2025-09-05T14:26:50.615953"
+}

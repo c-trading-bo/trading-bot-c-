@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-02T23:08:17.597887",
+  "article_count": 60,
+  "avg_sentiment": -0.021666666666666667,
+  "news_intensity": 1.0,
+  "volatility_score": 6,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 6
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "This Under-the-Radar Chip Stock Is Beating the Market in 2025",
+      "summary": "",
+      "published": "2025-09-01T15:00:02Z",
+      "link": "https://finance.yahoo.com/news/under-radar-chip-stock-beating-150002579.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dave Ramsey Says, 'You Can't Wait On The Government To Tax Billionaires To Make You Rich. That's Called Socialism'",
+      "summary": "",
+      "published": "2025-09-01T15:00:10Z",
+      "link": "https://finance.yahoo.com/news/dave-ramsey-says-cant-wait-150010582.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Danaher Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T15:01:54Z",
+      "link": "https://finance.yahoo.com/news/danaher-stock-underperforming-dow-150154786.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Amgen Stock Underperforming the S&P 500?",
+      "summary": "",
+      "published": "2025-09-01T15:05:29Z",
+      "link": "https://finance.yahoo.com/news/amgen-stock-underperforming-p-500-150529659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Quantum Computing Stock Is Poised to Dominate. Why Analysts Think You Should Buy It Here.",
+      "summary": "",
+      "published": "2025-09-01T15:10:03Z",
+      "link": "https://finance.yahoo.com/news/quantum-computing-stock-poised-dominate-151003505.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Top investor issued 4 warnings to Cracker Barrel\u2019s $7M/year CEO about rebranding \u2014 here's why he was ignored",
+      "summary": "",
+      "published": "2025-09-01T15:10:00Z",
+      "link": "https://finance.yahoo.com/news/top-investor-issued-4-warnings-151000737.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Core Lithium announces A$50m share placement",
+      "summary": "",
+      "published": "2025-09-01T14:56:26Z",
+      "link": "https://finance.yahoo.com/news/core-lithium-announces-50m-share-145626792.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Caterpillar Stock: Is CAT Outperforming the Industrial Sector?",
+      "summary": "",
+      "published": "2025-09-01T15:14:32Z",
+      "link": "https://finance.yahoo.com/news/caterpillar-stock-cat-outperforming-industrial-151432844.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BYD records consecutive monthly production drops for first time since 2020",
+      "summary": "",
+      "published": "2025-09-01T14:41:45Z",
+      "link": "https://finance.yahoo.com/news/byd-records-consecutive-monthly-production-144145757.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "EV Sales Stay Strong in China. Why Profitability Is a Worry For Tesla, BYD, NIO, Others.",
+      "summary": "",
+      "published": "2025-09-01T14:39:00Z",
+      "link": "https://www.barrons.com/articles/ev-sales-china-tesla-byd-nio-3e18ddfd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Airbnb Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T14:38:58Z",
+      "link": "https://finance.yahoo.com/news/airbnb-stock-underperforming-dow-143858803.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "\u2018I\u2019m asking for a friend\u2019: Will the IRS write off $60,000 lost in a romance phishing scam?",
+      "summary": "",
+      "published": "2025-09-01T14:55:00Z",
+      "link": "https://finance.yahoo.com/news/m-asking-friend-irs-write-093800136.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech Selloff Drags On, European Stocks Rise, Japanese Shares Slide.",
+      "summary": "",
+      "published": "2025-09-01T15:18:00Z",
+      "link": "https://www.barrons.com/articles/stock-market-today-1794884a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s \u2018no tax on overtime\u2019 is now US law \u2014 but some Americans don\u2019t even qualify. Here\u2019s the catch",
+      "summary": "",
+      "published": "2025-09-01T14:33:00Z",
+      "link": "https://finance.yahoo.com/news/trump-no-tax-overtime-now-143300208.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Jumps to a Record. What\u2019s Powering the Precious Metal Higher.",
+      "summary": "",
+      "published": "2025-09-01T15:28:00Z",
+      "link": "https://www.barrons.com/articles/gold-price-record-fed-354dcb34?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arista Networks Stock: Is ANET Outperforming the Technology Sector?",
+      "summary": "",
+      "published": "2025-09-01T14:16:01Z",
+      "link": "https://finance.yahoo.com/news/arista-networks-stock-anet-outperforming-141601424.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "UK court approves Dundee Precious Metals\u2019 acquisition of Adriatic Metals",
+      "summary": "",
+      "published": "2025-09-01T14:51:08Z",
+      "link": "https://finance.yahoo.com/news/uk-court-approves-dundee-precious-145108461.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Adobe Stock Underperforming the Nasdaq?",
+      "summary": "",
+      "published": "2025-09-01T14:02:39Z",
+      "link": "https://finance.yahoo.com/news/adobe-stock-underperforming-nasdaq-140239290.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "HP Stock Forecast: Can AI PCs and Windows 11 Refresh Take HPQ Higher?",
+      "summary": "",
+      "published": "2025-09-01T14:00:02Z",
+      "link": "https://finance.yahoo.com/news/hp-stock-forecast-ai-pcs-140002001.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Adobe Looks Cheap Ahead of Earnings - Short Put Yields are Juicy!",
+      "summary": "",
+      "published": "2025-09-01T14:00:02Z",
+      "link": "https://finance.yahoo.com/news/adobe-looks-cheap-ahead-earnings-140002382.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "This Under-the-Radar Chip Stock Is Beating the Market in 2025",
+      "summary": "",
+      "published": "2025-09-01T15:00:02Z",
+      "link": "https://finance.yahoo.com/news/under-radar-chip-stock-beating-150002579.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dave Ramsey Says, 'You Can't Wait On The Government To Tax Billionaires To Make You Rich. That's Called Socialism'",
+      "summary": "",
+      "published": "2025-09-01T15:00:10Z",
+      "link": "https://finance.yahoo.com/news/dave-ramsey-says-cant-wait-150010582.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Danaher Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T15:01:54Z",
+      "link": "https://finance.yahoo.com/news/danaher-stock-underperforming-dow-150154786.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Amgen Stock Underperforming the S&P 500?",
+      "summary": "",
+      "published": "2025-09-01T15:05:29Z",
+      "link": "https://finance.yahoo.com/news/amgen-stock-underperforming-p-500-150529659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Quantum Computing Stock Is Poised to Dominate. Why Analysts Think You Should Buy It Here.",
+      "summary": "",
+      "published": "2025-09-01T15:10:03Z",
+      "link": "https://finance.yahoo.com/news/quantum-computing-stock-poised-dominate-151003505.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Top investor issued 4 warnings to Cracker Barrel\u2019s $7M/year CEO about rebranding \u2014 here's why he was ignored",
+      "summary": "",
+      "published": "2025-09-01T15:10:00Z",
+      "link": "https://finance.yahoo.com/news/top-investor-issued-4-warnings-151000737.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Core Lithium announces A$50m share placement",
+      "summary": "",
+      "published": "2025-09-01T14:56:26Z",
+      "link": "https://finance.yahoo.com/news/core-lithium-announces-50m-share-145626792.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Caterpillar Stock: Is CAT Outperforming the Industrial Sector?",
+      "summary": "",
+      "published": "2025-09-01T15:14:32Z",
+      "link": "https://finance.yahoo.com/news/caterpillar-stock-cat-outperforming-industrial-151432844.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BYD records consecutive monthly production drops for first time since 2020",
+      "summary": "",
+      "published": "2025-09-01T14:41:45Z",
+      "link": "https://finance.yahoo.com/news/byd-records-consecutive-monthly-production-144145757.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "EV Sales Stay Strong in China. Why Profitability Is a Worry For Tesla, BYD, NIO, Others.",
+      "summary": "",
+      "published": "2025-09-01T14:39:00Z",
+      "link": "https://www.barrons.com/articles/ev-sales-china-tesla-byd-nio-3e18ddfd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Airbnb Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T14:38:58Z",
+      "link": "https://finance.yahoo.com/news/airbnb-stock-underperforming-dow-143858803.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "\u2018I\u2019m asking for a friend\u2019: Will the IRS write off $60,000 lost in a romance phishing scam?",
+      "summary": "",
+      "published": "2025-09-01T14:55:00Z",
+      "link": "https://finance.yahoo.com/news/m-asking-friend-irs-write-093800136.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Tech Selloff Drags On, European Stocks Rise, Japanese Shares Slide.",
+      "summary": "",
+      "published": "2025-09-01T15:18:00Z",
+      "link": "https://www.barrons.com/articles/stock-market-today-1794884a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s \u2018no tax on overtime\u2019 is now US law \u2014 but some Americans don\u2019t even qualify. Here\u2019s the catch",
+      "summary": "",
+      "published": "2025-09-01T14:33:00Z",
+      "link": "https://finance.yahoo.com/news/trump-no-tax-overtime-now-143300208.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Jumps to a Record. What\u2019s Powering the Precious Metal Higher.",
+      "summary": "",
+      "published": "2025-09-01T15:28:00Z",
+      "link": "https://www.barrons.com/articles/gold-price-record-fed-354dcb34?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Arista Networks Stock: Is ANET Outperforming the Technology Sector?",
+      "summary": "",
+      "published": "2025-09-01T14:16:01Z",
+      "link": "https://finance.yahoo.com/news/arista-networks-stock-anet-outperforming-141601424.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "UK court approves Dundee Precious Metals\u2019 acquisition of Adriatic Metals",
+      "summary": "",
+      "published": "2025-09-01T14:51:08Z",
+      "link": "https://finance.yahoo.com/news/uk-court-approves-dundee-precious-145108461.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Adobe Stock Underperforming the Nasdaq?",
+      "summary": "",
+      "published": "2025-09-01T14:02:39Z",
+      "link": "https://finance.yahoo.com/news/adobe-stock-underperforming-nasdaq-140239290.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "HP Stock Forecast: Can AI PCs and Windows 11 Refresh Take HPQ Higher?",
+      "summary": "",
+      "published": "2025-09-01T14:00:02Z",
+      "link": "https://finance.yahoo.com/news/hp-stock-forecast-ai-pcs-140002001.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Adobe Looks Cheap Ahead of Earnings - Short Put Yields are Juicy!",
+      "summary": "",
+      "published": "2025-09-01T14:00:02Z",
+      "link": "https://finance.yahoo.com/news/adobe-looks-cheap-ahead-earnings-140002382.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "If You'd Invested $1,000 in Coca-Cola Stock 30 Years Ago, Here's How Much You'd Have Today",
+      "summary": "",
+      "published": "2025-09-01T14:48:00Z",
+      "link": "https://finance.yahoo.com/news/youd-invested-1-000-coca-144800489.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BYD records consecutive monthly production drops for first time since 2020",
+      "summary": "",
+      "published": "2025-09-01T14:41:45Z",
+      "link": "https://finance.yahoo.com/news/byd-records-consecutive-monthly-production-144145757.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Airbnb Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T14:38:58Z",
+      "link": "https://finance.yahoo.com/news/airbnb-stock-underperforming-dow-143858803.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "EV Sales Stay Strong in China. Why Profitability Is a Worry For Tesla, BYD, NIO, Others.",
+      "summary": "",
+      "published": "2025-09-01T14:39:00Z",
+      "link": "https://www.barrons.com/articles/ev-sales-china-tesla-byd-nio-3e18ddfd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s \u2018no tax on overtime\u2019 is now US law \u2014 but some Americans don\u2019t even qualify. Here\u2019s the catch",
+      "summary": "",
+      "published": "2025-09-01T14:33:00Z",
+      "link": "https://finance.yahoo.com/news/trump-no-tax-overtime-now-143300208.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "UK court approves Dundee Precious Metals\u2019 acquisition of Adriatic Metals",
+      "summary": "",
+      "published": "2025-09-01T14:51:08Z",
+      "link": "https://finance.yahoo.com/news/uk-court-approves-dundee-precious-145108461.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Under-the-Radar Chip Stock Is Beating the Market in 2025",
+      "summary": "",
+      "published": "2025-09-01T15:00:02Z",
+      "link": "https://finance.yahoo.com/news/under-radar-chip-stock-beating-150002579.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Danaher Stock Underperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-01T15:01:54Z",
+      "link": "https://finance.yahoo.com/news/danaher-stock-underperforming-dow-150154786.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Amgen Stock Underperforming the S&P 500?",
+      "summary": "",
+      "published": "2025-09-01T15:05:29Z",
+      "link": "https://finance.yahoo.com/news/amgen-stock-underperforming-p-500-150529659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Top investor issued 4 warnings to Cracker Barrel\u2019s $7M/year CEO about rebranding \u2014 here's why he was ignored",
+      "summary": "",
+      "published": "2025-09-01T15:10:00Z",
+      "link": "https://finance.yahoo.com/news/top-investor-issued-4-warnings-151000737.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}

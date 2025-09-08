@@ -1,0 +1,19 @@
+{
+  "timestamp": "2025-09-03T22:57:10.474346",
+  "version": "3.0-CLOUD-ULTIMATE",
+  "repository": "/",
+  "analysis": {
+    "timestamp": "2025-09-03T22:57:09.738610",
+    "total_workflows": 40,
+    "healthy_workflows": 40,
+    "broken_workflows": [],
+    "slow_workflows": [],
+    "expensive_workflows": [],
+    "schedule_conflicts": [],
+    "optimization_opportunities": [],
+    "total_monthly_minutes": 22980,
+    "issues_found": [
+      "CRITICAL: Estimated 22980 minutes exceeds 20,000 limit!"
+    ]
+  }
+}

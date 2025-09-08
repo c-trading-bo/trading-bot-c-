@@ -1,0 +1,1066 @@
+{
+  "timestamp": "2025-09-03T23:01:08.492850",
+  "workflows": {
+    "auto-label-automerge.yml": {
+      "name": "auto-label-automerge",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 1,
+      "jobs": {
+        "label": {
+          "step_count": 1,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": false,
+          "has_artifacts": false,
+          "step_types": [
+            "action"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "ci.yml": {
+      "name": ".NET Bot CI",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "build": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "cloud-ml-training.yml": {
+      "name": "Cloud ML Training Pipeline",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "cloud-training": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "cloud_bot_mechanic.yml": {
+      "name": "\ud83c\udf29\ufe0f Cloud Bot Mechanic (Ultimate)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 14,
+      "jobs": {
+        "cloud-mechanic": {
+          "step_count": 14,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": true,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "action",
+            "script",
+            "action",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "congress_trades.yml": {
+      "name": "Congressional Trades Monitor",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "congress_trades": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "cot_report.yml": {
+      "name": "COT Report Analysis",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "cot_analysis": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "daily_consolidated.yml": {
+      "name": "Daily Consolidated Tasks (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "daily-tasks": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "dotnet-desktop.yml": {
+      "name": ".NET Core Desktop",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 10,
+      "jobs": {
+        "build": {
+          "step_count": 10,
+          "runs_on": "windows-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": true,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "action"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "dotnet.yml": {
+      "name": "build",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "build": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": false,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "es_nq_correlation_matrix.yml": {
+      "name": "ES/NQ Correlation Matrix Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "correlation_matrix": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "es_nq_critical_trading.yml": {
+      "name": "ES/NQ Critical Trading (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "es-nq-analysis": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 5,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "es_nq_news_sentiment.yml": {
+      "name": "ES/NQ Futures News Sentiment",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "analyze-futures-news": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "failed_patterns.yml": {
+      "name": "Failed Patterns Detection",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "failed_patterns": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "install_dependencies_template.yml": {
+      "name": "Universal Dependency Installation Template",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 6,
+      "jobs": {
+        "install-dependencies": {
+          "step_count": 6,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "intelligence_collection.yml": {
+      "name": "Intelligence Collection (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "collect-intel": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 10,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "intermarket.yml": {
+      "name": "Intermarket Analysis",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "intermarket": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "microstructure.yml": {
+      "name": "Microstructure Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "microstructure": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "ml_training_enhanced.yml": {
+      "name": "ML Training Enhanced (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "train-all-models": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 10,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "mm_positioning.yml": {
+      "name": "Market Maker Positioning",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "mm_positioning": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "news_sentiment.yml": {
+      "name": "News & Sentiment (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "analyze-news": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 3,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "opex_calendar.yml": {
+      "name": "OPEX Calendar Monitor",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "opex_calendar": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "options_flow.yml": {
+      "name": "Options Flow Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "options_flow": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "options_flow_analysis.yml": {
+      "name": "Options Flow Analysis (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "analyze-flow": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 3,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "overnight.yml": {
+      "name": "Overnight Session Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "overnight": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "portfolio_heat.yml": {
+      "name": "Portfolio Heat Management (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "manage-heat": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 2,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "quality-assurance.yml": {
+      "name": "Quality Assurance",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "quality-check": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 20,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "rebalancing.yml": {
+      "name": "Rebalancing Flows Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "rebalancing": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "regime_detection.yml": {
+      "name": "Market Regime Detection (Team)",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 4,
+      "jobs": {
+        "detect-regime": {
+          "step_count": 4,
+          "runs_on": "ubuntu-latest",
+          "timeout": 2,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "regime_detector.yml": {
+      "name": "Regime Detection Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "regime_detector": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "seasonality.yml": {
+      "name": "Seasonality Patterns Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "seasonality": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "sector_rotation.yml": {
+      "name": "Sector Rotation Analysis",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "sector_rotation": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "simple-ml-test.yml": {
+      "name": "Simple ML Test",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 3,
+      "jobs": {
+        "ml-test": {
+          "step_count": 3,
+          "runs_on": "ubuntu-latest",
+          "timeout": 10,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "social_momentum.yml": {
+      "name": "Social Momentum Tracker",
+      "triggers": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "social_momentum": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "status-badges.yml": {
+      "name": "\ud83c\udf96\ufe0f Status Badges",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "update-badges": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 24,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "test-ml-enhanced.yml": {
+      "name": "Test ML Enhanced",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 3,
+      "jobs": {
+        "test-ml-enhanced": {
+          "step_count": 3,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "test_talib_fix.yml": {
+      "name": "\ud83e\uddea Test TA-Lib Installation Fix",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 8,
+      "jobs": {
+        "test-talib-fix": {
+          "step_count": 8,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "train-github-only.yml": {
+      "name": "24/7 GitHub-Only ML/RL Training",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 12,
+      "jobs": {
+        "continuous-training": {
+          "step_count": 12,
+          "runs_on": "ubuntu-latest",
+          "timeout": 45,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "script",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "ultimate_ml_rl_intel_system.yml": {
+      "name": "Ultimate ML/RL/Intel System (Team Optimized)",
+      "triggers": [],
+      "job_count": 4,
+      "step_count": 28,
+      "jobs": {
+        "collect-everything": {
+          "step_count": 11,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "train-everything": {
+          "step_count": 7,
+          "runs_on": "ubuntu-latest",
+          "timeout": 45,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "intelligence-integration": {
+          "step_count": 7,
+          "runs_on": "ubuntu-latest",
+          "timeout": 15,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "action",
+            "script",
+            "script",
+            "script",
+            "script"
+          ]
+        },
+        "system-summary": {
+          "step_count": 3,
+          "runs_on": "ubuntu-latest",
+          "timeout": 10,
+          "has_cache": false,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": [
+        "Consider matrix strategy for ubuntu-latest jobs: ['collect-everything', 'train-everything', 'intelligence-integration', 'system-summary']"
+      ]
+    },
+    "volatility_surface.yml": {
+      "name": "Volatility Surface Analysis",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "volatility_surface": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    },
+    "zones_identifier.yml": {
+      "name": "Supply Demand Zones Identifier",
+      "triggers": [],
+      "job_count": 1,
+      "step_count": 5,
+      "jobs": {
+        "zones_identifier": {
+          "step_count": 5,
+          "runs_on": "ubuntu-latest",
+          "timeout": 30,
+          "has_cache": true,
+          "has_artifacts": false,
+          "step_types": [
+            "action",
+            "action",
+            "script",
+            "script",
+            "script"
+          ]
+        }
+      },
+      "issues": [],
+      "suggestions": []
+    }
+  },
+  "summary": {
+    "total_jobs": 43,
+    "total_steps": 243,
+    "optimization_hints": [
+      "High step count detected - consider job consolidation",
+      "2 workflows could benefit from caching"
+    ]
+  }
+}
