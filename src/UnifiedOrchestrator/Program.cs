@@ -359,6 +359,9 @@ public class Program
         services.AddSingleton<AdvancedSystemIntegrationService>();
         Console.WriteLine("🎼 Advanced orchestrator services registered - All systems will be coordinated by MasterOrchestrator");
 
+        // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
+        services.AddHostedService<PythonUcbLauncher>();
+        
         // Register UCB Manager - Auto-detect if UCB service is available
         var ucbUrl = Environment.GetEnvironmentVariable("UCB_SERVICE_URL") ?? "http://localhost:5000";
         var enableUcb = Environment.GetEnvironmentVariable("ENABLE_UCB") != "0"; // Default to enabled
@@ -367,6 +370,7 @@ public class Program
         {
             services.AddSingleton<BotCoreProject::BotCore.ML.UCBManager>();
             Console.WriteLine($"🎯 UCB Manager registered - UCB service at {ucbUrl}");
+            Console.WriteLine("🐍 Python UCB service will auto-launch with UnifiedOrchestrator");
         }
         else
         {
