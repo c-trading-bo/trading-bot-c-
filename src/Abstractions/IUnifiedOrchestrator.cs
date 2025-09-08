@@ -1,6 +1,4 @@
-using TradingBot.UnifiedOrchestrator.Models;
-
-namespace TradingBot.UnifiedOrchestrator.Interfaces;
+namespace TradingBot.Abstractions;
 
 /// <summary>
 /// Core interface for the unified orchestrator system

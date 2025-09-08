@@ -1,6 +1,4 @@
-using TradingBot.UnifiedOrchestrator.Models;
-
-namespace TradingBot.UnifiedOrchestrator.Interfaces;
+namespace TradingBot.Abstractions;
 
 /// <summary>
 /// Interface for cloud data integration - links GitHub workflows to trading decisions
