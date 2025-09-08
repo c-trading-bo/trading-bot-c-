@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
@@ -11,6 +12,7 @@ using BotCore.Infra;
 using BotCore.Brain;
 using BotCore.ML;
 using BotCore.Market;
+using Trading.Safety;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -110,6 +112,21 @@ public class Program
     {
         Console.WriteLine("🔧 Configuring Unified Orchestrator Services...");
 
+        // Configure AppOptions for Safety components
+        var appOptions = new AppOptions
+        {
+            ApiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com",
+            AuthToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "",
+            AccountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "",
+            EnableDryRunMode = Environment.GetEnvironmentVariable("ENABLE_DRY_RUN") != "false",
+            EnableAutoExecution = Environment.GetEnvironmentVariable("ENABLE_AUTO_EXECUTION") == "true",
+            MaxDailyLoss = decimal.Parse(Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? "-1000"),
+            MaxPositionSize = int.Parse(Environment.GetEnvironmentVariable("MAX_POSITION_SIZE") ?? "5"),
+            DrawdownLimit = decimal.Parse(Environment.GetEnvironmentVariable("DRAWDOWN_LIMIT") ?? "-2000"),
+            KillFile = Environment.GetEnvironmentVariable("KILL_FILE") ?? Path.Combine(Directory.GetCurrentDirectory(), "kill.txt")
+        };
+        services.AddSingleton<IOptions<AppOptions>>(provider => Options.Create(appOptions));
+
         // Core HTTP client for TopstepX API
         services.AddHttpClient<TopstepAuthAgent>(client =>
         {
@@ -123,9 +140,9 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // Register required interfaces with REAL Safety implementations
-        services.AddSingleton<IKillSwitchWatcher, SimpleKillSwitchWatcher>();
-        services.AddSingleton<IRiskManager, SimpleRiskManager>();
-        services.AddSingleton<IHealthMonitor, SimpleHealthMonitor>();
+        services.AddSingleton<Trading.Safety.IKillSwitchWatcher, Trading.Safety.KillSwitchWatcher>();
+        services.AddSingleton<Trading.Safety.IRiskManager, Trading.Safety.RiskManager>();
+        services.AddSingleton<Trading.Safety.IHealthMonitor, Trading.Safety.HealthMonitor>();
 
         // ================================================================================
         // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
@@ -190,7 +207,7 @@ public class Program
         // Register OrderFillConfirmationSystem (520 lines)
         services.AddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
         
-        // Register PositionTrackingSystem (379 lines)
+        // Register PositionTrackingSystem (379 lines) from Safety project
         services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
         
         // Register TradingSystemIntegrationService (533 lines)
@@ -254,7 +271,7 @@ public class Program
                 // Try to register sophisticated services, with fallbacks for missing dependencies
                 Console.WriteLine("🛡️ Attempting to register risk management components...");
                 
-                // Register EmergencyStopSystem (fewer dependencies)
+                // Register EmergencyStopSystem (fewer dependencies) from Safety project
                 services.TryAddSingleton<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
                 
                 // Register services with fewer dependencies first
