@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TradingBot.Configuration;
+using TradingBot.Abstractions;
 
 namespace TradingBot.Infrastructure.TopstepX;
 

@@ -1,4 +1,4 @@
-namespace TradingBot.Configuration;
+namespace TradingBot.Abstractions;
 
 public sealed class AppOptions
 {
