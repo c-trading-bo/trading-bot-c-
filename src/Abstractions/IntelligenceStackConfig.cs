@@ -16,6 +16,7 @@ public class IntelligenceStackConfig
     public SLOConfig SLO { get; set; } = new();
     public ObservabilityConfig Observability { get; set; } = new();
     public PromotionsConfig Promotions { get; set; } = new();
+    public HistoricalConfig Historical { get; set; } = new();
 }
 
 public class MLConfig
@@ -183,8 +184,23 @@ public class SLOConfig
 
 public class ObservabilityConfig
 {
+    public bool Enabled { get; set; } = true;
+    public bool Dashboards { get; set; } = true;
+    public bool LineageTracking { get; set; } = true;
     public DecisionLineConfig DecisionLine { get; set; } = new();
     public DriftMonitoringConfig DriftMonitoring { get; set; } = new();
+}
+
+public class HistoricalConfig
+{
+    public TrainerConfig Trainer { get; set; } = new();
+}
+
+public class TrainerConfig
+{
+    public bool Enabled { get; set; } = true;
+    public bool WalkForwardCV { get; set; } = true;
+    public bool AutoPromote { get; set; } = true;
 }
 
 public class DecisionLineConfig

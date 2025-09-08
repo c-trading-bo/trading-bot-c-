@@ -291,10 +291,8 @@ namespace OrchestratorAgent
         {
             async Task<string?> TokenProvider()
             {
-                return authToken;
-                var ttl = expUtc - DateTimeOffset.UtcNow;
-                if (ttl < TimeSpan.FromSeconds(30))
-                    throw new InvalidOperationException($"JWT TTL too low ({ttl.TotalSeconds:F0}s). Refresh logic failed.");
+                // For now, return the token directly without TTL validation
+                // TODO: Parse JWT to extract actual expiration time
                 return authToken;
             }
 
