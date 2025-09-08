@@ -36,7 +36,7 @@ public record HealthStatus(
     string StatusMessage
 );
 
-public class HealthMonitor : IHealthMonitor
+public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
 {
     private readonly ILogger<HealthMonitor> _logger;
     private readonly AppOptions _config;
@@ -49,7 +49,8 @@ public class HealthMonitor : IHealthMonitor
     private DateTime _lastHealthCheck = DateTime.UtcNow;
     private int _reconnectAttempts = 0;
 
-    public event Action<HealthStatus>? OnHealthChanged;
+    public event Action<TradingBot.Abstractions.HealthStatus>? OnHealthChanged;
+    public event Action<TradingBot.Abstractions.HealthStatus>? HealthStatusChanged;
     public bool IsTradingAllowed => _tradingAllowed;
 
     // Health thresholds
@@ -63,6 +64,28 @@ public class HealthMonitor : IHealthMonitor
     {
         _logger = logger;
         _config = config.Value;
+    }
+
+    public async Task<TradingBot.Abstractions.HealthStatus> GetHealthStatusAsync(string componentName)
+    {
+        var currentHealth = GetCurrentHealth();
+        return await Task.FromResult(new TradingBot.Abstractions.HealthStatus
+        {
+            ComponentName = componentName,
+            IsHealthy = currentHealth.IsHealthy,
+            Status = currentHealth.IsHealthy ? "HEALTHY" : "UNHEALTHY",
+            TradingAllowed = currentHealth.TradingAllowed,
+            ConnectedHubs = currentHealth.ConnectedHubs,
+            TotalHubs = currentHealth.TotalHubs,
+            ErrorRate = currentHealth.ErrorRate,
+            AverageLatencyMs = currentHealth.AverageLatencyMs,
+            StatusMessage = currentHealth.StatusMessage
+        });
+    }
+
+    public async Task StartMonitoringAsync()
+    {
+        await StartMonitoringAsync(CancellationToken.None);
     }
 
     public async Task StartMonitoringAsync(CancellationToken cancellationToken = default)
@@ -178,7 +201,20 @@ public class HealthMonitor : IHealthMonitor
                 var level = _isHealthy ? LogLevel.Information : LogLevel.Warning;
                 _logger.Log(level, "[HEALTH] Health status changed: {Status}", status.StatusMessage);
                 
-                OnHealthChanged?.Invoke(status);
+                // Convert to Abstractions HealthStatus for event
+                var abstractionsStatus = new TradingBot.Abstractions.HealthStatus
+                {
+                    ComponentName = "HealthMonitor",
+                    IsHealthy = status.IsHealthy,
+                    Status = status.IsHealthy ? "HEALTHY" : "UNHEALTHY",
+                    TradingAllowed = status.TradingAllowed,
+                    ConnectedHubs = status.ConnectedHubs,
+                    TotalHubs = status.TotalHubs,
+                    ErrorRate = status.ErrorRate,
+                    AverageLatencyMs = status.AverageLatencyMs,
+                    StatusMessage = status.StatusMessage
+                };
+                OnHealthChanged?.Invoke(abstractionsStatus);
             }
 
             // Handle degraded health
