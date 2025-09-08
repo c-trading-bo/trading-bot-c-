@@ -128,13 +128,8 @@ namespace TopstepX.Bot.Core.Services
                 _emergencyStop.EmergencyStopTriggered += OnEmergencyStopTriggered;
                 _errorMonitoring.UpdateComponentHealth("EmergencyStop", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
                 
-                // Initialize position tracker with risk limits
-                var riskLimits = new PositionTrackingSystem.RiskLimits
-                {
-                    MaxDailyLoss = _config.MaxDailyLoss,
-                    MaxPositionSize = _config.MaxPositionSize,
-                    AccountBalance = await GetAccountBalanceFromApiAsync() // Real API integration
-                };
+                // Initialize position tracker with real risk limits from TopstepX API
+                var riskLimits = await GetRiskLimitsFromApiAsync();
                 
                 _positionTracker.RiskViolationDetected += OnRiskViolationDetected;
                 _errorMonitoring.UpdateComponentHealth("PositionTracking", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
@@ -524,30 +519,120 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
-                // Real implementation would call trading API
-                // For now, return a sophisticated calculated balance
-                await Task.CompletedTask; // Keep async for future API calls
+                // Real TopstepX API integration
+                if (_httpClient.DefaultRequestHeaders.Authorization == null)
+                {
+                    _logger.LogWarning("[Trading-System] No authentication token set for account balance API call");
+                    return 50000m; // Fallback balance
+                }
+
+                var response = await _httpClient.GetAsync($"/api/Account?accountId={_config.AccountId}");
                 
-                // In production, this would integrate with your broker's API
-                // Examples: Interactive Brokers, TD Ameritrade, etc.
-                var baseBalance = 50000m; // Starting balance
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var accountData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+                    
+                    if (accountData.TryGetProperty("balance", out var balanceElement))
+                    {
+                        var balance = balanceElement.GetDecimal();
+                        _logger.LogDebug("[Trading-System] Account balance retrieved from TopstepX API: {Balance:C}", balance);
+                        return balance;
+                    }
+                    
+                    if (accountData.TryGetProperty("netLiquidationValue", out var nlvElement))
+                    {
+                        var nlv = nlvElement.GetDecimal();
+                        _logger.LogDebug("[Trading-System] Account NLV retrieved from TopstepX API: {NLV:C}", nlv);
+                        return nlv;
+                    }
+                }
                 
-                // Add some realistic variation based on time and system state
-                var timeVariation = (decimal)(Math.Sin(DateTime.UtcNow.Hour * 0.1) * 5000);
-                var systemVariation = _isSystemReady ? 1000m : -500m; // Bonus for system readiness
+                _logger.LogWarning("[Trading-System] Failed to retrieve account balance from TopstepX API: {StatusCode}", response.StatusCode);
                 
-                var calculatedBalance = baseBalance + timeVariation + systemVariation;
-                
-                // Ensure minimum balance for safety
-                var finalBalance = Math.Max(calculatedBalance, 10000m);
-                
-                _logger.LogDebug("[Trading-System] Account balance retrieved: {Balance:C}", finalBalance);
-                return finalBalance;
+                // Fallback to safe default
+                return 50000m;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Trading-System] Failed to retrieve account balance");
+                _logger.LogError(ex, "[Trading-System] Error retrieving account balance from TopstepX API");
                 return 25000m; // Safe fallback balance
+            }
+        }
+        
+        private async Task<PositionTrackingSystem.RiskLimits> GetRiskLimitsFromApiAsync()
+        {
+            try
+            {
+                // Get account balance from TopstepX API
+                var accountBalance = await GetAccountBalanceFromApiAsync();
+                
+                // Try to get risk limits from TopstepX account API
+                if (_httpClient.DefaultRequestHeaders.Authorization != null)
+                {
+                    var response = await _httpClient.GetAsync($"/api/Account/risk?accountId={_config.AccountId}");
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        var riskData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(content);
+                        
+                        var maxDailyLoss = _config.MaxDailyLoss; // Default from config
+                        var maxPositionSize = _config.MaxPositionSize; // Default from config
+                        
+                        // Try to extract real risk limits from API response
+                        if (riskData.TryGetProperty("maxDailyLoss", out var maxDailyLossElement))
+                        {
+                            maxDailyLoss = maxDailyLossElement.GetDecimal();
+                        }
+                        else if (riskData.TryGetProperty("dailyLossLimit", out var dailyLossLimitElement))
+                        {
+                            maxDailyLoss = -Math.Abs(dailyLossLimitElement.GetDecimal()); // Ensure negative
+                        }
+                        
+                        if (riskData.TryGetProperty("maxPositionSize", out var maxPosElement))
+                        {
+                            maxPositionSize = maxPosElement.GetDecimal();
+                        }
+                        else if (riskData.TryGetProperty("positionSizeLimit", out var posLimitElement))
+                        {
+                            maxPositionSize = posLimitElement.GetDecimal();
+                        }
+                        
+                        _logger.LogInformation("[Trading-System] Risk limits retrieved from TopstepX API: MaxDailyLoss={MaxDailyLoss:C}, MaxPositionSize={MaxPositionSize}", 
+                            maxDailyLoss, maxPositionSize);
+                        
+                        return new PositionTrackingSystem.RiskLimits
+                        {
+                            MaxDailyLoss = maxDailyLoss,
+                            MaxPositionSize = maxPositionSize,
+                            AccountBalance = accountBalance
+                        };
+                    }
+                    
+                    _logger.LogWarning("[Trading-System] Failed to retrieve risk limits from TopstepX API: {StatusCode}", response.StatusCode);
+                }
+                
+                // Fallback to configuration values
+                _logger.LogInformation("[Trading-System] Using configured risk limits as fallback");
+                return new PositionTrackingSystem.RiskLimits
+                {
+                    MaxDailyLoss = _config.MaxDailyLoss,
+                    MaxPositionSize = _config.MaxPositionSize,
+                    AccountBalance = accountBalance
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Trading-System] Error retrieving risk limits from TopstepX API, using configured fallback");
+                
+                // Safe fallback
+                return new PositionTrackingSystem.RiskLimits
+                {
+                    MaxDailyLoss = _config.MaxDailyLoss,
+                    MaxPositionSize = _config.MaxPositionSize,
+                    AccountBalance = await GetAccountBalanceFromApiAsync()
+                };
             }
         }
     }

@@ -326,8 +326,31 @@ public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
         if (result.Success)
         {
             brainState.MLState.LastPrediction = action;
-            brainState.MLState.PredictionConfidence = result.Results.ContainsKey("confidence") ? 
-                Convert.ToDecimal(result.Results["confidence"]) : 0.8m;
+            
+            // Use real ML confidence if available, otherwise calculate from prediction strength
+            if (result.Results.ContainsKey("confidence"))
+            {
+                brainState.MLState.PredictionConfidence = Convert.ToDecimal(result.Results["confidence"]);
+            }
+            else if (result.Results.ContainsKey("prediction_strength"))
+            {
+                // Calculate confidence from prediction strength
+                var strength = Convert.ToDecimal(result.Results["prediction_strength"]);
+                brainState.MLState.PredictionConfidence = Math.Min(0.95m, Math.Max(0.1m, strength / 100m));
+            }
+            else
+            {
+                // Sophisticated fallback based on system state and market conditions
+                var baseConfidence = 0.5m; // Neutral confidence
+                var systemHealthBonus = brainState.IsSystemHealthy ? 0.2m : -0.1m;
+                var marketConditionBonus = brainState.CurrentMarketRegime?.Contains("STABLE") == true ? 0.1m : 0m;
+                
+                brainState.MLState.PredictionConfidence = Math.Min(0.9m, Math.Max(0.1m, 
+                    baseConfidence + systemHealthBonus + marketConditionBonus));
+                    
+                _logger.LogDebug("Using calculated confidence: {Confidence:F2} (base={Base}, health={Health}, market={Market})",
+                    brainState.MLState.PredictionConfidence, baseConfidence, systemHealthBonus, marketConditionBonus);
+            }
         }
         
         _messageBus.UpdateSharedState("brain.ml_state", brainState.MLState);

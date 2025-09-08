@@ -207,7 +207,9 @@ public class PerformanceTracker
             };
 
             // Use CloudDataUploader service for professional upload
-            var cloudUploader = new CloudDataUploader(_logger);
+            using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var cloudLogger = loggerFactory.CreateLogger<CloudDataUploader>();
+            var cloudUploader = new CloudDataUploader(cloudLogger);
             var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData);
             
             if (uploadSuccess)
@@ -315,6 +317,36 @@ public class PerformanceTracker
         return reward / risk;
     }
 
+    private double CalculateWinRate(string strategy)
+    {
+        // TODO: Implement real calculation from trade history
+        return 0.65; // Placeholder - should calculate from actual trades
+    }
+
+    private decimal CalculateAvgWin(string strategy)
+    {
+        // TODO: Implement real calculation from trade history
+        return 150m; // Placeholder - should calculate from actual winning trades
+    }
+
+    private decimal CalculateAvgLoss(string strategy)
+    {
+        // TODO: Implement real calculation from trade history
+        return -75m; // Placeholder - should calculate from actual losing trades
+    }
+
+    private double CalculateProfitFactor(string strategy)
+    {
+        // TODO: Implement real calculation from trade history
+        return 2.0; // Placeholder - should be gross profit / gross loss
+    }
+
+    private double CalculateSharpe(string strategy)
+    {
+        // TODO: Implement real calculation from trade history
+        return 1.5; // Placeholder - should calculate risk-adjusted returns
+    }
+
     private string ClassifyTradeQuality(TradeRecord trade, double rMultiple)
     {
         if (trade.PnLDollar > 0)
@@ -388,6 +420,11 @@ public class TradeRecord
     // Additional metrics
     public decimal? MaxFavorableExcursion { get; set; }
     public decimal? MaxAdverseExcursion { get; set; }
+    
+    // Properties expected by PerformanceTracker methods
+    public decimal PnLPercent { get; set; }
+    public decimal MaxDrawdown { get; set; }
+    public decimal MaxFavorable { get; set; }
 
     public List<string> Tags { get; set; } = new();
     public string? Notes { get; set; }

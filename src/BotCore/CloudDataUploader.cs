@@ -17,14 +17,14 @@ namespace BotCore
     /// </summary>
     public sealed class CloudDataUploader : IDisposable
     {
-        private readonly ILogger _log;
+        private readonly ILogger<CloudDataUploader> _log;
         private readonly Timer? _timer;
         private readonly string _dataDir;
         private readonly string _s3Bucket;
         private readonly bool _enabled;
         private bool _disposed;
 
-        public CloudDataUploader(ILogger logger)
+        public CloudDataUploader(ILogger<CloudDataUploader> logger)
         {
             _log = logger;
             _dataDir = Path.Combine(AppContext.BaseDirectory, "data", "rl_training");
