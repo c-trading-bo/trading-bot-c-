@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using Trading.Safety;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -253,7 +254,7 @@ namespace TopstepX.Bot.Core.Services
                     trackingRecord.IsVerified = true;
                     
                     _logger.LogInformation("ORDER UPDATE: account={AccountId} status={Status} orderId={OrderId} reason={Reason}",
-                        orderUpdate.AccountId, orderUpdate.Status, orderUpdate.OrderId, orderUpdate.Reason ?? "N/A");
+                        SecurityHelpers.MaskAccountId(orderUpdate.AccountId), orderUpdate.Status, SecurityHelpers.MaskOrderId(orderUpdate.OrderId), orderUpdate.Reason ?? "N/A");
                     
                     if (orderUpdate.Status == "FILLED" || orderUpdate.Status == "PARTIALLY_FILLED")
                     {
@@ -307,7 +308,7 @@ namespace TopstepX.Bot.Core.Services
                     trackingRecord.Fills.Add(fillConfirmation);
                     
                     _logger.LogInformation("TRADE CONFIRMED: account={AccountId} orderId={OrderId} fillPrice={FillPrice:F2} qty={Quantity} time={Time:yyyy-MM-dd HH:mm:ss}",
-                        tradeUpdate.AccountId, tradeUpdate.OrderId, tradeUpdate.FillPrice, tradeUpdate.Quantity, DateTime.UtcNow);
+                        SecurityHelpers.MaskAccountId(tradeUpdate.AccountId), SecurityHelpers.MaskOrderId(tradeUpdate.OrderId), tradeUpdate.FillPrice, tradeUpdate.Quantity, DateTime.UtcNow);
                     
                     // Update position tracker
                     await _positionTracker.ProcessFillAsync(

@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using System.Data.SQLite;
 using Microsoft.Extensions.Logging;
+using Trading.Safety;
 
 namespace TradingBot.Critical
 {
@@ -446,18 +447,18 @@ namespace TradingBot.Critical
                     if (orderData.TryGetProperty("status", out var statusElement))
                     {
                         var status = statusElement.GetString();
-                        _logger.LogInformation("[ORDER_QUERY] OrderId {OrderId} status: {Status}", orderId, status);
+                        _logger.LogInformation("[ORDER_QUERY] OrderId {OrderId} status: {Status}", SecurityHelpers.MaskOrderId(orderId), status);
                         return status;
                     }
                 }
                 else
                 {
-                    _logger.LogWarning("[ORDER_QUERY] Failed to query order {OrderId}: {StatusCode}", orderId, response.StatusCode);
+                    _logger.LogWarning("[ORDER_QUERY] Failed to query order {OrderId}: {StatusCode}", SecurityHelpers.MaskOrderId(orderId), response.StatusCode);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ORDER_QUERY] Error querying order status for {OrderId}", orderId);
+                _logger.LogError(ex, "[ORDER_QUERY] Error querying order status for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
             }
             
             return null;

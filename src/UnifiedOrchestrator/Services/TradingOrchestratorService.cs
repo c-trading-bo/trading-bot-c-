@@ -9,6 +9,7 @@ using BotCore.Strategy;
 using BotCore.Brain;
 using System.Text.Json;
 using System.Net.Http.Json;
+using Trading.Safety;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -350,7 +351,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
         // Get account ID
         _accountId = await GetAccountIdAsync(cancellationToken);
         
-        _logger.LogInformation("✅ TopstepX authentication successful for account {AccountId}", _accountId);
+        _logger.LogInformation("✅ TopstepX authentication successful for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId));
     }
 
     private async Task ConnectToHubsAsync(CancellationToken cancellationToken)
@@ -491,7 +492,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TradingOrchestrator] Error retrieving positions for account {AccountId}", _accountId);
+            _logger.LogError(ex, "[TradingOrchestrator] Error retrieving positions for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId));
             return new List<Position>();
         }
     }

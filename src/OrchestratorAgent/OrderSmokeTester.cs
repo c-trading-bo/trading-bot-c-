@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Trading.Safety;
 
 namespace OrchestratorAgent
 {
@@ -38,7 +39,7 @@ namespace OrchestratorAgent
                 placeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 placeReq.Content = new StringContent(JsonSerializer.Serialize(placeBody), Encoding.UTF8, "application/json");
 
-                log.LogInformation("[SmokeTest] Placing far-away LIMIT order: {Contract} acct={Account}", contractId, accountId);
+                log.LogInformation("[SmokeTest] Placing far-away LIMIT order: {Contract} acct={Account}", contractId, SecurityHelpers.MaskAccountId(accountId));
                 using var placeResp = await http.SendAsync(placeReq, ct);
                 var placeText = await placeResp.Content.ReadAsStringAsync(ct);
                 if (!placeResp.IsSuccessStatusCode)
@@ -68,7 +69,7 @@ namespace OrchestratorAgent
                 cancelReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 cancelReq.Content = new StringContent(JsonSerializer.Serialize(cancelBody), Encoding.UTF8, "application/json");
 
-                log.LogInformation("[SmokeTest] Canceling orderId={OrderId}", orderId);
+                log.LogInformation("[SmokeTest] Canceling orderId={OrderId}", SecurityHelpers.MaskOrderId(orderId.ToString()));
                 using var cancelResp = await http.SendAsync(cancelReq, ct);
                 var cancelText = await cancelResp.Content.ReadAsStringAsync(ct);
                 if (!cancelResp.IsSuccessStatusCode)
@@ -77,7 +78,7 @@ namespace OrchestratorAgent
                     return;
                 }
 
-                log.LogInformation("[SmokeTest] Place+Cancel completed successfully for orderId={OrderId}", orderId);
+                log.LogInformation("[SmokeTest] Place+Cancel completed successfully for orderId={OrderId}", SecurityHelpers.MaskOrderId(orderId.ToString()));
             }
             catch (OperationCanceledException)
             {
