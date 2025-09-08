@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Logging;
-using TradingBot.UnifiedOrchestrator.Interfaces;
-using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 using System.Text.Json;
 
-namespace TradingBot.UnifiedOrchestrator.Services;
+namespace TradingBot.Abstractions;
 
 /// <summary>
 /// Intelligence orchestrator service - consolidates all ML/RL intelligence systems

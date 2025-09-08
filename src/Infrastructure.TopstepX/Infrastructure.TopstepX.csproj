@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
+    <ProjectReference Include="../TopstepAuthAgent/TopstepAuthAgent.csproj" />
   </ItemGroup>
 
 </Project>

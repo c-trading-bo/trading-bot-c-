@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -346,29 +346,6 @@ public class CentralMessageBus : ICentralMessageBus, IDisposable
         _cancellationTokenSource?.Dispose();
         _processingTask?.Dispose();
     }
-}
-
-/// <summary>
-/// Interface for the central message bus
-/// </summary>
-public interface ICentralMessageBus
-{
-    Task StartAsync(CancellationToken cancellationToken = default);
-    Task StopAsync(CancellationToken cancellationToken = default);
-    Task PublishAsync<T>(string topic, T message, CancellationToken cancellationToken = default);
-    void Subscribe<T>(string topic, Func<T, Task> handler);
-    void UpdateSharedState(string key, object value);
-    T? GetSharedState<T>(string key);
-    TradingBrainState GetBrainState();
-    Task<TradingDecision> RequestTradingDecisionAsync(TradingSignal signal, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
-/// Message handler interface
-/// </summary>
-public interface IMessageHandler
-{
-    Task HandleAsync(TradingMessage message, CancellationToken cancellationToken);
 }
 
 /// <summary>

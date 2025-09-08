@@ -14,6 +14,7 @@
     <ProjectReference Include="..\BotCore\BotCore.csproj" />
   <ProjectReference Include="..\TopstepAuthAgent\TopstepAuthAgent.csproj" />
   <ProjectReference Include="..\Safety\Safety.csproj" />
+  <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SupervisorAgent\*.cs" />
