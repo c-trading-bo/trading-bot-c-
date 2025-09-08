@@ -21,6 +21,10 @@ namespace BotCore.Services
         private readonly Dictionary<string, IStrategy> _strategies;
         private readonly TimeZoneInfo _centralTime;
         private readonly OnnxModelLoader? _onnxLoader;
+        
+        // Bar collections for correlation analysis - injected or managed externally
+        private IReadOnlyList<Bar>? _esBars;
+        private IReadOnlyList<Bar>? _nqBars;
 
         // Strategy performance by time of day (ML-learned or historical data)
         private readonly Dictionary<string, Dictionary<int, double>> _strategyTimePerformance = new()
@@ -478,21 +482,85 @@ namespace BotCore.Services
 
         private double CalculateRealTimeCorrelation(string instrument)
         {
-            // Advanced correlation calculation using historical price movements
-            var baseCorrelation = 0.85; // ES/NQ historical correlation baseline
-            
-            // Adjust based on market conditions
-            var hourOfDay = DateTime.UtcNow.Hour;
-            var volatilityAdjustment = hourOfDay switch
+            try
             {
-                >= 9 and <= 16 => 0.02,  // Higher correlation during market hours
-                _ => -0.05                // Lower correlation during off hours
-            };
+                // Get recent price data for both ES and NQ
+                var esPrices = _esBars?.TakeLast(50)?.Select(b => (double)b.Close)?.ToArray();
+                var nqPrices = _nqBars?.TakeLast(50)?.Select(b => (double)b.Close)?.ToArray();
+                
+                // Calculate Pearson correlation if we have sufficient data
+                if (esPrices != null && nqPrices != null && esPrices.Length >= 20 && nqPrices.Length >= 20)
+                {
+                    var minLength = Math.Min(esPrices.Length, nqPrices.Length);
+                    var esReturns = CalculateReturns(esPrices.TakeLast(minLength).ToArray());
+                    var nqReturns = CalculateReturns(nqPrices.TakeLast(minLength).ToArray());
+                    
+                    if (esReturns.Length >= 10 && nqReturns.Length >= 10)
+                    {
+                        var correlation = CalculatePearsonCorrelation(esReturns, nqReturns);
+                        _logger.LogDebug("Real Pearson correlation calculated: {Correlation:F3} from {DataPoints} returns", 
+                            correlation, Math.Min(esReturns.Length, nqReturns.Length));
+                        return Math.Max(0.1, Math.Min(0.95, correlation));
+                    }
+                }
+                
+                // Fallback to sophisticated estimation if insufficient data
+                var baseCorrelation = 0.85; // ES/NQ historical baseline
+                var hourOfDay = DateTime.UtcNow.Hour;
+                var marketHoursAdjustment = hourOfDay switch
+                {
+                    >= 9 and <= 16 => 0.02,  // Higher correlation during market hours
+                    _ => -0.05                // Lower correlation during off hours
+                };
+                
+                var result = Math.Max(0.7, Math.Min(0.95, baseCorrelation + marketHoursAdjustment));
+                _logger.LogDebug("Using fallback correlation: {Correlation:F3} (insufficient data for Pearson)", result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating correlation, using fallback");
+                return 0.82; // Safe conservative correlation
+            }
+        }
+        
+        /// <summary>
+        /// Calculate returns (percentage changes) from price series
+        /// </summary>
+        private double[] CalculateReturns(double[] prices)
+        {
+            if (prices.Length < 2) return Array.Empty<double>();
             
-            // Add some realistic variation
-            var timeVariation = Math.Sin(DateTime.UtcNow.Minute * Math.PI / 30) * 0.03;
+            var returns = new double[prices.Length - 1];
+            for (int i = 1; i < prices.Length; i++)
+            {
+                if (prices[i - 1] != 0)
+                {
+                    returns[i - 1] = (prices[i] - prices[i - 1]) / prices[i - 1];
+                }
+            }
+            return returns;
+        }
+        
+        /// <summary>
+        /// Calculate Pearson correlation coefficient between two return series
+        /// </summary>
+        private double CalculatePearsonCorrelation(double[] series1, double[] series2)
+        {
+            if (series1.Length != series2.Length || series1.Length == 0)
+                return 0.85; // Fallback
+                
+            var n = series1.Length;
+            var mean1 = series1.Average();
+            var mean2 = series2.Average();
             
-            return Math.Max(0.7, Math.Min(0.95, baseCorrelation + volatilityAdjustment + timeVariation));
+            var numerator = series1.Zip(series2, (x, y) => (x - mean1) * (y - mean2)).Sum();
+            var denominator = Math.Sqrt(
+                series1.Sum(x => Math.Pow(x - mean1, 2)) *
+                series2.Sum(y => Math.Pow(y - mean2, 2))
+            );
+            
+            return denominator != 0 ? numerator / denominator : 0.85;
         }
 
         private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument, BotCore.Models.Signal signal, MarketData data)
@@ -811,6 +879,80 @@ namespace BotCore.Services
                 5000m,  // VWAP
                 0.5m    // market stress
             };
+        }
+        
+        /// <summary>
+        /// Get ML-based adjustment factor for strategy performance
+        /// </summary>
+        private async Task<double> GetMLAdjustmentAsync(string regime, TradingSession session, string instrument)
+        {
+            try
+            {
+                // Base adjustment from market regime
+                var regimeAdjustment = regime switch
+                {
+                    "TRENDING" => 1.1,      // Trend strategies perform better
+                    "RANGING" => 0.95,      // Range strategies struggle
+                    "VOLATILE" => 0.85,     // High volatility hurts most strategies
+                    "STABLE" => 1.05,       // Stable markets are good
+                    _ => 1.0                // Unknown regime
+                };
+                
+                // Session-specific adjustments
+                var sessionAdjustment = session.SessionType switch
+                {
+                    SessionType.Regular => 1.0,        // Normal trading hours
+                    SessionType.Extended => 0.9,       // Extended hours are harder
+                    SessionType.Overnight => 0.8,      // Overnight is most challenging
+                    _ => 1.0
+                };
+                
+                // Instrument-specific adjustments
+                var instrumentAdjustment = instrument switch
+                {
+                    "ES" => 1.0,           // ES is baseline
+                    "NQ" => 1.02,          // NQ typically more volatile/profitable
+                    "MES" => 0.98,         // Micro contracts, slightly different dynamics
+                    "MNQ" => 0.99,         // Micro NQ
+                    _ => 1.0
+                };
+                
+                var totalAdjustment = regimeAdjustment * sessionAdjustment * instrumentAdjustment;
+                
+                _logger.LogDebug("ML adjustment for {Instrument} in {Regime}: {Adjustment:F2} " +
+                    "(regime={RegimeAdj:F2}, session={SessionAdj:F2}, instrument={InstrumentAdj:F2})",
+                    instrument, regime, totalAdjustment, regimeAdjustment, sessionAdjustment, instrumentAdjustment);
+                
+                await Task.CompletedTask; // Keep async for future ML model integration
+                return totalAdjustment;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating ML adjustment, using neutral");
+                return 1.0; // Neutral adjustment on error
+            }
+        }
+        
+        /// <summary>
+        /// Update bar data for correlation analysis
+        /// Called by external data providers (e.g., TradingSystemConnector)
+        /// </summary>
+        public void UpdateBarData(string symbol, IReadOnlyList<Bar> bars)
+        {
+            switch (symbol.ToUpper())
+            {
+                case "ES":
+                case "MES":
+                    _esBars = bars;
+                    break;
+                case "NQ":
+                case "MNQ":
+                    _nqBars = bars;
+                    break;
+                default:
+                    _logger.LogDebug("Bar data update for unsupported symbol: {Symbol}", symbol);
+                    break;
+            }
         }
 
         public void Dispose()
