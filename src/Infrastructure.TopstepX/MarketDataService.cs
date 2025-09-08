@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
@@ -25,6 +26,8 @@ public class MarketDataService : IMarketDataService
     private readonly ILogger<MarketDataService> _logger;
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
+    private HubConnection? _hubConnection;
+    private bool _isConnected = false;
     
     public event Action<MarketTick>? OnMarketTick;
 
@@ -43,12 +46,48 @@ public class MarketDataService : IMarketDataService
             _logger.LogInformation("[MARKET] Connecting to TopstepX market hub at {Url}", _config.ApiBase);
             
             // Real SignalR connection to /hubs/market
-            // This replaces: await Task.Delay(50); Console.WriteLine("Market data connected");
             var hubUrl = $"{_config.ApiBase.TrimEnd('/')}/hubs/market";
             
-            // TODO: Implement actual SignalR HubConnection to hubUrl
-            // connection.On<MarketTick>("MarketData", tick => OnMarketTick?.Invoke(tick));
-            // await connection.StartAsync();
+            // Build the HubConnection
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options =>
+                {
+                    if (!string.IsNullOrEmpty(_config.AuthToken))
+                    {
+                        options.Headers.Add("Authorization", $"Bearer {_config.AuthToken}");
+                    }
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Subscribe to real market data events
+            _hubConnection.On<object>("MarketData", tick =>
+            {
+                try
+                {
+                    var tickJson = JsonSerializer.Serialize(tick);
+                    _logger.LogDebug("[MARKET] Market tick: {Tick}", tickJson);
+                    
+                    // Parse and emit market tick
+                    if (tick != null)
+                    {
+                        OnMarketTick?.Invoke(new MarketTick(
+                            Symbol: ExtractProperty(tick, "symbol") ?? "UNKNOWN",
+                            Price: ParseDecimal(ExtractProperty(tick, "price")),
+                            Volume: ParseDecimal(ExtractProperty(tick, "volume")),
+                            Timestamp: DateTime.UtcNow
+                        ));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[MARKET] Error processing market tick");
+                }
+            });
+
+            // Start the connection
+            await _hubConnection.StartAsync();
+            _isConnected = true;
             
             _logger.LogInformation("[MARKET] ✅ Connected to live TopstepX market data feed");
             return true;
@@ -56,6 +95,7 @@ public class MarketDataService : IMarketDataService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MARKET] Failed to connect to market data");
+            _isConnected = false;
             return false;
         }
     }
@@ -104,6 +144,41 @@ public class MarketDataService : IMarketDataService
         {
             _logger.LogError(ex, "[MARKET] Failed to get order book for {Symbol}", symbol);
             throw;
+        }
+    }
+
+    // Helper methods for parsing dynamic objects from SignalR
+    private static string? ExtractProperty(object obj, string propertyName)
+    {
+        try
+        {
+            if (obj is JsonElement element && element.TryGetProperty(propertyName, out var prop))
+            {
+                return prop.GetString();
+            }
+            
+            // Try reflection as fallback
+            var type = obj.GetType();
+            var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            return property?.GetValue(obj)?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static decimal ParseDecimal(string? value) => decimal.TryParse(value, out var result) ? result : 0m;
+
+    public void Dispose()
+    {
+        try
+        {
+            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MARKET] Error disposing hub connection");
         }
     }
 }

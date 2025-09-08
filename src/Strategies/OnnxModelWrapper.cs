@@ -79,8 +79,20 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             // Validate and normalize features
             var normalizedFeatures = NormalizeFeatures(features);
             
-            // TODO: Replace with actual ONNX model inference
-            var confidence = await SimulateModelPrediction(normalizedFeatures);
+            // Actual ONNX model inference
+            if (_session != null)
+            {
+                var confidence = await RunOnnxInference(normalizedFeatures);
+                _logger.LogDebug("[ONNX] Model prediction confidence: {Confidence:F3}", confidence);
+                return confidence;
+            }
+            else
+            {
+                // Fallback to sophisticated heuristic when model not available
+                var confidence = await SimulateModelPrediction(normalizedFeatures);
+                _logger.LogDebug("[ONNX] Fallback prediction confidence: {Confidence:F3}", confidence);
+                return confidence;
+            }
             
             // Ensure confidence is in valid range
             confidence = Math.Max(0.0, Math.Min(1.0, confidence));
@@ -153,6 +165,33 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             "day_of_week" => 0.4, // Wednesday
             _ => 0.0
         };
+    }
+
+    // Real ONNX model inference implementation
+    private async Task<double> RunOnnxInference(Dictionary<string, double> features)
+    {
+        try
+        {
+            // Convert features to ONNX tensor format
+            var inputData = features.Values.Select(v => (float)v).ToArray();
+            var tensor = new DenseTensor<float>(inputData, new[] { 1, inputData.Length });
+            
+            var inputs = new List<NamedOnnxValue>
+            {
+                NamedOnnxValue.CreateFromTensor("input", tensor)
+            };
+
+            // Run inference
+            using var results = _session!.Run(inputs);
+            var output = results.First().AsEnumerable<float>().First();
+            
+            return await Task.FromResult(Math.Max(0.0, Math.Min(1.0, output)));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONNX] ONNX inference failed, falling back to simulation");
+            return await SimulateModelPrediction(features);
+        }
     }
 
     private async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
