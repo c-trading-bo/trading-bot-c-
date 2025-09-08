@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using BotCore.Auth;
 using System.Text.Json;
-using Trading.Safety;
+// // using Trading.Safety;
 
 namespace BotCore.Services;
 
@@ -13,7 +13,7 @@ public class AutoTopstepXLoginService : BackgroundService
 {
     private readonly ILogger<AutoTopstepXLoginService> _logger;
     private readonly TopstepXCredentialManager _credentialManager;
-    private readonly TopstepAuthAgent _authAgent;
+    // private readonly TopstepAuthAgent _authAgent;
     private readonly HttpClient _httpClient;
 
     public bool IsAuthenticated { get; private set; }
@@ -24,12 +24,12 @@ public class AutoTopstepXLoginService : BackgroundService
     public AutoTopstepXLoginService(
         ILogger<AutoTopstepXLoginService> logger,
         TopstepXCredentialManager credentialManager,
-        TopstepAuthAgent authAgent,
+        // TopstepAuthAgent authAgent,
         HttpClient httpClient)
     {
         _logger = logger;
         _credentialManager = credentialManager;
-        _authAgent = authAgent;
+        // _authAgent = authAgent;
         _httpClient = httpClient;
     }
 

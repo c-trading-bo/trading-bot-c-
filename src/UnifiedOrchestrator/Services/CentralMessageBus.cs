@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
