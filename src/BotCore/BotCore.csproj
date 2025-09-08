@@ -18,6 +18,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\TopstepAuthAgent\\TopstepAuthAgent.csproj" />
+    <ProjectReference Include="..\\Safety\\Safety.csproj" />
+    <ProjectReference Include="..\\Strategies\\Strategies.csproj" />
   </ItemGroup>
 
 </Project>
