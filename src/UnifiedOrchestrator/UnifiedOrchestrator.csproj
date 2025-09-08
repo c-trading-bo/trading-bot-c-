@@ -20,8 +20,12 @@
   
   <ItemGroup>
     <ProjectReference Include="..\TopstepAuthAgent\TopstepAuthAgent.csproj" />
-    <ProjectReference Include="..\Safety\Safety.csproj" />
-    <ProjectReference Include="..\BotCore\BotCore.csproj" />
+    <ProjectReference Include="..\Safety\Safety.csproj">
+      <Aliases>SafetyProject</Aliases>
+    </ProjectReference>
+    <ProjectReference Include="..\BotCore\BotCore.csproj">
+      <Aliases>BotCoreProject</Aliases>
+    </ProjectReference>
     <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
   </ItemGroup>
   

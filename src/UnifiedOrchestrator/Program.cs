@@ -1,3 +1,6 @@
+extern alias SafetyProject;
+extern alias BotCoreProject;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -8,13 +11,12 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.Abstractions;
-using BotCore.Infra;
-using BotCore.Brain;
-using BotCore.ML;
-using BotCore.Market;
-using Trading.Safety;
 using DotNetEnv;
 using static DotNetEnv.Env;
+
+// Import types from aliased projects
+using UnifiedTradingBrain = BotCoreProject::BotCore.Brain.UnifiedTradingBrain;
+using Bar = BotCoreProject::BotCore.Market.Bar;
 
 namespace TradingBot.UnifiedOrchestrator;
 
@@ -140,9 +142,9 @@ public class Program
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // Register required interfaces with REAL Safety implementations
-        services.AddSingleton<Trading.Safety.IKillSwitchWatcher, Trading.Safety.KillSwitchWatcher>();
-        services.AddSingleton<Trading.Safety.IRiskManager, Trading.Safety.RiskManager>();
-        services.AddSingleton<Trading.Safety.IHealthMonitor, Trading.Safety.HealthMonitor>();
+        services.AddSingleton<SafetyProject::Trading.Safety.IKillSwitchWatcher, SafetyProject::Trading.Safety.KillSwitchWatcher>();
+        services.AddSingleton<SafetyProject::Trading.Safety.IRiskManager, SafetyProject::Trading.Safety.RiskManager>();
+        services.AddSingleton<SafetyProject::Trading.Safety.IHealthMonitor, SafetyProject::Trading.Safety.HealthMonitor>();
 
         // ================================================================================
         // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
@@ -173,24 +175,14 @@ public class Program
         // ================================================================================
         
         // Register UnifiedTradingBrain - The main AI brain (1,027+ lines)
-        services.AddSingleton<UnifiedTradingBrain>();
+        services.AddSingleton<BotCoreProject::BotCore.Brain.UnifiedTradingBrain>();
         
         // Register UCB Manager - C# client for Python UCB service (175 lines)
-        services.AddSingleton<BotCore.ML.UCBManager>();
+        services.AddSingleton<BotCoreProject::BotCore.ML.UCBManager>();
         
         // Register ML Memory Manager - Sophisticated ML model management (458 lines)
-        services.AddSingleton<BotCore.ML.OnnxModelLoader>();
-        services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
-        services.AddSingleton<BotCore.ML.StrategyMlModelManager>(provider =>
-        {
-            var logger = provider.GetRequiredService<ILogger<BotCore.ML.StrategyMlModelManager>>();
-            var memoryManager = provider.GetService<BotCore.ML.IMLMemoryManager>();
-            var onnxLoader = provider.GetRequiredService<BotCore.ML.OnnxModelLoader>();
-            return new BotCore.ML.StrategyMlModelManager(logger, memoryManager, onnxLoader);
-        });
-        
-        // Register RiskEngine - Advanced risk management (427 lines)
-        services.AddSingleton<BotCore.Risk.RiskEngine>();
+        services.AddSingleton<BotCoreProject::BotCore.ML.OnnxModelLoader>();
+        services.AddSingleton<BotCoreProject::BotCore.ML.IMLMemoryManager, BotCoreProject::BotCore.ML.MLMemoryManager>();
         
         Console.WriteLine("🧠 SOPHISTICATED AI/ML BRAIN SYSTEM registered - UnifiedTradingBrain + UCB + RiskEngine");
         
@@ -198,20 +190,20 @@ public class Program
         // CRITICAL SAFETY SYSTEMS - PRODUCTION TRADING SAFETY
         // ================================================================================
         
-        // Register EmergencyStopSystem (209 lines)
-        services.AddSingleton<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
+        // Register EmergencyStopSystem (209 lines) from Safety project
+        services.AddSingleton<SafetyProject::TopstepX.Bot.Core.Services.EmergencyStopSystem>();
         
-        // Register ErrorHandlingMonitoringSystem (529 lines)  
-        services.AddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
+        // Register ErrorHandlingMonitoringSystem (529 lines) from BotCore  
+        services.AddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
         
-        // Register OrderFillConfirmationSystem (520 lines)
-        services.AddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
+        // Register OrderFillConfirmationSystem (520 lines) from BotCore
+        services.AddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
         
         // Register PositionTrackingSystem (379 lines) from Safety project
-        services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+        services.AddSingleton<SafetyProject::TopstepX.Bot.Core.Services.PositionTrackingSystem>();
         
-        // Register TradingSystemIntegrationService (533 lines)
-        services.AddSingleton<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
+        // Register TradingSystemIntegrationService (533 lines) from BotCore
+        services.AddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
         
         Console.WriteLine("🛡️ CRITICAL SAFETY SYSTEMS registered - Emergency stops, monitoring, confirmations");
         
@@ -253,7 +245,7 @@ public class Program
         // Register services that have interfaces first
         services.AddSingleton<BotCore.Services.IIntelligenceService, BotCore.Services.IntelligenceService>();
         
-        // Register authentication and credential management services
+        // Register authentication and credential management services from Infrastructure.TopstepX
         services.AddSingleton<BotCore.Auth.TopstepXCredentialManager>();
         services.AddHttpClient<BotCore.Services.AutoTopstepXLoginService>();
         services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
@@ -272,30 +264,30 @@ public class Program
                 Console.WriteLine("🛡️ Attempting to register risk management components...");
                 
                 // Register EmergencyStopSystem (fewer dependencies) from Safety project
-                services.TryAddSingleton<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
+                services.TryAddSingleton<SafetyProject::TopstepX.Bot.Core.Services.EmergencyStopSystem>();
                 
                 // Register services with fewer dependencies first
-                services.TryAddSingleton<BotCore.Services.PerformanceTracker>();
-                services.TryAddSingleton<BotCore.Services.TradingProgressMonitor>();
-                services.TryAddSingleton<BotCore.Services.TimeOptimizedStrategyManager>();
-                services.TryAddSingleton<BotCore.Services.TopstepXService>();
-                services.TryAddSingleton<TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
+                services.TryAddSingleton<BotCoreProject::BotCore.Services.PerformanceTracker>();
+                services.TryAddSingleton<BotCoreProject::BotCore.Services.TradingProgressMonitor>();
+                services.TryAddSingleton<BotCoreProject::BotCore.Services.TimeOptimizedStrategyManager>();
+                services.TryAddSingleton<BotCoreProject::BotCore.Services.TopstepXService>();
+                services.TryAddSingleton<BotCoreProject::TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
                 Console.WriteLine("✅ Core services with minimal dependencies registered");
                 
                 // Try to register more complex services (these might fail due to missing dependencies)
                 try 
                 {
-                    services.TryAddSingleton<BotCore.Services.ES_NQ_CorrelationManager>();
-                    services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
-                    services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
-                    services.TryAddSingleton<BotCore.Services.NewsIntelligenceEngine>();
-                    services.TryAddSingleton<BotCore.Services.ZoneService>();
-                    services.TryAddSingleton<BotCore.EnhancedTrainingDataService>();
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.Services.ES_NQ_CorrelationManager>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.Services.ES_NQ_PortfolioHeatManager>();
+                    services.TryAddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.Services.ExecutionAnalyzer>();
+                    services.TryAddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
+                    services.TryAddSingleton<SafetyProject::TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.Services.NewsIntelligenceEngine>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.Services.ZoneService>();
+                    services.TryAddSingleton<BotCoreProject::BotCore.EnhancedTrainingDataService>();
+                    services.TryAddSingleton<BotCoreProject::TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
                     
                     Console.WriteLine("✅ Advanced services registered (dependencies permitting)");
                 }
@@ -325,12 +317,8 @@ public class Program
         Console.WriteLine("🔬 Enhanced services integration planned - focusing on existing sophisticated services");
 
         // Register the core unified trading brain
-        services.AddSingleton<UnifiedTradingBrain>();
+        services.AddSingleton<BotCoreProject::BotCore.Brain.UnifiedTradingBrain>();
         Console.WriteLine("🧠 Unified Trading Brain registered - Core AI intelligence enabled");
-        
-        // Register RedundantDataFeedManager - Multi-feed market data redundancy
-        services.AddSingleton<RedundantDataFeedManager>();
-        Console.WriteLine("📡 RedundantDataFeedManager registered - Multi-feed redundancy enabled");
         
         // ================================================================================
         // ADVANCED ML/AI SERVICES REGISTRATION - ALL MACHINE LEARNING SYSTEMS  
@@ -355,12 +343,12 @@ public class Program
         }
         
         // Register core agents and clients that exist in BotCore
-        services.AddSingleton<BotCore.UserHubClient>();
-        services.AddSingleton<BotCore.MarketHubClient>();
-        services.AddSingleton<BotCore.UserHubAgent>();
-        services.AddSingleton<BotCore.PositionAgent>();
-        services.AddSingleton<BotCore.MarketDataAgent>();
-        services.AddSingleton<BotCore.ModelUpdaterService>();
+        services.AddSingleton<BotCoreProject::BotCore.UserHubClient>();
+        services.AddSingleton<BotCoreProject::BotCore.MarketHubClient>();
+        services.AddSingleton<BotCoreProject::BotCore.UserHubAgent>();
+        services.AddSingleton<BotCoreProject::BotCore.PositionAgent>();
+        services.AddSingleton<BotCoreProject::BotCore.MarketDataAgent>();
+        services.AddSingleton<BotCoreProject::BotCore.ModelUpdaterService>();
         Console.WriteLine("🔗 Core agents and clients registered - Connectivity & data systems active");
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
