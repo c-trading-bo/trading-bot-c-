@@ -6,10 +6,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Configuration;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.Abstractions;
 using DotNetEnv;
@@ -63,7 +63,7 @@ public class Program
             var host = CreateHostBuilder(args).Build();
             
             // Display startup information
-            // DisplayStartupInfo(); // Commented out for now to focus on build
+            DisplayStartupInfo();
             
             // Run the unified orchestrator
             await host.RunAsync();
@@ -440,12 +440,345 @@ public class Program
         services.AddSingleton<IDecisionLogger, MockDecisionLogger>();
         services.AddSingleton<IIdempotentOrderService, MockIdempotentOrderService>();
         services.AddSingleton<ILeaderElectionService, MockLeaderElectionService>();
-        services.AddSingleton<TradingBot.Abstractions.IStartupValidator, MockStartupValidator>();
+        services.AddSingleton<IStartupValidator, MockStartupValidator>();
 
         Console.WriteLine("✅ Intelligence Stack services registered with mock implementations");
         Console.WriteLine("🔄 All features are ENABLED by default and will start automatically");
     }
 
+    // Mock implementations that provide basic functionality
+    public class MockRegimeDetector : IRegimeDetector
+    {
+        public Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RegimeState
+            {
+                Type = RegimeType.Range,
+                Confidence = 0.75,
+                DetectedAt = DateTime.UtcNow,
+                Indicators = new Dictionary<string, double> { ["test"] = 1.0 }
+            });
+        }
+
+        public Task<RegimeTransition> CheckTransitionAsync(RegimeState currentState, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new RegimeTransition
+            {
+                ShouldTransition = false,
+                FromRegime = currentState.Type,
+                ToRegime = currentState.Type,
+                TransitionConfidence = 0.8
+            });
+        }
+
+        public bool IsInDwellPeriod(RegimeState state) => false;
+    }
+
+    public class MockFeatureStore : IFeatureStore
+    {
+        public Task<FeatureSet> GetFeaturesAsync(string symbol, DateTime fromTime, DateTime toTime, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new FeatureSet
+            {
+                Symbol = symbol,
+                Version = "mock_v1",
+                Features = new Dictionary<string, double> { ["test_feature"] = 1.0 }
+            });
+        }
+
+        public Task SaveFeaturesAsync(FeatureSet features, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> ValidateSchemaAsync(FeatureSet features, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task<FeatureSchema> GetSchemaAsync(string version, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new FeatureSchema
+            {
+                Version = version,
+                Features = new Dictionary<string, FeatureDefinition>
+                {
+                    ["test_feature"] = new() { Name = "test_feature", DataType = typeof(double) }
+                }
+            });
+        }
+    }
+
+    public class MockModelRegistry : IModelRegistry
+    {
+        public Task<ModelArtifact> GetModelAsync(string familyName, string version = "latest", CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new ModelArtifact
+            {
+                Id = $"{familyName}_mock",
+                Version = version,
+                Metrics = new ModelMetrics { AUC = 0.65, PrAt10 = 0.15 }
+            });
+        }
+
+        public Task<ModelArtifact> RegisterModelAsync(ModelRegistration registration, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new ModelArtifact
+            {
+                Id = $"{registration.FamilyName}_mock",
+                Metrics = registration.Metrics
+            });
+        }
+
+        public Task<bool> PromoteModelAsync(string modelId, PromotionCriteria criteria, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task<ModelMetrics> GetModelMetricsAsync(string modelId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new ModelMetrics { AUC = 0.65, PrAt10 = 0.15 });
+        }
+    }
+
+    public class MockCalibrationManager : ICalibrationManager
+    {
+        public Task<CalibrationMap> LoadCalibrationMapAsync(string modelId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new CalibrationMap
+            {
+                ModelId = modelId,
+                Method = CalibrationMethod.Platt,
+                Parameters = new Dictionary<string, double> { ["slope"] = 1.0, ["intercept"] = 0.0 }
+            });
+        }
+
+        public Task<CalibrationMap> FitCalibrationAsync(string modelId, IEnumerable<CalibrationPoint> points, CancellationToken cancellationToken = default)
+        {
+            return LoadCalibrationMapAsync(modelId, cancellationToken);
+        }
+
+        public Task<double> CalibrateConfidenceAsync(string modelId, double rawConfidence, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(rawConfidence); // No calibration in mock
+        }
+
+        public Task PerformNightlyCalibrationAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    public class MockOnlineLearningSystem : IOnlineLearningSystem
+    {
+        public Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<Dictionary<string, double>> GetCurrentWeightsAsync(string regimeType, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new Dictionary<string, double> { ["default"] = 1.0 });
+        }
+
+        public Task AdaptToPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task DetectDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
+    public class MockQuarantineManager : IQuarantineManager
+    {
+        public Task<QuarantineStatus> CheckModelHealthAsync(string modelId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new QuarantineStatus
+            {
+                State = HealthState.Healthy,
+                ModelId = modelId,
+                BlendWeight = 1.0
+            });
+        }
+
+        public Task QuarantineModelAsync(string modelId, QuarantineReason reason, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> TryRestoreModelAsync(string modelId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new List<string>());
+        }
+    }
+
+    public class MockDecisionLogger : IDecisionLogger
+    {
+        public Task LogDecisionAsync(IntelligenceDecision decision, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<List<IntelligenceDecision>> GetDecisionHistoryAsync(DateTime fromTime, DateTime toTime, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new List<IntelligenceDecision>());
+        }
+    }
+
+    public class MockIdempotentOrderService : IIdempotentOrderService
+    {
+        private readonly HashSet<string> _seenOrders = new();
+
+        public Task<string> GenerateOrderKeyAsync(OrderRequest request, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult($"mock_{request.Symbol}_{request.Side}_{DateTime.UtcNow.Ticks}");
+        }
+
+        public Task<bool> IsDuplicateOrderAsync(string orderKey, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_seenOrders.Contains(orderKey));
+        }
+
+        public Task RegisterOrderAsync(string orderKey, string orderId, CancellationToken cancellationToken = default)
+        {
+            _seenOrders.Add(orderKey);
+            return Task.CompletedTask;
+        }
+
+        public Task<OrderDeduplicationResult> CheckDeduplicationAsync(OrderRequest request, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new OrderDeduplicationResult
+            {
+                IsDuplicate = false,
+                OrderKey = $"mock_{request.Symbol}_{DateTime.UtcNow.Ticks}"
+            });
+        }
+    }
+
+    public class MockLeaderElectionService : ILeaderElectionService
+    {
+        public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
+
+        public Task<bool> TryAcquireLeadershipAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task ReleaseLeadershipAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> IsLeaderAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> RenewLeadershipAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(true);
+        }
+    }
+
+    public class MockStartupValidator : IStartupValidator
+    {
+        public Task<StartupValidationResult> ValidateSystemAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new StartupValidationResult
+            {
+                AllTestsPassed = true,
+                TestResults = new Dictionary<string, TestResult>
+                {
+                    ["Mock_Test"] = new TestResult { Passed = true, TestName = "Mock_Test", Duration = TimeSpan.FromMilliseconds(100) }
+                }
+            });
+        }
+
+        public Task<bool> ValidateDIGraphAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateFeatureStoreAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateModelRegistryAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateCalibrationAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateIdempotencyAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateKillSwitchAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<bool> ValidateLeaderElectionAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
+    }
+    }
+
+    private static void DisplayStartupInfo()
+    {
+        Console.WriteLine();
+        Console.WriteLine("🏗️  UNIFIED ORCHESTRATOR SYSTEM STARTUP");
+        Console.WriteLine("═══════════════════════════════════════");
+        Console.WriteLine();
+        
+        Console.WriteLine("📋 ARCHITECTURE SUMMARY:");
+        Console.WriteLine("  • Distributed Orchestrator Architecture    ✅ ACTIVE");
+        Console.WriteLine("  • UnifiedTradingBrain (ML/AI Core)         ✅ ACTIVE");
+        Console.WriteLine("  • UCB Neural Multi-Armed Bandit            ✅ ACTIVE");
+        Console.WriteLine("  • Legacy/Fake Orchestrators               ❌ REMOVED");
+        Console.WriteLine("  • MasterOrchestrator                       ❌ REMOVED");
+        Console.WriteLine();
+        
+        Console.WriteLine("🔧 DISTRIBUTED COMPONENTS:");
+        Console.WriteLine("  • TradingOrchestratorService       - TopstepX connectivity & order execution");
+        Console.WriteLine("  • IntelligenceOrchestratorService  - ML/RL models & predictions coordination");
+        Console.WriteLine("  • DataOrchestratorService          - Data collection & processing");
+        Console.WriteLine("  • WorkflowSchedulerService         - Distributed workflow scheduling");
+        Console.WriteLine("  • UnifiedOrchestratorService       - Central message bus coordinator");
+        Console.WriteLine();
+        
+        Console.WriteLine("🌟 SOPHISTICATED AI/ML SYSTEM COMPONENTS:");
+        Console.WriteLine("  • UnifiedTradingBrain              - 1,027+ line central AI engine with Neural UCB, LSTM, RL");
+        Console.WriteLine("  • UCBManager + Python Service      - Neural multi-armed bandit with TopStep compliance");
+        Console.WriteLine("  • RiskEngine                       - Advanced risk management with real-time position tracking");
+        Console.WriteLine("  • MLMemoryManager                  - Memory leak prevention & ML model lifecycle management");
+        Console.WriteLine("  • WorkflowOrchestrationManager     - Collision prevention & priority-based scheduling");
+        Console.WriteLine("  • RedundantDataFeedManager         - High availability data feeds with failover");
+        Console.WriteLine("  • EconomicEventManager             - Trading restrictions during high-impact events");
+        Console.WriteLine("  • EmergencyStopSystem              - 209-line safety system with multiple trigger mechanisms");
+        Console.WriteLine("  • ErrorHandlingMonitoringSystem    - 529-line comprehensive error tracking and recovery");
+        Console.WriteLine("  • OrderFillConfirmationSystem      - 520-line order validation and fill verification");
+        Console.WriteLine("  • PositionTrackingSystem           - 379-line real-time position and P&L tracking");
+        Console.WriteLine("  • TradingSystemIntegrationService  - 533-line integration layer for all trading components");
+        Console.WriteLine("  • TopstepXCredentialManager        - Secure credential management and auto-login");
+        Console.WriteLine();
+        
+        Console.WriteLine("🌐 TOPSTEPX INTEGRATION:");
+        Console.WriteLine("  • REST API:      https://api.topstepx.com");
+        Console.WriteLine("  • User Hub:      https://rtc.topstepx.com/hubs/user");
+        Console.WriteLine("  • Market Hub:    https://rtc.topstepx.com/hubs/market");
+        Console.WriteLine("  • Authentication: JWT token or username/API key");
+        Console.WriteLine();
+        
+        Console.WriteLine("📊 WORKFLOW OVERVIEW:");
+        Console.WriteLine("  • ES/NQ Critical Trading        (Every 5-30 min)");
+        Console.WriteLine("  • Portfolio Heat Management     (Every 10-30 min)");
+        Console.WriteLine("  • ML/RL Intelligence System     (Every 10-60 min)");
+        Console.WriteLine("  • Microstructure Analysis       (Every 5-15 min)");
+        Console.WriteLine("  • Options Flow Analysis         (Every 5-10 min)");
+        Console.WriteLine("  • Intermarket Correlations      (Every 15-30 min)");
+        Console.WriteLine("  • Daily Data Collection         (3x daily)");
+        Console.WriteLine("  • Daily Reporting System        (5 PM ET)");
+        Console.WriteLine();
+        
+        Console.WriteLine("🔐 ENVIRONMENT VARIABLES:");
+        Console.WriteLine("  • TOPSTEPX_JWT           - Direct JWT token");
+        Console.WriteLine("  • TOPSTEPX_USERNAME      - TopstepX username");
+        Console.WriteLine("  • TOPSTEPX_API_KEY       - TopstepX API key");
+        Console.WriteLine("  • TOPSTEPX_API_BASE      - API base URL (optional)");
+        Console.WriteLine();
+        
+        Console.WriteLine("🚀 Starting Unified Orchestrator...");
+        Console.WriteLine();
+    }
 }
 
 // Mock implementations that provide basic functionality for Intelligence Stack
@@ -690,7 +1023,7 @@ public class MockLeaderElectionService : ILeaderElectionService
     }
 }
 
-public class MockStartupValidator : TradingBot.Abstractions.IStartupValidator
+public class MockStartupValidator : IStartupValidator
 {
     public Task<StartupValidationResult> ValidateSystemAsync(CancellationToken cancellationToken = default)
     {

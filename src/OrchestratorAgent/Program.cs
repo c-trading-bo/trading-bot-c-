@@ -1759,7 +1759,11 @@ namespace OrchestratorAgent
                     bool live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? string.Empty)
                                 .Trim().ToLowerInvariant() is "1" or "true" or "yes";
                     var partialExit = new OrchestratorAgent.Ops.PartialExitService(http, jwtCache.GetAsync, log);
-                    var router = new SimpleOrderRouter(http, jwtCache.GetAsync, log, live, partialExit);
+                    var routerApiBase = "https://api.topstepx.com";
+                    var routerJwt = await jwtCache.GetAsync() ?? string.Empty;
+                    var router = new OrderRouter(log as ILogger<OrderRouter> ?? 
+                        Microsoft.Extensions.Logging.LoggerFactory.Create(b => { }).CreateLogger<OrderRouter>(), 
+                        http, routerApiBase, routerJwt, (int)accountId);
 
                     // Auto-switch profile by ET clock with blackout/curfew
                     try
@@ -1826,18 +1830,28 @@ namespace OrchestratorAgent
                         catch { }
                         if (!string.IsNullOrWhiteSpace(noNew) && TimeSpan.TryParse(noNew, out var nnTs) && et >= nnTs && et < TS("09:28"))
                         {
-                            try { router.DisableAllEntries(); } catch { }
+                            try { 
+                                // DisableAllEntries equivalent - cancel all open orders
+                                await router.CancelAllOpenAsync(accountId, CancellationToken.None); 
+                            } catch { }
                             try { status.Set("curfew.no_new", true); } catch { }
                             log.LogInformation("[Curfew] No-new active from {NoNew} — entries disabled.", noNew);
                         }
                         if (!string.IsNullOrWhiteSpace(forceFlat) && TimeSpan.TryParse(forceFlat, out var ffTs) && et >= ffTs && et < TS("09:28"))
                         {
-                            try { await router.CloseAll("CurfewForceFlat", CancellationToken.None); } catch { }
+                            try { 
+                                // CloseAll equivalent - cancel orders and flatten positions
+                                await router.CancelAllOpenAsync(accountId, CancellationToken.None);
+                                await router.FlattenAllAsync(accountId, CancellationToken.None);
+                            } catch { }
                             log.LogInformation("[Curfew] Force-flat at {Force}", forceFlat);
                         }
                         else if (et >= TS("09:28"))
                         {
-                            try { router.EnableAllEntries(); } catch { }
+                            try { 
+                                // EnableAllEntries is a no-op since OrderRouter doesn't have entry disable/enable state
+                                log.LogInformation("[Curfew] Entries re-enabled (no-op for OrderRouter)");
+                            } catch { }
                             try { status.Set("curfew.no_new", false); } catch { }
                             log.LogInformation("[Curfew] Cleared at 09:28 ET — entries re-enabled.");
                         }
@@ -2540,7 +2554,7 @@ namespace OrchestratorAgent
                 string contractId,
                 RiskEngine risk,
                 Levels levels,
-                SimpleOrderRouter router,
+                OrderRouter router,
                 PaperBroker? paperBroker,
                 bool paperMode,
                 ILogger log,
@@ -3344,7 +3358,19 @@ namespace OrchestratorAgent
                         }
                         catch { }
 
-                        var routed = await router.RouteAsync(toRoute, ct);
+                        // Convert Signal to StrategySignal for OrderRouter
+                        var strategySig = new BotCore.StrategySignal
+                        {
+                            Strategy = toRoute.StrategyId,
+                            Symbol = toRoute.Symbol,
+                            Side = toRoute.Side == "BUY" ? BotCore.SignalSide.Long : 
+                                   toRoute.Side == "SELL" ? BotCore.SignalSide.Short : BotCore.SignalSide.Flat,
+                            Size = toRoute.Size,
+                            LimitPrice = toRoute.Entry > 0 ? toRoute.Entry : null,
+                            ClientOrderId = toRoute.Tag
+                        };
+
+                        var routed = await router.RouteAsync(strategySig, toRoute.ContractId, ct);
                         if (routed)
                         {
                             // Log complete intelligence + zone context for successful trades

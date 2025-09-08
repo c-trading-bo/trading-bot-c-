@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Binder;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using System;
@@ -40,11 +39,21 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<IModelRegistry, ModelRegistry>();
         services.AddSingleton<ICalibrationManager, CalibrationManager>();
         services.AddSingleton<IOnlineLearningSystem, OnlineLearningSystem>();
-        services.AddSingleton<IQuarantineManager, QuarantineManager>();
+        services.AddSingleton<IQuarantineManager, ModelQuarantineManager>();
         services.AddSingleton<IDecisionLogger, DecisionLogger>();
         services.AddSingleton<IIdempotentOrderService, IdempotentOrderService>();
         services.AddSingleton<ILeaderElectionService, LeaderElectionService>();
         services.AddSingleton<IStartupValidator, StartupValidator>();
+
+        // Register advanced intelligence services
+        services.AddSingleton<EnsembleMetaLearner>();
+        services.AddSingleton<ModelQuarantineManager>();
+        services.AddSingleton<HistoricalTrainerWithCV>();
+        services.AddSingleton<MAMLLiveIntegration>();
+        services.AddSingleton<NightlyParameterTuner>();
+        services.AddSingleton<RLAdvisorSystem>();
+        services.AddSingleton<ObservabilityDashboard>();
+        services.AddSingleton<LineageTrackingSystem>();
 
         // Register main orchestrator
         services.AddSingleton<IntelligenceOrchestrator>();
@@ -53,7 +62,6 @@ public static class IntelligenceStackServiceExtensions
 
         // Register monitoring services
         services.AddSingleton<SLOMonitor>();
-        services.AddSingleton<DriftMonitor>();
 
         return services;
     }
