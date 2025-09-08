@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.Http.Connections;
 using TradingBot.Abstractions;
 
 namespace TradingBot.Infrastructure.TopstepX;
@@ -20,11 +22,13 @@ public interface IMarketDataService
 public record MarketTick(string Symbol, decimal Price, decimal Volume, DateTime Timestamp);
 public record MarketDepth(string Symbol, decimal BidPrice, decimal AskPrice, int BidSize, int AskSize);
 
-public class MarketDataService : IMarketDataService
+public class MarketDataService : IMarketDataService, IDisposable
 {
     private readonly ILogger<MarketDataService> _logger;
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
+    private HubConnection? _hubConnection;
+    private bool _isConnected;
     
     public event Action<MarketTick>? OnMarketTick;
 
@@ -43,12 +47,50 @@ public class MarketDataService : IMarketDataService
             _logger.LogInformation("[MARKET] Connecting to TopstepX market hub at {Url}", _config.ApiBase);
             
             // Real SignalR connection to /hubs/market
-            // This replaces: await Task.Delay(50); Console.WriteLine("Market data connected");
             var hubUrl = $"{_config.ApiBase.TrimEnd('/')}/hubs/market";
             
-            // TODO: Implement actual SignalR HubConnection to hubUrl
-            // connection.On<MarketTick>("MarketData", tick => OnMarketTick?.Invoke(tick));
-            // await connection.StartAsync();
+            // Build SignalR connection with authentication
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(hubUrl, options =>
+                {
+                    options.AccessTokenProvider = async () =>
+                    {
+                        // Use JWT token from environment or config
+                        return Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? _config.AuthToken;
+                    };
+                    
+                    options.Transports = HttpTransportType.WebSockets |
+                                       HttpTransportType.LongPolling |
+                                       HttpTransportType.ServerSentEvents;
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Set up market data event handler
+            _hubConnection.On<JsonElement>("MarketData", (data) =>
+            {
+                try
+                {
+                    // Parse market tick data and trigger OnMarketTick
+                    var symbol = data.GetProperty("symbol").GetString() ?? "";
+                    var price = data.GetProperty("price").GetDecimal();
+                    var volume = data.GetProperty("volume").GetDecimal();
+                    var timestamp = data.GetProperty("timestamp").GetDateTime();
+                    
+                    var tick = new MarketTick(symbol, price, volume, timestamp);
+                    OnMarketTick?.Invoke(tick);
+                    
+                    _logger.LogDebug("[MARKET] Tick: {Symbol} @ {Price}", symbol, price);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[MARKET] Error processing market tick");
+                }
+            });
+
+            // Start the connection
+            await _hubConnection.StartAsync();
+            _isConnected = true;
             
             _logger.LogInformation("[MARKET] ✅ Connected to live TopstepX market data feed");
             return true;
@@ -105,5 +147,22 @@ public class MarketDataService : IMarketDataService
             _logger.LogError(ex, "[MARKET] Failed to get order book for {Symbol}", symbol);
             throw;
         }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _hubConnection?.StopAsync().Wait(TimeSpan.FromSeconds(5));
+            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MARKET] Error disposing hub connection");
+        }
+        
+        _httpClient?.Dispose();
+        _hubConnection = null;
+        _isConnected = false;
     }
 }

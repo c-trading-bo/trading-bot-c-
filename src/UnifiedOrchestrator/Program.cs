@@ -10,6 +10,7 @@ using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
+using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.Abstractions;
 using DotNetEnv;
 using static DotNetEnv.Env;
@@ -141,10 +142,10 @@ public class Program
         services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
-        // Register required interfaces with REAL Safety implementations
-        services.AddSingleton<SafetyProject::Trading.Safety.IKillSwitchWatcher, SafetyProject::Trading.Safety.KillSwitchWatcher>();
-        services.AddSingleton<SafetyProject::Trading.Safety.IRiskManager, SafetyProject::Trading.Safety.RiskManager>();
-        services.AddSingleton<SafetyProject::Trading.Safety.IHealthMonitor, SafetyProject::Trading.Safety.HealthMonitor>();
+        // Register required interfaces with REAL Safety implementations via adapters
+        services.AddSingleton<TradingBot.Abstractions.IKillSwitchWatcher, KillSwitchWatcherAdapter>();
+        services.AddSingleton<TradingBot.Abstractions.IRiskManager, RiskManagerAdapter>();
+        services.AddSingleton<TradingBot.Abstractions.IHealthMonitor, HealthMonitorAdapter>();
 
         // ================================================================================
         // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
