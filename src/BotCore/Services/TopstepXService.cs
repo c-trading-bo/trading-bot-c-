@@ -518,6 +518,11 @@ public class MarketData
     public decimal Last { get; set; }
     public long Volume { get; set; }
     public DateTime Timestamp { get; set; }
+    
+    // Aliases for compatibility with different parts of the system
+    public decimal BidPrice => Bid;
+    public decimal AskPrice => Ask;
+    public decimal LastPrice => Last;
 }
 
 public class OrderBookData
