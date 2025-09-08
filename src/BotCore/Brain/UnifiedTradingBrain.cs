@@ -56,7 +56,7 @@ namespace BotCore.Brain
         private object? _rlPositionSizer;
         private object? _metaClassifier;
         private object? _marketRegimeDetector;
-        private SimpleNeuralNetwork? _confidenceNetwork;
+        private INeuralNetwork? _confidenceNetwork;
         
         // TopStep compliance tracking
         private decimal _currentDrawdown = 0m;
@@ -82,12 +82,14 @@ namespace BotCore.Brain
             _memoryManager = memoryManager;
             _modelManager = modelManager;
             
-            // Initialize Neural UCB for strategy selection (your existing implementation)
-            var neuralNetwork = new SimpleNeuralNetwork(inputSize: 15, hiddenSize: 32);
+            // Initialize Neural UCB for strategy selection using ONNX-based neural network
+            var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
+            var neuralNetworkLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxNeuralNetwork>();
+            var neuralNetwork = new OnnxNeuralNetwork(onnxLoader, neuralNetworkLogger, "models/strategy_selection.onnx");
             _strategySelector = new NeuralUcbBandit(neuralNetwork);
             
             // Initialize confidence network for model confidence prediction
-            _confidenceNetwork = new SimpleNeuralNetwork(inputSize: 5, hiddenSize: 16);
+            _confidenceNetwork = new OnnxNeuralNetwork(onnxLoader, neuralNetworkLogger, "models/confidence_prediction.onnx");
             
             _logger.LogInformation("🧠 [UNIFIED-BRAIN] Initialized - Ready to make intelligent trading decisions");
         }
