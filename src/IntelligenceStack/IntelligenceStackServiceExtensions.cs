@@ -49,6 +49,10 @@ public static class IntelligenceStackServiceExtensions
         // Register advanced intelligence services
         services.AddSingleton<EnsembleMetaLearner>();
         services.AddSingleton<ModelQuarantineManager>();
+        services.AddSingleton<HistoricalTrainerWithCV>();
+        services.AddSingleton<MAMLLiveIntegration>();
+        services.AddSingleton<NightlyParameterTuner>();
+        services.AddSingleton<RLAdvisorSystem>();
 
         // Register main orchestrator
         services.AddSingleton<IntelligenceOrchestrator>();
