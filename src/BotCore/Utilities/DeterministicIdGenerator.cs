@@ -1,5 +1,7 @@
 using System;
-using Trading.Strategies;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace BotCore.Utilities
 {
@@ -19,7 +21,9 @@ namespace BotCore.Utilities
         [Obsolete("Use StrategyIds.GenerateStrategyId instead")]
         public static string GenerateStrategyId(string strategyName, DateTime? date = null)
         {
-            return StrategyIds.GenerateStrategyId(strategyName, date);
+            var targetDate = date ?? DateTime.UtcNow;
+            var cleanName = strategyName.Replace(" ", "").Replace("-", "");
+            return $"{cleanName}_{targetDate:yyyyMMdd}";
         }
         
         /// <summary>
