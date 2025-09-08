@@ -7,7 +7,6 @@ using BotCore.ML;
 using BotCore.Bandits;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using Trading.Strategies;
 
 namespace BotCore.Brain
 {
