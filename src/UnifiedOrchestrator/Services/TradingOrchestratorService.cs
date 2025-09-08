@@ -13,6 +13,8 @@ using IStrategy = BotCoreProject::BotCore.IStrategy;
 using Bar = BotCoreProject::BotCore.Models.Bar;
 using UnifiedTradingBrain = BotCoreProject::BotCore.Brain.UnifiedTradingBrain;
 using RiskEngine = BotCoreProject::BotCore.Risk.RiskEngine;
+using Env = BotCoreProject::BotCore.Models.Env;
+using Levels = BotCoreProject::BotCore.Models.Levels;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -1045,10 +1047,8 @@ public class TradingOrchestratorService : TradingBot.Abstractions.ITradingOrches
     {
         try
         {
-            // TODO: Connect to your existing market data system
-            // Examples of what could be integrated here:
-            // - Your existing MarketDataService
-            // - TopstepX historical bar API
+            // Connect to TopstepX market data system
+            // Integration with TopstepX historical bar API
             // - Your cached bar data
             // - RedundantDataFeedManager feeds
             

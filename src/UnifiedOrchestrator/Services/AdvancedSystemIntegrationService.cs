@@ -11,6 +11,7 @@ using RedundantDataFeedManager = BotCoreProject::BotCore.Market.RedundantDataFee
 using IEconomicEventManager = BotCoreProject::BotCore.Market.IEconomicEventManager;
 using StrategyMlModelManager = BotCoreProject::BotCore.ML.StrategyMlModelManager;
 using Bar = BotCoreProject::BotCore.Models.Bar;
+using EventImpact = BotCoreProject::BotCore.Market.EventImpact;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 

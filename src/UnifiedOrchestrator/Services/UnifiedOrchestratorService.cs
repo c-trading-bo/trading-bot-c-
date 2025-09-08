@@ -1,10 +1,14 @@
+extern alias BotCoreProject;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using System.Collections.Concurrent;
-using BotCore;
+
+// Import types from aliased BotCore project
+using Bar = BotCoreProject::BotCore.Models.Bar;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -475,7 +479,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                     var strategyId = context.Parameters.GetValueOrDefault("strategyId")?.ToString() ?? "default";
                     var positionSymbol = context.Parameters.GetValueOrDefault("symbol")?.ToString() ?? "ES";
                     var multiplier = await _advancedSystemIntegration.GetOptimizedPositionSizeAsync(
-                        strategyId, positionSymbol, 0, 0, 0, 0, new List<BotCore.Models.Bar>());
+                        strategyId, positionSymbol, 0, 0, 0, 0, new List<Bar>().AsReadOnly());
                     context.Parameters["positionMultiplier"] = multiplier;
                     _logger.LogInformation("✅ Position size optimized for {Strategy}-{Symbol}: {Multiplier}", 
                         strategyId, positionSymbol, multiplier);
