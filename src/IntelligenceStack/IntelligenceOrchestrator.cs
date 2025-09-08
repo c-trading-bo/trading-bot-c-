@@ -242,10 +242,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             var result = action switch
             {
-                "runMLModels" => await RunMLModelsAsync(context, cancellationToken),
-                "updateRL" => await UpdateRLTrainingAsync(context, cancellationToken),
-                "generatePredictions" => await GeneratePredictionsAsync(context, cancellationToken),
-                "correlateAssets" => await AnalyzeCorrelationsAsync(context, cancellationToken),
+                "runMLModels" => await RunMLModelsWrapperAsync(context, cancellationToken),
+                "updateRL" => await UpdateRLTrainingWrapperAsync(context, cancellationToken),
+                "generatePredictions" => await GeneratePredictionsWrapperAsync(context, cancellationToken),
+                "correlateAssets" => await AnalyzeCorrelationsWrapperAsync(context, cancellationToken),
                 "makeDecision" => await MakeDecisionWorkflowAsync(context, cancellationToken),
                 "processMarketData" => await ProcessMarketDataWorkflowAsync(context, cancellationToken),
                 "performMaintenance" => await PerformMaintenanceWorkflowAsync(context, cancellationToken),
@@ -411,8 +411,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Signal = new TradingSignal
             {
                 Symbol = context.Symbol,
-                Action = size > 0.1 ? TradingAction.Buy : size < -0.1 ? TradingAction.Sell : TradingAction.Hold,
-                Confidence = (decimal)confidence,
+                Direction = size > 0.1 ? "LONG" : size < -0.1 ? "SHORT" : "HOLD",
+                Strength = (decimal)Math.Abs(confidence),
                 Timestamp = DateTime.UtcNow
             },
             Action = size > 0.1 ? TradingAction.Buy : size < -0.1 ? TradingAction.Sell : TradingAction.Hold,
@@ -441,8 +441,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             DecisionId = GenerateDecisionId(),
             Signal = new TradingSignal
             {
-                Action = TradingAction.Hold,
-                Confidence = 0m,
+                Symbol = "UNKNOWN",
+                Direction = "HOLD",
+                Strength = 0m,
                 Timestamp = DateTime.UtcNow
             },
             Action = TradingAction.Hold,
@@ -507,7 +508,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketContext = ExtractMarketContextFromWorkflow(context);
             var decision = await MakeDecisionAsync(marketContext, cancellationToken);
             
-            return new WorkflowExecutionResult { Success = true, Results = new { decision } };
+            return new WorkflowExecutionResult { Success = true, Results = new Dictionary<string, object> { ["decision"] = decision } };
         }
         catch (Exception ex)
         {
@@ -571,6 +572,31 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Ask = Convert.ToDouble(context.Parameters.GetValueOrDefault("ask", 4501.25)),
             Timestamp = DateTime.UtcNow
         };
+    }
+
+    // Wrapper methods for workflow execution
+    private async Task<WorkflowExecutionResult> RunMLModelsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        await RunMLModelsAsync(context, cancellationToken);
+        return new WorkflowExecutionResult { Success = true };
+    }
+
+    private async Task<WorkflowExecutionResult> UpdateRLTrainingWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        await UpdateRLTrainingAsync(context, cancellationToken);
+        return new WorkflowExecutionResult { Success = true };
+    }
+
+    private async Task<WorkflowExecutionResult> GeneratePredictionsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        await GeneratePredictionsAsync(context, cancellationToken);
+        return new WorkflowExecutionResult { Success = true };
+    }
+
+    private async Task<WorkflowExecutionResult> AnalyzeCorrelationsWrapperAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    {
+        await AnalyzeCorrelationsAsync(context, cancellationToken);
+        return new WorkflowExecutionResult { Success = true };
     }
 
     #endregion

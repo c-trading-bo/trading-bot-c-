@@ -45,7 +45,7 @@ public class RLAdvisorSystem
         Directory.CreateDirectory(Path.Combine(_statePath, "performance"));
         
         InitializeAgents();
-        _ = Task.Run(LoadStateAsync);
+        _ = Task.Run(() => LoadStateAsync());
     }
 
     /// <summary>

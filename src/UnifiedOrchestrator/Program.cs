@@ -12,6 +12,7 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.Abstractions;
+using TradingBot.IntelligenceStack;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -417,32 +418,16 @@ public class Program
     }
 
     /// <summary>
-    /// Register Intelligence Stack services with simplified implementation to ensure the system builds and runs
+    /// Register Intelligence Stack services with real implementations
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Load configuration
-        var intelligenceConfig = configuration.GetSection("IntelligenceStack").Get<IntelligenceStackConfig>() 
-            ?? new IntelligenceStackConfig();
-        
-        services.AddSingleton(intelligenceConfig);
-
-        // Register the main intelligence stack services with simplified implementations for now
         Console.WriteLine("🔧 Registering Intelligence Stack services...");
 
-        // Use mock implementations to ensure the system builds and runs
-        services.AddSingleton<IRegimeDetector, MockRegimeDetector>();
-        services.AddSingleton<IFeatureStore, MockFeatureStore>();
-        services.AddSingleton<IModelRegistry, MockModelRegistry>();
-        services.AddSingleton<ICalibrationManager, MockCalibrationManager>();
-        services.AddSingleton<IOnlineLearningSystem, MockOnlineLearningSystem>();
-        services.AddSingleton<IQuarantineManager, MockQuarantineManager>();
-        services.AddSingleton<IDecisionLogger, MockDecisionLogger>();
-        services.AddSingleton<IIdempotentOrderService, MockIdempotentOrderService>();
-        services.AddSingleton<ILeaderElectionService, MockLeaderElectionService>();
-        services.AddSingleton<TradingBot.Abstractions.IStartupValidator, MockStartupValidator>();
+        // Register the real intelligence stack services
+        services.AddIntelligenceStack(configuration);
 
-        Console.WriteLine("✅ Intelligence Stack services registered with mock implementations");
+        Console.WriteLine("✅ Intelligence Stack services registered with REAL implementations");
         Console.WriteLine("🔄 All features are ENABLED by default and will start automatically");
     }
 
