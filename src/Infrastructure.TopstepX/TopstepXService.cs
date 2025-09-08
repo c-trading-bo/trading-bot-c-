@@ -234,7 +234,7 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _hubConnection.Reconnected += async (connectionId) =>
         {
-            _logger.LogInformation("[TOPSTEPX] Reconnected with ID: {ConnectionId}", connectionId);
+            _logger.LogInformation("[TOPSTEPX] Reconnected successfully");
 
             // Re-subscribe to market data after reconnection
             try
@@ -426,8 +426,8 @@ public class TopstepXService : ITopstepXService, IDisposable
                 }
             }
 
-            _logger.LogError("[TOPSTEPX] JWT request failed: {Status} {Content}",
-                response.StatusCode, await response.Content.ReadAsStringAsync());
+            _logger.LogError("[TOPSTEPX] JWT request failed with status: {Status}",
+                response.StatusCode);
             return null;
         }
         catch (Exception ex)

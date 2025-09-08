@@ -86,7 +86,7 @@ public class AutoTopstepXLoginService : BackgroundService
 
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
             {
-                _logger.LogInformation($"✅ Found credentials in {userVar}/{keyVar}");
+                _logger.LogInformation("✅ Found credentials in environment variables");
                 
                 CurrentCredentials = new TopstepXCredentials
                 {
@@ -109,7 +109,7 @@ public class AutoTopstepXLoginService : BackgroundService
 
         try
         {
-            _logger.LogInformation($"🔐 Attempting login to TopstepX as {CurrentCredentials.Username}...");
+            _logger.LogInformation("🔐 Attempting login to TopstepX...");
 
             // Add timeout for login attempt
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -185,7 +185,7 @@ public class AutoTopstepXLoginService : BackgroundService
                         CurrentCredentials!.AccountId = AccountId;
                         Environment.SetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID", AccountId);
                         
-                        _logger.LogInformation("✅ Retrieved account ID");
+                        _logger.LogInformation("✅ Retrieved account information");
                     }
                 }
             }

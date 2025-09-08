@@ -103,8 +103,8 @@ public class OrderService : IOrderService
                     {
                         // Don't retry 4xx errors
                         var error = await response.Content.ReadAsStringAsync();
-                        _logger.LogError("[ORDER] Bad request: {Error}", error);
-                        return new OrderResult(false, null, $"Bad request: {error}");
+                        _logger.LogError("[ORDER] Bad request received");
+                        return new OrderResult(false, null, "Invalid order request - please check order parameters");
                     }
                     else
                     {
