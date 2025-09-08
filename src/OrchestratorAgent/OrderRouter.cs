@@ -7,6 +7,7 @@ using BotCore;
 using BotCore.Config;
 using BotCore.Models;
 using OrchestratorAgent.Infra;
+using Trading.Safety;
 
 // NOTE: Not referenced by OrchestratorAgent.Program. The runtime uses SimpleOrderRouter.
 // This richer router remains for future expansion and tooling, but is not on the hot path.
@@ -264,7 +265,7 @@ namespace OrchestratorAgent
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ROUTER] EnsureBrackets failed for account {Acc}", accountId);
+                _log.LogWarning(ex, "[ROUTER] EnsureBrackets failed for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
 
@@ -303,7 +304,7 @@ namespace OrchestratorAgent
 
                 // Try primary route
                 await _api.PostAsync("/orders/brackets/upsert", body, ct);
-                _log.LogInformation("[ROUTER] Upserted brackets for parent {OrderId} (qty={Qty}, tp={Tp}t, sl={Sl}t)", orderId, filledQty, tpTicks, slTicks);
+                _log.LogInformation("[ROUTER] Upserted brackets for parent {OrderId} (qty={Qty}, tp={Tp}t, sl={Sl}t)", SecurityHelpers.MaskOrderId(orderId), filledQty, tpTicks, slTicks);
             }
             catch (Exception ex1)
             {
@@ -312,7 +313,7 @@ namespace OrchestratorAgent
                     // Fallback to generic brackets endpoint
                     var body2 = new { parentId = (object?)orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
                     await _api.PostAsync("/orders/brackets", body2, ct);
-                    _log.LogInformation("[ROUTER] Upsert fallback: posted brackets for parent {OrderId}", orderId);
+                    _log.LogInformation("[ROUTER] Upsert fallback: posted brackets for parent {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                 }
                 catch (Exception ex2)
                 {
@@ -321,13 +322,13 @@ namespace OrchestratorAgent
                         // Legacy API route fallback
                         var body3 = new { orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
                         await _api.PostAsync("/api/Order/brackets/upsert", body3, ct);
-                        _log.LogInformation("[ROUTER] Upsert legacy fallback OK for parent {OrderId}", orderId);
+                        _log.LogInformation("[ROUTER] Upsert legacy fallback OK for parent {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                     }
                     catch (Exception ex3)
                     {
                         _log.LogWarning(ex1, "[ROUTER] UpsertBrackets primary failed");
                         _log.LogWarning(ex2, "[ROUTER] UpsertBrackets fallback failed");
-                        _log.LogWarning(ex3, "[ROUTER] UpsertBrackets legacy failed for parent {OrderId}", orderId);
+                        _log.LogWarning(ex3, "[ROUTER] UpsertBrackets legacy failed for parent {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                     }
                 }
             }
@@ -372,7 +373,7 @@ namespace OrchestratorAgent
                     try
                     {
                         await _api.PostAsync("/orders/convert", body, ct);
-                        _log.LogInformation("[ROUTER] Converted partial parent to LIMIT IOC at {Px} (order {OrderId})", px, orderId);
+                        _log.LogInformation("[ROUTER] Converted partial parent to LIMIT IOC at {Px} (order {OrderId})", px, SecurityHelpers.MaskOrderId(orderId));
                         converted = true;
                     }
                     catch (Exception ex1)
@@ -380,13 +381,13 @@ namespace OrchestratorAgent
                         try
                         {
                             await _api.PostAsync("/api/Order/convert", body, ct);
-                            _log.LogInformation("[ROUTER] Converted (legacy) partial parent to LIMIT IOC at {Px} (order {OrderId})", px, orderId);
+                            _log.LogInformation("[ROUTER] Converted (legacy) partial parent to LIMIT IOC at {Px} (order {OrderId})", px, SecurityHelpers.MaskOrderId(orderId));
                             converted = true;
                         }
                         catch (Exception ex2)
                         {
-                            _log.LogWarning(ex1, "[ROUTER] Convert remainder primary failed for {OrderId}", orderId);
-                            _log.LogWarning(ex2, "[ROUTER] Convert remainder legacy failed for {OrderId}", orderId);
+                            _log.LogWarning(ex1, "[ROUTER] Convert remainder primary failed for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
+                            _log.LogWarning(ex2, "[ROUTER] Convert remainder legacy failed for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                         }
                     }
                 }
@@ -395,14 +396,14 @@ namespace OrchestratorAgent
                 if (!converted && age.TotalSeconds >= cancelAtSec)
                 {
                     var body = new { orderId };
-                    try { await _api.PostAsync("/orders/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled stale partial parent {OrderId}", orderId); }
+                    try { await _api.PostAsync("/orders/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
                     catch (Exception ex1)
                     {
-                        try { await _api.PostAsync("/api/Order/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled (legacy) stale partial parent {OrderId}", orderId); }
+                        try { await _api.PostAsync("/api/Order/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled (legacy) stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
                         catch (Exception ex2)
                         {
-                            _log.LogWarning(ex1, "[ROUTER] Cancel remainder primary failed for {OrderId}", orderId);
-                            _log.LogWarning(ex2, "[ROUTER] Cancel remainder legacy failed for {OrderId}", orderId);
+                            _log.LogWarning(ex1, "[ROUTER] Cancel remainder primary failed for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
+                            _log.LogWarning(ex2, "[ROUTER] Cancel remainder legacy failed for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                         }
                     }
                 }
@@ -418,24 +419,24 @@ namespace OrchestratorAgent
             try
             {
                 await _api.PostAsync($"/orders/cancel_all", new { accountId }, ct);
-                _log.LogWarning("[ROUTER] CancelAllOpen posted for account {Acc}", accountId);
+                _log.LogWarning("[ROUTER] CancelAllOpen posted for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ROUTER] CancelAllOpen failed for account {Acc}", accountId);
+                _log.LogWarning(ex, "[ROUTER] CancelAllOpen failed for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
 
         public async Task FlattenAllAsync(long accountId, CancellationToken ct = default)
         {
-            _log.LogError("[ROUTER] PANIC_FLATTEN: flattening all positions for account {Acc}", accountId);
+            _log.LogError("[ROUTER] PANIC_FLATTEN: flattening all positions for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             try
             {
                 await _api.PostAsync($"/positions/flatten_all", new { accountId }, ct);
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ROUTER] FlattenAll failed for account {Acc}", accountId);
+                _log.LogWarning(ex, "[ROUTER] FlattenAll failed for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
 
@@ -448,7 +449,7 @@ namespace OrchestratorAgent
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ROUTER] QueryOpenPositions failed for account {Acc}", accountId);
+                _log.LogWarning(ex, "[ROUTER] QueryOpenPositions failed for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
                 return [];
             }
         }
@@ -462,7 +463,7 @@ namespace OrchestratorAgent
             }
             catch (Exception ex)
             {
-                _log.LogWarning(ex, "[ROUTER] QueryOpenOrders failed for account {Acc}", accountId);
+                _log.LogWarning(ex, "[ROUTER] QueryOpenOrders failed for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
                 return [];
             }
         }

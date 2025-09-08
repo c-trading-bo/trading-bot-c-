@@ -1,0 +1,90 @@
+{
+  "timestamp": "2025-09-02T04:11:46.801427",
+  "symbol": "ES=F",
+  "supply_zones": [
+    {
+      "type": "supply",
+      "price_level": 5725.0,
+      "zone_top": 5727.25,
+      "zone_bottom": 5722.75,
+      "strength": 85.5,
+      "volume": 45000,
+      "created_date": "2025-08-31T04:11:46.801453",
+      "touches": 3,
+      "holds": 2,
+      "breaks": 1,
+      "last_test": "2025-09-02T00:11:46.801475",
+      "active": true
+    },
+    {
+      "type": "supply",
+      "price_level": 5750.0,
+      "zone_top": 5752.25,
+      "zone_bottom": 5747.75,
+      "strength": 92.0,
+      "volume": 67000,
+      "created_date": "2025-08-28T04:11:46.801497",
+      "touches": 4,
+      "holds": 4,
+      "breaks": 0,
+      "last_test": "2025-09-01T20:11:46.801515",
+      "active": true
+    }
+  ],
+  "demand_zones": [
+    {
+      "type": "demand",
+      "price_level": 5675.0,
+      "zone_top": 5677.25,
+      "zone_bottom": 5672.75,
+      "strength": 78.2,
+      "volume": 52000,
+      "created_date": "2025-08-30T04:11:46.801547",
+      "touches": 2,
+      "holds": 2,
+      "breaks": 0,
+      "last_test": "2025-09-01T22:11:46.801578",
+      "active": true
+    },
+    {
+      "type": "demand",
+      "price_level": 5650.0,
+      "zone_top": 5652.25,
+      "zone_bottom": 5647.75,
+      "strength": 88.7,
+      "volume": 71000,
+      "created_date": "2025-08-26T04:11:46.801614",
+      "touches": 5,
+      "holds": 4,
+      "breaks": 1,
+      "last_test": "2025-09-01T16:11:46.801649",
+      "active": true
+    }
+  ],
+  "poc": 5700.25,
+  "current_price": 5710.5,
+  "nearest_supply": {
+    "price": 5725.0,
+    "distance": 14.5,
+    "distance_percent": 0.25,
+    "strength": 85.5
+  },
+  "nearest_demand": {
+    "price": 5675.0,
+    "distance": 35.5,
+    "distance_percent": 0.62,
+    "strength": 78.2
+  },
+  "statistics": {
+    "total_supply_zones": 2,
+    "total_demand_zones": 2,
+    "active_supply": 2,
+    "active_demand": 2
+  },
+  "key_levels": {
+    "nearest_support": 5675.0,
+    "nearest_resistance": 5725.0,
+    "strongest_support": 5650.0,
+    "strongest_resistance": 5750.0
+  }
+}

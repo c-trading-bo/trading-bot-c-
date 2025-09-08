@@ -1,0 +1,28 @@
+{
+  "date": "2025-09-02",
+  "regime": "Ranging",
+  "newsIntensity": 0,
+  "isCpiDay": false,
+  "isFomcDay": false,
+  "modelConfidence": 0.7,
+  "primaryBias": "Neutral",
+  "setups": [
+    {
+      "timeWindow": "Afternoon",
+      "direction": "Long",
+      "confidenceScore": 0.63,
+      "suggestedRiskMultiple": 1.0,
+      "rationale": "Range fade setup in Ranging market"
+    }
+  ],
+  "newsDetails": {
+    "sentiment": 0,
+    "volatilityScore": 0,
+    "articleCount": 0,
+    "newsConfidence": 85.0,
+    "earningsSeason": false,
+    "fedSpeak": false
+  },
+  "generatedAt": "2025-09-02T03:51:00.634777",
+  "version": "1.0"
+}

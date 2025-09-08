@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-09-05T14:26:37.759064",
+  "fed_liquidity_analysis": {
+    "balance_sheet_trend": "expanding",
+    "reverse_repo_level": 2100,
+    "liquidity_change": 50,
+    "tga_balance": 500,
+    "net_liquidity": "increasing"
+  },
+  "generated_by": "fed_liquidity_analyzer"
+}

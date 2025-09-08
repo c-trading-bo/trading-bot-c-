@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "generated_at": "2025-09-03T22:53:58.278484",
+    "generator_version": "3.0-CLOUD-ULTIMATE",
+    "report_type": "comprehensive"
+  },
+  "summary": {
+    "total_workflows": 28,
+    "healthy_workflows": 28,
+    "broken_workflows": 0,
+    "health_percentage": 100.0,
+    "monthly_minutes_usage": 9075,
+    "minutes_under_limit": 10925,
+    "recent_optimizations": 43,
+    "recent_repairs": 0,
+    "estimated_minutes_saved": 86
+  },
+  "workflow_health": {
+    "healthy": [
+      "auto-label-automerge.yml",
+      "ci.yml",
+      "daily_consolidated.yml",
+      "dotnet-desktop.yml",
+      "dotnet.yml",
+      "es_nq_correlation_matrix.yml",
+      "es_nq_news_sentiment.yml",
+      "failed_patterns.yml",
+      "intelligence_collection.yml",
+      "microstructure.yml",
+      "ml_training_enhanced.yml",
+      "news_sentiment.yml",
+      "opex_calendar.yml",
+      "options_flow.yml",
+      "options_flow_analysis.yml",
+      "overnight.yml",
+      "portfolio_heat.yml",
+      "rebalancing.yml",
+      "regime_detection.yml",
+      "regime_detector.yml",
+      "seasonality.yml",
+      "sector_rotation.yml",
+      "simple-ml-test.yml",
+      "social_momentum.yml",
+      "test-ml-enhanced.yml",
+      "volatility_surface.yml",
+      "zones_identifier.yml",
+      "quality-assurance.yml"
+    ],
+    "needs_attention": [],
+    "broken": [],
+    "high_usage": [
+      {
+        "name": "social_momentum.yml",
+        "monthly_minutes": 8580
+      }
+    ]
+  },
+  "performance_metrics": {
+    "total_jobs": 28,
+    "total_steps": 133,
+    "avg_jobs_per_workflow": 1.0,
+    "avg_steps_per_job": 4.8,
+    "cached_workflows": 0,
+    "optimization_opportunities": 43
+  },
+  "recent_activities": {
+    "optimizations": [
+      "sector_rotation.yml: Set 15m timeout for sector_rotation",
+      "simple-ml-test.yml: Added pip cache to ml-test",
+      "simple-ml-test.yml: Added shallow clone to ml-test",
+      "social_momentum.yml: Added pip cache to social_momentum",
+      "social_momentum.yml: Added shallow clone to social_momentum",
+      "social_momentum.yml: Set 15m timeout for social_momentum",
+      "test-ml-enhanced.yml: Added pip cache to test-ml-enhanced",
+      "test-ml-enhanced.yml: Added shallow clone to test-ml-enhanced",
+      "volatility_surface.yml: Added pip cache to volatility_surface",
+      "zones_identifier.yml: Added pip cache to zones_identifier"
+    ],
+    "repairs": [],
+    "files_modified": [
+      "ml_training_enhanced.yml",
+      "test-ml-enhanced.yml",
+      "options_flow_analysis.yml",
+      "regime_detector.yml",
+      "dotnet-desktop.yml",
+      "es_nq_correlation_matrix.yml",
+      "daily_consolidated.yml",
+      "volatility_surface.yml",
+      "sector_rotation.yml",
+      "regime_detection.yml",
+      "intelligence_collection.yml",
+      "failed_patterns.yml",
+      "ci.yml",
+      "simple-ml-test.yml",
+      "social_momentum.yml",
+      "opex_calendar.yml",
+      "es_nq_news_sentiment.yml",
+      "seasonality.yml",
+      "quality-assurance.yml",
+      "news_sentiment.yml",
+      "microstructure.yml",
+      "overnight.yml",
+      "zones_identifier.yml",
+      "options_flow.yml",
+      "rebalancing.yml",
+      "portfolio_heat.yml"
+    ],
+    "files_created": []
+  },
+  "recommendations": [
+    "\ud83d\udd27 FIX REQUIRED: 12 broken workflows need attention",
+    "\u23f1\ufe0f Set explicit timeouts for 4 workflows"
+  ]
+}

@@ -5,6 +5,7 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using System.Collections.Concurrent;
 using BotCore;
+using Trading.Safety;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -22,6 +23,11 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
     private readonly IWorkflowScheduler _scheduler;
     private readonly ICloudDataIntegration _cloudDataIntegration;
     private readonly AdvancedSystemIntegrationService? _advancedSystemIntegration;
+    
+    // Phase 5 Safety Infrastructure
+    private readonly IKillSwitchWatcher _killSwitchWatcher;
+    private readonly IRiskManager _riskManager;
+    private readonly IHealthMonitor _healthMonitor;
     
     private readonly ConcurrentDictionary<string, UnifiedWorkflow> _workflows = new();
     private readonly ConcurrentDictionary<string, List<WorkflowExecutionContext>> _executionHistory = new();
@@ -43,6 +49,9 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         IWorkflowScheduler scheduler,
         ICentralMessageBus messageBus,
         ICloudDataIntegration cloudDataIntegration,
+        IKillSwitchWatcher killSwitchWatcher,
+        IRiskManager riskManager,
+        IHealthMonitor healthMonitor,
         AdvancedSystemIntegrationService? advancedSystemIntegration = null)
     {
         _logger = logger;
@@ -54,6 +63,11 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
         _messageBus = messageBus;
         _cloudDataIntegration = cloudDataIntegration;
         _advancedSystemIntegration = advancedSystemIntegration;
+        
+        // Phase 5 Safety Infrastructure
+        _killSwitchWatcher = killSwitchWatcher;
+        _riskManager = riskManager;
+        _healthMonitor = healthMonitor;
     }
 
     #region IHostedService Implementation
@@ -92,6 +106,10 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             // Start the central message bus FIRST - this is the "ONE BRAIN" communication system
             _logger.LogInformation("🧠 Starting Central Message Bus - ONE BRAIN communication...");
             await _messageBus.StartAsync(cancellationToken);
+            
+            // Initialize Phase 5 Safety Infrastructure BEFORE any trading operations
+            _logger.LogInformation("🛡️ Initializing Safety Infrastructure...");
+            await InitializeSafetyComponentsAsync(cancellationToken);
             
             // Initialize all sub-orchestrators with message bus integration
             await _tradingOrchestrator.ConnectAsync(cancellationToken);
@@ -713,6 +731,150 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
                 Actions = new[] { "generateReport", "calculateMetrics", "sendNotifications" }
             }
         };
+    }
+
+    /// <summary>
+    /// Initialize Phase 5 Safety Infrastructure components
+    /// These apply globally to all strategies and services
+    /// </summary>
+    private async Task InitializeSafetyComponentsAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("🛡️ Starting Phase 5 Safety Infrastructure initialization...");
+        
+        try
+        {
+            // Start KillSwitchWatcher - monitors kill.txt file for immediate halt
+            _logger.LogInformation("🔴 Initializing Kill Switch Watcher...");
+            _killSwitchWatcher.OnKillSwitchActivated += OnKillSwitchActivated;
+            await _killSwitchWatcher.StartWatchingAsync(cancellationToken);
+            _logger.LogInformation("✅ Kill Switch Watcher active");
+            
+            // Start RiskManager - enforces real-time risk limits
+            _logger.LogInformation("📊 Initializing Risk Manager...");
+            _riskManager.OnRiskBreach += OnRiskBreach;
+            _logger.LogInformation("✅ Risk Manager active - enforcing MaxDailyLoss, MaxPositionSize, DrawdownLimit");
+            
+            // Start HealthMonitor - tracks system health and trading eligibility
+            _logger.LogInformation("💚 Initializing Health Monitor...");
+            _healthMonitor.OnHealthChanged += OnHealthChanged;
+            await _healthMonitor.StartMonitoringAsync(cancellationToken);
+            _logger.LogInformation("✅ Health Monitor active - tracking hub connections, error rates, latency");
+            
+            // Update central message bus with safety status
+            _messageBus.UpdateSharedState("safety.kill_switch_active", _killSwitchWatcher.IsKillSwitchActive);
+            _messageBus.UpdateSharedState("safety.risk_breached", _riskManager.IsRiskBreached);
+            _messageBus.UpdateSharedState("safety.trading_allowed", _healthMonitor.IsTradingAllowed);
+            
+            _logger.LogInformation("🛡️ Phase 5 Safety Infrastructure initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to initialize Safety Infrastructure");
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Handle kill switch activation - immediately halt all trading operations
+    /// </summary>
+    private void OnKillSwitchActivated()
+    {
+        _logger.LogCritical("🚨 KILL SWITCH ACTIVATED - Halting all trading operations immediately");
+        
+        try
+        {
+            // Update central message bus to stop all trading
+            _messageBus.UpdateSharedState("safety.kill_switch_active", true);
+            _messageBus.PublishAsync("safety.emergency_halt", new { 
+                Timestamp = DateTime.UtcNow, 
+                Reason = "Kill switch activated",
+                Action = "All trading halted"
+            });
+            
+            // Cancel all pending operations
+            _cancellationTokenSource.Cancel();
+            
+            _logger.LogCritical("🛑 Emergency halt completed - System is now in safe mode");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error during emergency halt procedure");
+        }
+    }
+    
+    /// <summary>
+    /// Handle risk breaches - implement automatic position unwinding
+    /// </summary>
+    private void OnRiskBreach(RiskBreach breach)
+    {
+        _logger.LogCritical("🚨 RISK BREACH DETECTED: {Type} - {Message}", breach.Type, breach.Message);
+        
+        try
+        {
+            // Update central message bus with risk breach
+            _messageBus.UpdateSharedState("safety.risk_breached", true);
+            _messageBus.UpdateSharedState($"safety.breach_{breach.Type.ToString().ToLower()}", breach.CurrentValue);
+            
+            // Publish risk breach event for automatic unwinding
+            _messageBus.PublishAsync("safety.risk_breach", new {
+                Type = breach.Type.ToString(),
+                Message = breach.Message,
+                CurrentValue = breach.CurrentValue,
+                Limit = breach.Limit,
+                Timestamp = DateTime.UtcNow,
+                Action = "Automatic position unwinding initiated"
+            });
+            
+            _logger.LogWarning("⚠️ Risk breach handled - Position unwinding initiated");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error handling risk breach");
+        }
+    }
+    
+    /// <summary>
+    /// Handle health status changes - suspend/resume trading based on system health
+    /// </summary>
+    private void OnHealthChanged(HealthStatus health)
+    {
+        _logger.LogInformation("💓 Health status changed: Healthy={IsHealthy}, TradingAllowed={TradingAllowed}", 
+            health.IsHealthy, health.TradingAllowed);
+        
+        try
+        {
+            // Update central message bus with health status
+            _messageBus.UpdateSharedState("safety.trading_allowed", health.TradingAllowed);
+            _messageBus.UpdateSharedState("health.is_healthy", health.IsHealthy);
+            _messageBus.UpdateSharedState("health.connected_hubs", health.ConnectedHubs);
+            _messageBus.UpdateSharedState("health.error_rate", health.ErrorRate);
+            _messageBus.UpdateSharedState("health.average_latency_ms", health.AverageLatencyMs);
+            
+            // Publish health change event
+            _messageBus.PublishAsync("safety.health_changed", new {
+                IsHealthy = health.IsHealthy,
+                TradingAllowed = health.TradingAllowed,
+                ConnectedHubs = health.ConnectedHubs,
+                TotalHubs = health.TotalHubs,
+                ErrorRate = health.ErrorRate,
+                AverageLatencyMs = health.AverageLatencyMs,
+                StatusMessage = health.StatusMessage,
+                Timestamp = DateTime.UtcNow
+            });
+            
+            if (!health.TradingAllowed)
+            {
+                _logger.LogWarning("⚠️ Trading suspended due to degraded system health: {StatusMessage}", health.StatusMessage);
+            }
+            else if (health.TradingAllowed)
+            {
+                _logger.LogInformation("✅ Trading resumed - System health restored");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error handling health status change");
+        }
     }
 
     #endregion

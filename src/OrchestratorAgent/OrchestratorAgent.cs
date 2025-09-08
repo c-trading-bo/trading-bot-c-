@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 using Microsoft.Extensions.Logging;
 using BotCore.Auth;
+using Trading.Safety;
 
 namespace OrchestratorAgent
 {
@@ -412,7 +413,7 @@ namespace OrchestratorAgent
                 await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct);
                 await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct);
                 await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct);
-                _log.LogInformation("[UserHub] subscribed for account {AccountId}", accountId);
+                _log.LogInformation("[UserHub] subscribed for account {AccountId}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
 #nullable enable

@@ -1,0 +1,17 @@
+{
+  "sentiment": "bullish",
+  "intensity": 73.3,
+  "confidence": 88.2,
+  "volatility_score": 2.8,
+  "bullish_score": 75.2,
+  "bearish_score": 18.2,
+  "article_count": 24,
+  "avg_sentiment": 0.59,
+  "fomc_detected": false,
+  "cpi_detected": false,
+  "earnings_season": true,
+  "merger_activity": false,
+  "fed_speak": false,
+  "timestamp": "2025-09-02T03:28:57.250310",
+  "news_file": "Intelligence/data/raw/news/news_20250902_032857.json"
+}

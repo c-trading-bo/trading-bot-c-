@@ -1,0 +1,20 @@
+{
+  "date": "2025-09-02",
+  "regime": "Volatile",
+  "newsIntensity": 82.6,
+  "isCpiDay": true,
+  "isFomcDay": false,
+  "modelConfidence": 0.4196,
+  "primaryBias": "Neutral",
+  "setups": [],
+  "newsDetails": {
+    "sentiment": "neutral",
+    "volatilityScore": 7.1,
+    "articleCount": 18,
+    "newsConfidence": 59.9,
+    "earningsSeason": false,
+    "fedSpeak": true
+  },
+  "generatedAt": "2025-09-02T03:21:48.962620",
+  "version": "1.0"
+}

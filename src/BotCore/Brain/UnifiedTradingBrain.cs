@@ -7,6 +7,7 @@ using BotCore.ML;
 using BotCore.Bandits;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using Trading.Strategies;
 
 namespace BotCore.Brain
 {
@@ -457,8 +458,25 @@ namespace BotCore.Brain
                 return 0m; // No trade if confidence too low
             }
 
-            // Confidence multiplier (progressive increase above threshold)
-            var confidenceMultiplier = Math.Min(Math.Max(confidence - 0.5m, 0.0m) * 2.0m, 1.0m);
+            // Confidence multiplier using ONNX model
+            var features = new Dictionary<string, double>
+            {
+                ["strategy_confidence"] = (double)strategy.Confidence,
+                ["prediction_probability"] = (double)prediction.Probability,
+                ["volatility"] = (double)context.Volatility,
+                ["volume_ratio"] = (double)context.VolumeRatio,
+                ["trend_strength"] = (double)context.TrendStrength
+            };
+            
+            var modelConfidence = await ModelConfidence.PredictAsync(
+                ("strategy_confidence", (double)strategy.Confidence),
+                ("prediction_probability", (double)prediction.Probability),
+                ("volatility", (double)context.Volatility),
+                ("volume_ratio", (double)context.VolumeRatio),
+                ("trend_strength", (double)context.TrendStrength)
+            );
+            
+            var confidenceMultiplier = (decimal)modelConfidence;
 
             // Calculate risk amount
             var riskAmount = baseRisk * riskMultiplier * confidenceMultiplier;

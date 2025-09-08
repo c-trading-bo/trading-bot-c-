@@ -23,6 +23,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.Reflection;
 using OrchestratorAgent.ML;
+using Trading.Safety;
 
 namespace OrchestratorAgent
 {
@@ -435,7 +436,7 @@ namespace OrchestratorAgent
             var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? string.Empty;
             var symbol = Environment.GetEnvironmentVariable("PRIMARY_SYMBOL") ?? "ES";
 
-            log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, accountId, !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
+            log.LogInformation("Env config: API={Api}  RTC={Rtc}  Symbol={Sym}  AccountId={Acc}  HasJWT={HasJwt}  HasLoginKey={HasLogin}", apiBase, rtcBase, symbol, SecurityHelpers.MaskAccountId(accountId), !string.IsNullOrWhiteSpace(jwt), !string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(apiKey));
 
             // Clock sanity: local, UTC, CME (America/Chicago) — simplified (no separate listener)
             try { _ = ET; } catch (Exception ex) { log.LogWarning(ex, "Timezone init failed"); }

@@ -1,0 +1,270 @@
+{
+  "timestamp": "2025-09-05T15:23:07.766819",
+  "analysis_mode": "comprehensive",
+  "market_session": "regular",
+  "total_articles_processed": 14,
+  "sentiment_threshold": 0.3,
+  "instruments": {
+    "ES": {
+      "sentiment_score": 0.35833333333333334,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Nvidia is looking like it\u2019s in trouble even as the S&P 500 overcomes obstacles",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/s-p-500-is-climbing-a-wall-of-worry-but-nvidia-is-now-a-real-concern-5137d45b?mod=mw_rss_topstories",
+          "published": "Fri, 05 Sep 2025 13:36:00 GMT",
+          "relevance_keywords": [
+            "S&P"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.1,
+      "sources": [
+        "marketwatch"
+      ]
+    },
+    "NQ": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
+    },
+    "SPY": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
+    },
+    "QQQ": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
+    },
+    "BTC": {
+      "sentiment_score": 0.0875,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "First Dogecoin ETF set to launch \u2014 but it\u2019s a different breed from Bitcoin and Ethereum",
+          "sentiment": 0.0875,
+          "textblob_score": 0.125,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/first-dogecoin-etf-set-launch-151036858.html",
+          "published": "2025-09-05T15:10:36Z",
+          "relevance_keywords": [
+            "Bitcoin"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "yahoo_finance"
+      ]
+    },
+    "TSLA": {
+      "sentiment_score": 0.25910103785103783,
+      "article_count": 7,
+      "articles": [
+        {
+          "title": "Aeva Technologies (AEVA) Launches a New High-performance 4D LiDAR Sensor, Morgan Stanley Remains a Hold",
+          "sentiment": 0.09545454545454544,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/aeva-technologies-aeva-launches-high-150601346.html",
+          "published": "2025-09-05T15:06:01Z",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Saudi Arabia Wants OPEC+ to Speed Up Next Oil Supply Boost",
+          "sentiment": 0.44875,
+          "textblob_score": 0.2125,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/saudi-arabia-wants-opec-to-speed-up-next-oil-production-boost",
+          "published": "Fri, 05 Sep 2025 12:54:06 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Stocks Fall as Dismal Jobs Spur Rush to Treasuries: Markets Wrap",
+          "sentiment": 0.05944444444444445,
+          "textblob_score": 0.22777777777777777,
+          "keyword_score": -0.3333333333333333,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/stock-market-today-dow-s-p-live-updates",
+          "published": "Thu, 04 Sep 2025 22:40:10 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Raw Sugar Hits Two-Month Low on Bets for Strong Production",
+          "sentiment": 0.4571794871794872,
+          "textblob_score": 0.22454212454212455,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/raw-sugar-hits-two-month-low-on-bets-for-strong-production",
+          "published": "Fri, 05 Sep 2025 14:58:41 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Lululemon Cuts Outlook on Weaker Demand, Trade Policies",
+          "sentiment": -0.125,
+          "textblob_score": 0.25,
+          "keyword_score": -1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-05/lululemon-cuts-outlook-on-weaker-demand-trade-policies-video",
+          "published": "Fri, 05 Sep 2025 14:25:17 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Nvidia is looking like it\u2019s in trouble even as the S&P 500 overcomes obstacles",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/s-p-500-is-climbing-a-wall-of-worry-but-nvidia-is-now-a-real-concern-5137d45b?mod=mw_rss_topstories",
+          "published": "Fri, 05 Sep 2025 13:36:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Castellum: Record Revenue, Positive EBITDA, And A Cheap Valuation Make It A Buy",
+          "sentiment": 0.5195454545454545,
+          "textblob_score": 0.31363636363636366,
+          "keyword_score": 1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4819988-castellum-record-revenue-positive-ebitda-and-a-cheap-valuation-make-it-a-buy?source=feed_all_articles",
+          "published": "Fri, 05 Sep 2025 11:12:04 -0400",
+          "relevance_keywords": [
+            "EV"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.7,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "marketwatch",
+        "seeking_alpha"
+      ]
+    },
+    "NVDA": {
+      "sentiment_score": 0.24793371212121212,
+      "article_count": 4,
+      "articles": [
+        {
+          "title": "NVIDIA (NVDA) Sees One Sell Rating Despite Strong Growth and Wall Street Confidence",
+          "sentiment": 0.40333333333333327,
+          "textblob_score": 0.4333333333333333,
+          "keyword_score": 0.3333333333333333,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/nvidia-nvda-sees-one-sell-150827910.html",
+          "published": "2025-09-05T15:08:27Z",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "US Stocks Retreat From Record High With Drag From Nvidia, AMD",
+          "sentiment": -0.07841666666666666,
+          "textblob_score": 0.030833333333333334,
+          "keyword_score": -0.3333333333333333,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-05/us-equity-futures-rise-as-soft-jobs-data-supports-rate-cut",
+          "published": "Fri, 05 Sep 2025 12:41:09 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "Broadcom Shares Soar on Work With OpenAI to Create New AI Chip",
+          "sentiment": 0.3084848484848485,
+          "textblob_score": 0.012121212121212125,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-04/broadcom-gives-upbeat-forecast-in-sign-ai-demand-remains-strong",
+          "published": "Thu, 04 Sep 2025 20:17:48 GMT",
+          "relevance_keywords": [
+            "Nvidia",
+            "artificial intelligence"
+          ]
+        },
+        {
+          "title": "Nvidia is looking like it\u2019s in trouble even as the S&P 500 overcomes obstacles",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/s-p-500-is-climbing-a-wall-of-worry-but-nvidia-is-now-a-real-concern-5137d45b?mod=mw_rss_topstories",
+          "published": "Fri, 05 Sep 2025 13:36:00 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.4,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "marketwatch"
+      ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.7,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "MacroGenics: Struggling Wheeler- Dealer Dealt Away Its Best Bets",
+          "sentiment": 0.7,
+          "textblob_score": 1.0,
+          "keyword_score": 0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4819984-macrogenics-struggling-wheeler-dealer-dealt-away-its-best-bets?source=feed_all_articles",
+          "published": "Fri, 05 Sep 2025 11:05:08 -0400",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.1,
+      "sources": [
+        "seeking_alpha"
+      ]
+    }
+  },
+  "sources_used": [
+    "yahoo_finance",
+    "bloomberg",
+    "reuters",
+    "marketwatch",
+    "cnbc",
+    "seeking_alpha"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-09-03T22:53:22.345367",
+  "version": "3.0-CLOUD-ULTIMATE",
+  "repository": "/",
+  "analysis": {
+    "timestamp": "2025-09-03T22:53:22.188489",
+    "total_workflows": 40,
+    "healthy_workflows": 28,
+    "broken_workflows": [
+      "cloud-ml-training.yml",
+      "cloud_bot_mechanic.yml",
+      "congress_trades.yml",
+      "cot_report.yml",
+      "es_nq_critical_trading.yml",
+      "install_dependencies_template.yml",
+      "intermarket.yml",
+      "mm_positioning.yml",
+      "status-badges.yml",
+      "test_talib_fix.yml",
+      "train-github-only.yml",
+      "ultimate_ml_rl_intel_system.yml"
+    ],
+    "slow_workflows": [],
+    "expensive_workflows": [],
+    "schedule_conflicts": [],
+    "optimization_opportunities": [],
+    "total_monthly_minutes": 9075,
+    "issues_found": [
+      "cloud-ml-training.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 535: character maps to <undefined>",
+      "cloud_bot_mechanic.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 12: character maps to <undefined>",
+      "congress_trades.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1054: character maps to <undefined>",
+      "cot_report.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1063: character maps to <undefined>",
+      "es_nq_critical_trading.yml: Analysis error - 'charmap' codec can't decode byte 0x9d in position 5828: character maps to <undefined>",
+      "install_dependencies_template.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 2550: character maps to <undefined>",
+      "intermarket.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 1007: character maps to <undefined>",
+      "mm_positioning.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 1011: character maps to <undefined>",
+      "status-badges.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 13: character maps to <undefined>",
+      "test_talib_fix.yml: Analysis error - 'charmap' codec can't decode byte 0x90 in position 702: character maps to <undefined>",
+      "train-github-only.yml: Analysis error - 'charmap' codec can't decode byte 0x8d in position 1088: character maps to <undefined>",
+      "ultimate_ml_rl_intel_system.yml: Analysis error - 'charmap' codec can't decode byte 0x8f in position 3166: character maps to <undefined>"
+    ]
+  }
+}

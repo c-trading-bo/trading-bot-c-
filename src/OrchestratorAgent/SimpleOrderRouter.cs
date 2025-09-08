@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BotCore.Models;
 using Microsoft.Extensions.Logging;
+using Trading.Safety;
 
 namespace OrchestratorAgent
 {

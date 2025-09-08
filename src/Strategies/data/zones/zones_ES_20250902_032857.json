@@ -1,0 +1,456 @@
+{
+  "symbol": "ES",
+  "current_price": 4490.35,
+  "analysis_time": "2025-09-02T03:28:57.113779",
+  "all_zones": [
+    {
+      "type": "supply",
+      "level": 4505.25,
+      "upper": 4509.76,
+      "lower": 4500.74,
+      "strength": 90,
+      "age_days": 3,
+      "touch_count": 1,
+      "last_test": "2025-08-29T03:28:57.113289",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-22T03:28:57.113309",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4475.25,
+      "upper": 4479.73,
+      "lower": 4470.77,
+      "strength": 88,
+      "age_days": 5,
+      "touch_count": 2,
+      "last_test": "2025-09-01T03:28:57.113441",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-24T03:28:57.113449",
+      "source": "swing_low"
+    },
+    {
+      "type": "demand",
+      "level": 4460.25,
+      "upper": 4466.94,
+      "lower": 4453.56,
+      "strength": 84,
+      "age_days": 3,
+      "touch_count": 4,
+      "last_test": "2025-08-30T03:28:57.113479",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-23T03:28:57.113489",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4497.75,
+      "upper": 4500.0,
+      "lower": 4495.5,
+      "strength": 79,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113626",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T02:28:57.113629",
+      "source": "intraday_high"
+    },
+    {
+      "type": "supply",
+      "level": 4520.25,
+      "upper": 4527.03,
+      "lower": 4513.47,
+      "strength": 78,
+      "age_days": 12,
+      "touch_count": 1,
+      "last_test": "2025-08-31T03:28:57.113342",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-27T03:28:57.113351",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4482.75,
+      "upper": 4484.99,
+      "lower": 4480.51,
+      "strength": 76,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113649",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T01:28:57.113652",
+      "source": "intraday_low"
+    },
+    {
+      "type": "demand",
+      "level": 4445.25,
+      "upper": 4454.14,
+      "lower": 4436.36,
+      "strength": 65,
+      "age_days": 10,
+      "touch_count": 2,
+      "last_test": "2025-09-02T03:28:57.113516",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-20T03:28:57.113525",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4535.25,
+      "upper": 4544.32,
+      "lower": 4526.18,
+      "strength": 49,
+      "age_days": 9,
+      "touch_count": 3,
+      "last_test": "2025-08-27T03:28:57.113375",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-05T03:28:57.113383",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4430.25,
+      "upper": 4441.33,
+      "lower": 4419.17,
+      "strength": 47,
+      "age_days": 5,
+      "touch_count": 3,
+      "last_test": "2025-08-30T03:28:57.113595",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-26T03:28:57.113606",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4550.25,
+      "upper": 4561.63,
+      "lower": 4538.87,
+      "strength": 40,
+      "age_days": 9,
+      "touch_count": 4,
+      "last_test": "2025-09-02T03:28:57.113405",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-31T03:28:57.113413",
+      "source": "swing_high"
+    }
+  ],
+  "relevant_zones": [
+    {
+      "type": "supply",
+      "level": 4505.25,
+      "upper": 4509.76,
+      "lower": 4500.74,
+      "strength": 90,
+      "age_days": 3,
+      "touch_count": 1,
+      "last_test": "2025-08-29T03:28:57.113289",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-22T03:28:57.113309",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4475.25,
+      "upper": 4479.73,
+      "lower": 4470.77,
+      "strength": 88,
+      "age_days": 5,
+      "touch_count": 2,
+      "last_test": "2025-09-01T03:28:57.113441",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-24T03:28:57.113449",
+      "source": "swing_low"
+    },
+    {
+      "type": "demand",
+      "level": 4460.25,
+      "upper": 4466.94,
+      "lower": 4453.56,
+      "strength": 84,
+      "age_days": 3,
+      "touch_count": 4,
+      "last_test": "2025-08-30T03:28:57.113479",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-23T03:28:57.113489",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4497.75,
+      "upper": 4500.0,
+      "lower": 4495.5,
+      "strength": 79,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113626",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T02:28:57.113629",
+      "source": "intraday_high"
+    },
+    {
+      "type": "supply",
+      "level": 4520.25,
+      "upper": 4527.03,
+      "lower": 4513.47,
+      "strength": 78,
+      "age_days": 12,
+      "touch_count": 1,
+      "last_test": "2025-08-31T03:28:57.113342",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-27T03:28:57.113351",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4482.75,
+      "upper": 4484.99,
+      "lower": 4480.51,
+      "strength": 76,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113649",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T01:28:57.113652",
+      "source": "intraday_low"
+    },
+    {
+      "type": "demand",
+      "level": 4445.25,
+      "upper": 4454.14,
+      "lower": 4436.36,
+      "strength": 65,
+      "age_days": 10,
+      "touch_count": 2,
+      "last_test": "2025-09-02T03:28:57.113516",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-20T03:28:57.113525",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4535.25,
+      "upper": 4544.32,
+      "lower": 4526.18,
+      "strength": 49,
+      "age_days": 9,
+      "touch_count": 3,
+      "last_test": "2025-08-27T03:28:57.113375",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-05T03:28:57.113383",
+      "source": "swing_high"
+    },
+    {
+      "type": "demand",
+      "level": 4430.25,
+      "upper": 4441.33,
+      "lower": 4419.17,
+      "strength": 47,
+      "age_days": 5,
+      "touch_count": 3,
+      "last_test": "2025-08-30T03:28:57.113595",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-26T03:28:57.113606",
+      "source": "swing_low"
+    },
+    {
+      "type": "supply",
+      "level": 4550.25,
+      "upper": 4561.63,
+      "lower": 4538.87,
+      "strength": 40,
+      "age_days": 9,
+      "touch_count": 4,
+      "last_test": "2025-09-02T03:28:57.113405",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-31T03:28:57.113413",
+      "source": "swing_high"
+    }
+  ],
+  "supply_zones": [
+    {
+      "type": "supply",
+      "level": 4505.25,
+      "upper": 4509.76,
+      "lower": 4500.74,
+      "strength": 90,
+      "age_days": 3,
+      "touch_count": 1,
+      "last_test": "2025-08-29T03:28:57.113289",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-22T03:28:57.113309",
+      "source": "swing_high"
+    },
+    {
+      "type": "supply",
+      "level": 4497.75,
+      "upper": 4500.0,
+      "lower": 4495.5,
+      "strength": 79,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113626",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T02:28:57.113629",
+      "source": "intraday_high"
+    },
+    {
+      "type": "supply",
+      "level": 4520.25,
+      "upper": 4527.03,
+      "lower": 4513.47,
+      "strength": 78,
+      "age_days": 12,
+      "touch_count": 1,
+      "last_test": "2025-08-31T03:28:57.113342",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-27T03:28:57.113351",
+      "source": "swing_high"
+    },
+    {
+      "type": "supply",
+      "level": 4535.25,
+      "upper": 4544.32,
+      "lower": 4526.18,
+      "strength": 49,
+      "age_days": 9,
+      "touch_count": 3,
+      "last_test": "2025-08-27T03:28:57.113375",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-05T03:28:57.113383",
+      "source": "swing_high"
+    },
+    {
+      "type": "supply",
+      "level": 4550.25,
+      "upper": 4561.63,
+      "lower": 4538.87,
+      "strength": 40,
+      "age_days": 9,
+      "touch_count": 4,
+      "last_test": "2025-09-02T03:28:57.113405",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-31T03:28:57.113413",
+      "source": "swing_high"
+    }
+  ],
+  "demand_zones": [
+    {
+      "type": "demand",
+      "level": 4475.25,
+      "upper": 4479.73,
+      "lower": 4470.77,
+      "strength": 88,
+      "age_days": 5,
+      "touch_count": 2,
+      "last_test": "2025-09-01T03:28:57.113441",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-24T03:28:57.113449",
+      "source": "swing_low"
+    },
+    {
+      "type": "demand",
+      "level": 4460.25,
+      "upper": 4466.94,
+      "lower": 4453.56,
+      "strength": 84,
+      "age_days": 3,
+      "touch_count": 4,
+      "last_test": "2025-08-30T03:28:57.113479",
+      "volume_confirmation": true,
+      "creation_time": "2025-08-23T03:28:57.113489",
+      "source": "swing_low"
+    },
+    {
+      "type": "demand",
+      "level": 4482.75,
+      "upper": 4484.99,
+      "lower": 4480.51,
+      "strength": 76,
+      "age_days": 0,
+      "touch_count": 1,
+      "last_test": "2025-09-02T03:28:57.113649",
+      "volume_confirmation": true,
+      "creation_time": "2025-09-02T01:28:57.113652",
+      "source": "intraday_low"
+    },
+    {
+      "type": "demand",
+      "level": 4445.25,
+      "upper": 4454.14,
+      "lower": 4436.36,
+      "strength": 65,
+      "age_days": 10,
+      "touch_count": 2,
+      "last_test": "2025-09-02T03:28:57.113516",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-20T03:28:57.113525",
+      "source": "swing_low"
+    },
+    {
+      "type": "demand",
+      "level": 4430.25,
+      "upper": 4441.33,
+      "lower": 4419.17,
+      "strength": 47,
+      "age_days": 5,
+      "touch_count": 3,
+      "last_test": "2025-08-30T03:28:57.113595",
+      "volume_confirmation": false,
+      "creation_time": "2025-08-26T03:28:57.113606",
+      "source": "swing_low"
+    }
+  ],
+  "volume_profile": {
+    "poc": 4495.71,
+    "value_area_high": 4507.71,
+    "value_area_low": 4487.71,
+    "hvn_levels": [
+      {
+        "price": 4486.7,
+        "volume_intensity": 99,
+        "type": "hvn"
+      },
+      {
+        "price": 4493.03,
+        "volume_intensity": 88,
+        "type": "hvn"
+      },
+      {
+        "price": 4507.66,
+        "volume_intensity": 89,
+        "type": "hvn"
+      },
+      {
+        "price": 4488.38,
+        "volume_intensity": 86,
+        "type": "hvn"
+      }
+    ],
+    "lvn_levels": [
+      {
+        "price": 4475.71,
+        "volume_intensity": 28,
+        "type": "lvn"
+      },
+      {
+        "price": 4507.63,
+        "volume_intensity": 22,
+        "type": "lvn"
+      }
+    ],
+    "generated_at": "2025-09-02T03:28:57.113766"
+  },
+  "key_levels": {
+    "nearest_support": 4430.25,
+    "nearest_resistance": 4497.75,
+    "strongest_support": 4475.25,
+    "strongest_resistance": 4505.25
+  },
+  "zone_summary": {
+    "total_zones": 10,
+    "supply_count": 5,
+    "demand_count": 5,
+    "average_strength": 69.6,
+    "high_strength_zones": 3
+  }
+}

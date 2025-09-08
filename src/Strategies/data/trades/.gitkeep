@@ -1,0 +1,6 @@
+# Trade Results
+
+Trade results logged by the bot for intelligence feedback loop.
+
+Files generated:
+- `results.jsonl` - JSONL format with one trade result per line

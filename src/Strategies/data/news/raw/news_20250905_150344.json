@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-05T15:03:44.809512",
+  "article_count": 60,
+  "avg_sentiment": 0.08166666666666668,
+  "news_intensity": 1.0,
+  "volatility_score": 14,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": true,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 14
+  },
+  "regime_hint": "volatile",
+  "articles": [
+    {
+      "title": "VRX Silica receives works approval for Arrowsmith silica project in Australia",
+      "summary": "",
+      "published": "2025-09-05T14:57:38Z",
+      "link": "https://finance.yahoo.com/news/vrx-silica-receives-works-approval-145738398.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Data Center Play Emcor Forms New Base And Breaks Out From Early Entry",
+      "summary": "",
+      "published": "2025-09-05T14:53:43Z",
+      "link": "https://www.investors.com/stock-lists/ibd-big-cap-20/emcor-eme-stock-ai-data-center-play-new-base-breaks-out-early-entry/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T14:36:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Shoe Carnival Q2 sales drop 7.9.% but back-to-school shows promise",
+      "summary": "",
+      "published": "2025-09-05T14:51:46Z",
+      "link": "https://finance.yahoo.com/news/shoe-carnival-q2-sales-drop-145146266.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Brazil's Central Bank enhances security of the financial system",
+      "summary": "",
+      "published": "2025-09-05T14:31:19Z",
+      "link": "https://finance.yahoo.com/news/brazils-central-bank-enhances-security-143119277.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jaguar Land Rover battling to overcome severely disruptive cyber breach",
+      "summary": "",
+      "published": "2025-09-05T14:04:51Z",
+      "link": "https://finance.yahoo.com/news/jaguar-land-rover-battling-overcome-140451771.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slips After Surprise Jobs Data; AI Chip Leader Rallies As Two Software Names Soar On Earnings (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T14:28:16Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Lululemon Cuts Its Outlook as Sales Slow and Tariffs Squeeze Profits. Its Stock Is Plunging",
+      "summary": "",
+      "published": "2025-09-05T14:51:06Z",
+      "link": "https://finance.yahoo.com/news/lululemon-cuts-outlook-sales-slow-145106958.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Hits New Highs On Google, Broadcom, Jobs Report: Weekly Review",
+      "summary": "",
+      "published": "2025-09-05T14:23:42Z",
+      "link": "https://www.investors.com/news/stock-market-hits-new-highs-on-google-broadcom-jobs-report/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom shares rally as $10 billion chip deal shows AI strategy paying off",
+      "summary": "",
+      "published": "2025-09-05T09:05:04Z",
+      "link": "https://finance.yahoo.com/news/broadcom-shares-rally-ai-deal-090504663.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Nvidia, Palantir Pull Off This Three-Peat. But So Does This Financial Powerhouse.",
+      "summary": "",
+      "published": "2025-09-05T14:18:31Z",
+      "link": "https://www.investors.com/research/ibd-stock-analysis/charles-schwab-schw-stock-nvidia-palantir-best-mutual-funds/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Crypto pours into TradFi faster than Wall Street can keep up, says Franklin Templeton\u2019s crypto lead",
+      "summary": "",
+      "published": "2025-09-05T14:37:53Z",
+      "link": "https://finance.yahoo.com/news/crypto-pours-tradfi-faster-wall-143753736.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Wednesday Recap: A Chrome-Plated Rally",
+      "summary": "",
+      "published": "2025-09-04T07:44:32Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/heard-on-the-street-wednesday-recap-a-chrome-plated-rally-WMYovmvcA3ZTKxNXLIJB?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Swiss Inflation Holds Steady as SNB Mulls Rate Cut Below Zero",
+      "summary": "",
+      "published": "2025-09-04T07:51:00Z",
+      "link": "https://www.wsj.com/economy/central-banking/swiss-inflation-holds-steady-as-snb-mulls-rate-cut-below-zero-eab115ec?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ExxonMobil considers sale of European chemical plants, FT reports",
+      "summary": "",
+      "published": "2025-09-04T04:24:49Z",
+      "link": "https://finance.yahoo.com/news/exxonmobil-considers-sale-european-chemical-042449814.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Shoe Carnival Q2 sales drop 7.9.% but back-to-school shows promise",
+      "summary": "",
+      "published": "2025-09-05T14:51:46Z",
+      "link": "https://finance.yahoo.com/news/shoe-carnival-q2-sales-drop-145146266.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T14:36:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Brazil's Central Bank enhances security of the financial system",
+      "summary": "",
+      "published": "2025-09-05T14:31:19Z",
+      "link": "https://finance.yahoo.com/news/brazils-central-bank-enhances-security-143119277.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Crypto pours into TradFi faster than Wall Street can keep up, says Franklin Templeton\u2019s crypto lead",
+      "summary": "",
+      "published": "2025-09-05T14:37:53Z",
+      "link": "https://finance.yahoo.com/news/crypto-pours-tradfi-faster-wall-143753736.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Jaguar Land Rover battling to overcome severely disruptive cyber breach",
+      "summary": "",
+      "published": "2025-09-05T14:04:51Z",
+      "link": "https://finance.yahoo.com/news/jaguar-land-rover-battling-overcome-140451771.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slips After Surprise Jobs Data; AI Chip Leader Rallies As Two Software Names Soar On Earnings (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T14:28:16Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Hits New Highs On Google, Broadcom, Jobs Report: Weekly Review",
+      "summary": "",
+      "published": "2025-09-05T14:23:42Z",
+      "link": "https://www.investors.com/news/stock-market-hits-new-highs-on-google-broadcom-jobs-report/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Broadcom shares rally as $10 billion chip deal shows AI strategy paying off",
+      "summary": "",
+      "published": "2025-09-05T09:05:04Z",
+      "link": "https://finance.yahoo.com/news/broadcom-shares-rally-ai-deal-090504663.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Salesforce Inc",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2869_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dipping Below $95,000 Would End Bitcoin's Bull Market, Analyst Warns",
+      "summary": "",
+      "published": "2025-09-05T14:37:08Z",
+      "link": "https://finance.yahoo.com/news/dipping-below-95-000-end-143708359.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Nvidia, Palantir Pull Off This Three-Peat. But So Does This Financial Powerhouse.",
+      "summary": "",
+      "published": "2025-09-05T14:18:31Z",
+      "link": "https://www.investors.com/research/ibd-stock-analysis/charles-schwab-schw-stock-nvidia-palantir-best-mutual-funds/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Toll Brothers Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3452_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "\u201cWe\u2019re going to be stronger\u201d \u2013 Nomad Foods sets out stall after choppy 2025",
+      "summary": "",
+      "published": "2025-09-05T14:29:56Z",
+      "link": "https://finance.yahoo.com/news/going-stronger-nomad-foods-sets-120033273.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jim Cramer Believes The TJX Companies (TJX) Is Offering Great Value to Consumers",
+      "summary": "",
+      "published": "2025-09-05T14:13:58Z",
+      "link": "https://finance.yahoo.com/news/jim-cramer-believes-tjx-companies-141358339.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Is Synopsys Stock Outperforming the Dow?",
+      "summary": "",
+      "published": "2025-09-04T07:21:45Z",
+      "link": "https://finance.yahoo.com/news/synopsys-stock-outperforming-dow-072145751.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Wednesday Recap: A Chrome-Plated Rally",
+      "summary": "",
+      "published": "2025-09-04T07:44:32Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-04-2025/card/heard-on-the-street-wednesday-recap-a-chrome-plated-rally-WMYovmvcA3ZTKxNXLIJB?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Google Just Surged 9%! Here are 2 Options Trades to Keep Riding the Rally",
+      "summary": "",
+      "published": "2025-09-04T07:22:04Z",
+      "link": "https://finance.yahoo.com/news/google-just-surged-9-2-072204620.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.5,
+      "has_numbers": true
+    },
+    {
+      "title": "VRX Silica receives works approval for Arrowsmith silica project in Australia",
+      "summary": "",
+      "published": "2025-09-05T14:57:38Z",
+      "link": "https://finance.yahoo.com/news/vrx-silica-receives-works-approval-145738398.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Data Center Play Emcor Forms New Base And Breaks Out From Early Entry",
+      "summary": "",
+      "published": "2025-09-05T14:53:43Z",
+      "link": "https://www.investors.com/stock-lists/ibd-big-cap-20/emcor-eme-stock-ai-data-center-play-new-base-breaks-out-early-entry/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock market today: S&P 500, Nasdaq, Dow make a U-turn lower after jobs report shows dramatic slowdown",
+      "summary": "",
+      "published": "2025-09-05T14:22:14Z",
+      "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-dow-make-a-u-turn-lower-after-jobs-report-shows-dramatic-slowdown-142214988.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cathie Wood Unloads DraftKings. NFL Season Prompts This Target Raise.",
+      "summary": "",
+      "published": "2025-09-05T14:36:07Z",
+      "link": "https://www.investors.com/news/draftkings-dkng-stock-cathie-wood-ark-invest-genius-sports-sportradar-target-hike-nfl-season/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Simon Property Group, Inc.",
+      "summary": "",
+      "published": "2025-09-05T11:05:37Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3403_AnalystReport_1757070337000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Shoe Carnival Q2 sales drop 7.9.% but back-to-school shows promise",
+      "summary": "",
+      "published": "2025-09-05T14:51:46Z",
+      "link": "https://finance.yahoo.com/news/shoe-carnival-q2-sales-drop-145146266.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Brazil's Central Bank enhances security of the financial system",
+      "summary": "",
+      "published": "2025-09-05T14:31:19Z",
+      "link": "https://finance.yahoo.com/news/brazils-central-bank-enhances-security-143119277.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Jaguar Land Rover battling to overcome severely disruptive cyber breach",
+      "summary": "",
+      "published": "2025-09-05T14:04:51Z",
+      "link": "https://finance.yahoo.com/news/jaguar-land-rover-battling-overcome-140451771.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Dow Slips After Surprise Jobs Data; AI Chip Leader Rallies As Two Software Names Soar On Earnings (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-05T14:28:16Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-jobs-report-lululemon-stock-lulu-2/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Exclusive-Top South Korea official says policy institutions to lead on $350 billion US fund, watching FX",
+      "summary": "",
+      "published": "2025-09-04T03:04:26Z",
+      "link": "https://finance.yahoo.com/news/exclusive-top-south-korea-official-030426468.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
