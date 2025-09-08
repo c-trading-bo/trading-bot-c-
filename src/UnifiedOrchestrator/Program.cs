@@ -11,6 +11,7 @@ using BotCore.Infra;
 using BotCore.Brain;
 using BotCore.ML;
 using BotCore.Market;
+using Trading.Safety;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
