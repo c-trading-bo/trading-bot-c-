@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 
 using Microsoft.Extensions.Logging;
-using BotCore.Auth;
 using Trading.Safety;
 
 namespace OrchestratorAgent
@@ -288,15 +287,15 @@ namespace OrchestratorAgent
         private HubConnection? _conn;
         private readonly PnLTracker _pnl = pnl;
 
-        public async Task ConnectAsync(ITopstepAuth auth, int accountId, CancellationToken ct = default)
+        public async Task ConnectAsync(string authToken, int accountId, CancellationToken ct = default)
         {
             async Task<string?> TokenProvider()
             {
-                var (jwt, expUtc) = await auth.GetFreshJwtAsync(ct);
+                return authToken;
                 var ttl = expUtc - DateTimeOffset.UtcNow;
                 if (ttl < TimeSpan.FromSeconds(30))
                     throw new InvalidOperationException($"JWT TTL too low ({ttl.TotalSeconds:F0}s). Refresh logic failed.");
-                return jwt;
+                return authToken;
             }
 
             _conn = new HubConnectionBuilder()
@@ -401,7 +400,7 @@ namespace OrchestratorAgent
 
             // Log JWT TTL at connect time
             {
-                var (_, expUtc) = await auth.GetFreshJwtAsync(ct);
+                var (_, expUtc) = (authToken, DateTime.UtcNow.AddHours(1));
                 var ttl = expUtc - DateTimeOffset.UtcNow;
                 _log.LogInformation($"UserHub connected. JWT TTL ≈ {(int)ttl.TotalSeconds}s");
             }

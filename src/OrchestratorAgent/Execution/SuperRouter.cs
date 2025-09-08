@@ -13,7 +13,7 @@ namespace OrchestratorAgent.Execution
     // Enhanced router with regime-aware Bayesian priors, CVaR sizing, drift detection, and canary testing
     public sealed class SuperRouter
     {
-        readonly SimpleOrderRouter _baseRouter;
+        readonly OrderRouter _baseRouter;
         readonly ILogger<SuperRouter> _log;
         readonly Random _rng = new();
         readonly RegimeEngine _regimeEngine;

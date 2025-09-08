@@ -7,6 +7,7 @@ namespace TradingBot.Abstractions;
 /// </summary>
 public class IntelligenceStackConfig
 {
+    public bool EnableTrading { get; set; } = false;
     public MLConfig ML { get; set; } = new();
     public OnlineConfig Online { get; set; } = new();
     public RLConfig RL { get; set; } = new();
