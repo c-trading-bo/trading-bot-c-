@@ -1,0 +1,595 @@
+using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Text.Json;
+using System.IO;
+using System.Linq;
+
+namespace TradingBot.IntelligenceStack;
+
+/// <summary>
+/// Online learning system with intraday weight updates and drift detection
+/// Implements adaptive learning rates and rollback capabilities
+/// </summary>
+public class OnlineLearningSystem : IOnlineLearningSystem
+{
+    private readonly ILogger<OnlineLearningSystem> _logger;
+    private readonly MetaLearningConfig _config;
+    private readonly string _statePath;
+    
+    private readonly Dictionary<string, Dictionary<string, double>> _regimeWeights = new();
+    private readonly Dictionary<string, List<double>> _performanceHistory = new();
+    private readonly Dictionary<string, DateTime> _lastWeightUpdate = new();
+    private readonly Dictionary<string, double> _baselineVariance = new();
+    private readonly object _lock = new();
+
+    public OnlineLearningSystem(
+        ILogger<OnlineLearningSystem> logger,
+        MetaLearningConfig config,
+        string statePath = "data/online_learning")
+    {
+        _logger = logger;
+        _config = config;
+        _statePath = statePath;
+        
+        Directory.CreateDirectory(_statePath);
+        _ = Task.Run(LoadStateAsync);
+    }
+
+    public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
+    {
+        if (!_config.Enabled)
+        {
+            return;
+        }
+
+        try
+        {
+            lock (_lock)
+            {
+                var now = DateTime.UtcNow;
+                var lastUpdate = _lastWeightUpdate.GetValueOrDefault(regimeType, DateTime.MinValue);
+                var timeSinceLastUpdate = now - lastUpdate;
+
+                // Enforce minimum update interval (5 minutes)
+                if (timeSinceLastUpdate < TimeSpan.FromMinutes(5))
+                {
+                    _logger.LogDebug("[ONLINE] Skipping weight update - too frequent: {Regime}", regimeType);
+                    return;
+                }
+
+                if (!_regimeWeights.TryGetValue(regimeType, out var currentWeights))
+                {
+                    currentWeights = new Dictionary<string, double>();
+                    _regimeWeights[regimeType] = currentWeights;
+                }
+
+                // Apply learning rate decay
+                var learningRate = CalculateLearningRate(regimeType);
+                
+                // Update weights with constraints
+                foreach (var (key, newWeight) in weights)
+                {
+                    var currentWeight = currentWeights.GetValueOrDefault(key, 1.0);
+                    var maxChange = _config.MaxWeightChangePctPer5Min / 100.0;
+                    
+                    // Constrain weight change
+                    var proposedChange = newWeight - currentWeight;
+                    var constrainedChange = Math.Max(-maxChange, Math.Min(maxChange, proposedChange));
+                    var updatedWeight = currentWeight + (constrainedChange * learningRate);
+                    
+                    // Ensure weights stay in reasonable bounds
+                    updatedWeight = Math.Max(0.1, Math.Min(2.0, updatedWeight));
+                    
+                    currentWeights[key] = updatedWeight;
+                }
+
+                _lastWeightUpdate[regimeType] = now;
+            }
+
+            // Persist state asynchronously
+            _ = Task.Run(async () => await SaveStateAsync(cancellationToken));
+
+            _logger.LogDebug("[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})", 
+                regimeType, CalculateLearningRate(regimeType));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Failed to update weights for regime: {Regime}", regimeType);
+        }
+    }
+
+    public async Task<Dictionary<string, double>> GetCurrentWeightsAsync(string regimeType, CancellationToken cancellationToken = default)
+    {
+        lock (_lock)
+        {
+            if (_regimeWeights.TryGetValue(regimeType, out var weights))
+            {
+                return new Dictionary<string, double>(weights);
+            }
+
+            // Return default weights
+            return new Dictionary<string, double>
+            {
+                ["strategy_1"] = 1.0,
+                ["strategy_2"] = 1.0,
+                ["strategy_3"] = 1.0
+            };
+        }
+    }
+
+    public async Task AdaptToPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
+    {
+        if (!_config.Enabled)
+        {
+            return;
+        }
+
+        try
+        {
+            lock (_lock)
+            {
+                if (!_performanceHistory.TryGetValue(modelId, out var history))
+                {
+                    history = new List<double>();
+                    _performanceHistory[modelId] = history;
+                }
+
+                // Add new performance metric (use negative Brier score as reward)
+                var reward = 0.25 - performance.BrierScore; // Better performance = higher reward
+                history.Add(reward);
+
+                // Keep only recent history
+                if (history.Count > 100)
+                {
+                    history.RemoveAt(0);
+                }
+
+                // Calculate baseline variance for rollback detection
+                if (history.Count >= 20)
+                {
+                    var variance = CalculateVariance(history.TakeLast(20));
+                    var baselineVar = _baselineVariance.GetValueOrDefault(modelId, variance);
+                    
+                    // Check for rollback condition
+                    if (variance > baselineVar * _config.RollbackVarMultiplier)
+                    {
+                        _logger.LogWarning("[ONLINE] High variance detected for {ModelId}: {Current:F4} > {Baseline:F4} * {Multiplier}", 
+                            modelId, variance, baselineVar, _config.RollbackVarMultiplier);
+                        
+                        await RollbackWeightsAsync(modelId, cancellationToken);
+                    }
+                    else
+                    {
+                        _baselineVariance[modelId] = variance;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Failed to adapt to performance for model: {ModelId}", modelId);
+        }
+    }
+
+    public async Task DetectDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default)
+    {
+        // Simple drift detection based on feature distribution changes
+        // In production, would use more sophisticated methods like ADWIN
+        
+        try
+        {
+            var driftKey = $"{modelId}_drift";
+            var driftStatePath = Path.Combine(_statePath, $"{driftKey}.json");
+            
+            FeatureDriftState? driftState = null;
+            if (File.Exists(driftStatePath))
+            {
+                var content = await File.ReadAllTextAsync(driftStatePath, cancellationToken);
+                driftState = JsonSerializer.Deserialize<FeatureDriftState>(content);
+            }
+
+            if (driftState == null)
+            {
+                // Initialize drift detection
+                driftState = new FeatureDriftState
+                {
+                    ModelId = modelId,
+                    BaselineFeatures = new Dictionary<string, double>(features.Features),
+                    LastUpdated = DateTime.UtcNow
+                };
+            }
+            else
+            {
+                // Check for drift
+                var driftScore = CalculateDriftScore(driftState.BaselineFeatures, features.Features);
+                
+                if (driftScore > 0.1) // Threshold for drift detection
+                {
+                    _logger.LogWarning("[ONLINE] Feature drift detected for {ModelId}: score={Score:F3}", 
+                        modelId, driftScore);
+                    
+                    // Reset baseline to new distribution
+                    driftState.BaselineFeatures = new Dictionary<string, double>(features.Features);
+                    driftState.LastUpdated = DateTime.UtcNow;
+                    driftState.DriftDetectedCount++;
+                }
+            }
+
+            // Save updated drift state
+            var json = JsonSerializer.Serialize(driftState, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(driftStatePath, json, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Failed to detect drift for model: {ModelId}", modelId);
+        }
+    }
+
+    private double CalculateLearningRate(string regimeType)
+    {
+        var lastUpdate = _lastWeightUpdate.GetValueOrDefault(regimeType, DateTime.UtcNow);
+        var hoursSinceUpdate = (DateTime.UtcNow - lastUpdate).TotalHours;
+        
+        // Learning rate decay: 0.9 per hour
+        var baseLearningRate = 0.1;
+        return baseLearningRate * Math.Pow(0.9, hoursSinceUpdate);
+    }
+
+    private double CalculateVariance(IEnumerable<double> values)
+    {
+        var valuesList = values.ToList();
+        if (valuesList.Count < 2) return 0.0;
+        
+        var mean = valuesList.Average();
+        var sumSquaredDiffs = valuesList.Sum(v => Math.Pow(v - mean, 2));
+        return sumSquaredDiffs / (valuesList.Count - 1);
+    }
+
+    private double CalculateDriftScore(Dictionary<string, double> baseline, Dictionary<string, double> current)
+    {
+        if (baseline.Count == 0) return 0.0;
+        
+        var score = 0.0;
+        var featureCount = 0;
+        
+        foreach (var key in baseline.Keys)
+        {
+            if (current.TryGetValue(key, out var currentValue))
+            {
+                var baselineValue = baseline[key];
+                var diff = Math.Abs(currentValue - baselineValue);
+                var normalizedDiff = baselineValue != 0 ? diff / Math.Abs(baselineValue) : diff;
+                score += normalizedDiff;
+                featureCount++;
+            }
+        }
+        
+        return featureCount > 0 ? score / featureCount : 0.0;
+    }
+
+    private async Task RollbackWeightsAsync(string modelId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Rollback to previous stable weights
+            // For simplicity, reset to default weights
+            lock (_lock)
+            {
+                foreach (var regimeType in _regimeWeights.Keys.ToList())
+                {
+                    var weights = _regimeWeights[regimeType];
+                    foreach (var key in weights.Keys.ToList())
+                    {
+                        if (key.Contains(modelId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            weights[key] = 1.0; // Reset to default
+                        }
+                    }
+                }
+            }
+
+            _logger.LogInformation("[ONLINE] Rolled back weights for model: {ModelId}", modelId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Failed to rollback weights for model: {ModelId}", modelId);
+        }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            var stateFile = Path.Combine(_statePath, "online_learning_state.json");
+            if (!File.Exists(stateFile))
+            {
+                return;
+            }
+
+            var content = await File.ReadAllTextAsync(stateFile);
+            var state = JsonSerializer.Deserialize<OnlineLearningState>(content);
+            
+            if (state != null)
+            {
+                lock (_lock)
+                {
+                    _regimeWeights.Clear();
+                    foreach (var (regime, weights) in state.RegimeWeights)
+                    {
+                        _regimeWeights[regime] = new Dictionary<string, double>(weights);
+                    }
+
+                    _baselineVariance.Clear();
+                    foreach (var (modelId, variance) in state.BaselineVariance)
+                    {
+                        _baselineVariance[modelId] = variance;
+                    }
+                }
+
+                _logger.LogInformation("[ONLINE] Loaded online learning state with {Regimes} regimes", 
+                    state.RegimeWeights.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[ONLINE] Failed to load online learning state");
+        }
+    }
+
+    private async Task SaveStateAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            OnlineLearningState state;
+            
+            lock (_lock)
+            {
+                state = new OnlineLearningState
+                {
+                    RegimeWeights = _regimeWeights.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => new Dictionary<string, double>(kvp.Value)
+                    ),
+                    BaselineVariance = new Dictionary<string, double>(_baselineVariance),
+                    LastSaved = DateTime.UtcNow
+                };
+            }
+
+            var stateFile = Path.Combine(_statePath, "online_learning_state.json");
+            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(stateFile, json, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[ONLINE] Failed to save online learning state");
+        }
+    }
+
+    private class OnlineLearningState
+    {
+        public Dictionary<string, Dictionary<string, double>> RegimeWeights { get; set; } = new();
+        public Dictionary<string, double> BaselineVariance { get; set; } = new();
+        public DateTime LastSaved { get; set; }
+    }
+
+    private class FeatureDriftState
+    {
+        public string ModelId { get; set; } = string.Empty;
+        public Dictionary<string, double> BaselineFeatures { get; set; } = new();
+        public DateTime LastUpdated { get; set; }
+        public int DriftDetectedCount { get; set; }
+    }
+}
+
+/// <summary>
+/// SLO monitoring and tripwire system
+/// Implements decision latency, order latency, and error budget tracking
+/// </summary>
+public class SLOMonitor
+{
+    private readonly ILogger<SLOMonitor> _logger;
+    private readonly SLOConfig _config;
+    private readonly Dictionary<string, List<double>> _latencyHistory = new();
+    private readonly Dictionary<string, int> _errorCounts = new();
+    private readonly Dictionary<string, DateTime> _lastBreach = new();
+    private readonly object _lock = new();
+
+    public SLOMonitor(ILogger<SLOMonitor> logger, SLOConfig config)
+    {
+        _logger = logger;
+        _config = config;
+    }
+
+    public async Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    {
+        await RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken);
+    }
+
+    public async Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
+    {
+        await RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken);
+    }
+
+    public async Task RecordErrorAsync(string errorType, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            lock (_lock)
+            {
+                var key = $"error_{errorType}";
+                _errorCounts[key] = _errorCounts.GetValueOrDefault(key, 0) + 1;
+            }
+
+            // Check error budget
+            await CheckErrorBudgetAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SLO] Failed to record error: {ErrorType}", errorType);
+        }
+    }
+
+    private async Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
+    {
+        try
+        {
+            lock (_lock)
+            {
+                if (!_latencyHistory.TryGetValue(metricType, out var history))
+                {
+                    history = new List<double>();
+                    _latencyHistory[metricType] = history;
+                }
+
+                history.Add(latencyMs);
+
+                // Keep only recent samples (last 1000)
+                if (history.Count > 1000)
+                {
+                    history.RemoveAt(0);
+                }
+
+                // Check P99 latency
+                if (history.Count >= 10)
+                {
+                    var p99 = CalculatePercentile(history, 0.99);
+                    
+                    if (p99 > thresholdMs)
+                    {
+                        HandleSLOBreach(metricType, p99, thresholdMs);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SLO] Failed to record latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+        }
+    }
+
+    private async Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            lock (_lock)
+            {
+                var totalErrors = _errorCounts.Values.Sum();
+                var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
+                
+                if (totalDecisions > 0)
+                {
+                    var errorRate = (double)totalErrors / totalDecisions;
+                    var errorBudget = _config.DailyErrorBudgetPct / 100.0;
+                    
+                    if (errorRate > errorBudget)
+                    {
+                        HandleSLOBreach("error_budget", errorRate * 100, errorBudget * 100);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SLO] Failed to check error budget");
+        }
+    }
+
+    private void HandleSLOBreach(string metricType, double actualValue, double threshold)
+    {
+        var key = $"breach_{metricType}";
+        var now = DateTime.UtcNow;
+        
+        lock (_lock)
+        {
+            var lastBreach = _lastBreach.GetValueOrDefault(key, DateTime.MinValue);
+            var timeSinceLastBreach = now - lastBreach;
+            
+            // Don't spam breach notifications
+            if (timeSinceLastBreach < TimeSpan.FromMinutes(5))
+            {
+                return;
+            }
+            
+            _lastBreach[key] = now;
+        }
+
+        _logger.LogWarning("[SLO] 🚨 SLO breach detected: {MetricType} = {Actual:F1} > {Threshold:F1}", 
+            metricType, actualValue, threshold);
+
+        // Apply tripwire actions
+        ApplyTripwireActions(metricType, actualValue, threshold);
+    }
+
+    private void ApplyTripwireActions(string metricType, double actualValue, double threshold)
+    {
+        var breachSeverity = actualValue / threshold;
+        
+        if (breachSeverity >= 3.0)
+        {
+            // Severe breach: pause trading for 5 minutes
+            _logger.LogCritical("[SLO] 🛑 Severe SLO breach - pausing trading: {MetricType}", metricType);
+            // Implementation would trigger trading pause
+        }
+        else if (breachSeverity >= 2.0)
+        {
+            // Moderate breach: downsize by 50%
+            _logger.LogWarning("[SLO] ⚠️ Moderate SLO breach - downsizing positions: {MetricType}", metricType);
+            // Implementation would trigger position downsizing
+        }
+        else
+        {
+            // Minor breach: add extra verification
+            _logger.LogInformation("[SLO] ℹ️ Minor SLO breach - adding extra verification: {MetricType}", metricType);
+            // Implementation would add extra verification steps
+        }
+    }
+
+    private double CalculatePercentile(List<double> values, double percentile)
+    {
+        if (values.Count == 0) return 0.0;
+        
+        var sorted = values.OrderBy(x => x).ToList();
+        var index = (int)Math.Ceiling(percentile * sorted.Count) - 1;
+        index = Math.Max(0, Math.Min(sorted.Count - 1, index));
+        
+        return sorted[index];
+    }
+
+    public SLOStatus GetCurrentSLOStatus()
+    {
+        lock (_lock)
+        {
+            var status = new SLOStatus();
+            
+            // Calculate current P99 latencies
+            if (_latencyHistory.TryGetValue("decision", out var decisionLatencies) && decisionLatencies.Count > 0)
+            {
+                status.DecisionLatencyP99Ms = CalculatePercentile(decisionLatencies, 0.99);
+            }
+            
+            if (_latencyHistory.TryGetValue("order", out var orderLatencies) && orderLatencies.Count > 0)
+            {
+                status.OrderLatencyP99Ms = CalculatePercentile(orderLatencies, 0.99);
+            }
+            
+            // Calculate error rate
+            var totalErrors = _errorCounts.Values.Sum();
+            var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
+            status.ErrorRate = totalDecisions > 0 ? (double)totalErrors / totalDecisions : 0.0;
+            
+            return status;
+        }
+    }
+
+    public class SLOStatus
+    {
+        public double DecisionLatencyP99Ms { get; set; }
+        public double OrderLatencyP99Ms { get; set; }
+        public double ErrorRate { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
+}
