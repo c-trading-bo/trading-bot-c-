@@ -58,16 +58,20 @@ namespace OrchestratorAgent.Execution
             _canary = new CanaryAA(canaryRatio, canaryPValue);
         }
 
-        // Delegate core routing methods to base router (with adaptations for available methods)
+        private bool _entriesEnabled = true;
+
+        // Entry control methods with real implementation
         public void DisableAllEntries() { 
-            // No direct equivalent - could add a flag to control routing behavior
-            _log.LogInformation("DisableAllEntries called - implemented as no-op");
+            _entriesEnabled = false;
+            _log.LogInformation("All entries DISABLED - new signals will be rejected");
         }
         
         public void EnableAllEntries() { 
-            // No direct equivalent - could add a flag to control routing behavior
-            _log.LogInformation("EnableAllEntries called - implemented as no-op");
+            _entriesEnabled = true;
+            _log.LogInformation("All entries ENABLED - new signals will be accepted");
         }
+
+        public bool AreEntriesEnabled() => _entriesEnabled;
         
         public async Task CloseAll(string reason, CancellationToken ct) {
             _log.LogInformation("CloseAll called with reason: {Reason}", reason);
@@ -88,6 +92,14 @@ namespace OrchestratorAgent.Execution
         {
             try
             {
+                // Check if entries are enabled
+                if (!_entriesEnabled)
+                {
+                    _log.LogInformation("[SuperRouter] Signal rejected - entries disabled. Strategy: {Strategy}, Symbol: {Symbol}", 
+                        sig.StrategyId, sig.Symbol);
+                    return false;
+                }
+
                 // Apply ML enhancements before routing
                 var enhancedSig = await EnhanceSignalAsync(sig, ct);
 
