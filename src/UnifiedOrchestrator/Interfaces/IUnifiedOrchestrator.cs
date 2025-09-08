@@ -1,4 +1,5 @@
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Interfaces;
 

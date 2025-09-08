@@ -1,9 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
-using TradingBot.UnifiedOrchestrator.Interfaces;
+using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
-using TradingBot.Abstractions;
 using System.Collections.Concurrent;
 using BotCore;
 
@@ -746,7 +745,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             // Start KillSwitchWatcher - monitors kill.txt file for immediate halt
             _logger.LogInformation("🔴 Initializing Kill Switch Watcher...");
             _killSwitchWatcher.OnKillSwitchActivated += OnKillSwitchActivated;
-            await _killSwitchWatcher.StartWatchingAsync(cancellationToken);
+            await _killSwitchWatcher.StartWatchingAsync();
             _logger.LogInformation("✅ Kill Switch Watcher active");
             
             // Start RiskManager - enforces real-time risk limits
@@ -757,7 +756,7 @@ public class UnifiedOrchestratorService : IUnifiedOrchestrator, IHostedService
             // Start HealthMonitor - tracks system health and trading eligibility
             _logger.LogInformation("💚 Initializing Health Monitor...");
             _healthMonitor.OnHealthChanged += OnHealthChanged;
-            await _healthMonitor.StartMonitoringAsync(cancellationToken);
+            await _healthMonitor.StartMonitoringAsync();
             _logger.LogInformation("✅ Health Monitor active - tracking hub connections, error rates, latency");
             
             // Update central message bus with safety status

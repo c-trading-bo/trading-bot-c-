@@ -122,6 +122,11 @@ public class Program
         services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
         Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
+        // Register required interfaces with REAL Safety implementations
+        services.AddSingleton<IKillSwitchWatcher, KillSwitchWatcher>();
+        services.AddSingleton<IRiskManager, RiskManager>();
+        services.AddSingleton<IHealthMonitor, HealthMonitor>();
+
         // ================================================================================
         // TRADING SYSTEM CONNECTOR - REAL ALGORITHM INTEGRATION
         // ================================================================================
@@ -135,9 +140,9 @@ public class Program
         // ================================================================================
         
         // Register the REAL sophisticated orchestrators
-        services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
-        services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
-        services.AddSingleton<IDataOrchestrator, DataOrchestratorService>();
+        services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
+        services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
+        services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddHostedService<UnifiedOrchestratorService>();
         Console.WriteLine("🚀 REAL sophisticated orchestrators registered - DISTRIBUTED ARCHITECTURE");
 
@@ -216,8 +221,8 @@ public class Program
         // ================================================================================
         
         // Register TopstepX authentication services
-        services.AddSingleton<BotCore.Auth.TopstepXCredentialManager>();
-        services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
+        // services.AddSingleton<TradingBot.Infrastructure.TopstepX.TopstepXCredentialManager>();
+        // services.AddSingleton<TradingBot.Infrastructure.TopstepX.AutoTopstepXLoginService>();
         
         Console.WriteLine("🔐 AUTHENTICATION SERVICES registered - TopstepX credentials and auto-login");
         
@@ -372,7 +377,7 @@ public class Program
         if (hasCredentials)
         {
             // Register distributed orchestrators for sophisticated trading system
-            services.AddSingleton<ITradingOrchestrator, TradingOrchestratorService>();
+            services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
             Console.WriteLine("✅ Trading Orchestrator registered with TopstepX credentials");
         }
         else
@@ -381,13 +386,13 @@ public class Program
         }
         
         // Register distributed orchestrator components for sophisticated system
-        services.AddSingleton<IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
-        services.AddSingleton<IDataOrchestrator, DataOrchestratorService>();
-        services.AddSingleton<IWorkflowScheduler, WorkflowSchedulerService>();
+        services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
+        services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
+        services.AddSingleton<TradingBot.Abstractions.IWorkflowScheduler, WorkflowSchedulerService>();
         Console.WriteLine("🧠 Distributed orchestrators registered - Intelligence, Data, and Workflow systems active");
         
         // Register Cloud Data Integration - Links 27 GitHub workflows to trading decisions
-        services.AddSingleton<ICloudDataIntegration, CloudDataIntegrationService>();
+        services.AddSingleton<TradingBot.Abstractions.ICloudDataIntegration, CloudDataIntegrationService>();
         Console.WriteLine("🌐 Cloud Data Integration enabled - GitHub workflows linked to trading");
 
         // ================================================================================
@@ -400,7 +405,7 @@ public class Program
 
         // Register the main unified orchestrator service
         services.AddSingleton<UnifiedOrchestratorService>();
-        services.AddSingleton<IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
         Console.WriteLine("✅ DISTRIBUTED ORCHESTRATOR SERVICES CONFIGURED - ALL SOPHISTICATED SYSTEMS PREPARED FOR INTEGRATION");
@@ -483,7 +488,7 @@ public static class UnifiedOrchestratorExtensions
     /// <summary>
     /// Get status information for the unified orchestrator
     /// </summary>
-    public static async Task<string> GetFormattedStatusAsync(this IUnifiedOrchestrator orchestrator)
+    public static async Task<string> GetFormattedStatusAsync(this TradingBot.Abstractions.IUnifiedOrchestrator orchestrator)
     {
         var status = await orchestrator.GetStatusAsync();
         
@@ -503,7 +508,7 @@ public static class UnifiedOrchestratorExtensions
     /// <summary>
     /// Get workflow summary for the unified orchestrator
     /// </summary>
-    public static string GetWorkflowSummary(this IUnifiedOrchestrator orchestrator)
+    public static string GetWorkflowSummary(this TradingBot.Abstractions.IUnifiedOrchestrator orchestrator)
     {
         var workflows = orchestrator.GetWorkflows();
         

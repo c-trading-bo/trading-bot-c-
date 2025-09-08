@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 
@@ -9,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Unified workflow scheduler that handles all workflow timing and execution
 /// </summary>
-public class WorkflowSchedulerService : IWorkflowScheduler, IDisposable
+public class WorkflowSchedulerService : TradingBot.Abstractions.IWorkflowScheduler, IDisposable
 {
     private readonly ILogger<WorkflowSchedulerService> _logger;
     private readonly IServiceProvider _serviceProvider;
@@ -153,7 +154,7 @@ public class WorkflowSchedulerService : IWorkflowScheduler, IDisposable
         try
         {
             // Get the unified orchestrator to execute the workflow
-            var orchestrator = _serviceProvider.GetService(typeof(IUnifiedOrchestrator)) as IUnifiedOrchestrator;
+            var orchestrator = _serviceProvider.GetService(typeof(TradingBot.Abstractions.IUnifiedOrchestrator)) as TradingBot.Abstractions.IUnifiedOrchestrator;
             if (orchestrator != null)
             {
                 var result = await orchestrator.ExecuteWorkflowAsync(workflow.Id);

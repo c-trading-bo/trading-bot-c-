@@ -9,6 +9,7 @@ using BotCore.Models;
 using BotCore.Config;
 using BotCore.Strategy;
 using BotCore.ML;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services
 {
@@ -106,7 +107,7 @@ namespace BotCore.Services
 
             // ML Enhancement: Get market regime using real ONNX model inference
             var regime = await GetMarketRegimeAsync(instrument, data, bars);
-            var mlAdjustment = await GetMLAdjustmentAsync(regime, session, instrument);
+            var mlAdjustment = await GetMLAdjustmentAsync(regime.Name, session, instrument);
 
             // Evaluate each strategy
             var signals = new List<BotCore.Models.Signal>();
@@ -135,7 +136,7 @@ namespace BotCore.Services
                         signal = signal with
                         {
                             Score = signal.Score * (decimal)timePerformance,
-                            Size = (int)(signal.Size * positionSizeMultiplier * mlAdjustment.SizeMultiplier)
+                            Size = (int)(signal.Size * positionSizeMultiplier * mlAdjustment)
                         };
 
                         signals.Add(signal);

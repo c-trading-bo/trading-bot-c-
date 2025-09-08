@@ -56,6 +56,7 @@ namespace BotCore.Brain
         private object? _rlPositionSizer;
         private object? _metaClassifier;
         private object? _marketRegimeDetector;
+        private SimpleNeuralNetwork? _confidenceNetwork;
         
         // TopStep compliance tracking
         private decimal _currentDrawdown = 0m;
@@ -84,6 +85,9 @@ namespace BotCore.Brain
             // Initialize Neural UCB for strategy selection (your existing implementation)
             var neuralNetwork = new SimpleNeuralNetwork(inputSize: 15, hiddenSize: 32);
             _strategySelector = new NeuralUcbBandit(neuralNetwork);
+            
+            // Initialize confidence network for model confidence prediction
+            _confidenceNetwork = new SimpleNeuralNetwork(inputSize: 5, hiddenSize: 16);
             
             _logger.LogInformation("🧠 [UNIFIED-BRAIN] Initialized - Ready to make intelligent trading decisions");
         }
@@ -467,15 +471,16 @@ namespace BotCore.Brain
                 ["trend_strength"] = (double)context.TrendStrength
             };
             
-            var modelConfidence = await ModelConfidence.PredictAsync(
-                ("strategy_confidence", (double)strategy.Confidence),
-                ("prediction_probability", (double)prediction.Probability),
-                ("volatility", (double)context.Volatility),
-                ("volume_ratio", (double)context.VolumeRatio),
-                ("trend_strength", (double)context.TrendStrength)
-            );
+            var modelConfidence = _confidenceNetwork != null ? await _confidenceNetwork.PredictAsync(new decimal[]
+            {
+                strategy.Confidence,
+                prediction.Probability,
+                context.Volatility,
+                context.VolumeRatio,
+                context.TrendStrength
+            }) : 0.5m;
             
-            var confidenceMultiplier = (decimal)modelConfidence;
+            var confidenceMultiplier = modelConfidence;
 
             // Calculate risk amount
             var riskAmount = baseRisk * riskMultiplier * confidenceMultiplier;

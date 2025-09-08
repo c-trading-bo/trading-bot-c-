@@ -510,10 +510,12 @@ namespace TradingBot.Critical
         private DateTime _lastHeartbeat;
         private bool _emergencyModeActive = false;
         private readonly ILogger<DisasterRecoverySystem> _logger;
+        private readonly SQLiteConnection? _database;
         
         public class SystemState
         {
             public DateTime Timestamp { get; set; }
+            public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
             public Dictionary<string, Position> Positions { get; set; } = new();
             public Dictionary<string, PendingOrder> PendingOrders { get; set; } = new();
             public Dictionary<string, StrategyState> StrategyStates { get; set; } = new();

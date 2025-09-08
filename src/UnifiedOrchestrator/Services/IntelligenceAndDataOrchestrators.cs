@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 using System.Text.Json;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -9,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Intelligence orchestrator service - consolidates all ML/RL intelligence systems
 /// Integrates Neural Bandits, LSTM, Transformers, XGBoost, and all AI systems
 /// </summary>
-public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
+public class IntelligenceOrchestratorService : TradingBot.Abstractions.IIntelligenceOrchestrator
 {
     private readonly ILogger<IntelligenceOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -187,7 +188,7 @@ public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
         _logger.LogInformation("🎰 Running Neural Bandit strategy selection...");
         
         var result = await _neuralBandits.SelectOptimalStrategyAsync(cancellationToken);
-        var recommendation = new MLRecommendation
+        var recommendation = new TradingBot.UnifiedOrchestrator.Models.MLRecommendation
         {
             RecommendedStrategy = result?.Strategy ?? "S2",
             Confidence = result?.Confidence ?? 0.5m,
@@ -295,11 +296,11 @@ public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
     private async Task EnhanceSignalWithIntelligenceAsync(TradingSignal signal)
     {
         // Add ML confidence to signal
-        var recommendation = _messageBus.GetSharedState<MLRecommendation>("ml.latest_recommendation");
+        var recommendation = _messageBus.GetSharedState<TradingBot.Abstractions.MLRecommendation>("ml.latest_recommendation");
         if (recommendation != null)
         {
             signal.Metadata["ml_confidence"] = recommendation.Confidence;
-            signal.Metadata["ml_strategy"] = recommendation.RecommendedStrategy;
+            signal.Metadata["ml_strategy"] = recommendation.Strategy;
         }
         
         // Add regime context
@@ -441,11 +442,12 @@ public class IntelligenceOrchestratorService : IIntelligenceOrchestrator
 /// Data orchestrator service - consolidates all data collection and reporting
 /// Integrates with 27 GitHub workflows and cloud systems
 /// </summary>
-public class DataOrchestratorService : IDataOrchestrator
+public class DataOrchestratorService : TradingBot.Abstractions.IDataOrchestrator
 {
     private readonly ILogger<DataOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
     private readonly HttpClient _httpClient;
+    private readonly TradingBot.UnifiedOrchestrator.Services.SimpleTradingConnector _tradingSystem;
     
     public IReadOnlyList<string> SupportedActions { get; } = new[]
     {
@@ -457,11 +459,13 @@ public class DataOrchestratorService : IDataOrchestrator
     public DataOrchestratorService(
         ILogger<DataOrchestratorService> logger,
         ICentralMessageBus messageBus,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        TradingBot.UnifiedOrchestrator.Services.SimpleTradingConnector tradingSystem)
     {
         _logger = logger;
         _messageBus = messageBus;
         _httpClient = httpClient;
+        _tradingSystem = tradingSystem;
         
         // Subscribe to data events
         SubscribeToDataEvents();

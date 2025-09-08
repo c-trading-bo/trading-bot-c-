@@ -126,7 +126,7 @@ namespace BotCore
             await DeployModelAsync(modelFile);
         }
 
-        private Task<string> ExportTrainingDataAsync()
+        private async Task<string> ExportTrainingDataAsync()
         {
             try
             {
@@ -149,7 +149,7 @@ namespace BotCore
                 {
                     try
                     {
-                        var strategyData = MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate);
+                        var strategyData = await MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate);
                         if (!string.IsNullOrEmpty(strategyData))
                         {
                             hasData = true;
@@ -164,7 +164,7 @@ namespace BotCore
                 if (!hasData)
                 {
                     _log.LogWarning("[AutoRlTrainer] No training data exported for any strategy");
-                    return Task.FromResult(string.Empty);
+                    return string.Empty;
                 }
 
                 var fileInfo = new FileInfo(csvPath);
@@ -172,15 +172,15 @@ namespace BotCore
                 {
                     _log.LogInformation("[AutoRlTrainer] Exported training data: {File} ({Size:F1} KB)",
                         fileName, fileInfo.Length / 1024.0);
-                    return Task.FromResult(csvPath);
+                    return csvPath;
                 }
 
-                return Task.FromResult(string.Empty);
+                return string.Empty;
             }
             catch (Exception ex)
             {
                 _log.LogError(ex, "[AutoRlTrainer] Failed to export training data");
-                return Task.FromResult(string.Empty);
+                return string.Empty;
             }
         }
 

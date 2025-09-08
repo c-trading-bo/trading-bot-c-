@@ -9,6 +9,8 @@ namespace TradingBot.Abstractions;
 public class TradingBrainState
 {
     public bool IsActive { get; set; } = false;
+    public bool IsSystemHealthy { get; set; } = true;
+    public string CurrentMarketRegime { get; set; } = "UNKNOWN";
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
     public List<string> ConnectedComponents { get; set; } = new();
     public List<string> ActiveStrategies { get; set; } = new();
@@ -332,6 +334,18 @@ public enum SessionType
 }
 
 /// <summary>
+/// Workflow execution status
+/// </summary>
+public enum WorkflowStatus
+{
+    Pending,
+    Running,
+    Completed,
+    Failed,
+    Cancelled
+}
+
+/// <summary>
 /// Unified schedule configuration supporting all timing patterns
 /// </summary>
 public class WorkflowSchedule
@@ -397,4 +411,46 @@ public class WorkflowMetrics
     public string? LastError { get; set; }
     public double SuccessRate => ExecutionCount > 0 ? (double)SuccessCount / ExecutionCount : 0.0;
     public TimeSpan AverageExecutionTime => ExecutionCount > 0 ? TimeSpan.FromTicks(TotalExecutionTime.Ticks / ExecutionCount) : TimeSpan.Zero;
+}
+
+// MLRecommendation Model
+public class MLRecommendation
+{
+    public string Strategy { get; set; } = string.Empty;
+    public double Confidence { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public decimal TargetPrice { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+// Risk Breach Model
+public class RiskBreach
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Type { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public decimal CurrentValue { get; set; }
+    public decimal Limit { get; set; }
+    public decimal Severity { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object> Details { get; set; } = new();
+}
+
+// Health Status Model
+public class HealthStatus
+{
+    public string ComponentName { get; set; } = string.Empty;
+    public bool IsHealthy { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public bool TradingAllowed { get; set; }
+    public int ConnectedHubs { get; set; }
+    public int TotalHubs { get; set; }
+    public double ErrorRate { get; set; }
+    public double AverageLatencyMs { get; set; }
+    public string StatusMessage { get; set; } = string.Empty;
+    public DateTime LastCheck { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object> Metrics { get; set; } = new();
+    public List<string> Issues { get; set; } = new();
 }

@@ -362,5 +362,6 @@ namespace BotCore.Config
         public Dictionary<string, double> PositionSizeMultiplier { get; set; } = new();
         public string Description { get; set; } = "";
         public bool IsActive { get; set; } = true;
+        public TradingBot.Abstractions.SessionType SessionType { get; set; } = TradingBot.Abstractions.SessionType.Regular;
     }
 }

@@ -1,5 +1,6 @@
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -7,7 +8,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Demo version of the trading orchestrator that can run without TopstepX credentials
 /// </summary>
-public class DemoTradingOrchestratorService : ITradingOrchestrator
+public class DemoTradingOrchestratorService : TradingBot.Abstractions.ITradingOrchestrator
 {
     private readonly ILogger<DemoTradingOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;

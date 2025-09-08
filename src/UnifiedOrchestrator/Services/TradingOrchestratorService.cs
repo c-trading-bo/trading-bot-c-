@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Unified trading orchestrator that consolidates all TopstepX trading functionality
 /// Replaces multiple trading orchestrators with one unified system
 /// </summary>
-public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
+public class TradingOrchestratorService : TradingBot.Abstractions.ITradingOrchestrator, IDisposable
 {
     private readonly ILogger<TradingOrchestratorService> _logger;
     private readonly HttpClient _httpClient;
@@ -338,7 +338,29 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
 
         if (string.IsNullOrEmpty(_jwtToken) && (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey)))
         {
-            _jwtToken = await _authAgent.GetJwtAsync(username, apiKey, cancellationToken);
+            if (_authAgent != null)
+            {
+                _jwtToken = await _authAgent.GetJwtAsync(username, apiKey, cancellationToken);
+            }
+            else
+            {
+                _logger.LogWarning("AuthAgent not available, trying direct authentication");
+                // Try to create a simple JWT request
+                var authData = new { Username = username, ApiKey = apiKey };
+                var authJson = System.Text.Json.JsonSerializer.Serialize(authData);
+                var authContent = new StringContent(authJson, System.Text.Encoding.UTF8, "application/json");
+                
+                var authResponse = await _httpClient.PostAsync("https://api.topstepx.com/auth/token", authContent, cancellationToken);
+                if (authResponse.IsSuccessStatusCode)
+                {
+                    var responseContent = await authResponse.Content.ReadAsStringAsync(cancellationToken);
+                    var tokenData = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseContent);
+                    if (tokenData?.ContainsKey("token") == true)
+                    {
+                        _jwtToken = tokenData["token"].ToString();
+                    }
+                }
+            }
         }
 
         if (string.IsNullOrEmpty(_jwtToken))
@@ -351,7 +373,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
         // Get account ID
         _accountId = await GetAccountIdAsync(cancellationToken);
         
-        _logger.LogInformation("✅ TopstepX authentication successful for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId));
+        _logger.LogInformation("✅ TopstepX authentication successful for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId.ToString()));
     }
 
     private async Task ConnectToHubsAsync(CancellationToken cancellationToken)
@@ -492,7 +514,7 @@ public class TradingOrchestratorService : ITradingOrchestrator, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TradingOrchestrator] Error retrieving positions for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId));
+            _logger.LogError(ex, "[TradingOrchestrator] Error retrieving positions for account {AccountId}", SecurityHelpers.MaskAccountId(_accountId.ToString()));
             return new List<Position>();
         }
     }

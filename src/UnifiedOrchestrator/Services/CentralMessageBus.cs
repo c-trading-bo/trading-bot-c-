@@ -143,8 +143,8 @@ public class CentralMessageBus : ICentralMessageBus, IDisposable
         var mlRecommendation = GetSharedState<MLRecommendation>("ml.latest_recommendation");
         if (mlRecommendation != null)
         {
-            decision.MLConfidence = mlRecommendation.Confidence;
-            decision.MLStrategy = mlRecommendation.RecommendedStrategy;
+            decision.MLConfidence = (decimal)mlRecommendation.Confidence;
+            decision.MLStrategy = mlRecommendation.Strategy;
         }
 
         // Get risk assessment

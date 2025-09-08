@@ -33,6 +33,26 @@ public static class SecurityHelpers
     }
     
     /// <summary>
+    /// Masks order IDs in log messages for security
+    /// </summary>
+    /// <param name="message">The log message that may contain order IDs</param>
+    /// <returns>The message with order IDs masked</returns>
+    public static string MaskOrderId(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return message;
+            
+        // Mask GUIDs and long numeric IDs that look like order IDs
+        var guidPattern = new Regex(@"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b", RegexOptions.Compiled);
+        var numericOrderIdPattern = new Regex(@"\b\d{10,20}\b", RegexOptions.Compiled);
+        
+        var masked = guidPattern.Replace(message, "****-****-****-****-************");
+        masked = numericOrderIdPattern.Replace(masked, "**********");
+        
+        return masked;
+    }
+    
+    /// <summary>
     /// Masks sensitive data in API responses before logging
     /// </summary>
     /// <param name="response">The API response that may contain sensitive data</param>

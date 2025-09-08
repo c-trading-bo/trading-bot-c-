@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 using System.Text.Json;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -9,7 +10,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Cloud Data Integration Service - Links all 27 GitHub workflows to trading decisions
 /// This service reads data collected by GitHub Actions workflows and feeds it to trading strategies
 /// </summary>
-public class CloudDataIntegrationService : ICloudDataIntegration
+public class CloudDataIntegrationService : TradingBot.Abstractions.ICloudDataIntegration
 {
     private readonly ILogger<CloudDataIntegrationService> _logger;
     private readonly ICentralMessageBus _messageBus;
