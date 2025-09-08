@@ -20,7 +20,9 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
     private bool _isActive = false;
     private bool _disposed = false;
 
-    public event Action? OnKillSwitchActivated;
+    /// <summary>
+    /// Raised when the kill switch is toggled. The bool parameter indicates whether it is now active (true) or inactive (false).
+    /// </summary>
     public event Action<bool>? KillSwitchToggled;
     public bool IsKillSwitchActive => _isActive;
 
