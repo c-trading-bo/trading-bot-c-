@@ -1,8 +1,12 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using TradingBot.Configuration;
 using TradingBot.Core.Intelligence;
 using TradingBot.Orchestrators;
 using BotCore.Services;
@@ -22,11 +26,20 @@ namespace TradingBot.Production
             Console.WriteLine("🚀 PRODUCTION TRADING BOT - REAL ALGORITHMS ACTIVE");
             Console.WriteLine("===================================================");
             
+            // Build configuration
+            var configuration = new ConfigurationBuilder()
+                .AddEnvironmentVariables()
+                .AddJsonFile("appsettings.json", optional: true)
+                .Build();
+            
             // Setup dependency injection with all your sophisticated components
             var services = new ServiceCollection()
                 .AddLogging(builder => builder
                     .AddConsole()
                     .SetMinimumLevel(LogLevel.Information))
+                
+                // Register configuration
+                .Configure<AppOptions>(configuration)
                 
                 // Register your sophisticated algorithm services
                 .AddSingleton<TimeOptimizedStrategyManager>()
@@ -38,10 +51,19 @@ namespace TradingBot.Production
                 .BuildServiceProvider();
 
             var logger = services.GetRequiredService<ILogger<ProductionApp>>();
+            var appOptions = services.GetRequiredService<IOptions<AppOptions>>();
             
             try
             {
                 logger.LogInformation("🔧 Initializing sophisticated algorithm components...");
+                logger.LogInformation("⚙️ Configuration - DryRun: {DryRun}, API: {ApiBase}", 
+                    appOptions.Value.EnableDryRunMode, appOptions.Value.ApiBase);
+                
+                // Check kill file
+                if (File.Exists(appOptions.Value.KillFile))
+                {
+                    logger.LogWarning("🛑 Kill file detected at {KillFile} - forcing DRY_RUN mode", appOptions.Value.KillFile);
+                }
                 
                 // Initialize the EnhancedOrchestrator with real algorithms
                 var orchestrator = services.GetRequiredService<EnhancedOrchestrator>();
