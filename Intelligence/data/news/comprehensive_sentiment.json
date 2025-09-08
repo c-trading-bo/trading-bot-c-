@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-08T15:23:03.724393",
+  "timestamp": "2025-09-08T18:32:01.850967",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "total_articles_processed": 15,
+  "total_articles_processed": 13,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -14,39 +14,12 @@
       "sources": []
     },
     "NQ": {
-      "sentiment_score": 0.25022727272727274,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "The Nasdaq Hit a Fresh Record. The AI Trade Is Back On.",
-          "sentiment": 0.105,
-          "textblob_score": 0.15,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090825/card/the-nasdaq-hit-a-fresh-record-the-ai-trade-is-back-on--3ahSPkjpYbu6RCVtvCuF?siteid=yhoof2&yptr=yahoo",
-          "published": "2025-09-08T14:57:44Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        },
-        {
-          "title": "Stock Market Today: Dow Wavers, Nasdaq Pops As Robinhood Rockets On This; Tesla Touches Buy Point (Live Coverage)",
-          "sentiment": 0.39545454545454545,
-          "textblob_score": 0.13636363636363635,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-tesla-stock-tsla-buy-point/?src=A00220&yptr=yahoo",
-          "published": "2025-09-08T14:53:30Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        }
-      ],
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
       "signal": "NEUTRAL",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance"
-      ]
+      "confidence": 0.0,
+      "sources": []
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -73,144 +46,120 @@
       "sources": []
     },
     "TSLA": {
-      "sentiment_score": 0.21526905417814507,
-      "article_count": 11,
+      "sentiment_score": 0.26839461279461274,
+      "article_count": 9,
       "articles": [
         {
-          "title": "ElevenLabs staff to sell shares at $6.6 billion valuation, Bloomberg News reports",
-          "sentiment": -0.3,
+          "title": "Prediction: Palantir's Stock Price Will Reach This Unbelievable Level by 2030",
+          "sentiment": -0.175,
+          "textblob_score": -0.25,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/prediction-palantirs-stock-price-reach-093000295.html",
+          "published": "2025-09-07T09:30:00Z",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "French Premier Bayrou to Resign After Losing Confidence Vote",
+          "sentiment": 0.3,
           "textblob_score": 0.0,
-          "keyword_score": -1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/elevenlabs-staff-sell-shares-6-151254812.html",
-          "published": "2025-09-08T15:12:54Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "EVs, despite sales worries, are still hot at the big Munich auto show",
-          "sentiment": 0.0875,
-          "textblob_score": 0.125,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/evs-despite-sales-worries-are-still-hot-at-the-big-munich-auto-show-145612656.html",
-          "published": "2025-09-08T14:56:12Z",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Stock Market Today: Dow Wavers, Nasdaq Pops As Robinhood Rockets On This; Tesla Touches Buy Point (Live Coverage)",
-          "sentiment": 0.39545454545454545,
-          "textblob_score": 0.13636363636363635,
           "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-tesla-stock-tsla-buy-point/?src=A00220&yptr=yahoo",
-          "published": "2025-09-08T14:53:30Z",
-          "relevance_keywords": [
-            "Tesla"
-          ]
-        },
-        {
-          "title": "The Resurrection of an Iconic American Manufacturing Hub",
-          "sentiment": 0.0875,
-          "textblob_score": 0.125,
-          "keyword_score": 0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-08/the-resurrection-of-an-iconic-american-manufacturing-hub",
-          "published": "Mon, 08 Sep 2025 14:44:12 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-08/french-pm-bayrou-to-resign-after-losing-confidence-vote-video",
+          "published": "Mon, 08 Sep 2025 18:19:21 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Musk\u2019s SpaceX to Buy EchoStar Spectrum for $17 Billion",
-          "sentiment": -0.10888888888888891,
-          "textblob_score": -0.15555555555555559,
-          "keyword_score": 0.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-08/starlink-is-said-in-advanced-talks-to-acquire-echostar-spectrum",
-          "published": "Mon, 08 Sep 2025 10:30:09 GMT",
-          "relevance_keywords": [
-            "Elon Musk"
-          ]
-        },
-        {
-          "title": "America is about to have a lot more senior citizens. What that means for everything from health to housing.",
+          "title": "Europe\u2019s Top Rated Firms Are Fans of Convertible Bonds Again",
           "sentiment": 0.6499999999999999,
           "textblob_score": 0.5,
           "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/america-is-about-to-have-a-lot-more-senior-citizens-what-that-means-for-everything-from-health-to-housing-29742901?mod=mw_rss_topstories",
-          "published": "Mon, 08 Sep 2025 15:15:00 GMT",
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-08/europe-s-top-rated-firms-are-fans-of-convertible-bonds-again",
+          "published": "Mon, 08 Sep 2025 17:59:28 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Opendoor may be drawing in new bears even as the stock rallies. This is why.",
-          "sentiment": 0.10181818181818181,
-          "textblob_score": 0.14545454545454545,
-          "keyword_score": 0.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/opendoor-may-be-drawing-in-new-bears-even-as-the-stock-rallies-this-is-why-22f2bd85?mod=mw_rss_topstories",
-          "published": "Mon, 08 Sep 2025 14:57:00 GMT",
+          "title": "Elevate\u2019s Jonathan Marks on College Sports Business Growth",
+          "sentiment": 0.3477272727272727,
+          "textblob_score": 0.06818181818181818,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-08/elevate-s-jonathan-marks-on-sports-business-growth-video",
+          "published": "Mon, 08 Sep 2025 14:22:23 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Alphabet is this analyst\u2019s top pick in Big Tech. Why he sees 27% more upside for Google.",
-          "sentiment": 0.4512424242424242,
-          "textblob_score": 0.21606060606060606,
+          "title": "Swiss Lawmakers Vote to Move Ahead on Bank Capital Revamp",
+          "sentiment": 0.3551515151515151,
+          "textblob_score": 0.07878787878787878,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-08/swiss-lawmakers-vote-against-delaying-new-rules-on-ubs-capital",
+          "published": "Mon, 08 Sep 2025 16:40:56 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Elkann Siblings Pay \u20ac183 Million to Settle Italy Tax Probe",
+          "sentiment": -0.06999999999999999,
+          "textblob_score": -0.1,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-08/elkann-siblings-pay-183-million-to-settle-italy-tax-probe",
+          "published": "Mon, 08 Sep 2025 17:46:47 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "France\u2019s Bayrou Loses Confidence Vote in Parliament",
+          "sentiment": 0.29618181818181816,
+          "textblob_score": -0.005454545454545457,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-08/france-s-bayrou-loses-confidence-vote-in-parliament-video",
+          "published": "Mon, 08 Sep 2025 17:22:48 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Can Alphabet\u2019s stock post more big gains? This Wall Street bull charts the path to $300.",
+          "sentiment": 0.4114909090909091,
+          "textblob_score": 0.1592727272727273,
           "keyword_score": 1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/alphabet-is-this-analysts-top-pick-in-big-tech-why-he-sees-27-more-upside-for-google-57b3334a?mod=mw_rss_topstories",
-          "published": "Mon, 08 Sep 2025 14:02:00 GMT",
+          "published": "Mon, 08 Sep 2025 16:30:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "SpaceX deal sends EchoStar\u2019s stock soaring. Why Musk is buying $17 billion in wireless spectrum.",
-          "sentiment": 0.09999999999999999,
+          "title": "Melco Resorts & Entertainment: It's All About Deleveraging (Rating Upgrade)",
+          "sentiment": 0.3,
           "textblob_score": 0.0,
-          "keyword_score": 0.3333333333333333,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/echostar-clinches-a-17-billion-spectrum-deal-with-elon-musks-spacex-and-the-stock-soars-again-fdf3962d?mod=mw_rss_topstories",
-          "published": "Mon, 08 Sep 2025 13:35:00 GMT",
-          "relevance_keywords": [
-            "Elon Musk"
-          ]
-        },
-        {
-          "title": "Tesla's Weakness Isn't Lucid's Strength: Initiating With A Strong Sell",
-          "sentiment": 0.2033333333333333,
-          "textblob_score": 0.4333333333333333,
-          "keyword_score": -0.3333333333333333,
+          "keyword_score": 1.0,
           "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4820484-tesla-weakness-isnt-lucid-strength-initiating-with-strong-sell?source=feed_all_articles",
-          "published": "Mon, 08 Sep 2025 11:19:57 -0400",
-          "relevance_keywords": [
-            "Tesla"
-          ]
-        },
-        {
-          "title": "Allot: Impressive Turnaround And Well On Track To Achieve Profitability",
-          "sentiment": 0.7,
-          "textblob_score": 1.0,
-          "keyword_score": 0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4820471-allot-impressive-turnaround-and-well-on-track-to-achieve-profitability?source=feed_all_articles",
-          "published": "Mon, 08 Sep 2025 10:50:05 -0400",
+          "url": "https://seekingalpha.com/article/4820571-melco-resorts-and-entertainment-its-all-about-deleveraging-rating-upgrade?source=feed_all_articles",
+          "published": "Mon, 08 Sep 2025 14:06:12 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 1.0,
+      "confidence": 0.9,
       "sources": [
         "yahoo_finance",
         "bloomberg",
@@ -219,49 +168,73 @@
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.315,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Nvidia Higher As AI Rival Boasts Massive $10 Billion Win; Is Nvidia A Buy Or Sell Now?",
-          "sentiment": 0.245,
-          "textblob_score": 0.35000000000000003,
-          "keyword_score": 0.0,
-          "source": "yahoo_finance",
-          "url": "https://www.investors.com/research/nvidia-stock-nvda-buy-or-sell-now-china-ai-chips/?src=A00220&yptr=yahoo",
-          "published": "2025-09-08T15:07:37Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Worried about Nvidia\u2019s stock? This analyst has a $2 trillion reason to remain calm.",
-          "sentiment": 0.385,
-          "textblob_score": 0.55,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/worried-about-nvidias-stock-this-analyst-has-a-2-trillion-reason-to-remain-calm-07463ae2?mod=mw_rss_topstories",
-          "published": "Mon, 08 Sep 2025 14:18:00 GMT",
-          "relevance_keywords": [
-            "Nvidia",
-            "GPU"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance",
-        "marketwatch"
-      ]
-    },
-    "AAPL": {
       "sentiment_score": 0.0,
       "article_count": 0,
       "articles": [],
       "signal": "NEUTRAL",
       "confidence": 0.0,
       "sources": []
+    },
+    "AAPL": {
+      "sentiment_score": 0.17029545454545453,
+      "article_count": 4,
+      "articles": [
+        {
+          "title": "French Premier Bayrou to Resign After Losing Confidence Vote",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-08/french-pm-bayrou-to-resign-after-losing-confidence-vote-video",
+          "published": "Mon, 08 Sep 2025 18:19:21 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "France\u2019s Bayrou Loses Confidence Vote in Parliament",
+          "sentiment": 0.29618181818181816,
+          "textblob_score": -0.005454545454545457,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-08/france-s-bayrou-loses-confidence-vote-in-parliament-video",
+          "published": "Mon, 08 Sep 2025 17:22:48 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Obamacare tax breaks could get extended in government-shutdown fight. Here\u2019s why.",
+          "sentiment": -0.05500000000000002,
+          "textblob_score": 0.35,
+          "keyword_score": -1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/obamacare-tax-breaks-could-get-extended-in-a-government-shutdown-fight-heres-why-9fe96daa?mod=mw_rss_topstories",
+          "published": "Mon, 08 Sep 2025 17:05:00 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Apple: Get Ready For A Narrative Change",
+          "sentiment": 0.13999999999999999,
+          "textblob_score": 0.2,
+          "keyword_score": 0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4820568-apple-get-ready-for-a-narrative-change?source=feed_all_articles",
+          "published": "Mon, 08 Sep 2025 13:56:30 -0400",
+          "relevance_keywords": [
+            "Apple"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.4,
+      "sources": [
+        "bloomberg",
+        "marketwatch",
+        "seeking_alpha"
+      ]
     }
   },
   "sources_used": [
