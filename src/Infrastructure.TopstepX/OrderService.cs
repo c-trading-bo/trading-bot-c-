@@ -58,13 +58,13 @@ public class OrderService : IOrderService
             // Check dry run mode
             if (_config.EnableDryRunMode)
             {
-                _logger.LogInformation("[ORDER] DRY_RUN: Would place {Side} {Qty} {Symbol} @ {Price} tag={Tag} account={AccountId}", 
-                    request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag, SecurityHelpers.MaskAccountId(request.AccountId));
+                _logger.LogInformation("[ORDER] DRY_RUN: Would place {Side} {Qty} {Symbol} @ {Price} tag={Tag}", 
+                    request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag);
                 return new OrderResult(true, Guid.NewGuid().ToString(), "DRY_RUN order simulated");
             }
 
-            _logger.LogInformation("[ORDER] LIVE: Placing {Side} {Qty} {Symbol} @ {Price} tag={Tag} account={AccountId}", 
-                request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag, SecurityHelpers.MaskAccountId(request.AccountId));
+            _logger.LogInformation("[ORDER] LIVE: Placing {Side} {Qty} {Symbol} @ {Price} tag={Tag}", 
+                request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag);
 
             // Real POST to /api/Order/place with retries and idempotency
             // This replaces: return Guid.NewGuid().ToString();
@@ -95,7 +95,7 @@ public class OrderService : IOrderService
                         var result = JsonSerializer.Deserialize<JsonElement>(responseJson);
                         
                         var orderId = result.GetProperty("orderId").GetString();
-                        _logger.LogInformation("[ORDER] ✅ Order placed successfully: {OrderId}", orderId);
+                        _logger.LogInformation("[ORDER] ✅ Order placed successfully");
                         
                         return new OrderResult(true, orderId, "Order placed successfully");
                     }
@@ -151,7 +151,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ORDER] Failed to get status for order {OrderId}", SecurityHelpers.MaskAccountId(orderId));
+            _logger.LogError(ex, "[ORDER] Failed to get status for order");
             throw new InvalidOperationException(SecurityHelpers.GetGenericErrorMessage(ex, _logger));
         }
     }
@@ -165,7 +165,7 @@ public class OrderService : IOrderService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ORDER] Failed to cancel order {OrderId}", SecurityHelpers.MaskAccountId(orderId));
+            _logger.LogError(ex, "[ORDER] Failed to cancel order");
             return false;
         }
     }

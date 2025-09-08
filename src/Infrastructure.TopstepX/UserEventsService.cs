@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using Trading.Safety;
 
 namespace TradingBot.Infrastructure.TopstepX;
 
@@ -38,7 +39,7 @@ public class UserEventsService : IUserEventsService
     {
         try
         {
-            _logger.LogInformation("[USER] Connecting to TopstepX user hub for account {Account}", _config.AccountId);
+            _logger.LogInformation("[USER] Connecting to TopstepX user hub");
             
             // Real SignalR connection to /hubs/user
             // This replaces: await Task.Delay(50); Console.WriteLine("User events connected");
@@ -63,7 +64,7 @@ public class UserEventsService : IUserEventsService
     {
         try
         {
-            _logger.LogInformation("[USER] Subscribing to trades for account {Account}", accountId);
+            _logger.LogInformation("[USER] Subscribing to trades for account");
             
             // Real subscription calls: SubscribeOrders(accountId), SubscribeTrades(accountId)
             // This replaces stub implementations that return fake data
@@ -72,11 +73,11 @@ public class UserEventsService : IUserEventsService
             // await hubConnection.InvokeAsync("SubscribeOrders", accountId);
             // await hubConnection.InvokeAsync("SubscribeTrades", accountId);
             
-            _logger.LogInformation("[USER] ✅ Subscribed to live trade events for {Account}", accountId);
+            _logger.LogInformation("[USER] ✅ Subscribed to live trade events");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[USER] Failed to subscribe to trades for {Account}", accountId);
+            _logger.LogError(ex, "[USER] Failed to subscribe to trades");
             throw;
         }
     }

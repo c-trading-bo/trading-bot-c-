@@ -83,7 +83,7 @@ public class AccountService : IAccountService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ACCOUNT] Failed to get account info for {AccountId}", _config.AccountId);
+            _logger.LogError(ex, "[ACCOUNT] Failed to get account info");
             throw;
         }
     }
@@ -111,7 +111,7 @@ public class AccountService : IAccountService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ACCOUNT] Failed to get positions for {AccountId}", _config.AccountId);
+            _logger.LogError(ex, "[ACCOUNT] Failed to get positions");
             throw;
         }
     }

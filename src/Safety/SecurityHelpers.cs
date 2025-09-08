@@ -42,6 +42,33 @@ public static class SecurityHelpers
     }
     
     /// <summary>
+    /// Masks order IDs for security - shows only last 4 characters
+    /// </summary>
+    /// <param name="orderId">The order ID to mask</param>
+    /// <returns>The masked order ID as ****abcd or [REDACTED] if null/empty</returns>
+    public static string MaskOrderId(string? orderId)
+    {
+        if (string.IsNullOrEmpty(orderId))
+            return "[REDACTED]";
+            
+        if (orderId.Length <= 4)
+            return "****";
+            
+        var lastFour = orderId.Substring(orderId.Length - 4);
+        return $"****{lastFour}";
+    }
+    
+    /// <summary>
+    /// Completely removes sensitive identifiers from logs - returns generic placeholder
+    /// </summary>
+    /// <param name="sensitiveValue">Any sensitive value that should not appear in logs</param>
+    /// <returns>A generic placeholder that reveals no information</returns>
+    public static string RedactSensitiveValue(string? sensitiveValue)
+    {
+        return "[REDACTED]";
+    }
+    
+    /// <summary>
     /// Returns a generic error message for API responses, logging the actual exception server-side
     /// </summary>
     /// <param name="ex">The exception that occurred</param>
