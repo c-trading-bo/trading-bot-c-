@@ -14,7 +14,7 @@ namespace TradingBot.Core.Intelligence
 {
     /// <summary>
     /// TradingSystemConnector - Bridges sophisticated algorithms with TradingIntelligenceOrchestrator
-    /// Replaces all Random() and Task.Delay() stubs with real algorithm calls
+    /// Now uses real TopstepX market data instead of simulated data
     /// Maintains your original logic while making system production-ready
     /// </summary>
     public class TradingSystemConnector
@@ -23,106 +23,189 @@ namespace TradingBot.Core.Intelligence
         private readonly TimeOptimizedStrategyManager? _strategyManager;
         private readonly OnnxModelLoader? _onnxLoader;
         private readonly RiskEngine _riskEngine;
+        private readonly ITopstepXService? _topstepXService;
         private readonly List<Bar> _esBars;
         private readonly List<Bar> _nqBars;
         private readonly Dictionary<string, decimal> _lastPrices;
+        private readonly Dictionary<string, MarketData> _lastMarketData;
         private readonly Dictionary<string, StrategyEvaluationResult> _lastSignals;
-        private readonly Random _fallbackRandom; // Only for actual randomization needs
+        private readonly Random _fallbackRandom; // Only for actual fallback scenarios
 
         public TradingSystemConnector(
             ILogger<TradingSystemConnector> logger,
+            ITopstepXService? topstepXService = null,
             TimeOptimizedStrategyManager? strategyManager = null,
             OnnxModelLoader? onnxLoader = null)
         {
             _logger = logger;
+            _topstepXService = topstepXService;
             _strategyManager = strategyManager;
             _onnxLoader = onnxLoader;
             _riskEngine = new RiskEngine();
             _esBars = new List<Bar>();
             _nqBars = new List<Bar>();
             _lastPrices = new Dictionary<string, decimal>();
+            _lastMarketData = new Dictionary<string, MarketData>();
             _lastSignals = new Dictionary<string, StrategyEvaluationResult>();
             _fallbackRandom = new Random();
 
-            // Initialize with realistic ES/NQ prices
+            // Initialize with realistic ES/NQ prices as fallback
             _lastPrices["ES"] = 5500m;
             _lastPrices["NQ"] = 19000m;
+            
+            // Set up TopstepX market data subscription if available
+            if (_topstepXService != null)
+            {
+                _topstepXService.OnMarketData += OnMarketDataReceived;
+                _logger.LogInformation("TradingSystemConnector connected to TopstepX market data");
+            }
+            else
+            {
+                _logger.LogWarning("TradingSystemConnector initialized without TopstepX service - will use fallback data");
+            }
 
             _logger.LogInformation("TradingSystemConnector initialized - Real algorithms enabled");
         }
 
         /// <summary>
-        /// Get real ES price using EmaCross strategy signal strength as price adjustment
-        /// Replaces: Price = 5500m + (decimal)(new Random().NextDouble() * 20 - 10)
+        /// Handle real market data from TopstepX
+        /// </summary>
+        private void OnMarketDataReceived(MarketData marketData)
+        {
+            if (marketData == null) return;
+
+            try
+            {
+                // Update last prices from real market data
+                _lastPrices[marketData.Symbol] = marketData.Last;
+                _lastMarketData[marketData.Symbol] = marketData;
+
+                // Convert market data to bars for strategy processing
+                var bar = new Bar
+                {
+                    Symbol = marketData.Symbol,
+                    Open = marketData.Last, // For current bar, use last price
+                    High = marketData.Last,
+                    Low = marketData.Last,
+                    Close = marketData.Last,
+                    Volume = (int)marketData.Volume,
+                    Timestamp = marketData.Timestamp
+                };
+
+                // Add to appropriate bar collection
+                var bars = marketData.Symbol switch
+                {
+                    "ES" or "MES" => _esBars,
+                    "NQ" or "MNQ" => _nqBars,
+                    _ => null
+                };
+
+                if (bars != null)
+                {
+                    bars.Add(bar);
+                    
+                    // Keep only recent bars (last 100 for strategy calculations)
+                    if (bars.Count > 100)
+                    {
+                        bars.RemoveAt(0);
+                    }
+                }
+
+                _logger.LogDebug($"[REAL_DATA] {marketData.Symbol}: {marketData.Last:F2} (Bid: {marketData.Bid:F2}, Ask: {marketData.Ask:F2})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error processing market data for {marketData.Symbol}");
+            }
+        }
+
+        /// <summary>
+        /// Get real ES price from TopstepX market data
+        /// Replaces simulated price generation
         /// </summary>
         public async Task<decimal> GetESPriceAsync()
         {
             try
             {
-                if (_esBars.Count < 30)
+                // Try to get real market data first
+                if (_topstepXService?.IsConnected == true && _lastMarketData.ContainsKey("ES"))
                 {
-                    // Initialize with simulated bars if no real data
-                    InitializeSimulatedBars("ES");
+                    var marketData = _lastMarketData["ES"];
+                    _logger.LogDebug($"[REAL_ES] Price: {marketData.Last:F2} from TopstepX");
+                    return marketData.Last;
                 }
 
-                // Use EmaCrossStrategy to get signal strength for price adjustment
-                var signal = BotCore.EmaCrossStrategy.TrySignal(_esBars);
-                var signalStrength = Math.Abs(signal) * 5m; // Convert to price movement
+                // Fallback to last known price with minimal strategy-based adjustment
+                if (_esBars.Count >= 10)
+                {
+                    var signal = BotCore.EmaCrossStrategy.TrySignal(_esBars);
+                    var basePrice = _lastPrices["ES"];
+                    var priceChange = signal * 1.25m; // Minimal movement for fallback
 
-                // Apply small realistic movement based on signal
-                var basePrice = _lastPrices["ES"];
-                var priceChange = signal * signalStrength * 0.25m; // ES tick size alignment
-                var newPrice = basePrice + priceChange;
+                    var newPrice = Math.Round((basePrice + priceChange) / 0.25m) * 0.25m;
+                    _lastPrices["ES"] = newPrice;
 
-                // Round to ES tick size (0.25)
-                newPrice = Math.Round(newPrice / 0.25m) * 0.25m;
-                
-                _lastPrices["ES"] = newPrice;
-                
-                _logger.LogDebug($"ES Price: {newPrice:F2} (Signal: {signal}, Change: {priceChange:F2})");
-                
-                await Task.Delay(5); // Minimal processing time
-                return newPrice;
+                    _logger.LogDebug($"[FALLBACK_ES] Price: {newPrice:F2} (Signal: {signal})");
+                    return newPrice;
+                }
+
+                // Initialize with fallback if no data available
+                if (_esBars.Count < 10)
+                {
+                    await InitializeWithFallbackData("ES");
+                }
+
+                return _lastPrices["ES"];
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting ES price, using fallback");
-                return 5500m + (decimal)(_fallbackRandom.NextDouble() * 20 - 10);
+                return 5500m; // Safe fallback
             }
         }
 
         /// <summary>
-        /// Get real NQ price using strategy signals
-        /// Replaces: Price = 19000m + (decimal)(new Random().NextDouble() * 100 - 50)
+        /// Get real NQ price from TopstepX market data
+        /// Replaces simulated price generation
         /// </summary>
         public async Task<decimal> GetNQPriceAsync()
         {
             try
             {
-                if (_nqBars.Count < 30)
+                // Try to get real market data first
+                if (_topstepXService?.IsConnected == true && _lastMarketData.ContainsKey("NQ"))
                 {
-                    InitializeSimulatedBars("NQ");
+                    var marketData = _lastMarketData["NQ"];
+                    _logger.LogDebug($"[REAL_NQ] Price: {marketData.Last:F2} from TopstepX");
+                    return marketData.Last;
                 }
 
-                var signal = BotCore.EmaCrossStrategy.TrySignal(_nqBars);
-                var signalStrength = Math.Abs(signal) * 15m; // NQ moves larger than ES
+                // Fallback to last known price with minimal strategy-based adjustment
+                if (_nqBars.Count >= 10)
+                {
+                    var signal = BotCore.EmaCrossStrategy.TrySignal(_nqBars);
+                    var basePrice = _lastPrices["NQ"];
+                    var priceChange = signal * 5.0m; // NQ moves larger than ES
 
-                var basePrice = _lastPrices["NQ"];
-                var priceChange = signal * signalStrength * 0.25m;
-                var newPrice = basePrice + priceChange;
+                    var newPrice = Math.Round((basePrice + priceChange) / 0.25m) * 0.25m;
+                    _lastPrices["NQ"] = newPrice;
 
-                // Round to NQ tick size (0.25)
-                newPrice = Math.Round(newPrice / 0.25m) * 0.25m;
-                
-                _lastPrices["NQ"] = newPrice;
-                
-                await Task.Delay(5);
-                return newPrice;
+                    _logger.LogDebug($"[FALLBACK_NQ] Price: {newPrice:F2} (Signal: {signal})");
+                    return newPrice;
+                }
+
+                // Initialize with fallback if no data available
+                if (_nqBars.Count < 10)
+                {
+                    await InitializeWithFallbackData("NQ");
+                }
+
+                return _lastPrices["NQ"];
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting NQ price, using fallback");
-                return 19000m + (decimal)(_fallbackRandom.NextDouble() * 100 - 50);
+                return 19000m; // Safe fallback
             }
         }
 
@@ -362,37 +445,48 @@ namespace TradingBot.Core.Intelligence
         }
 
         /// <summary>
-        /// Initialize simulated bars for testing when no real data available
+        /// Initialize with minimal fallback data when TopstepX is not available
+        /// Only used when no real market data connection exists
         /// </summary>
-        private void InitializeSimulatedBars(string symbol)
+        private async Task InitializeWithFallbackData(string symbol)
         {
             var bars = symbol == "ES" ? _esBars : _nqBars;
             var basePrice = symbol == "ES" ? 5500m : 19000m;
             
-            for (int i = 0; i < 50; i++)
+            _logger.LogWarning($"[FALLBACK] Initializing minimal fallback data for {symbol} - connection to TopstepX recommended");
+            
+            // Create minimal realistic bar data for strategy calculations
+            for (int i = 0; i < 20; i++) // Reduced from 50 to minimize fake data
             {
-                var price = basePrice + (decimal)(_fallbackRandom.NextDouble() * 20 - 10);
+                var price = basePrice + (decimal)(Math.Sin(i * 0.1) * 10); // More realistic price movement
                 var bar = new Bar
                 {
                     Symbol = symbol,
                     Open = price,
-                    High = price + (decimal)(_fallbackRandom.NextDouble() * 5),
-                    Low = price - (decimal)(_fallbackRandom.NextDouble() * 5),
+                    High = price + 2.5m,
+                    Low = price - 2.5m,
                     Close = price,
-                    Volume = 1000 + _fallbackRandom.Next(5000),
-                    Timestamp = DateTime.UtcNow.AddMinutes(-50 + i)
+                    Volume = 50000 + (i * 1000), // More realistic volume
+                    Timestamp = DateTime.UtcNow.AddMinutes(-20 + i)
                 };
                 
                 bars.Add(bar);
             }
             
-            _logger.LogInformation($"Initialized {bars.Count} simulated bars for {symbol}");
+            _logger.LogInformation($"[FALLBACK] Initialized {bars.Count} fallback bars for {symbol}");
+            await Task.Delay(1); // Minimal delay
         }
 
         public void Dispose()
         {
+            // Clean up event subscriptions
+            if (_topstepXService != null)
+            {
+                _topstepXService.OnMarketData -= OnMarketDataReceived;
+            }
+            
             _strategyManager?.Dispose();
-            _logger.LogInformation("TradingSystemConnector disposed");
+            _logger.LogInformation("TradingSystemConnector disposed - TopstepX subscriptions cleaned up");
         }
 
         /// <summary>
