@@ -36,7 +36,7 @@ public class ModelQuarantineManager : IQuarantineManager
         _statePath = statePath;
         
         Directory.CreateDirectory(_statePath);
-        _ = Task.Run(LoadStateAsync);
+        _ = Task.Run(() => LoadStateAsync());
     }
 
     public async Task<QuarantineStatus> CheckModelHealthAsync(string modelId, CancellationToken cancellationToken = default)
@@ -235,6 +235,7 @@ public class ModelQuarantineManager : IQuarantineManager
     {
         try
         {
+            bool shouldQuarantine = false;
             lock (_lock)
             {
                 if (!_modelHealth.TryGetValue(modelId, out var healthState))
@@ -254,8 +255,14 @@ public class ModelQuarantineManager : IQuarantineManager
                     _logger.LogWarning("[QUARANTINE] High exception rate for model: {ModelId} ({Rate:F3}/min)", 
                         modelId, recentExceptions);
                     
-                    await QuarantineModelAsync(modelId, QuarantineReason.ExceptionRateTooHigh, cancellationToken);
+                    shouldQuarantine = true;
                 }
+            }
+
+            // Quarantine outside the lock
+            if (shouldQuarantine)
+            {
+                await QuarantineModelAsync(modelId, QuarantineReason.ExceptionRateTooHigh, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -324,13 +331,13 @@ public class ModelQuarantineManager : IQuarantineManager
             return;
         }
 
-        // Calculate baseline metrics
-        var baseline = CalculateBaselineMetrics(history);
+        // Calculate baseline metrics from history
+        var baselinePerformance = CalculateBaselinePerformance(history);
         
         // Check performance degradation
-        var brierDelta = current.BrierScore - baseline.BrierScore;
-        var hitRateDelta = baseline.HitRate - current.HitRate; // Negative is bad
-        var latencyIssue = current.Latency > _config.LatencyP99Ms;
+        var brierDelta = current.BrierScore - baselinePerformance.BrierScore; // Higher Brier is worse
+        var hitRateDelta = baselinePerformance.HitRate - current.HitRate; // Lower hit rate is worse
+        var latencyIssue = current.Latency > 100; // Hardcoded threshold for now
 
         // Determine new health state
         var newState = DetermineHealthState(brierDelta, hitRateDelta, latencyIssue, healthState.State);
@@ -359,19 +366,19 @@ public class ModelQuarantineManager : IQuarantineManager
     private HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue, HealthState currentState)
     {
         // Check for quarantine conditions (most severe)
-        if (brierDelta > _config.QuarantineBrierDelta || hitRateDelta > 0.1 || latencyIssue)
+        if (brierDelta > 0.1 || hitRateDelta > 0.1 || latencyIssue) // Brier increase of 0.1 or hit rate drop of 0.1
         {
             return HealthState.Quarantine;
         }
 
         // Check for degrade conditions
-        if (brierDelta > _config.DegradeBrierDelta || hitRateDelta > 0.05)
+        if (brierDelta > 0.05 || hitRateDelta > 0.05) // Brier increase of 0.05 or hit rate drop of 0.05
         {
             return HealthState.Degrade;
         }
 
         // Check for watch conditions
-        if (brierDelta > _config.WatchBrierDelta || hitRateDelta > 0.02)
+        if (brierDelta > 0.02 || hitRateDelta > 0.02) // Brier increase of 0.02 or hit rate drop of 0.02
         {
             return HealthState.Watch;
         }
@@ -413,6 +420,29 @@ public class ModelQuarantineManager : IQuarantineManager
             PrAt10 = stableHistory.Average(p => p.HitRate * 0.1),
             ECE = stableHistory.Average(p => p.BrierScore),
             EdgeBps = 3.0 // Placeholder
+        };
+    }
+
+    private ModelPerformance CalculateBaselinePerformance(List<ModelPerformance> history)
+    {
+        if (history.Count < 5)
+        {
+            return new ModelPerformance
+            {
+                BrierScore = 0.25, // Default baseline
+                HitRate = 0.5,
+                Latency = 50
+            };
+        }
+
+        // Use recent stable period as baseline (exclude most recent 20%)
+        var stableHistory = history.Take((int)(history.Count * 0.8)).TakeLast(20).ToList();
+        
+        return new ModelPerformance
+        {
+            BrierScore = stableHistory.Average(p => p.BrierScore),
+            HitRate = stableHistory.Average(p => p.HitRate),
+            Latency = stableHistory.Average(p => p.Latency)
         };
     }
 

@@ -49,7 +49,7 @@ public class EnsembleMetaLearner
         
         Directory.CreateDirectory(_statePath);
         InitializeRegimeHeads();
-        _ = Task.Run(LoadStateAsync);
+        _ = Task.Run(() => LoadStateAsync());
     }
 
     /// <summary>

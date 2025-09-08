@@ -130,6 +130,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
         try
         {
+            bool shouldRollback = false;
+            string? modelToRollback = null;
             lock (_lock)
             {
                 if (!_performanceHistory.TryGetValue(modelId, out var history))
@@ -139,7 +141,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 }
 
                 // Add new performance metric (use negative Brier score as reward)
-                var reward = 0.25 - performance.BrierScore; // Better performance = higher reward
+                var reward = 0.25 - performance.BrierScore; // Lower Brier score = better performance
                 history.Add(reward);
 
                 // Keep only recent history
@@ -160,13 +162,20 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                         _logger.LogWarning("[ONLINE] High variance detected for {ModelId}: {Current:F4} > {Baseline:F4} * {Multiplier}", 
                             modelId, variance, baselineVar, _config.RollbackVarMultiplier);
                         
-                        await RollbackWeightsAsync(modelId, cancellationToken);
+                        shouldRollback = true;
+                        modelToRollback = modelId;
                     }
                     else
                     {
                         _baselineVariance[modelId] = variance;
                     }
                 }
+            }
+
+            // Perform rollback outside the lock
+            if (shouldRollback && modelToRollback != null)
+            {
+                await RollbackWeightsAsync(modelToRollback, cancellationToken);
             }
         }
         catch (Exception ex)

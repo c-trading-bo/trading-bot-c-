@@ -302,11 +302,11 @@ public class NightlyParameterTuner
         return new Dictionary<string, ParameterRange>
         {
             ["learning_rate"] = new ParameterRange { Min = 0.001, Max = 0.1, Type = ParameterType.LogUniform },
-            ["batch_size"] = new ParameterRange { Min = 16, Max = 128, Type = ParameterType.Categorical, Categories = new[] { 16, 32, 64, 128 } },
+            ["batch_size"] = new ParameterRange { Min = 16, Max = 128, Type = ParameterType.Categorical, Categories = new double[] { 16, 32, 64, 128 } },
             ["hidden_size"] = new ParameterRange { Min = 64, Max = 512, Type = ParameterType.LogUniform },
             ["dropout_rate"] = new ParameterRange { Min = 0.0, Max = 0.5, Type = ParameterType.Uniform },
             ["l2_regularization"] = new ParameterRange { Min = 1e-6, Max = 1e-2, Type = ParameterType.LogUniform },
-            ["ensemble_size"] = new ParameterRange { Min = 3, Max = 10, Type = ParameterType.Categorical, Categories = new[] { 3, 5, 7, 10 } }
+            ["ensemble_size"] = new ParameterRange { Min = 3, Max = 10, Type = ParameterType.Categorical, Categories = new double[] { 3, 5, 7, 10 } }
         };
     }
 

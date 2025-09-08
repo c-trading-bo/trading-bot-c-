@@ -468,6 +468,7 @@ public class QuarantineManager : IQuarantineManager
     {
         try
         {
+            List<ModelPerformance>? historyToEvaluate = null;
             lock (_lock)
             {
                 if (!_performanceHistory.TryGetValue(modelId, out var history))
@@ -482,8 +483,14 @@ public class QuarantineManager : IQuarantineManager
                 var cutoff = DateTime.UtcNow.AddHours(-24);
                 history.RemoveAll(p => p.WindowEnd < cutoff);
 
-                // Check for health state changes
-                await EvaluateModelHealthAsync(modelId, history, cancellationToken);
+                // Make a copy for evaluation outside the lock
+                historyToEvaluate = new List<ModelPerformance>(history);
+            }
+
+            // Check for health state changes outside the lock
+            if (historyToEvaluate != null)
+            {
+                await EvaluateModelHealthAsync(modelId, historyToEvaluate, cancellationToken);
             }
         }
         catch (Exception ex)
