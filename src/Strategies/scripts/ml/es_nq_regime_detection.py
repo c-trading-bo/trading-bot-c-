@@ -13,6 +13,9 @@ from datetime import datetime, timedelta
 import yfinance as yf
 from sklearn.mixture import GaussianMixture
 
+# Import confidence predictor to replace hardcoded values
+from confidence_predictor import predict_confidence
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -206,22 +209,43 @@ class ES_NQ_RegimeDetector:
         try:
             es_vol, nq_vol, correlation, volume_ratio, trend_strength = features
             
-            # Simple rule-based regime detection
+            # ML-based regime detection with dynamic confidence
             if trend_strength > 0.02 and es_vol < 20:
                 regime = 'BULL_TREND'
-                confidence = 0.7
+                confidence = predict_confidence(
+                    trend_strength=trend_strength,
+                    volatility=es_vol/100,
+                    volume_ratio=volume_ratio,
+                    momentum=trend_strength
+                )
             elif trend_strength < -0.02 and es_vol > 20:
                 regime = 'BEAR_TREND'
-                confidence = 0.7
+                confidence = predict_confidence(
+                    trend_strength=abs(trend_strength),
+                    volatility=es_vol/100,
+                    volume_ratio=volume_ratio,
+                    momentum=trend_strength
+                )
             elif es_vol > 30:
                 regime = 'RISK_OFF'
-                confidence = 0.8
+                confidence = predict_confidence(
+                    volatility=es_vol/100,
+                    vix_level=es_vol,
+                    volume_ratio=volume_ratio
+                )
             elif abs(correlation) < 0.3:
                 regime = 'ROTATION'
-                confidence = 0.6
+                confidence = predict_confidence(
+                    volatility=es_vol/100,
+                    volume_ratio=volume_ratio,
+                    trend_strength=abs(trend_strength)
+                )
             else:
                 regime = 'CHOP'
-                confidence = 0.5
+                confidence = predict_confidence(
+                    volatility=es_vol/100,
+                    trend_strength=abs(trend_strength)
+                )
             
             regime_names = list(self.regimes.keys())
             probabilities = {name: 0.1 for name in regime_names}

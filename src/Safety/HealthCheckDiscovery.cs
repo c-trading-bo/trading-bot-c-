@@ -164,8 +164,9 @@ public class HealthCheckDiscovery
             _logger.LogError(ex, "[HEALTH-DISCOVERY] Failed to scan for unmonitored features");
             return new List<string>();
         }
+    }
 
-        private async Task PerformAdvancedCodeAnalysis(List<string> unmonitored)
+    private async Task PerformAdvancedCodeAnalysis(List<string> unmonitored)
         {
             try
             {
@@ -197,11 +198,10 @@ public class HealthCheckDiscovery
                 _logger.LogWarning(ex, "[HEALTH-DISCOVERY] Advanced code analysis failed");
             }
         }
-    }
 
-    private int GetPriority(Type type)
-    {
-        var attribute = type.GetCustomAttribute<HealthCheckAttribute>();
-        return attribute?.Priority ?? 0;
+        private int GetPriority(Type type)
+        {
+            var attribute = type.GetCustomAttribute<HealthCheckAttribute>();
+            return attribute?.Priority ?? 0;
+        }
     }
-}
