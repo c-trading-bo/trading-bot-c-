@@ -180,7 +180,7 @@ public class UserEventsService : IUserEventsService
     {
         try
         {
-            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+            _hubConnection?.DisposeAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
