@@ -48,6 +48,18 @@ namespace BotCore
         }
 
         private Uri U(string path) => new($"{_apiBase}{path}");
+        
+        /// <summary>
+        /// Determine if HTTP status code should trigger a retry (5xx/408 only)
+        /// </summary>
+        private static bool ShouldRetry(System.Net.HttpStatusCode statusCode)
+        {
+            return statusCode == System.Net.HttpStatusCode.RequestTimeout || // 408
+                   statusCode == System.Net.HttpStatusCode.InternalServerError || // 500
+                   statusCode == System.Net.HttpStatusCode.BadGateway || // 502
+                   statusCode == System.Net.HttpStatusCode.ServiceUnavailable || // 503
+                   statusCode == System.Net.HttpStatusCode.GatewayTimeout; // 504
+        }
 
         private async Task<string?> TryResolveViaAvailableAsync(string root, bool live, CancellationToken ct)
         {
@@ -125,11 +137,43 @@ namespace BotCore
         // Place an order via REST
         public async Task<string?> PlaceOrderAsync(object req, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U("/api/Order/place"), req, ct);
-            resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
-            // Extract orderId from json (field name per docs)
-            return json.TryGetProperty("orderId", out var id) ? id.GetString() : null;
+            const int maxRetries = 3;
+            
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    using var resp = await _http.PostAsJsonAsync(U("/api/Order/place"), req, ct);
+                    
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+                        // Extract orderId from json (field name per docs)
+                        return json.TryGetProperty("orderId", out var id) ? id.GetString() : null;
+                    }
+                    else if (ShouldRetry(resp.StatusCode) && attempt < maxRetries)
+                    {
+                        _log.LogWarning("[APICLIENT] PlaceOrder attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
+                            attempt, maxRetries, (int)resp.StatusCode);
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                        continue;
+                    }
+                    else
+                    {
+                        // Don't retry 4xx errors or final attempt
+                        resp.EnsureSuccessStatusCode();
+                    }
+                }
+                catch (HttpRequestException ex) when (attempt < maxRetries)
+                {
+                    _log.LogWarning(ex, "[APICLIENT] PlaceOrder HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
+                        attempt, maxRetries);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                }
+            }
+
+            // This should not be reached due to EnsureSuccessStatusCode above
+            throw new InvalidOperationException("Failed to place order after all retry attempts");
         }
 
         // Search for orders via REST

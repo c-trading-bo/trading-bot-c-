@@ -874,9 +874,39 @@ public sealed class OnnxModelLoader : IDisposable
             var versionedDir = Path.Combine(_registryPath, modelName, version);
             Directory.CreateDirectory(versionedDir);
 
-            // Copy model file
+            // Atomic copy model file to registry using temp file + File.Move pattern
             var registryModelPath = Path.Combine(versionedDir, $"{modelName}.onnx");
-            File.Copy(modelPath, registryModelPath, overwrite: true);
+            var tempModelPath = registryModelPath + ".tmp";
+            
+            try
+            {
+                // Step 1: Copy to temporary file first
+                File.Copy(modelPath, tempModelPath, overwrite: false);
+                
+                // Step 2: Atomic move to final destination
+                if (File.Exists(registryModelPath))
+                {
+                    var backupPath = registryModelPath + ".backup";
+                    File.Replace(tempModelPath, registryModelPath, backupPath);
+                    _logger.LogDebug("[ONNX-Registry] Model deployed atomically with backup: {Model}, backup: {Backup}", 
+                        Path.GetFileName(registryModelPath), Path.GetFileName(backupPath));
+                }
+                else
+                {
+                    File.Move(tempModelPath, registryModelPath);
+                    _logger.LogDebug("[ONNX-Registry] Model deployed atomically: {Model}", Path.GetFileName(registryModelPath));
+                }
+            }
+            catch
+            {
+                // Cleanup temp file on error
+                if (File.Exists(tempModelPath))
+                {
+                    try { File.Delete(tempModelPath); } catch { }
+                }
+                throw;
+            }
+            
             entry.RegistryPath = registryModelPath;
 
             // Compress model if enabled
