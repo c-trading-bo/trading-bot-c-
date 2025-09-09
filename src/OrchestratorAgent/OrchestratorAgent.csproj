@@ -17,6 +17,7 @@
   <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
   <ProjectReference Include="..\RLAgent\RLAgent.csproj" />
   <ProjectReference Include="..\IntelligenceAgent\IntelligenceAgent.csproj" />
+  <ProjectReference Include="..\Infrastructure.TopstepX\Infrastructure.TopstepX.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SupervisorAgent\*.cs" />
