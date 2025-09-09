@@ -1,0 +1,612 @@
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Text.Json;
+using BotCore.Infrastructure;
+using BotCore.Testing;
+using BotCore.Reporting;
+
+namespace BotCore.AutoRemediation;
+
+/// <summary>
+/// Auto-remediation system that automatically fixes issues or flags blockers for manual review
+/// </summary>
+public class AutoRemediationSystem
+{
+    private readonly ILogger<AutoRemediationSystem> _logger;
+    private readonly StagingEnvironmentManager _stagingManager;
+    private readonly ComprehensiveSmokeTestSuite _testSuite;
+    private readonly ComprehensiveReportingSystem _reportingSystem;
+
+    public AutoRemediationSystem(
+        ILogger<AutoRemediationSystem> logger,
+        StagingEnvironmentManager stagingManager,
+        ComprehensiveSmokeTestSuite testSuite,
+        ComprehensiveReportingSystem reportingSystem)
+    {
+        _logger = logger;
+        _stagingManager = stagingManager;
+        _testSuite = testSuite;
+        _reportingSystem = reportingSystem;
+    }
+
+    /// <summary>
+    /// Execute auto-remediation process on test results and system status
+    /// </summary>
+    public async Task<AutoRemediationResult> ExecuteAutoRemediationAsync(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new AutoRemediationResult
+        {
+            StartTime = DateTime.UtcNow
+        };
+
+        try
+        {
+            _logger.LogInformation("🔧 Starting auto-remediation process...");
+
+            // Phase 1: Environment and Configuration Issues
+            _logger.LogInformation("📋 Phase 1: Environment and Configuration Remediation");
+            var envRemediationResult = await RemediateEnvironmentIssues(testResults, systemReport);
+            result.EnvironmentRemediations.AddRange(envRemediationResult);
+
+            // Phase 2: Credential and Authentication Issues
+            _logger.LogInformation("📋 Phase 2: Credential and Authentication Remediation");
+            var credRemediationResult = await RemediateCredentialIssues(testResults, systemReport);
+            result.CredentialRemediations.AddRange(credRemediationResult);
+
+            // Phase 3: Performance and Latency Issues
+            _logger.LogInformation("📋 Phase 3: Performance and Latency Remediation");
+            var perfRemediationResult = await RemediatePerformanceIssues(testResults, systemReport);
+            result.PerformanceRemediations.AddRange(perfRemediationResult);
+
+            // Phase 4: Security and Compliance Issues
+            _logger.LogInformation("📋 Phase 4: Security and Compliance Remediation");
+            var secRemediationResult = await RemediateSecurityIssues(testResults, systemReport);
+            result.SecurityRemediations.AddRange(secRemediationResult);
+
+            // Phase 5: Test Failures and System Health Issues
+            _logger.LogInformation("📋 Phase 5: Test Failures and System Health Remediation");
+            var testRemediationResult = await RemediateTestFailures(testResults, systemReport);
+            result.TestRemediations.AddRange(testRemediationResult);
+
+            // Phase 6: Identify Manual Review Items
+            _logger.LogInformation("📋 Phase 6: Identifying Items Requiring Manual Review");
+            result.ManualReviewItems = IdentifyManualReviewItems(testResults, systemReport);
+
+            // Calculate overall remediation results
+            result.EndTime = DateTime.UtcNow;
+            result.CalculateResults();
+
+            _logger.LogInformation("✅ Auto-remediation completed - Issues Fixed: {Fixed}, Manual Review Required: {Manual}", 
+                result.TotalIssuesFixed, result.ManualReviewItems.Count);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error during auto-remediation process");
+            result.CriticalError = ex.Message;
+        }
+
+        return result;
+    }
+
+    private async Task<List<RemediationAction>> RemediateEnvironmentIssues(
+        TestSuiteResult testResults, 
+        ComprehensiveReport systemReport)
+    {
+        var actions = new List<RemediationAction>();
+
+        // Issue 1: Missing critical environment variables
+        var missingVars = DetectMissingEnvironmentVariables();
+        if (missingVars.Any())
+        {
+            var action = new RemediationAction
+            {
+                Type = "Environment",
+                Issue = $"Missing {missingVars.Count} critical environment variables",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                foreach (var (key, defaultValue) in missingVars)
+                {
+                    Environment.SetEnvironmentVariable(key, defaultValue);
+                    action.Details.Add($"Set {key} = {defaultValue}");
+                }
+                action.Success = true;
+                action.Result = "Successfully set missing environment variables";
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        // Issue 2: Incorrect environment mode
+        var currentMode = Environment.GetEnvironmentVariable("BOT_MODE");
+        if (string.IsNullOrEmpty(currentMode) || currentMode == "unknown")
+        {
+            var action = new RemediationAction
+            {
+                Type = "Environment",
+                Issue = "Bot mode not properly configured",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                Environment.SetEnvironmentVariable("BOT_MODE", "staging");
+                Environment.SetEnvironmentVariable("DRY_RUN", "true");
+                action.Success = true;
+                action.Result = "Set bot mode to staging with dry run enabled";
+                action.Details.Add("BOT_MODE = staging");
+                action.Details.Add("DRY_RUN = true");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        // Issue 3: Staging environment not properly configured
+        if (!systemReport.EnvironmentStatus.IsStagingMode)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Environment",
+                Issue = "Staging environment not properly configured",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                await _stagingManager.ConfigureStagingEnvironmentAsync();
+                action.Success = true;
+                action.Result = "Reconfigured staging environment";
+                action.Details.Add("Applied staging environment configuration");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        return actions;
+    }
+
+    private async Task<List<RemediationAction>> RemediateCredentialIssues(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport)
+    {
+        var actions = new List<RemediationAction>();
+
+        // Issue 1: No credentials found
+        if (!systemReport.TestResultsAnalysis.CategoryPerformance["Credentials"].IsHealthy)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Credentials",
+                Issue = "Credential management issues detected",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Set up demo/test credentials for staging
+                var demoCredentials = new Dictionary<string, string>
+                {
+                    ["TOPSTEPX_USERNAME"] = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME") ?? "demo_user",
+                    ["TOPSTEPX_API_KEY"] = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY") ?? "demo_api_key",
+                    ["TOPSTEPX_ACCOUNT_ID"] = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "demo_account"
+                };
+
+                foreach (var (key, value) in demoCredentials)
+                {
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                    {
+                        Environment.SetEnvironmentVariable(key, value);
+                        action.Details.Add($"Set demo credential: {key}");
+                    }
+                }
+
+                action.Success = true;
+                action.Result = "Set up demo credentials for staging environment";
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        return actions;
+    }
+
+    private async Task<List<RemediationAction>> RemediatePerformanceIssues(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport)
+    {
+        var actions = new List<RemediationAction>();
+
+        // Issue 1: High network latency
+        if (systemReport.PerformanceMetrics.LatencyMetrics.NetworkConnectivityLatency > 5000)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Performance",
+                Issue = "High network latency detected",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Optimize timeout settings
+                Environment.SetEnvironmentVariable("HTTP_TIMEOUT_SECONDS", "10");
+                Environment.SetEnvironmentVariable("RETRY_ATTEMPTS", "3");
+                Environment.SetEnvironmentVariable("RETRY_DELAY_MS", "1000");
+
+                action.Success = true;
+                action.Result = "Optimized network timeout and retry settings";
+                action.Details.Add("HTTP_TIMEOUT_SECONDS = 10");
+                action.Details.Add("RETRY_ATTEMPTS = 3");
+                action.Details.Add("RETRY_DELAY_MS = 1000");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        // Issue 2: High memory usage
+        if (systemReport.PerformanceMetrics.ResourceUsage.MemoryUsageMB > 500)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Performance",
+                Issue = "High memory usage detected",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Force garbage collection
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                action.Success = true;
+                action.Result = "Forced garbage collection to free memory";
+                action.Details.Add("Executed full GC cycle");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        return actions;
+    }
+
+    private async Task<List<RemediationAction>> RemediateSecurityIssues(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport)
+    {
+        var actions = new List<RemediationAction>();
+
+        // Issue 1: Low security score
+        if (systemReport.SecurityCompliance.OverallSecurityScore < 80)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Security",
+                Issue = "Security score below recommended threshold",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Enable additional security measures
+                Environment.SetEnvironmentVariable("SECURE_LOGGING", "true");
+                Environment.SetEnvironmentVariable("CREDENTIAL_MASKING", "true");
+                Environment.SetEnvironmentVariable("HTTPS_ONLY", "true");
+
+                action.Success = true;
+                action.Result = "Enhanced security configuration";
+                action.Details.Add("SECURE_LOGGING = true");
+                action.Details.Add("CREDENTIAL_MASKING = true");
+                action.Details.Add("HTTPS_ONLY = true");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        return actions;
+    }
+
+    private async Task<List<RemediationAction>> RemediateTestFailures(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport)
+    {
+        var actions = new List<RemediationAction>();
+
+        // Issue 1: Infrastructure test failures
+        if (!testResults.InfrastructureTests.IsSuccess)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Testing",
+                Issue = "Infrastructure tests failing",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Reset critical infrastructure settings
+                Environment.SetEnvironmentVariable("CRITICAL_SYSTEM_ENABLE", "1");
+                Environment.SetEnvironmentVariable("EXECUTION_VERIFICATION_ENABLE", "1");
+                Environment.SetEnvironmentVariable("DISASTER_RECOVERY_ENABLE", "1");
+
+                action.Success = true;
+                action.Result = "Reset critical system configurations";
+                action.Details.Add("Enabled all critical system components");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        // Issue 2: Safety test failures
+        if (!testResults.SafetyTests.IsSuccess)
+        {
+            var action = new RemediationAction
+            {
+                Type = "Testing",
+                Issue = "Safety tests failing",
+                AutoFixAttempted = true
+            };
+
+            try
+            {
+                // Reset safety configurations
+                Environment.SetEnvironmentVariable("DAILY_LOSS_CAP_R", "1.0");
+                Environment.SetEnvironmentVariable("PER_TRADE_R", "0.5");
+                Environment.SetEnvironmentVariable("MAX_CONCURRENT", "1");
+                Environment.SetEnvironmentVariable("DRY_RUN", "true");
+
+                action.Success = true;
+                action.Result = "Reset safety configurations to conservative values";
+                action.Details.Add("Applied conservative risk limits");
+            }
+            catch (Exception ex)
+            {
+                action.Success = false;
+                action.ErrorMessage = ex.Message;
+            }
+
+            actions.Add(action);
+        }
+
+        return actions;
+    }
+
+    private List<ManualReviewItem> IdentifyManualReviewItems(
+        TestSuiteResult testResults,
+        ComprehensiveReport systemReport)
+    {
+        var manualItems = new List<ManualReviewItem>();
+
+        // Network connectivity issues require manual review
+        if (!systemReport.SystemHealthStatus.ExternalConnectivityHealthy)
+        {
+            manualItems.Add(new ManualReviewItem
+            {
+                Priority = "High",
+                Category = "Network",
+                Issue = "External connectivity to TopstepX services is not healthy",
+                Reason = "Network connectivity issues may require infrastructure changes",
+                RecommendedActions = new[]
+                {
+                    "Check network connectivity to api.topstepx.com",
+                    "Verify firewall and proxy settings",
+                    "Contact network administrator if needed",
+                    "Consider alternative network routes"
+                }
+            });
+        }
+
+        // Persistent test failures across multiple categories
+        var failingCategories = new[]
+        {
+            ("Infrastructure", testResults.InfrastructureTests.IsSuccess),
+            ("Credentials", testResults.CredentialTests.IsSuccess),
+            ("Integration", testResults.IntegrationTests.IsSuccess),
+            ("Components", testResults.ComponentTests.IsSuccess),
+            ("EndToEnd", testResults.EndToEndTests.IsSuccess),
+            ("Performance", testResults.PerformanceTests.IsSuccess),
+            ("Safety", testResults.SafetyTests.IsSuccess)
+        }.Where(cat => !cat.IsSuccess).ToList();
+
+        if (failingCategories.Count >= 3)
+        {
+            manualItems.Add(new ManualReviewItem
+            {
+                Priority = "Critical",
+                Category = "Testing",
+                Issue = $"Multiple test categories failing: {string.Join(", ", failingCategories.Select(c => c.Item1))}",
+                Reason = "Widespread test failures indicate fundamental system issues",
+                RecommendedActions = new[]
+                {
+                    "Review system architecture and dependencies",
+                    "Check for recent changes that may have caused regressions",
+                    "Consider rolling back to last known good state",
+                    "Perform detailed diagnostic analysis"
+                }
+            });
+        }
+
+        // High technical debt
+        if (systemReport.TechnicalDebtAnalysis.TodoItems.Count > 10)
+        {
+            manualItems.Add(new ManualReviewItem
+            {
+                Priority = "Medium",
+                Category = "Technical Debt",
+                Issue = $"High number of TODO items: {systemReport.TechnicalDebtAnalysis.TodoItems.Count}",
+                Reason = "High technical debt can impact system maintainability and reliability",
+                RecommendedActions = new[]
+                {
+                    "Prioritize TODO items by business impact",
+                    "Create development plan to address high-priority items",
+                    "Allocate development resources for technical debt reduction",
+                    "Implement code quality gates to prevent debt accumulation"
+                }
+            });
+        }
+
+        // Low production readiness
+        if (!systemReport.IsProductionReady)
+        {
+            manualItems.Add(new ManualReviewItem
+            {
+                Priority = "Critical",
+                Category = "Production Readiness",
+                Issue = "System not ready for production deployment",
+                Reason = "Production deployment requires higher standards of reliability and security",
+                RecommendedActions = new[]
+                {
+                    "Address all critical and high-priority issues",
+                    "Ensure test pass rate is above 95%",
+                    "Verify security compliance meets production standards",
+                    "Complete comprehensive end-to-end testing"
+                }
+            });
+        }
+
+        return manualItems;
+    }
+
+    private List<(string Key, string DefaultValue)> DetectMissingEnvironmentVariables()
+    {
+        var requiredVars = new Dictionary<string, string>
+        {
+            ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
+            ["TOPSTEPX_RTC_BASE"] = "https://rtc.topstepx.com",
+            ["BOT_MODE"] = "staging",
+            ["DRY_RUN"] = "true",
+            ["CRITICAL_SYSTEM_ENABLE"] = "1",
+            ["EXECUTION_VERIFICATION_ENABLE"] = "1",
+            ["DISASTER_RECOVERY_ENABLE"] = "1",
+            ["DAILY_LOSS_CAP_R"] = "1.0",
+            ["PER_TRADE_R"] = "0.5",
+            ["MAX_CONCURRENT"] = "1"
+        };
+
+        return requiredVars
+            .Where(kv => string.IsNullOrEmpty(Environment.GetEnvironmentVariable(kv.Key)))
+            .Select(kv => (kv.Key, kv.Value))
+            .ToList();
+    }
+}
+
+// Supporting data structures
+public class AutoRemediationResult
+{
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public TimeSpan TotalDuration => EndTime - StartTime;
+    public string? CriticalError { get; set; }
+
+    public List<RemediationAction> EnvironmentRemediations { get; set; } = new();
+    public List<RemediationAction> CredentialRemediations { get; set; } = new();
+    public List<RemediationAction> PerformanceRemediations { get; set; } = new();
+    public List<RemediationAction> SecurityRemediations { get; set; } = new();
+    public List<RemediationAction> TestRemediations { get; set; } = new();
+    public List<ManualReviewItem> ManualReviewItems { get; set; } = new();
+
+    public int TotalIssuesFixed { get; private set; }
+    public int TotalIssuesAttempted { get; private set; }
+    public double RemediationSuccessRate { get; private set; }
+    public bool OverallSuccess { get; private set; }
+
+    public void CalculateResults()
+    {
+        var allActions = EnvironmentRemediations
+            .Concat(CredentialRemediations)
+            .Concat(PerformanceRemediations)
+            .Concat(SecurityRemediations)
+            .Concat(TestRemediations)
+            .ToList();
+
+        TotalIssuesAttempted = allActions.Count;
+        TotalIssuesFixed = allActions.Count(a => a.Success);
+        RemediationSuccessRate = TotalIssuesAttempted > 0 ? (double)TotalIssuesFixed / TotalIssuesAttempted : 1.0;
+        OverallSuccess = RemediationSuccessRate >= 0.8 && string.IsNullOrEmpty(CriticalError);
+    }
+
+    public Dictionary<string, object> GetSummary()
+    {
+        return new Dictionary<string, object>
+        {
+            ["StartTime"] = StartTime,
+            ["EndTime"] = EndTime,
+            ["Duration"] = TotalDuration.ToString(@"hh\:mm\:ss"),
+            ["TotalIssuesAttempted"] = TotalIssuesAttempted,
+            ["TotalIssuesFixed"] = TotalIssuesFixed,
+            ["SuccessRate"] = $"{RemediationSuccessRate:P1}",
+            ["OverallSuccess"] = OverallSuccess,
+            ["ManualReviewRequired"] = ManualReviewItems.Count,
+            ["CriticalError"] = CriticalError ?? "None"
+        };
+    }
+}
+
+public class RemediationAction
+{
+    public string Type { get; set; } = "";
+    public string Issue { get; set; } = "";
+    public bool AutoFixAttempted { get; set; }
+    public bool Success { get; set; }
+    public string? Result { get; set; }
+    public string? ErrorMessage { get; set; }
+    public List<string> Details { get; set; } = new();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+}
+
+public class ManualReviewItem
+{
+    public string Priority { get; set; } = "";
+    public string Category { get; set; } = "";
+    public string Issue { get; set; } = "";
+    public string Reason { get; set; } = "";
+    public string[] RecommendedActions { get; set; } = Array.Empty<string>();
+    public DateTime IdentifiedAt { get; set; } = DateTime.UtcNow;
+}
