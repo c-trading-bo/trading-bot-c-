@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using BotCore.Auth;
 
 namespace BotCore.Services;
 
@@ -28,11 +29,13 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
     private readonly ILogger<TopstepXHttpClient> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Random _jitterRandom = new();
+    private readonly ITopstepAuth? _authService;
 
-    public TopstepXHttpClient(HttpClient httpClient, ILogger<TopstepXHttpClient> logger)
+    public TopstepXHttpClient(HttpClient httpClient, ILogger<TopstepXHttpClient> logger, ITopstepAuth? authService = null)
     {
         _httpClient = httpClient;
         _logger = logger;
+        _authService = authService;
 
         // Set up HTTP base address centrally
         var baseAddress = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
@@ -40,14 +43,6 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
 
         // Set up default headers
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "TradingBot/1.0");
-        
-        // Set up auth token if available
-        var token = GetAuthToken();
-        if (!string.IsNullOrEmpty(token))
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-        }
 
         // JSON tolerance with snake_case policy 
         _jsonOptions = new JsonSerializerOptions
@@ -60,11 +55,13 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
             AllowTrailingCommas = true
         };
 
-        _logger.LogInformation("TopstepXHttpClient initialized with base address: {BaseAddress}", baseAddress);
+        _logger.LogInformation("TopstepXHttpClient initialized with base address: {BaseAddress}, AuthService: {HasAuth}", 
+            baseAddress, _authService != null);
     }
 
     public async Task<HttpResponseMessage> GetAsync(string requestUri, CancellationToken cancellationToken = default)
     {
+        await EnsureFreshTokenAsync(cancellationToken).ConfigureAwait(false);
         return await ExecuteWithRetryAsync(
             () => _httpClient.GetAsync(requestUri, cancellationToken),
             "GET",
@@ -75,6 +72,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
 
     public async Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent? content, CancellationToken cancellationToken = default)
     {
+        await EnsureFreshTokenAsync(cancellationToken).ConfigureAwait(false);
         return await ExecuteWithRetryAsync(
             () => _httpClient.PostAsync(requestUri, content, cancellationToken),
             "POST",
@@ -100,6 +98,59 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
 
         var response = await PostAsync(requestUri, httpContent, cancellationToken).ConfigureAwait(false);
         return await DeserializeResponseAsync<T>(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Ensure fresh JWT token before making requests
+    /// </summary>
+    private async Task EnsureFreshTokenAsync(CancellationToken cancellationToken)
+    {
+        if (_authService == null)
+        {
+            // Fall back to environment variable if no auth service
+            await SetAuthHeaderFromEnvironmentAsync().ConfigureAwait(false);
+            return;
+        }
+
+        try
+        {
+            await _authService.EnsureFreshTokenAsync(cancellationToken).ConfigureAwait(false);
+            var (jwt, _) = await _authService.GetFreshJwtAsync(cancellationToken).ConfigureAwait(false);
+            
+            if (!string.IsNullOrEmpty(jwt))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorData = new
+            {
+                timestamp = DateTimeOffset.UtcNow,
+                component = "topstepx_http_client",
+                operation = "ensure_fresh_token_failed",
+                error_type = ex.GetType().Name,
+                sanitized_message = SanitizeErrorMessage(ex.Message)
+            };
+
+            _logger.LogError("Failed to ensure fresh token: {ErrorData}", JsonSerializer.Serialize(errorData));
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Fallback method to set auth header from environment
+    /// </summary>
+    private async Task SetAuthHeaderFromEnvironmentAsync()
+    {
+        var token = GetAuthToken();
+        if (!string.IsNullOrEmpty(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        }
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -293,6 +344,32 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
         };
 
         var result = input;
+        foreach (var (pattern, replacement) in patterns)
+        {
+            result = System.Text.RegularExpressions.Regex.Replace(
+                result, pattern, replacement, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Sanitize error messages to prevent token leakage
+    /// </summary>
+    private static string SanitizeErrorMessage(string message)
+    {
+        if (string.IsNullOrEmpty(message))
+            return message;
+
+        // Remove potential token/secret patterns from error messages
+        var patterns = new[]
+        {
+            (@"(token|key|secret|password|auth)[=:]\s*[^\s,}]+", "$1=[REDACTED]"),
+            (@"(bearer\s+)[a-zA-Z0-9\.\-_]+", "$1[REDACTED]"),
+            (@"[a-zA-Z0-9]{50,}", "[LONG_STRING_REDACTED]") // Potential tokens
+        };
+
+        var result = message;
         foreach (var (pattern, replacement) in patterns)
         {
             result = System.Text.RegularExpressions.Regex.Replace(
