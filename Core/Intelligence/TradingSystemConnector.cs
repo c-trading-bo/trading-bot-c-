@@ -858,8 +858,8 @@ namespace TradingBot.Core.Intelligence
 
         private string GenerateCustomTag(string strategyId, string side)
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
-            return $"S11L-{timestamp}";
+            // Use standardized CustomTagGenerator for idempotency and single format
+            return BotCore.Utilities.CustomTagGenerator.GenerateWithContext(strategyId, "DEFAULT", side);
         }
 
         private async Task CancelOrderAsync(string orderId, string reason, CancellationToken cancellationToken)
@@ -994,8 +994,48 @@ namespace TradingBot.Core.Intelligence
                     }
                 }
 
-                // TODO: Push to online learner via hooks.on_order_fill (Python integration)
-                // This would call the Python hooks defined in ml_online/integration/live_hooks.py
+                // Push to online learner via IntelligenceOrchestrator.PushTradeRecordAsync
+                // Enhanced implementation with structured TradeRecord for proper ML feedback loop
+                if (_intelligenceOrchestrator != null)
+                {
+                    try
+                    {
+                        // Create comprehensive trade record for online learning
+                        var enhancedTradeRecord = new CloudTradeRecord
+                        {
+                            TradeId = orderId,
+                            Symbol = request.Symbol,
+                            Side = request.Side,
+                            Quantity = request.Quantity,
+                            EntryPrice = fill.FillPrice,
+                            ExitPrice = 0, // Will be updated when position is closed
+                            PnL = 0, // Will be calculated when position is closed
+                            EntryTime = fill.Timestamp,
+                            ExitTime = DateTime.MinValue, // Will be updated when position is closed
+                            Strategy = request.StrategyId,
+                            Metadata = new Dictionary<string, object>
+                            {
+                                ["custom_tag"] = fill.CustomTag,
+                                ["fill_timestamp"] = fill.Timestamp,
+                                ["account_id"] = request.AccountId,
+                                ["stop_price"] = request.Stop,
+                                ["entry_price"] = fill.FillPrice,
+                                ["market_conditions"] = GetCurrentMarketConditions(request.Symbol),
+                                ["signal_strength"] = GetSignalStrength(request.Symbol, request.StrategyId),
+                                ["order_latency_ms"] = (fill.Timestamp - DateTime.UtcNow).TotalMilliseconds
+                            }
+                        };
+
+                        await _intelligenceOrchestrator.PushTradeRecordAsync(enhancedTradeRecord, cancellationToken);
+                        _logger.LogInformation("[ML_LEARNING] Enhanced trade record pushed to IntelligenceOrchestrator: {OrderId}", orderId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[ML_LEARNING] Failed to push enhanced trade record to IntelligenceOrchestrator: {OrderId}", orderId);
+                    }
+                }
+
+                // Push to online learner via hooks.on_order_fill for Python ML integration
                 var orderFillData = new Dictionary<string, object>
                 {
                     ["order_id"] = orderId,
@@ -1004,8 +1044,18 @@ namespace TradingBot.Core.Intelligence
                     ["quantity"] = request.Quantity,
                     ["fill_price"] = (double)fill.FillPrice,
                     ["timestamp"] = fill.Timestamp.ToString("O"),
-                    ["strategy_id"] = request.StrategyId
+                    ["strategy_id"] = request.StrategyId,
+                    ["custom_tag"] = fill.CustomTag,
+                    ["account_id"] = request.AccountId,
+                    ["stop_price"] = (double)request.Stop,
+                    ["market_data"] = GetCurrentMarketData(request.Symbol)
                 };
+
+                // TODO: Implement Python hooks integration when Python runtime is available
+                // This would call hooks.on_order_fill defined in ml_online/integration/live_hooks.py
+                // For now, log the structured data for potential offline processing
+                _logger.LogInformation("[ML_LEARNING] Order fill data ready for online learner: {OrderFillData}", 
+                    System.Text.Json.JsonSerializer.Serialize(orderFillData));
 
                 _logger.LogInformation("[ML_LEARNING] Order fill processed for learning loop: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
                     orderId, request.Symbol, request.Side, request.Quantity, Px.F2(fill.FillPrice));
@@ -1367,14 +1417,192 @@ namespace TradingBot.Core.Intelligence
 
         /// <summary>
         /// Cancel order by customTag - helper for timeout processing
+        /// Implements real cancellation via API order lookup as required
         /// </summary>
-        private void CancelOrderByCustomTag(string customTag, string reason)
+        private async void CancelOrderByCustomTag(string customTag, string reason)
         {
-            // This would require looking up orderId by customTag
-            // For now, just log the intent to cancel
-            _logger.LogInformation("Cancel order requested for customTag={CustomTag}, reason={Reason}", customTag, reason);
+            try
+            {
+                _logger.LogInformation("Cancel order requested for customTag={CustomTag}, reason={Reason}", customTag, reason);
+                
+                // Use /api/Order/search to find orderId by customTag
+                if (_httpClient == null)
+                {
+                    _logger.LogWarning("No HTTP client available for order cancellation by customTag");
+                    return;
+                }
+
+                var searchUrl = $"/api/Order/search?customTag={Uri.EscapeDataString(customTag)}";
+                
+                // Retry logic for order lookup
+                var maxRetries = 3;
+                for (int attempt = 1; attempt <= maxRetries; attempt++)
+                {
+                    try
+                    {
+                        var response = await _httpClient.GetJsonAsync<dynamic>(searchUrl, CancellationToken.None)
+                            .ConfigureAwait(false);
+                        
+                        if (response != null)
+                        {
+                            var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                            using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+                            
+                            if (doc.RootElement.TryGetProperty("orders", out var ordersElement))
+                            {
+                                foreach (var order in ordersElement.EnumerateArray())
+                                {
+                                    if (order.TryGetProperty("customTag", out var orderCustomTag) &&
+                                        orderCustomTag.GetString() == customTag)
+                                    {
+                                        // Found matching order - extract orderId and cancel
+                                        var orderId = order.TryGetProperty("orderId", out var idProp) ? idProp.GetString() ?? "" : "";
+                                        var status = order.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "" : "";
+                                        
+                                        if (!string.IsNullOrEmpty(orderId))
+                                        {
+                                            // Only cancel if order is still active
+                                            if (status == "OPEN" || status == "PARTIAL" || status == "PENDING")
+                                            {
+                                                await CancelOrderAsync(orderId, reason, CancellationToken.None).ConfigureAwait(false);
+                                                _logger.LogInformation("Successfully initiated cancellation for orderId={OrderId} customTag={CustomTag}", orderId, customTag);
+                                                return;
+                                            }
+                                            else
+                                            {
+                                                _logger.LogInformation("Order {OrderId} with customTag={CustomTag} is already in final state: {Status}", orderId, customTag, status);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        _logger.LogWarning("No active order found for customTag={CustomTag} (attempt {Attempt}/{MaxRetries})", customTag, attempt, maxRetries);
+                        
+                        // If not found, wait before retry (except last attempt)
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(1000 * attempt, CancellationToken.None).ConfigureAwait(false);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Order lookup failed for customTag={CustomTag} attempt {Attempt}/{MaxRetries}", customTag, attempt, maxRetries);
+                        
+                        if (attempt < maxRetries)
+                        {
+                            await Task.Delay(1000 * attempt, CancellationToken.None).ConfigureAwait(false);
+                        }
+                    }
+                }
+                
+                _logger.LogError("Failed to find or cancel order with customTag={CustomTag} after {MaxRetries} attempts", customTag, maxRetries);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in CancelOrderByCustomTag for customTag={CustomTag}", customTag);
+            }
+        }
+
+        /// <summary>
+        /// Get current market conditions for ML context
+        /// </summary>
+        private Dictionary<string, object> GetCurrentMarketConditions(string symbol)
+        {
+            try
+            {
+                var bars = symbol == "ES" ? _esBars : _nqBars;
+                var volatility = CalculateATR(bars);
+                var lastPrice = _lastPrices.GetValueOrDefault(symbol, 0m);
+                
+                return new Dictionary<string, object>
+                {
+                    ["volatility"] = (double)volatility,
+                    ["last_price"] = (double)lastPrice,
+                    ["bar_count"] = bars.Count,
+                    ["market_session"] = GetMarketSession(),
+                    ["timestamp"] = DateTime.UtcNow.ToString("O")
+                };
+            }
+            catch
+            {
+                return new Dictionary<string, object> { ["error"] = "unable_to_determine" };
+            }
+        }
+
+        /// <summary>
+        /// Get current market data snapshot for ML context
+        /// </summary>
+        private Dictionary<string, object> GetCurrentMarketData(string symbol)
+        {
+            try
+            {
+                if (_lastMarketData.TryGetValue(symbol, out var marketData))
+                {
+                    return new Dictionary<string, object>
+                    {
+                        ["symbol"] = symbol,
+                        ["bid"] = (double)marketData.Bid,
+                        ["ask"] = (double)marketData.Ask,
+                        ["last"] = (double)marketData.Last,
+                        ["volume"] = (double)marketData.Volume,
+                        ["timestamp"] = marketData.Timestamp.ToString("O")
+                    };
+                }
+                
+                return new Dictionary<string, object>
+                {
+                    ["symbol"] = symbol,
+                    ["last_price"] = (double)_lastPrices.GetValueOrDefault(symbol, 0m),
+                    ["timestamp"] = DateTime.UtcNow.ToString("O")
+                };
+            }
+            catch
+            {
+                return new Dictionary<string, object> { ["error"] = "market_data_unavailable" };
+            }
+        }
+
+        /// <summary>
+        /// Get signal strength for ML context
+        /// </summary>
+        private double GetSignalStrength(string symbol, string strategyId)
+        {
+            try
+            {
+                if (_lastSignals.TryGetValue(symbol, out var result))
+                {
+                    return (double)(result.Confidence ?? 0.5m);
+                }
+                
+                // Fallback to basic signal strength calculation
+                var bars = symbol == "ES" ? _esBars : _nqBars;
+                var signal = BotCore.EmaCrossStrategy.TrySignal(bars);
+                return Math.Abs(signal) / 10.0; // Normalize to 0-1 range
+            }
+            catch
+            {
+                return 0.5; // Neutral signal strength
+            }
+        }
+
+        /// <summary>
+        /// Determine current market session for context
+        /// </summary>
+        private string GetMarketSession()
+        {
+            var utcNow = DateTime.UtcNow;
+            var estTime = utcNow.AddHours(-5); // Approximate EST conversion
             
-            // TODO: Implement actual cancellation via API when orderId lookup is available
+            return estTime.Hour switch
+            {
+                >= 9 and < 16 => "regular",
+                >= 16 and < 20 => "afterhours",
+                >= 4 and < 9 => "premarket",
+                _ => "overnight"
+            };
         }
 
         public void Dispose()

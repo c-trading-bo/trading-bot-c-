@@ -586,8 +586,27 @@ namespace OrchestratorAgent
                                     P_cloud = 0.6; // Fallback when orchestrator not available
                                 }
                                 
-                                // TODO: Get online prediction via hooks.on_signal(symbol, strategy_id)
-                                P_online = 0.7; // Placeholder - will be implemented with Python integration
+                                // Get online prediction via hooks.on_signal(symbol, strategy_id)
+                                // Enhanced online learner integration with fallback
+                                if (_intelligenceOrchestrator != null)
+                                {
+                                    try
+                                    {
+                                        // Try to get online prediction from intelligence orchestrator
+                                        var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId);
+                                        P_online = onlinePrediction?.Confidence ?? 0.7;
+                                        _log.LogDebug("[ML_GATE] Online prediction for {Symbol} {Strategy}: confidence={Confidence}", s.Symbol, s.StrategyId, P_online);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _log.LogWarning(ex, "[ML_GATE] Failed to get online prediction for {Symbol} {Strategy}, using fallback", s.Symbol, s.StrategyId);
+                                        P_online = 0.65; // Conservative fallback when online prediction fails
+                                    }
+                                }
+                                else
+                                {
+                                    P_online = 0.7; // Fallback when orchestrator not available
+                                }
                                 
                                 // Blended prediction per Topstep weighting: w = clip(n_recent / (n_recent + 500), 0.2, 0.8)
                                 var recentSignalsCount = _recentSignals.Count;

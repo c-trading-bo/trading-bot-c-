@@ -130,10 +130,10 @@ namespace TopstepX.Bot.Core.Services
             
             try
             {
-                // Generate unique client order ID if not provided
+                // Generate unique client order ID if not provided using standardized generator
                 if (string.IsNullOrEmpty(request.ClientOrderId))
                 {
-                    request.ClientOrderId = $"S11L-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..6]}";
+                    request.ClientOrderId = BotCore.Utilities.CustomTagGenerator.Generate();
                 }
                 
                 // Create tracking record
