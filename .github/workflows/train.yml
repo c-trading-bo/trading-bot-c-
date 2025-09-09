@@ -32,6 +32,10 @@ on:
         default: false
         type: boolean
 
+# Explicit permissions to follow security best practices
+permissions:
+  contents: read  # Required for actions/checkout
+
 env:
   DOTNET_VERSION: '8.0'
   PYTHON_VERSION: '3.11'
