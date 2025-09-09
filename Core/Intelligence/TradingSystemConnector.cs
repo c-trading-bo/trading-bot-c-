@@ -967,9 +967,11 @@ namespace TradingBot.Core.Intelligence
                     Strategy = request.StrategyId,
                     Metadata = new Dictionary<string, object>
                     {
-                        ["custom_tag"] = request.StrategyId,
+                        ["custom_tag"] = fill.CustomTag,
                         ["fill_timestamp"] = fill.Timestamp,
-                        ["account_id"] = request.AccountId
+                        ["account_id"] = request.AccountId,
+                        ["stop_price"] = request.Stop,
+                        ["entry_price"] = fill.FillPrice
                     }
                 };
 

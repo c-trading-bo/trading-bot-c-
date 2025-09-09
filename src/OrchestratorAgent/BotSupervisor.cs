@@ -18,7 +18,7 @@ using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -49,12 +49,15 @@ namespace OrchestratorAgent
         private readonly Config _cfg = cfg;
         private readonly FeatureEngineering? _featureEngineering = featureEngineering;
         private readonly UnifiedDecisionLogger? _decisionLogger = decisionLogger;
+        private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator = intelligenceOrchestrator;
+        private readonly TradingBot.IntelligenceAgent.IVerifier? _verifier = verifier;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
         private readonly Notifier _notifier = new();
         private readonly List<LastSignal> _recentSignals = [];
         private int _barsSeen = 0; // Counter for AUTO_EXECUTE gating
+        private DateTime _lastVerify = default; // Track last verification time for debounce
         private sealed record LastSignal(string Strategy, string Symbol, string Side, decimal Sp, decimal Tp, decimal Sl);
 
         public async Task RunAsync(CancellationToken ct)
@@ -532,8 +535,17 @@ namespace OrchestratorAgent
                         {
                             try
                             {
-                                // TODO: Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
-                                P_cloud = 0.6; // Placeholder - will be implemented with real orchestrator
+                                // Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
+                                if (_intelligenceOrchestrator != null)
+                                {
+                                    var prediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol);
+                                    P_cloud = prediction.Confidence;
+                                    _log.LogDebug("[ML_GATE] Cloud prediction for {Symbol}: confidence={Confidence}", s.Symbol, P_cloud);
+                                }
+                                else
+                                {
+                                    P_cloud = 0.6; // Fallback when orchestrator not available
+                                }
                                 
                                 // TODO: Get online prediction via hooks.on_signal(symbol, strategy_id)
                                 P_online = 0.7; // Placeholder - will be implemented with Python integration
@@ -543,8 +555,8 @@ namespace OrchestratorAgent
                                 var w = Math.Max(0.2, Math.Min(0.8, recentSignalsCount / (double)(recentSignalsCount + 500)));
                                 P_final = w * P_online + (1 - w) * P_cloud;
                                 
-                                // Confidence gating: trade only if P_final >= min_confidence
-                                var minConfidence = 0.55;
+                                // Confidence gating: trade only if P_final >= 0.70 (updated threshold)
+                                var minConfidence = 0.70;
                                 mlGatesPassed = P_final >= minConfidence;
                                 
                                 _log.LogInformation("[ML_GATE] {Sym} {Strat}: P_cloud={P_cloud:F3}, P_online={P_online:F3}, P_final={P_final:F3}, gate={Gate}", 
@@ -713,6 +725,57 @@ namespace OrchestratorAgent
                     _status.Set("kill", "true");
                     _log.LogError("KILL_SWITCH active: cancelled all open orders and exiting supervisor loop.");
                     return;
+                }
+
+                // VerifyTodayAsync - debounce to every 5 minutes during trading hours
+                if (_verifier != null && (_lastVerify == default || (DateTime.UtcNow - _lastVerify) >= TimeSpan.FromMinutes(5)))
+                {
+                    try
+                    {
+                        var verificationResult = await _verifier.VerifyTodayAsync(ct);
+                        _lastVerify = DateTime.UtcNow;
+                        
+                        if (verificationResult != null)
+                        {
+                            var orderCount = verificationResult.OrdersByStatus.Values.Sum();
+                            var tradeCount = verificationResult.TradesByStatus.Values.Sum();
+                            
+                            _log.LogInformation("Trade verification completed: Orders={OrderCount}, Trades={TradeCount}, Success={Success}",
+                                orderCount, tradeCount, verificationResult.Success);
+                                
+                            // Print totals by status as required
+                            foreach (var kvp in verificationResult.OrdersByStatus)
+                            {
+                                _log.LogInformation("Orders {Status}: {Count}", kvp.Key, kvp.Value);
+                            }
+                            foreach (var kvp in verificationResult.TradesByStatus)
+                            {
+                                _log.LogInformation("Trades {Status}: {Count}", kvp.Key, kvp.Value);
+                            }
+                                
+                            // Alert on verification failure
+                            if (!verificationResult.Success && !string.IsNullOrEmpty(verificationResult.ErrorMessage))
+                            {
+                                _log.LogError("Trade verification failed: {ErrorMessage}", verificationResult.ErrorMessage);
+                                // TODO: Add operator alerting here
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogError(ex, "Failed to execute trade verification");
+                    }
+                }
+
+                // kill.txt enforcement - force DRY_RUN mode if file exists
+                if (File.Exists("kill.txt"))
+                {
+                    var currentBotMode = Environment.GetEnvironmentVariable("BOT_MODE");
+                    if (currentBotMode != "DRY_RUN")
+                    {
+                        Environment.SetEnvironmentVariable("BOT_MODE", "DRY_RUN");
+                        _log.LogWarning("kill.txt detected — forcing DRY_RUN (no live orders). Previous mode: {PreviousMode}", currentBotMode ?? "unset");
+                    }
                 }
 
                 var pause = Environment.GetEnvironmentVariable("ROUTE_PAUSE") == "1";

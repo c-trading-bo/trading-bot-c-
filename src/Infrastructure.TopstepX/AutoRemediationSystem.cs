@@ -141,11 +141,21 @@ public class AutoRemediationSystem
 
             try
             {
-                Environment.SetEnvironmentVariable("BOT_MODE", "staging");
+                // Respect existing BOT_MODE from launcher, only set if not already defined
+                var existingBotMode = Environment.GetEnvironmentVariable("BOT_MODE");
+                if (string.IsNullOrWhiteSpace(existingBotMode))
+                {
+                    Environment.SetEnvironmentVariable("BOT_MODE", "staging");
+                    action.Details.Add("BOT_MODE = staging (set)");
+                }
+                else
+                {
+                    action.Details.Add($"BOT_MODE = {existingBotMode} (preserved from launcher)");
+                }
+                
                 Environment.SetEnvironmentVariable("DRY_RUN", "true");
                 action.Success = true;
                 action.Result = "Set bot mode to staging with dry run enabled";
-                action.Details.Add("BOT_MODE = staging");
                 action.Details.Add("DRY_RUN = true");
             }
             catch (Exception ex)
