@@ -29,93 +29,113 @@ public class HealthCheckDiscovery
     public async Task<List<IHealthCheck>> DiscoverHealthChecksAsync()
     {
         var healthChecks = new List<IHealthCheck>();
-        var discoveredTypes = new List<(Type Type, HealthCheckAttribute? Attribute)>();
-        await Task.Delay(1); // Satisfy async requirement
 
         try
         {
-            // Scan current assembly and any OrchestratorAgent assemblies
-            var assemblies = new[]
-            {
-                Assembly.GetExecutingAssembly(),
-                Assembly.GetEntryAssembly()
-            }.Where(a => a != null).Distinct();
+            // Get all assemblies in the current domain
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location));
 
             foreach (var assembly in assemblies)
             {
-                var types = assembly!.GetTypes()
-                    .Where(t => t.IsClass && !t.IsAbstract && typeof(IHealthCheck).IsAssignableFrom(t))
-                    .ToList();
-
-                foreach (var type in types)
-                {
-                    var attribute = type.GetCustomAttribute<HealthCheckAttribute>();
-                    discoveredTypes.Add((type, attribute));
-                }
-            }
-
-            _logger.LogInformation($"[HEALTH-DISCOVERY] Found {discoveredTypes.Count} health check types");
-
-            // Create instances of discovered health checks
-            foreach (var (type, attribute) in discoveredTypes)
-            {
                 try
                 {
-                    // Skip disabled health checks
-                    if (attribute?.Enabled == false)
-                    {
-                        _logger.LogInformation($"[HEALTH-DISCOVERY] Skipping disabled health check: {type.Name}");
-                        continue;
-                    }
+                    var healthCheckTypes = assembly.GetTypes()
+                        .Where(t => typeof(IHealthCheck).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract)
+                        .Where(t => t.GetCustomAttribute<HealthCheckAttribute>()?.Enabled != false)
+                        .OrderBy(GetPriority);
 
-                    // Try to create instance using DI container first
-                    IHealthCheck? healthCheck = null;
-                    try
+                    foreach (var type in healthCheckTypes)
                     {
-                        healthCheck = (IHealthCheck?)_serviceProvider.GetService(type);
-                    }
-                    catch
-                    {
-                        // Fall back to Activator if DI fails
                         try
                         {
-                            healthCheck = (IHealthCheck?)Activator.CreateInstance(type);
+                            var instance = ActivatorUtilities.CreateInstance(_serviceProvider, type) as IHealthCheck;
+                            if (instance != null)
+                            {
+                                healthChecks.Add(instance);
+                                _logger.LogDebug("[HEALTH-DISCOVERY] Discovered health check: {Name} ({Type})", 
+                                    instance.Name, type.Name);
+                            }
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogWarning($"[HEALTH-DISCOVERY] Could not create instance of {type.Name}: {ex.Message}");
-                            continue;
+                            _logger.LogWarning(ex, "[HEALTH-DISCOVERY] Failed to create instance of health check: {Type}", type.Name);
                         }
-                    }
-
-                    if (healthCheck != null)
-                    {
-                        healthChecks.Add(healthCheck);
-                        _logger.LogInformation($"[HEALTH-DISCOVERY] Registered health check: {healthCheck.Name} ({healthCheck.Category})");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"[HEALTH-DISCOVERY] Failed to instantiate health check {type.Name}");
+                    _logger.LogDebug(ex, "[HEALTH-DISCOVERY] Could not examine assembly: {Assembly}", assembly.GetName().Name);
                 }
             }
 
-            // Sort by priority if available
-            healthChecks = healthChecks
-                .OrderBy(hc => GetPriority(hc.GetType()))
-                .ThenBy(hc => hc.Category)
-                .ThenBy(hc => hc.Name)
-                .ToList();
-
-            _logger.LogInformation($"[HEALTH-DISCOVERY] Successfully registered {healthChecks.Count} health checks");
-
-            return healthChecks;
+            _logger.LogInformation("[HEALTH-DISCOVERY] Discovered {Count} health checks", healthChecks.Count);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HEALTH-DISCOVERY] Failed to discover health checks");
-            return new List<IHealthCheck>();
         }
+
+        return healthChecks;
+    }
+
+    /// <summary>
+    /// Registers all discovered health checks with the service collection
+    /// </summary>
+    public async Task RegisterDiscoveredHealthChecksAsync(IServiceCollection services)
+    {
+        try
+        {
+            var healthChecks = await DiscoverHealthChecksAsync();
+
+            foreach (var healthCheck in healthChecks)
+            {
+                // Register the health check as a singleton
+                services.AddSingleton(healthCheck);
+                _logger.LogDebug("[HEALTH-DISCOVERY] Registered health check: {Name}", healthCheck.Name);
+            }
+
+            _logger.LogInformation("[HEALTH-DISCOVERY] Registered {Count} health checks", healthChecks.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[HEALTH-DISCOVERY] Failed to register health checks");
+        }
+    }
+
+    /// <summary>
+    /// Gets a summary of all registered health checks
+    /// </summary>
+    public async Task<Dictionary<string, object>> GetHealthCheckSummaryAsync()
+    {
+        var summary = new Dictionary<string, object>();
+
+        try
+        {
+            var healthChecks = await DiscoverHealthChecksAsync();
+
+            summary["total_count"] = healthChecks.Count;
+            summary["categories"] = healthChecks.GroupBy(h => h.Category)
+                .ToDictionary(g => g.Key, g => g.Count());
+            summary["intervals"] = healthChecks.GroupBy(h => h.IntervalSeconds)
+                .ToDictionary(g => g.Key, g => g.Count());
+            summary["health_checks"] = healthChecks.Select(h => new
+            {
+                name = h.Name,
+                category = h.Category,
+                description = h.Description,
+                interval_seconds = h.IntervalSeconds
+            }).ToList();
+
+            _logger.LogDebug("[HEALTH-DISCOVERY] Generated health check summary");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[HEALTH-DISCOVERY] Failed to generate health check summary");
+            summary["error"] = ex.Message;
+        }
+
+        return summary;
     }
 
     /// <summary>
@@ -164,38 +184,38 @@ public class HealthCheckDiscovery
             _logger.LogError(ex, "[HEALTH-DISCOVERY] Failed to scan for unmonitored features");
             return new List<string>();
         }
+    }
 
-        private async Task PerformAdvancedCodeAnalysis(List<string> unmonitored)
+    private async Task PerformAdvancedCodeAnalysis(List<string> unmonitored)
+    {
+        try
         {
-            try
+            await Task.Delay(50); // Simulate analysis time
+            
+            // Scan for new classes with [Strategy] attributes
+            var strategyClasses = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .Where(t => t.GetCustomAttributes().Any(attr => attr.GetType().Name.Contains("Strategy")))
+                .Count();
+            
+            if (strategyClasses > 0)
             {
-                await Task.Delay(50); // Simulate analysis time
-                
-                // Scan for new classes with [Strategy] attributes
-                var strategyClasses = AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(a => a.GetTypes())
-                    .Where(t => t.GetCustomAttributes().Any(attr => attr.GetType().Name.Contains("Strategy")))
-                    .Count();
-                
-                if (strategyClasses > 0)
-                {
-                    _logger.LogDebug("[HEALTH-DISCOVERY] Found {StrategyCount} strategy classes", strategyClasses);
-                }
+                _logger.LogDebug("[HEALTH-DISCOVERY] Found {StrategyCount} strategy classes", strategyClasses);
+            }
 
-                // Check for new configuration sections (placeholder)
-                var configSections = new[] { "Trading", "ML", "Cloud", "Alerts" };
-                foreach (var section in configSections)
-                {
-                    // Simulate configuration check
-                    await Task.Delay(10);
-                }
-                
-                _logger.LogDebug("[HEALTH-DISCOVERY] Advanced code analysis completed");
-            }
-            catch (Exception ex)
+            // Check for new configuration sections (placeholder)
+            var configSections = new[] { "Trading", "ML", "Cloud", "Alerts" };
+            foreach (var section in configSections)
             {
-                _logger.LogWarning(ex, "[HEALTH-DISCOVERY] Advanced code analysis failed");
+                // Simulate configuration check
+                await Task.Delay(10);
             }
+            
+            _logger.LogDebug("[HEALTH-DISCOVERY] Advanced code analysis completed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[HEALTH-DISCOVERY] Advanced code analysis failed");
         }
     }
 

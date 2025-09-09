@@ -27,6 +27,7 @@
       <Aliases>BotCoreProject</Aliases>
     </ProjectReference>
     <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
+    <ProjectReference Include="..\IntelligenceStack\IntelligenceStack.csproj" />
   </ItemGroup>
   
   <ItemGroup>

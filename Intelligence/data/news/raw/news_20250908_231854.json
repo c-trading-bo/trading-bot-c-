@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-08T23:18:54.831139",
+  "article_count": 60,
+  "avg_sentiment": 0.07333333333333335,
+  "news_intensity": 1.0,
+  "volatility_score": 2,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 2
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Leerink Partners Maintained a Buy on Merck & Co (MRK)",
+      "summary": "",
+      "published": "2025-09-07T14:23:49Z",
+      "link": "https://finance.yahoo.com/news/leerink-partners-maintained-buy-merck-142349751.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "William Blair Reiterates a Buy on Amgen Inc (AMGN)",
+      "summary": "",
+      "published": "2025-09-07T14:24:00Z",
+      "link": "https://finance.yahoo.com/news/william-blair-reiterates-buy-amgen-142400986.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Leerink Partners Maintains Buy on Gilead Sciences (GILD)",
+      "summary": "",
+      "published": "2025-09-07T14:23:57Z",
+      "link": "https://finance.yahoo.com/news/leerink-partners-maintains-buy-gilead-142357222.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Wall Street is Bullish on Verizon Communications (VZ)",
+      "summary": "",
+      "published": "2025-09-07T14:23:59Z",
+      "link": "https://finance.yahoo.com/news/why-wall-street-bullish-verizon-142359577.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "This Stock Could Pay Off Better Than a Lottery Ticket -- if You Hold Long Enough",
+      "summary": "",
+      "published": "2025-09-07T14:45:00Z",
+      "link": "https://finance.yahoo.com/news/stock-could-pay-off-better-144500656.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Wall Street is Bullish on Capital One Financial Corporation (COF)",
+      "summary": "",
+      "published": "2025-09-07T14:23:44Z",
+      "link": "https://finance.yahoo.com/news/why-wall-street-bullish-capital-142344238.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Pfizer Inc (PFE) Announces New Trial Collaboration With Olema Pharmaceuticals",
+      "summary": "",
+      "published": "2025-09-07T14:23:50Z",
+      "link": "https://finance.yahoo.com/news/pfizer-inc-pfe-announces-trial-142350529.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bank of America Corporation (BAC) Launches Alts Expanded Access Program With Merrill Wealth Management",
+      "summary": "",
+      "published": "2025-09-07T14:23:46Z",
+      "link": "https://finance.yahoo.com/news/bank-america-corporation-bac-launches-142346947.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wells Fargo & Company (WFC) Partners With InvestCloud",
+      "summary": "",
+      "published": "2025-09-07T14:23:56Z",
+      "link": "https://finance.yahoo.com/news/wells-fargo-company-wfc-partners-142356303.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: AECOM",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2672_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "What is Mistral AI? Everything to know about the OpenAI competitor",
+      "summary": "",
+      "published": "2025-09-07T14:54:03Z",
+      "link": "https://finance.yahoo.com/news/mistral-ai-everything-know-openai-194318445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Citigroup (C) Extends Partnership with SMRT",
+      "summary": "",
+      "published": "2025-09-07T14:23:47Z",
+      "link": "https://finance.yahoo.com/news/citigroup-c-extends-partnership-smrt-142347639.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Goldman Sachs Maintains a Buy on AT&T Inc. (T)",
+      "summary": "",
+      "published": "2025-09-07T14:23:52Z",
+      "link": "https://finance.yahoo.com/news/goldman-sachs-maintains-buy-t-142352115.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "QUALCOMM (QCOM) Launches Dragonwing Q-6690, World\u2019s First Enterprise Mobile Processor",
+      "summary": "",
+      "published": "2025-09-07T14:23:54Z",
+      "link": "https://finance.yahoo.com/news/qualcomm-qcom-launches-dragonwing-q-142354038.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Comcast Corporation (CMCSA) Announces Xfinity Mobile Arena in Philadelphia",
+      "summary": "",
+      "published": "2025-09-07T14:23:53Z",
+      "link": "https://finance.yahoo.com/news/comcast-corporation-cmcsa-announces-xfinity-142353656.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Suburban Propane Partners L P",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3404_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Robert Kiyosaki\u2019s Hottest Take on Investing \u2014 Is He Right?",
+      "summary": "",
+      "published": "2025-09-07T14:57:07Z",
+      "link": "https://finance.yahoo.com/news/robert-kiyosaki-hottest-investing-145707170.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Susquehanna Highlights Marvell\u2019s (MRVL) AI Networking Strength in Buy Case",
+      "summary": "",
+      "published": "2025-09-07T14:08:39Z",
+      "link": "https://finance.yahoo.com/news/susquehanna-highlights-marvell-mrvl-ai-140839401.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "What Does Barrington Analyst Like About Dave\u2019s (DAVE) Latest Earnings Report?",
+      "summary": "",
+      "published": "2025-09-07T14:08:47Z",
+      "link": "https://finance.yahoo.com/news/does-barrington-analyst-dave-dave-140847314.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Goldman Sachs Maintains a Buy on AT&T Inc. (T)",
+      "summary": "",
+      "published": "2025-09-07T14:23:52Z",
+      "link": "https://finance.yahoo.com/news/goldman-sachs-maintains-buy-t-142352115.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Bank of America Corporation (BAC) Launches Alts Expanded Access Program With Merrill Wealth Management",
+      "summary": "",
+      "published": "2025-09-07T14:23:46Z",
+      "link": "https://finance.yahoo.com/news/bank-america-corporation-bac-launches-142346947.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "William Blair Reiterates a Buy on Amgen Inc (AMGN)",
+      "summary": "",
+      "published": "2025-09-07T14:24:00Z",
+      "link": "https://finance.yahoo.com/news/william-blair-reiterates-buy-amgen-142400986.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Citigroup (C) Extends Partnership with SMRT",
+      "summary": "",
+      "published": "2025-09-07T14:23:47Z",
+      "link": "https://finance.yahoo.com/news/citigroup-c-extends-partnership-smrt-142347639.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "What is Mistral AI? Everything to know about the OpenAI competitor",
+      "summary": "",
+      "published": "2025-09-07T14:54:03Z",
+      "link": "https://finance.yahoo.com/news/mistral-ai-everything-know-openai-194318445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Comcast Corporation (CMCSA) Announces Xfinity Mobile Arena in Philadelphia",
+      "summary": "",
+      "published": "2025-09-07T14:23:53Z",
+      "link": "https://finance.yahoo.com/news/comcast-corporation-cmcsa-announces-xfinity-142353656.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Pfizer Inc (PFE) Announces New Trial Collaboration With Olema Pharmaceuticals",
+      "summary": "",
+      "published": "2025-09-07T14:23:50Z",
+      "link": "https://finance.yahoo.com/news/pfizer-inc-pfe-announces-trial-142350529.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wells Fargo & Company (WFC) Partners With InvestCloud",
+      "summary": "",
+      "published": "2025-09-07T14:23:56Z",
+      "link": "https://finance.yahoo.com/news/wells-fargo-company-wfc-partners-142356303.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Leerink Partners Maintained a Buy on Merck & Co (MRK)",
+      "summary": "",
+      "published": "2025-09-07T14:23:49Z",
+      "link": "https://finance.yahoo.com/news/leerink-partners-maintained-buy-merck-142349751.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: AECOM",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2672_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Robert Kiyosaki\u2019s Hottest Take on Investing \u2014 Is He Right?",
+      "summary": "",
+      "published": "2025-09-07T14:57:07Z",
+      "link": "https://finance.yahoo.com/news/robert-kiyosaki-hottest-investing-145707170.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "QUALCOMM (QCOM) Launches Dragonwing Q-6690, World\u2019s First Enterprise Mobile Processor",
+      "summary": "",
+      "published": "2025-09-07T14:23:54Z",
+      "link": "https://finance.yahoo.com/news/qualcomm-qcom-launches-dragonwing-q-142354038.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Leerink Partners Maintains Buy on Gilead Sciences (GILD)",
+      "summary": "",
+      "published": "2025-09-07T14:23:57Z",
+      "link": "https://finance.yahoo.com/news/leerink-partners-maintains-buy-gilead-142357222.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Wall Street is Bullish on Verizon Communications (VZ)",
+      "summary": "",
+      "published": "2025-09-07T14:23:59Z",
+      "link": "https://finance.yahoo.com/news/why-wall-street-bullish-verizon-142359577.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Wall Street is Bullish on Capital One Financial Corporation (COF)",
+      "summary": "",
+      "published": "2025-09-07T14:23:44Z",
+      "link": "https://finance.yahoo.com/news/why-wall-street-bullish-capital-142344238.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Suburban Propane Partners L P",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3404_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Chainlink CEO Sees Tokenization as Sector's Rising Future After Meeting SEC's Atkins",
+      "summary": "",
+      "published": "2025-09-07T15:00:00Z",
+      "link": "https://finance.yahoo.com/news/chainlink-ceo-sees-tokenization-sectors-150000467.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Morgan Stanley Initiates Coverage on QXO (QXO) With Buy Rating and $35 Target",
+      "summary": "",
+      "published": "2025-09-07T14:08:42Z",
+      "link": "https://finance.yahoo.com/news/morgan-stanley-initiates-coverage-qxo-140842057.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Coherent (COHR) Is Building Momentum Across Telecom and Optical Markets, Says Susquehanna",
+      "summary": "",
+      "published": "2025-09-07T14:08:41Z",
+      "link": "https://finance.yahoo.com/news/coherent-cohr-building-momentum-across-140841717.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Goldman Sachs Maintains a Buy on AT&T Inc. (T)",
+      "summary": "",
+      "published": "2025-09-07T14:23:52Z",
+      "link": "https://finance.yahoo.com/news/goldman-sachs-maintains-buy-t-142352115.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Bank of America Corporation (BAC) Launches Alts Expanded Access Program With Merrill Wealth Management",
+      "summary": "",
+      "published": "2025-09-07T14:23:46Z",
+      "link": "https://finance.yahoo.com/news/bank-america-corporation-bac-launches-142346947.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "William Blair Reiterates a Buy on Amgen Inc (AMGN)",
+      "summary": "",
+      "published": "2025-09-07T14:24:00Z",
+      "link": "https://finance.yahoo.com/news/william-blair-reiterates-buy-amgen-142400986.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Citigroup (C) Extends Partnership with SMRT",
+      "summary": "",
+      "published": "2025-09-07T14:23:47Z",
+      "link": "https://finance.yahoo.com/news/citigroup-c-extends-partnership-smrt-142347639.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "What is Mistral AI? Everything to know about the OpenAI competitor",
+      "summary": "",
+      "published": "2025-09-07T14:54:03Z",
+      "link": "https://finance.yahoo.com/news/mistral-ai-everything-know-openai-194318445.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Comcast Corporation (CMCSA) Announces Xfinity Mobile Arena in Philadelphia",
+      "summary": "",
+      "published": "2025-09-07T14:23:53Z",
+      "link": "https://finance.yahoo.com/news/comcast-corporation-cmcsa-announces-xfinity-142353656.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Pfizer Inc (PFE) Announces New Trial Collaboration With Olema Pharmaceuticals",
+      "summary": "",
+      "published": "2025-09-07T14:23:50Z",
+      "link": "https://finance.yahoo.com/news/pfizer-inc-pfe-announces-trial-142350529.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Wells Fargo & Company (WFC) Partners With InvestCloud",
+      "summary": "",
+      "published": "2025-09-07T14:23:56Z",
+      "link": "https://finance.yahoo.com/news/wells-fargo-company-wfc-partners-142356303.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Leerink Partners Maintained a Buy on Merck & Co (MRK)",
+      "summary": "",
+      "published": "2025-09-07T14:23:49Z",
+      "link": "https://finance.yahoo.com/news/leerink-partners-maintained-buy-merck-142349751.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    }
+  ]
+}

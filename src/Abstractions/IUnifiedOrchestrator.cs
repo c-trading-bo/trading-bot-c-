@@ -127,6 +127,41 @@ public interface IIntelligenceOrchestrator : IWorkflowActionExecutor
     /// Analyze intermarket correlations
     /// </summary>
     Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Initialize the intelligence stack
+    /// </summary>
+    Task<bool> InitializeAsync(IntelligenceStackConfig config, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Make a trading decision with full context
+    /// </summary>
+    Task<TradingDecision> MakeDecisionAsync(MarketContext context, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Run comprehensive startup validation
+    /// </summary>
+    Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Process incoming market data
+    /// </summary>
+    Task ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Perform nightly maintenance tasks
+    /// </summary>
+    Task PerformNightlyMaintenanceAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Whether trading is currently enabled
+    /// </summary>
+    bool IsTradingEnabled { get; }
+    
+    /// <summary>
+    /// Intelligence system events
+    /// </summary>
+    event EventHandler<IntelligenceEventArgs> IntelligenceEvent;
 }
 
 /// <summary>

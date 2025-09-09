@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-08T20:53:04.163873",
+  "article_count": 60,
+  "avg_sentiment": -0.010000000000000002,
+  "news_intensity": 1.0,
+  "volatility_score": 0,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": false,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 0
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Thanks to the AI data center boom, it\u2019s a good time to be an electrician",
+      "summary": "",
+      "published": "2025-09-06T13:30:26Z",
+      "link": "https://finance.yahoo.com/news/thanks-to-the-ai-data-center-boom-its-a-good-time-to-be-an-electrician-133026522.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The US government is coming for millions of American paychecks \u2014 what to do if Uncle Sam garnishes your wages",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/us-government-coming-millions-american-120000545.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Reasons to Keep Politics Out of Portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/3-reasons-keep-politics-portfolios-120000707.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI shakes up the call center industry, but some tasks are still better left to the humans",
+      "summary": "",
+      "published": "2025-09-07T12:15:31Z",
+      "link": "https://finance.yahoo.com/news/ai-shakes-call-center-industry-121531200.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "4 Reasons You Should Adjust Your Portfolio More Often Than You Think",
+      "summary": "",
+      "published": "2025-09-07T11:51:06Z",
+      "link": "https://finance.yahoo.com/news/4-ways-rebalance-portfolio-2025-170009846.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst views on Japan PM Ishiba's resignation",
+      "summary": "",
+      "published": "2025-09-07T11:10:39Z",
+      "link": "https://finance.yahoo.com/news/analyst-views-japan-pm-ishibas-111039174.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why AI stock tremors are ripping through portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:30:12Z",
+      "link": "https://finance.yahoo.com/news/why-ai-stock-tremors-are-ripping-through-portfolios-123012040.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Companies Kick Off September With Deluge of Bond Sales",
+      "summary": "",
+      "published": "2025-09-07T11:00:00Z",
+      "link": "https://www.wsj.com/finance/investing/companies-kick-off-september-with-deluge-of-bond-sales-4bae88ea?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dollar stores draw in more shoppers making six figures as Americans across income levels look to save",
+      "summary": "",
+      "published": "2025-09-04T08:00:41Z",
+      "link": "https://finance.yahoo.com/news/dollar-stores-draw-in-more-shoppers-making-six-figures-as-americans-across-income-levels-look-to-save-080041053.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: AECOM",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2672_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Where Will Palantir Be in 5 Years?",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/where-palantir-5-years-120000738.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Martin Marietta Materials (MLM) Is Key to US Data Center Buildout, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-07T10:32:40Z",
+      "link": "https://finance.yahoo.com/news/martin-marietta-materials-mlm-key-103240658.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Here are 7 things that may be sucking your savings dry \u2014 plus what to do to stop the bleeding in your budget",
+      "summary": "",
+      "published": "2025-09-07T10:30:00Z",
+      "link": "https://finance.yahoo.com/news/7-things-may-sucking-savings-103000772.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Japan's stressed bond market, stocks brace for PM Ishiba exit reaction",
+      "summary": "",
+      "published": "2025-09-07T13:12:12Z",
+      "link": "https://finance.yahoo.com/news/japans-stressed-bond-market-stocks-131212801.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Charges laid after auto shop owner goes \u2018Batman\u2019 on Milwaukee wheel thieves, hiding GPS trackers on his rims",
+      "summary": "",
+      "published": "2025-09-07T13:25:00Z",
+      "link": "https://finance.yahoo.com/news/charges-laid-auto-shop-owner-132500738.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Suburban Propane Partners L P",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3404_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stablecoin Retail Transfers Break Records in 2025, Hit $5.8B in August",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/stablecoin-retail-transfers-break-records-120000887.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analysts Keep Raising Shopify's Targets - Make a 3.0% Yield in One-Month SHOP OTM Puts",
+      "summary": "",
+      "published": "2025-09-07T13:30:02Z",
+      "link": "https://finance.yahoo.com/news/analysts-keep-raising-shopifys-targets-133002707.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "\u2018Not Optimistic\u2019: Washington Hits Tariff Impasse with Switzerland",
+      "summary": "",
+      "published": "2025-09-07T13:30:00Z",
+      "link": "https://finance.yahoo.com/news/not-optimistic-washington-hits-tariff-133000873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Thanks to the AI data center boom, it\u2019s a good time to be an electrician",
+      "summary": "",
+      "published": "2025-09-06T13:30:26Z",
+      "link": "https://finance.yahoo.com/news/thanks-to-the-ai-data-center-boom-its-a-good-time-to-be-an-electrician-133026522.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The US government is coming for millions of American paychecks \u2014 what to do if Uncle Sam garnishes your wages",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/us-government-coming-millions-american-120000545.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Reasons to Keep Politics Out of Portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/3-reasons-keep-politics-portfolios-120000707.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI shakes up the call center industry, but some tasks are still better left to the humans",
+      "summary": "",
+      "published": "2025-09-07T12:15:31Z",
+      "link": "https://finance.yahoo.com/news/ai-shakes-call-center-industry-121531200.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "4 Reasons You Should Adjust Your Portfolio More Often Than You Think",
+      "summary": "",
+      "published": "2025-09-07T11:51:06Z",
+      "link": "https://finance.yahoo.com/news/4-ways-rebalance-portfolio-2025-170009846.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst views on Japan PM Ishiba's resignation",
+      "summary": "",
+      "published": "2025-09-07T11:10:39Z",
+      "link": "https://finance.yahoo.com/news/analyst-views-japan-pm-ishibas-111039174.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why AI stock tremors are ripping through portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:30:12Z",
+      "link": "https://finance.yahoo.com/news/why-ai-stock-tremors-are-ripping-through-portfolios-123012040.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Companies Kick Off September With Deluge of Bond Sales",
+      "summary": "",
+      "published": "2025-09-07T11:00:00Z",
+      "link": "https://www.wsj.com/finance/investing/companies-kick-off-september-with-deluge-of-bond-sales-4bae88ea?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dollar stores draw in more shoppers making six figures as Americans across income levels look to save",
+      "summary": "",
+      "published": "2025-09-04T08:00:41Z",
+      "link": "https://finance.yahoo.com/news/dollar-stores-draw-in-more-shoppers-making-six-figures-as-americans-across-income-levels-look-to-save-080041053.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: AECOM",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_2672_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Where Will Palantir Be in 5 Years?",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/where-palantir-5-years-120000738.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Martin Marietta Materials (MLM) Is Key to US Data Center Buildout, Says Jim Cramer",
+      "summary": "",
+      "published": "2025-09-07T10:32:40Z",
+      "link": "https://finance.yahoo.com/news/martin-marietta-materials-mlm-key-103240658.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Here are 7 things that may be sucking your savings dry \u2014 plus what to do to stop the bleeding in your budget",
+      "summary": "",
+      "published": "2025-09-07T10:30:00Z",
+      "link": "https://finance.yahoo.com/news/7-things-may-sucking-savings-103000772.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Japan's stressed bond market, stocks brace for PM Ishiba exit reaction",
+      "summary": "",
+      "published": "2025-09-07T13:12:12Z",
+      "link": "https://finance.yahoo.com/news/japans-stressed-bond-market-stocks-131212801.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Charges laid after auto shop owner goes \u2018Batman\u2019 on Milwaukee wheel thieves, hiding GPS trackers on his rims",
+      "summary": "",
+      "published": "2025-09-07T13:25:00Z",
+      "link": "https://finance.yahoo.com/news/charges-laid-auto-shop-owner-132500738.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst Report: Suburban Propane Partners L P",
+      "summary": "",
+      "published": "2025-09-08T16:54:45Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_3404_AnalystReport_1757350485000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stablecoin Retail Transfers Break Records in 2025, Hit $5.8B in August",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/stablecoin-retail-transfers-break-records-120000887.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analysts Keep Raising Shopify's Targets - Make a 3.0% Yield in One-Month SHOP OTM Puts",
+      "summary": "",
+      "published": "2025-09-07T13:30:02Z",
+      "link": "https://finance.yahoo.com/news/analysts-keep-raising-shopifys-targets-133002707.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "\u2018Not Optimistic\u2019: Washington Hits Tariff Impasse with Switzerland",
+      "summary": "",
+      "published": "2025-09-07T13:30:00Z",
+      "link": "https://finance.yahoo.com/news/not-optimistic-washington-hits-tariff-133000873.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "A Big Change to Social Security Is Coming This Fall \u2014 and It\u2019s Probably for the Best",
+      "summary": "",
+      "published": "2025-09-07T13:57:20Z",
+      "link": "https://finance.yahoo.com/news/big-change-social-security-coming-135720353.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Thanks to the AI data center boom, it\u2019s a good time to be an electrician",
+      "summary": "",
+      "published": "2025-09-06T13:30:26Z",
+      "link": "https://finance.yahoo.com/news/thanks-to-the-ai-data-center-boom-its-a-good-time-to-be-an-electrician-133026522.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "The US government is coming for millions of American paychecks \u2014 what to do if Uncle Sam garnishes your wages",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/us-government-coming-millions-american-120000545.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Reasons to Keep Politics Out of Portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:00:00Z",
+      "link": "https://finance.yahoo.com/news/3-reasons-keep-politics-portfolios-120000707.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI shakes up the call center industry, but some tasks are still better left to the humans",
+      "summary": "",
+      "published": "2025-09-07T12:15:31Z",
+      "link": "https://finance.yahoo.com/news/ai-shakes-call-center-industry-121531200.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "4 Reasons You Should Adjust Your Portfolio More Often Than You Think",
+      "summary": "",
+      "published": "2025-09-07T11:51:06Z",
+      "link": "https://finance.yahoo.com/news/4-ways-rebalance-portfolio-2025-170009846.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Analyst views on Japan PM Ishiba's resignation",
+      "summary": "",
+      "published": "2025-09-07T11:10:39Z",
+      "link": "https://finance.yahoo.com/news/analyst-views-japan-pm-ishibas-111039174.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why AI stock tremors are ripping through portfolios",
+      "summary": "",
+      "published": "2025-09-07T12:30:12Z",
+      "link": "https://finance.yahoo.com/news/why-ai-stock-tremors-are-ripping-through-portfolios-123012040.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Companies Kick Off September With Deluge of Bond Sales",
+      "summary": "",
+      "published": "2025-09-07T11:00:00Z",
+      "link": "https://www.wsj.com/finance/investing/companies-kick-off-september-with-deluge-of-bond-sales-4bae88ea?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Dollar stores draw in more shoppers making six figures as Americans across income levels look to save",
+      "summary": "",
+      "published": "2025-09-04T08:00:41Z",
+      "link": "https://finance.yahoo.com/news/dollar-stores-draw-in-more-shoppers-making-six-figures-as-americans-across-income-levels-look-to-save-080041053.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
