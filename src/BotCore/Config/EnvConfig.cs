@@ -52,7 +52,7 @@ public static class EnvConfig
     /// </summary>
     private static void LoadFromEnvFile()
     {
-        var envFilePaths = new[] { ".env", ".env.local", ".env.sample.local" };
+        var envFilePaths = new[] { ".env", ".env.local" };
         
         foreach (var envPath in envFilePaths)
         {
