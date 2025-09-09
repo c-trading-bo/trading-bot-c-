@@ -13,10 +13,11 @@ using BotCore;
 using BotCore.Models;
 using OrchestratorAgent.Infra;
 using BotCore.Infra;
+using TradingBot.RLAgent;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -45,6 +46,7 @@ namespace OrchestratorAgent
         private readonly object _userHub = userHub;
         private readonly StatusService _status = status;
         private readonly Config _cfg = cfg;
+        private readonly FeatureEngineering? _featureEngineering = featureEngineering;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -285,6 +287,30 @@ namespace OrchestratorAgent
             {
                 try
                 {
+                    // 1️⃣ Wire Live Market Data → ML Pipeline
+                    // Process streaming tick for real-time feature aggregation
+                    if (_featureEngineering != null)
+                    {
+                        try
+                        {
+                            var tick = new MarketTick
+                            {
+                                Symbol = bar.Symbol,
+                                Price = (double)bar.Close,
+                                Volume = bar.Volume,
+                                Timestamp = DateTime.UnixEpoch.AddMilliseconds(bar.Ts)
+                            };
+                            
+                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick);
+                            _log.LogTrace("[ML_PIPELINE] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}, FeatureCount={FeatureCount}", 
+                                tick.Symbol, tick.Price, tick.Volume, features?.GetType().GetProperties().Length ?? 0);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogError(ex, "[ML_PIPELINE] Failed to process streaming tick for {Symbol}", bar.Symbol);
+                        }
+                    }
+
                     var symbol = bar.Symbol;
                     if (!history.TryGetValue(symbol, out var list))
                     {
