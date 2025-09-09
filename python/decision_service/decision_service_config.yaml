@@ -1,0 +1,55 @@
+# Decision Service Configuration
+symbols:
+  - ES
+  - NQ
+
+strategies:
+  - S2
+  - S3
+  - S6
+  - S11
+
+risk:
+  max_total_contracts: 5         # Topstep limit
+  max_es_contracts: 3            # ES per-symbol cap
+  max_nq_contracts: 2            # NQ per-symbol cap  
+  daily_soft_loss: 600.0         # $600 daily soft loss
+  kill_switch_loss: 900.0        # $900 kill-switch
+  min_mll_headroom: 800.0        # $800 MLL headroom minimum
+
+regime:
+  hysteresis_seconds: 180        # 3-minute dwell time
+  confidence_gates:
+    "Calm-Trend": 0.52
+    "Calm-Chop": 0.54
+    "HighVol-Trend": 0.55
+    "HighVol-Chop": 0.58
+
+ucb:
+  c_value: 2.0                   # UCB exploration parameter
+  min_count: 20                  # Minimum samples before UCB
+
+sac:
+  enabled: true                  # Enable SAC sizing
+  max_size_change: 2             # Max +2 contract change
+
+performance:
+  degraded_mode_p99_ms: 120      # P99 latency threshold
+  degraded_mode_duration_s: 60   # Duration before degraded mode
+
+trade_management:
+  tp1_at_r: 1.0                  # Take partial at +1R
+  tp1_pct: 0.5                   # 50% partial
+  move_stop_to_be_on_tp1: true   # Move stop to BE after partial
+  trail_atr_multiplier: 1.5      # Trail at 1.5x ATR
+  max_trail_atr_multiplier: 2.5  # Max 2.5x ATR
+
+schedules:
+  nightly_calibration: "02:30"   # 2:30 AM CT calibration refresh
+  weekly_sac_retrain: "Sunday"   # Weekly SAC retrain
+  monthly_promotion: "1st"       # Monthly model promotion
+
+watchers:
+  registry_path: "data/registry/*_latest.yaml"
+  rl_path: "data/rl/sac/sac_position_sizer.zip"
+  cooldown_minutes: 60           # Cooldown between adoptions
