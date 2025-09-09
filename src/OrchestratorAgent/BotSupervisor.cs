@@ -18,7 +18,7 @@ using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -51,6 +51,8 @@ namespace OrchestratorAgent
         private readonly UnifiedDecisionLogger? _decisionLogger = decisionLogger;
         private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator = intelligenceOrchestrator;
         private readonly TradingBot.IntelligenceAgent.IVerifier? _verifier = verifier;
+        private readonly BotCore.Services.IContractService? _contractService = contractService;
+        private readonly BotCore.Services.ISecurityService? _securityService = securityService;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -337,9 +339,18 @@ namespace OrchestratorAgent
                         volz = 1.0m
                     };
 
-                    // Contract mapping from status snapshot (fallback to symbol)
-                    _status.Contracts.TryGetValue(symbol, out var contractId);
-                    contractId ??= symbol;
+                    // Contract resolution using available-first fallback
+                    string contractId;
+                    if (_contractService != null)
+                    {
+                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol;
+                    }
+                    else
+                    {
+                        // Fallback to status snapshot (original behavior)
+                        _status.Contracts.TryGetValue(symbol, out contractId);
+                        contractId ??= symbol;
+                    }
 
                     // Backfill after gap (>15s) before emitting signals
                     if (lastBarUnix.TryGetValue(symbol, out var prevTs))
@@ -454,10 +465,32 @@ namespace OrchestratorAgent
                         return;
                     }
 
+                    // Security check for VPN/VPS/remote desktop detection in live trading
+                    if ((_cfg.LiveTrading || Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1") && _securityService != null)
+                    {
+                        if (!_securityService.IsTradingAllowed())
+                        {
+                            _log.LogError("Security check failed - trading blocked due to remote session detection. Use ALLOW_REMOTE=1 to override.");
+                            return;
+                        }
+                    }
+
                     foreach (var s in signals)
                     {
-                        // concise one-liner for the strategy signal
-                        try { _log.LogInformation("[SIG] {Sym} {Side} x{Size} @ {Entry} [{Strat}] (tp {Tp}, sl {Sl})", s.Symbol, s.Side, s.Size, s.Entry, s.StrategyId, s.Target, s.Stop); } catch { }
+                        // Generate temporary tag for signal logging (real tag will be generated in TradingSystemConnector)
+                        var tempTag = $"S11L-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
+                        
+                        // Calculate R-multiple for logging
+                        var rMultiple = TradingBot.Infrastructure.TopstepX.Px.RMultiple(s.Entry, s.Stop, s.Target, s.Side == "BUY");
+                        
+                        // Standardized signal logging format
+                        _log.LogInformation("[SIG] side={Side} symbol={Symbol} qty={Qty} entry={Entry} stop={Stop} t1={Target} R~{RMultiple} tag={Tag}", 
+                            s.Side, s.Symbol, s.Size, 
+                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Entry), 
+                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Stop), 
+                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Target), 
+                            TradingBot.Infrastructure.TopstepX.Px.F2(rMultiple), 
+                            tempTag);
                         var side = string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
                         var cid = $"{s.StrategyId}|{s.Symbol}|{DateTime.UtcNow:yyyyMMddTHHmmssfff}|{Guid.NewGuid():N}".ToUpperInvariant();
                         journal.Append(s, "emitted", cid);

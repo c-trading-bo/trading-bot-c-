@@ -613,6 +613,11 @@ namespace TradingBot.Core.Intelligence
                         orderConfirmation.TrySetResult(confirmation);
                         // Remove from timeout tracking when order is confirmed
                         _orderPlacements.Remove(customTag);
+                        
+                        // Standardized ORDER logging format
+                        _logger.LogInformation("ORDER account={AccountId} status={Status} orderId={OrderId} reason={Reason} tag={CustomTag}",
+                            request.AccountId, confirmation.Status, confirmation.OrderId, 
+                            confirmation.Reason ?? "N/A", confirmation.CustomTag);
                     }
                 };
 
