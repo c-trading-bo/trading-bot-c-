@@ -71,7 +71,7 @@ namespace BotCore
                 }
 
                 _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
-                await RunTrainingPipelineAsync();
+                await RunTrainingPipelineAsync().ConfigureAwait(false);
 
                 _consecutiveFailures = 0;
                 _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
@@ -109,21 +109,21 @@ namespace BotCore
         private async Task RunTrainingPipelineAsync()
         {
             // Step 1: Export training data
-            var csvFile = await ExportTrainingDataAsync();
+            var csvFile = await ExportTrainingDataAsync().ConfigureAwait(false);
             if (string.IsNullOrEmpty(csvFile))
             {
                 throw new InvalidOperationException("Failed to export training data");
             }
 
             // Step 2: Train new model via Python
-            var modelFile = await TrainModelAsync(csvFile);
+            var modelFile = await TrainModelAsync(csvFile).ConfigureAwait(false);
             if (string.IsNullOrEmpty(modelFile))
             {
                 throw new InvalidOperationException("Failed to train new model");
             }
 
             // Step 3: Deploy model hot
-            await DeployModelAsync(modelFile);
+            await DeployModelAsync(modelFile).ConfigureAwait(false);
         }
 
         private async Task<string> ExportTrainingDataAsync()
