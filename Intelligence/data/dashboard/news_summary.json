@@ -1,72 +1,30 @@
 {
-  "timestamp": "2025-09-09T15:30:11.510656",
+  "timestamp": "2025-09-09T18:33:35.875113",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "workflow_run": "39",
+  "workflow_run": "40",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-09T15:25:23.180535",
+    "timestamp": "2025-09-09T18:28:49.915852",
     "analysis_mode": "comprehensive",
     "market_session": "regular",
-    "total_articles_processed": 14,
+    "total_articles_processed": 12,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": -0.27444444444444444,
-        "article_count": 2,
-        "articles": [
-          {
-            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
-            "sentiment": -0.4088888888888889,
-            "textblob_score": -0.15555555555555559,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
-            "published": "2025-09-09T13:36:38Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          },
-          {
-            "title": "Nutanix (NTNX) Jumps as Firm Joins S&P Club",
-            "sentiment": -0.13999999999999999,
-            "textblob_score": -0.2,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/nutanix-ntnx-jumps-firm-joins-145837598.html",
-            "published": "2025-09-09T14:58:37Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.2,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "NQ": {
-        "sentiment_score": -0.4088888888888889,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
-            "sentiment": -0.4088888888888889,
-            "textblob_score": -0.15555555555555559,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
-            "published": "2025-09-09T13:36:38Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          }
-        ],
-        "signal": "BEARISH",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -85,89 +43,85 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": -0.0875,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "CFTC May Approve Foreign Crypto Exchanges Under U.S. Rules \u2014 What It Means for Traders",
-            "sentiment": -0.0875,
-            "textblob_score": -0.125,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/cftc-may-approve-foreign-crypto-150409711.html",
-            "published": "2025-09-09T15:04:09Z",
-            "relevance_keywords": [
-              "crypto"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.04909267676767677,
-        "article_count": 10,
+        "sentiment_score": 0.1460641835016835,
+        "article_count": 9,
         "articles": [
           {
-            "title": "Tesla Energy Announces New Mega Product As China EV Sales Still Lag",
-            "sentiment": 0.09545454545454544,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/news/tesla-energy-megablock-china-ev-sales-tesla-stock/?src=A00220&yptr=yahoo",
-            "published": "2025-09-09T15:06:07Z",
-            "relevance_keywords": [
-              "Tesla",
-              "EV"
-            ]
-          },
-          {
-            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
-            "sentiment": -0.4088888888888889,
-            "textblob_score": -0.15555555555555559,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
-            "published": "2025-09-09T13:36:38Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Now vs. One Year Ago",
-            "sentiment": 0.19055555555555553,
-            "textblob_score": 0.2722222222222222,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/newsletters/2025-09-09/now-vs-one-year-ago",
-            "published": "Tue, 09 Sep 2025 15:18:07 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Arabica Coffee Premium Jumps to 2011 High on Supply Fears",
-            "sentiment": 0.40175,
-            "textblob_score": 0.14535714285714285,
+            "title": "Apple\u2019s Big iPhone 17 and Smartwatch Event",
+            "sentiment": 0.3477272727272727,
+            "textblob_score": 0.06818181818181818,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-09/arabica-s-premium-to-robusta-jumps-to-2011-high-on-supply-fears",
-            "published": "Tue, 09 Sep 2025 12:08:15 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/apple-s-big-iphone-17-and-smartwatch-event-video",
+            "published": "Tue, 09 Sep 2025 18:13:09 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Stocks Drop After Negative Jobs Revision Even as Rate Cuts Seen",
-            "sentiment": -0.2925,
-            "textblob_score": -0.275,
-            "keyword_score": -0.3333333333333333,
+            "title": "Altice USA Switches Advisers to Revive Debt-Reshuffle Talks",
+            "sentiment": 0.26249999999999996,
+            "textblob_score": 0.375,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/altice-usa-switches-advisers-to-revive-debt-reshuffle-talks",
+            "published": "Tue, 09 Sep 2025 18:00:05 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Bank of France Sees Sustained Growth Despite Political Headwinds",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/bank-of-france-sees-sustained-growth-despite-political-headwinds",
+            "published": "Tue, 09 Sep 2025 18:00:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Stocks Recover After Jobs Revision Boosts Chances of Rate Cuts",
+            "sentiment": 0.12249999999999998,
+            "textblob_score": 0.175,
+            "keyword_score": 0.0,
             "source": "bloomberg",
             "url": "https://www.bloomberg.com/news/articles/2025-09-09/us-stocks-climb-ahead-of-jobs-revisions-as-rate-cut-bets-rise",
             "published": "Tue, 09 Sep 2025 13:40:21 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "California in Talks to Pay Hundreds of Millions to Valero to Stave Off Refinery Shutdown",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/california-may-pay-valero-hundreds-of-millions-to-keep-sf-bay-area-refinery-open",
+            "published": "Tue, 09 Sep 2025 15:31:03 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Citi Sees Investment-Banking Fees, Markets Up Mid-Single Digits",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/citi-sees-investment-banking-fees-markets-up-mid-single-digits",
+            "published": "Tue, 09 Sep 2025 17:32:27 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -185,13 +139,13 @@
             ]
           },
           {
-            "title": "US Payroll Gains Likely to Be Revised Down by 911,000",
-            "sentiment": 0.0772222222222222,
-            "textblob_score": -0.03253968253968255,
-            "keyword_score": 0.3333333333333333,
+            "title": "Anglo American buys Canada's Teck in Big Mining Deal | Open Interest 9/9/2025",
+            "sentiment": 0.38451704545454546,
+            "textblob_score": 0.12073863636363635,
+            "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-09/us-payroll-gains-likely-to-be-revised-down-by-911-000",
-            "published": "Tue, 09 Sep 2025 14:37:09 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/open-interest-9-9-2025-video",
+            "published": "Tue, 09 Sep 2025 17:19:39 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -207,39 +161,13 @@
             "relevance_keywords": [
               "EV"
             ]
-          },
-          {
-            "title": "Why JPMorgan is warning the Fed rate cut everyone expects could sink stocks",
-            "sentiment": 0.22999999999999998,
-            "textblob_score": -0.1,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/why-jpmorgan-is-warning-the-fed-rate-cut-everyone-expects-could-sink-stocks-0179698d?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 14:10:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Rethinking Tesla: No Substance In Sight, Yet The Stock Keeps Climbing (Upgrade)",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4820951-rethinking-tesla-no-substance-in-sight-yet-the-stock-keeps-climbing-upgrade?source=feed_all_articles",
-            "published": "Tue, 09 Sep 2025 10:55:38 -0400",
-            "relevance_keywords": [
-              "Tesla"
-            ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 1.0,
+        "confidence": 0.9,
         "sources": [
-          "yahoo_finance",
           "bloomberg",
-          "marketwatch",
-          "seeking_alpha"
+          "marketwatch"
         ]
       },
       "NVDA": {
@@ -251,12 +179,54 @@
         "sources": []
       },
       "AAPL": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "sentiment_score": 0.3957859848484848,
+        "article_count": 3,
+        "articles": [
+          {
+            "title": "People Will Get Into Apple Stores: Analyst Milanesi",
+            "sentiment": 0.45511363636363633,
+            "textblob_score": 0.2215909090909091,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/people-will-get-into-apple-stores-analyst-milanesi-video",
+            "published": "Tue, 09 Sep 2025 18:18:43 GMT",
+            "relevance_keywords": [
+              "Apple",
+              "iPhone"
+            ]
+          },
+          {
+            "title": "Apple\u2019s Big iPhone 17 and Smartwatch Event",
+            "sentiment": 0.3477272727272727,
+            "textblob_score": 0.06818181818181818,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/apple-s-big-iphone-17-and-smartwatch-event-video",
+            "published": "Tue, 09 Sep 2025 18:13:09 GMT",
+            "relevance_keywords": [
+              "Apple",
+              "iPhone"
+            ]
+          },
+          {
+            "title": "Anglo American buys Canada's Teck in Big Mining Deal | Open Interest 9/9/2025",
+            "sentiment": 0.38451704545454546,
+            "textblob_score": 0.12073863636363635,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/open-interest-9-9-2025-video",
+            "published": "Tue, 09 Sep 2025 17:19:39 GMT",
+            "relevance_keywords": [
+              "Apple",
+              "iPhone"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.3,
+        "sources": [
+          "bloomberg"
+        ]
       }
     },
     "sources_used": [
@@ -269,7 +239,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-09T15:30:09.134330",
+    "timestamp": "2025-09-09T18:33:33.711351",
     "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
@@ -291,7 +261,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-09T15:25:19.745793",
+    "timestamp": "2025-09-09T18:28:47.872408",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
