@@ -63,18 +63,60 @@ def train_meta_classifier(data_file, output_dir):
     cv_scores = cross_val_score(rf_model, X, y, cv=5)
     print(f"[META] CV Score: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
     
-    # Save models
-    model_path = os.path.join(output_dir, 'meta_classifier.pkl')
+    # Save models using unified registry format
+    import hashlib
+    import time
+    import json
+    
+    # Generate registry-compatible name
+    timestamp = int(time.time())
+    version = f"1.0.{timestamp % 1000}"
+    content_hash = hashlib.sha256(f"meta_classifier_{timestamp}".encode()).hexdigest()[:8]
+    registry_name = f"meta_classifier.ES.monthly.all.v{version}+{content_hash}.onnx"
+    
+    # Save PKL model with timestamp
+    model_path = os.path.join(output_dir, f'meta_classifier_{timestamp}.pkl')
     joblib.dump(rf_model, model_path)
     print(f"[META] Saved model to {model_path}")
     
-    # Export to ONNX
+    # Export to ONNX with registry format
     try:
         onnx_model = to_onnx(rf_model, X_train.values.astype(np.float32))
-        onnx_path = os.path.join(output_dir, 'meta_classifier.onnx')
+        onnx_path = os.path.join(output_dir, registry_name)
         with open(onnx_path, 'wb') as f:
             f.write(onnx_model.SerializeToString())
         print(f"[META] Exported ONNX to {onnx_path}")
+        
+        # Save metadata for unified registry
+        metadata = {
+            "ModelPath": onnx_path,
+            "Family": "meta_classifier",
+            "Symbol": "ES",
+            "Strategy": "monthly",
+            "Regime": "all",
+            "SemVer": {
+                "Major": 1,
+                "Minor": 0,
+                "Build": timestamp % 1000
+            },
+            "Sha": content_hash,
+            "Version": version,
+            "Checksum": content_hash,
+            "CreatedAt": datetime.utcnow().isoformat(),
+            "TrainingMetrics": {
+                "DatasetSize": len(X_train),
+                "ValidationScore": rf_accuracy,
+                "TrainingDuration": 0.0,
+                "Features": list(X.columns),
+                "TargetDistribution": np.bincount(y).tolist()
+            }
+        }
+        
+        metadata_path = onnx_path.replace('.onnx', '.metadata.json')
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        print(f"[META] Saved metadata to {metadata_path}")
+        
     except Exception as e:
         print(f"[META] ONNX export failed: {e}")
     
