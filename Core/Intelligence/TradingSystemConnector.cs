@@ -1163,7 +1163,7 @@ namespace TradingBot.Core.Intelligence
 
         /// <summary>
         /// Fallback persistence when Python hooks are unavailable
-        /// Persists order fill data to disk/file/queue for later processing
+        /// Persists order fill data to disk/file/queue for later processing and implements retry logic
         /// </summary>
         private async Task FallbackPersistOrderFillAsync(Dictionary<string, object> orderFillData)
         {
@@ -1175,14 +1175,101 @@ namespace TradingBot.Core.Intelligence
                 var fileName = $"order_fill_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.json";
                 var filePath = Path.Combine(fallbackDir, fileName);
 
-                var jsonData = System.Text.Json.JsonSerializer.Serialize(orderFillData, new JsonSerializerOptions { WriteIndented = true });
+                // Enhanced order fill data with retry metadata
+                var enhancedData = new Dictionary<string, object>(orderFillData)
+                {
+                    ["persisted_at"] = DateTime.UtcNow.ToString("O"),
+                    ["retry_count"] = 0,
+                    ["max_retries"] = 3,
+                    ["next_retry_at"] = DateTime.UtcNow.AddMinutes(5).ToString("O")
+                };
+
+                var jsonData = System.Text.Json.JsonSerializer.Serialize(enhancedData, new JsonSerializerOptions { WriteIndented = true });
                 await File.WriteAllTextAsync(filePath, jsonData);
 
                 _logger.LogDebug("[FALLBACK_PERSIST] Order fill data persisted to: {FilePath}", filePath);
+                
+                // Schedule retry processing in background
+                _ = Task.Run(async () => await ProcessRetryQueueAsync());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[FALLBACK_PERSIST] Failed to persist order fill data to fallback storage");
+            }
+        }
+
+        /// <summary>
+        /// Process retry queue for failed order fill pushes to Python hooks
+        /// </summary>
+        private async Task ProcessRetryQueueAsync()
+        {
+            try
+            {
+                var fallbackDir = Path.Combine("data", "ml_online", "order_fills");
+                if (!Directory.Exists(fallbackDir))
+                    return;
+
+                var pendingFiles = Directory.GetFiles(fallbackDir, "order_fill_*.json")
+                    .Where(f => File.GetCreationTime(f) < DateTime.UtcNow.AddMinutes(-5)) // Only retry files older than 5 minutes
+                    .Take(10); // Process max 10 files per batch
+
+                foreach (var filePath in pendingFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(filePath);
+                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(content);
+                        
+                        if (data == null) continue;
+
+                        var retryCount = Convert.ToInt32(data.GetValueOrDefault("retry_count", 0));
+                        var maxRetries = Convert.ToInt32(data.GetValueOrDefault("max_retries", 3));
+                        
+                        if (retryCount >= maxRetries)
+                        {
+                            // Move to failed folder
+                            var failedDir = Path.Combine("data", "ml_online", "failed_order_fills");
+                            Directory.CreateDirectory(failedDir);
+                            var failedPath = Path.Combine(failedDir, Path.GetFileName(filePath));
+                            File.Move(filePath, failedPath);
+                            _logger.LogWarning("[RETRY_QUEUE] Max retries reached for {FileName}, moved to failed folder", Path.GetFileName(filePath));
+                            continue;
+                        }
+
+                        // Try to push to Python hooks again
+                        var originalData = data.Where(kvp => !kvp.Key.StartsWith("retry") && !kvp.Key.Contains("persisted"))
+                                              .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        
+                        try
+                        {
+                            await PushToOnlineLearnerAsync(originalData, CancellationToken.None);
+                            
+                            // Success - delete the file
+                            File.Delete(filePath);
+                            _logger.LogDebug("[RETRY_QUEUE] Successfully retried order fill: {FileName}", Path.GetFileName(filePath));
+                        }
+                        catch
+                        {
+                            // Update retry count and next retry time
+                            data["retry_count"] = retryCount + 1;
+                            data["next_retry_at"] = DateTime.UtcNow.AddMinutes(Math.Pow(2, retryCount + 1)).ToString("O"); // Exponential backoff
+                            
+                            var updatedJson = System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                            await File.WriteAllTextAsync(filePath, updatedJson);
+                            
+                            _logger.LogDebug("[RETRY_QUEUE] Retry failed for {FileName}, will retry again later (attempt {RetryCount})", 
+                                Path.GetFileName(filePath), retryCount + 1);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[RETRY_QUEUE] Failed to process retry file: {FilePath}", filePath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RETRY_QUEUE] Failed to process retry queue");
             }
         }
 
