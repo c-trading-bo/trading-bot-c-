@@ -462,10 +462,9 @@ namespace OrchestratorAgent
                     var batch = new List<(BotCore.StrategySignal Sig, string ContractId)>();
 
                     // Gate AUTO_EXECUTE until BarsSeen >= 10
-                    bool autoExecuteAllowed = _barsSeen >= 10;
-                    if (!autoExecuteAllowed && (_cfg.LiveTrading || Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1"))
+                    if (_barsSeen < 10 && (_cfg.LiveTrading || Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1"))
                     {
-                        _log.LogWarning("BarsSeen={Count}/10; gating AUTO_EXECUTE - signals suppressed in live mode", _barsSeen);
+                        _log.LogInformation("BarsSeen={BarsSeen}/10; gating AUTO_EXECUTE", _barsSeen);
                         return;
                     }
 
@@ -586,8 +585,17 @@ namespace OrchestratorAgent
                                     P_cloud = 0.6; // Fallback when orchestrator not available
                                 }
                                 
-                                // TODO: Get online prediction via hooks.on_signal(symbol, strategy_id)
-                                P_online = 0.7; // Placeholder - will be implemented with Python integration
+                                // Get online prediction via IntelligenceOrchestrator (replacing TODO)
+                                if (_intelligenceOrchestrator != null)
+                                {
+                                    var onlinePrediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol);
+                                    P_online = onlinePrediction.Confidence;
+                                    _log.LogDebug("[ML_GATE] Online prediction for {Symbol}: confidence={Confidence}", s.Symbol, P_online);
+                                }
+                                else
+                                {
+                                    P_online = 0.7; // Fallback when orchestrator not available
+                                }
                                 
                                 // Blended prediction per Topstep weighting: w = clip(n_recent / (n_recent + 500), 0.2, 0.8)
                                 var recentSignalsCount = _recentSignals.Count;
@@ -792,11 +800,18 @@ namespace OrchestratorAgent
                                 _log.LogInformation("Trades {Status}: {Count}", kvp.Key, kvp.Value);
                             }
                                 
-                            // Alert on verification failure
+                            // Alert on verification failure with operator notification
                             if (!verificationResult.Success && !string.IsNullOrEmpty(verificationResult.ErrorMessage))
                             {
                                 _log.LogError("Trade verification failed: {ErrorMessage}", verificationResult.ErrorMessage);
-                                // TODO: Add operator alerting here
+                                try
+                                {
+                                    await _notifier.Error($"VERIFICATION_FAILED: {verificationResult.ErrorMessage}");
+                                }
+                                catch (Exception notifyEx)
+                                {
+                                    _log.LogWarning(notifyEx, "Failed to send verification failure alert");
+                                }
                             }
                         }
                     }
