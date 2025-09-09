@@ -13,6 +13,7 @@ using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using UnifiedOrchestrator.Services;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -218,6 +219,73 @@ public class Program
         services.AddSingleton<AdvancedSystemIntegrationService>();
         
         Console.WriteLine("🏗️ ADVANCED INFRASTRUCTURE registered - Workflow, events, data feeds, integration");
+        
+        // ================================================================================
+        // ML/RL DECISION SERVICE INTEGRATION - FULLY AUTOMATED
+        // ================================================================================
+        
+        // Configure Decision Service options from environment
+        var decisionServiceLauncherOptions = new DecisionServiceLauncherOptions
+        {
+            Enabled = Environment.GetEnvironmentVariable("ENABLE_DECISION_SERVICE") != "false",
+            Host = Environment.GetEnvironmentVariable("DECISION_SERVICE_HOST") ?? "127.0.0.1",
+            Port = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_PORT") ?? "7080"),
+            PythonExecutable = Environment.GetEnvironmentVariable("PYTHON_EXECUTABLE") ?? "python",
+            ScriptPath = Environment.GetEnvironmentVariable("DECISION_SERVICE_SCRIPT") ?? "",
+            ConfigFile = Environment.GetEnvironmentVariable("DECISION_SERVICE_CONFIG") ?? "decision_service_config.yaml",
+            StartupTimeoutSeconds = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_STARTUP_TIMEOUT") ?? "30"),
+            AutoRestart = Environment.GetEnvironmentVariable("DECISION_SERVICE_AUTO_RESTART") != "false"
+        };
+        services.Configure<DecisionServiceLauncherOptions>(options =>
+        {
+            options.Enabled = decisionServiceLauncherOptions.Enabled;
+            options.Host = decisionServiceLauncherOptions.Host;
+            options.Port = decisionServiceLauncherOptions.Port;
+            options.PythonExecutable = decisionServiceLauncherOptions.PythonExecutable;
+            options.ScriptPath = decisionServiceLauncherOptions.ScriptPath;
+            options.ConfigFile = decisionServiceLauncherOptions.ConfigFile;
+            options.StartupTimeoutSeconds = decisionServiceLauncherOptions.StartupTimeoutSeconds;
+            options.AutoRestart = decisionServiceLauncherOptions.AutoRestart;
+        });
+        
+        // Configure Decision Service client options
+        var decisionServiceOptions = new DecisionServiceOptions
+        {
+            BaseUrl = $"http://{decisionServiceLauncherOptions.Host}:{decisionServiceLauncherOptions.Port}",
+            TimeoutMs = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_TIMEOUT_MS") ?? "5000"),
+            Enabled = decisionServiceLauncherOptions.Enabled,
+            MaxRetries = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_MAX_RETRIES") ?? "3")
+        };
+        services.Configure<DecisionServiceOptions>(options =>
+        {
+            options.BaseUrl = decisionServiceOptions.BaseUrl;
+            options.TimeoutMs = decisionServiceOptions.TimeoutMs;
+            options.Enabled = decisionServiceOptions.Enabled;
+            options.MaxRetries = decisionServiceOptions.MaxRetries;
+        });
+        
+        // Configure Decision Service integration options
+        services.Configure<DecisionServiceIntegrationOptions>(options =>
+        {
+            options.Enabled = decisionServiceLauncherOptions.Enabled;
+            options.HealthCheckIntervalSeconds = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_HEALTH_CHECK_INTERVAL") ?? "30");
+            options.LogDecisionLines = Environment.GetEnvironmentVariable("LOG_DECISION_LINES") != "false";
+            options.EnableTradeManagement = Environment.GetEnvironmentVariable("ENABLE_TRADE_MANAGEMENT") != "false";
+        });
+        
+        // Register Decision Service components
+        services.AddHttpClient<DecisionServiceClient>();
+        services.AddSingleton<DecisionServiceLauncher>();
+        services.AddSingleton<DecisionServiceIntegration>();
+        
+        // Register as hosted services for automatic startup/shutdown
+        services.AddHostedService<DecisionServiceLauncher>();
+        services.AddHostedService<DecisionServiceIntegration>();
+        
+        Console.WriteLine("🧠 ML/RL DECISION SERVICE registered - Python sidecar with C# integration");
+        Console.WriteLine($"   📍 Service URL: {decisionServiceOptions.BaseUrl}");
+        Console.WriteLine($"   🚀 Auto-launch: {decisionServiceLauncherOptions.Enabled}");
+        Console.WriteLine($"   🔄 Auto-restart: {decisionServiceLauncherOptions.AutoRestart}");
         
         // ================================================================================
         // AUTHENTICATION & TOPSTEPX SERVICES
