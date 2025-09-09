@@ -332,6 +332,9 @@ class DecisionService:
             
             logger.info(f"💰 [CLOSE] {decision_id}: PnL=${pnl:.2f}, Daily PnL=${self.daily_pnl:.2f}")
             
+            # Push trade record and metrics to cloud
+            await self._push_to_cloud_after_close(position, pnl)
+            
             return {"status": "ok", "pnl": pnl, "dailyPnl": self.daily_pnl}
             
         except Exception as e:
@@ -550,6 +553,87 @@ class DecisionService:
                 self.ucb.update_pnl(strategy_id, pnl)
         except Exception as e:
             logger.warning(f"⚠️ Failed to update UCB performance: {e}")
+    
+    async def _push_to_cloud_after_close(self, position: Dict, pnl: float):
+        """Push trade record and service metrics to cloud endpoint after /v1/close"""
+        try:
+            import aiohttp
+            import json
+            from datetime import datetime, timezone
+            
+            # Prepare trade record
+            trade_record = {
+                "trade_id": position.get("decision_id", "unknown"),
+                "symbol": position.get("symbol", "unknown"),
+                "side": position.get("side", "unknown"),
+                "quantity": position.get("contracts", 0),
+                "entry_price": position.get("entry_price", 0),
+                "exit_price": position.get("exit_price", 0),
+                "pnl": pnl,
+                "entry_time": position.get("entry_time", datetime.now(timezone.utc)).isoformat(),
+                "exit_time": position.get("exit_time", datetime.now(timezone.utc)).isoformat(),
+                "strategy": f"S{position.get('strategy_id', 0)}",
+                "metadata": {
+                    "regime": self.current_regime.value if self.current_regime else "unknown",
+                    "confidence": position.get("confidence", 0),
+                    "daily_pnl": self.daily_pnl
+                }
+            }
+            
+            # Prepare service metrics
+            service_metrics = {
+                "inference_latency_ms": getattr(self, '_last_inference_latency', 0),
+                "prediction_accuracy": 0.75,  # Placeholder - would be calculated
+                "feature_drift": getattr(self, '_last_drift_score', 0),
+                "active_models": 1,
+                "memory_usage_mb": 128,  # Placeholder
+                "custom_metrics": {
+                    "regime": self.current_regime.value if self.current_regime else "unknown",
+                    "total_contracts": self.total_contracts,
+                    "daily_pnl": self.daily_pnl,
+                    "active_positions": len(self.active_positions)
+                }
+            }
+            
+            # Cloud endpoint URL (configurable)
+            cloud_endpoint = os.getenv("CLOUD_ENDPOINT", "https://api.example.com/ml-data")
+            
+            # Prepare payload
+            payload = {
+                "type": "trade_close_data",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "trade_record": trade_record,
+                "service_metrics": service_metrics,
+                "instance_id": os.getenv("INSTANCE_ID", "decision_service_001")
+            }
+            
+            # Push to cloud with retry logic
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    timeout = aiohttp.ClientTimeout(total=10)
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
+                        async with session.post(
+                            f"{cloud_endpoint}/trades",
+                            json=payload,
+                            headers={"Content-Type": "application/json"}
+                        ) as response:
+                            if response.status == 200:
+                                logger.info(f"☁️ Trade data pushed to cloud: {trade_record['trade_id']}")
+                                return
+                            else:
+                                logger.warning(f"⚠️ Cloud push failed with status {response.status}")
+                                
+                except Exception as e:
+                    logger.warning(f"⚠️ Cloud push attempt {attempt + 1} failed: {e}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
+                    
+            logger.error("❌ Failed to push trade data to cloud after all retries")
+            
+        except Exception as e:
+            logger.error(f"❌ Error pushing to cloud: {e}")
+            # Don't raise - cloud push failures shouldn't stop trading
     
     async def _log_decision_line(self, signal_data: Dict, response: Dict):
         """Log structured decision line for observability"""
