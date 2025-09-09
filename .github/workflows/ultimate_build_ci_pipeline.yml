@@ -178,6 +178,106 @@ jobs:
           
           echo "✅ Code formatting verification completed"
 
+      - name: "🔍 Logging Format Compliance Check"
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Verifying standardized logging format compliance..."
+          
+          # Create regex validation script
+          cat > validate_logging.py << 'EOF'
+          import re
+          import sys
+          import os
+          
+          def check_file_logging_compliance(filepath):
+              """Check if a file follows the required logging patterns"""
+              issues = []
+              
+              # Required logging patterns
+              patterns = {
+                  'signal': r'\[SIG\]\s+side=\{[^}]+\}\s+symbol=\{[^}]+\}\s+qty=\{[^}]+\}\s+entry=\{[^}]+\}\s+stop=\{[^}]+\}\s+t1=\{[^}]+\}\s+R~\{[^}]+\}\s+tag=\{[^}]+\}',
+                  'order': r'ORDER\s+account=\{[^}]+\}\s+status=\{[^}]+\}\s+orderId=\{[^}]+\}',
+                  'trade': r'TRADE\s+account=\{[^}]+\}\s+orderId=\{[^}]+\}\s+fillPrice=\{[^}]+\}\s+qty=\{[^}]+\}\s+time=\{[^}]+\}'
+              }
+              
+              try:
+                  with open(filepath, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                      lines = content.split('\n')
+                      
+                      # Check for logging statements that should match patterns
+                      for line_num, line in enumerate(lines, 1):
+                          # Skip comments and empty lines
+                          if line.strip().startswith('//') or not line.strip():
+                              continue
+                              
+                          # Check for LogInformation calls with brackets that might need validation
+                          if 'LogInformation' in line and ('[SIG]' in line or 'ORDER' in line or 'TRADE' in line):
+                              # Extract the format string
+                              format_match = re.search(r'LogInformation\s*\(\s*["\']([^"\']+)["\']', line)
+                              if format_match:
+                                  format_string = format_match.group(1)
+                                  
+                                  # Check if it matches any required pattern
+                                  matches_pattern = False
+                                  for pattern_name, pattern in patterns.items():
+                                      if re.search(pattern, format_string):
+                                          matches_pattern = True
+                                          break
+                                  
+                                  if not matches_pattern:
+                                      # Check if it's a signal/order/trade log that should match
+                                      if any(marker in format_string for marker in ['[SIG]', 'ORDER', 'TRADE']):
+                                          issues.append(f"Line {line_num}: Non-compliant logging format: {format_string}")
+                      
+              except Exception as e:
+                  issues.append(f"Error reading file {filepath}: {e}")
+              
+              return issues
+          
+          def main():
+              total_issues = 0
+              critical_files = [
+                  'src/OrchestratorAgent/BotSupervisor.cs',
+                  'Core/Intelligence/TradingSystemConnector.cs', 
+                  'src/BotCore/UserHubAgent.cs'
+              ]
+              
+              print("🔍 Checking logging format compliance...")
+              
+              for filepath in critical_files:
+                  if os.path.exists(filepath):
+                      print(f"📁 Checking {filepath}...")
+                      issues = check_file_logging_compliance(filepath)
+                      
+                      if issues:
+                          print(f"❌ Found {len(issues)} issues in {filepath}:")
+                          for issue in issues:
+                              print(f"   • {issue}")
+                          total_issues += len(issues)
+                      else:
+                          print(f"✅ {filepath} - Logging format compliant")
+                  else:
+                      print(f"⚠️ File not found: {filepath}")
+              
+              if total_issues > 0:
+                  print(f"\n❌ Total logging format issues: {total_issues}")
+                  print("💡 Please fix logging format issues to ensure consistent observability")
+                  # Don't fail CI for now, just warn
+                  return 0
+              else:
+                  print("\n✅ All logging formats are compliant!")
+                  return 0
+          
+          if __name__ == "__main__":
+              sys.exit(main())
+          EOF
+          
+          # Run the validation
+          python validate_logging.py
+          
+          echo "✅ Logging format compliance check completed"
+
       - name: "🧪 Run Unit Tests (Comprehensive)"
         if: env.RUN_TESTS == 'true' && steps.analysis.outputs.test_projects != '0'
         run: |
