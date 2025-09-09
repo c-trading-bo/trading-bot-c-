@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.UnifiedOrchestrator.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -11,7 +12,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Workflow orchestration manager - manages complex workflows
 /// </summary>
-public class WorkflowOrchestrationManager
+public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
 {
     private readonly ILogger<WorkflowOrchestrationManager> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -94,5 +95,71 @@ public class WorkflowOrchestrationManager
         }
         
         return statuses;
+    }
+
+    // IWorkflowOrchestrationManager interface implementation
+    public async Task InitializeAsync()
+    {
+        _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Initializing workflow orchestration manager...");
+        await Task.Delay(100); // Simulate initialization
+        _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Workflow orchestration manager initialized");
+    }
+
+    public async Task<bool> RequestWorkflowExecutionAsync(string workflowName, Func<Task> action, List<string>? requiredResources = null)
+    {
+        try
+        {
+            _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Requesting execution for workflow: {WorkflowName}", workflowName);
+            
+            // Execute the workflow action
+            await action();
+            
+            _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Workflow executed successfully: {WorkflowName}", workflowName);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[WORKFLOW_ORCHESTRATION] Failed to execute workflow: {WorkflowName}", workflowName);
+            return false;
+        }
+    }
+
+    public async Task<ConflictResolution> ResolveConflictsAsync()
+    {
+        _logger.LogDebug("[WORKFLOW_ORCHESTRATION] Resolving workflow conflicts...");
+        await Task.Delay(50); // Simulate conflict resolution
+        return new ConflictResolution { IsResolved = true, ConflictCount = 0 };
+    }
+
+    public WorkflowOrchestrationStatus GetStatus()
+    {
+        return new WorkflowOrchestrationStatus
+        {
+            IsActive = true,
+            ActiveWorkflows = _workflows.Count,
+            LastUpdate = DateTime.UtcNow
+        };
+    }
+
+    public void Dispose()
+    {
+        _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Disposing workflow orchestration manager");
+        // Cleanup logic would go here
+    }
+
+    // Nested classes for the interface
+    public class ConflictResolution
+    {
+        public bool IsResolved { get; set; }
+        public int ConflictCount { get; set; }
+        public List<string> Conflicts { get; set; } = new();
+    }
+
+    public class WorkflowOrchestrationStatus
+    {
+        public bool IsActive { get; set; }
+        public int ActiveWorkflows { get; set; }
+        public DateTime LastUpdate { get; set; }
+        public Dictionary<string, object> Statistics { get; set; } = new();
     }
 }

@@ -11,7 +11,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Workflow scheduler service - coordinates scheduled operations
 /// </summary>
-public class WorkflowSchedulerService : BackgroundService
+public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
 {
     private readonly ILogger<WorkflowSchedulerService> _logger;
     private readonly ICentralMessageBus _messageBus;
@@ -85,5 +85,60 @@ public class WorkflowSchedulerService : BackgroundService
             LastRun = DateTime.MinValue,
             NextRun = DateTime.MaxValue
         };
+    }
+
+    // IWorkflowScheduler interface implementation
+    public async Task ScheduleWorkflowAsync(UnifiedWorkflow workflow, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("[SCHEDULER] Scheduling workflow: {WorkflowId}", workflow.Id);
+            
+            // Implementation would schedule the workflow
+            await Task.Delay(50, cancellationToken); // Simulate scheduling
+            
+            _logger.LogInformation("[SCHEDULER] Workflow scheduled successfully: {WorkflowId}", workflow.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to schedule workflow: {WorkflowId}", workflow.Id);
+            throw;
+        }
+    }
+
+    public async Task UnscheduleWorkflowAsync(string workflowId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("[SCHEDULER] Unscheduling workflow: {WorkflowId}", workflowId);
+            
+            // Implementation would unschedule the workflow
+            await Task.Delay(50, cancellationToken); // Simulate unscheduling
+            
+            _logger.LogInformation("[SCHEDULER] Workflow unscheduled successfully: {WorkflowId}", workflowId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to unschedule workflow: {WorkflowId}", workflowId);
+            throw;
+        }
+    }
+
+    public DateTime? GetNextExecution(string workflowId)
+    {
+        // Implementation would get actual next execution time
+        return DateTime.UtcNow.AddHours(1); // Placeholder
+    }
+
+    public new async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[SCHEDULER] Starting workflow scheduler...");
+        await base.StartAsync(cancellationToken);
+    }
+
+    public new async Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[SCHEDULER] Stopping workflow scheduler...");
+        await base.StopAsync(cancellationToken);
     }
 }

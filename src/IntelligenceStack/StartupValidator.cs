@@ -109,6 +109,11 @@ public class StartupValidator : IStartupValidator
         stopwatch.Stop();
         result.TotalDuration = stopwatch.Elapsed;
         result.AllTestsPassed = result.TestResults.Values.All(t => t.Passed);
+        
+        // Properly populate IsValid and ValidationErrors properties
+        result.IsValid = result.AllTestsPassed;
+        result.ValidationErrors.Clear();
+        result.ValidationErrors.AddRange(result.FailureReasons);
 
         if (result.AllTestsPassed)
         {
@@ -123,6 +128,7 @@ public class StartupValidator : IStartupValidator
             foreach (var reason in result.FailureReasons)
             {
                 _logger.LogCritical("[STARTUP] Failure: {Reason}", reason);
+                result.ValidationErrors.Add(reason);
             }
         }
 

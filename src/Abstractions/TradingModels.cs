@@ -196,6 +196,10 @@ public class TradingSignal
 public class TradingDecision
 {
     public string DecisionId { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public TradeSide Side { get; set; } = TradeSide.Hold;
+    public decimal Quantity { get; set; } = 0m;
+    public decimal Price { get; set; } = 0m;
     public TradingSignal Signal { get; set; } = new();
     public TradingAction Action { get; set; } = TradingAction.Hold;
     public decimal Confidence { get; set; } = 0m;
@@ -207,6 +211,17 @@ public class TradingDecision
     public decimal RegimeConfidence { get; set; } = 0m;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Reasoning { get; set; } = new();
+}
+
+/// <summary>
+/// Trade side enum
+/// </summary>
+public enum TradeSide
+{
+    Hold,
+    Buy,
+    Sell,
+    Close
 }
 
 /// <summary>
