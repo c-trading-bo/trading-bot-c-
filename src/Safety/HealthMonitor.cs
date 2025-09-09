@@ -50,6 +50,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
     private int _reconnectAttempts = 0;
 
     public event Action<TradingBot.Abstractions.HealthStatus>? OnHealthChanged;
+    public event Action<TradingBot.Abstractions.HealthStatus>? HealthStatusChanged;
     public bool IsTradingAllowed => _tradingAllowed;
 
     // Health thresholds
@@ -214,6 +215,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
                     StatusMessage = status.StatusMessage
                 };
                 OnHealthChanged?.Invoke(abstractionsStatus);
+                HealthStatusChanged?.Invoke(abstractionsStatus);
             }
 
             // Handle degraded health

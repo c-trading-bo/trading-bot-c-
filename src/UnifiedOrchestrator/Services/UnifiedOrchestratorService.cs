@@ -1,3 +1,4 @@
+extern alias SafetyProject;
 extern alias BotCoreProject;
 
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,7 @@ using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
 using System.Collections.Concurrent;
 
-// Import types from aliased BotCore project
+// Import types from aliased projects
 using Bar = BotCoreProject::BotCore.Models.Bar;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
