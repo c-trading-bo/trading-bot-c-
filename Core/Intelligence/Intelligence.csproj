@@ -7,6 +7,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\BotCore\BotCore.csproj" />
+    <ProjectReference Include="..\..\src\IntelligenceStack\IntelligenceStack.csproj" />
+    <ProjectReference Include="..\..\src\Infrastructure.TopstepX\Infrastructure.TopstepX.csproj" />
+    <ProjectReference Include="..\..\src\IntelligenceAgent\IntelligenceAgent.csproj" />
   </ItemGroup>
 
   <ItemGroup>
