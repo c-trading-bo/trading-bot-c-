@@ -814,16 +814,26 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S6(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
-            var lst = new List<Candidate>();
-            var minAtr = S6RuntimeConfig.MinAtr;
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
+            // Use the full-stack S6 implementation via bridge
+            try
             {
-                var entry = bars[^1].Close;
-                var stop = entry - env.atr.Value * S6RuntimeConfig.StopAtrMult;
-                var t1 = entry + env.atr.Value * S6RuntimeConfig.TargetAtrMult;
-                add_cand(lst, "S6", symbol, "BUY", entry, stop, t1, env, risk);
+                return S6S11Bridge.GetS6Candidates(symbol, env, levels, bars, risk);
             }
-            return lst;
+            catch (Exception ex)
+            {
+                // Fallback to original simple implementation if full-stack fails
+                Console.WriteLine($"[S6] Full-stack failed, using fallback: {ex.Message}");
+                var lst = new List<Candidate>();
+                var minAtr = S6RuntimeConfig.MinAtr;
+                if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
+                {
+                    var entry = bars[^1].Close;
+                    var stop = entry - env.atr.Value * S6RuntimeConfig.StopAtrMult;
+                    var t1 = entry + env.atr.Value * S6RuntimeConfig.TargetAtrMult;
+                    add_cand(lst, "S6", symbol, "BUY", entry, stop, t1, env, risk);
+                }
+                return lst;
+            }
         }
 
         public static List<Candidate> S7(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
@@ -885,16 +895,26 @@ namespace BotCore.Strategy
 
         public static List<Candidate> S11(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
         {
-            var lst = new List<Candidate>();
-            var minAtr = S11RuntimeConfig.MinAtr;
-            if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
+            // Use the full-stack S11 implementation via bridge
+            try
             {
-                var entry = bars[^1].Close;
-                var stop = entry + env.atr.Value * S11RuntimeConfig.StopAtrMult;
-                var t1 = entry - env.atr.Value * S11RuntimeConfig.TargetAtrMult;
-                add_cand(lst, "S11", symbol, "SELL", entry, stop, t1, env, risk);
+                return S6S11Bridge.GetS11Candidates(symbol, env, levels, bars, risk);
             }
-            return lst;
+            catch (Exception ex)
+            {
+                // Fallback to original simple implementation if full-stack fails
+                Console.WriteLine($"[S11] Full-stack failed, using fallback: {ex.Message}");
+                var lst = new List<Candidate>();
+                var minAtr = S11RuntimeConfig.MinAtr;
+                if (bars.Count > 0 && env.atr.HasValue && env.atr.Value > minAtr)
+                {
+                    var entry = bars[^1].Close;
+                    var stop = entry + env.atr.Value * S11RuntimeConfig.StopAtrMult;
+                    var t1 = entry - env.atr.Value * S11RuntimeConfig.TargetAtrMult;
+                    add_cand(lst, "S11", symbol, "SELL", entry, stop, t1, env, risk);
+                }
+                return lst;
+            }
         }
 
         public static List<Candidate> S12(string symbol, Env env, Levels levels, IList<Bar> bars, RiskEngine risk)
