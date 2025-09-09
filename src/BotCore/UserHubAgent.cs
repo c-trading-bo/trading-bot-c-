@@ -229,9 +229,17 @@ namespace BotCore
                     var fillPrice = TryGet(data, "fillPrice") ?? TryGet(data, "price") ?? "0.00";
                     var quantity = TryGet(data, "quantity") ?? TryGet(data, "qty") ?? "0";
                     var accountIdStr = TryGet(data, "accountId") ?? "unknown";
+                    var customTag = TryGet(data, "customTag") ?? TryGet(data, "tag") ?? "unknown";
+                    var timestamp = TryGet(data, "timestamp") ?? TryGet(data, "time") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
                     
-                    _log.LogInformation("TRADE account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity}", 
-                        accountIdStr, orderId, fillPrice, quantity);
+                    // Parse and format fillPrice to ensure 2 decimals
+                    if (decimal.TryParse(fillPrice, out var fillPriceDecimal))
+                    {
+                        fillPrice = TradingBot.Infrastructure.TopstepX.Px.F2(fillPriceDecimal);
+                    }
+                    
+                    _log.LogInformation("TRADE account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time} tag={CustomTag}", 
+                        accountIdStr, orderId, fillPrice, quantity, timestamp, customTag);
                         
                     if (!concise) _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); 
                     OnTrade?.Invoke(data); 

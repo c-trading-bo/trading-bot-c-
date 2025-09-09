@@ -21,7 +21,7 @@ namespace BotCore
             if (!Spec.TryGetValue(sym, out var c)) c = new ContractSpec(sym, 2, 0.25m, 1m);
             return RoundToTick(px, c.TickSize).ToString($"F{c.Decimals}");
         }
-        static string Fpn(decimal v) => v.ToString("F2");
+        static string Fpn(decimal v) => TradingBot.Infrastructure.TopstepX.Px.F2(v);
 
         static readonly ConcurrentDictionary<string, string> _last = new();
         static void LogChange(ILogger log, string key, string line, LogLevel lvl = LogLevel.Information)
