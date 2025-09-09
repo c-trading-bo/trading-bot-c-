@@ -5,8 +5,9 @@ using System.Text.Json;
 namespace TradingBot.RLAgent;
 
 /// <summary>
-/// Feature Engineering system with configurable lookbacks, microstructure features, and null/NaN policy
+/// Feature Engineering system with configurable lookbacks, microstructure features, null/NaN policy, and streaming aggregation
 /// Implements requirement 1.3: Replace hardcoded lookbacks, add microstructure features, null policy, feature importance
+/// Merged StreamingFeatureAggregator for real-time precomputed features and microstructure analysis
 /// </summary>
 public class FeatureEngineering : IDisposable
 {
@@ -15,6 +16,12 @@ public class FeatureEngineering : IDisposable
     private readonly ConcurrentDictionary<string, FeatureState> _featureStates = new();
     private readonly ConcurrentDictionary<string, CircularBuffer<MarketData>> _marketDataBuffers = new();
     private readonly ConcurrentDictionary<string, FeatureImportanceTracker> _importanceTrackers = new();
+    
+    // Streaming aggregation components (merged from StreamingFeatureAggregator)
+    private readonly ConcurrentDictionary<string, StreamingSymbolAggregator> _streamingAggregators = new();
+    private readonly Timer _cleanupTimer;
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    
     private readonly Timer _dailyReportTimer;
     private bool _disposed = false;
 
@@ -25,11 +32,15 @@ public class FeatureEngineering : IDisposable
         _logger = logger;
         _config = config;
 
+        // Initialize streaming cleanup timer (merged from StreamingFeatureAggregator)
+        _cleanupTimer = new Timer(CleanupStaleStreamingData, null, 
+            TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+
         // Daily feature importance reporting timer
         _dailyReportTimer = new Timer(GenerateDailyFeatureReport, null, 
             TimeSpan.FromDays(1), TimeSpan.FromDays(1));
 
-        _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles", 
+        _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation", 
             _config.RegimeProfiles.Count);
     }
 
@@ -146,6 +157,108 @@ public class FeatureEngineering : IDisposable
                 symbol, strategy, regime);
         }
     }
+
+    #region Streaming Feature Aggregation (merged from StreamingFeatureAggregator)
+
+    /// <summary>
+    /// Process streaming market tick for real-time feature aggregation
+    /// </summary>
+    public async Task<StreamingFeatures> ProcessStreamingTickAsync(MarketTick tick, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var aggregator = _streamingAggregators.GetOrAdd(tick.Symbol, 
+                _ => new StreamingSymbolAggregator(tick.Symbol, _config));
+            var features = await aggregator.ProcessTickAsync(tick, cancellationToken);
+            
+            _logger.LogTrace("[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}", 
+                tick.Symbol, tick.Price, tick.Volume);
+            
+            return features;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Failed to process streaming tick for {Symbol}", tick.Symbol);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get cached streaming features for a symbol
+    /// </summary>
+    public StreamingFeatures? GetCachedStreamingFeatures(string symbol)
+    {
+        return _streamingAggregators.TryGetValue(symbol, out var aggregator) 
+            ? aggregator.GetCurrentFeatures() 
+            : null;
+    }
+
+    /// <summary>
+    /// Get all cached streaming features
+    /// </summary>
+    public Dictionary<string, StreamingFeatures> GetAllCachedStreamingFeatures()
+    {
+        return _streamingAggregators.ToDictionary(
+            kvp => kvp.Key, 
+            kvp => kvp.Value.GetCurrentFeatures()
+        );
+    }
+
+    /// <summary>
+    /// Check if streaming features are stale for any symbol
+    /// </summary>
+    public bool HasStaleStreamingFeatures()
+    {
+        var cutoffTime = DateTime.UtcNow - TimeSpan.FromSeconds(_config.StreamingStaleThresholdSeconds);
+        return _streamingAggregators.Values.Any(a => a.LastUpdateTime < cutoffTime);
+    }
+
+    /// <summary>
+    /// Get symbols with stale streaming features
+    /// </summary>
+    public List<string> GetStaleStreamingSymbols()
+    {
+        var cutoffTime = DateTime.UtcNow - TimeSpan.FromSeconds(_config.StreamingStaleThresholdSeconds);
+        return _streamingAggregators
+            .Where(kvp => kvp.Value.LastUpdateTime < cutoffTime)
+            .Select(kvp => kvp.Key)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Clean up stale streaming data
+    /// </summary>
+    private void CleanupStaleStreamingData(object? state)
+    {
+        try
+        {
+            var cutoffTime = DateTime.UtcNow - TimeSpan.FromMinutes(_config.StreamingCleanupAfterMinutes);
+            var staleSymbols = _streamingAggregators
+                .Where(kvp => kvp.Value.LastUpdateTime < cutoffTime)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var symbol in staleSymbols)
+            {
+                if (_streamingAggregators.TryRemove(symbol, out var aggregator))
+                {
+                    aggregator.Dispose();
+                    _logger.LogDebug("[FEATURE_ENG] Cleaned up stale streaming aggregator for {Symbol}", symbol);
+                }
+            }
+
+            if (staleSymbols.Any())
+            {
+                _logger.LogInformation("[FEATURE_ENG] Cleaned up {Count} stale streaming symbol aggregators", staleSymbols.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[FEATURE_ENG] Error during streaming cleanup");
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Add price-based features with configurable lookbacks
@@ -699,7 +812,18 @@ public class FeatureEngineering : IDisposable
     {
         if (!_disposed)
         {
+            _cancellationTokenSource.Cancel();
             _dailyReportTimer?.Dispose();
+            _cleanupTimer?.Dispose();
+            
+            // Dispose streaming aggregators
+            foreach (var aggregator in _streamingAggregators.Values)
+            {
+                aggregator.Dispose();
+            }
+            _streamingAggregators.Clear();
+
+            _cancellationTokenSource.Dispose();
             _disposed = true;
             _logger.LogInformation("[FEATURE_ENG] Disposed successfully");
         }
@@ -709,7 +833,7 @@ public class FeatureEngineering : IDisposable
 #region Supporting Classes
 
 /// <summary>
-/// Configuration for feature engineering with regime-specific profiles
+/// Configuration for feature engineering with regime-specific profiles and streaming options
 /// </summary>
 public class FeatureConfig
 {
@@ -717,6 +841,18 @@ public class FeatureConfig
     public RegimeProfile DefaultProfile { get; set; } = new();
     public int MaxBufferSize { get; set; } = 1000;
     public int TopKFeatures { get; set; } = 10;
+    
+    // Streaming configuration (merged from StreamingFeatureAggregator)
+    public int StreamingStaleThresholdSeconds { get; set; } = 30;
+    public int StreamingCleanupAfterMinutes { get; set; } = 30;
+    public List<TimeSpan> StreamingTimeWindows { get; set; } = new() 
+    {
+        TimeSpan.FromSeconds(10),
+        TimeSpan.FromMinutes(1),
+        TimeSpan.FromMinutes(5),
+        TimeSpan.FromMinutes(15)
+    };
+    public TimeSpan MicrostructureWindow { get; set; } = TimeSpan.FromMinutes(1);
 }
 
 /// <summary>
@@ -814,6 +950,352 @@ public class FeatureImportanceReport
 {
     public DateTime GeneratedAt { get; set; }
     public Dictionary<string, Dictionary<string, double>> SymbolReports { get; set; } = new();
+}
+
+/// <summary>
+/// Market tick data structure (merged from StreamingFeatureAggregator)
+/// </summary>
+public class MarketTick
+{
+    public string Symbol { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public double Price { get; set; }
+    public double Volume { get; set; }
+    public double Bid { get; set; }
+    public double Ask { get; set; }
+    public double Size { get; set; }
+    public bool IsBuyAggressor { get; set; }
+}
+
+/// <summary>
+/// Streaming features output (merged from StreamingFeatureAggregator)
+/// </summary>
+public class StreamingFeatures
+{
+    public string Symbol { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public Dictionary<string, double> Features { get; set; } = new();
+    public Dictionary<string, double> MicrostructureFeatures { get; set; } = new();
+    public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; set; } = new();
+    public bool IsStale { get; set; }
+}
+
+/// <summary>
+/// Symbol-specific streaming aggregator (merged from StreamingFeatureAggregator)
+/// </summary>
+public class StreamingSymbolAggregator : IDisposable
+{
+    private readonly string _symbol;
+    private readonly FeatureConfig _config;
+    private readonly Dictionary<TimeSpan, TimeWindowAggregator> _windowAggregators = new();
+    private readonly MicrostructureCalculator _microstructureCalc;
+    private readonly object _lock = new();
+    private StreamingFeatures _currentFeatures = new();
+    private bool _disposed = false;
+
+    public DateTime LastUpdateTime { get; private set; } = DateTime.UtcNow;
+
+    public StreamingSymbolAggregator(string symbol, FeatureConfig config)
+    {
+        _symbol = symbol;
+        _config = config;
+        _microstructureCalc = new MicrostructureCalculator(config.MicrostructureWindow);
+
+        // Initialize window aggregators
+        foreach (var window in config.StreamingTimeWindows)
+        {
+            _windowAggregators[window] = new TimeWindowAggregator(window);
+        }
+    }
+
+    public async Task<StreamingFeatures> ProcessTickAsync(MarketTick tick, CancellationToken cancellationToken)
+    {
+        await Task.Yield(); // Make it async
+
+        lock (_lock)
+        {
+            LastUpdateTime = DateTime.UtcNow;
+
+            // Update microstructure features
+            _microstructureCalc.AddTick(tick);
+
+            // Update all time window aggregators
+            foreach (var aggregator in _windowAggregators.Values)
+            {
+                aggregator.AddTick(tick);
+            }
+
+            // Calculate new features
+            _currentFeatures = CalculateFeatures();
+            return _currentFeatures;
+        }
+    }
+
+    public StreamingFeatures GetCurrentFeatures()
+    {
+        lock (_lock)
+        {
+            return _currentFeatures;
+        }
+    }
+
+    private StreamingFeatures CalculateFeatures()
+    {
+        var features = new StreamingFeatures
+        {
+            Symbol = _symbol,
+            Timestamp = DateTime.UtcNow,
+            MicrostructureFeatures = _microstructureCalc.GetFeatures()
+        };
+
+        // Add time window features
+        foreach (var kvp in _windowAggregators)
+        {
+            features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
+        }
+
+        return features;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            foreach (var aggregator in _windowAggregators.Values)
+            {
+                aggregator.Dispose();
+            }
+            _windowAggregators.Clear();
+            _microstructureCalc.Dispose();
+            _disposed = true;
+        }
+    }
+}
+
+/// <summary>
+/// Time window aggregator for streaming features (merged from StreamingFeatureAggregator)
+/// </summary>
+public class TimeWindowAggregator : IDisposable
+{
+    private readonly TimeSpan _window;
+    private readonly List<MarketTick> _ticks = new();
+    private readonly object _lock = new();
+    private bool _disposed = false;
+
+    public TimeWindowAggregator(TimeSpan window)
+    {
+        _window = window;
+    }
+
+    public void AddTick(MarketTick tick)
+    {
+        lock (_lock)
+        {
+            _ticks.Add(tick);
+            CleanOldTicks(tick.Timestamp);
+        }
+    }
+
+    public Dictionary<string, double> GetFeatures()
+    {
+        lock (_lock)
+        {
+            if (_ticks.Count == 0)
+            {
+                return new Dictionary<string, double>();
+            }
+
+            var prices = _ticks.Select(t => t.Price).ToArray();
+            var volumes = _ticks.Select(t => t.Volume).ToArray();
+
+            return new Dictionary<string, double>
+            {
+                ["vwap"] = CalculateVWAP(),
+                ["volatility"] = CalculateVolatility(prices),
+                ["volume_sum"] = volumes.Sum(),
+                ["volume_avg"] = volumes.Average(),
+                ["tick_count"] = _ticks.Count,
+                ["price_range"] = prices.Max() - prices.Min(),
+                ["last_price"] = prices.Last(),
+                ["first_price"] = prices.First()
+            };
+        }
+    }
+
+    private void CleanOldTicks(DateTime currentTime)
+    {
+        var cutoff = currentTime - _window;
+        _ticks.RemoveAll(t => t.Timestamp < cutoff);
+    }
+
+    private double CalculateVWAP()
+    {
+        var totalValue = _ticks.Sum(t => t.Price * t.Volume);
+        var totalVolume = _ticks.Sum(t => t.Volume);
+        return totalVolume > 0 ? totalValue / totalVolume : 0;
+    }
+
+    private double CalculateVolatility(double[] prices)
+    {
+        if (prices.Length < 2) return 0;
+        
+        var returns = new List<double>();
+        for (int i = 1; i < prices.Length; i++)
+        {
+            if (prices[i - 1] > 0)
+            {
+                returns.Add((prices[i] - prices[i - 1]) / prices[i - 1]);
+            }
+        }
+        
+        if (returns.Count == 0) return 0;
+        
+        var mean = returns.Average();
+        var variance = returns.Select(r => Math.Pow(r - mean, 2)).Average();
+        return Math.Sqrt(variance);
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            lock (_lock)
+            {
+                _ticks.Clear();
+            }
+            _disposed = true;
+        }
+    }
+}
+
+/// <summary>
+/// Microstructure feature calculator (merged from StreamingFeatureAggregator)
+/// </summary>
+public class MicrostructureCalculator : IDisposable
+{
+    private readonly TimeSpan _window;
+    private readonly List<MarketTick> _ticks = new();
+    private readonly object _lock = new();
+    private bool _disposed = false;
+
+    public MicrostructureCalculator(TimeSpan window)
+    {
+        _window = window;
+    }
+
+    public void AddTick(MarketTick tick)
+    {
+        lock (_lock)
+        {
+            _ticks.Add(tick);
+            CleanOldTicks(tick.Timestamp);
+        }
+    }
+
+    public Dictionary<string, double> GetFeatures()
+    {
+        lock (_lock)
+        {
+            if (_ticks.Count == 0)
+            {
+                return new Dictionary<string, double>();
+            }
+
+            return new Dictionary<string, double>
+            {
+                ["spread_avg"] = CalculateAverageSpread(),
+                ["spread_current"] = _ticks.Last().Ask - _ticks.Last().Bid,
+                ["order_flow_imbalance"] = CalculateOrderFlowImbalance(),
+                ["price_impact"] = CalculatePriceImpact(),
+                ["tick_direction"] = GetLastTickDirection(),
+                ["volume_imbalance"] = CalculateVolumeImbalance(),
+                ["effective_spread"] = CalculateEffectiveSpread()
+            };
+        }
+    }
+
+    private void CleanOldTicks(DateTime currentTime)
+    {
+        var cutoff = currentTime - _window;
+        _ticks.RemoveAll(t => t.Timestamp < cutoff);
+    }
+
+    private double CalculateAverageSpread()
+    {
+        var spreads = _ticks.Select(t => t.Ask - t.Bid).Where(s => s > 0);
+        return spreads.Any() ? spreads.Average() : 0;
+    }
+
+    private double CalculateOrderFlowImbalance()
+    {
+        var buyVolume = _ticks.Where(t => t.IsBuyAggressor).Sum(t => t.Volume);
+        var sellVolume = _ticks.Where(t => !t.IsBuyAggressor).Sum(t => t.Volume);
+        var totalVolume = buyVolume + sellVolume;
+        
+        return totalVolume > 0 ? (buyVolume - sellVolume) / totalVolume : 0;
+    }
+
+    private double CalculatePriceImpact()
+    {
+        if (_ticks.Count < 2) return 0;
+        
+        var priceChanges = new List<double>();
+        for (int i = 1; i < _ticks.Count; i++)
+        {
+            var priceChange = _ticks[i].Price - _ticks[i - 1].Price;
+            var volumeWeight = _ticks[i].Volume;
+            if (volumeWeight > 0)
+            {
+                priceChanges.Add(Math.Abs(priceChange) / volumeWeight);
+            }
+        }
+        
+        return priceChanges.Any() ? priceChanges.Average() : 0;
+    }
+
+    private double GetLastTickDirection()
+    {
+        if (_ticks.Count < 2) return 0;
+        
+        var last = _ticks.Last();
+        var previous = _ticks[_ticks.Count - 2];
+        
+        return last.Price > previous.Price ? 1 : (last.Price < previous.Price ? -1 : 0);
+    }
+
+    private double CalculateVolumeImbalance()
+    {
+        var bidVolume = _ticks.Sum(t => t.Volume * (t.Price <= (t.Bid + t.Ask) / 2 ? 1 : 0));
+        var askVolume = _ticks.Sum(t => t.Volume * (t.Price > (t.Bid + t.Ask) / 2 ? 1 : 0));
+        var totalVolume = bidVolume + askVolume;
+        
+        return totalVolume > 0 ? (askVolume - bidVolume) / totalVolume : 0;
+    }
+
+    private double CalculateEffectiveSpread()
+    {
+        if (_ticks.Count == 0) return 0;
+        
+        var effectiveSpreads = _ticks.Select(t =>
+        {
+            var midPrice = (t.Bid + t.Ask) / 2;
+            return midPrice > 0 ? 2 * Math.Abs(t.Price - midPrice) / midPrice : 0;
+        }).Where(s => s > 0);
+        
+        return effectiveSpreads.Any() ? effectiveSpreads.Average() : 0;
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            lock (_lock)
+            {
+                _ticks.Clear();
+            }
+            _disposed = true;
+        }
+    }
 }
 
 #endregion
