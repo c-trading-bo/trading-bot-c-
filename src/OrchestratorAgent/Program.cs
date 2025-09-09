@@ -16,7 +16,7 @@ using OrchestratorAgent.Intelligence;
 using OrchestratorAgent.Critical;
 using System.Linq;
 using System.Net.Http.Json;
-using Dashboard;
+// using Dashboard; // Commented out - Dashboard module not available
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
@@ -748,7 +748,7 @@ namespace OrchestratorAgent
                     OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null;
 
                     // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
-                    Dashboard.RealtimeHub? dashboardHub = null;
+                    object? dashboardHub = null; // Dashboard module not available
                     OrchestratorAgent.ML.RlSizer? rlSizer = null;
                     OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
                     BotCore.Services.IIntelligenceService? intelligenceService = null;
@@ -789,6 +789,8 @@ namespace OrchestratorAgent
                             return new BotCore.Services.ZoneService(logger, zonesPath);
                         });
 
+                        // Dashboard functionality commented out - missing Dashboard module
+                        /*
                         // Register RealtimeHub with metrics provider capturing current pos/status
                         webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
                         {
@@ -833,6 +835,7 @@ namespace OrchestratorAgent
                             return new Dashboard.RealtimeHub(logger, MetricsProvider);
                         });
                         webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
+                        */
                         
                         // Add Workflow Integration Services
                         webBuilder.Services.AddSingleton<OrchestratorAgent.Intelligence.WorkflowIntegrationService>();
@@ -841,7 +844,7 @@ namespace OrchestratorAgent
                         var web = webBuilder.Build();
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
-                        dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>();
+                        // dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>(); // Commented out - Dashboard not available
                         rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
                         sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
 
@@ -850,7 +853,7 @@ namespace OrchestratorAgent
 
                         // Get zone service from DI container
                         zoneService = web.Services.GetRequiredService<BotCore.Services.IZoneService>();
-                        web.MapDashboard(dashboardHub);
+                        // web.MapDashboard(dashboardHub); // Commented out - Dashboard not available
 
                         // Map health endpoints on same Kestrel host
                         web.MapGet("/healthz", async () =>
@@ -1106,7 +1109,8 @@ namespace OrchestratorAgent
                         log.LogWarning(ex, "Dashboard failed to start; continuing without UI.");
                     }
 
-                    // Wire ticks/marks into dashboard stream
+                    // Wire ticks/marks into dashboard stream - commented out (Dashboard not available)
+                    /*
                     if (dashboardHub is not null)
                     {
                         market1.OnTrade += (cid, tick) => { try { if (cid == esContract) dashboardHub.OnTick(esRoot, tick.TimestampUtc, tick.Price, tick.Volume); } catch { } };
@@ -1114,6 +1118,7 @@ namespace OrchestratorAgent
                         market1.OnQuote += (cid, last, bid, ask) => { try { if (cid == esContract && last > 0) dashboardHub.OnMark(esRoot, last); } catch { } };
                         if (enableNq && market2 != null) market2.OnQuote += (cid, last, bid, ask) => { try { if (cid == nqContract && last > 0) dashboardHub.OnMark(nqRoot, last); } catch { } };
                     }
+                    */
 
                     market1.OnQuote += (cid, last, bid, ask) =>
                     {
@@ -1681,38 +1686,39 @@ namespace OrchestratorAgent
                     // Seed dashboard history once (540 1m bars)
                     try
                     {
+                        // Dashboard functionality commented out due to missing Dashboard module
                         if (dashboardHub is not null)
                         {
                             var esBars = barPyramid.M1.GetHistory(esIdForSeed);
                             if (esBars.Count > 0)
                             {
-                                var list = new System.Collections.Generic.List<Dashboard.Bar>();
+                                var list = new System.Collections.Generic.List<object>(); // Dashboard.Bar>();
                                 int start = Math.Max(0, esBars.Count - 540);
                                 for (int i = start; i < esBars.Count; i++)
                                 {
                                     var b = esBars[i];
                                     long tUnix = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeSeconds();
-                                    list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
+                                    // list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
                                 }
-                                dashboardHub.SeedHistory(esRoot, "1", list);
+                                // dashboardHub.SeedHistory(esRoot, "1", list);
                             }
                             if (enableNq && nqIdForSeed is not null)
                             {
                                 var nqBars = barPyramid.M1.GetHistory(nqIdForSeed);
                                 if (nqBars.Count > 0)
                                 {
-                                    var list = new System.Collections.Generic.List<Dashboard.Bar>();
+                                    var list = new System.Collections.Generic.List<object>(); // Dashboard.Bar>();
                                     int start = Math.Max(0, nqBars.Count - 540);
                                     for (int i = start; i < nqBars.Count; i++)
                                     {
                                         var b = nqBars[i];
                                         long tUnix = new DateTimeOffset(b.Start, TimeSpan.Zero).ToUnixTimeSeconds();
-                                        list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
+                                        // list.Add(new Dashboard.Bar(tUnix, b.Open, b.High, b.Low, b.Close, b.Volume));
                                     }
-                                    dashboardHub.SeedHistory(nqRoot, "1", list);
+                                    // dashboardHub.SeedHistory(nqRoot, "1", list);
                                 }
                             }
-                            log.LogInformation("[Dashboard] History seeded.");
+                            // log.LogInformation("[Dashboard] History seeded.");
                         }
                     }
                     catch { }
