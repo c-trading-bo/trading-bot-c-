@@ -291,8 +291,15 @@ namespace OrchestratorAgent
         {
             async Task<string?> TokenProvider()
             {
-                // For now, return the token directly without TTL validation
-                // TODO: Parse JWT to extract actual expiration time
+                // Parse JWT to extract actual expiration time and validate
+                if (IsTokenExpired(authToken))
+                {
+                    _log.LogWarning("[USER HUB] JWT token is expired, may need refresh");
+                    // In production, this would trigger token refresh
+                    // For now, return null to force reconnection
+                    return null;
+                }
+                
                 return authToken;
             }
 
@@ -435,6 +442,82 @@ namespace OrchestratorAgent
                 delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
             }
             throw new InvalidOperationException("UserHub invoke could not complete after multiple retries.");
+        }
+
+        private bool IsTokenExpired(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                    return true;
+
+                // JWT tokens have 3 parts separated by dots
+                var parts = token.Split('.');
+                if (parts.Length != 3)
+                {
+                    _log.LogWarning("[JWT] Invalid token format - not a JWT");
+                    return true;
+                }
+
+                // Decode the payload (second part)
+                var payload = parts[1];
+                
+                // Add padding if needed for Base64 decoding
+                var missingPadding = payload.Length % 4;
+                if (missingPadding != 0)
+                {
+                    payload += new string('=', 4 - missingPadding);
+                }
+
+                // Convert from Base64URL to Base64
+                payload = payload.Replace('-', '+').Replace('_', '/');
+                
+                var jsonBytes = Convert.FromBase64String(payload);
+                var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes);
+                
+                // Parse the JSON payload
+                using var doc = JsonDocument.Parse(jsonString);
+                var root = doc.RootElement;
+
+                // Look for 'exp' claim (expiration time as Unix timestamp)
+                if (root.TryGetProperty("exp", out var expElement))
+                {
+                    var exp = expElement.GetInt64();
+                    var expDateTime = DateTimeOffset.FromUnixTimeSeconds(exp);
+                    var now = DateTimeOffset.UtcNow;
+                    
+                    var isExpired = expDateTime <= now;
+                    
+                    if (isExpired)
+                    {
+                        _log.LogWarning("[JWT] Token expired at {ExpirationTime}, current time {CurrentTime}", 
+                            expDateTime, now);
+                    }
+                    else
+                    {
+                        var timeToExpiry = expDateTime - now;
+                        _log.LogDebug("[JWT] Token valid, expires in {TimeToExpiry}", timeToExpiry);
+                        
+                        // Warn if token expires soon (within 5 minutes)
+                        if (timeToExpiry < TimeSpan.FromMinutes(5))
+                        {
+                            _log.LogWarning("[JWT] Token expires soon: {TimeToExpiry}", timeToExpiry);
+                        }
+                    }
+                    
+                    return isExpired;
+                }
+                else
+                {
+                    _log.LogWarning("[JWT] No expiration claim found in token");
+                    return false; // Assume valid if no exp claim
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.LogError(ex, "[JWT] Error parsing token expiration");
+                return false; // Assume valid on parse error to avoid unnecessary disconnections
+            }
         }
 
         public async ValueTask DisposeAsync()
