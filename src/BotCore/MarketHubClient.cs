@@ -294,13 +294,37 @@ namespace BotCore
             _conn.Reconnecting += ex =>
             {
                 _subscribed = false;
-                if (!Concise()) _log.LogWarning(ex, "[MarketHub] Reconnecting…");
+                var reconnectData = new
+                {
+                    timestamp = DateTime.UtcNow,
+                    component = "market_hub_client", 
+                    operation = "reconnecting",
+                    error = ex?.Message ?? "Unknown error",
+                    contract_id = _contractId
+                };
+
+                if (!Concise()) 
+                {
+                    _log.LogWarning("MARKET_HUB_RECONNECTING: {ReconnectData}", System.Text.Json.JsonSerializer.Serialize(reconnectData));
+                }
                 return Task.CompletedTask;
             };
 
             _conn.Reconnected += async _ =>
             {
-                if (!Concise()) _log.LogInformation("[MarketHub] Reconnected. Re-subscribing…");
+                var reconnectedData = new
+                {
+                    timestamp = DateTime.UtcNow,
+                    component = "market_hub_client",
+                    operation = "reconnected", 
+                    contract_id = _contractId,
+                    success = true
+                };
+
+                if (!Concise()) 
+                {
+                    _log.LogInformation("MARKET_HUB_RECONNECTED: {ReconnectedData}", System.Text.Json.JsonSerializer.Serialize(reconnectedData));
+                }
                 await SubscribeIfConnectedAsync(CancellationToken.None);
             };
 
@@ -340,7 +364,16 @@ namespace BotCore
                             if (now2 - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
                             {
                                 _lastRebuiltInfoUtc = now2;
-                                _log.LogInformation("[MarketHub] Rebuilt and reconnected (attempt {Attempt}).", attempt);
+                                var recoveryData = new
+                                {
+                                    timestamp = now2,
+                                    component = "market_hub_client",
+                                    operation = "auto_recovery_success",
+                                    attempt = attempt,
+                                    contract_id = _contractId,
+                                    success = true
+                                };
+                                _log.LogInformation("MARKET_HUB_RECOVERY: {RecoveryData}", System.Text.Json.JsonSerializer.Serialize(recoveryData));
                             }
                             else
                             {

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http.Connections;
+using BotCore.Models;
 
 namespace BotCore
 {
@@ -29,6 +30,10 @@ namespace BotCore
         public event Action<JsonElement>? OnTrade;
         public event Action<JsonElement>? OnPosition;
         public event Action<JsonElement>? OnAccount;
+
+        // 4️⃣ Wire UserHub Event Handlers - Add structured event handlers
+        public event Action<OrderConfirmation>? OnOrderConfirmation;
+        public event Action<FillConfirmation>? OnFillConfirmation;
 
         public HubConnection? GetConnection() => _hub;
         public HubConnection? Connection => _hub;
@@ -187,9 +192,65 @@ namespace BotCore
             }
 
             hub.On<JsonElement>("GatewayUserAccount", data => { try { if (concise) _log.LogInformation("[ACCOUNT] update"); else _log.LogInformation("Account evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnAccount?.Invoke(data); } catch { } });
-            hub.On<JsonElement>("GatewayUserOrder", data => { try { if (concise) _log.LogInformation(OneLine(data, "ORDER")); else _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnOrder?.Invoke(data); } catch { } });
+            hub.On<JsonElement>("GatewayUserOrder", data => { 
+                try { 
+                    // 10️⃣ Standardize Logging Format - Order events
+                    var orderId = TryGet(data, "orderId") ?? TryGet(data, "id") ?? "unknown";
+                    var status = TryGet(data, "status") ?? "unknown";
+                    var symbol = TryGet(data, "symbol") ?? TryGet(data, "contractName") ?? "unknown";
+                    var accountIdStr = TryGet(data, "accountId") ?? "unknown";
+                    
+                    _log.LogInformation("ORDER account={AccountId} status={Status} orderId={OrderId} symbol={Symbol}", 
+                        accountIdStr, status, orderId, symbol);
+                        
+                    if (!concise) _log.LogInformation("Order evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); 
+                    OnOrder?.Invoke(data); 
+                    
+                    // 4️⃣ Wire UserHub Event Handlers - Parse and emit structured event
+                    try
+                    {
+                        var orderConfirmation = ParseOrderConfirmation(data);
+                        if (orderConfirmation != null)
+                        {
+                            OnOrderConfirmation?.Invoke(orderConfirmation);
+                        }
+                    }
+                    catch (Exception parseEx)
+                    {
+                        _log.LogDebug(parseEx, "Failed to parse order confirmation from GatewayUserOrder");
+                    }
+                } catch { } 
+            });
             hub.On<JsonElement>("GatewayUserPosition", data => { try { if (concise) _log.LogInformation(OneLine(data, "POSITION")); else _log.LogInformation("Position evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnPosition?.Invoke(data); } catch { } });
-            hub.On<JsonElement>("GatewayUserTrade", data => { try { if (concise) _log.LogInformation(OneLine(data, "TRADE")); else _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); OnTrade?.Invoke(data); } catch { } });
+            hub.On<JsonElement>("GatewayUserTrade", data => { 
+                try { 
+                    // 10️⃣ Standardize Logging Format - Trade events
+                    var orderId = TryGet(data, "orderId") ?? TryGet(data, "id") ?? "unknown";
+                    var fillPrice = TryGet(data, "fillPrice") ?? TryGet(data, "price") ?? "0.00";
+                    var quantity = TryGet(data, "quantity") ?? TryGet(data, "qty") ?? "0";
+                    var accountIdStr = TryGet(data, "accountId") ?? "unknown";
+                    
+                    _log.LogInformation("TRADE account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity}", 
+                        accountIdStr, orderId, fillPrice, quantity);
+                        
+                    if (!concise) _log.LogInformation("Trade evt: {Json}", System.Text.Json.JsonSerializer.Serialize(data)); 
+                    OnTrade?.Invoke(data); 
+                    
+                    // 4️⃣ Wire UserHub Event Handlers - Parse and emit structured event
+                    try
+                    {
+                        var fillConfirmation = ParseFillConfirmation(data);
+                        if (fillConfirmation != null)
+                        {
+                            OnFillConfirmation?.Invoke(fillConfirmation);
+                        }
+                    }
+                    catch (Exception parseEx)
+                    {
+                        _log.LogDebug(parseEx, "Failed to parse fill confirmation from GatewayUserTrade");
+                    }
+                } catch { } 
+            });
             _handlersWired = true;
 
             hub.Closed += ex =>
@@ -225,6 +286,82 @@ namespace BotCore
                 m?.Invoke(_statusService, [key, value]);
             }
             catch { }
+        }
+
+        /// <summary>
+        /// 4️⃣ Wire UserHub Event Handlers - Parse order confirmation from JSON
+        /// </summary>
+        private OrderConfirmation? ParseOrderConfirmation(JsonElement data)
+        {
+            try
+            {
+                if (data.ValueKind != JsonValueKind.Object) return null;
+
+                string? orderId = null;
+                string? customTag = null;
+                string? status = null;
+                string? reason = null;
+
+                if (data.TryGetProperty("orderId", out var orderIdProp)) orderId = orderIdProp.GetString();
+                if (data.TryGetProperty("id", out var idProp)) orderId ??= idProp.GetString();
+                if (data.TryGetProperty("customTag", out var customTagProp)) customTag = customTagProp.GetString();
+                if (data.TryGetProperty("status", out var statusProp)) status = statusProp.GetString();
+                if (data.TryGetProperty("reason", out var reasonProp)) reason = reasonProp.GetString();
+
+                if (string.IsNullOrEmpty(orderId)) return null;
+
+                return new OrderConfirmation
+                {
+                    OrderId = orderId,
+                    CustomTag = customTag ?? "",
+                    Status = status ?? "",
+                    Reason = reason ?? "",
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 4️⃣ Wire UserHub Event Handlers - Parse fill confirmation from JSON
+        /// </summary>
+        private FillConfirmation? ParseFillConfirmation(JsonElement data)
+        {
+            try
+            {
+                if (data.ValueKind != JsonValueKind.Object) return null;
+
+                string? orderId = null;
+                string? customTag = null;
+                decimal fillPrice = 0m;
+                int quantity = 0;
+
+                if (data.TryGetProperty("orderId", out var orderIdProp)) orderId = orderIdProp.GetString();
+                if (data.TryGetProperty("id", out var idProp)) orderId ??= idProp.GetString();
+                if (data.TryGetProperty("customTag", out var customTagProp)) customTag = customTagProp.GetString();
+                if (data.TryGetProperty("fillPrice", out var fillPriceProp)) fillPriceProp.TryGetDecimal(out fillPrice);
+                if (data.TryGetProperty("price", out var priceProp)) { if (fillPrice == 0m) priceProp.TryGetDecimal(out fillPrice); }
+                if (data.TryGetProperty("quantity", out var quantityProp)) quantityProp.TryGetInt32(out quantity);
+                if (data.TryGetProperty("qty", out var qtyProp)) { if (quantity == 0) qtyProp.TryGetInt32(out quantity); }
+
+                if (string.IsNullOrEmpty(orderId) || fillPrice <= 0 || quantity <= 0) return null;
+
+                return new FillConfirmation
+                {
+                    OrderId = orderId,
+                    CustomTag = customTag ?? "",
+                    FillPrice = fillPrice,
+                    Quantity = quantity,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async ValueTask DisposeAsync()
