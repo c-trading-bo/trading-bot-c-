@@ -572,6 +572,48 @@ public class TopstepXService : ITopstepXService, IDisposable
         }
     }
 
+    public async Task<bool> SubscribeOrdersAsync(string accountId)
+    {
+        try
+        {
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to orders - not connected");
+                return false;
+            }
+
+            await _hubConnection.InvokeAsync("SubscribeOrders", accountId).ConfigureAwait(false);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to orders for account {AccountId}", accountId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to orders for account {AccountId}", accountId);
+            return false;
+        }
+    }
+
+    public async Task<bool> SubscribeTradesAsync(string accountId)
+    {
+        try
+        {
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to trades - not connected");
+                return false;
+            }
+
+            await _hubConnection.InvokeAsync("SubscribeTrades", accountId).ConfigureAwait(false);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to trades for account {AccountId}", accountId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to trades for account {AccountId}", accountId);
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)

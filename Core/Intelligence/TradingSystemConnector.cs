@@ -10,7 +10,6 @@ using BotCore.Services;
 using BotCore.Config;
 using BotCore.Risk;
 using BotCore.ML;
-using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.Core.Intelligence
 {
@@ -515,7 +514,7 @@ namespace TradingBot.Core.Intelligence
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        risk = Px.F2(risk)
+                        risk = F2(risk)
                     };
 
                     _logger.LogError("ORDER_REJECTED: {ErrorData}", System.Text.Json.JsonSerializer.Serialize(errorData));
@@ -530,8 +529,8 @@ namespace TradingBot.Core.Intelligence
                 }
 
                 // Round prices to tick size
-                var roundedEntry = Px.RoundToTick(request.Entry);
-                var roundedStop = Px.RoundToTick(request.Stop);
+                var roundedEntry = RoundToTick(request.Entry);
+                var roundedStop = RoundToTick(request.Stop);
 
                 // Generate idempotent customTag
                 var customTag = GenerateCustomTag(request.StrategyId, request.Side);
@@ -576,7 +575,7 @@ namespace TradingBot.Core.Intelligence
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        price = Px.F2(roundedEntry),
+                        price = F2(roundedEntry),
                         orderType = "LIMIT",
                         customTag = customTag,
                         accountId = request.AccountId
@@ -590,9 +589,9 @@ namespace TradingBot.Core.Intelligence
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        entry = Px.F2(roundedEntry),
-                        stop = Px.F2(roundedStop),
-                        risk = Px.F2(risk),
+                        entry = F2(roundedEntry),
+                        stop = F2(roundedStop),
+                        risk = F2(risk),
                         customTag = customTag
                     };
 
@@ -619,7 +618,7 @@ namespace TradingBot.Core.Intelligence
                         {
                             var fill = await fillTask.ConfigureAwait(false);
                             _logger.LogInformation("Order {OrderId} filled: {FillPrice} x {Quantity}", 
-                                orderId, Px.F2(fill.FillPrice), fill.Quantity);
+                                orderId, F2(fill.FillPrice), fill.Quantity);
 
                             return new PlaceOrderResult
                             {
@@ -714,6 +713,16 @@ namespace TradingBot.Core.Intelligence
         {
             var risk = isLong ? (entry - stop) * quantity : (stop - entry) * quantity;
             return Math.Abs(risk);
+        }
+
+        private static decimal RoundToTick(decimal price, decimal tick = 0.25m)
+        {
+            return Math.Round(price / tick, 0, MidpointRounding.AwayFromZero) * tick;
+        }
+
+        private static string F2(decimal value)
+        {
+            return value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private string GenerateCustomTag(string strategyId, string side)
