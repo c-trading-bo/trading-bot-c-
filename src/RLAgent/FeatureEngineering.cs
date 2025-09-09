@@ -245,9 +245,9 @@ public class FeatureEngineering : IDisposable
         var atr = buffer.Count >= atrWindow ? CalculateATR(buffer.GetLast(atrWindow), currentData) : 0.0;
 
         // MACD
-        var macdResult = buffer.Count >= 26 ? CalculateMACD(buffer.GetLast(26), currentData) : (0.0, 0.0);
+        var (macd, signal) = buffer.Count >= 26 ? CalculateMACD(buffer.GetLast(26), currentData) : (0.0, 0.0);
 
-        features.AddRange(new[] { rsi / 100.0, bollingerPosition, atr, macdResult.macd, macdResult.signal });
+        features.AddRange(new[] { rsi / 100.0, bollingerPosition, atr, macd, signal });
         featureNames.AddRange(new[] { "rsi_normalized", "bollinger_position", "atr", "macd", "macd_signal" });
     }
 
@@ -814,82 +814,6 @@ public class FeatureImportanceReport
 {
     public DateTime GeneratedAt { get; set; }
     public Dictionary<string, Dictionary<string, double>> SymbolReports { get; set; } = new();
-}
-
-/// <summary>
-/// Circular buffer for efficient market data storage
-/// </summary>
-public class CircularBuffer<T>
-{
-    private readonly T[] _buffer;
-    private readonly int _size;
-    private int _head = 0;
-    private int _count = 0;
-
-    public CircularBuffer(int size)
-    {
-        _size = size;
-        _buffer = new T[size];
-    }
-
-    public int Count => _count;
-
-    public void Add(T item)
-    {
-        _buffer[_head] = item;
-        _head = (_head + 1) % _size;
-        if (_count < _size)
-            _count++;
-    }
-
-    public T? GetFromEnd(int index)
-    {
-        if (index >= _count) return default(T);
-        var actualIndex = (_head - 1 - index + _size) % _size;
-        return _buffer[actualIndex];
-    }
-
-    public T[] GetLast(int count)
-    {
-        count = Math.Min(count, _count);
-        var result = new T[count];
-        
-        for (int i = 0; i < count; i++)
-        {
-            var item = GetFromEnd(i);
-            if (item != null)
-                result[count - 1 - i] = item;
-        }
-        
-        return result;
-    }
-}
-
-/// <summary>
-/// Market data structure
-/// </summary>
-public class MarketData
-{
-    public DateTime Timestamp { get; set; }
-    public double Open { get; set; }
-    public double High { get; set; }
-    public double Low { get; set; }
-    public double Close { get; set; }
-    public double Volume { get; set; }
-    public double Bid { get; set; }
-    public double Ask { get; set; }
-}
-
-/// <summary>
-/// Regime types for feature configuration
-/// </summary>
-public enum RegimeType
-{
-    Range = 0,
-    Trend = 1,
-    Volatility = 2,
-    LowVol = 3,
-    HighVol = 4
 }
 
 #endregion

@@ -46,15 +46,20 @@ public class IdempotentOrderService : IIdempotentOrderService
     {
         try
         {
-            // Implement the SHA1 key schema: sha1(modelId|strategyId|signalId|ts|symbol|side|priceBucket)
-            var priceBucket = Math.Round(request.Price / 0.25) * 0.25; // Round to ES tick size
-            var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{request.Timestamp:yyyy-MM-dd_HH-mm-ss}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
+            // Implement deterministic orderKey: hash of modelId|strategyId|signalId|ts|symbol|side|priceBucket
+            // Requirement: deterministic orderKey with 24h dedupe
+            var priceBucket = Math.Round(request.Price / 0.25) * 0.25; // Round to ES/MES tick size
+            var timestampBucket = new DateTime(request.Timestamp.Year, request.Timestamp.Month, request.Timestamp.Day, 
+                request.Timestamp.Hour, request.Timestamp.Minute / 5 * 5, 0); // 5-minute buckets for idempotency
             
-            using var sha1 = SHA1.Create();
-            var hash = sha1.ComputeHash(Encoding.UTF8.GetBytes(keyContent));
+            var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{timestampBucket:yyyy-MM-dd_HH-mm}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
+            
+            using var sha256 = SHA256.Create(); // Use SHA256 instead of SHA1 for better security
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(keyContent));
             var orderKey = Convert.ToHexString(hash).ToLowerInvariant();
             
-            _logger.LogDebug("[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side}", orderKey[..8], request.Symbol, request.Side);
+            _logger.LogDebug("[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})", 
+                orderKey[..8], request.Symbol, request.Side, priceBucket);
             return orderKey;
         }
         catch (Exception ex)

@@ -63,78 +63,83 @@ public class CVaRPPO : IDisposable
     /// </summary>
     public async Task<TrainingResult> TrainAsync(CancellationToken cancellationToken = default)
     {
-        lock (_trainingLock)
+        try
         {
-            try
+            _logger.LogInformation("[CVAR_PPO] Starting training episode {Episode} with {ExperienceCount} experiences", 
+                _currentEpisode, _experienceBuffer.Count);
+
+            var startTime = DateTime.UtcNow;
+            var result = new TrainingResult
             {
-                _logger.LogInformation("[CVAR_PPO] Starting training episode {Episode} with {ExperienceCount} experiences", 
-                    _currentEpisode, _experienceBuffer.Count);
+                Episode = _currentEpisode,
+                StartTime = startTime
+            };
 
-                var startTime = DateTime.UtcNow;
-                var result = new TrainingResult
-                {
-                    Episode = _currentEpisode,
-                    StartTime = startTime
-                };
+            // Check if we have enough experiences
+            if (_experienceBuffer.Count < _config.MinExperiencesForTraining)
+            {
+                result.Success = false;
+                result.ErrorMessage = $"Insufficient experiences: {_experienceBuffer.Count} < {_config.MinExperiencesForTraining}";
+                return result;
+            }
 
-                // Check if we have enough experiences
-                if (_experienceBuffer.Count < _config.MinExperiencesForTraining)
-                {
-                    result.Success = false;
-                    result.ErrorMessage = $"Insufficient experiences: {_experienceBuffer.Count} < {_config.MinExperiencesForTraining}";
-                    return result;
-                }
+            // Collect experiences from buffer (without lock for async operation)
+            List<Experience> experiences;
+            lock (_trainingLock)
+            {
+                experiences = CollectExperiences();
+            }
+            
+            if (experiences.Count == 0)
+            {
+                result.Success = false;
+                result.ErrorMessage = "No valid experiences collected";
+                return result;
+            }
 
-                // Collect experiences from buffer
-                var experiences = CollectExperiences();
-                if (experiences.Count == 0)
-                {
-                    result.Success = false;
-                    result.ErrorMessage = "No valid experiences collected";
-                    return result;
-                }
+            // Calculate advantages and CVaR targets
+            var (advantages, cvarTargets) = CalculateAdvantagesAndCVaR(experiences);
+            
+            // Training loop
+            var totalPolicyLoss = 0.0;
+            var totalValueLoss = 0.0;
+            var totalCVaRLoss = 0.0;
+            var totalEntropy = 0.0;
 
-                // Calculate advantages and CVaR targets
-                var (advantages, cvarTargets) = CalculateAdvantagesAndCVaR(experiences);
+            for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
+            {
+                // Shuffle experiences
+                var shuffledIndices = Enumerable.Range(0, experiences.Count).OrderBy(x => Random.Shared.Next()).ToArray();
                 
-                // Training loop
-                var totalPolicyLoss = 0.0;
-                var totalValueLoss = 0.0;
-                var totalCVaRLoss = 0.0;
-                var totalEntropy = 0.0;
-
-                for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
+                // Mini-batch training
+                for (int i = 0; i < experiences.Count; i += _config.BatchSize)
                 {
-                    // Shuffle experiences
-                    var shuffledIndices = Enumerable.Range(0, experiences.Count).OrderBy(x => Random.Shared.Next()).ToArray();
+                    var batchIndices = shuffledIndices.Skip(i).Take(_config.BatchSize).ToArray();
+                    var batchExperiences = batchIndices.Select(idx => experiences[idx]).ToArray();
+                    var batchAdvantages = batchIndices.Select(idx => advantages[idx]).ToArray();
+                    var batchCVaRTargets = batchIndices.Select(idx => cvarTargets[idx]).ToArray();
+
+                    // Forward pass and loss calculation
+                    var losses = TrainMiniBatch(batchExperiences, batchAdvantages, batchCVaRTargets);
                     
-                    // Mini-batch training
-                    for (int i = 0; i < experiences.Count; i += _config.BatchSize)
-                    {
-                        var batchIndices = shuffledIndices.Skip(i).Take(_config.BatchSize).ToArray();
-                        var batchExperiences = batchIndices.Select(idx => experiences[idx]).ToArray();
-                        var batchAdvantages = batchIndices.Select(idx => advantages[idx]).ToArray();
-                        var batchCVaRTargets = batchIndices.Select(idx => cvarTargets[idx]).ToArray();
-
-                        // Forward pass and loss calculation
-                        var losses = TrainMiniBatch(batchExperiences, batchAdvantages, batchCVaRTargets);
-                        
-                        totalPolicyLoss += losses.PolicyLoss;
-                        totalValueLoss += losses.ValueLoss;
-                        totalCVaRLoss += losses.CVaRLoss;
-                        totalEntropy += losses.Entropy;
-                    }
+                    totalPolicyLoss += losses.PolicyLoss;
+                    totalValueLoss += losses.ValueLoss;
+                    totalCVaRLoss += losses.CVaRLoss;
+                    totalEntropy += losses.Entropy;
                 }
+            }
 
-                // Calculate average losses
-                var numBatches = (int)Math.Ceiling((double)experiences.Count / _config.BatchSize) * _config.PPOEpochs;
-                result.PolicyLoss = totalPolicyLoss / numBatches;
-                result.ValueLoss = totalValueLoss / numBatches;
-                result.CVaRLoss = totalCVaRLoss / numBatches;
-                result.Entropy = totalEntropy / numBatches;
-                result.TotalLoss = result.PolicyLoss + result.ValueLoss + result.CVaRLoss;
+            // Calculate average losses
+            var numBatches = (int)Math.Ceiling((double)experiences.Count / _config.BatchSize) * _config.PPOEpochs;
+            result.PolicyLoss = totalPolicyLoss / numBatches;
+            result.ValueLoss = totalValueLoss / numBatches;
+            result.CVaRLoss = totalCVaRLoss / numBatches;
+            result.Entropy = totalEntropy / numBatches;
+            result.TotalLoss = result.PolicyLoss + result.ValueLoss + result.CVaRLoss;
 
-                // Update averages
+            // Update averages and state (with lock)
+            lock (_trainingLock)
+            {
                 _averageLoss = _averageLoss * 0.9 + result.TotalLoss * 0.1;
                 _averageReward = experiences.Count > 0 ? experiences.Average(e => e.Reward) : 0.0;
 
@@ -143,34 +148,34 @@ public class CVaRPPO : IDisposable
                 _rewardHistory.Add(_averageReward);
                 _cvarHistory.Add(result.CVaRLoss);
 
-                result.AverageReward = _averageReward;
-                result.ExperiencesUsed = experiences.Count;
-                result.Success = true;
-                result.EndTime = DateTime.UtcNow;
-
                 _currentEpisode++;
                 _lastTrainingTime = DateTime.UtcNow;
-
-                _logger.LogInformation("[CVAR_PPO] Training completed - Episode: {Episode}, Total Loss: {Loss:F4}, Policy Loss: {PolicyLoss:F4}, Value Loss: {ValueLoss:F4}, CVaR Loss: {CVaRLoss:F4}, Avg Reward: {Reward:F4}", 
-                    _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
-
-                // Save checkpoint if performance improved
-                await SaveCheckpointIfImproved(result, cancellationToken);
-
-                return result;
             }
-            catch (Exception ex)
+
+            result.AverageReward = _averageReward;
+            result.ExperiencesUsed = experiences.Count;
+            result.Success = true;
+            result.EndTime = DateTime.UtcNow;
+
+            _logger.LogInformation("[CVAR_PPO] Training completed - Episode: {Episode}, Total Loss: {Loss:F4}, Policy Loss: {PolicyLoss:F4}, Value Loss: {ValueLoss:F4}, CVaR Loss: {CVaRLoss:F4}, Avg Reward: {Reward:F4}", 
+                _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
+
+            // Save checkpoint if performance improved
+            await SaveCheckpointIfImproved(result, cancellationToken);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[CVAR_PPO] Training failed");
+            return new TrainingResult
             {
-                _logger.LogError(ex, "[CVAR_PPO] Training failed");
-                return new TrainingResult
-                {
-                    Episode = _currentEpisode,
-                    Success = false,
-                    ErrorMessage = ex.Message,
-                    StartTime = DateTime.UtcNow,
-                    EndTime = DateTime.UtcNow
-                };
-            }
+                Episode = _currentEpisode,
+                Success = false,
+                ErrorMessage = ex.Message,
+                StartTime = DateTime.UtcNow,
+                EndTime = DateTime.UtcNow
+            };
         }
     }
 
@@ -1013,42 +1018,6 @@ public class CVaRNetwork : IDisposable
     public void Dispose()
     {
         _valueNetwork?.Dispose();
-    }
-}
-
-/// <summary>
-/// Circular buffer for performance tracking
-/// </summary>
-public class CircularBuffer<T>
-{
-    private readonly T[] _buffer;
-    private readonly int _size;
-    private int _head = 0;
-    private int _count = 0;
-
-    public CircularBuffer(int size)
-    {
-        _size = size;
-        _buffer = new T[size];
-    }
-
-    public void Add(T item)
-    {
-        _buffer[_head] = item;
-        _head = (_head + 1) % _size;
-        if (_count < _size)
-            _count++;
-    }
-
-    public T[] GetAll()
-    {
-        var result = new T[_count];
-        for (int i = 0; i < _count; i++)
-        {
-            var index = (_head - _count + i + _size) % _size;
-            result[i] = _buffer[index];
-        }
-        return result;
     }
 }
 
