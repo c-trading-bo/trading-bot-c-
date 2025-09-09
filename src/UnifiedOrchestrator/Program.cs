@@ -331,7 +331,7 @@ public class Program
                 services.TryAddSingleton<BotCoreProject::BotCore.Services.PerformanceTracker>();
                 services.TryAddSingleton<BotCoreProject::BotCore.Services.TradingProgressMonitor>();
                 services.TryAddSingleton<BotCoreProject::BotCore.Services.TimeOptimizedStrategyManager>();
-                services.TryAddSingleton<BotCoreProject::BotCore.Services.TopstepXService>();
+                services.TryAddSingleton<Infrastructure.TopstepX.TopstepXService>();
                 services.TryAddSingleton<BotCoreProject::TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
                 Console.WriteLine("✅ Core services with minimal dependencies registered");
