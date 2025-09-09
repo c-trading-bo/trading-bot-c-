@@ -464,7 +464,7 @@ namespace OrchestratorAgent
                     // Gate AUTO_EXECUTE until BarsSeen >= 10
                     if (_barsSeen < 10 && (_cfg.LiveTrading || Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1"))
                     {
-                        _log.LogInformation("BarsSeen={BarsSeen}/10; gating AUTO_EXECUTE", _barsSeen);
+                        _log.LogInformation("BarsSeen={count}/10; gating AUTO_EXECUTE", _barsSeen);
                         return;
                     }
 
@@ -619,7 +619,8 @@ namespace OrchestratorAgent
                                 
                                 if (!mlGatesPassed)
                                 {
-                                    _log.LogWarning("[ML_GATE] Signal blocked by ML confidence gate: P_final={P_final:F3} < {MinConf:F3}", P_final, minConfidence);
+                                    _log.LogInformation("[SIG] side={side} symbol={symbol} qty={qty} entry={entry:0.00} stop={stop:0.00} gate=ML_LOW_CONF conf={conf:0.00}", 
+                                        s.Side, s.Symbol, s.Size, s.Entry, s.Stop, P_final);
                                     continue;
                                 }
                             }
