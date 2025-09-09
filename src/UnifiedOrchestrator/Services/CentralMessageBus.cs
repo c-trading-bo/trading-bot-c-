@@ -101,20 +101,66 @@ public class CentralMessageBus : ICentralMessageBus
         // Simulate decision making process
         await Task.Delay(50, cancellationToken);
         
+        // Convert signal direction to trading action and side
+        var (action, side, quantity) = ConvertSignalToDecision(signal);
+        
         return new TradingDecision
         {
             DecisionId = Guid.NewGuid().ToString(),
             Symbol = signal.Symbol,
+            Side = side,
+            Quantity = quantity,
+            Price = signal.EntryPrice > 0 ? signal.EntryPrice : 0m,
             Signal = signal,
-            Action = TradingAction.Hold,
-            Confidence = 0.5m,
+            Action = action,
+            Confidence = signal.Strength,
             Timestamp = DateTime.UtcNow,
             Reasoning = new Dictionary<string, object>
             {
                 ["source"] = "CentralMessageBus",
                 ["signal_strength"] = signal.Strength,
+                ["signal_direction"] = signal.Direction,
                 ["market_regime"] = _brainState.CurrentMarketRegime
             }
         };
+    }
+    
+    private (TradingAction action, TradeSide side, decimal quantity) ConvertSignalToDecision(TradingSignal signal)
+    {
+        var action = TradingAction.Hold;
+        var side = TradeSide.Hold;
+        var quantity = 0m;
+        
+        // Convert signal direction to trading decision
+        switch (signal.Direction.ToUpperInvariant())
+        {
+            case "LONG":
+            case "BUY":
+                action = signal.Strength > 0.7m ? TradingAction.Buy : TradingAction.BuySmall;
+                side = TradeSide.Buy;
+                quantity = signal.Strength > 0.7m ? 2m : 1m; // Conservative position sizing
+                break;
+                
+            case "SHORT":
+            case "SELL":
+                action = signal.Strength > 0.7m ? TradingAction.Sell : TradingAction.SellSmall;
+                side = TradeSide.Sell;
+                quantity = signal.Strength > 0.7m ? 2m : 1m; // Conservative position sizing
+                break;
+                
+            case "CLOSE":
+                action = TradingAction.Close;
+                side = TradeSide.Close;
+                quantity = 1m; // Close existing position
+                break;
+                
+            default:
+                action = TradingAction.Hold;
+                side = TradeSide.Hold;
+                quantity = 0m;
+                break;
+        }
+        
+        return (action, side, quantity);
     }
 }
