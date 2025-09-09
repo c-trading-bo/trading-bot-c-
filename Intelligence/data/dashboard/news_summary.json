@@ -1,38 +1,95 @@
 {
-  "timestamp": "2025-09-09T06:38:16.407767",
+  "timestamp": "2025-09-09T09:29:54.154034",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "36",
+  "workflow_run": "37",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-09T06:33:26.471109",
+    "timestamp": "2025-09-09T09:24:58.236167",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 5,
+    "total_articles_processed": 14,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.0875,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq drift higher as Wall Street weighs Fed's next move",
+            "sentiment": 0.0875,
+            "textblob_score": 0.125,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-drift-higher-as-wall-street-weighs-feds-next-move-232914987.html",
+            "published": "2025-09-08T23:29:14Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "NQ": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.07175,
+        "article_count": 2,
+        "articles": [
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq drift higher as Wall Street weighs Fed's next move",
+            "sentiment": 0.0875,
+            "textblob_score": 0.125,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-drift-higher-as-wall-street-weighs-feds-next-move-232914987.html",
+            "published": "2025-09-08T23:29:14Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          },
+          {
+            "title": "Nasdaq Builds on Record High as Markets Focus on Fed Rate Cuts Ahead of Key Jobs Revisions",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-09T07:55:02Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.2,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "SPY": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "sentiment_score": 0.375,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Touchstone Dynamic Large Cap Growth Fund Q2 2025 Commentary",
+            "sentiment": 0.375,
+            "textblob_score": 0.10714285714285714,
+            "keyword_score": 1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4820802-touchstone-dynamic-large-cap-growth-fund-q2-2025-commentary?source=feed_all_articles",
+            "published": "Tue, 09 Sep 2025 04:00:00 -0400",
+            "relevance_keywords": [
+              "large cap"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.1,
+        "sources": [
+          "seeking_alpha"
+        ]
       },
       "QQQ": {
         "sentiment_score": 0.0,
@@ -51,57 +108,118 @@
         "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.17764309764309763,
-        "article_count": 3,
+        "sentiment_score": 0.24946103896103897,
+        "article_count": 7,
         "articles": [
           {
-            "title": "Anglo American Said to Near Deal With Teck",
-            "sentiment": 0.3136111111111111,
-            "textblob_score": 0.019444444444444438,
+            "title": "401(k) savers play it safe, even as demand for private assets surges",
+            "sentiment": 0.475,
+            "textblob_score": 0.25,
             "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-09/anglo-american-said-to-near-deal-with-teck",
-            "published": "Tue, 09 Sep 2025 06:10:09 GMT",
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/401k-savers-play-it-safe-even-as-demand-for-private-assets-surges-090048478.html",
+            "published": "2025-09-09T09:00:48Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "SpaceX deal sends EchoStar\u2019s stock soaring. Why Elon Musk is buying $17 billion in wireless spectrum.",
-            "sentiment": 0.09999999999999999,
-            "textblob_score": 0.0,
-            "keyword_score": 0.3333333333333333,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/echostar-clinches-a-17-billion-spectrum-deal-with-elon-musks-spacex-and-the-stock-soars-again-fdf3962d?mod=mw_rss_topstories",
-            "published": "Mon, 08 Sep 2025 22:31:00 GMT",
+            "title": "Nasdaq Builds on Record High as Markets Focus on Fed Rate Cuts Ahead of Key Jobs Revisions",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-09T07:55:02Z",
             "relevance_keywords": [
-              "Elon Musk"
+              "EV"
             ]
           },
           {
-            "title": "Opendoor\u2019s stock flashes \u2018bearish engulfing\u2019 chart pattern. Is the rally over?",
-            "sentiment": 0.1193181818181818,
-            "textblob_score": 0.17045454545454544,
-            "keyword_score": 0.0,
+            "title": "Dutch to Cut ABN Amro Stake to 20% as Bank Deals Heat Up",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/dutch-government-plans-to-cut-abn-amro-stake-to-about-20",
+            "published": "Tue, 09 Sep 2025 06:13:20 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Oracle Needs to Keep Sales Growth Humming After $200 Billion Run",
+            "sentiment": -0.12,
+            "textblob_score": -0.6,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/oracle-needs-to-keep-sales-growth-humming-after-200-billion-run",
+            "published": "Tue, 09 Sep 2025 09:00:27 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Swiss Lawmakers Vote to Move Ahead on Bank Capital Revamp",
+            "sentiment": 0.3477272727272727,
+            "textblob_score": 0.06818181818181818,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-08/swiss-lawmakers-vote-against-delaying-new-rules-on-ubs-capital",
+            "published": "Mon, 08 Sep 2025 16:40:56 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Euro Traders Revive $1.20 Bets With ECB-Fed Divergence in Focus",
+            "sentiment": 0.2475,
+            "textblob_score": -0.075,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/euro-traders-revive-1-20-bets-with-ecb-fed-divergence-in-focus",
+            "published": "Tue, 09 Sep 2025 08:20:05 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "\u2018Frenzied as ever\u2019 \u2014 the Dan Ives-led Worldcoin treasury purchase is only latest example of market madness",
+            "sentiment": 0.43999999999999995,
+            "textblob_score": 0.2,
+            "keyword_score": 1.0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/opendoors-stock-flashes-bearish-engulfing-chart-pattern-is-the-rally-over-1276f0da?mod=mw_rss_topstories",
-            "published": "Mon, 08 Sep 2025 22:31:00 GMT",
+            "url": "https://www.marketwatch.com/story/frenzied-as-ever-the-dan-ives-led-worldcoin-treasury-purchase-is-only-latest-example-of-market-madness-43c247ad?mod=mw_rss_topstories",
+            "published": "Tue, 09 Sep 2025 08:03:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.3,
+        "confidence": 0.7,
         "sources": [
+          "yahoo_finance",
           "bloomberg",
           "marketwatch"
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.385,
-        "article_count": 1,
+        "sentiment_score": 0.1325,
+        "article_count": 2,
         "articles": [
+          {
+            "title": "Oracle Needs to Keep Sales Growth Humming After $200 Billion Run",
+            "sentiment": -0.12,
+            "textblob_score": -0.6,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/oracle-needs-to-keep-sales-growth-humming-after-200-billion-run",
+            "published": "Tue, 09 Sep 2025 09:00:27 GMT",
+            "relevance_keywords": [
+              "artificial intelligence"
+            ]
+          },
           {
             "title": "Worried about Nvidia\u2019s stock? This analyst has a $2 trillion reason to remain calm.",
             "sentiment": 0.385,
@@ -116,9 +234,10 @@
             ]
           }
         ],
-        "signal": "BULLISH",
-        "confidence": 0.1,
+        "signal": "NEUTRAL",
+        "confidence": 0.2,
         "sources": [
+          "bloomberg",
           "marketwatch"
         ]
       },
@@ -156,7 +275,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-09T06:38:13.817256",
+    "timestamp": "2025-09-09T09:29:51.174533",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -178,7 +297,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-09T06:33:24.119705",
+    "timestamp": "2025-09-09T09:24:55.476540",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -222,13 +341,6 @@
         "keyword": "stock market"
       },
       {
-        "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
-        "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
-        "source": "benzinga.com",
-        "date": "20250908T100000Z",
-        "keyword": "trading"
-      },
-      {
         "title": "\u674e\u4fca\u660a\u6642\u96942\u5e74\u4ee5 \u300a \u98b1\u98a8\u5546\u793e \u300b \u56de\u6b78 \uff01 \u8207\u91d1\u654f\u8377\u4e00\u8d77\u62ef\u6551\u9762\u81e8\u7834\u7522\u7684\u5546\u793e \uff0c \u5287\u672c\u95b1\u8b80\u7167\u516c\u958b",
         "url": "https://www.koreastardaily.com/tc/news/159375",
         "source": "koreastardaily.com",
@@ -247,6 +359,13 @@
         "url": "https://www.livemint.com/market/stock-market-news/stock-market-news-bse-nse-to-conduct-mock-trading-session-on-saturday-time-other-details-11757064626252.html",
         "source": "livemint.com",
         "date": "20250906T023000Z",
+        "keyword": "trading"
+      },
+      {
+        "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
+        "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250908T100000Z",
         "keyword": "trading"
       },
       {
@@ -293,7 +412,7 @@
       }
     ]
   },
-  "overall_market_sentiment": "NEUTRAL",
+  "overall_market_sentiment": "BULLISH",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
