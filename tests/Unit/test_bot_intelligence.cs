@@ -1,4 +1,3 @@
-#!/usr/bin/env dotnet run --project src/OrchestratorAgent
 /*
  * Test C# bot intelligence integration
  * This script verifies that the C# bot can consume intelligence data
@@ -14,12 +13,12 @@ using BotCore.Models;
 
 namespace TestBotIntelligence
 {
-    public class Program
+    public class BotIntelligenceTestProgram
     {
         public static async Task Main(string[] args)
         {
             Console.WriteLine("🧪 Testing C# Bot Intelligence Integration");
-            Console.WriteLine("=" * 50);
+            Console.WriteLine("==================================================");
 
             // Create logger
             using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());

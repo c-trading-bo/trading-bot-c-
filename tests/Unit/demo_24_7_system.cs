@@ -6,7 +6,7 @@ public static class QuickDemo
     public static void Main()
     {
         Console.WriteLine("🚀 24/7 ES & NQ Trading System - Live Demo");
-        Console.WriteLine("=" * 45);
+        Console.WriteLine("=============================================");
         
         var testTimes = new[]
         {

@@ -14,13 +14,13 @@ namespace TestEnhancedZones
         public static void TestTimeOptimizedTrading()
         {
             Console.WriteLine("🧪 Testing 24/7 ES & NQ Trading System Integration");
-            Console.WriteLine("=" * 50);
+            Console.WriteLine("==================================================");
             
             // Test 1: Trading Schedule
             TestTradingSchedule();
             
             // Test 2: Time-Optimized Strategy Manager
-            TestTimeOptimizedStrategyManager();
+            await TestTimeOptimizedStrategyManager();
             
             // Test 3: Trading Progress Monitor
             TestTradingProgressMonitor();
@@ -94,7 +94,7 @@ namespace TestEnhancedZones
             
             try
             {
-                var result = manager.EvaluateInstrument("ES", marketData, bars);
+                var result = await manager.EvaluateInstrumentAsync("ES", marketData, bars);
                 Console.WriteLine($"  ✓ Strategy evaluation completed - HasSignal: {result.HasSignal}");
                 Console.WriteLine($"    Session: {result.Session}");
                 Console.WriteLine($"    Reason: {result.Reason}");
