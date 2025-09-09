@@ -31,7 +31,7 @@ public class FeatureAdaptationTests
         
         // Setup test service provider
         var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddXUnit(output));
+        services.AddLogging();
         services.AddSingleton<IOnlineLearningSystem, MockOnlineLearningSystem>();
         
         _serviceProvider = services.BuildServiceProvider();
@@ -49,7 +49,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
         
         var strategyId = "test_adaptation_strategy";
         var testFeatures = new FeatureSet
@@ -127,7 +127,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
         
         var strategyId = "permutation_test_strategy";
         var testFeatures = new FeatureSet
@@ -213,7 +213,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
         
         var strategyId = "logging_test_strategy";
         var testFeatures = new FeatureSet
@@ -289,7 +289,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
 
         var marketDataSequence = new[]
         {
@@ -393,7 +393,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
         
         var strategyId = "low_value_test_strategy";
         var testFeatures = new FeatureSet
@@ -466,7 +466,7 @@ public class FeatureAdaptationTests
     {
         // Arrange
         var onlineLearningSystem = _serviceProvider.GetRequiredService<IOnlineLearningSystem>();
-        var featureEngineer = new FeatureEngineer(_logger, onlineLearningSystem, _testLogsPath);
+        var featureEngineer = new FeatureEngineer(new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(), onlineLearningSystem, _testLogsPath);
         
         var strategyId = "live_session_test";
         var sessionDuration = TimeSpan.FromSeconds(5); // Short simulation
@@ -493,20 +493,20 @@ public class FeatureAdaptationTests
         {
             // Generate synthetic market data
             var basePrice = 4500.0;
-            var priceChange = Math.Random.Shared.NextDouble() * 10 - 5;
+            var priceChange = Random.Shared.NextDouble() * 10 - 5;
             var openPrice = basePrice + priceChange;
-            var closePrice = openPrice + (Math.Random.Shared.NextDouble() * 4 - 2);
+            var closePrice = openPrice + (Random.Shared.NextDouble() * 4 - 2);
             
             var marketData = new TradingBot.Abstractions.MarketData
             {
                 Symbol = "ES",
                 Open = openPrice,
-                High = Math.Max(openPrice, closePrice) + Math.Random.Shared.NextDouble() * 2,
-                Low = Math.Min(openPrice, closePrice) - Math.Random.Shared.NextDouble() * 2,
+                High = Math.Max(openPrice, closePrice) + Random.Shared.NextDouble() * 2,
+                Low = Math.Min(openPrice, closePrice) - Random.Shared.NextDouble() * 2,
                 Close = closePrice,
                 Bid = closePrice - 0.25,
                 Ask = closePrice + 0.25,
-                Volume = 1000 + Math.Random.Shared.Next(500),
+                Volume = 1000 + Random.Shared.Next(500),
                 Timestamp = DateTime.UtcNow
             };
 

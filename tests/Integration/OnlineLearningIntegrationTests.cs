@@ -29,7 +29,7 @@ public class OnlineLearningIntegrationTests
         
         // Setup test service provider
         var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddXUnit(output));
+        services.AddLogging();
         services.AddSingleton<IOnlineLearningSystem, OnlineLearningSystem>();
         services.AddSingleton<IntelligenceStackConfig>();
         services.AddSingleton<MetaLearningConfig>();
@@ -68,7 +68,7 @@ public class OnlineLearningIntegrationTests
         _logger.LogInformation("[INTEGRATION_TEST] Initial weights set: {Count} features", weightsAfterInit.Count);
 
         // Step 2: Simulate trading performance feedback that should trigger weight updates
-        var tradeRecord = new TradeRecord
+        var tradeRecord = new TradingBot.Abstractions.TradeRecord
         {
             TradeId = "test_trade_001",
             Symbol = "ES",
@@ -115,7 +115,7 @@ public class OnlineLearningIntegrationTests
         // Step 4: Simulate multiple trades to verify continuous learning
         for (int i = 0; i < 5; i++)
         {
-            var trade = new TradeRecord
+            var trade = new TradingBot.Abstractions.TradeRecord
             {
                 TradeId = $"test_trade_{i + 2:D3}",
                 Symbol = "ES",
@@ -249,7 +249,7 @@ public class OnlineLearningIntegrationTests
         // Simulate poor performing trades
         var poorTrades = new[]
         {
-            new TradeRecord
+            new TradingBot.Abstractions.TradeRecord
             {
                 TradeId = "poor_trade_001",
                 Symbol = "ES",
@@ -263,7 +263,7 @@ public class OnlineLearningIntegrationTests
                     ["market_movement_bps"] = -5.0 // Poor performance
                 }
             },
-            new TradeRecord
+            new TradingBot.Abstractions.TradeRecord
             {
                 TradeId = "poor_trade_002", 
                 Symbol = "ES",

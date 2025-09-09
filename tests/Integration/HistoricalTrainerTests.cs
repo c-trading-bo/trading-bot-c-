@@ -27,7 +27,7 @@ public class HistoricalTrainerTests
         
         // Setup test service provider
         var services = new ServiceCollection();
-        services.AddLogging(builder => builder.AddXUnit(output));
+        services.AddLogging();
         services.AddSingleton<IModelRegistry, MockModelRegistry>();
         services.AddSingleton<IFeatureStore, MockFeatureStore>();
         services.AddSingleton<IQuarantineManager, MockQuarantineManager>();
@@ -50,7 +50,7 @@ public class HistoricalTrainerTests
         var promotionCriteria = _serviceProvider.GetRequiredService<PromotionCriteria>();
 
         var trainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry,
             featureStore,
             quarantineManager,
@@ -122,7 +122,7 @@ public class HistoricalTrainerTests
         };
 
         var trainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry,
             featureStore,
             quarantineManager,
@@ -185,7 +185,7 @@ public class HistoricalTrainerTests
         var promotionCriteria = _serviceProvider.GetRequiredService<PromotionCriteria>();
 
         var trainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry!,
             featureStore,
             quarantineManager,
@@ -249,7 +249,7 @@ public class HistoricalTrainerTests
         var promotionCriteria = _serviceProvider.GetRequiredService<PromotionCriteria>();
 
         var trainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry,
             featureStore,
             quarantineManager,
@@ -315,7 +315,7 @@ public class HistoricalTrainerTests
         };
 
         var trainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry,
             featureStore,
             quarantineManager,
@@ -361,7 +361,7 @@ public class HistoricalTrainerTests
         };
 
         var lenientTrainer = new HistoricalTrainerWithCV(
-            _logger,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<HistoricalTrainerWithCV>(),
             modelRegistry,
             featureStore,
             quarantineManager,
