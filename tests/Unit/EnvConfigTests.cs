@@ -172,7 +172,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         File.WriteAllText("kill.txt", "test");
-        var context = new ExecutionContext
+        var context = new BotCore.Config.ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,
@@ -203,7 +203,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("EXECUTE", "false");
-        var context = new ExecutionContext
+        var context = new BotCore.Config.ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,
@@ -230,7 +230,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("EXECUTE", "true");
-        var context = new ExecutionContext
+        var context = new BotCore.Config.ExecutionContext
         {
             BarsSeen = 5, // Less than 10
             HubsConnected = true,
@@ -257,7 +257,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("EXECUTE", "true");
-        var context = new ExecutionContext
+        var context = new BotCore.Config.ExecutionContext
         {
             BarsSeen = 15,
             HubsConnected = true,
