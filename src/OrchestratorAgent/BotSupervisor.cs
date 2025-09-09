@@ -1,4 +1,5 @@
 #nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +10,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SupervisorAgent;
-using BotCore;
 using BotCore.Models;
-using OrchestratorAgent.Infra;
+using BotCore.Services;
+using BotCore.Supervisor;
+using BotCore.Risk;
 using BotCore.Infra;
+using BotCore.Strategy;
+using OrchestratorAgent.Infra;
 using TradingBot.RLAgent;
 using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -45,7 +49,7 @@ namespace OrchestratorAgent
         private readonly long _accountId = accountId;
         private readonly object _marketHub = marketHub;
         private readonly object _userHub = userHub;
-        private readonly StatusService _status = status;
+        private readonly SupervisorAgent.StatusService _status = status;
         private readonly Config _cfg = cfg;
         private readonly FeatureEngineering? _featureEngineering = featureEngineering;
         private readonly UnifiedDecisionLogger? _decisionLogger = decisionLogger;
@@ -480,16 +484,18 @@ namespace OrchestratorAgent
                         // Generate temporary tag for signal logging (real tag will be generated in TradingSystemConnector)
                         var tempTag = $"S11L-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
                         
-                        // Calculate R-multiple for logging
-                        var rMultiple = TradingBot.Infrastructure.TopstepX.Px.RMultiple(s.Entry, s.Stop, s.Target, s.Side == "BUY");
+                        // Calculate R-multiple for logging (inline implementation to avoid Px conflicts)
+                        var risk = s.Side == "BUY" ? s.Entry - s.Stop : s.Stop - s.Entry;
+                        var reward = s.Side == "BUY" ? s.Target - s.Entry : s.Entry - s.Target;
+                        var rMultiple = risk > 0 ? reward / risk : 0m;
                         
                         // Standardized signal logging format
                         _log.LogInformation("[SIG] side={Side} symbol={Symbol} qty={Qty} entry={Entry} stop={Stop} t1={Target} R~{RMultiple} tag={Tag}", 
                             s.Side, s.Symbol, s.Size, 
-                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Entry), 
-                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Stop), 
-                            TradingBot.Infrastructure.TopstepX.Px.F2(s.Target), 
-                            TradingBot.Infrastructure.TopstepX.Px.F2(rMultiple), 
+                            s.Entry.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), 
+                            s.Stop.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), 
+                            s.Target.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), 
+                            rMultiple.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), 
                             tempTag);
                         var side = string.Equals(s.Side, "BUY", StringComparison.OrdinalIgnoreCase) ? BotCore.SignalSide.Long : BotCore.SignalSide.Short;
                         var cid = $"{s.StrategyId}|{s.Symbol}|{DateTime.UtcNow:yyyyMMddTHHmmssfff}|{Guid.NewGuid():N}".ToUpperInvariant();

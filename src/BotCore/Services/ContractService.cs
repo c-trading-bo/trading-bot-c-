@@ -100,11 +100,11 @@ public class ContractService : IContractService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/Contract/available?live=false&symbol={symbol}", cancellationToken);
+            var response = await _httpClient.GetAsync($"/Contract/available?live=false&symbol={symbol}", cancellationToken).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(content);
                 
                 if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
@@ -136,11 +136,11 @@ public class ContractService : IContractService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/Contract/search?symbol={symbol}&frontMonth=true", cancellationToken);
+            var response = await _httpClient.GetAsync($"/Contract/search?symbol={symbol}&frontMonth=true", cancellationToken).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 using var doc = JsonDocument.Parse(content);
                 
                 if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
