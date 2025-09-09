@@ -6,12 +6,17 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace TradingBot.IntelligenceStack;
 
 /// <summary>
 /// Main intelligence orchestrator implementing complete ML/RL intelligence stack
-/// Coordinates regime detection, model inference, calibration, and decision making
+/// Coordinates regime detection, model inference, calibration, decision making, and cloud flow
+/// Merged cloud flow functionality from UnifiedOrchestrator.Services.CloudFlowService
 /// </summary>
 public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 {
@@ -25,8 +30,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private readonly IModelRegistry _modelRegistry;
     private readonly ICalibrationManager _calibrationManager;
     private readonly IDecisionLogger _decisionLogger;
-    private readonly IStartupValidator _startupValidator;
+    private readonly TradingBot.Abstractions.IStartupValidator _startupValidator;
     private readonly IIdempotentOrderService _idempotentOrderService;
+    
+    // Cloud flow components (merged from CloudFlowService)
+    private readonly HttpClient _httpClient;
+    private readonly CloudFlowOptions _cloudFlowOptions;
+    private readonly JsonSerializerOptions _jsonOptions;
     
     // State tracking
     private bool _isInitialized = false;
@@ -53,8 +63,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         IModelRegistry modelRegistry,
         ICalibrationManager calibrationManager,
         IDecisionLogger decisionLogger,
-        IStartupValidator startupValidator,
-        IIdempotentOrderService idempotentOrderService)
+        TradingBot.Abstractions.IStartupValidator startupValidator,
+        IIdempotentOrderService idempotentOrderService,
+        HttpClient httpClient,
+        IOptions<CloudFlowOptions> cloudFlowOptions)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -66,6 +78,23 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         _decisionLogger = decisionLogger;
         _startupValidator = startupValidator;
         _idempotentOrderService = idempotentOrderService;
+        
+        // Initialize cloud flow components (merged from CloudFlowService)
+        _httpClient = httpClient;
+        _cloudFlowOptions = cloudFlowOptions.Value;
+        
+        // Configure HTTP client for cloud endpoints
+        _httpClient.Timeout = TimeSpan.FromSeconds(_cloudFlowOptions.TimeoutSeconds);
+        
+        // Configure JSON serialization
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+        
+        _logger.LogInformation("[INTELLIGENCE] Intelligence orchestrator initialized with cloud flow: {CloudEndpoint}", 
+            _cloudFlowOptions.CloudEndpoint);
     }
 
     #region IIntelligenceOrchestrator Implementation
@@ -600,4 +629,205 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     }
 
     #endregion
+
+    #region Cloud Flow Methods (merged from CloudFlowService)
+
+    /// <summary>
+    /// Push trade record to cloud after decision execution
+    /// </summary>
+    public async Task PushTradeRecordAsync(CloudTradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    {
+        if (!_cloudFlowOptions.Enabled)
+        {
+            _logger.LogDebug("[INTELLIGENCE] Cloud flow disabled, skipping trade record push");
+            return;
+        }
+
+        try
+        {
+            var payload = new
+            {
+                type = "trade_record",
+                timestamp = DateTime.UtcNow,
+                trade = tradeRecord,
+                instanceId = _cloudFlowOptions.InstanceId
+            };
+
+            await PushToCloudWithRetryAsync("trades", payload, cancellationToken);
+            _logger.LogInformation("[INTELLIGENCE] Trade record pushed to cloud: {TradeId}", tradeRecord.TradeId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[INTELLIGENCE] Failed to push trade record to cloud: {TradeId}", tradeRecord.TradeId);
+            // Don't throw - cloud push failures shouldn't stop trading
+        }
+    }
+
+    /// <summary>
+    /// Push service metrics to cloud
+    /// </summary>
+    public async Task PushServiceMetricsAsync(CloudServiceMetrics metrics, CancellationToken cancellationToken = default)
+    {
+        if (!_cloudFlowOptions.Enabled)
+        {
+            _logger.LogDebug("[INTELLIGENCE] Cloud flow disabled, skipping metrics push");
+            return;
+        }
+
+        try
+        {
+            var payload = new
+            {
+                type = "service_metrics",
+                timestamp = DateTime.UtcNow,
+                metrics = metrics,
+                instanceId = _cloudFlowOptions.InstanceId
+            };
+
+            await PushToCloudWithRetryAsync("metrics", payload, cancellationToken);
+            _logger.LogDebug("[INTELLIGENCE] Service metrics pushed to cloud");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[INTELLIGENCE] Failed to push service metrics to cloud");
+            // Don't throw - metrics push failures shouldn't stop trading
+        }
+    }
+
+    /// <summary>
+    /// Push decision intelligence data to cloud
+    /// </summary>
+    public async Task PushDecisionIntelligenceAsync(TradingDecision decision, CancellationToken cancellationToken = default)
+    {
+        if (!_cloudFlowOptions.Enabled)
+        {
+            return;
+        }
+
+        try
+        {
+            var intelligenceData = new
+            {
+                type = "decision_intelligence",
+                timestamp = DateTime.UtcNow,
+                decisionId = decision.DecisionId,
+                symbol = decision.Signal?.Symbol,
+                action = decision.Action.ToString(),
+                confidence = decision.Confidence,
+                mlStrategy = decision.MLStrategy,
+                marketRegime = decision.MarketRegime,
+                reasoning = decision.Reasoning,
+                instanceId = _cloudFlowOptions.InstanceId
+            };
+
+            await PushToCloudWithRetryAsync("intelligence", intelligenceData, cancellationToken);
+            _logger.LogDebug("[INTELLIGENCE] Decision intelligence pushed to cloud: {DecisionId}", decision.DecisionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[INTELLIGENCE] Failed to push decision intelligence to cloud: {DecisionId}", decision.DecisionId);
+        }
+    }
+
+    /// <summary>
+    /// Push to cloud with exponential backoff retry logic
+    /// </summary>
+    private async Task PushToCloudWithRetryAsync(string endpoint, object payload, CancellationToken cancellationToken)
+    {
+        const int maxRetries = 3;
+        var baseDelay = TimeSpan.FromSeconds(1);
+
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(payload, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var url = $"{_cloudFlowOptions.CloudEndpoint}/{endpoint}";
+                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return; // Success
+                }
+
+                // Log non-success response
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("[INTELLIGENCE] Cloud push failed with status {StatusCode}: {Response}", 
+                    response.StatusCode, responseContent);
+
+                // Don't retry on client errors (4xx)
+                if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+                {
+                    throw new InvalidOperationException($"Client error from cloud endpoint: {response.StatusCode}");
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogWarning("[INTELLIGENCE] Cloud push timeout on attempt {Attempt}", attempt + 1);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning(ex, "[INTELLIGENCE] Network error on cloud push attempt {Attempt}", attempt + 1);
+            }
+
+            // Wait before retry (exponential backoff)
+            if (attempt < maxRetries - 1)
+            {
+                var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt));
+                await Task.Delay(delay, cancellationToken);
+            }
+        }
+
+        throw new InvalidOperationException($"Failed to push to cloud after {maxRetries} attempts");
+    }
+
+    #endregion
 }
+
+#region Cloud Flow Classes (merged from CloudFlowService)
+
+/// <summary>
+/// Configuration options for cloud flow service (merged from CloudFlowService)
+/// </summary>
+public class CloudFlowOptions
+{
+    public bool Enabled { get; set; } = true;
+    public string CloudEndpoint { get; set; } = string.Empty;
+    public string InstanceId { get; set; } = Environment.MachineName;
+    public int TimeoutSeconds { get; set; } = 30;
+}
+
+/// <summary>
+/// Trade record for cloud push (merged from CloudFlowService)
+/// </summary>
+public class CloudTradeRecord
+{
+    public string TradeId { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public decimal Quantity { get; set; }
+    public decimal EntryPrice { get; set; }
+    public decimal ExitPrice { get; set; }
+    public decimal PnL { get; set; }
+    public DateTime EntryTime { get; set; }
+    public DateTime ExitTime { get; set; }
+    public string Strategy { get; set; } = string.Empty;
+    public Dictionary<string, object> Metadata { get; set; } = new();
+}
+
+/// <summary>
+/// Service metrics for cloud push (merged from CloudFlowService)
+/// </summary>
+public class CloudServiceMetrics
+{
+    public double InferenceLatencyMs { get; set; }
+    public double PredictionAccuracy { get; set; }
+    public double FeatureDrift { get; set; }
+    public int ActiveModels { get; set; }
+    public long MemoryUsageMB { get; set; }
+    public Dictionary<string, double> CustomMetrics { get; set; } = new();
+}
+
+#endregion
