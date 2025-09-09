@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Launches and manages decision service instances
 /// </summary>
-public class DecisionServiceLauncher
+public class DecisionServiceLauncher : IHostedService
 {
     private readonly ILogger<DecisionServiceLauncher> _logger;
 
@@ -37,4 +38,15 @@ public class DecisionServiceLauncher
     }
 
     public bool IsRunning { get; private set; } = false;
+
+    // IHostedService implementation
+    Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    {
+        return LaunchAsync();
+    }
+
+    Task IHostedService.StopAsync(CancellationToken cancellationToken)
+    {
+        return StopAsync();
+    }
 }

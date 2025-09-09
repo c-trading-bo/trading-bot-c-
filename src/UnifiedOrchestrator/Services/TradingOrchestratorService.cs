@@ -63,8 +63,8 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     {
         try
         {
-            _logger.LogInformation("Executing trade: {Symbol} {Side} {Quantity}", 
-                decision.Symbol, decision.Side, decision.Quantity);
+            _logger.LogInformation("Executing trade: {DecisionId} {Action} Confidence={Confidence}", 
+                decision.DecisionId, decision.Action, decision.Confidence);
             
             // Implementation would go here
             // For now, just simulate successful execution
@@ -99,10 +99,10 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 Metrics = new Dictionary<string, object>
                 {
                     ["event_type"] = "trade_execution",
-                    ["symbol"] = decision.Symbol,
-                    ["side"] = decision.Side.ToString(),
-                    ["quantity"] = decision.Quantity,
+                    ["decision_id"] = decision.DecisionId,
+                    ["action"] = decision.Action.ToString(),
                     ["confidence"] = decision.Confidence,
+                    ["ml_confidence"] = decision.MLConfidence,
                     ["success"] = success,
                     ["timestamp"] = decision.Timestamp,
                     ["reasoning"] = decision.Reasoning,
@@ -116,8 +116,8 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // var cloudService = _serviceProvider.GetService<CloudDataIntegrationService>();
             // await cloudService.PushTelemetryAsync(telemetryData, cancellationToken);
 
-            _logger.LogDebug("Trade telemetry prepared for cloud push: {Symbol} {Side} Success={Success}", 
-                decision.Symbol, decision.Side, success);
+            _logger.LogDebug("Trade telemetry prepared for cloud push: {DecisionId} {Action} Success={Success}", 
+                decision.DecisionId, decision.Action, success);
         }
         catch (Exception ex)
         {
@@ -153,13 +153,13 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 "disconnect" => await DisconnectActionAsync(context, cancellationToken),
                 "risk_management" => await RiskManagementActionAsync(context, cancellationToken),
                 "microstructure_analysis" => await MicrostructureAnalysisActionAsync(context, cancellationToken),
-                _ => WorkflowExecutionResult.Failed($"Unsupported action: {action}")
+                _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to execute trading action: {Action}", action);
-            return WorkflowExecutionResult.Failed($"Action failed: {ex.Message}");
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = $"Action failed: {ex.Message}" };
         }
     }
 
@@ -201,30 +201,30 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     private async Task<WorkflowExecutionResult> ExecuteTradeActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await ExecuteESNQTradingAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Trade execution completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Trade execution completed" } };
     }
 
     private async Task<WorkflowExecutionResult> ConnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
-        return WorkflowExecutionResult.Success("Connected to TopstepX");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Connected to TopstepX" } };
     }
 
     private async Task<WorkflowExecutionResult> DisconnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await DisconnectAsync();
-        return WorkflowExecutionResult.Success("Disconnected from TopstepX");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Disconnected from TopstepX" } };
     }
 
     private async Task<WorkflowExecutionResult> RiskManagementActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await ManagePortfolioRiskAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Risk management completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Risk management completed" } };
     }
 
     private async Task<WorkflowExecutionResult> MicrostructureAnalysisActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await AnalyzeMicrostructureAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Microstructure analysis completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Microstructure analysis completed" } };
     }
 }

@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Integrates decision service with the trading system
 /// </summary>
-public class DecisionServiceIntegration
+public class DecisionServiceIntegration : IHostedService
 {
     private readonly ILogger<DecisionServiceIntegration> _logger;
 
@@ -37,4 +38,15 @@ public class DecisionServiceIntegration
     }
 
     public bool IsConnected { get; private set; } = false;
+
+    // IHostedService implementation
+    Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    {
+        return IntegrateAsync();
+    }
+
+    Task IHostedService.StopAsync(CancellationToken cancellationToken)
+    {
+        return DisconnectAsync();
+    }
 }

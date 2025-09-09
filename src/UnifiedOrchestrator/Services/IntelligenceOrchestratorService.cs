@@ -110,13 +110,13 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
                 "update_rl_training" => await UpdateRLTrainingActionAsync(context, cancellationToken),
                 "generate_predictions" => await GeneratePredictionsActionAsync(context, cancellationToken),
                 "analyze_correlations" => await AnalyzeCorrelationsActionAsync(context, cancellationToken),
-                _ => WorkflowExecutionResult.Failed($"Unsupported action: {action}")
+                _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to execute intelligence action: {Action}", action);
-            return WorkflowExecutionResult.Failed($"Action failed: {ex.Message}");
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = $"Action failed: {ex.Message}" };
         }
     }
 
@@ -185,24 +185,24 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     private async Task<WorkflowExecutionResult> RunMLModelsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await RunMLModelsAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("ML models executed successfully");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "ML models executed successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> UpdateRLTrainingActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await UpdateRLTrainingAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("RL training updated successfully");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "RL training updated successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> GeneratePredictionsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await GeneratePredictionsAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Predictions generated successfully");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Predictions generated successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> AnalyzeCorrelationsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await AnalyzeCorrelationsAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Correlation analysis completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Correlation analysis completed" } };
     }
 }

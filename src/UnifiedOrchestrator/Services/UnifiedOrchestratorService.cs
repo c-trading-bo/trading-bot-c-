@@ -173,12 +173,12 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         {
             _logger.LogInformation("[UNIFIED] Executing workflow: {WorkflowId}", workflowId);
             await Task.Delay(100, cancellationToken); // Simulate execution
-            return WorkflowExecutionResult.Success($"Workflow {workflowId} executed successfully");
+            return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = $"Workflow {workflowId} executed successfully" } };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[UNIFIED] Failed to execute workflow: {WorkflowId}", workflowId);
-            return WorkflowExecutionResult.Failed($"Workflow execution failed: {ex.Message}");
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = $"Workflow execution failed: {ex.Message}" };
         }
     }
 

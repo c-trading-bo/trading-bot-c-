@@ -133,13 +133,13 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
                 "collect_market_data" => await CollectMarketDataActionAsync(context, cancellationToken),
                 "store_historical_data" => await StoreHistoricalDataActionAsync(context, cancellationToken),
                 "generate_daily_report" => await GenerateDailyReportActionAsync(context, cancellationToken),
-                _ => WorkflowExecutionResult.Failed($"Unsupported action: {action}")
+                _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to execute data action: {Action}", action);
-            return WorkflowExecutionResult.Failed($"Action failed: {ex.Message}");
+            return new WorkflowExecutionResult { Success = false, ErrorMessage = $"Action failed: {ex.Message}" };
         }
     }
 
@@ -167,18 +167,18 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
     private async Task<WorkflowExecutionResult> CollectMarketDataActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await CollectMarketDataAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Market data collection completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Market data collection completed" } };
     }
 
     private async Task<WorkflowExecutionResult> StoreHistoricalDataActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await StoreHistoricalDataAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Historical data storage completed");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Historical data storage completed" } };
     }
 
     private async Task<WorkflowExecutionResult> GenerateDailyReportActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
         await GenerateDailyReportAsync(context, cancellationToken);
-        return WorkflowExecutionResult.Success("Daily report generated successfully");
+        return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Daily report generated successfully" } };
     }
 }

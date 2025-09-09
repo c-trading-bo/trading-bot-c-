@@ -202,10 +202,10 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             return new CloudTradingRecommendation
             {
                 Symbol = symbol,
-                Recommendation = "HOLD",
+                Signal = "NEUTRAL",
                 Confidence = 0.6,
                 Timestamp = DateTime.UtcNow,
-                Source = "CloudIntelligence"
+                Reasoning = "CloudIntelligence"
             };
         }
         catch (Exception ex)

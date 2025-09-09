@@ -1,11 +1,12 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Launches and manages Python UCB (Upper Confidence Bound) processes
 /// </summary>
-public class PythonUcbLauncher
+public class PythonUcbLauncher : IHostedService
 {
     private readonly ILogger<PythonUcbLauncher> _logger;
 
@@ -37,4 +38,15 @@ public class PythonUcbLauncher
     }
 
     public bool IsRunning { get; private set; } = false;
+
+    // IHostedService implementation
+    Task IHostedService.StartAsync(CancellationToken cancellationToken)
+    {
+        return LaunchAsync();
+    }
+
+    Task IHostedService.StopAsync(CancellationToken cancellationToken)
+    {
+        return StopAsync();
+    }
 }
