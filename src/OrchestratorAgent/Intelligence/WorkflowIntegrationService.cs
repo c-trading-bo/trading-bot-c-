@@ -164,8 +164,8 @@ namespace OrchestratorAgent.Intelligence
                     return false;
                 }
 
-                var repoOwner = Environment.GetEnvironmentVariable("GITHUB_REPO_OWNER") ?? "your-username";
-                var repoName = Environment.GetEnvironmentVariable("GITHUB_REPO_NAME") ?? "your-repo";
+                var repoOwner = Environment.GetEnvironmentVariable("GITHUB_OWNER") ?? "your-username";
+                var repoName = Environment.GetEnvironmentVariable("GITHUB_REPO") ?? "your-repo";
                 
                 var url = $"https://api.github.com/repos/{repoOwner}/{repoName}/actions/workflows/{workflowName}/dispatches";
                 

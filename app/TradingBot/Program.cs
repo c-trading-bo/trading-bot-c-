@@ -23,6 +23,9 @@ namespace TradingBot.Production
     {
         static async Task Main(string[] args)
         {
+            // Load .env files for unified credential management
+            LoadDotEnv();
+            
             Console.WriteLine("🚀 PRODUCTION TRADING BOT - REAL ALGORITHMS ACTIVE");
             Console.WriteLine("===================================================");
             
@@ -121,6 +124,48 @@ namespace TradingBot.Production
             
             Console.WriteLine("\nPress any key to exit...");
             Console.ReadKey();
+        }
+        
+        /// <summary>
+        /// Load .env files for unified credential management
+        /// Searches current and parent directories for .env.local then .env
+        /// </summary>
+        private static void LoadDotEnv()
+        {
+            try
+            {
+                // Search current and up to 4 parent directories for .env.local then .env
+                var candidates = new[] { ".env.local", ".env" };
+                string? dir = Environment.CurrentDirectory;
+                for (int up = 0; up < 5 && dir != null; up++)
+                {
+                    foreach (var file in candidates)
+                    {
+                        var path = Path.Combine(dir, file);
+                        if (File.Exists(path))
+                        {
+                            foreach (var raw in File.ReadAllLines(path))
+                            {
+                                var line = raw.Trim();
+                                if (line.Length == 0 || line.StartsWith("#")) continue;
+                                var idx = line.IndexOf('=');
+                                if (idx <= 0) continue;
+                                var key = line.Substring(0, idx).Trim();
+                                var val = line.Substring(idx + 1).Trim();
+                                if ((val.StartsWith("\"") && val.EndsWith("\"")) || (val.StartsWith("'") && val.EndsWith("'")))
+                                    val = val.Substring(1, val.Length - 2);
+                                if (!string.IsNullOrWhiteSpace(key)) Environment.SetEnvironmentVariable(key, val);
+                            }
+                            Console.WriteLine($"[Environment] Loaded {file} from {dir}");
+                        }
+                    }
+                    dir = Directory.GetParent(dir)?.FullName;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Environment] Warning: Failed to load .env files: {ex.Message}");
+            }
         }
     }
 
