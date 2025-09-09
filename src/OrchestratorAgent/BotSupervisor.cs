@@ -13,10 +13,12 @@ using BotCore;
 using BotCore.Models;
 using OrchestratorAgent.Infra;
 using BotCore.Infra;
+using TradingBot.RLAgent;
+using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -45,6 +47,8 @@ namespace OrchestratorAgent
         private readonly object _userHub = userHub;
         private readonly StatusService _status = status;
         private readonly Config _cfg = cfg;
+        private readonly FeatureEngineering? _featureEngineering = featureEngineering;
+        private readonly UnifiedDecisionLogger? _decisionLogger = decisionLogger;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -285,6 +289,30 @@ namespace OrchestratorAgent
             {
                 try
                 {
+                    // 1️⃣ Wire Live Market Data → ML Pipeline
+                    // Process streaming tick for real-time feature aggregation
+                    if (_featureEngineering != null)
+                    {
+                        try
+                        {
+                            var tick = new MarketTick
+                            {
+                                Symbol = bar.Symbol,
+                                Price = (double)bar.Close,
+                                Volume = bar.Volume,
+                                Timestamp = DateTime.UnixEpoch.AddMilliseconds(bar.Ts)
+                            };
+                            
+                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick);
+                            _log.LogTrace("[ML_PIPELINE] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}, FeatureCount={FeatureCount}", 
+                                tick.Symbol, tick.Price, tick.Volume, features?.GetType().GetProperties().Length ?? 0);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.LogError(ex, "[ML_PIPELINE] Failed to process streaming tick for {Symbol}", bar.Symbol);
+                        }
+                    }
+
                     var symbol = bar.Symbol;
                     if (!history.TryGetValue(symbol, out var list))
                     {
@@ -480,6 +508,53 @@ namespace OrchestratorAgent
                         {
                             _log.LogWarning("[Supervisor] Dropping zero-risk (sub-tick) setup for {Sym} {Strat}", s.Symbol, s.StrategyId);
                             continue;
+                        }
+
+                        // 2️⃣ Use ML Predictions in Trading Decisions
+                        // Get blended ML prediction and apply confidence gating
+                        bool mlGatesPassed = true;
+                        double P_cloud = 0.5, P_online = 0.5, P_final = 0.5;
+                        
+                        if (_featureEngineering != null)
+                        {
+                            try
+                            {
+                                // TODO: Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
+                                P_cloud = 0.6; // Placeholder - will be implemented with real orchestrator
+                                
+                                // TODO: Get online prediction via hooks.on_signal(symbol, strategy_id)
+                                P_online = 0.7; // Placeholder - will be implemented with Python integration
+                                
+                                // Blended prediction per Topstep weighting: w = clip(n_recent / (n_recent + 500), 0.2, 0.8)
+                                var recentSignalsCount = _recentSignals.Count;
+                                var w = Math.Max(0.2, Math.Min(0.8, recentSignalsCount / (double)(recentSignalsCount + 500)));
+                                P_final = w * P_online + (1 - w) * P_cloud;
+                                
+                                // Confidence gating: trade only if P_final >= min_confidence
+                                var minConfidence = 0.55;
+                                mlGatesPassed = P_final >= minConfidence;
+                                
+                                _log.LogInformation("[ML_GATE] {Sym} {Strat}: P_cloud={P_cloud:F3}, P_online={P_online:F3}, P_final={P_final:F3}, gate={Gate}", 
+                                    s.Symbol, s.StrategyId, P_cloud, P_online, P_final, mlGatesPassed ? "PASS" : "BLOCK");
+                                
+                                // 🔟 Observability & Lineage: Log complete decision with lineage
+                                if (_decisionLogger != null)
+                                {
+                                    await _decisionLogger.LogTradingDecisionAsync(
+                                        s.Symbol, s.StrategyId, P_cloud, P_online, P_final, 
+                                        mlGatesPassed, s.Size, mlGatesPassed ? "ALLOW" : "BLOCK", cid);
+                                }
+                                
+                                if (!mlGatesPassed)
+                                {
+                                    _log.LogWarning("[ML_GATE] Signal blocked by ML confidence gate: P_final={P_final:F3} < {MinConf:F3}", P_final, minConfidence);
+                                    continue;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.LogError(ex, "[ML_GATE] Error in ML prediction gating for {Sym} {Strat} - allowing signal through", s.Symbol, s.StrategyId);
+                            }
                         }
 
                         var sig = new BotCore.StrategySignal

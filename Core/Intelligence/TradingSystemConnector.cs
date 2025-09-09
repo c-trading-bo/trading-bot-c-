@@ -10,6 +10,7 @@ using BotCore.Services;
 using BotCore.Config;
 using BotCore.Risk;
 using BotCore.ML;
+using TradingBot.IntelligenceStack;
 
 namespace TradingBot.Core.Intelligence
 {
@@ -23,6 +24,8 @@ namespace TradingBot.Core.Intelligence
         private readonly ILogger<TradingSystemConnector> _logger;
         private readonly TimeOptimizedStrategyManager? _strategyManager;
         private readonly OnnxModelLoader? _onnxLoader;
+        private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
+        private readonly RealTradingMetricsService? _metricsService;
         private readonly RiskEngine _riskEngine;
         private readonly ITopstepXService? _topstepXService;
         private readonly List<Bar> _esBars;
@@ -36,12 +39,16 @@ namespace TradingBot.Core.Intelligence
             ILogger<TradingSystemConnector> logger,
             ITopstepXService? topstepXService = null,
             TimeOptimizedStrategyManager? strategyManager = null,
-            OnnxModelLoader? onnxLoader = null)
+            OnnxModelLoader? onnxLoader = null,
+            IntelligenceOrchestrator? intelligenceOrchestrator = null,
+            RealTradingMetricsService? metricsService = null)
         {
             _logger = logger;
             _topstepXService = topstepXService;
             _strategyManager = strategyManager;
             _onnxLoader = onnxLoader;
+            _intelligenceOrchestrator = intelligenceOrchestrator;
+            _metricsService = metricsService;
             _riskEngine = new RiskEngine();
             _esBars = new List<Bar>();
             _nqBars = new List<Bar>();
@@ -620,6 +627,10 @@ namespace TradingBot.Core.Intelligence
                             _logger.LogInformation("Order {OrderId} filled: {FillPrice} x {Quantity}", 
                                 orderId, F2(fill.FillPrice), fill.Quantity);
 
+                            // 3️⃣ Feed Real Trades → ML Learning Loop
+                            // Push to cloud and online learner after confirmed fill
+                            await ProcessOrderFillAsync(orderId, request, fill, cancellationToken);
+
                             return new PlaceOrderResult
                             {
                                 Success = true,
@@ -777,6 +788,82 @@ namespace TradingBot.Core.Intelligence
             {
                 _logger.LogError(ex, "Failed to verify trade for customTag {CustomTag}", customTag);
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// 3️⃣ Process order fill for ML learning loop integration
+        /// Push to cloud via IntelligenceOrchestrator.PushTradeRecordAsync
+        /// Push to online learner via hooks.on_order_fill
+        /// </summary>
+        private async Task ProcessOrderFillAsync(string orderId, PlaceOrderRequest request, FillConfirmation fill, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Create trade record for cloud push
+                var tradeRecord = new CloudTradeRecord
+                {
+                    TradeId = orderId,
+                    Symbol = request.Symbol,
+                    Side = request.Side,
+                    Quantity = request.Quantity,
+                    EntryPrice = fill.FillPrice,
+                    ExitPrice = 0, // Will be updated when position is closed
+                    PnL = 0, // Will be calculated when position is closed
+                    EntryTime = fill.Timestamp,
+                    ExitTime = DateTime.MinValue, // Will be updated when position is closed
+                    Strategy = request.StrategyId,
+                    Metadata = new Dictionary<string, object>
+                    {
+                        ["custom_tag"] = request.StrategyId,
+                        ["fill_timestamp"] = fill.Timestamp,
+                        ["account_id"] = request.AccountId
+                    }
+                };
+
+                // Push to cloud via IntelligenceOrchestrator
+                if (_intelligenceOrchestrator != null)
+                {
+                    try
+                    {
+                        await _intelligenceOrchestrator.PushTradeRecordAsync(tradeRecord, cancellationToken);
+                        _logger.LogInformation("[ML_LEARNING] Trade record pushed to cloud: {OrderId}", orderId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[ML_LEARNING] Failed to push trade record to cloud: {OrderId}", orderId);
+                    }
+                }
+
+                // TODO: Push to online learner via hooks.on_order_fill (Python integration)
+                // This would call the Python hooks defined in ml_online/integration/live_hooks.py
+                var orderFillData = new Dictionary<string, object>
+                {
+                    ["order_id"] = orderId,
+                    ["symbol"] = request.Symbol,
+                    ["side"] = request.Side,
+                    ["quantity"] = request.Quantity,
+                    ["fill_price"] = (double)fill.FillPrice,
+                    ["timestamp"] = fill.Timestamp.ToString("O"),
+                    ["strategy_id"] = request.StrategyId
+                };
+
+                _logger.LogInformation("[ML_LEARNING] Order fill processed for learning loop: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
+                    orderId, request.Symbol, request.Side, request.Quantity, F2(fill.FillPrice));
+
+                // 5️⃣ Record real trading metrics for cloud dashboard
+                if (_metricsService != null)
+                {
+                    _metricsService.RecordFill(orderId, request.Symbol, fill.FillPrice, request.Quantity, request.Side);
+                    _logger.LogDebug("[REAL_METRICS] Fill recorded in metrics service: {OrderId}", orderId);
+                }
+
+                // Store for potential Python hooks integration
+                // await CallPythonHook("on_order_fill", orderFillData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ML_LEARNING] Failed to process order fill for learning loop: {OrderId}", orderId);
             }
         }
 

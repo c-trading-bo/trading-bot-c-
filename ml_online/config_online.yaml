@@ -1,0 +1,37 @@
+# Online learning configuration
+online_learning:
+  enabled: true
+  buffer_size: 10000
+  learning_rate: 0.001
+  batch_size: 32
+  adaptation_threshold: 0.05
+
+# SAC (Soft Actor-Critic) configuration  
+sac:
+  enabled: true
+  learning_rate: 0.0003
+  gamma: 0.99
+  tau: 0.005
+  alpha: 0.2
+  batch_size: 256
+  memory_size: 1000000
+  retrain_cron: "weekly"
+
+# Drift detection configuration
+drift:
+  detector: "adwin"
+  delta: 0.002
+  post_drift_veto_signals: 10
+  
+# UCB (Upper Confidence Bound) configuration
+ucb:
+  enabled: true
+  exploration_factor: 2.0
+  confidence_level: 0.95
+  window_size: 1000
+
+# Meta-learning configuration
+meta_learning:
+  enabled: true
+  max_weight_change_pct_per_5min: 10
+  rollback_var_multiplier: 2.5

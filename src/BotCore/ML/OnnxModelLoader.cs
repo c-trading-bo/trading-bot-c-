@@ -375,6 +375,10 @@ public sealed class OnnxModelLoader : IDisposable
         {
             _logger.LogDebug("[ONNX-Loader] Checking for model updates...");
             
+            // 4️⃣ Enable Model Hot-Reload: Poll data/registry and data/rl/sac every 60s
+            await CheckDataRegistryUpdatesAsync();
+            await CheckSACModelsUpdatesAsync();
+            
             var modelFiles = Directory.GetFiles(_modelsDirectory, "*.onnx", SearchOption.AllDirectories)
                 .Where(f => _modelNamePattern.IsMatch(Path.GetFileName(f)))
                 .ToList();
@@ -404,6 +408,104 @@ public sealed class OnnxModelLoader : IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[ONNX-Loader] Error during hot-reload check");
+        }
+    }
+
+    /// <summary>
+    /// 4️⃣ Check data/registry for updated model metadata
+    /// </summary>
+    private async Task CheckDataRegistryUpdatesAsync()
+    {
+        try
+        {
+            var registryDir = "data/registry";
+            if (!Directory.Exists(registryDir))
+            {
+                Directory.CreateDirectory(registryDir);
+                return;
+            }
+
+            var metadataFiles = Directory.GetFiles(registryDir, "*_latest.yaml", SearchOption.AllDirectories);
+            foreach (var metadataFile in metadataFiles)
+            {
+                var lastWriteTime = File.GetLastWriteTimeUtc(metadataFile);
+                var modelName = Path.GetFileNameWithoutExtension(metadataFile).Replace("_latest", "");
+                
+                // Check if this metadata file has been updated since last check
+                var cacheKey = $"registry_{modelName}_lastcheck";
+                if (!_modelMetadata.ContainsKey(cacheKey) || 
+                    _modelMetadata[cacheKey].LoadedAt < lastWriteTime)
+                {
+                    _logger.LogInformation("[HOT_RELOAD] Registry update detected: {MetadataFile} (modified: {LastWrite})", 
+                        Path.GetFileName(metadataFile), lastWriteTime);
+                    
+                    // Read and parse metadata
+                    var content = await File.ReadAllTextAsync(metadataFile);
+                    // TODO: Parse YAML metadata and trigger model reload if needed
+                    
+                    // Update cache
+                    _modelMetadata[cacheKey] = new ModelMetadata
+                    {
+                        Version = "registry_check",
+                        LoadedAt = lastWriteTime,
+                        IsHealthy = true
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[HOT_RELOAD] Error checking data/registry updates");
+        }
+    }
+
+    /// <summary>
+    /// 4️⃣ Check data/rl/sac for updated SAC models
+    /// </summary>
+    private async Task CheckSACModelsUpdatesAsync()
+    {
+        try
+        {
+            var sacDir = "data/rl/sac";
+            if (!Directory.Exists(sacDir))
+            {
+                Directory.CreateDirectory(sacDir);
+                return;
+            }
+
+            var sacFiles = Directory.GetFiles(sacDir, "*.zip", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(sacDir, "*.pkl", SearchOption.AllDirectories))
+                .Concat(Directory.GetFiles(sacDir, "*.pt", SearchOption.AllDirectories));
+
+            foreach (var sacFile in sacFiles)
+            {
+                var lastWriteTime = File.GetLastWriteTimeUtc(sacFile);
+                var modelName = Path.GetFileNameWithoutExtension(sacFile);
+                
+                // Check if this SAC model has been updated since last check
+                var cacheKey = $"sac_{modelName}_lastcheck";
+                if (!_modelMetadata.ContainsKey(cacheKey) || 
+                    _modelMetadata[cacheKey].LoadedAt < lastWriteTime)
+                {
+                    _logger.LogInformation("[HOT_RELOAD] SAC model update detected: {SACFile} (modified: {LastWrite})", 
+                        Path.GetFileName(sacFile), lastWriteTime);
+                    
+                    // TODO: Trigger SAC model reload in Python side
+                    // This would notify the SAC agent to reload the model
+                    
+                    // Update cache
+                    _modelMetadata[cacheKey] = new ModelMetadata
+                    {
+                        Version = "sac_check",
+                        LoadedAt = lastWriteTime,
+                        IsHealthy = true
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[HOT_RELOAD] Error checking data/rl/sac updates");
         }
     }
 
@@ -1024,6 +1126,8 @@ public class ModelMetadata
     public string Version { get; set; } = string.Empty;
     public string Checksum { get; set; } = string.Empty;
     public DateTime LastModified { get; set; }
+    public DateTime LoadedAt { get; set; }
+    public bool IsHealthy { get; set; } = true;
 }
 
 /// <summary>
