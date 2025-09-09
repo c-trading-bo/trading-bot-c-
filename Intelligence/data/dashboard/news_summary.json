@@ -1,30 +1,72 @@
 {
-  "timestamp": "2025-09-09T12:51:03.376787",
+  "timestamp": "2025-09-09T15:30:11.510656",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "workflow_run": "38",
+  "market_session": "regular",
+  "workflow_run": "39",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-09T12:46:15.213552",
+    "timestamp": "2025-09-09T15:25:23.180535",
     "analysis_mode": "comprehensive",
-    "market_session": "extended",
-    "total_articles_processed": 12,
+    "market_session": "regular",
+    "total_articles_processed": 14,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": -0.27444444444444444,
+        "article_count": 2,
+        "articles": [
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
+            "sentiment": -0.4088888888888889,
+            "textblob_score": -0.15555555555555559,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
+            "published": "2025-09-09T13:36:38Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          },
+          {
+            "title": "Nutanix (NTNX) Jumps as Firm Joins S&P Club",
+            "sentiment": -0.13999999999999999,
+            "textblob_score": -0.2,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/nutanix-ntnx-jumps-firm-joins-145837598.html",
+            "published": "2025-09-09T14:58:37Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.2,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "NQ": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "sentiment_score": -0.4088888888888889,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
+            "sentiment": -0.4088888888888889,
+            "textblob_score": -0.15555555555555559,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
+            "published": "2025-09-09T13:36:38Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
+        "signal": "BEARISH",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -43,53 +85,32 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "TSLA": {
-        "sentiment_score": 0.1559520202020202,
-        "article_count": 9,
+        "sentiment_score": -0.0875,
+        "article_count": 1,
         "articles": [
           {
-            "title": "Here\u2019s Why Vestis Corporation\u2019s (VSTS) Revenue Dropped in Q2",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/why-vestis-corporation-vsts-revenue-121338946.html",
-            "published": "2025-09-09T12:13:38Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Stock Market Today: Dow Rises As UnitedHealth Jumps; Apple iPhone Event On Tap (Live Coverage)",
-            "sentiment": 0.09545454545454544,
-            "textblob_score": 0.13636363636363635,
+            "title": "CFTC May Approve Foreign Crypto Exchanges Under U.S. Rules \u2014 What It Means for Traders",
+            "sentiment": -0.0875,
+            "textblob_score": -0.125,
             "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-unitedhealth-unh-apple-iphone/?src=A00220&yptr=yahoo",
-            "published": "2025-09-09T12:11:25Z",
+            "url": "https://finance.yahoo.com/news/cftc-may-approve-foreign-crypto-150409711.html",
+            "published": "2025-09-09T15:04:09Z",
             "relevance_keywords": [
-              "EV"
+              "crypto"
             ]
-          },
-          {
-            "title": "Do You Believe in the Upside Potential of Atricure (ATRC)?",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/believe-upside-potential-atricure-atrc-120826748.html",
-            "published": "2025-09-09T12:08:26Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.04909267676767677,
+        "article_count": 10,
+        "articles": [
           {
             "title": "Tesla Energy Announces New Mega Product As China EV Sales Still Lag",
             "sentiment": 0.09545454545454544,
@@ -97,9 +118,33 @@
             "keyword_score": 0,
             "source": "yahoo_finance",
             "url": "https://www.investors.com/news/tesla-energy-megablock-china-ev-sales-tesla-stock/?src=A00220&yptr=yahoo",
-            "published": "2025-09-09T12:06:13Z",
+            "published": "2025-09-09T15:06:07Z",
             "relevance_keywords": [
               "Tesla",
+              "EV"
+            ]
+          },
+          {
+            "title": "Stock market today: Dow, S&P 500, Nasdaq waver after US jobs data is revised sharply down",
+            "sentiment": -0.4088888888888889,
+            "textblob_score": -0.15555555555555559,
+            "keyword_score": -1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-waver-after-us-jobs-data-is-revised-sharply-down-133638637.html",
+            "published": "2025-09-09T13:36:38Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Now vs. One Year Ago",
+            "sentiment": 0.19055555555555553,
+            "textblob_score": 0.2722222222222222,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/newsletters/2025-09-09/now-vs-one-year-ago",
+            "published": "Tue, 09 Sep 2025 15:18:07 GMT",
+            "relevance_keywords": [
               "EV"
             ]
           },
@@ -116,13 +161,49 @@
             ]
           },
           {
-            "title": "Lazard Looks to Middle East in Orszag\u2019s Plan to Boost Revenue",
-            "sentiment": 0.23583333333333334,
-            "textblob_score": -0.09166666666666667,
+            "title": "Stocks Drop After Negative Jobs Revision Even as Rate Cuts Seen",
+            "sentiment": -0.2925,
+            "textblob_score": -0.275,
+            "keyword_score": -0.3333333333333333,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-09/us-stocks-climb-ahead-of-jobs-revisions-as-rate-cut-bets-rise",
+            "published": "Tue, 09 Sep 2025 13:40:21 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Oil Advances as Israel\u2019s Strike in Qatar Revives Risk Premium",
+            "sentiment": 0.1366666666666667,
+            "textblob_score": -0.2333333333333333,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-09/lazard-looks-to-middle-east-in-orszag-s-plan-to-boost-revenue",
-            "published": "Tue, 09 Sep 2025 12:00:00 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-08/latest-oil-market-news-and-analysis-for-sept-9",
+            "published": "Mon, 08 Sep 2025 23:32:17 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "US Payroll Gains Likely to Be Revised Down by 911,000",
+            "sentiment": 0.0772222222222222,
+            "textblob_score": -0.03253968253968255,
+            "keyword_score": 0.3333333333333333,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-09/us-payroll-gains-likely-to-be-revised-down-by-911-000",
+            "published": "Tue, 09 Sep 2025 14:37:09 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Economy created 911,000 fewer jobs in 2024-25 than reported. It\u2019s more ammo for Fed rate cut.",
+            "sentiment": -0.23933333333333331,
+            "textblob_score": 0.0866666666666667,
+            "keyword_score": -1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/economy-created-911-000-fewer-jobs-in-2024-2025-than-originally-reported-more-ammo-for-fed-rate-cut-0562a068?mod=mw_rss_topstories",
+            "published": "Tue, 09 Sep 2025 14:56:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -134,42 +215,31 @@
             "keyword_score": 1.0,
             "source": "marketwatch",
             "url": "https://www.marketwatch.com/story/why-jpmorgan-is-warning-the-fed-rate-cut-everyone-expects-could-sink-stocks-0179698d?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 12:26:00 GMT",
+            "published": "Tue, 09 Sep 2025 14:10:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "\u2018Frenzied as ever\u2019: This Dan Ives\u2013led Worldcoin treasury purchase is only the latest example of market madness",
-            "sentiment": 0.43999999999999995,
-            "textblob_score": 0.2,
+            "title": "Rethinking Tesla: No Substance In Sight, Yet The Stock Keeps Climbing (Upgrade)",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
             "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/frenzied-as-ever-the-dan-ives-led-worldcoin-treasury-purchase-is-only-latest-example-of-market-madness-43c247ad?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 11:21:00 GMT",
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4820951-rethinking-tesla-no-substance-in-sight-yet-the-stock-keeps-climbing-upgrade?source=feed_all_articles",
+            "published": "Tue, 09 Sep 2025 10:55:38 -0400",
             "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Apple\u2019s iPhone events have been unimpressive lately. Will this year be the exception?",
-            "sentiment": -0.09492424242424242,
-            "textblob_score": -0.13560606060606062,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/apples-iphone-events-have-been-unimpressive-lately-will-this-year-be-the-exception-b77d8193?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 11:13:00 GMT",
-            "relevance_keywords": [
-              "EV"
+              "Tesla"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.9,
+        "confidence": 1.0,
         "sources": [
           "yahoo_finance",
           "bloomberg",
-          "marketwatch"
+          "marketwatch",
+          "seeking_alpha"
         ]
       },
       "NVDA": {
@@ -181,54 +251,12 @@
         "sources": []
       },
       "AAPL": {
-        "sentiment_score": 0.16892676767676765,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "Stock Market Today: Dow Rises As UnitedHealth Jumps; Apple iPhone Event On Tap (Live Coverage)",
-            "sentiment": 0.09545454545454544,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-unitedhealth-unh-apple-iphone/?src=A00220&yptr=yahoo",
-            "published": "2025-09-09T12:11:25Z",
-            "relevance_keywords": [
-              "Apple",
-              "iPhone"
-            ]
-          },
-          {
-            "title": "Why ASML, which makes million-dollar machines, is buying a stake in AI chatbot creator",
-            "sentiment": 0.50625,
-            "textblob_score": 0.29464285714285715,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/why-asml-which-makes-million-dollar-machines-is-buying-a-stake-in-ai-chatbot-creator-226b1130?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 12:14:00 GMT",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          },
-          {
-            "title": "Apple\u2019s iPhone events have been unimpressive lately. Will this year be the exception?",
-            "sentiment": -0.09492424242424242,
-            "textblob_score": -0.13560606060606062,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/apples-iphone-events-have-been-unimpressive-lately-will-this-year-be-the-exception-b77d8193?mod=mw_rss_topstories",
-            "published": "Tue, 09 Sep 2025 11:13:00 GMT",
-            "relevance_keywords": [
-              "Apple",
-              "iPhone"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.3,
-        "sources": [
-          "yahoo_finance",
-          "marketwatch"
-        ]
+        "confidence": 0.0,
+        "sources": []
       }
     },
     "sources_used": [
@@ -241,8 +269,8 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-09T12:51:00.545336",
-    "market_session": "extended",
+    "timestamp": "2025-09-09T15:30:09.134330",
+    "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
       "sentiment": 0.0,
@@ -263,7 +291,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-09T12:46:13.039531",
+    "timestamp": "2025-09-09T15:25:19.745793",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -293,17 +321,17 @@
         "keyword": "stock market"
       },
       {
-        "title": "BORSA NEDEN D\u00dc\u015eT\u00dc ? 8 Eyl\u00fcl 2025 Pazartesi Borsa \u0130stanbul BIST 100 endeksi ile borsa bug\u00fcn neden d\u00fc\u015f\u00fcyor ? ",
-        "url": "https://www.haberturk.com/borsa-neden-dustu-8-eylul-2025-pazartesi-borsa-istanbul-bist-100-endeksi-ile-borsa-bugun-neden-dusuyor-3820894",
-        "source": "haberturk.com",
-        "date": "20250908T163000Z",
-        "keyword": "stock market"
-      },
-      {
         "title": "CANLI BORSA | Borsa g\u00fcne y\u00fckseli\u015fle ba\u015flad\u0131 ( 19 A\u011fustos 2025 Sal\u0131 ) ",
         "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yukselisle-basladi-19-agustos-2025-sali/511732/",
         "source": "finans.mynet.com",
         "date": "20250819T103000Z",
+        "keyword": "stock market"
+      },
+      {
+        "title": "CANLI BORSA | Borsa g\u00fcne yatay ba\u015flad\u0131 ( 20 A\u011fustos 2025 \u00c7ar\u015famba ) ",
+        "url": "https://finans.mynet.com/haber/detay/borsa/canli-borsa-borsa-gune-yatay-basladi-20-agustos-2025-carsamba/511838/",
+        "source": "finans.mynet.com",
+        "date": "20250820T103000Z",
         "keyword": "stock market"
       },
       {
@@ -363,17 +391,17 @@
         "keyword": "futures"
       },
       {
-        "title": "\u80f6\u7248\u5370\u5237\u7eb8\u671f\u8d27\u53ca\u671f\u674350\u95ee\uff5c\u80f6\u7248\u5370\u5237\u7eb8\u671f\u8d27\u4ea4\u6613\u7ed3\u7b97\u4e0e\u98ce\u9669\u7ba1\u7406 _ \u4e1c\u65b9\u8d22\u5bcc\u7f51",
-        "url": "https://finance.eastmoney.com/a/202509013508828015.html",
-        "source": "finance.eastmoney.com",
-        "date": "20250909T101500Z",
-        "keyword": "futures"
-      },
-      {
         "title": "\u671f\u8d27\u5e02\u573a\u4ea4\u6295\u6d3b\u8dc3 -- \u7ecf\u6d4e \u00b7 \u79d1\u6280 -- \u4eba\u6c11\u7f51",
         "url": "http://finance.people.com.cn/n1/2025/0726/c1004-40530039.html",
         "source": "finance.people.com.cn",
         "date": "20250726T043000Z",
+        "keyword": "futures"
+      },
+      {
+        "title": "\u671f\u8d27\u4e1a\u8fce\u6765\u4e92\u8054\u7f51\u8425\u9500\u7ba1\u7406\u65b0\u89c4 10\u67089\u65e5\u8d77\u6b63\u5f0f\u5b9e\u65bd _ \u671f\u8d27 _ \u91d1\u878d\u9891\u9053\u9996\u9875 _ \u8d22\u7ecf\u7f51 - CAIJING . COM . CN",
+        "url": "http://finance.caijing.com.cn/20250826/5109314.shtml",
+        "source": "finance.caijing.com.cn",
+        "date": "20250826T041500Z",
         "keyword": "futures"
       }
     ]
