@@ -508,6 +508,45 @@ namespace OrchestratorAgent
                             continue;
                         }
 
+                        // 2️⃣ Use ML Predictions in Trading Decisions
+                        // Get blended ML prediction and apply confidence gating
+                        bool mlGatesPassed = true;
+                        double P_cloud = 0.5, P_online = 0.5, P_final = 0.5;
+                        
+                        if (_featureEngineering != null)
+                        {
+                            try
+                            {
+                                // TODO: Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
+                                P_cloud = 0.6; // Placeholder - will be implemented with real orchestrator
+                                
+                                // TODO: Get online prediction via hooks.on_signal(symbol, strategy_id)
+                                P_online = 0.7; // Placeholder - will be implemented with Python integration
+                                
+                                // Blended prediction per Topstep weighting: w = clip(n_recent / (n_recent + 500), 0.2, 0.8)
+                                var recentSignalsCount = _recentSignals.Count;
+                                var w = Math.Max(0.2, Math.Min(0.8, recentSignalsCount / (double)(recentSignalsCount + 500)));
+                                P_final = w * P_online + (1 - w) * P_cloud;
+                                
+                                // Confidence gating: trade only if P_final >= min_confidence
+                                var minConfidence = 0.55;
+                                mlGatesPassed = P_final >= minConfidence;
+                                
+                                _log.LogInformation("[ML_GATE] {Sym} {Strat}: P_cloud={P_cloud:F3}, P_online={P_online:F3}, P_final={P_final:F3}, gate={Gate}", 
+                                    s.Symbol, s.StrategyId, P_cloud, P_online, P_final, mlGatesPassed ? "PASS" : "BLOCK");
+                                
+                                if (!mlGatesPassed)
+                                {
+                                    _log.LogWarning("[ML_GATE] Signal blocked by ML confidence gate: P_final={P_final:F3} < {MinConf:F3}", P_final, minConfidence);
+                                    continue;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.LogError(ex, "[ML_GATE] Error in ML prediction gating for {Sym} {Strat} - allowing signal through", s.Symbol, s.StrategyId);
+                            }
+                        }
+
                         var sig = new BotCore.StrategySignal
                         {
                             Strategy = s.StrategyId,
