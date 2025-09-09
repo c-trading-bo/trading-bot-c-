@@ -41,14 +41,24 @@ public class AutoTopstepXLoginService : BackgroundService
 
             _logger.LogInformation("🚀 Starting automatic TopstepX login...");
 
-            // Load credentials
-            CurrentCredentials = _credentialManager.LoadCredentials();
+            // Enhanced credential discovery
+            var credentialDiscovery = _credentialManager.DiscoverAllCredentialSources();
             
-            if (CurrentCredentials == null)
+            if (!credentialDiscovery.HasAnyCredentials)
             {
-                _logger.LogWarning("⚠️ No TopstepX credentials found - attempting auto-discovery...");
+                _logger.LogWarning("⚠️ No TopstepX credentials found in any source - attempting auto-discovery...");
                 await AttemptCredentialDiscovery(stoppingToken);
                 return;
+            }
+
+            // Use recommended credentials
+            CurrentCredentials = credentialDiscovery.RecommendedCredentials;
+            _logger.LogInformation("✅ Using credentials from: {Source} ({Total} sources found)", 
+                credentialDiscovery.RecommendedSource, credentialDiscovery.TotalSourcesFound);
+
+            if (credentialDiscovery.HasEnvironmentCredentials && credentialDiscovery.HasFileCredentials)
+            {
+                _logger.LogInformation("🔄 Both environment and file credentials found - preferring environment for automation");
             }
 
             // Attempt login
