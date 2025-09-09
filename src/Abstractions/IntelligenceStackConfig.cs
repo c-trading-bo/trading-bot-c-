@@ -17,6 +17,7 @@ public class IntelligenceStackConfig
     public ObservabilityConfig Observability { get; set; } = new();
     public PromotionsConfig Promotions { get; set; } = new();
     public HistoricalConfig Historical { get; set; } = new();
+    public NetworkConfig Network { get; set; } = new();
 }
 
 public class MLConfig
@@ -35,6 +36,12 @@ public class ConfidenceConfig
     public bool Enabled { get; set; } = true;
     public double MinConfidence { get; set; } = 0.52;
     public double KellyClip { get; set; } = 0.35;
+    
+    // Configurable scoring functions to replace hardcoded formulas
+    public double EdgeConversionOffset { get; set; } = 0.5;
+    public double EdgeConversionMultiplier { get; set; } = 2.0;
+    public double ConfidenceMultiplierOffset { get; set; } = 0.5;
+    public double ConfidenceMultiplierScale { get; set; } = 4.0;
 }
 
 public class RegimeConfig
@@ -75,6 +82,9 @@ public class QuarantineConfig
     public int LatencyP99Ms { get; set; } = 200;
     public double ExceptionRatePerMin { get; set; } = 0.005;
     public int ShadowDecisionsForReentry { get; set; } = 500;
+    
+    // Configurable latency multipliers for degradation thresholds
+    public double LatencyDegradeMultiplier { get; set; } = 2.0;
 }
 
 public class CalibrationConfig
@@ -133,6 +143,13 @@ public class AdvisorConfig
     public bool Enabled { get; set; } = false;
     public int ShadowMinDecisions { get; set; } = 1000;
     public int MinEdgeBps { get; set; } = 3;
+    
+    // Configurable confidence calculation parameters
+    public double ExplorationConfidence { get; set; } = 0.3;
+    public double ConfidenceOffset { get; set; } = 1.0;
+    public double ConfidenceScale { get; set; } = 2.0;
+    public double MinConfidence { get; set; } = 0.1;
+    public double MaxConfidence { get; set; } = 1.0;
 }
 
 public class SACConfig
@@ -159,6 +176,7 @@ public class RetryConfig
     public int InitialMs { get; set; } = 250;
     public int MaxMs { get; set; } = 4000;
     public int MaxAttempts { get; set; } = 5;
+    public int MaxDelaySeconds { get; set; } = 30;
 }
 
 public class OrchestratorConfig
@@ -189,6 +207,10 @@ public class ObservabilityConfig
     public bool LineageTracking { get; set; } = true;
     public DecisionLineConfig DecisionLine { get; set; } = new();
     public DriftMonitoringConfig DriftMonitoring { get; set; } = new();
+    
+    // Configurable parameters for dashboard calculations
+    public double CalibrationScoreOffset { get; set; } = 0.5;
+    public double CalibrationScoreMultiplier { get; set; } = 2.0;
 }
 
 public class HistoricalConfig
@@ -242,4 +264,25 @@ public class AdoptIfBetterConfig
 {
     public double MinAucGain { get; set; } = 0.02;
     public double MinPrAt10Gain { get; set; } = 0.03;
+}
+
+/// <summary>
+/// Network and connection configuration including retry policies and batch sizes
+/// </summary>
+public class NetworkConfig
+{
+    public RetryConfig Retry { get; set; } = new();
+    public BatchConfig Batch { get; set; } = new();
+}
+
+/// <summary>
+/// Batch processing configuration
+/// </summary>
+public class BatchConfig
+{
+    public int DefaultBatchSize { get; set; } = 32;
+    public int MaxBatchSize { get; set; } = 128;
+    public int MinBatchSize { get; set; } = 16;
+    public int TelemetryBatchSize { get; set; } = 100;
+    public int ModelInferenceBatchSize { get; set; } = 64;
 }

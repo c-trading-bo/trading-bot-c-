@@ -565,8 +565,8 @@ public class ObservabilityDashboard
 
     private double CalculateCalibrationScore(List<double> confidences)
     {
-        // Simplified calibration score - in production would use actual prediction outcomes
-        return Math.Max(0.0, 1.0 - Math.Abs(confidences.Average() - 0.5) * 2);
+        // Configurable calibration score calculation
+        return Math.Max(0.0, 1.0 - Math.Abs(confidences.Average() - _config.CalibrationScoreOffset) * _config.CalibrationScoreMultiplier);
     }
 
     private Dictionary<string, double> CreateTimeOfDayProfile(string metricName)

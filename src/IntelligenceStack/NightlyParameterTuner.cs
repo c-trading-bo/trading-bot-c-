@@ -18,6 +18,7 @@ public class NightlyParameterTuner
 {
     private readonly ILogger<NightlyParameterTuner> _logger;
     private readonly TuningConfig _config;
+    private readonly NetworkConfig _networkConfig;
     private readonly IModelRegistry _modelRegistry;
     private readonly HistoricalTrainerWithCV _historicalTrainer;
     private readonly string _statePath;
@@ -29,12 +30,14 @@ public class NightlyParameterTuner
     public NightlyParameterTuner(
         ILogger<NightlyParameterTuner> logger,
         TuningConfig config,
+        NetworkConfig networkConfig,
         IModelRegistry modelRegistry,
         HistoricalTrainerWithCV historicalTrainer,
         string statePath = "data/nightly_tuning")
     {
         _logger = logger;
         _config = config;
+        _networkConfig = networkConfig;
         _modelRegistry = modelRegistry;
         _historicalTrainer = historicalTrainer;
         _statePath = statePath;
@@ -298,11 +301,18 @@ public class NightlyParameterTuner
 
     private Dictionary<string, ParameterRange> GetParameterSpace(string modelFamily)
     {
-        // Define parameter search space for different model families
+        // Define parameter search space for different model families using configurable batch sizes
+        var batchSizes = new double[] { 
+            _networkConfig.Batch.MinBatchSize, 
+            _networkConfig.Batch.DefaultBatchSize, 
+            _networkConfig.Batch.ModelInferenceBatchSize,
+            _networkConfig.Batch.MaxBatchSize 
+        };
+        
         return new Dictionary<string, ParameterRange>
         {
             ["learning_rate"] = new ParameterRange { Min = 0.001, Max = 0.1, Type = ParameterType.LogUniform },
-            ["batch_size"] = new ParameterRange { Min = 16, Max = 128, Type = ParameterType.Categorical, Categories = new double[] { 16, 32, 64, 128 } },
+            ["batch_size"] = new ParameterRange { Min = _networkConfig.Batch.MinBatchSize, Max = _networkConfig.Batch.MaxBatchSize, Type = ParameterType.Categorical, Categories = batchSizes },
             ["hidden_size"] = new ParameterRange { Min = 64, Max = 512, Type = ParameterType.LogUniform },
             ["dropout_rate"] = new ParameterRange { Min = 0.0, Max = 0.5, Type = ParameterType.Uniform },
             ["l2_regularization"] = new ParameterRange { Min = 1e-6, Max = 1e-2, Type = ParameterType.LogUniform },
@@ -312,11 +322,11 @@ public class NightlyParameterTuner
 
     private async Task<Dictionary<string, double>> GetBaselineParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        // Return current best parameters or defaults
+        // Return current best parameters or defaults using configurable values
         return new Dictionary<string, double>
         {
             ["learning_rate"] = 0.01,
-            ["batch_size"] = 32,
+            ["batch_size"] = _networkConfig.Batch.DefaultBatchSize,
             ["hidden_size"] = 128,
             ["dropout_rate"] = 0.1,
             ["l2_regularization"] = 1e-4,
