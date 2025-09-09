@@ -201,8 +201,23 @@ public class WalkForwardTrainer
             var baseModelPath = Path.Combine(_modelsPath, "rl_model.onnx");
             if (File.Exists(baseModelPath))
             {
-                File.Copy(baseModelPath, modelPath, overwrite: true);
-                Console.WriteLine($"[WALK-FORWARD] Using base trained model: {modelPath}");
+                // Atomic copy using temp file + File.Move pattern
+                var tempModelPath = modelPath + ".tmp";
+                try
+                {
+                    File.Copy(baseModelPath, tempModelPath, overwrite: false);
+                    File.Move(tempModelPath, modelPath);
+                    Console.WriteLine($"[WALK-FORWARD] Using base trained model (atomic copy): {modelPath}");
+                }
+                catch
+                {
+                    // Cleanup temp file on error
+                    if (File.Exists(tempModelPath))
+                    {
+                        try { File.Delete(tempModelPath); } catch { }
+                    }
+                    throw;
+                }
             }
             else
             {
