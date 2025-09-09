@@ -527,7 +527,7 @@ public class QuarantineManager : IQuarantineManager
                 await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken);
             }
         }
-        else if (avgBrierScore > 0.25 + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * 2)
+        else if (avgBrierScore > 0.25 + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)
         {
             status.State = HealthState.Degrade;
             status.BlendWeight = 0.5; // Require agreement with another model

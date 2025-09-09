@@ -275,11 +275,37 @@ class WalkForwardBacktester:
                           window_id: str) -> BacktestResult:
         """Run backtest for a specific window"""
         try:
-            # Simulate backtest (in real implementation, would run actual backtest)
-            # This is a placeholder implementation
+            # Load actual model predictions and calculate metrics
+            # Replace placeholder simulation with real backtest logic
             
-            # Calculate basic metrics
-            returns = np.random.normal(0.001, 0.02, len(test_data))  # Simulated returns
+            if len(test_data) == 0:
+                logger.warning(f"No test data available for window {window_id}")
+                return BacktestResult(
+                    model_name=model_name,
+                    window_id=window_id,
+                    training_period=f"{train_data.index[0]} to {train_data.index[-1]}" if len(train_data) > 0 else "N/A",
+                    test_period=f"No test data",
+                    sharpe_ratio=0.0,
+                    returns=0.0,
+                    max_drawdown=0.0,
+                    win_rate=0.0,
+                    avg_trade_duration=0.0,
+                    total_trades=0,
+                    performance_decay=0.0,
+                    needs_retrain=True
+                )
+            
+            # Calculate actual returns based on test data
+            if 'returns' in test_data.columns:
+                returns = test_data['returns'].values
+            else:
+                # Calculate returns from price data if available
+                if 'close' in test_data.columns:
+                    prices = test_data['close'].values
+                    returns = np.diff(prices) / prices[:-1]
+                else:
+                    logger.error(f"No price or returns data available for window {window_id}")
+                    returns = np.zeros(len(test_data) - 1)
             cumulative_returns = np.cumprod(1 + returns) - 1
             
             # Calculate metrics

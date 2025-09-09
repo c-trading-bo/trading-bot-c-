@@ -419,13 +419,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private double CalculatePositionSize(double confidence, MarketContext context)
     {
-        // Apply Kelly criterion with clip
-        var edge = (confidence - 0.5) * 2; // Convert to [-1, 1] range
+        // Apply Kelly criterion with clip using configurable parameters
+        var edge = (confidence - _config.ML.Confidence.EdgeConversionOffset) * _config.ML.Confidence.EdgeConversionMultiplier; // Convert to [-1, 1] range
         var kellyFraction = edge / 1.0; // Simplified Kelly calculation
         var clippedKelly = Math.Min(_config.ML.Confidence.KellyClip, Math.Max(-_config.ML.Confidence.KellyClip, kellyFraction));
         
-        // Apply confidence multiplier
-        var confidenceMultiplier = Math.Min(1.0, Math.Max(0.0, (confidence - 0.5) * 4.0));
+        // Apply confidence multiplier using configurable parameters
+        var confidenceMultiplier = Math.Min(1.0, Math.Max(0.0, (confidence - _config.ML.Confidence.ConfidenceMultiplierOffset) * _config.ML.Confidence.ConfidenceMultiplierScale));
         
         return clippedKelly * confidenceMultiplier;
     }

@@ -678,7 +678,7 @@ public class RLAgent
         {
             // Exploration
             actionType = _random.Next(4);
-            confidence = 0.3;
+            confidence = _config.RL.Advisor.ExplorationConfidence;
         }
         else
         {
@@ -699,7 +699,9 @@ public class RLAgent
             }
             
             actionType = bestAction;
-            confidence = Math.Min(1.0, Math.Max(0.1, (bestValue + 1.0) / 2.0));
+            confidence = Math.Min(_config.RL.Advisor.MaxConfidence, 
+                         Math.Max(_config.RL.Advisor.MinConfidence, 
+                         (bestValue + _config.RL.Advisor.ConfidenceOffset) / _config.RL.Advisor.ConfidenceScale));
         }
         
         return new RLActionResult
