@@ -1,7 +1,7 @@
 using System;
 
 // Simple console app to run the 24/7 trading system integration test
-public static class Program
+public static class IntegrationConsoleProgram
 {
     public static void Main(string[] args)
     {

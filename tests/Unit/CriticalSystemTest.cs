@@ -8,7 +8,7 @@ namespace TradingBot.Tests
     /// <summary>
     /// Simple test program to verify critical system components work correctly
     /// </summary>
-    class Program
+    class CriticalSystemTestProgram
     {
         static async Task Main(string[] args)
         {
