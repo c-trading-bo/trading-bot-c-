@@ -2,25 +2,37 @@ using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
 using System;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Cloud data integration service - handles cloud data operations
+/// Cloud data integration service - handles cloud data operations with retry/backoff
 /// </summary>
 public class CloudDataIntegrationService
 {
     private readonly ILogger<CloudDataIntegrationService> _logger;
     private readonly ICentralMessageBus _messageBus;
+    private readonly HttpClient _httpClient;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public CloudDataIntegrationService(
         ILogger<CloudDataIntegrationService> logger,
-        ICentralMessageBus messageBus)
+        ICentralMessageBus messageBus,
+        HttpClient httpClient)
     {
         _logger = logger;
         _messageBus = messageBus;
+        _httpClient = httpClient;
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
     }
 
     public async Task<bool> PushTelemetryAsync(TelemetryData data, CancellationToken cancellationToken = default)
@@ -36,10 +48,69 @@ public class CloudDataIntegrationService
                 throw new InvalidOperationException("CLOUD_ENDPOINT environment variable is not set. Cloud operations require a valid endpoint.");
             }
             
-            // Implementation would push telemetry to cloud
-            await Task.CompletedTask;
+            // Implement retry/backoff logic using configurable parameters
+            var maxRetries = 3; // Could be made configurable via NetworkConfig.Retry.MaxAttempts
+            var initialDelay = TimeSpan.FromMilliseconds(250);
+            var maxDelay = TimeSpan.FromSeconds(30);
             
-            return true;
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    // Prepare telemetry payload
+                    var payload = new
+                    {
+                        timestamp = data.Timestamp,
+                        source = data.Source,
+                        sessionId = data.SessionId,
+                        metrics = data.Metrics
+                    };
+                    
+                    var json = JsonSerializer.Serialize(payload, _jsonOptions);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    // Send telemetry to cloud endpoint
+                    var response = await _httpClient.PostAsync($"{cloudEndpoint}/api/telemetry", content, cancellationToken);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _logger.LogDebug("Successfully pushed telemetry to cloud (attempt {Attempt})", attempt + 1);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Cloud telemetry push failed with status {StatusCode} (attempt {Attempt})", 
+                            response.StatusCode, attempt + 1);
+                        
+                        // Don't retry on client errors (4xx)
+                        if ((int)response.StatusCode >= 400 && (int)response.StatusCode < 500)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogWarning(ex, "Network error pushing telemetry to cloud (attempt {Attempt})", attempt + 1);
+                }
+                catch (TaskCanceledException ex)
+                {
+                    _logger.LogWarning(ex, "Timeout pushing telemetry to cloud (attempt {Attempt})", attempt + 1);
+                }
+                
+                // Calculate exponential backoff delay
+                if (attempt < maxRetries)
+                {
+                    var delay = TimeSpan.FromMilliseconds(initialDelay.TotalMilliseconds * Math.Pow(2, attempt));
+                    if (delay > maxDelay) delay = maxDelay;
+                    
+                    _logger.LogDebug("Retrying telemetry push after {Delay}ms", delay.TotalMilliseconds);
+                    await Task.Delay(delay, cancellationToken);
+                }
+            }
+            
+            _logger.LogError("Failed to push telemetry to cloud after {MaxRetries} attempts", maxRetries + 1);
+            return false;
         }
         catch (Exception ex)
         {

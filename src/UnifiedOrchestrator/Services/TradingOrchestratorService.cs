@@ -70,12 +70,59 @@ public class TradingOrchestratorService : BackgroundService
             // For now, just simulate successful execution
             await Task.Delay(100, cancellationToken);
             
+            // After trade execution, push telemetry to cloud
+            await PushTradeTelemetryAsync(decision, success: true, cancellationToken);
+            
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to execute trade");
+            
+            // Push failure telemetry
+            await PushTradeTelemetryAsync(decision, success: false, cancellationToken);
+            
             return false;
+        }
+    }
+
+    private async Task PushTradeTelemetryAsync(TradingDecision decision, bool success, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Create telemetry data for the trade
+            var telemetryData = new TelemetryData
+            {
+                Timestamp = DateTime.UtcNow,
+                Source = "TradingOrchestrator",
+                SessionId = Environment.MachineName,
+                Metrics = new Dictionary<string, object>
+                {
+                    ["event_type"] = "trade_execution",
+                    ["symbol"] = decision.Symbol,
+                    ["side"] = decision.Side.ToString(),
+                    ["quantity"] = decision.Quantity,
+                    ["confidence"] = decision.Confidence,
+                    ["success"] = success,
+                    ["timestamp"] = decision.Timestamp,
+                    ["reasoning"] = decision.Reasoning,
+                    // Additional metrics could include latency, spread, etc.
+                    ["execution_latency_ms"] = 100 // Placeholder
+                }
+            };
+
+            // Send telemetry to cloud (with retry/backoff already implemented)
+            // This would be injected via dependency injection in a real implementation
+            // var cloudService = _serviceProvider.GetService<CloudDataIntegrationService>();
+            // await cloudService.PushTelemetryAsync(telemetryData, cancellationToken);
+
+            _logger.LogDebug("Trade telemetry prepared for cloud push: {Symbol} {Side} Success={Success}", 
+                decision.Symbol, decision.Side, success);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to prepare trade telemetry");
+            // Don't throw - telemetry failure shouldn't break trading
         }
     }
 
