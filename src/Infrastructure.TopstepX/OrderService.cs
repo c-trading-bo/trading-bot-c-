@@ -8,12 +8,12 @@ namespace TradingBot.Infrastructure.TopstepX;
 /// <summary>
 /// OrderService with real /api/Order/place POST with retries and idempotency
 /// NO STUBS - Uses actual TopstepX order placement API
+/// Implements IBrokerAdapter for centralized order management
 /// </summary>
-public interface IOrderService
+public interface IOrderService : TradingBot.Abstractions.IBrokerAdapter
 {
     Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request);
     Task<OrderStatus> GetOrderStatusAsync(string orderId);
-    Task<bool> CancelOrderAsync(string orderId);
 }
 
 public record PlaceOrderRequest(
@@ -34,6 +34,8 @@ public class OrderService : IOrderService
     private readonly ILogger<OrderService> _logger;
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
+
+    public string BrokerName => "TopstepX";
 
     public OrderService(ILogger<OrderService> logger, IOptions<AppOptions> config, HttpClient httpClient)
     {
@@ -155,16 +157,29 @@ public class OrderService : IOrderService
         }
     }
 
-    public async Task<bool> CancelOrderAsync(string orderId)
+    public async Task<bool> CancelOrderAsync(string orderId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"/api/Order/cancel/{orderId}");
-            return response.IsSuccessStatusCode;
+            _logger.LogInformation("[ORDER] Cancelling order {OrderId} via TopstepX API", orderId);
+            var response = await _httpClient.DeleteAsync($"/api/Order/cancel/{orderId}", cancellationToken);
+            var success = response.IsSuccessStatusCode;
+            
+            if (success)
+            {
+                _logger.LogInformation("[ORDER] ✅ Order {OrderId} cancelled successfully", orderId);
+            }
+            else
+            {
+                _logger.LogWarning("[ORDER] ❌ Failed to cancel order {OrderId}: HTTP {StatusCode}", 
+                    orderId, response.StatusCode);
+            }
+            
+            return success;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ORDER] Failed to cancel order");
+            _logger.LogError(ex, "[ORDER] ❌ Exception cancelling order {OrderId}", orderId);
             return false;
         }
     }

@@ -57,63 +57,109 @@ public class AccountService : IAccountService
 
     public async Task<AccountInfo> GetAccountInfoAsync()
     {
-        try
+        const int maxRetries = 3;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            // Real GET to /api/Account/{accountId}
-            // This replaces: return new { Balance = 50000m, BuyingPower = 200000m };
-            var response = await _httpClient.GetAsync($"/api/Account/{_config.AccountId}");
-            response.EnsureSuccessStatusCode();
-            
-            var json = await response.Content.ReadAsStringAsync();
-            var accountData = JsonSerializer.Deserialize<JsonElement>(json);
-            
-            var accountInfo = new AccountInfo(
-                _config.AccountId,
-                accountData.GetProperty("balance").GetDecimal(),
-                accountData.GetProperty("buyingPower").GetDecimal(),
-                accountData.GetProperty("dayPnL").GetDecimal(),
-                accountData.GetProperty("unrealizedPnL").GetDecimal(),
-                accountData.GetProperty("status").GetString() ?? "Unknown"
-            );
+            try
+            {
+                // Real GET to /api/Account/{accountId}
+                // This replaces: return new { Balance = 50000m, BuyingPower = 200000m };
+                var response = await _httpClient.GetAsync($"/api/Account/{_config.AccountId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var accountData = JsonSerializer.Deserialize<JsonElement>(json);
+                    
+                    var accountInfo = new AccountInfo(
+                        _config.AccountId,
+                        accountData.GetProperty("balance").GetDecimal(),
+                        accountData.GetProperty("buyingPower").GetDecimal(),
+                        accountData.GetProperty("dayPnL").GetDecimal(),
+                        accountData.GetProperty("unrealizedPnL").GetDecimal(),
+                        accountData.GetProperty("status").GetString() ?? "Unknown"
+                    );
 
-            _logger.LogInformation("[ACCOUNT] Balance: {Balance:C}, Day P&L: {DayPnL:C}, Status: {Status}", 
-                accountInfo.Balance, accountInfo.DayPnL, accountInfo.Status);
+                    _logger.LogInformation("[ACCOUNT] Balance: {Balance:C}, Day P&L: {DayPnL:C}, Status: {Status}", 
+                        accountInfo.Balance, accountInfo.DayPnL, accountInfo.Status);
 
-            return accountInfo;
+                    return accountInfo;
+                }
+                else if (ShouldRetry(response.StatusCode) && attempt < maxRetries)
+                {
+                    _logger.LogWarning("[ACCOUNT] Attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
+                        attempt, maxRetries, (int)response.StatusCode);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    continue;
+                }
+                else
+                {
+                    // Don't retry 4xx errors or final attempt
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+            catch (HttpRequestException ex) when (attempt < maxRetries)
+            {
+                _logger.LogWarning(ex, "[ACCOUNT] HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
+                    attempt, maxRetries);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[ACCOUNT] Failed to get account info");
-            throw;
-        }
+
+        // This should not be reached due to EnsureSuccessStatusCode above
+        throw new InvalidOperationException("Failed to get account info after all retry attempts");
     }
 
     public async Task<PositionInfo[]> GetPositionsAsync()
     {
-        try
+        const int maxRetries = 3;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var response = await _httpClient.GetAsync($"/api/Account/{_config.AccountId}/positions");
-            response.EnsureSuccessStatusCode();
-            
-            var json = await response.Content.ReadAsStringAsync();
-            var positionsArray = JsonSerializer.Deserialize<JsonElement[]>(json);
-            
-            var positions = positionsArray?.Select(p => new PositionInfo(
-                p.GetProperty("symbol").GetString() ?? "",
-                p.GetProperty("quantity").GetInt32(),
-                p.GetProperty("avgPrice").GetDecimal(),
-                p.GetProperty("marketValue").GetDecimal(),
-                p.GetProperty("unrealizedPnL").GetDecimal()
-            )).ToArray() ?? Array.Empty<PositionInfo>();
+            try
+            {
+                var response = await _httpClient.GetAsync($"/api/Account/{_config.AccountId}/positions");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var json = await response.Content.ReadAsStringAsync();
+                    var positionsArray = JsonSerializer.Deserialize<JsonElement[]>(json);
+                    
+                    var positions = positionsArray?.Select(p => new PositionInfo(
+                        p.GetProperty("symbol").GetString() ?? "",
+                        p.GetProperty("quantity").GetInt32(),
+                        p.GetProperty("avgPrice").GetDecimal(),
+                        p.GetProperty("marketValue").GetDecimal(),
+                        p.GetProperty("unrealizedPnL").GetDecimal()
+                    )).ToArray() ?? Array.Empty<PositionInfo>();
 
-            _logger.LogInformation("[ACCOUNT] Retrieved {Count} positions", positions.Length);
-            return positions;
+                    _logger.LogInformation("[ACCOUNT] Retrieved {Count} positions", positions.Length);
+                    return positions;
+                }
+                else if (ShouldRetry(response.StatusCode) && attempt < maxRetries)
+                {
+                    _logger.LogWarning("[ACCOUNT] Positions request attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
+                        attempt, maxRetries, (int)response.StatusCode);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    continue;
+                }
+                else
+                {
+                    // Don't retry 4xx errors or final attempt
+                    response.EnsureSuccessStatusCode();
+                }
+            }
+            catch (HttpRequestException ex) when (attempt < maxRetries)
+            {
+                _logger.LogWarning(ex, "[ACCOUNT] Positions HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
+                    attempt, maxRetries);
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[ACCOUNT] Failed to get positions");
-            throw;
-        }
+
+        // This should not be reached due to EnsureSuccessStatusCode above
+        throw new InvalidOperationException("Failed to get positions after all retry attempts");
     }
 
     public async Task<decimal> GetAccountBalanceAsync()
@@ -143,6 +189,18 @@ public class AccountService : IAccountService
         {
             _logger.LogError(ex, "[ACCOUNT] Error during periodic refresh");
         }
+    }
+
+    /// <summary>
+    /// Determine if HTTP status code should trigger a retry (5xx/408 only)
+    /// </summary>
+    private static bool ShouldRetry(System.Net.HttpStatusCode statusCode)
+    {
+        return statusCode == System.Net.HttpStatusCode.RequestTimeout || // 408
+               statusCode == System.Net.HttpStatusCode.InternalServerError || // 500
+               statusCode == System.Net.HttpStatusCode.BadGateway || // 502
+               statusCode == System.Net.HttpStatusCode.ServiceUnavailable || // 503
+               statusCode == System.Net.HttpStatusCode.GatewayTimeout; // 504
     }
 
     public void Dispose()

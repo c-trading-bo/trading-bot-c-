@@ -43,7 +43,7 @@ namespace TradingBot.Core.Intelligence
         private readonly Dictionary<string, StrategyEvaluationResult> _lastSignals;
         private readonly Random _fallbackRandom; // Only for actual fallback scenarios
         private readonly HashSet<string> _sentCustomTags; // Idempotency tracking
-        private readonly Dictionary<string, DateTime> _orderPlacements; // Order timeout tracking
+        private readonly TradingBot.Abstractions.OrderManager? _orderManager;
         private readonly Timer _orderTimeoutTimer; // Periodic timeout sweeper
         private readonly TimeSpan _orderTimeout; // Configurable timeout
 
@@ -56,7 +56,8 @@ namespace TradingBot.Core.Intelligence
             TimeOptimizedStrategyManager? strategyManager = null,
             OnnxModelLoader? onnxLoader = null,
             IntelligenceOrchestrator? intelligenceOrchestrator = null,
-            RealTradingMetricsService? metricsService = null)
+            RealTradingMetricsService? metricsService = null,
+            TradingBot.Abstractions.OrderManager? orderManager = null)
         {
             _logger = logger;
             _topstepXService = topstepXService;
@@ -75,6 +76,7 @@ namespace TradingBot.Core.Intelligence
             _lastSignals = new Dictionary<string, StrategyEvaluationResult>();
             _fallbackRandom = new Random();
             _sentCustomTags = new HashSet<string>();
+            _orderManager = orderManager;
             _orderPlacements = new Dictionary<string, DateTime>();
             
             // Initialize order timeout from configuration (default 60 seconds)
@@ -882,8 +884,23 @@ namespace TradingBot.Core.Intelligence
 
                 _logger.LogInformation("ORDER_CANCELLED: {CancelData}", System.Text.Json.JsonSerializer.Serialize(cancelData));
 
-                // Actual cancellation would go here via HTTP API
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                // Use centralized OrderManager for consistent cancellation across all brokers
+                bool cancelled = false;
+                if (_orderManager != null)
+                {
+                    cancelled = await _orderManager.CancelOrderAsync(orderId, brokerName: null, reason, cancellationToken);
+                }
+                else
+                {
+                    _logger.LogWarning("OrderManager not available, using fallback cancellation for order {OrderId}", orderId);
+                    // Fallback - direct API call (maintains backward compatibility)
+                    await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (!cancelled)
+                {
+                    _logger.LogWarning("Failed to cancel order {OrderId} via OrderManager", orderId);
+                }
             }
             catch (Exception ex)
             {
