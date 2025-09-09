@@ -22,7 +22,11 @@ public interface ITopstepXService
     event Action<MarketData>? OnMarketData;
     event Action<OrderBookData>? OnLevel2Update;
     event Action<TradeConfirmation>? OnTradeConfirmed;
+    event Action<GatewayUserOrder>? OnGatewayUserOrder;
+    event Action<GatewayUserTrade>? OnGatewayUserTrade;
     event Action<string>? OnError;
+    Task<bool> SubscribeOrdersAsync(string accountId);
+    Task<bool> SubscribeTradesAsync(string accountId);
 }
 
 public class TopstepXService : ITopstepXService, IDisposable
@@ -35,12 +39,15 @@ public class TopstepXService : ITopstepXService, IDisposable
     private readonly Timer _reconnectTimer;
     private volatile bool _isConnecting;
     private volatile bool _disposed;
+    private volatile bool _wired = false; // Double-subscription guard
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public event Action<MarketData>? OnMarketData;
     public event Action<OrderBookData>? OnLevel2Update;
     public event Action<TradeConfirmation>? OnTradeConfirmed;
+    public event Action<GatewayUserOrder>? OnGatewayUserOrder;
+    public event Action<GatewayUserTrade>? OnGatewayUserTrade;
     public event Action<string>? OnError;
 
     public TopstepXService(ILogger<TopstepXService> logger, IConfiguration configuration)
@@ -316,6 +323,90 @@ public class TopstepXService : ITopstepXService, IDisposable
             _logger.LogError("[TOPSTEPX] Server error: {Message}", message);
             OnError?.Invoke(message);
         });
+
+        // GatewayUserOrder handler - subscribe and correlate by customTag
+        _hubConnection.On<JsonElement>("GatewayUserOrder", (data) =>
+        {
+            try
+            {
+                var order = JsonSerializer.Deserialize<GatewayUserOrder>(data.GetRawText());
+                if (order != null)
+                {
+                    var orderData = new
+                    {
+                        timestamp = DateTime.UtcNow,
+                        component = "topstepx_service",
+                        operation = "gateway_user_order",
+                        accountId = order.AccountId,
+                        orderId = order.OrderId,
+                        customTag = order.CustomTag,
+                        status = order.Status,
+                        reason = order.Reason
+                    };
+
+                    _logger.LogInformation("ORDER: {OrderData}", 
+                        System.Text.Json.JsonSerializer.Serialize(orderData));
+
+                    OnGatewayUserOrder?.Invoke(order);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TOPSTEPX] Error processing GatewayUserOrder");
+            }
+        });
+
+        // GatewayUserTrade handler - subscribe and correlate by customTag
+        _hubConnection.On<JsonElement>("GatewayUserTrade", (data) =>
+        {
+            try
+            {
+                var trade = JsonSerializer.Deserialize<GatewayUserTrade>(data.GetRawText());
+                if (trade != null)
+                {
+                    var tradeData = new
+                    {
+                        timestamp = DateTime.UtcNow,
+                        component = "topstepx_service",
+                        operation = "gateway_user_trade",
+                        accountId = trade.AccountId,
+                        orderId = trade.OrderId,
+                        fillPrice = TradingBot.Infrastructure.TopstepX.Px.F2(trade.FillPrice),
+                        quantity = trade.Quantity,
+                        time = trade.Time.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                    };
+
+                    _logger.LogInformation("TRADE: {TradeData}", 
+                        System.Text.Json.JsonSerializer.Serialize(tradeData));
+
+                    OnGatewayUserTrade?.Invoke(trade);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TOPSTEPX] Error processing GatewayUserTrade");
+            }
+        });
+
+        // Mark as wired to prevent double subscription
+        if (!_wired)
+        {
+            _wired = true;
+            _logger.LogDebug("[TOPSTEPX] Message handlers registered successfully");
+        }
+        else
+        {
+            var guardData = new
+            {
+                timestamp = DateTime.UtcNow,
+                component = "topstepx_service",
+                operation = "register_handlers",
+                guard = "already_wired"
+            };
+
+            _logger.LogWarning("SUBSCRIPTION_GUARD: {GuardData}", 
+                System.Text.Json.JsonSerializer.Serialize(guardData));
+        }
     }
 
     private async Task<bool> StartConnectionWithRetry()
@@ -481,6 +572,48 @@ public class TopstepXService : ITopstepXService, IDisposable
         }
     }
 
+    public async Task<bool> SubscribeOrdersAsync(string accountId)
+    {
+        try
+        {
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to orders - not connected");
+                return false;
+            }
+
+            await _hubConnection.InvokeAsync("SubscribeOrders", accountId).ConfigureAwait(false);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to orders for account {AccountId}", accountId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to orders for account {AccountId}", accountId);
+            return false;
+        }
+    }
+
+    public async Task<bool> SubscribeTradesAsync(string accountId)
+    {
+        try
+        {
+            if (_hubConnection?.State != HubConnectionState.Connected)
+            {
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to trades - not connected");
+                return false;
+            }
+
+            await _hubConnection.InvokeAsync("SubscribeTrades", accountId).ConfigureAwait(false);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to trades for account {AccountId}", accountId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to trades for account {AccountId}", accountId);
+            return false;
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -554,6 +687,33 @@ public class TradeConfirmation
     public int Quantity { get; set; }
     public decimal Price { get; set; }
     public DateTime Timestamp { get; set; }
+}
+
+// New models for GatewayUserOrder and GatewayUserTrade handlers
+public class GatewayUserOrder
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string OrderId { get; set; } = string.Empty;
+    public string CustomTag { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty; // "New", "Open", "Filled", "Cancelled", "Rejected"
+    public string Reason { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class GatewayUserTrade
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string OrderId { get; set; } = string.Empty;
+    public string CustomTag { get; set; } = string.Empty;
+    public decimal FillPrice { get; set; }
+    public int Quantity { get; set; }
+    public DateTime Time { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
 }
 
 public class TokenResponse

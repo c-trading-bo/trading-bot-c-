@@ -21,12 +21,14 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Moq" Version="4.20.70" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../../src/Safety/Safety.csproj" />
     <ProjectReference Include="../../src/Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
+    <ProjectReference Include="../../src/IntelligenceAgent/IntelligenceAgent.csproj" />
   </ItemGroup>
 
 </Project>
