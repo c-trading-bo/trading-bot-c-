@@ -10,7 +10,7 @@ namespace TradingBot.Infrastructure.TopstepX;
 /// NO STUBS - Uses actual TopstepX order placement API
 /// Implements IBrokerAdapter for centralized order management
 /// </summary>
-public interface IOrderService : BotCore.Execution.IBrokerAdapter
+public interface IOrderService : TradingBot.Abstractions.IBrokerAdapter
 {
     Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request);
     Task<OrderStatus> GetOrderStatusAsync(string orderId);

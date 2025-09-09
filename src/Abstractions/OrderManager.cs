@@ -3,9 +3,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using TradingBot.Abstractions;
+using System.Linq;
 
-namespace BotCore.Execution
+namespace TradingBot.Abstractions
 {
     /// <summary>
     /// Centralized order management with unified cancellation API

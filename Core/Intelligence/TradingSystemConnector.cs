@@ -43,7 +43,7 @@ namespace TradingBot.Core.Intelligence
         private readonly Dictionary<string, StrategyEvaluationResult> _lastSignals;
         private readonly Random _fallbackRandom; // Only for actual fallback scenarios
         private readonly HashSet<string> _sentCustomTags; // Idempotency tracking
-        private readonly BotCore.Execution.OrderManager? _orderManager;
+        private readonly TradingBot.Abstractions.OrderManager? _orderManager;
         private readonly Timer _orderTimeoutTimer; // Periodic timeout sweeper
         private readonly TimeSpan _orderTimeout; // Configurable timeout
 
@@ -57,7 +57,7 @@ namespace TradingBot.Core.Intelligence
             OnnxModelLoader? onnxLoader = null,
             IntelligenceOrchestrator? intelligenceOrchestrator = null,
             RealTradingMetricsService? metricsService = null,
-            BotCore.Execution.OrderManager? orderManager = null)
+            TradingBot.Abstractions.OrderManager? orderManager = null)
         {
             _logger = logger;
             _topstepXService = topstepXService;
