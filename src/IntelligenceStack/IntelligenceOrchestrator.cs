@@ -32,6 +32,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private readonly IDecisionLogger _decisionLogger;
     private readonly TradingBot.Abstractions.IStartupValidator _startupValidator;
     private readonly IIdempotentOrderService _idempotentOrderService;
+    private readonly FeatureEngineer _featureEngineer;
     
     // Cloud flow components (merged from CloudFlowService)
     private readonly HttpClient _httpClient;
@@ -65,6 +66,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         IDecisionLogger decisionLogger,
         TradingBot.Abstractions.IStartupValidator startupValidator,
         IIdempotentOrderService idempotentOrderService,
+        IOnlineLearningSystem onlineLearningSystem,
         HttpClient httpClient,
         IOptions<CloudFlowOptions> cloudFlowOptions)
     {
@@ -78,6 +80,12 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         _decisionLogger = decisionLogger;
         _startupValidator = startupValidator;
         _idempotentOrderService = idempotentOrderService;
+        
+        // Initialize FeatureEngineer with online learning system
+        _featureEngineer = new FeatureEngineer(
+            _serviceProvider.GetService<ILogger<FeatureEngineer>>() ?? 
+                new Microsoft.Extensions.Logging.Abstractions.NullLogger<FeatureEngineer>(),
+            onlineLearningSystem);
         
         // Initialize cloud flow components (merged from CloudFlowService)
         _httpClient = httpClient;
@@ -202,7 +210,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await _startupValidator.ValidateSystemAsync(cancellationToken);
     }
 
-    public async Task ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default)
+    public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData data, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -211,6 +219,13 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             {
                 detector.UpdateMarketData(data);
             }
+
+            // Process market data through FeatureEngineer for real-time feature adaptation
+            await _featureEngineer.ProcessMarketDataAsync(data, async (features) =>
+            {
+                // Create a mock prediction function for now - in production this would use actual model
+                return await Task.FromResult(0.7); // Mock confidence value
+            }, cancellationToken);
 
             // Check if nightly maintenance is due
             if (ShouldPerformNightlyMaintenance())
@@ -522,10 +537,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
                 var features = await ExtractFeaturesAsync(context, cancellationToken);
                 
-                // Convert features to float array for ONNX input
-                var featureArray = new float[features.Features.Count];
+                // Apply updated feature weights from FeatureEngineer immediately
+                var currentWeights = await _featureEngineer.GetCurrentWeightsAsync(strategyId, cancellationToken);
+                var weightedFeatures = ApplyFeatureWeights(features, currentWeights);
+                
+                // Convert weighted features to float array for ONNX input
+                var featureArray = new float[weightedFeatures.Features.Count];
                 int i = 0;
-                foreach (var feature in features.Features.Values)
+                foreach (var feature in weightedFeatures.Features.Values)
                 {
                     featureArray[i++] = (float)feature;
                 }
@@ -702,6 +721,38 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Message = message,
             Timestamp = DateTime.UtcNow
         });
+    }
+
+    /// <summary>
+    /// Apply feature weights to features, immediately using updated weights from FeatureEngineer
+    /// </summary>
+    private FeatureSet ApplyFeatureWeights(FeatureSet originalFeatures, Dictionary<string, double> weights)
+    {
+        var weightedFeatures = new FeatureSet
+        {
+            Symbol = originalFeatures.Symbol,
+            Timestamp = originalFeatures.Timestamp,
+            Version = originalFeatures.Version,
+            SchemaChecksum = originalFeatures.SchemaChecksum,
+            Features = new Dictionary<string, double>(),
+            Metadata = new Dictionary<string, object>(originalFeatures.Metadata)
+        };
+
+        // Apply weights to each feature
+        foreach (var (featureName, featureValue) in originalFeatures.Features)
+        {
+            var weight = weights.GetValueOrDefault(featureName, 1.0);
+            var weightedValue = featureValue * weight;
+            
+            weightedFeatures.Features[featureName] = weightedValue;
+        }
+
+        // Add metadata about feature weighting
+        weightedFeatures.Metadata["feature_weights_applied"] = true;
+        weightedFeatures.Metadata["weights_count"] = weights.Count;
+        weightedFeatures.Metadata["low_value_features"] = weights.Count(kvp => kvp.Value < 0.5);
+
+        return weightedFeatures;
     }
 
     // Workflow adapter methods

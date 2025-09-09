@@ -19,8 +19,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Xunit.Extensions.Logging" Version="0.4.0" />
     <PackageReference Include="Moq" Version="4.20.70" />
   </ItemGroup>
 
@@ -29,6 +31,7 @@
     <ProjectReference Include="../../src/Safety/Safety.csproj" />
     <ProjectReference Include="../../src/Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="../../src/IntelligenceAgent/IntelligenceAgent.csproj" />
+    <ProjectReference Include="../../src/IntelligenceStack/IntelligenceStack.csproj" />
   </ItemGroup>
 
 </Project>
