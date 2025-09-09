@@ -16,6 +16,7 @@ using OrchestratorAgent.Intelligence;
 using OrchestratorAgent.Critical;
 using System.Linq;
 using System.Net.Http.Json;
+using Dashboard;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
@@ -747,7 +748,7 @@ namespace OrchestratorAgent
                     OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null;
 
                     // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
-                    // Dashboard.RealtimeHub? dashboardHub = null; // REMOVED: Dashboard dead code removal
+                    Dashboard.RealtimeHub? dashboardHub = null;
                     OrchestratorAgent.ML.RlSizer? rlSizer = null;
                     OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
                     BotCore.Services.IIntelligenceService? intelligenceService = null;
