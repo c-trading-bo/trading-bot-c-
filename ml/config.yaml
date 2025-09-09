@@ -1,0 +1,76 @@
+# Historical ML Training Configuration
+# Used by monthly training pipeline
+
+training:
+  enabled: true
+  lookback_months: 24
+  min_auc: 0.62
+  min_pr_at_10: 0.12
+  max_ece: 0.05
+  min_edge_bps: 3
+  walk_forward_cv: true
+  cv_folds: 5
+  auto_promote: true
+
+features:
+  price_features:
+    - sma_10
+    - sma_20
+    - sma_50
+    - ema_12
+    - ema_26
+    - rsi_14
+    - macd
+    - bollinger_upper
+    - bollinger_lower
+    - atr_14
+  
+  volume_features:
+    - volume_sma_10
+    - volume_sma_20
+    - volume_ratio
+    - vwap
+    - money_flow_index
+  
+  microstructure:
+    - bid_ask_spread
+    - tick_direction
+    - tick_run
+    - order_flow_imbalance
+    - trade_size_ratio
+
+symbols:
+  - ES
+  - MES
+  - NQ
+  - MNQ
+
+regime_detection:
+  enabled: true
+  volatility_lookback: 20
+  trend_lookback: 50
+  regime_names:
+    - LOW_VOL_TREND
+    - HIGH_VOL_TREND
+    - LOW_VOL_RANGE
+    - HIGH_VOL_RANGE
+
+model_types:
+  - classifier
+  - regressor
+  - regime_detector
+
+promotion_criteria:
+  min_auc_gain: 0.02
+  min_pr_at_10_gain: 0.03
+  cooldown_minutes: 60
+
+data_sources:
+  bars_path: "data/raw/bars/"
+  signals_path: "data/raw/signals/"
+  trades_path: "data/raw/trades/"
+  
+output_paths:
+  models_path: "models/"
+  registry_path: "data/registry/"
+  reports_path: "reports/"

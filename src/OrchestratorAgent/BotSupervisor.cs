@@ -14,10 +14,11 @@ using BotCore.Models;
 using OrchestratorAgent.Infra;
 using BotCore.Infra;
 using TradingBot.RLAgent;
+using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -47,6 +48,7 @@ namespace OrchestratorAgent
         private readonly StatusService _status = status;
         private readonly Config _cfg = cfg;
         private readonly FeatureEngineering? _featureEngineering = featureEngineering;
+        private readonly UnifiedDecisionLogger? _decisionLogger = decisionLogger;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -534,6 +536,14 @@ namespace OrchestratorAgent
                                 
                                 _log.LogInformation("[ML_GATE] {Sym} {Strat}: P_cloud={P_cloud:F3}, P_online={P_online:F3}, P_final={P_final:F3}, gate={Gate}", 
                                     s.Symbol, s.StrategyId, P_cloud, P_online, P_final, mlGatesPassed ? "PASS" : "BLOCK");
+                                
+                                // 🔟 Observability & Lineage: Log complete decision with lineage
+                                if (_decisionLogger != null)
+                                {
+                                    await _decisionLogger.LogTradingDecisionAsync(
+                                        s.Symbol, s.StrategyId, P_cloud, P_online, P_final, 
+                                        mlGatesPassed, s.Size, mlGatesPassed ? "ALLOW" : "BLOCK", cid);
+                                }
                                 
                                 if (!mlGatesPassed)
                                 {
