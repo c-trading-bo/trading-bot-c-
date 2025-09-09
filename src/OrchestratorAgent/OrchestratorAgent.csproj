@@ -18,10 +18,10 @@
   <ProjectReference Include="..\RLAgent\RLAgent.csproj" />
   <ProjectReference Include="..\IntelligenceAgent\IntelligenceAgent.csproj" />
   <ProjectReference Include="..\Infrastructure.TopstepX\Infrastructure.TopstepX.csproj" />
+  <ProjectReference Include="..\IntelligenceStack\IntelligenceStack.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\SupervisorAgent\*.cs" />
-    <Compile Include="..\Dashboard\DashboardModule.cs" />
     <!-- Temporarily exclude SelfHealing files until they are restored -->
     <Compile Remove="Infra\SelfHealing\**\*.cs" />
     <Compile Remove="Infra\ISelfHealingAction.cs" />

@@ -238,6 +238,56 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
+    public async Task UpdateModelAsync(TradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    {
+        if (!_config.Enabled)
+        {
+            return;
+        }
+
+        try
+        {
+            _logger.LogDebug("[ONLINE] Processing trade record for model update: {TradeId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
+                tradeRecord.TradeId, tradeRecord.Symbol, tradeRecord.Side, tradeRecord.Quantity, tradeRecord.FillPrice);
+
+            // Extract strategy and regime info from trade record
+            var strategyId = tradeRecord.StrategyId;
+            var regimeType = tradeRecord.Metadata.GetValueOrDefault("regime_type", "trend")?.ToString() ?? "trend";
+            
+            // Create performance feedback for model adaptation
+            var modelPerformance = new ModelPerformance
+            {
+                ModelId = strategyId,
+                HitRate = CalculateTradeHitRate(tradeRecord),
+                Latency = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("order_latency_ms", 0.0)),
+                SampleSize = 1,
+                WindowStart = tradeRecord.FillTime.AddMinutes(-5),
+                WindowEnd = tradeRecord.FillTime,
+                BrierScore = CalculateBrierScore(tradeRecord)
+            };
+
+            // Update weights based on trade performance
+            var weightUpdates = new Dictionary<string, double>();
+            var hitRate = modelPerformance.HitRate;
+            
+            // Adjust strategy weight based on immediate performance
+            weightUpdates[$"strategy_{strategyId}"] = hitRate > 0.6 ? 1.1 : 0.9;
+            
+            // Update weights for the current regime
+            await UpdateWeightsAsync(regimeType, weightUpdates, cancellationToken);
+            
+            // Adapt to performance for long-term model health
+            await AdaptToPerformanceAsync(strategyId, modelPerformance, cancellationToken);
+            
+            _logger.LogInformation("[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}", 
+                tradeRecord.TradeId, strategyId, regimeType, hitRate);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ONLINE] Failed to update model with trade record: {TradeId}", tradeRecord.TradeId);
+        }
+    }
+
     private double CalculateLearningRate(string regimeType)
     {
         var lastUpdate = _lastWeightUpdate.GetValueOrDefault(regimeType, DateTime.UtcNow);
@@ -375,6 +425,49 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[ONLINE] Failed to save online learning state");
+        }
+    }
+
+    private double CalculateTradeHitRate(TradeRecord tradeRecord)
+    {
+        try
+        {
+            // Simple hit rate calculation based on trade direction and immediate market movement
+            // In a real implementation, this would compare against actual PnL after position close
+            var side = tradeRecord.Side.ToUpperInvariant();
+            var marketMovement = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("market_movement_bps", 0.0));
+            
+            // Assume positive market movement means the trade direction was correct
+            if (side == "BUY" && marketMovement > 0) return 1.0;
+            if (side == "SELL" && marketMovement < 0) return 1.0;
+            
+            // Partial credit for smaller moves in the right direction
+            if (side == "BUY" && marketMovement > -2) return 0.6;
+            if (side == "SELL" && marketMovement < 2) return 0.6;
+            
+            return 0.3; // Default for uncertain or wrong direction
+        }
+        catch
+        {
+            return 0.5; // Default fallback
+        }
+    }
+
+    private double CalculateBrierScore(TradeRecord tradeRecord)
+    {
+        try
+        {
+            // Calculate Brier score based on predicted confidence vs actual outcome
+            var confidence = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("prediction_confidence", 0.7));
+            var hitRate = CalculateTradeHitRate(tradeRecord);
+            
+            // Brier score = (predicted_probability - actual_outcome)^2
+            var actualOutcome = hitRate > 0.5 ? 1.0 : 0.0;
+            return Math.Pow(confidence - actualOutcome, 2);
+        }
+        catch
+        {
+            return 0.25; // Default Brier score
         }
     }
 

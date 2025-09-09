@@ -22,7 +22,7 @@ using TradingBot.IntelligenceStack;
 
 namespace OrchestratorAgent
 {
-    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null)
+    public sealed class BotSupervisor(ILogger<BotSupervisor> log, HttpClient http, string apiBase, string jwt, long accountId, object marketHub, object userHub, SupervisorAgent.StatusService status, BotSupervisor.Config cfg, FeatureEngineering? featureEngineering = null, UnifiedDecisionLogger? decisionLogger = null, TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null, TradingBot.IntelligenceAgent.IVerifier? verifier = null, BotCore.Services.IContractService? contractService = null, BotCore.Services.ISecurityService? securityService = null, TradingBot.Abstractions.IOnlineLearningSystem? onlineLearningSystem = null)
     {
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
@@ -57,6 +57,7 @@ namespace OrchestratorAgent
         private readonly TradingBot.IntelligenceAgent.IVerifier? _verifier = verifier;
         private readonly BotCore.Services.IContractService? _contractService = contractService;
         private readonly BotCore.Services.ISecurityService? _securityService = securityService;
+        private readonly TradingBot.Abstractions.IOnlineLearningSystem? _onlineLearningSystem = onlineLearningSystem;
         private readonly Channel<(BotCore.StrategySignal Sig, string ContractId)> _routeChan = Channel.CreateBounded<(BotCore.StrategySignal, string)>(128);
         private readonly BotCore.Supervisor.ContractResolver _contractResolver = new();
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
@@ -142,6 +143,53 @@ namespace OrchestratorAgent
                     await router.UpsertBracketsAsync(orderId, filled, ct);
                     if (remaining > 0 && age > TimeSpan.FromSeconds(5))
                         await router.ConvertRemainderToLimitOrCancelAsync(upd, ct);
+
+                    // Wire OnlineLearningSystem into live trading loop
+                    if (_onlineLearningSystem != null && filled > 0)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                // Extract trade information for online learning
+                                var symbol = t.GetProperty("Symbol")?.GetValue(upd)?.ToString() ?? string.Empty;
+                                var side = t.GetProperty("Side")?.GetValue(upd)?.ToString() ?? string.Empty;
+                                var fillPrice = Convert.ToDouble(t.GetProperty("FillPrice")?.GetValue(upd) ?? 0.0);
+                                var customTag = t.GetProperty("CustomTag")?.GetValue(upd)?.ToString() ?? string.Empty;
+                                
+                                // Create trade record for online learning
+                                var tradeRecord = new TradingBot.Abstractions.TradeRecord
+                                {
+                                    TradeId = orderId,
+                                    Symbol = symbol,
+                                    Side = side,
+                                    Quantity = filled,
+                                    FillPrice = fillPrice,
+                                    FillTime = DateTime.UtcNow,
+                                    StrategyId = ExtractStrategyIdFromTag(customTag),
+                                    Metadata = new Dictionary<string, object>
+                                    {
+                                        ["custom_tag"] = customTag,
+                                        ["fill_timestamp"] = DateTime.UtcNow,
+                                        ["regime_type"] = "trend", // Default regime, could be detected dynamically
+                                        ["prediction_confidence"] = 0.7, // Default confidence, could be from ML model
+                                        ["market_movement_bps"] = 0.0, // Would be calculated from market data
+                                        ["order_latency_ms"] = age.TotalMilliseconds
+                                    }
+                                };
+
+                                // Update online learning model with trade data
+                                await _onlineLearningSystem.UpdateModelAsync(tradeRecord, ct);
+                                
+                                _log.LogDebug("[ONLINE_LEARNING] Trade processed for model update: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
+                                    orderId, symbol, side, filled, fillPrice);
+                            }
+                            catch (Exception ex)
+                            {
+                                _log.LogWarning(ex, "[ONLINE_LEARNING] Failed to process trade for online learning: {OrderId}", orderId);
+                            }
+                        });
+                    }
                 }
                 catch { }
             });
@@ -857,6 +905,33 @@ namespace OrchestratorAgent
 
                 _status.Heartbeat();
                 await Task.Delay(1000, ct);
+            }
+        }
+
+        /// <summary>
+        /// Extract strategy ID from custom tag for online learning integration
+        /// </summary>
+        private static string ExtractStrategyIdFromTag(string customTag)
+        {
+            try
+            {
+                // Custom tags typically follow pattern like "S11L-20240101-HHMMSS" or "STRATEGY_ID-timestamp"
+                if (string.IsNullOrEmpty(customTag))
+                    return "default";
+
+                // Try to extract strategy ID before the first dash
+                var dashIndex = customTag.IndexOf('-');
+                if (dashIndex > 0)
+                {
+                    return customTag.Substring(0, dashIndex);
+                }
+
+                // If no dash, use the whole tag up to a reasonable limit
+                return customTag.Length > 10 ? customTag.Substring(0, 10) : customTag;
+            }
+            catch
+            {
+                return "default";
             }
         }
     }

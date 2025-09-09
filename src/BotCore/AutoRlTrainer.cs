@@ -251,19 +251,49 @@ namespace BotCore
             try
             {
                 var latestModelPath = Path.Combine(_modelDir ?? "models", "latest_rl_sizer.onnx");
+                var tempModelPath = Path.Combine(_modelDir ?? "models", $"latest_rl_sizer_{Guid.NewGuid():N}.tmp");
 
                 // Backup existing model
+                string? backupPath = null;
                 if (File.Exists(latestModelPath))
                 {
                     var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                    var backupPath = Path.Combine(_modelDir ?? "models", $"backup_rl_sizer_{timestamp}.onnx");
-                    File.Move(latestModelPath, backupPath);
-                    _log.LogInformation("[AutoRlTrainer] Backed up existing model: {Backup}", Path.GetFileName(backupPath));
+                    backupPath = Path.Combine(_modelDir ?? "models", $"backup_rl_sizer_{timestamp}.onnx");
+                    // Note: We'll move the existing file to backup as part of atomic operation
+                    _log.LogDebug("[AutoRlTrainer] Will backup existing model: {Backup}", Path.GetFileName(backupPath));
                 }
 
-                // Deploy new model atomically
-                File.Copy(modelPath, latestModelPath, true);
-                _log.LogInformation("[AutoRlTrainer] Model deployed: {Model}", Path.GetFileName(latestModelPath));
+                // Deploy new model atomically using copy-to-temp + File.Replace pattern
+                try
+                {
+                    // Step 1: Copy new model to temporary location
+                    File.Copy(modelPath, tempModelPath, false);
+                    _log.LogDebug("[AutoRlTrainer] Copied model to temporary location: {TempPath}", Path.GetFileName(tempModelPath));
+
+                    // Step 2: Atomic replace using File.Replace (moves existing to backup, replaces with new)
+                    if (File.Exists(latestModelPath) && !string.IsNullOrEmpty(backupPath))
+                    {
+                        // File.Replace is atomic: replaces destination with source, moves destination to backup
+                        File.Replace(tempModelPath, latestModelPath, backupPath);
+                        _log.LogInformation("[AutoRlTrainer] Model deployed atomically with backup: {Model}, backup: {Backup}", 
+                            Path.GetFileName(latestModelPath), Path.GetFileName(backupPath));
+                    }
+                    else
+                    {
+                        // No existing file, use atomic File.Move
+                        File.Move(tempModelPath, latestModelPath);
+                        _log.LogInformation("[AutoRlTrainer] Model deployed atomically: {Model}", Path.GetFileName(latestModelPath));
+                    }
+                }
+                catch
+                {
+                    // Cleanup temp file on error
+                    if (File.Exists(tempModelPath))
+                    {
+                        try { File.Delete(tempModelPath); } catch { }
+                    }
+                    throw;
+                }
 
                 // Cleanup old backups (keep last 5)
                 CleanupOldBackups();
@@ -272,7 +302,7 @@ namespace BotCore
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "[AutoRlTrainer] Failed to deploy model");
+                _log.LogError(ex, "[AutoRlTrainer] Failed to deploy model atomically");
                 throw;
             }
         }

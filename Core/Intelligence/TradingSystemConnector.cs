@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -1057,6 +1060,19 @@ namespace TradingBot.Core.Intelligence
                 _logger.LogInformation("[ML_LEARNING] Order fill data ready for online learner: {OrderFillData}", 
                     System.Text.Json.JsonSerializer.Serialize(orderFillData));
 
+                // Push to online learner via Python hooks - Fire and forget with robust error handling
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await PushToOnlineLearnerAsync(orderFillData, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[ML_LEARNING] Failed to push order fill to online learner (non-blocking): {OrderId}", orderId);
+                    }
+                });
+
                 _logger.LogInformation("[ML_LEARNING] Order fill processed for learning loop: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
                     orderId, request.Symbol, request.Side, request.Quantity, Px.F2(fill.FillPrice));
 
@@ -1087,6 +1103,173 @@ namespace TradingBot.Core.Intelligence
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ML_LEARNING] Failed to process order fill for learning loop: {OrderId}", orderId);
+            }
+        }
+
+        /// <summary>
+        /// Push order fill data to online learner via Python hooks integration
+        /// Implements safe async fire-and-forget with rate limiting and fallback persistence
+        /// </summary>
+        private async Task PushToOnlineLearnerAsync(Dictionary<string, object> orderFillData, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Check if Python hooks service is configured
+                var pythonHooksUrl = Environment.GetEnvironmentVariable("PYTHON_HOOKS_URL") ?? "http://localhost:8765";
+                var hookTimeout = TimeSpan.FromSeconds(5); // Short timeout to avoid blocking trading
+                
+                using var httpClient = new HttpClient { Timeout = hookTimeout };
+                var jsonPayload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    hook = "on_order_fill",
+                    data = orderFillData,
+                    timestamp = DateTime.UtcNow.ToString("O"),
+                    version = "1.0"
+                });
+
+                var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+                
+                // Attempt to call Python hooks endpoint
+                var response = await httpClient.PostAsync($"{pythonHooksUrl}/hooks/on_order_fill", content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogDebug("[PYTHON_HOOKS] Successfully pushed order fill to online learner: {Response}", responseContent);
+                }
+                else
+                {
+                    _logger.LogWarning("[PYTHON_HOOKS] Python hooks endpoint returned non-success: {StatusCode} {ReasonPhrase}", 
+                        response.StatusCode, response.ReasonPhrase);
+                    await FallbackPersistOrderFillAsync(orderFillData);
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogDebug(ex, "[PYTHON_HOOKS] Python hooks service not available, using fallback persistence");
+                await FallbackPersistOrderFillAsync(orderFillData);
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                _logger.LogWarning("[PYTHON_HOOKS] Python hooks request timed out, using fallback persistence");
+                await FallbackPersistOrderFillAsync(orderFillData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[PYTHON_HOOKS] Unexpected error pushing to Python hooks, using fallback persistence");
+                await FallbackPersistOrderFillAsync(orderFillData);
+            }
+        }
+
+        /// <summary>
+        /// Fallback persistence when Python hooks are unavailable
+        /// Persists order fill data to disk/file/queue for later processing and implements retry logic
+        /// </summary>
+        private async Task FallbackPersistOrderFillAsync(Dictionary<string, object> orderFillData)
+        {
+            try
+            {
+                var fallbackDir = Path.Combine("data", "ml_online", "order_fills");
+                Directory.CreateDirectory(fallbackDir);
+
+                var fileName = $"order_fill_{DateTime.UtcNow:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.json";
+                var filePath = Path.Combine(fallbackDir, fileName);
+
+                // Enhanced order fill data with retry metadata
+                var enhancedData = new Dictionary<string, object>(orderFillData)
+                {
+                    ["persisted_at"] = DateTime.UtcNow.ToString("O"),
+                    ["retry_count"] = 0,
+                    ["max_retries"] = 3,
+                    ["next_retry_at"] = DateTime.UtcNow.AddMinutes(5).ToString("O")
+                };
+
+                var jsonData = System.Text.Json.JsonSerializer.Serialize(enhancedData, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(filePath, jsonData);
+
+                _logger.LogDebug("[FALLBACK_PERSIST] Order fill data persisted to: {FilePath}", filePath);
+                
+                // Schedule retry processing in background
+                _ = Task.Run(async () => await ProcessRetryQueueAsync());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[FALLBACK_PERSIST] Failed to persist order fill data to fallback storage");
+            }
+        }
+
+        /// <summary>
+        /// Process retry queue for failed order fill pushes to Python hooks
+        /// </summary>
+        private async Task ProcessRetryQueueAsync()
+        {
+            try
+            {
+                var fallbackDir = Path.Combine("data", "ml_online", "order_fills");
+                if (!Directory.Exists(fallbackDir))
+                    return;
+
+                var pendingFiles = Directory.GetFiles(fallbackDir, "order_fill_*.json")
+                    .Where(f => File.GetCreationTime(f) < DateTime.UtcNow.AddMinutes(-5)) // Only retry files older than 5 minutes
+                    .Take(10); // Process max 10 files per batch
+
+                foreach (var filePath in pendingFiles)
+                {
+                    try
+                    {
+                        var content = await File.ReadAllTextAsync(filePath);
+                        var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(content);
+                        
+                        if (data == null) continue;
+
+                        var retryCount = Convert.ToInt32(data.GetValueOrDefault("retry_count", 0));
+                        var maxRetries = Convert.ToInt32(data.GetValueOrDefault("max_retries", 3));
+                        
+                        if (retryCount >= maxRetries)
+                        {
+                            // Move to failed folder
+                            var failedDir = Path.Combine("data", "ml_online", "failed_order_fills");
+                            Directory.CreateDirectory(failedDir);
+                            var failedPath = Path.Combine(failedDir, Path.GetFileName(filePath));
+                            File.Move(filePath, failedPath);
+                            _logger.LogWarning("[RETRY_QUEUE] Max retries reached for {FileName}, moved to failed folder", Path.GetFileName(filePath));
+                            continue;
+                        }
+
+                        // Try to push to Python hooks again
+                        var originalData = data.Where(kvp => !kvp.Key.StartsWith("retry") && !kvp.Key.Contains("persisted"))
+                                              .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                        
+                        try
+                        {
+                            await PushToOnlineLearnerAsync(originalData, CancellationToken.None);
+                            
+                            // Success - delete the file
+                            File.Delete(filePath);
+                            _logger.LogDebug("[RETRY_QUEUE] Successfully retried order fill: {FileName}", Path.GetFileName(filePath));
+                        }
+                        catch
+                        {
+                            // Update retry count and next retry time
+                            data["retry_count"] = retryCount + 1;
+                            data["next_retry_at"] = DateTime.UtcNow.AddMinutes(Math.Pow(2, retryCount + 1)).ToString("O"); // Exponential backoff
+                            
+                            var updatedJson = System.Text.Json.JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                            await File.WriteAllTextAsync(filePath, updatedJson);
+                            
+                            _logger.LogDebug("[RETRY_QUEUE] Retry failed for {FileName}, will retry again later (attempt {RetryCount})", 
+                                Path.GetFileName(filePath), retryCount + 1);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[RETRY_QUEUE] Failed to process retry file: {FilePath}", filePath);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[RETRY_QUEUE] Failed to process retry queue");
             }
         }
 

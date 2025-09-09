@@ -235,6 +235,11 @@ public class MockOnlineLearningSystem : IOnlineLearningSystem
     {
         return Task.CompletedTask;
     }
+
+    public Task UpdateModelAsync(TradeRecord tradeRecord, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
 }
 
 public class MockQuarantineManager : IQuarantineManager

@@ -186,6 +186,7 @@ public interface IOnlineLearningSystem
     Task<Dictionary<string, double>> GetCurrentWeightsAsync(string regimeType, CancellationToken cancellationToken = default);
     Task AdaptToPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default);
     Task DetectDriftAsync(string modelId, FeatureSet features, CancellationToken cancellationToken = default);
+    Task UpdateModelAsync(TradeRecord tradeRecord, CancellationToken cancellationToken = default);
 }
 
 public class ModelPerformance
@@ -197,6 +198,18 @@ public class ModelPerformance
     public int SampleSize { get; set; }
     public DateTime WindowStart { get; set; }
     public DateTime WindowEnd { get; set; } = DateTime.UtcNow;
+}
+
+public class TradeRecord
+{
+    public string TradeId { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public double Quantity { get; set; }
+    public double FillPrice { get; set; }
+    public DateTime FillTime { get; set; } = DateTime.UtcNow;
+    public string StrategyId { get; set; } = string.Empty;
+    public Dictionary<string, object> Metadata { get; set; } = new();
 }
 
 #endregion
