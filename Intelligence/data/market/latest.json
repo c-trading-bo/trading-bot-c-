@@ -1,6 +1,6 @@
 {
   "SPY": {
-    "timestamp": "2025-09-09T21:47:22.005501",
+    "timestamp": "2025-09-09T21:58:49.604445",
     "category": "indices",
     "price": 650.3200073242188,
     "volume": 4375325,
@@ -29,7 +29,7 @@
     "status": "success"
   },
   "QQQ": {
-    "timestamp": "2025-09-09T21:47:23.141817",
+    "timestamp": "2025-09-09T21:58:50.754191",
     "category": "indices",
     "price": 580.469970703125,
     "volume": 2091023,
@@ -58,7 +58,7 @@
     "status": "success"
   },
   "IWM": {
-    "timestamp": "2025-09-09T21:47:24.275271",
+    "timestamp": "2025-09-09T21:58:51.910728",
     "category": "indices",
     "price": 236.8300018310547,
     "volume": 2199376,
@@ -87,16 +87,16 @@
     "status": "success"
   },
   "ES=F": {
-    "timestamp": "2025-09-09T21:47:24.408540",
+    "timestamp": "2025-09-09T21:58:52.139505",
     "category": "futures",
     "price": 6530.25,
-    "volume": 1207,
+    "volume": 1572,
     "features": [
       6530.75,
       6531.0,
       6530.0,
       6530.25,
-      0.001207,
+      0.001572,
       -7.656088504383111e-05,
       0.0,
       0.0,
@@ -116,7 +116,7 @@
     "status": "success"
   },
   "NQ=F": {
-    "timestamp": "2025-09-09T21:47:25.663468",
+    "timestamp": "2025-09-09T21:58:53.257693",
     "category": "futures",
     "price": 23889.75,
     "volume": 751,
@@ -145,7 +145,7 @@
     "status": "success"
   },
   "^VIX": {
-    "timestamp": "2025-09-09T21:47:25.787287",
+    "timestamp": "2025-09-09T21:58:53.370472",
     "category": "volatility",
     "price": 15.050000190734863,
     "volume": 0,
