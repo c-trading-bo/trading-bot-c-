@@ -70,10 +70,10 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             {
                 Symbol = context.Symbol,
                 Side = TradeSide.Hold,
-                Quantity = 0,
-                Confidence = 0.5,
+                Quantity = 0m,
+                Confidence = 0.5m,
                 Timestamp = DateTime.UtcNow,
-                Reasoning = "Intelligence orchestrator placeholder"
+                Reasoning = new Dictionary<string, object> { ["source"] = "Intelligence orchestrator placeholder" }
             };
         }
         catch (Exception ex)

@@ -7,7 +7,13 @@ public class DecisionServiceLauncherOptions
 {
     public string ExecutablePath { get; set; } = "decision-service";
     public string WorkingDirectory { get; set; } = "./decision-service";
+    public string ScriptPath { get; set; } = "./decision-service/start.py";
+    public string ConfigFile { get; set; } = "./decision-service/config.json";
+    public string PythonExecutable { get; set; } = "python";
     public int TimeoutSeconds { get; set; } = 300;
+    public int StartupTimeoutSeconds { get; set; } = 60;
+    public string Host { get; set; } = "localhost";
+    public int Port { get; set; } = 8080;
     public bool EnableLogging { get; set; } = true;
     public bool Enabled { get; set; } = false;
     public bool AutoRestart { get; set; } = true;
@@ -23,8 +29,10 @@ public class DecisionServiceOptions
     public string BaseUrl { get; set; } = "http://localhost:8080";
     public string ApiKey { get; set; } = string.Empty;
     public int RequestTimeoutSeconds { get; set; } = 30;
+    public int TimeoutMs { get; set; } = 30000;
     public int MaxRetries { get; set; } = 3;
     public bool EnableHealthChecks { get; set; } = true;
+    public bool Enabled { get; set; } = false;
 }
 
 /// <summary>

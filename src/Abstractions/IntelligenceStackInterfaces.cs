@@ -194,10 +194,15 @@ public class ModelPerformance
     public string ModelId { get; set; } = string.Empty;
     public double BrierScore { get; set; }
     public double HitRate { get; set; }
+    public double Accuracy { get; set; }
+    public double Precision { get; set; }
+    public double Recall { get; set; }
+    public double F1Score { get; set; }
     public double Latency { get; set; }
     public int SampleSize { get; set; }
     public DateTime WindowStart { get; set; }
     public DateTime WindowEnd { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 
 public class TradeRecord
@@ -310,8 +315,10 @@ public interface IStartupValidator
 public class StartupValidationResult
 {
     public bool AllTestsPassed { get; set; }
+    public bool IsValid { get; set; }
     public Dictionary<string, TestResult> TestResults { get; set; } = new();
     public List<string> FailureReasons { get; set; } = new();
+    public List<string> ValidationErrors { get; set; } = new();
     public TimeSpan TotalDuration { get; set; }
 }
 
