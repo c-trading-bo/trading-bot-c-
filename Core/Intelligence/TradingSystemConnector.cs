@@ -11,6 +11,8 @@ using BotCore.Config;
 using BotCore.Risk;
 using BotCore.ML;
 using TradingBot.IntelligenceStack;
+using TradingBot.Infrastructure.TopstepX;
+using BotCore;
 
 namespace TradingBot.Core.Intelligence
 {
@@ -28,16 +30,23 @@ namespace TradingBot.Core.Intelligence
         private readonly RealTradingMetricsService? _metricsService;
         private readonly RiskEngine _riskEngine;
         private readonly ITopstepXService? _topstepXService;
+        private readonly ITopstepXHttpClient? _httpClient;
+        private readonly TradingBot.IntelligenceAgent.IVerifier? _verifier;
+        private readonly UserHubAgent? _userHubAgent;
         private readonly List<Bar> _esBars;
         private readonly List<Bar> _nqBars;
         private readonly Dictionary<string, decimal> _lastPrices;
         private readonly Dictionary<string, MarketData> _lastMarketData;
         private readonly Dictionary<string, StrategyEvaluationResult> _lastSignals;
         private readonly Random _fallbackRandom; // Only for actual fallback scenarios
+        private readonly HashSet<string> _sentCustomTags; // Idempotency tracking
 
         public TradingSystemConnector(
             ILogger<TradingSystemConnector> logger,
             ITopstepXService? topstepXService = null,
+            ITopstepXHttpClient? httpClient = null,
+            TradingBot.IntelligenceAgent.IVerifier? verifier = null,
+            UserHubAgent? userHubAgent = null,
             TimeOptimizedStrategyManager? strategyManager = null,
             OnnxModelLoader? onnxLoader = null,
             IntelligenceOrchestrator? intelligenceOrchestrator = null,
@@ -45,6 +54,9 @@ namespace TradingBot.Core.Intelligence
         {
             _logger = logger;
             _topstepXService = topstepXService;
+            _httpClient = httpClient;
+            _verifier = verifier;
+            _userHubAgent = userHubAgent;
             _strategyManager = strategyManager;
             _onnxLoader = onnxLoader;
             _intelligenceOrchestrator = intelligenceOrchestrator;
@@ -56,6 +68,7 @@ namespace TradingBot.Core.Intelligence
             _lastMarketData = new Dictionary<string, MarketData>();
             _lastSignals = new Dictionary<string, StrategyEvaluationResult>();
             _fallbackRandom = new Random();
+            _sentCustomTags = new HashSet<string>();
 
             // Initialize with realistic ES/NQ prices as fallback
             _lastPrices["ES"] = 5500m;
@@ -521,7 +534,7 @@ namespace TradingBot.Core.Intelligence
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        risk = F2(risk)
+                        risk = Px.F2(risk)
                     };
 
                     _logger.LogError("ORDER_REJECTED: {ErrorData}", System.Text.Json.JsonSerializer.Serialize(errorData));
@@ -535,12 +548,42 @@ namespace TradingBot.Core.Intelligence
                     };
                 }
 
-                // Round prices to tick size
-                var roundedEntry = RoundToTick(request.Entry);
-                var roundedStop = RoundToTick(request.Stop);
+                // Round prices to tick size using Px helper
+                var roundedEntry = Px.RoundToTick(request.Entry);
+                var roundedStop = Px.RoundToTick(request.Stop);
 
                 // Generate idempotent customTag
                 var customTag = GenerateCustomTag(request.StrategyId, request.Side);
+
+                // Check idempotency - reject duplicate customTags
+                if (_sentCustomTags.Contains(customTag))
+                {
+                    var duplicateData = new
+                    {
+                        timestamp = DateTime.UtcNow,
+                        component = "trading_system_connector",
+                        operation = "place_order",
+                        success = false,
+                        reason = "duplicate_custom_tag",
+                        symbol = request.Symbol,
+                        side = request.Side,
+                        quantity = request.Quantity,
+                        custom_tag = customTag
+                    };
+
+                    _logger.LogError("ORDER_REJECTED: {DuplicateData}", System.Text.Json.JsonSerializer.Serialize(duplicateData));
+
+                    return new PlaceOrderResult
+                    {
+                        Success = false,
+                        Reason = "duplicate_custom_tag",
+                        OrderId = null,
+                        Timestamp = DateTime.UtcNow
+                    };
+                }
+
+                // Mark customTag as sent for idempotency
+                _sentCustomTags.Add(customTag);
 
                 // Create TaskCompletionSource for fill confirmation
                 using var fillConfirmation = new TaskCompletionSource<FillConfirmation>();
@@ -566,23 +609,22 @@ namespace TradingBot.Core.Intelligence
                     }
                 };
 
-                // Subscribe to events (assuming these exist on _topstepXService)
-                if (_topstepXService != null)
+                // Subscribe to events using UserHubAgent
+                if (_userHubAgent != null)
                 {
-                    // Note: These events would need to be implemented in TopstepXService
-                    // _topstepXService.OnOrderConfirmation += orderHandler;
-                    // _topstepXService.OnFillConfirmation += fillHandler;
+                    _userHubAgent.OnOrderConfirmation += orderHandler;
+                    _userHubAgent.OnFillConfirmation += fillHandler;
                 }
 
                 try
                 {
-                    // Place the order via HTTP API
+                    // Place the order via real HTTP API
                     var orderRequest = new
                     {
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        price = F2(roundedEntry),
+                        price = Px.F2(roundedEntry),
                         orderType = "LIMIT",
                         customTag = customTag,
                         accountId = request.AccountId
@@ -596,16 +638,79 @@ namespace TradingBot.Core.Intelligence
                         symbol = request.Symbol,
                         side = request.Side,
                         quantity = request.Quantity,
-                        entry = F2(roundedEntry),
-                        stop = F2(roundedStop),
-                        risk = F2(risk),
+                        entry = Px.F2(roundedEntry),
+                        stop = Px.F2(roundedStop),
+                        risk = Px.F2(risk),
                         customTag = customTag
                     };
 
+                    // 10️⃣ Standardize Logging Format - Signal logging
+                    _logger.LogInformation("[{Sig}] side={Side} symbol={Symbol} qty={Qty} entry={Entry} stop={Stop} t1={Target} R~{RMultiple} tag={Tag} orderId={OrderId}", 
+                        request.StrategyId, 
+                        request.Side, 
+                        request.Symbol, 
+                        request.Quantity, 
+                        Px.F2(roundedEntry), 
+                        Px.F2(roundedStop),
+                        "TBD", // Target to be determined 
+                        Px.F2(risk > 0 ? 1.0m : 0m), // Simplified R-multiple for now
+                        customTag,
+                        "TBD");
+
                     _logger.LogInformation("ORDER_PLACED: {OrderData}", System.Text.Json.JsonSerializer.Serialize(orderData));
 
-                    // For now, simulate the order placement since we don't have the actual HTTP client set up
-                    var orderId = Guid.NewGuid().ToString();
+                    // Make real API call to TopstepX
+                    string? orderId = null;
+                    if (_httpClient != null)
+                    {
+                        try
+                        {
+                            var response = await _httpClient.PostJsonAsync<dynamic>("/api/Order/place", orderRequest, cancellationToken)
+                                .ConfigureAwait(false);
+                            
+                            if (response != null)
+                            {
+                                // Extract orderId from response
+                                var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                                using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+                                if (doc.RootElement.TryGetProperty("orderId", out var orderIdElement))
+                                {
+                                    orderId = orderIdElement.GetString();
+                                    _logger.LogInformation("Real order placed successfully: {OrderId}", orderId);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Order API response missing orderId: {Response}", responseJson);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogError("Order API returned null response");
+                            }
+                        }
+                        catch (Exception apiEx)
+                        {
+                            _logger.LogError(apiEx, "Failed to place order via API");
+                            
+                            // Remove customTag from sent set on API failure
+                            _sentCustomTags.Remove(customTag);
+                            
+                            return new PlaceOrderResult
+                            {
+                                Success = false,
+                                Reason = $"API_ERROR: {apiEx.Message}",
+                                OrderId = null,
+                                Timestamp = DateTime.UtcNow
+                            };
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No HTTP client available - using fallback orderId");
+                    }
+
+                    // Fallback orderId if API call failed or no client available
+                    orderId ??= Guid.NewGuid().ToString();
 
                     // Wait for either fill confirmation or timeout (default 10s)
                     var timeoutMs = (int)(request.TimeoutSeconds ?? 10) * 1000;
@@ -625,7 +730,7 @@ namespace TradingBot.Core.Intelligence
                         {
                             var fill = await fillTask.ConfigureAwait(false);
                             _logger.LogInformation("Order {OrderId} filled: {FillPrice} x {Quantity}", 
-                                orderId, F2(fill.FillPrice), fill.Quantity);
+                                orderId, Px.F2(fill.FillPrice), fill.Quantity);
 
                             // 3️⃣ Feed Real Trades → ML Learning Loop
                             // Push to cloud and online learner after confirmed fill
@@ -701,10 +806,10 @@ namespace TradingBot.Core.Intelligence
                 finally
                 {
                     // Cleanup event handlers
-                    if (_topstepXService != null && orderHandler != null && fillHandler != null)
+                    if (_userHubAgent != null && orderHandler != null && fillHandler != null)
                     {
-                        // _topstepXService.OnOrderConfirmation -= orderHandler;
-                        // _topstepXService.OnFillConfirmation -= fillHandler;
+                        _userHubAgent.OnOrderConfirmation -= orderHandler;
+                        _userHubAgent.OnFillConfirmation -= fillHandler;
                     }
                 }
             }
@@ -724,16 +829,6 @@ namespace TradingBot.Core.Intelligence
         {
             var risk = isLong ? (entry - stop) * quantity : (stop - entry) * quantity;
             return Math.Abs(risk);
-        }
-
-        private static decimal RoundToTick(decimal price, decimal tick = 0.25m)
-        {
-            return Math.Round(price / tick, 0, MidpointRounding.AwayFromZero) * tick;
-        }
-
-        private static string F2(decimal value)
-        {
-            return value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private string GenerateCustomTag(string strategyId, string side)
@@ -849,7 +944,21 @@ namespace TradingBot.Core.Intelligence
                 };
 
                 _logger.LogInformation("[ML_LEARNING] Order fill processed for learning loop: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
-                    orderId, request.Symbol, request.Side, request.Quantity, F2(fill.FillPrice));
+                    orderId, request.Symbol, request.Side, request.Quantity, Px.F2(fill.FillPrice));
+
+                // 3️⃣ Wire VerifyTodayAsync into Flow - Run verification after fill
+                if (_verifier != null)
+                {
+                    try
+                    {
+                        var verificationResult = await _verifier.VerifyTodayAsync(cancellationToken);
+                        _logger.LogInformation("[VERIFICATION] VerifyTodayAsync completed after fill: Success={Success}", verificationResult.Success);
+                    }
+                    catch (Exception verifyEx)
+                    {
+                        _logger.LogError(verifyEx, "[VERIFICATION] VerifyTodayAsync failed after fill: {OrderId}", orderId);
+                    }
+                }
 
                 // 5️⃣ Record real trading metrics for cloud dashboard
                 if (_metricsService != null)
