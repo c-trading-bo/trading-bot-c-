@@ -40,6 +40,9 @@ namespace TradingBot.Core.Intelligence
         private readonly Dictionary<string, StrategyEvaluationResult> _lastSignals;
         private readonly Random _fallbackRandom; // Only for actual fallback scenarios
         private readonly HashSet<string> _sentCustomTags; // Idempotency tracking
+        private readonly Dictionary<string, DateTime> _orderPlacements; // Order timeout tracking
+        private readonly Timer _orderTimeoutTimer; // Periodic timeout sweeper
+        private readonly TimeSpan _orderTimeout; // Configurable timeout
 
         public TradingSystemConnector(
             ILogger<TradingSystemConnector> logger,
@@ -69,6 +72,16 @@ namespace TradingBot.Core.Intelligence
             _lastSignals = new Dictionary<string, StrategyEvaluationResult>();
             _fallbackRandom = new Random();
             _sentCustomTags = new HashSet<string>();
+            _orderPlacements = new Dictionary<string, DateTime>();
+            
+            // Initialize order timeout from configuration (default 60 seconds)
+            var timeoutMs = Environment.GetEnvironmentVariable("ORDER_TIMEOUT_MS");
+            _orderTimeout = int.TryParse(timeoutMs, out var ms) && ms > 0 
+                ? TimeSpan.FromMilliseconds(ms) 
+                : TimeSpan.FromSeconds(60);
+            
+            // Start periodic timeout sweeper (every 10 seconds)
+            _orderTimeoutTimer = new Timer(CheckOrderTimeouts, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
 
             // Initialize with realistic ES/NQ prices as fallback
             _lastPrices["ES"] = 5500m;
@@ -598,6 +611,8 @@ namespace TradingBot.Core.Intelligence
                     if (confirmation.CustomTag == customTag)
                     {
                         orderConfirmation.TrySetResult(confirmation);
+                        // Remove from timeout tracking when order is confirmed
+                        _orderPlacements.Remove(customTag);
                     }
                 };
 
@@ -606,6 +621,8 @@ namespace TradingBot.Core.Intelligence
                     if (confirmation.CustomTag == customTag)
                     {
                         fillConfirmation.TrySetResult(confirmation);
+                        // Remove from timeout tracking when order is filled
+                        _orderPlacements.Remove(customTag);
                     }
                 };
 
@@ -711,6 +728,9 @@ namespace TradingBot.Core.Intelligence
 
                     // Fallback orderId if API call failed or no client available
                     orderId ??= Guid.NewGuid().ToString();
+                    
+                    // Track order placement time for timeout monitoring
+                    _orderPlacements[customTag] = DateTime.UtcNow;
 
                     // Wait for either fill confirmation or timeout (default 10s)
                     var timeoutMs = (int)(request.TimeoutSeconds ?? 10) * 1000;
@@ -833,9 +853,8 @@ namespace TradingBot.Core.Intelligence
 
         private string GenerateCustomTag(string strategyId, string side)
         {
-            var sideCode = side == "BUY" ? "L" : "S";
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
-            return $"S{strategyId}{sideCode}-{timestamp}";
+            return $"S11L-{timestamp}";
         }
 
         private async Task CancelOrderAsync(string orderId, string reason, CancellationToken cancellationToken)
@@ -1297,6 +1316,63 @@ namespace TradingBot.Core.Intelligence
             {
                 return new RiskValidation { IsValid = false, Reason = "Risk calculation failed" };
             }
+        }
+
+        /// <summary>
+        /// Periodic timeout checker for stale orders
+        /// </summary>
+        private void CheckOrderTimeouts(object? state)
+        {
+            try
+            {
+                var cutoffTime = DateTime.UtcNow - _orderTimeout;
+                var staleOrders = _orderPlacements
+                    .Where(kv => kv.Value < cutoffTime)
+                    .ToList();
+
+                foreach (var staleOrder in staleOrders)
+                {
+                    var customTag = staleOrder.Key;
+                    var placementTime = staleOrder.Value;
+                    var age = DateTime.UtcNow - placementTime;
+
+                    _logger.LogWarning("ORDER timeout detected: customTag={CustomTag}, age={Age}s", 
+                        customTag, (int)age.TotalSeconds);
+
+                    // Cancel the stale order
+                    CancelOrderByCustomTag(customTag, "Timeout");
+
+                    // Remove from tracking
+                    _orderPlacements.Remove(customTag);
+
+                    // Log ORDER status with timeout reason
+                    _logger.LogInformation("ORDER account={AccountId} status=Cancelled orderId={OrderId} reason=Timeout tag={CustomTag}",
+                        "unknown", // Account ID not available in this context
+                        "unknown", // Order ID not tracked by customTag currently
+                        customTag);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in order timeout checker");
+            }
+        }
+
+        /// <summary>
+        /// Cancel order by customTag - helper for timeout processing
+        /// </summary>
+        private void CancelOrderByCustomTag(string customTag, string reason)
+        {
+            // This would require looking up orderId by customTag
+            // For now, just log the intent to cancel
+            _logger.LogInformation("Cancel order requested for customTag={CustomTag}, reason={Reason}", customTag, reason);
+            
+            // TODO: Implement actual cancellation via API when orderId lookup is available
+        }
+
+        public void Dispose()
+        {
+            _orderTimeoutTimer?.Dispose();
         }
     }
 

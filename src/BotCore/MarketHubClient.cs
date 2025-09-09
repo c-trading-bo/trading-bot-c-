@@ -310,13 +310,29 @@ namespace BotCore
                 return Task.CompletedTask;
             };
 
-            _conn.Reconnected += async _ =>
+            _conn.Reconnecting += ex =>
+            {
+                var reconnectingData = new
+                {
+                    timestamp = DateTime.UtcNow,
+                    component = "market_hub_client",
+                    operation = "reconnecting",
+                    contract_id = _contractId,
+                    reason = ex?.Message ?? "Unknown"
+                };
+
+                _log.LogWarning("MARKET_HUB_RECONNECTING: {ReconnectingData}", System.Text.Json.JsonSerializer.Serialize(reconnectingData));
+                return Task.CompletedTask;
+            };
+
+            _conn.Reconnected += async connectionId =>
             {
                 var reconnectedData = new
                 {
                     timestamp = DateTime.UtcNow,
                     component = "market_hub_client",
                     operation = "reconnected", 
+                    connection_id = connectionId,
                     contract_id = _contractId,
                     success = true
                 };

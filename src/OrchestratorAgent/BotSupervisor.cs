@@ -54,6 +54,7 @@ namespace OrchestratorAgent
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
         private readonly Notifier _notifier = new();
         private readonly List<LastSignal> _recentSignals = [];
+        private int _barsSeen = 0; // Counter for AUTO_EXECUTE gating
         private sealed record LastSignal(string Strategy, string Symbol, string Side, decimal Sp, decimal Tp, decimal Sl);
 
         public async Task RunAsync(CancellationToken ct)
@@ -289,6 +290,10 @@ namespace OrchestratorAgent
             {
                 try
                 {
+                    // Increment BarsSeen counter for AUTO_EXECUTE gating
+                    _barsSeen++;
+                    _log.LogDebug("BarsSeen={Count}/10; gating AUTO_EXECUTE={Gating}", _barsSeen, _barsSeen < 10 ? "ACTIVE" : "INACTIVE");
+
                     // 1️⃣ Wire Live Market Data → ML Pipeline
                     // Process streaming tick for real-time feature aggregation
                     if (_featureEngineering != null)
@@ -437,6 +442,14 @@ namespace OrchestratorAgent
                     }
 
                     var batch = new List<(BotCore.StrategySignal Sig, string ContractId)>();
+
+                    // Gate AUTO_EXECUTE until BarsSeen >= 10
+                    bool autoExecuteAllowed = _barsSeen >= 10;
+                    if (!autoExecuteAllowed && (_cfg.LiveTrading || Environment.GetEnvironmentVariable("LIVE_ORDERS") == "1"))
+                    {
+                        _log.LogWarning("BarsSeen={Count}/10; gating AUTO_EXECUTE - signals suppressed in live mode", _barsSeen);
+                        return;
+                    }
 
                     foreach (var s in signals)
                     {
