@@ -25,6 +25,7 @@ namespace TradingBot.Core.Intelligence
         private readonly TimeOptimizedStrategyManager? _strategyManager;
         private readonly OnnxModelLoader? _onnxLoader;
         private readonly IntelligenceOrchestrator? _intelligenceOrchestrator;
+        private readonly RealTradingMetricsService? _metricsService;
         private readonly RiskEngine _riskEngine;
         private readonly ITopstepXService? _topstepXService;
         private readonly List<Bar> _esBars;
@@ -39,13 +40,15 @@ namespace TradingBot.Core.Intelligence
             ITopstepXService? topstepXService = null,
             TimeOptimizedStrategyManager? strategyManager = null,
             OnnxModelLoader? onnxLoader = null,
-            IntelligenceOrchestrator? intelligenceOrchestrator = null)
+            IntelligenceOrchestrator? intelligenceOrchestrator = null,
+            RealTradingMetricsService? metricsService = null)
         {
             _logger = logger;
             _topstepXService = topstepXService;
             _strategyManager = strategyManager;
             _onnxLoader = onnxLoader;
             _intelligenceOrchestrator = intelligenceOrchestrator;
+            _metricsService = metricsService;
             _riskEngine = new RiskEngine();
             _esBars = new List<Bar>();
             _nqBars = new List<Bar>();
@@ -847,6 +850,13 @@ namespace TradingBot.Core.Intelligence
 
                 _logger.LogInformation("[ML_LEARNING] Order fill processed for learning loop: {OrderId} - {Symbol} {Side} {Quantity}@{FillPrice}", 
                     orderId, request.Symbol, request.Side, request.Quantity, F2(fill.FillPrice));
+
+                // 5️⃣ Record real trading metrics for cloud dashboard
+                if (_metricsService != null)
+                {
+                    _metricsService.RecordFill(orderId, request.Symbol, fill.FillPrice, request.Quantity, request.Side);
+                    _logger.LogDebug("[REAL_METRICS] Fill recorded in metrics service: {OrderId}", orderId);
+                }
 
                 // Store for potential Python hooks integration
                 // await CallPythonHook("on_order_fill", orderFillData);

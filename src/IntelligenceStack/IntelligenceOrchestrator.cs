@@ -445,9 +445,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 model = _activeModels.Values.FirstOrDefault() ?? new ModelArtifact
                 {
                     Id = "fallback",
-                    FilePath = "",
-                    Timestamp = DateTime.UtcNow,
-                    Metadata = new ModelMetadata { Version = "1.0", IsHealthy = true }
+                    Version = "1.0",
+                    CreatedAt = DateTime.UtcNow
                 };
             }
 
@@ -460,7 +459,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 Timestamp = DateTime.UtcNow
             };
 
-            var features = CreateFeatureSet(context);
+            var features = await ExtractFeaturesAsync(context, cancellationToken);
             var confidence = await MakePredictionAsync(model, features, cancellationToken);
             
             var prediction = new MLPrediction
