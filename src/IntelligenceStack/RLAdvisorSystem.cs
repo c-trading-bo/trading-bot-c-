@@ -268,7 +268,7 @@ public class RLAdvisorSystem
         foreach (var context in contexts)
         {
             var agentType = context.Contains("CVaR") ? RLAgentType.CVaR_PPO : RLAgentType.PPO;
-            _agents[context] = new RLAgent(_logger, agentType, context);
+            _agents[context] = new RLAgent(_logger, agentType, context, _config);
         }
     }
 
@@ -279,7 +279,7 @@ public class RLAdvisorSystem
             if (!_agents.TryGetValue(agentKey, out var agent))
             {
                 var agentType = agentKey.Contains("CVaR") ? RLAgentType.CVaR_PPO : RLAgentType.PPO;
-                agent = new RLAgent(_logger, agentType, agentKey);
+                agent = new RLAgent(_logger, agentType, agentKey, _config);
                 _agents[agentKey] = agent;
             }
             return agent;
@@ -649,6 +649,7 @@ public class RLAdvisorSystem
 public class RLAgent
 {
     private readonly ILogger _logger;
+    private readonly AdvisorConfig _config;
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
     public DateTime LastDecisionTime { get; private set; }
@@ -657,9 +658,10 @@ public class RLAgent
     private readonly Dictionary<string, double> _qTable = new();
     private readonly Random _random = new();
 
-    public RLAgent(ILogger logger, RLAgentType agentType, string agentKey)
+    public RLAgent(ILogger logger, RLAgentType agentType, string agentKey, AdvisorConfig config)
     {
         _logger = logger;
+        _config = config;
         AgentType = agentType;
         AgentKey = agentKey;
     }
@@ -678,7 +680,7 @@ public class RLAgent
         {
             // Exploration
             actionType = _random.Next(4);
-            confidence = _config.RL.Advisor.ExplorationConfidence;
+            confidence = _config.ExplorationConfidence;
         }
         else
         {
@@ -699,9 +701,9 @@ public class RLAgent
             }
             
             actionType = bestAction;
-            confidence = Math.Min(_config.RL.Advisor.MaxConfidence, 
-                         Math.Max(_config.RL.Advisor.MinConfidence, 
-                         (bestValue + _config.RL.Advisor.ConfidenceOffset) / _config.RL.Advisor.ConfidenceScale));
+            confidence = Math.Min(_config.MaxConfidence, 
+                         Math.Max(_config.MinConfidence, 
+                         (bestValue + _config.ConfidenceOffset) / _config.ConfidenceScale));
         }
         
         return new RLActionResult

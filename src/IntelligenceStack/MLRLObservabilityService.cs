@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Net.Http;
 using System.Text;
@@ -68,9 +69,10 @@ public class MLRLObservabilityService : IDisposable
 
     public void RecordPrediction(string modelId, double prediction, double confidence, TimeSpan latency)
     {
-        _predictionCounter.Add(1, new TagList { ["model_id"] = modelId });
-        _predictionLatency.Record(latency.TotalMilliseconds, new TagList { ["model_id"] = modelId });
-        _modelInferences.Add(1, new TagList { ["model_id"] = modelId });
+        var tags = new TagList { { "model_id", modelId } };
+        _predictionCounter.Add(1, tags);
+        _predictionLatency.Record(latency.TotalMilliseconds, tags);
+        _modelInferences.Add(1, tags);
 
         // Store for Prometheus export
         UpdateMetricValue($"ml_predictions_total{{model_id=\"{modelId}\"}}", 1, MetricType.Counter);
@@ -85,7 +87,7 @@ public class MLRLObservabilityService : IDisposable
         var accuracy = 1.0 - Math.Abs(actualValue - predictedValue) / Math.Max(Math.Abs(actualValue), 1.0);
         accuracy = Math.Max(0.0, Math.Min(1.0, accuracy)); // Clamp to [0,1]
 
-        _predictionAccuracy.Record(accuracy, new TagList { ["model_id"] = modelId });
+        _predictionAccuracy.Record(accuracy, new TagList { { "model_id", modelId } });
         UpdateMetricValue($"ml_prediction_accuracy{{model_id=\"{modelId}\"}}", accuracy, MetricType.Histogram);
 
         _logger.LogDebug("Recorded prediction accuracy for {ModelId}: {Accuracy:F3}", modelId, accuracy);
@@ -93,7 +95,7 @@ public class MLRLObservabilityService : IDisposable
 
     public void RecordDriftScore(string modelId, double driftScore)
     {
-        _driftScore.Record(driftScore, new TagList { ["model_id"] = modelId });
+        _driftScore.Record(driftScore, new TagList { { "model_id", modelId } });
         UpdateMetricValue($"ml_drift_score{{model_id=\"{modelId}\"}}", driftScore, MetricType.Histogram);
 
         if (driftScore > 0.7) // Configurable threshold
@@ -108,7 +110,7 @@ public class MLRLObservabilityService : IDisposable
 
     public void RecordRLReward(string agentId, double reward, int episode)
     {
-        _rlRewards.Record(reward, new TagList { ["agent_id"] = agentId });
+        _rlRewards.Record(reward, new TagList { { "agent_id", agentId } });
         UpdateMetricValue($"rl_rewards{{agent_id=\"{agentId}\"}}", reward, MetricType.Histogram);
 
         _logger.LogDebug("Recorded RL reward for {AgentId}: episode={Episode}, reward={Reward:F3}", 
@@ -117,13 +119,13 @@ public class MLRLObservabilityService : IDisposable
 
     public void RecordExplorationRate(string agentId, double explorationRate)
     {
-        _explorationRate.Record(explorationRate, new TagList { ["agent_id"] = agentId });
+        _explorationRate.Record(explorationRate, new TagList { { "agent_id", agentId } });
         UpdateMetricValue($"rl_exploration_rate{{agent_id=\"{agentId}\"}}", explorationRate, MetricType.Gauge);
     }
 
     public void RecordPolicyNorm(string agentId, double policyNorm)
     {
-        _policyNorms.Record(policyNorm, new TagList { ["agent_id"] = agentId });
+        _policyNorms.Record(policyNorm, new TagList { { "agent_id", agentId } });
         UpdateMetricValue($"rl_policy_norms{{agent_id=\"{agentId}\"}}", policyNorm, MetricType.Histogram);
 
         if (policyNorm > 10.0) // Configurable threshold
@@ -138,7 +140,7 @@ public class MLRLObservabilityService : IDisposable
 
     public void RecordEnsembleVariance(double variance, int modelCount)
     {
-        _ensembleVariance.Record(variance, new TagList { ["model_count"] = modelCount.ToString() });
+        _ensembleVariance.Record(variance, new TagList { { "model_count", modelCount.ToString() } });
         UpdateMetricValue($"ensemble_prediction_variance{{model_count=\"{modelCount}\"}}", variance, MetricType.Histogram);
 
         if (variance > 0.1) // Configurable threshold
