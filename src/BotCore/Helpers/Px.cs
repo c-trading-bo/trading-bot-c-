@@ -30,11 +30,10 @@ public static class Px
     public static decimal RMultiple(decimal entry, decimal stop, decimal target, bool isLong)
     {
         var risk = isLong ? entry - stop : stop - entry;     // must be > 0
-        var reward = isLong ? target - entry : entry - target; // must be >= 0
+        var reward = isLong ? target - entry : entry - target; // can be positive or negative
         
         if (risk <= 0) return 0m; // Invalid risk scenarios
-        if (reward <= 0) return 0m; // Invalid reward scenarios
         
-        return reward / risk;
+        return Math.Abs(reward) / risk; // Use absolute value for reward
     }
 }

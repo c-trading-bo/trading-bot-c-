@@ -868,16 +868,54 @@ namespace TradingBot.Core.Intelligence
         {
             try
             {
+                if (_httpClient == null)
+                {
+                    _logger.LogWarning("No HTTP client available for trade verification");
+                    return null;
+                }
+
                 // Poll /api/Trade/search?customTag=... to verify trade exists
-                var searchUrl = $"/api/Trade/search?customTag={customTag}";
+                var searchUrl = $"/api/Trade/search?customTag={Uri.EscapeDataString(customTag)}";
                 
-                // For now, simulate the API call
-                await Task.Delay(100, cancellationToken).ConfigureAwait(false);
+                var response = await _httpClient.GetJsonAsync<dynamic>(searchUrl, cancellationToken)
+                    .ConfigureAwait(false);
                 
-                // Actual implementation would make HTTP call to TopstepX API
-                // and parse the response to find matching trade
+                if (response != null)
+                {
+                    // Parse response to find matching trade
+                    var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+                    using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+                    
+                    if (doc.RootElement.TryGetProperty("trades", out var tradesElement))
+                    {
+                        foreach (var trade in tradesElement.EnumerateArray())
+                        {
+                            if (trade.TryGetProperty("customTag", out var tradeCustomTag) &&
+                                tradeCustomTag.GetString() == customTag)
+                            {
+                                // Found matching trade
+                                var tradeId = trade.TryGetProperty("tradeId", out var idProp) ? idProp.GetString() ?? "" : "";
+                                var fillPrice = trade.TryGetProperty("fillPrice", out var priceProp) ? priceProp.GetDecimal() : 0m;
+                                var quantity = trade.TryGetProperty("quantity", out var qtyProp) ? qtyProp.GetInt32() : 0;
+                                var executionTime = trade.TryGetProperty("executionTime", out var timeProp) ? timeProp.GetDateTime() : DateTime.UtcNow;
+
+                                _logger.LogInformation("Trade verification successful: {TradeId} for customTag {CustomTag}", tradeId, customTag);
+
+                                return new TradeVerification
+                                {
+                                    TradeId = tradeId,
+                                    CustomTag = customTag,
+                                    FillPrice = fillPrice,
+                                    Quantity = quantity,
+                                    ExecutionTime = executionTime
+                                };
+                            }
+                        }
+                    }
+                }
                 
-                return null; // No trade found yet
+                _logger.LogDebug("No trade found for customTag {CustomTag}", customTag);
+                return null;
             }
             catch (Exception ex)
             {
