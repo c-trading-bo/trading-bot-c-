@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace TradingBot.Infrastructure.Alerts
 {
@@ -18,6 +19,10 @@ namespace TradingBot.Infrastructure.Alerts
         private readonly HttpClient _httpClient;
         private readonly string? _slackWebhook;
         private readonly string? _smtpServer;
+        private readonly int _smtpPort;
+        private readonly bool _useTls;
+        private readonly string? _smtpUsername;
+        private readonly string? _smtpPassword;
         private readonly string? _emailFrom;
         private readonly string? _emailTo;
 
@@ -29,11 +34,15 @@ namespace TradingBot.Infrastructure.Alerts
             // Load configuration from environment
             _slackWebhook = Environment.GetEnvironmentVariable("ALERT_SLACK_WEBHOOK");
             _smtpServer = Environment.GetEnvironmentVariable("ALERT_EMAIL_SMTP");
+            _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("ALERT_EMAIL_PORT"), out var port) ? port : 587;
+            _useTls = (Environment.GetEnvironmentVariable("ALERT_EMAIL_USE_TLS") ?? "true").ToLowerInvariant() is "true" or "1";
+            _smtpUsername = Environment.GetEnvironmentVariable("ALERT_EMAIL_USERNAME");
+            _smtpPassword = Environment.GetEnvironmentVariable("ALERT_EMAIL_PASSWORD");
             _emailFrom = Environment.GetEnvironmentVariable("ALERT_EMAIL_FROM");
             _emailTo = Environment.GetEnvironmentVariable("ALERT_EMAIL_TO");
             
-            _logger.LogInformation("[ALERT] AlertService initialized - Email: {EmailEnabled}, Slack: {SlackEnabled}",
-                !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_slackWebhook));
+            _logger.LogInformation("[ALERT] AlertService initialized - Email: {EmailEnabled}, Slack: {SlackEnabled}, SMTP: {SmtpServer}:{SmtpPort}, TLS: {UseTls}",
+                !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_slackWebhook), _smtpServer, _smtpPort, _useTls);
         }
 
         public async Task SendEmailAsync(string subject, string body, AlertSeverity severity = AlertSeverity.Info)
@@ -47,7 +56,17 @@ namespace TradingBot.Infrastructure.Alerts
 
             try
             {
-                using var smtpClient = new SmtpClient(_smtpServer);
+                using var smtpClient = new SmtpClient(_smtpServer, _smtpPort);
+                
+                // Configure SMTP authentication if credentials provided
+                if (!string.IsNullOrEmpty(_smtpUsername) && !string.IsNullOrEmpty(_smtpPassword))
+                {
+                    smtpClient.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
+                }
+                
+                smtpClient.EnableSsl = _useTls;
+                smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
+
                 var message = new MailMessage(_emailFrom, _emailTo)
                 {
                     Subject = $"[{severity.ToString().ToUpperInvariant()}] {subject}",

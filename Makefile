@@ -1,23 +1,41 @@
-# Trading Bot Alert System Makefile
+# Trading Bot Unified Environment & Alert System Makefile
 
-.PHONY: test-alert test-alert-email test-alert-slack test-alert-all help
+.PHONY: test-alert test-alert-email test-alert-slack test-alert-all test-env help
 
 # Default target
 help:
-	@echo "Trading Bot Alert System"
+	@echo "Trading Bot Unified Environment & Alert System"
 	@echo ""
-	@echo "Available targets:"
+	@echo "Environment Management:"
+	@echo "  test-env            - Test environment file loading and bot credentials"
+	@echo "  test-bot-setup      - Complete setup verification and credential check"
+	@echo ""
+	@echo "Alert Testing:"
 	@echo "  test-alert          - Test all alert types (email, Slack, monitoring)"
 	@echo "  test-alert-email    - Test email alerts only"
-	@echo "  test-alert-slack    - Test Slack alerts only"
+	@echo "  test-alert-slack    - Test Slack alerts only"  
 	@echo "  test-alert-all      - Test all alert types (same as test-alert)"
 	@echo ""
+	@echo "Bot Operations:"
+	@echo "  run-bot             - Launch the trading bot with unified environment"
+	@echo "  run-orchestrator    - Run the orchestrator agent"
+	@echo ""
 	@echo "Configuration:"
-	@echo "  Ensure .env or .env.local contains:"
-	@echo "    ALERT_EMAIL_SMTP=your-smtp-server"
-	@echo "    ALERT_EMAIL_FROM=your-email@example.com"
-	@echo "    ALERT_EMAIL_TO=alerts@your-company.com"
-	@echo "    ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+	@echo "  All credentials are now in .env file (Gmail SMTP, TopstepX, GitHub, etc.)"
+	@echo "  Copy .env.example to .env and fill in your values"
+	@echo ""
+	@echo "Gmail SMTP Setup:"
+	@echo "  ALERT_EMAIL_SMTP=smtp.gmail.com"
+	@echo "  ALERT_EMAIL_USERNAME=kevinsuero072897@gmail.com"
+	@echo "  ALERT_EMAIL_PASSWORD=your_gmail_app_password"
+
+# Test unified environment loading
+test-env:
+	@echo "Testing unified environment configuration..."
+	@./test-bot-setup.sh
+
+# Alias for test-env
+test-bot-setup: test-env
 
 # Test all alert types
 test-alert:
@@ -26,7 +44,7 @@ test-alert:
 
 # Test email alerts only
 test-alert-email:
-	@echo "Testing email alerts..."
+	@echo "Testing Gmail SMTP email alerts..."
 	@./test-alert.sh email
 
 # Test Slack alerts only
@@ -36,6 +54,16 @@ test-alert-slack:
 
 # Test all alert types (alias)
 test-alert-all: test-alert
+
+# Run the trading bot
+run-bot:
+	@echo "Starting trading bot with unified environment..."
+	@dotnet run --project app/TradingBot/TradingBot.csproj
+
+# Run the orchestrator agent
+run-orchestrator:
+	@echo "Starting orchestrator agent..."
+	@dotnet run --project src/OrchestratorAgent/OrchestratorAgent.csproj
 
 # Build the alert CLI tool
 build-alert-cli:
