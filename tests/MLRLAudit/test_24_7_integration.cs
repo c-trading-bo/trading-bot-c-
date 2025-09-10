@@ -1,9 +1,8 @@
 // Simple integration test for 24/7 ES & NQ trading system
+extern alias BotCoreTest;
+
 using System;
 using System.Collections.Generic;
-using BotCore.Config;
-using BotCore.Services;
-using BotCore.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
