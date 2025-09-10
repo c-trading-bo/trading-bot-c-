@@ -228,7 +228,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
         }
     }
 
-    private async Task HandleRiskBreachAsync(RiskBreach breach)
+    private Task HandleRiskBreachAsync(RiskBreach breach)
     {
         _isBreached = true;
         
@@ -270,6 +270,8 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
         {
             _logger.LogError(ex, "[RISK] Error handling risk breach");
         }
+        
+        return Task.CompletedTask;
     }
 
     public RiskMetrics GetCurrentMetrics()
