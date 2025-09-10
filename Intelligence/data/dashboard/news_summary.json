@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-10T15:27:32.910187",
+  "timestamp": "2025-09-10T18:35:48.560117",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "workflow_run": "44",
+  "workflow_run": "45",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-10T15:22:44.226134",
+    "timestamp": "2025-09-10T18:30:58.611349",
     "analysis_mode": "comprehensive",
     "market_session": "regular",
-    "total_articles_processed": 8,
+    "total_articles_processed": 9,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
@@ -19,12 +19,27 @@
         "sources": []
       },
       "NQ": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.055999999999999994,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Nasdaq Builds on Record High Ahead of Key Jobs Data Revision",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-09T09:30:50Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -51,136 +66,134 @@
         "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.3351262626262626,
+        "sentiment_score": 0.1361759259259259,
         "article_count": 4,
         "articles": [
           {
-            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
-            "sentiment": 0.3477272727272727,
-            "textblob_score": 0.06818181818181818,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 14:34:00 GMT",
+            "title": "Nasdaq Builds on Record High Ahead of Key Jobs Data Revision",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-09T09:30:50Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Oracle\u2019s stock is doing something never seen before on Wall Street: Inside the historic move",
-            "sentiment": 0.45499999999999996,
-            "textblob_score": 0.22142857142857145,
+            "title": "401(k) savers play it safe, even as demand for private assets surges",
+            "sentiment": 0.475,
+            "textblob_score": 0.25,
             "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/oracles-stock-is-doing-something-never-seen-before-on-wall-street-inside-the-historic-move-ab2453f6?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 14:30:00 GMT",
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/401k-savers-play-it-safe-even-as-demand-for-private-assets-surges-090048478.html",
+            "published": "2025-09-09T09:00:48Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Emma Heming Willis on moving husband Bruce Willis into a second home for dementia care: \u2018I know it raises eyebrows [but] you have to do what\u2019s right\u2019",
-            "sentiment": 0.08999999999999998,
-            "textblob_score": 0.12857142857142856,
+            "title": "What the Pentagon\u2019s\u00a0Rare Earths Deal Gets Right and Wrong",
+            "sentiment": 0.13370370370370369,
+            "textblob_score": 0.191005291005291,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/newsletters/2025-09-10/what-the-pentagon-s-rare-earths-deal-gets-right-and-wrong",
+            "published": "Wed, 10 Sep 2025 17:37:54 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Nio\u2019s stock dives as EV maker raises $1 billion at shareholders\u2019 expense",
+            "sentiment": -0.12,
+            "textblob_score": -0.17142857142857143,
             "keyword_score": 0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/emma-heming-willis-on-moving-husband-bruce-willis-into-a-second-home-for-dementia-care-i-know-it-raises-eyebrowsyou-have-to-do-whats-right-3ffe931a?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 13:40:00 GMT",
+            "url": "https://www.marketwatch.com/story/nios-stock-dives-as-ev-maker-raises-1-billion-at-shareholders-expense-28b2e763?mod=mw_rss_topstories",
+            "published": "Wed, 10 Sep 2025 18:01:00 GMT",
             "relevance_keywords": [
               "EV"
-            ]
-          },
-          {
-            "title": "Tesla\u2019s Elon Musk still leads the billionaires, but Oracle\u2019s Larry Ellison is quickly gaining on him",
-            "sentiment": 0.4477777777777777,
-            "textblob_score": 0.2111111111111111,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/elon-musk-still-leads-the-billionaires-but-larry-ellison-is-coming-up-fast-a962edaf?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 12:46:00 GMT",
-            "relevance_keywords": [
-              "Tesla",
-              "Elon Musk"
             ]
           }
         ],
-        "signal": "BULLISH",
+        "signal": "NEUTRAL",
         "confidence": 0.4,
         "sources": [
+          "yahoo_finance",
+          "bloomberg",
           "marketwatch"
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.17757575757575755,
-        "article_count": 2,
+        "sentiment_score": 0.07840909090909091,
+        "article_count": 4,
         "articles": [
           {
-            "title": "Oracle Is the New Nvidia, for Better or Worse",
-            "sentiment": 0.055151515151515146,
-            "textblob_score": 0.07878787878787878,
+            "title": "Nvidia\u2019s \u2018Wow\u2019 Factor Is Fading",
+            "sentiment": 0.06999999999999999,
+            "textblob_score": 0.1,
             "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://www.wsj.com/tech/ai/oracle-orcl-stock-nvidia-ai-55d58813?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-10T14:44:00Z",
+            "url": "https://www.wsj.com/tech/ai/nvidia-stock-nvda-growth-827999c7?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-09T09:30:00Z",
             "relevance_keywords": [
               "Nvidia"
             ]
           },
           {
-            "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
+            "title": "Brookfield Says It Lined Up Backers for New AI Strategy",
+            "sentiment": 0.22363636363636363,
+            "textblob_score": -0.10909090909090909,
             "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
-            "published": "2025-09-10T14:36:21Z",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-10/brookfield-says-it-already-lined-up-backers-for-new-ai-strategy",
+            "published": "Wed, 10 Sep 2025 15:37:40 GMT",
+            "relevance_keywords": [
+              "artificial intelligence"
+            ]
+          },
+          {
+            "title": "Oracle Shares Jump 40% on Bullish AI Outlook",
+            "sentiment": 0.09,
+            "textblob_score": -0.3,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-10/oracle-shares-jump-40-on-bullish-ai-outlook-video",
+            "published": "Wed, 10 Sep 2025 17:33:31 GMT",
+            "relevance_keywords": [
+              "artificial intelligence"
+            ]
+          },
+          {
+            "title": "Beyond Nvidia: The Data Center And AI Ecosystem Is On Fire",
+            "sentiment": -0.06999999999999999,
+            "textblob_score": -0.1,
+            "keyword_score": 0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4821662-beyond-nvidia-data-center-ai-ecosystem-on-fire?source=feed_all_articles",
+            "published": "Wed, 10 Sep 2025 14:12:00 -0400",
             "relevance_keywords": [
               "Nvidia"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.2,
+        "confidence": 0.4,
         "sources": [
-          "yahoo_finance"
+          "yahoo_finance",
+          "bloomberg",
+          "seeking_alpha"
         ]
       },
       "AAPL": {
-        "sentiment_score": 0.3588636363636364,
-        "article_count": 2,
-        "articles": [
-          {
-            "title": "Goldman Trader Urges Stock Investors to Watch for Cracks in Data",
-            "sentiment": 0.37,
-            "textblob_score": 0.1,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-10/goldman-trader-urges-stock-investors-to-watch-for-cracks-in-data",
-            "published": "Wed, 10 Sep 2025 14:10:53 GMT",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          },
-          {
-            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
-            "sentiment": 0.3477272727272727,
-            "textblob_score": 0.06818181818181818,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 14:34:00 GMT",
-            "relevance_keywords": [
-              "Apple",
-              "iPhone"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.2,
-        "sources": [
-          "bloomberg",
-          "marketwatch"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       }
     },
     "sources_used": [
@@ -193,7 +206,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-10T15:27:30.868342",
+    "timestamp": "2025-09-10T18:35:45.667423",
     "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
@@ -215,7 +228,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-10T15:22:42.021825",
+    "timestamp": "2025-09-10T18:30:54.597867",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -287,10 +300,10 @@
         "keyword": "trading"
       },
       {
-        "title": "Forex Trading Application : Your Gateway to the Currency Markets",
-        "url": "https://news.webindia123.com/news/Articles/Business/20250820/4351850.html",
-        "source": "news.webindia123.com",
-        "date": "20250820T070000Z",
+        "title": "Why Robinhood Shares Are Trading Higher By Over 7 %; Here Are 20 Stocks Moving Premarket - CDT Equity ( NASDAQ : CDT ), Acrivon Therapeutics ( NASDAQ : ACRV ) ",
+        "url": "https://www.benzinga.com/trading-ideas/movers/25/09/47541868/why-robinhood-shares-are-trading-higher-by-over-7-here-are-20-stocks-moving-premarket",
+        "source": "benzinga.com",
+        "date": "20250908T100000Z",
         "keyword": "trading"
       },
       {
@@ -330,7 +343,7 @@
       }
     ]
   },
-  "overall_market_sentiment": "BULLISH",
+  "overall_market_sentiment": "NEUTRAL",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",

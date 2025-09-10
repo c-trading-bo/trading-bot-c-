@@ -1,13 +1,5 @@
 {
-  "timestamp": "2025-09-10T15:22:44.226944",
-  "alert_count": 1,
-  "alerts": [
-    {
-      "instrument": "TSLA",
-      "signal": "BULLISH",
-      "sentiment_score": 0.3351262626262626,
-      "confidence": 0.4,
-      "article_count": 4
-    }
-  ]
+  "timestamp": "2025-09-10T18:30:58.612067",
+  "alert_count": 0,
+  "alerts": []
 }
