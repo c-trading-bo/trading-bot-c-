@@ -1,0 +1,478 @@
+diff --git a/src/BotCore/Services/TradingSystemIntegrationService.cs b/src/BotCore/Services/TradingSystemIntegrationService.cs
+index 24ad8b5..a0fcabc 100644
+--- a/src/BotCore/Services/TradingSystemIntegrationService.cs
++++ b/src/BotCore/Services/TradingSystemIntegrationService.cs
+@@ -3,6 +3,7 @@ using System.Collections.Generic;
+ using System.Threading;
+ using System.Threading.Tasks;
+ using System.Text.Json;
++using System.Net.Http.Json;
+ using Microsoft.AspNetCore.SignalR.Client;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.Hosting;
+@@ -151,15 +152,63 @@ namespace TopstepX.Bot.Core.Services
+             {
+                 _logger.LogInformation("📡 Setting up SignalR connections...");
+                 
+-                // User Hub Connection
++                // Test JWT availability first to avoid hanging
++                try
++                {
++                    _logger.LogInformation("🔍 Testing JWT token availability...");
++                    var testToken = await GetFreshJwtAsync();
++                    _logger.LogInformation("✅ JWT token available for SignalR connections");
++                }
++                catch (Exception ex)
++                {
++                    _logger.LogError(ex, "❌ Failed to obtain JWT token for SignalR - will retry with fallback strategy");
++                    
++                    // Try to use existing environment JWT as fallback
++                    var envJwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
++                    if (!string.IsNullOrEmpty(envJwt))
++                    {
++                        _jwt = envJwt;
++                        _jwtExpiration = DateTimeOffset.UtcNow.AddHours(1); // Short expiration for env token
++                        _logger.LogInformation("🔄 Using environment JWT token as fallback");
++                    }
++                    else
++                    {
++                        _logger.LogError("❌ No JWT token available from any source - SignalR connections will fail");
++                        // Continue anyway to test the connection failure handling
++                    }
++                }
++                
++                // User Hub Connection with proper JWT provider (no manual token in URL)
+                 _userHubConnection = new HubConnectionBuilder()
+-                    .WithUrl(_config.UserHubUrl)
+-                    .WithAutomaticReconnect()
++                    .WithUrl(_config.UserHubUrl, options =>
++                    {
++                        // SignalR will append ?access_token=<value> for WebSockets automatically
++                        options.AccessTokenProvider = async () => await GetFreshJwtAsync();
++                        options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
++                        options.SkipNegotiation = true;
++                    })
++                    .WithAutomaticReconnect(new[] { 
++                        TimeSpan.Zero, 
++                        TimeSpan.FromSeconds(2), 
++                        TimeSpan.FromSeconds(5), 
++                        TimeSpan.FromSeconds(10) 
++                    })
+                     .Build();
+                 
++                // Register event handlers BEFORE StartAsync
++                _userHubConnection.On<object>("GatewayUserAccount", data => OnUserAccount(data));
++                _userHubConnection.On<object>("GatewayUserOrder", data => OnUserOrder(data));
++                _userHubConnection.On<object>("GatewayUserPosition", data => OnUserPosition(data));
++                _userHubConnection.On<object>("GatewayUserTrade", data => OnUserTrade(data));
++                
+                 _userHubConnection.Closed += (error) =>
+                 {
+-                    _logger.LogWarning("📡 User Hub connection closed: {Error}", error?.Message ?? "Unknown");
++                    _logger.LogWarning("📡 User Hub connection closed. Error: {Error}, Exception: {Exception}", 
++                        error?.Message ?? "Unknown", error?.GetType().Name ?? "None");
++                    if (error != null)
++                    {
++                        _logger.LogError(error, "📡 User Hub connection closed with exception");
++                    }
+                     _errorMonitoring.UpdateComponentHealth("UserHub", ErrorHandlingMonitoringSystem.HealthStatus.Warning, error?.Message);
+                     return Task.CompletedTask;
+                 };
+@@ -168,18 +217,39 @@ namespace TopstepX.Bot.Core.Services
+                 {
+                     _logger.LogInformation("📡 User Hub reconnected: {ConnectionId}", connectionId);
+                     _errorMonitoring.UpdateComponentHealth("UserHub", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
+-                    await ResubscribeToUserHubAsync();
++                    await SubscribeToUserHubAsync();
+                 };
+                 
+-                // Market Hub Connection
++                // Market Hub Connection with proper JWT provider (no manual token in URL)
+                 _marketHubConnection = new HubConnectionBuilder()
+-                    .WithUrl(_config.MarketHubUrl)
+-                    .WithAutomaticReconnect()
++                    .WithUrl(_config.MarketHubUrl, options =>
++                    {
++                        // SignalR will append ?access_token=<value> for WebSockets automatically
++                        options.AccessTokenProvider = async () => await GetFreshJwtAsync();
++                        options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
++                        options.SkipNegotiation = true;
++                    })
++                    .WithAutomaticReconnect(new[] { 
++                        TimeSpan.Zero, 
++                        TimeSpan.FromSeconds(2), 
++                        TimeSpan.FromSeconds(5), 
++                        TimeSpan.FromSeconds(10) 
++                    })
+                     .Build();
+                 
++                // Register event handlers BEFORE StartAsync
++                _marketHubConnection.On<string, object>("GatewayQuote", (contractId, data) => OnMarketQuote(contractId, data));
++                _marketHubConnection.On<string, object>("GatewayTrade", (contractId, data) => OnMarketTrade(contractId, data));
++                _marketHubConnection.On<string, object>("GatewayDepth", (contractId, data) => OnMarketDepth(contractId, data));
++                
+                 _marketHubConnection.Closed += (error) =>
+                 {
+-                    _logger.LogWarning("📡 Market Hub connection closed: {Error}", error?.Message ?? "Unknown");
++                    _logger.LogWarning("📡 Market Hub connection closed. Error: {Error}, Exception: {Exception}", 
++                        error?.Message ?? "Unknown", error?.GetType().Name ?? "None");
++                    if (error != null)
++                    {
++                        _logger.LogError(error, "📡 Market Hub connection closed with exception");
++                    }
+                     _errorMonitoring.UpdateComponentHealth("MarketHub", ErrorHandlingMonitoringSystem.HealthStatus.Warning, error?.Message);
+                     return Task.CompletedTask;
+                 };
+@@ -188,17 +258,38 @@ namespace TopstepX.Bot.Core.Services
+                 {
+                     _logger.LogInformation("📡 Market Hub reconnected: {ConnectionId}", connectionId);
+                     _errorMonitoring.UpdateComponentHealth("MarketHub", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
+-                    await ResubscribeToMarketHubAsync();
++                    await SubscribeToMarketHubAsync();
+                 };
+                 
+-                // Start connections
+-                await _userHubConnection.StartAsync(cancellationToken);
+-                await _marketHubConnection.StartAsync(cancellationToken);
++                // Start BOTH hubs
++                _logger.LogInformation("📡 Starting SignalR connections...");
++                await Task.WhenAll(
++                    _userHubConnection.StartAsync(cancellationToken),
++                    _marketHubConnection.StartAsync(cancellationToken)
++                );
++                
++                _logger.LogInformation("✅ User Hub connected successfully (State: {UserState})", _userHubConnection.State);
++                _logger.LogInformation("✅ Market Hub connected successfully (State: {MarketState})", _marketHubConnection.State);
+                 
+-                // Subscribe to data streams
+-                await ResubscribeToUserHubAsync();
+-                await ResubscribeToMarketHubAsync();
++                // Wait a moment for connections to stabilize before subscribing
++                _logger.LogInformation("⏳ Waiting for connections to stabilize...");
++                await Task.Delay(2000, cancellationToken);
+                 
++                // Check connection states before subscribing
++                _logger.LogInformation("🔍 Connection states - User: {UserState}, Market: {MarketState}", 
++                    _userHubConnection.State, _marketHubConnection.State);
++                
++                // Subscribe AFTER StartAsync and stabilization delay
++                if (_userHubConnection.State == HubConnectionState.Connected)
++                {
++                    await SubscribeToUserHubAsync();
++                }
++                
++                if (_marketHubConnection.State == HubConnectionState.Connected)
++                {
++                    await SubscribeToMarketHubAsync();
++                }
++
+                 // Initialize order confirmation system with SignalR connections
+                 _orderConfirmation = new OrderFillConfirmationSystem(
+                     _serviceProvider.GetRequiredService<ILogger<OrderFillConfirmationSystem>>(),
+@@ -221,41 +312,293 @@ namespace TopstepX.Bot.Core.Services
+                 throw;
+             }
+         }
++
++        private string? _jwt;
++        private DateTimeOffset _jwtExpiration = DateTimeOffset.MinValue;
++
++        private async Task<string> GetFreshJwtAsync()
++        {
++            try
++            {
++                _logger.LogInformation("🔄 GetFreshJwtAsync called - checking for available tokens...");
++                
++                // Return cached token if still valid (refresh when < 60 min remain)
++                if (!string.IsNullOrEmpty(_jwt) && _jwtExpiration > DateTimeOffset.UtcNow.AddHours(1))
++                {
++                    _logger.LogInformation("🔑 Using cached JWT token (expires: {Expiration})", _jwtExpiration);
++                    return _jwt;
++                }
++
++                // First, try to get from AutoTopstepXLoginService (fastest option)
++                var autoLoginService = _serviceProvider.GetService<BotCore.Services.AutoTopstepXLoginService>();
++                if (autoLoginService?.IsAuthenticated == true && !string.IsNullOrEmpty(autoLoginService.JwtToken))
++                {
++                    _jwt = autoLoginService.JwtToken;
++                    _jwtExpiration = DateTimeOffset.UtcNow.AddHours(23); // Conservative expiration
++                    _logger.LogInformation("✅ Got fresh JWT from AutoTopstepXLoginService (first 16 chars): {TokenPreview}...", 
++                        _jwt.Length > 16 ? _jwt.Substring(0, 16) : _jwt);
++                    return _jwt;
++                }
++
++                // Check if we have environment credentials to make our own request
++                _logger.LogInformation("🔍 AutoTopstepXLoginService not ready, checking environment credentials...");
++                var username = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
++                var apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
++
++                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(apiKey))
++                {
++                    _logger.LogWarning("⚠️ No direct credentials available. Waiting for AutoTopstepXLoginService...");
++                    
++                    // Wait a bit for AutoTopstepXLoginService to authenticate
++                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
++                    var attempts = 0;
++                    while (!timeoutCts.Token.IsCancellationRequested && attempts < 5)
++                    {
++                        await Task.Delay(2000, timeoutCts.Token);
++                        attempts++;
++                        
++                        if (autoLoginService?.IsAuthenticated == true && !string.IsNullOrEmpty(autoLoginService.JwtToken))
++                        {
++                            _jwt = autoLoginService.JwtToken;
++                            _jwtExpiration = DateTimeOffset.UtcNow.AddHours(23);
++                            _logger.LogInformation("✅ Got JWT from AutoTopstepXLoginService after waiting (attempt {Attempt})", attempts);
++                            return _jwt;
++                        }
++                        
++                        _logger.LogInformation("⏳ Waiting for AutoTopstepXLoginService... (attempt {Attempt}/5)", attempts);
++                    }
++                    
++                    throw new InvalidOperationException("No TopstepX credentials available and AutoTopstepXLoginService not ready");
++                }
++
++                _logger.LogInformation("🔐 Using environment credentials to login directly...");
++
++                // Login with API key to get fresh JWT (with timeout)
++                var loginRequest = new
++                {
++                    userName = username,
++                    apiKey = apiKey
++                };
++
++                using var timeoutCts2 = new CancellationTokenSource(TimeSpan.FromSeconds(30));
++                var response = await _httpClient.PostAsJsonAsync("/api/Auth/loginKey", loginRequest, timeoutCts2.Token);
++                response.EnsureSuccessStatusCode();
++
++                var authResponse = await response.Content.ReadFromJsonAsync<AuthResponse>(cancellationToken: timeoutCts2.Token);
++                if (authResponse?.token == null)
++                {
++                    throw new InvalidOperationException("Empty auth response from TopstepX");
++                }
++
++                _jwt = authResponse.token;
++                _jwtExpiration = DateTimeOffset.UtcNow.AddHours(23); // Conservative expiration (tokens ~24h lifetime)
++                
++                _logger.LogInformation("✅ Successfully obtained fresh JWT token via direct login (first 16 chars): {TokenPreview}...", 
++                    _jwt.Length > 16 ? _jwt.Substring(0, 16) : _jwt);
++
++                return _jwt;
++            }
++            catch (OperationCanceledException)
++            {
++                _logger.LogError("⏰ JWT token request timed out");
++                throw new InvalidOperationException("JWT token request timed out");
++            }
++            catch (Exception ex)
++            {
++                _logger.LogError(ex, "❌ Error obtaining fresh JWT token");
++                throw;
++            }
++        }
++
++        private class AuthResponse
++        {
++            public string? token { get; set; }
++        }
+         
+-        private async Task ResubscribeToUserHubAsync()
++        private async Task SubscribeToUserHubAsync()
+         {
++            if (_userHubConnection?.State != HubConnectionState.Connected)
++            {
++                _logger.LogWarning("⚠️ User Hub not connected, skipping subscriptions");
++                return;
++            }
++
+             try
+             {
+-                if (_userHubConnection?.State == HubConnectionState.Connected && !string.IsNullOrEmpty(_config.AccountId))
++                _logger.LogInformation("📡 Subscribing to User Hub events...");
++                
++                // Parse account ID as integer for TopstepX API
++                if (!int.TryParse(_config.AccountId, out var accountId))
+                 {
+-                    await _userHubConnection.InvokeAsync("SubscribeOrders", _config.AccountId);
+-                    await _userHubConnection.InvokeAsync("SubscribeTrades", _config.AccountId);
+-                    _logger.LogInformation("📡 Subscribed to User Hub streams for account {AccountId}", _config.AccountId);
++                    _logger.LogError("❌ Failed to parse account ID as integer: {AccountId}", _config.AccountId);
++                    return;
+                 }
++
++                await _userHubConnection.InvokeAsync("SubscribeAccounts");
++                await _userHubConnection.InvokeAsync("SubscribeOrders", accountId);
++                await _userHubConnection.InvokeAsync("SubscribePositions", accountId);
++                await _userHubConnection.InvokeAsync("SubscribeTrades", accountId);
++                
++                _logger.LogInformation("✅ User Hub subscriptions successful for account {AccountId}", accountId);
+             }
+             catch (Exception ex)
+             {
++                _logger.LogError(ex, "❌ Failed to subscribe to User Hub events");
+                 await _errorMonitoring.LogErrorAsync("UserHubSubscription", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.High);
+             }
+         }
++
++        private async Task ResubscribeToUserHubAsync()
++        {
++            await SubscribeToUserHubAsync();
++        }
++
++        private readonly HashSet<string> _marketSubscriptions = new(StringComparer.OrdinalIgnoreCase);
++
++        private async Task SubscribeToMarketHubAsync()
++        {
++            if (_marketHubConnection?.State != HubConnectionState.Connected)
++            {
++                _logger.LogWarning("⚠️ Market Hub not connected, skipping subscriptions");
++                return;
++            }
++
++            try
++            {
++                _logger.LogInformation("📡 Subscribing to Market Hub events...");
++                
++                // Default contract IDs for ES and MES (TopstepX format)
++                string[] contractIds = { "F.US.EP", "F.US.ENQ" }; // ES and MES futures
++                
++                foreach (var contractId in contractIds)
++                {
++                    if (!_marketSubscriptions.Add(contractId)) continue; // Skip if already subscribed
++                    
++                    await _marketHubConnection.InvokeAsync("SubscribeContractQuotes", contractId);
++                    await _marketHubConnection.InvokeAsync("SubscribeContractTrades", contractId);
++                    await _marketHubConnection.InvokeAsync("SubscribeContractMarketDepth", contractId);
++                    
++                    _logger.LogInformation("✅ Market subscriptions successful for {ContractId}", contractId);
++                }
++            }
++            catch (Exception ex)
++            {
++                _logger.LogError(ex, "❌ Failed to subscribe to Market Hub events");
++                await _errorMonitoring.LogErrorAsync("MarketHubSubscription", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Medium);
++            }
++        }
+         
+         private async Task ResubscribeToMarketHubAsync()
+         {
++            if (_marketHubConnection?.State != HubConnectionState.Connected) return;
++            
+             try
+             {
+-                if (_marketHubConnection?.State == HubConnectionState.Connected)
++                foreach (var contractId in _marketSubscriptions)
+                 {
+-                    // Subscribe to market data for ES and MES
+-                    await _marketHubConnection.InvokeAsync("SubscribeMarketData", "ES");
+-                    await _marketHubConnection.InvokeAsync("SubscribeMarketData", "MES");
+-                    await _marketHubConnection.InvokeAsync("SubscribeMarketData", "NQ");
+-                    await _marketHubConnection.InvokeAsync("SubscribeMarketData", "MNQ");
+-                    _logger.LogInformation("📡 Subscribed to Market Hub streams");
++                    await _marketHubConnection.InvokeAsync("SubscribeContractQuotes", contractId);
++                    await _marketHubConnection.InvokeAsync("SubscribeContractTrades", contractId);
++                    await _marketHubConnection.InvokeAsync("SubscribeContractMarketDepth", contractId);
+                 }
++                _logger.LogInformation("✅ Market Hub resubscriptions successful");
++            }
++            catch (Exception ex)
++            {
++                _logger.LogError(ex, "❌ Failed to resubscribe to Market Hub events");
++                await _errorMonitoring.LogErrorAsync("MarketHubResubscription", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Medium);
++            }
++        }
++
++        // SignalR Event Handlers for User Hub
++        private void OnUserAccount(object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogInformation("📊 User Account Update: {Data}", json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process user account data: {Error}", ex.Message);
++            }
++        }
++
++        private void OnUserOrder(object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogInformation("� Order Update: {Data}", json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process order data: {Error}", ex.Message);
++            }
++        }
++
++        private void OnUserPosition(object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogInformation("📈 Position Update: {Data}", json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process position data: {Error}", ex.Message);
++            }
++        }
++
++        private void OnUserTrade(object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogInformation("💰 Trade Fill: {Data}", json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process trade data: {Error}", ex.Message);
++            }
++        }
++
++        // SignalR Event Handlers for Market Hub
++        private void OnMarketQuote(string contractId, object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogDebug("📊 Market Quote [{ContractId}]: {Data}", contractId, json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process market quote for {ContractId}: {Error}", contractId, ex.Message);
++            }
++        }
++
++        private void OnMarketTrade(string contractId, object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogDebug("💹 Market Trade [{ContractId}]: {Data}", contractId, json);
++            }
++            catch (Exception ex)
++            {
++                _logger.LogWarning("⚠️ Failed to process market trade for {ContractId}: {Error}", contractId, ex.Message);
++            }
++        }
++
++        private void OnMarketDepth(string contractId, object data)
++        {
++            try
++            {
++                var json = JsonSerializer.Serialize(data);
++                _logger.LogDebug("📚 Market Depth [{ContractId}]: {Data}", contractId, json);
+             }
+             catch (Exception ex)
+             {
+-                await _errorMonitoring.LogErrorAsync("MarketHubSubscription", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.High);
++                _logger.LogWarning("⚠️ Failed to process market depth for {ContractId}: {Error}", contractId, ex.Message);
+             }
+         }
+         
