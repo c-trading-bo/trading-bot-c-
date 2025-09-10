@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using TopstepX.Bot.Abstractions;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -199,11 +200,5 @@ namespace TopstepX.Bot.Core.Services
             _emergencyStopSource?.Dispose();
             base.Dispose();
         }
-    }
-    
-    public class EmergencyStopEventArgs : EventArgs
-    {
-        public string Reason { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; }
     }
 }

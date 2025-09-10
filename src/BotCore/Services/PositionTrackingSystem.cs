@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
+using TopstepX.Bot.Abstractions;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -358,26 +359,5 @@ namespace TopstepX.Bot.Core.Services
     public class PositionUpdateEventArgs : EventArgs
     {
         public PositionTrackingSystem.Position Position { get; set; } = new();
-    }
-    
-    public class RiskViolationEventArgs : EventArgs
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string ViolationType { get; set; } = string.Empty;
-        public List<string> Violations { get; set; } = new();
-        public PositionTrackingSystem.Position? Position { get; set; }
-        public DateTime Timestamp { get; set; }
-    }
-    
-    public class AccountSummary
-    {
-        public decimal AccountBalance { get; set; }
-        public decimal TotalDailyPnL { get; set; }
-        public decimal TotalUnrealizedPnL { get; set; }
-        public decimal TotalRealizedPnL { get; set; }
-        public decimal TotalMarketValue { get; set; }
-        public int OpenPositions { get; set; }
-        public int PendingOrders { get; set; }
-        public DateTime LastUpdate { get; set; }
     }
 }

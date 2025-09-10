@@ -114,7 +114,7 @@ namespace UnifiedOrchestrator.Services
             if (!_tickCache.TryGetValue(symbol, out var ticks) || ticks.Count == 0)
                 return null;
 
-            MarketTick latestTick;
+            MarketTick? latestTick;
             lock (ticks)
             {
                 latestTick = ticks.LastOrDefault();

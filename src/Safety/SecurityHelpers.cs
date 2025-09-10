@@ -16,10 +16,10 @@ public static class SecurityHelpers
     /// </summary>
     /// <param name="message">The log message that may contain account IDs</param>
     /// <returns>The message with account IDs masked as ****1234</returns>
-    public static string MaskAccountId(string message)
+    public static string MaskAccountId(string? message)
     {
         if (string.IsNullOrEmpty(message))
-            return message;
+            return message ?? string.Empty;
             
         return AccountIdPattern.Replace(message, match =>
         {
