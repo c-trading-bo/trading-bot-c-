@@ -193,7 +193,7 @@ public class ComprehensiveReportingSystem
         return metrics;
     }
 
-    private async Task<ThroughputMetrics> MeasureSystemThroughput()
+    private Task<ThroughputMetrics> MeasureSystemThroughput()
     {
         var metrics = new ThroughputMetrics();
 
@@ -225,7 +225,7 @@ public class ComprehensiveReportingSystem
         jsonStopwatch.Stop();
         metrics.JsonSerializationOperationsPerSecond = jsonOperations;
 
-        return metrics;
+        return Task.FromResult(metrics);
     }
 
     private ResourceUsage CollectResourceUsage()

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace UnitTests.Http
 {
-    public class HttpClientAuthIntegrationTests
+    public class HttpClientAuthIntegrationTests : IDisposable
     {
         private readonly Mock<ILogger<BotCoreTest::BotCore.Services.TopstepXHttpClient>> _mockLogger;
         private readonly Mock<BotCoreTest::BotCore.Auth.ITopstepAuth> _mockAuthService;

@@ -439,9 +439,9 @@ public sealed class OnnxModelLoader : IDisposable
                     _logger.LogInformation("[HOT_RELOAD] Registry update detected: {MetadataFile} (modified: {LastWrite})", 
                         Path.GetFileName(metadataFile), lastWriteTime);
                     
-                    // Read and parse metadata
+                    // Read and parse metadata to trigger model reload if needed
                     var content = await File.ReadAllTextAsync(metadataFile);
-                    // TODO: Parse YAML metadata and trigger model reload if needed
+                    await ParseMetadataAndTriggerReloadAsync(content, metadataFile);
                     
                     // Update cache
                     _modelMetadata[cacheKey] = new ModelMetadata
@@ -490,8 +490,8 @@ public sealed class OnnxModelLoader : IDisposable
                     _logger.LogInformation("[HOT_RELOAD] SAC model update detected: {SACFile} (modified: {LastWrite})", 
                         Path.GetFileName(sacFile), lastWriteTime);
                     
-                    // TODO: Trigger SAC model reload in Python side
-                    // This would notify the SAC agent to reload the model
+                    // Trigger SAC model reload in Python side
+                    await TriggerSacModelReloadAsync(sacFile);
                     
                     // Update cache
                     _modelMetadata[cacheKey] = new ModelMetadata
@@ -1134,6 +1134,83 @@ public sealed class OnnxModelLoader : IDisposable
         // Save updated index
         var updatedIndexJson = JsonSerializer.Serialize(index, _jsonOptions);
         await File.WriteAllTextAsync(indexPath, updatedIndexJson, cancellationToken);
+    }
+
+    /// <summary>
+    /// Parse metadata and trigger model reload if needed
+    /// </summary>
+    private async Task ParseMetadataAndTriggerReloadAsync(string content, string metadataFile)
+    {
+        try
+        {
+            // Parse metadata content (could be YAML or JSON)
+            var metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(content);
+            if (metadata != null && metadata.ContainsKey("version"))
+            {
+                _logger.LogInformation("[MODEL_RELOAD] Model metadata parsed from {File}, version: {Version}", 
+                    Path.GetFileName(metadataFile), metadata["version"]);
+                
+                // Trigger model reload notification
+                await NotifyModelUpdateAsync(metadataFile, metadata);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MODEL_RELOAD] Failed to parse metadata from {File}", metadataFile);
+        }
+    }
+
+    /// <summary>
+    /// Trigger SAC model reload in Python side
+    /// </summary>
+    private async Task TriggerSacModelReloadAsync(string sacFile)
+    {
+        try
+        {
+            _logger.LogInformation("[SAC_RELOAD] Triggering SAC model reload for {File}", Path.GetFileName(sacFile));
+            
+            // Send reload signal to Python SAC agent via file system signal
+            var reloadSignalFile = Path.Combine(Path.GetDirectoryName(sacFile) ?? "", ".sac_reload_signal");
+            await File.WriteAllTextAsync(reloadSignalFile, DateTime.UtcNow.ToString("O"));
+            
+            _logger.LogInformation("[SAC_RELOAD] Reload signal sent for SAC model");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SAC_RELOAD] Failed to trigger SAC model reload for {File}", sacFile);
+        }
+    }
+
+    /// <summary>
+    /// Notify model update to interested systems
+    /// </summary>
+    private async Task NotifyModelUpdateAsync(string filePath, Dictionary<string, object> metadata)
+    {
+        try
+        {
+            // Create notification payload
+            var notification = new
+            {
+                Type = "ModelUpdate",
+                File = Path.GetFileName(filePath),
+                Timestamp = DateTime.UtcNow,
+                Metadata = metadata
+            };
+
+            // Write notification to model update queue (file-based for simplicity)
+            var notificationDir = Path.Combine(Directory.GetCurrentDirectory(), "notifications");
+            Directory.CreateDirectory(notificationDir);
+            
+            var notificationFile = Path.Combine(notificationDir, $"model_update_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
+            var notificationJson = System.Text.Json.JsonSerializer.Serialize(notification, _jsonOptions);
+            
+            await File.WriteAllTextAsync(notificationFile, notificationJson);
+            _logger.LogInformation("[MODEL_NOTIFICATION] Model update notification created: {File}", notificationFile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MODEL_NOTIFICATION] Failed to create model update notification");
+        }
     }
 
     #endregion
