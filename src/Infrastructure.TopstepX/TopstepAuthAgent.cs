@@ -4,16 +4,11 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
-namespace BotCore.Auth
-{
-    public interface ITopstepAuth
-    {
-        Task<(string jwt, DateTimeOffset expiresUtc)> GetFreshJwtAsync(CancellationToken ct = default);
-        Task EnsureFreshTokenAsync(CancellationToken ct = default);
-    }
+namespace Infrastructure.TopstepX;
 
-    public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
+public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
     {
         private readonly Func<CancellationToken, Task<string>> _fetchJwt;
         private readonly ILogger<CachedTopstepAuth> _logger;
@@ -132,5 +127,4 @@ namespace BotCore.Auth
             _refreshLock?.Dispose();
         }
     }
-}
 

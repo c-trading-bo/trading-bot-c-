@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 using BotCore.Infrastructure;
 using BotCore.Testing;
 using BotCore.Reporting;

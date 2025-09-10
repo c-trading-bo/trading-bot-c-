@@ -5,7 +5,8 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 using BotCore.Services;
 
 namespace BotCore.Extensions;

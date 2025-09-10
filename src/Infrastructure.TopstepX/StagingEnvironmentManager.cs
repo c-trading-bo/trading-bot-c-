@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 
 namespace BotCore.Infrastructure;
 

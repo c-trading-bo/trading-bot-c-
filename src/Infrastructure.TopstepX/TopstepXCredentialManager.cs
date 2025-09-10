@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using TradingBot.Abstractions;
 
-namespace BotCore.Auth;
+namespace Infrastructure.TopstepX;
 
 /// <summary>
 /// Manages TopstepX credentials with automatic detection and secure storage
@@ -250,32 +251,6 @@ public class TopstepXCredentialManager
 
         return report;
     }
-}
-
-public class TopstepXCredentials
-{
-    public string Username { get; set; } = "";
-    public string ApiKey { get; set; } = "";
-    public string? JwtToken { get; set; }
-    public string? AccountId { get; set; }
-    public DateTime? LastUpdated { get; set; } = DateTime.UtcNow;
-    public string Source { get; set; } = "";
-    public bool IsValid => !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(ApiKey);
-}
-
-public class CredentialDiscoveryReport
-{
-    public bool HasEnvironmentCredentials { get; set; }
-    public bool HasFileCredentials { get; set; }
-    public TopstepXCredentials? EnvironmentCredentials { get; set; }
-    public TopstepXCredentials? FileCredentials { get; set; }
-    public TopstepXCredentials? RecommendedCredentials { get; set; }
-    public string? RecommendedSource { get; set; }
-    public string? FileErrorMessage { get; set; }
-    public string? DiscoveryError { get; set; }
-
-    public bool HasAnyCredentials => HasEnvironmentCredentials || HasFileCredentials;
-    public int TotalSourcesFound => (HasEnvironmentCredentials ? 1 : 0) + (HasFileCredentials ? 1 : 0);
 }
 
 

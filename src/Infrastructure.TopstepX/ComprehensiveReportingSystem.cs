@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.Json;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 using BotCore.Infrastructure;
 using BotCore.Testing;
 
