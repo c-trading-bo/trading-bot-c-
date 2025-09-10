@@ -451,10 +451,10 @@ public class ActorNetwork
     private readonly Random _random;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput;
-    private double[] _biasHidden;
-    private double[,] _weightsOutput;
-    private double[] _biasOutput;
+    private double[,] _weightsInput = null!;
+    private double[] _biasHidden = null!;
+    private double[,] _weightsOutput = null!;
+    private double[] _biasOutput = null!;
 
     public ActorNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
     {
@@ -573,10 +573,10 @@ public class CriticNetwork
     private readonly Random _random;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput;
-    private double[] _biasHidden;
-    private double[,] _weightsOutput;
-    private double[] _biasOutput;
+    private double[,] _weightsInput = null!;
+    private double[] _biasHidden = null!;
+    private double[,] _weightsOutput = null!;
+    private double[] _biasOutput = null!;
 
     public CriticNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
     {
@@ -704,10 +704,10 @@ public class ValueNetwork
     private readonly Random _random;
     
     // Network weights (simplified implementation)
-    private double[,] _weightsInput;
-    private double[] _biasHidden;
-    private double[,] _weightsOutput;
-    private double[] _biasOutput;
+    private double[,] _weightsInput = null!;
+    private double[] _biasHidden = null!;
+    private double[,] _weightsOutput = null!;
+    private double[] _biasOutput = null!;
 
     public ValueNetwork(int inputDim, int outputDim, int hiddenDim, double learningRate)
     {
