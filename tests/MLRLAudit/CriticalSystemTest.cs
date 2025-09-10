@@ -3,6 +3,7 @@ extern alias BotCoreTest;
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using BotCoreTest::TradingBot.Critical;
 
 namespace TradingBot.Tests
 {

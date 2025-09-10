@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using System.Threading.Tasks;
 using System.Threading;
+using BotCoreTest::BotCore.Extensions;
 
 namespace UnitTests.DI
 {

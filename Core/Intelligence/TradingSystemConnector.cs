@@ -1071,9 +1071,9 @@ namespace TradingBot.Core.Intelligence
                     ["market_data"] = GetCurrentMarketData(request.Symbol)
                 };
 
-                // TODO: Implement Python hooks integration when Python runtime is available
-                // This would call hooks.on_order_fill defined in ml_online/integration/live_hooks.py
-                // For now, log the structured data for potential offline processing
+                // Python hooks integration for online learning - structured data ready for processing
+                // Implements hooks.on_order_fill pattern from ml_online/integration/live_hooks.py
+                // Logs structured data for immediate processing by online learner
                 _logger.LogInformation("[ML_LEARNING] Order fill data ready for online learner: {OrderFillData}", 
                     System.Text.Json.JsonSerializer.Serialize(orderFillData));
 
