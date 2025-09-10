@@ -58,7 +58,7 @@ public class ProductionGateSystem
 
             // Gate 3: Performance and Latency Validation
             _logger.LogInformation("⚡ Gate 3: Performance and Latency Validation");
-            result.PerformanceValidation = await ExecutePerformanceValidation(result.TestSuiteExecution);
+            result.PerformanceValidation = ExecutePerformanceValidation(result.TestSuiteExecution);
 
             // Gate 4: Security and Compliance Validation
             _logger.LogInformation("🔒 Gate 4: Security and Compliance Validation");
@@ -145,7 +145,7 @@ public class ProductionGateSystem
         return await _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
     }
 
-    private async Task<PerformanceValidationResult> ExecutePerformanceValidation(TestSuiteResult testResults)
+    private PerformanceValidationResult ExecutePerformanceValidation(TestSuiteResult testResults)
     {
         var result = new PerformanceValidationResult();
 

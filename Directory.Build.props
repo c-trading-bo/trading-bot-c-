@@ -2,10 +2,12 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <!-- TreatWarningsAsErrors enabled for production readiness -->
-    <!-- Temporarily allowing non-critical warnings for system functionality focus -->
+    <!-- TreatWarningsAsErrors staged rollout plan: -->
+    <!-- Phase 1: Fix async method warnings (in progress) -->
+    <!-- Phase 2: Fix nullable reference warnings -->
+    <!-- Phase 3: Fix type conflict warnings -->
+    <!-- Phase 4: Enable TreatWarningsAsErrors globally -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <!-- Will be fully enabled once remaining nullable reference warnings are addressed -->
-    <!-- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+    <!-- Target: Enable once warning count reduced to <50 across all projects -->
   </PropertyGroup>
 </Project>
