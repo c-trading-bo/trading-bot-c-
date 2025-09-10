@@ -18,7 +18,7 @@ namespace OrchestratorAgent.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<WorkflowIntegrationService> _logger;
         private readonly string _intelligenceDataPath = null!;
-        private readonly string _githubToken = null!;
+        private readonly string? _githubToken;
         private readonly string _repoOwner = "c-trading-bo";
         private readonly string _repoName = "trading-bot-c-";
 
@@ -26,7 +26,7 @@ namespace OrchestratorAgent.Services
             HttpClient httpClient,
             ILogger<WorkflowIntegrationService> logger,
             string intelligenceDataPath = "Intelligence/data/integrated",
-            string githubToken = null)
+            string? githubToken = null)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -61,7 +61,7 @@ namespace OrchestratorAgent.Services
                     
                     intelligence.MlConfidence = mlRlJson.RootElement.GetProperty("model_confidence").GetDecimal();
                     intelligence.MlPredictions = JsonSerializer.Deserialize<Dictionary<string, decimal>>(
-                        mlRlJson.RootElement.GetProperty("predictions").GetRawText());
+                        mlRlJson.RootElement.GetProperty("predictions").GetRawText()) ?? new Dictionary<string, decimal>();
                     
                     _logger.LogInformation("[WorkflowIntegration] Loaded ML/RL intelligence: confidence={Confidence:P0}", 
                         intelligence.MlConfidence);
@@ -73,7 +73,7 @@ namespace OrchestratorAgent.Services
                     var regimeData = await File.ReadAllTextAsync(regimePath);
                     var regimeJson = JsonDocument.Parse(regimeData);
                     
-                    intelligence.CurrentRegime = regimeJson.RootElement.GetProperty("current_regime").GetString();
+                    intelligence.CurrentRegime = regimeJson.RootElement.GetProperty("current_regime").GetString() ?? "unknown";
                     intelligence.RegimeConfidence = regimeJson.RootElement.GetProperty("confidence").GetDecimal();
                     
                     _logger.LogInformation("[WorkflowIntegration] Loaded regime: {Regime} ({Confidence:P0})", 
@@ -127,12 +127,12 @@ namespace OrchestratorAgent.Services
                 {
                     if (symbolData.TryGetProperty("supply_zones", out var supplyZones))
                     {
-                        zones.SupplyZones = JsonSerializer.Deserialize<List<decimal>>(supplyZones.GetRawText());
+                        zones.SupplyZones = JsonSerializer.Deserialize<List<decimal>>(supplyZones.GetRawText()) ?? new List<decimal>();
                     }
 
                     if (symbolData.TryGetProperty("demand_zones", out var demandZones))
                     {
-                        zones.DemandZones = JsonSerializer.Deserialize<List<decimal>>(demandZones.GetRawText());
+                        zones.DemandZones = JsonSerializer.Deserialize<List<decimal>>(demandZones.GetRawText()) ?? new List<decimal>();
                     }
 
                     if (symbolData.TryGetProperty("poc", out var poc))

@@ -289,7 +289,7 @@ namespace OrchestratorAgent
 
         public async Task ConnectAsync(string authToken, int accountId, CancellationToken ct = default)
         {
-            async Task<string?> TokenProvider()
+            Task<string?> TokenProvider()
             {
                 // Parse JWT to extract actual expiration time and validate
                 if (IsTokenExpired(authToken))
@@ -297,10 +297,10 @@ namespace OrchestratorAgent
                     _log.LogWarning("[USER HUB] JWT token is expired, may need refresh");
                     // In production, this would trigger token refresh
                     // For now, return null to force reconnection
-                    return null;
+                    return Task.FromResult<string?>(null);
                 }
                 
-                return authToken;
+                return Task.FromResult<string?>(authToken);
             }
 
             _conn = new HubConnectionBuilder()

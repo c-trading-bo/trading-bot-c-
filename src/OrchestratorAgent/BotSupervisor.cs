@@ -403,8 +403,10 @@ namespace OrchestratorAgent
                     else
                     {
                         // Fallback to status snapshot (original behavior)
-                        _status.Contracts.TryGetValue(symbol, out contractId);
-                        contractId ??= symbol;
+                        if (!_status.Contracts.TryGetValue(symbol, out contractId!))
+                        {
+                            contractId = symbol;
+                        }
                     }
 
                     // Backfill after gap (>15s) before emitting signals
