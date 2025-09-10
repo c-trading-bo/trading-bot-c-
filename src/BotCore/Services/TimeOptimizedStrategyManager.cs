@@ -258,7 +258,7 @@ namespace BotCore.Services
             return features.ToArray();
         }
 
-        private async Task<decimal> RunRegimeInferenceAsync(Microsoft.ML.OnnxRuntime.InferenceSession session, decimal[] features)
+        private Task<decimal> RunRegimeInferenceAsync(Microsoft.ML.OnnxRuntime.InferenceSession session, decimal[] features)
         {
             try
             {
@@ -274,12 +274,12 @@ namespace BotCore.Services
                 using var results = session.Run(inputs);
                 var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0.5f;
                 
-                return (decimal)output;
+                return Task.FromResult((decimal)output);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[TIME-STRATEGY] ONNX regime inference error");
-                return 0.5m; // Neutral regime
+                return Task.FromResult(0.5m); // Neutral regime
             }
         }
 

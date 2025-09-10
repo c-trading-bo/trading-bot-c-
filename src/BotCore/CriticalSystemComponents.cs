@@ -510,7 +510,9 @@ namespace TradingBot.Critical
         private DateTime _lastHeartbeat;
         private bool _emergencyModeActive = false;
         private readonly ILogger<DisasterRecoverySystem> _logger;
+#pragma warning disable CS0649 // Field is never assigned - will be implemented in future versions
         private readonly SQLiteConnection? _database;
+#pragma warning restore CS0649
         
         public class SystemState
         {
