@@ -525,6 +525,7 @@ namespace TradingBot.Core.Intelligence
             }
             
             _strategyManager?.Dispose();
+            _orderTimeoutTimer?.Dispose();
             _logger.LogInformation("TradingSystemConnector disposed - TopstepX subscriptions cleaned up");
         }
 
@@ -1804,23 +1805,6 @@ namespace TradingBot.Core.Intelligence
                 _ => "overnight"
             };
         }
-
-        public void Dispose()
-        {
-            _orderTimeoutTimer?.Dispose();
-        }
-    }
-
-    // Enhanced Orchestrator Data Models
-    public class ESNQAnalysis
-    {
-        public decimal ESPrice { get; set; }
-        public decimal NQPrice { get; set; }
-        public TradeDirection Signal { get; set; }
-        public decimal Correlation { get; set; }
-        public DateTime Timestamp { get; set; }
-        public int ESSignalStrength { get; set; }
-        public int NQSignalStrength { get; set; }
     }
 
     public class RealMarketData
@@ -1862,14 +1846,6 @@ namespace TradingBot.Core.Intelligence
         public TradeDirection Direction { get; set; }
         public decimal Confidence { get; set; }
         public string Symbol { get; set; } = "";
-    }
-
-    public class TradingSignal
-    {
-        public string Symbol { get; set; } = "";
-        public TradeDirection Direction { get; set; }
-        public int Quantity { get; set; }
-        public decimal Confidence { get; set; }
     }
 
     public class RiskValidation

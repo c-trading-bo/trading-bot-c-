@@ -2075,33 +2075,11 @@ namespace TradingBot.Core.Intelligence
         public long TotalVolume { get; set; }
         public bool IsAboveAverage { get; set; }
         public decimal VWAP { get; set; }
-    }
-
-    public class MarketMakerActivity 
-    { 
-        public DateTime Timestamp { get; set; }
-        public decimal BidAskSpread { get; set; }
-        public int OrderBookDepth { get; set; }
-        public decimal LiquidityScore { get; set; }
-        public bool IsActiveMarketMaking { get; set; }
-        public Dictionary<decimal, int> BidLevels { get; set; } = new();
-        public Dictionary<decimal, int> AskLevels { get; set; } = new();
-    }
-
-    public class TapeReading 
-    { 
-        public DateTime Timestamp { get; set; }
-        public List<TradeFlow> RecentTrades { get; set; } = new();
-        public decimal BuyPressure { get; set; }
-        public decimal SellPressure { get; set; }
-        public TrendDirection ShortTermTrend { get; set; }
-        public decimal AverageTradeSize { get; set; }
-        public int LargeTradeCount { get; set; }
         
         // Additional properties referenced in code
-        public string Sentiment { get; set; } = "";
-        public int LargeTrades { get; set; }
-        public int AverageTradSize { get; set; }
+        public List<decimal> HighVolumeNodes { get; set; } = new();
+        public List<decimal> LowVolumeNodes { get; set; } = new();
+        public decimal PointOfControl { get; set; }
     }
 
     public class MarketMakerActivity 
@@ -2120,20 +2098,20 @@ namespace TradingBot.Core.Intelligence
         public int Volume { get; set; }
     }
 
-    public class VolumeProfile 
+    public class TapeReading 
     { 
         public DateTime Timestamp { get; set; }
-        public Dictionary<decimal, long> PriceLevels { get; set; } = new();
-        public decimal HighVolumeNode { get; set; }
-        public decimal LowVolumeNode { get; set; }
-        public long TotalVolume { get; set; }
-        public bool IsAboveAverage { get; set; }
-        public decimal VWAP { get; set; }
+        public List<TradeFlow> RecentTrades { get; set; } = new();
+        public decimal BuyPressure { get; set; }
+        public decimal SellPressure { get; set; }
+        public TrendDirection ShortTermTrend { get; set; }
+        public decimal AverageTradeSize { get; set; }
+        public int LargeTradeCount { get; set; }
         
         // Additional properties referenced in code
-        public List<decimal> HighVolumeNodes { get; set; } = new();
-        public List<decimal> LowVolumeNodes { get; set; } = new();
-        public decimal PointOfControl { get; set; }
+        public string Sentiment { get; set; } = "";
+        public int LargeTrades { get; set; }
+        public int AverageTradSize { get; set; }
     }
 
     public class UnusualOption 

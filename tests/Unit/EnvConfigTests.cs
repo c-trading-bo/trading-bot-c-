@@ -36,15 +36,19 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange & Act & Assert
         Environment.SetEnvironmentVariable("TEST_BOOL", "1");
+        EnvConfig.Reload(); // Reload to pick up new environment variable
         Assert.True(EnvConfig.GetBool("TEST_BOOL"));
 
         Environment.SetEnvironmentVariable("TEST_BOOL", "true");
+        EnvConfig.Reload(); // Reload to pick up new environment variable
         Assert.True(EnvConfig.GetBool("TEST_BOOL"));
 
         Environment.SetEnvironmentVariable("TEST_BOOL", "TRUE");
+        EnvConfig.Reload(); // Reload to pick up new environment variable
         Assert.True(EnvConfig.GetBool("TEST_BOOL"));
 
         Environment.SetEnvironmentVariable("TEST_BOOL", "yes");
+        EnvConfig.Reload(); // Reload to pick up new environment variable
         Assert.True(EnvConfig.GetBool("TEST_BOOL"));
 
         // Clean up
@@ -284,6 +288,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("BOT_QUICK_EXIT", "1");
+        EnvConfig.Reload(); // Reload to pick up new environment variable
 
         try
         {
@@ -296,6 +301,7 @@ public class EnvConfigTests : IDisposable
         finally
         {
             Environment.SetEnvironmentVariable("BOT_QUICK_EXIT", null);
+            EnvConfig.Reload(); // Reload to reset the environment
         }
     }
 
