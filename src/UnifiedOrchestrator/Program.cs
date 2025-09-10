@@ -130,6 +130,15 @@ public class Program
         };
         services.AddSingleton<IOptions<AppOptions>>(provider => Options.Create(appOptions));
 
+        // Configure workflow scheduling options
+        services.Configure<WorkflowSchedulingOptions>(configuration.GetSection("WorkflowScheduling"));
+        
+        // Configure Python integration options
+        services.Configure<PythonIntegrationOptions>(configuration.GetSection("PythonIntegration"));
+        
+        // Configure model loading options
+        services.Configure<ModelLoadingOptions>(configuration.GetSection("ModelLoading"));
+
         // Core HTTP client for TopstepX API
         services.AddHttpClient<TopstepAuthAgent>(client =>
         {
@@ -273,12 +282,23 @@ public class Program
         
         // Register Decision Service components
         services.AddHttpClient<DecisionServiceClient>();
+        services.AddSingleton<DecisionServiceClient>(provider =>
+        {
+            var httpClient = provider.GetRequiredService<HttpClient>();
+            var decisionServiceOptions = provider.GetRequiredService<IOptions<DecisionServiceOptions>>().Value;
+            var pythonOptions = provider.GetRequiredService<IOptions<PythonIntegrationOptions>>().Value;
+            var logger = provider.GetRequiredService<ILogger<DecisionServiceClient>>();
+            return new DecisionServiceClient(decisionServiceOptions, httpClient, pythonOptions, logger);
+        });
         services.AddSingleton<DecisionServiceLauncher>();
         services.AddSingleton<DecisionServiceIntegration>();
         
         // Register as hosted services for automatic startup/shutdown
         services.AddHostedService<DecisionServiceLauncher>();
         services.AddHostedService<DecisionServiceIntegration>();
+        
+        // Register feature demonstration service
+        services.AddHostedService<FeatureDemonstrationService>();
         
         Console.WriteLine("🧠 ML/RL DECISION SERVICE registered - Python sidecar with C# integration");
         Console.WriteLine($"   📍 Service URL: {decisionServiceOptions.BaseUrl}");

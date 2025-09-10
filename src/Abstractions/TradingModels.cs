@@ -376,22 +376,106 @@ public class WorkflowSchedule
     public string? Weekends { get; set; }           // Weekend only
     public string? Disabled { get; set; }           // When to disable
     
-    // Helper to get active schedule based on current time
+    // CME Futures Session Configuration
+    public string? SessionOpen { get; set; }        // Sunday 6:00 PM ET session open
+    public string? SessionClose { get; set; }       // Friday 5:00 PM ET session close
+    public string? DailyBreakStart { get; set; }    // 5:00 PM ET daily break start
+    public string? DailyBreakEnd { get; set; }      // 6:00 PM ET daily break end
+    
+    // Helper to get active schedule based on current time with CME futures sessions
     public string? GetActiveSchedule(DateTime utcNow)
     {
-        var et = TimeZoneInfo.ConvertTimeFromUtc(utcNow, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
-        var isWeekend = et.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
-        var hour = et.Hour;
-        
-        if (isWeekend && !string.IsNullOrEmpty(Weekends)) return Weekends;
-        if (hour >= 9 && hour <= 16 && !string.IsNullOrEmpty(MarketHours)) return MarketHours;
-        if (hour >= 9 && hour <= 11 && !string.IsNullOrEmpty(FirstHour)) return FirstHour;
-        if (hour >= 15 && hour <= 16 && !string.IsNullOrEmpty(LastHour)) return LastHour;
-        if (hour >= 9 && hour <= 11 || hour >= 14 && hour <= 16 && !string.IsNullOrEmpty(CoreHours)) return CoreHours;
-        if ((hour >= 17 || hour <= 8) && !string.IsNullOrEmpty(Overnight)) return Overnight;
-        if (!string.IsNullOrEmpty(ExtendedHours)) return ExtendedHours;
-        if (!string.IsNullOrEmpty(Global)) return Global;
-        return Regular;
+        try
+        {
+            // Convert to Eastern Time (handles DST automatically)
+            var et = TimeZoneInfo.ConvertTimeFromUtc(utcNow, TimeZoneInfo.FindSystemTimeZoneById("America/New_York"));
+            var isWeekend = et.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
+            var hour = et.Hour;
+            var dayOfWeek = et.DayOfWeek;
+            
+            // CME Futures Sessions: Sunday 6 PM ET - Friday 5 PM ET
+            // Daily maintenance break: 5 PM - 6 PM ET Monday-Thursday
+            
+            // Handle weekend special case
+            if (isWeekend)
+            {
+                // Saturday: markets closed
+                if (dayOfWeek == DayOfWeek.Saturday)
+                    return Disabled ?? Weekends;
+                    
+                // Sunday: market opens at 6 PM ET
+                if (dayOfWeek == DayOfWeek.Sunday && hour >= 18)
+                    return MarketHours ?? Regular;
+                    
+                // Sunday before 6 PM: markets closed
+                if (dayOfWeek == DayOfWeek.Sunday && hour < 18)
+                    return Disabled ?? Weekends;
+                    
+                return Weekends;
+            }
+            
+            // Weekday CME sessions
+            // Friday: market closes at 5 PM ET
+            if (dayOfWeek == DayOfWeek.Friday && hour >= 17)
+                return Disabled ?? Weekends;
+            
+            // Monday-Thursday: daily maintenance break 5-6 PM ET
+            if (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday)
+            {
+                if (hour == 17) // 5 PM ET - start of maintenance break
+                    return Disabled;
+                if (hour == 18) // 6 PM ET - end of maintenance break, session resumes
+                    return MarketHours ?? Regular;
+            }
+            
+            // Regular CME futures trading hours (continuous except maintenance)
+            // Sunday 6 PM ET through Friday 5 PM ET (minus daily breaks)
+            if ((dayOfWeek == DayOfWeek.Sunday && hour >= 18) || 
+                (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday) ||
+                (dayOfWeek == DayOfWeek.Friday && hour < 17))
+            {
+                // Core market hours (traditional market hours for more frequent activity)
+                if (hour >= 9 && hour <= 16 && !string.IsNullOrEmpty(MarketHours)) 
+                    return MarketHours;
+                    
+                // First hour of traditional market
+                if (hour >= 9 && hour <= 10 && !string.IsNullOrEmpty(FirstHour)) 
+                    return FirstHour;
+                    
+                // Last hour of traditional market  
+                if (hour >= 15 && hour <= 16 && !string.IsNullOrEmpty(LastHour)) 
+                    return LastHour;
+                    
+                // Core hours (morning and afternoon peaks)
+                if ((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16))
+                {
+                    if (!string.IsNullOrEmpty(CoreHours)) return CoreHours;
+                }
+                
+                // Overnight/extended hours
+                if ((hour >= 18 || hour <= 8) && !string.IsNullOrEmpty(Overnight)) 
+                    return Overnight;
+                    
+                // Extended hours
+                if (!string.IsNullOrEmpty(ExtendedHours)) 
+                    return ExtendedHours;
+                    
+                // Fall back to regular market hours schedule
+                return MarketHours ?? Regular;
+            }
+            
+            // Global schedule for 24/7 operations
+            if (!string.IsNullOrEmpty(Global)) 
+                return Global;
+                
+            // Default fallback
+            return Regular;
+        }
+        catch
+        {
+            // Fallback to regular schedule on any timezone conversion errors
+            return Regular ?? Global;
+        }
     }
 }
 
