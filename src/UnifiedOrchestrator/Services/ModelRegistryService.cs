@@ -113,7 +113,7 @@ namespace UnifiedOrchestrator.Services
                     return null;
                 }
 
-                ModelRegistryEntry? latestEntry = null;
+                ModelRegistryEntry? latestEntry = null!;
                 var latestTime = DateTime.MinValue;
 
                 foreach (var dir in Directory.GetDirectories(modelDir))

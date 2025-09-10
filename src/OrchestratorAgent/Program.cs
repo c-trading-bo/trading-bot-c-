@@ -194,8 +194,8 @@ namespace OrchestratorAgent
             }
 
             // 🌥️ Initialize Cloud Learning (100% cloud-based, no local training)
-            IDisposable? cloudModelDownloader = null;
-            IDisposable? cloudDataUploader = null;
+            IDisposable? cloudModelDownloader = null!;
+            IDisposable? cloudDataUploader = null!;
 
             // If no credentials are present, avoid long-running network calls and just exit — except when RUN_TUNING with AUTH_ALLOW is enabled (we can login) or DEMO_MODE is enabled.
             var hasAnyCred = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("TOPSTEPX_JWT"))
@@ -741,18 +741,18 @@ namespace OrchestratorAgent
                     await posTracker.SeedFromRestAsync(apiClient, accountId, cts.Token);
 
                     // Prepare placeholders for health/mode wiring used by the web host (assigned below once created)
-                    OrchestratorAgent.Health.Preflight? pfServiceRef = null;
-                    OrchestratorAgent.Health.DstGuard? dstRef = null;
-                    OrchestratorAgent.Ops.ModeController? modeRef = null;
-                    OrchestratorAgent.Ops.AppState? appStateRef = null;
-                    OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null;
+                    OrchestratorAgent.Health.Preflight? pfServiceRef = null!;
+                    OrchestratorAgent.Health.DstGuard? dstRef = null!;
+                    OrchestratorAgent.Ops.ModeController? modeRef = null!;
+                    OrchestratorAgent.Ops.AppState? appStateRef = null!;
+                    OrchestratorAgent.Ops.LiveLease? liveLeaseRef = null!;
 
                     // ===== Dashboard + Health: start single web host (Kestrel) on ASPNETCORE_URLS =====
                     object? dashboardHub = null; // Dashboard module not available
-                    OrchestratorAgent.ML.RlSizer? rlSizer = null;
-                    OrchestratorAgent.ML.SizerCanary? sizerCanary = null;
-                    BotCore.Services.IIntelligenceService? intelligenceService = null;
-                    BotCore.Services.IZoneService? zoneService = null;
+                    OrchestratorAgent.ML.RlSizer? rlSizer = null!;
+                    OrchestratorAgent.ML.SizerCanary? sizerCanary = null!;
+                    BotCore.Services.IIntelligenceService? intelligenceService = null!;
+                    BotCore.Services.IZoneService? zoneService = null!;
                     try
                     {
                         var webBuilder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
@@ -1308,7 +1308,7 @@ namespace OrchestratorAgent
                     catch { }
 
                     // Instant-apply ParamStore watcher (offline default). Guarded by INSTANT_APPLY env.
-                    OrchestratorAgent.Infra.ParamStoreWatcher? psWatcher = null;
+                    OrchestratorAgent.Infra.ParamStoreWatcher? psWatcher = null!;
                     try
                     {
                         bool instant = (Environment.GetEnvironmentVariable("INSTANT_APPLY") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
@@ -2579,7 +2579,7 @@ namespace OrchestratorAgent
                     if (history.Count > 1000) history.RemoveRange(0, history.Count - 1000);
 
                     // Load latest intelligence data for trading decisions
-                    BotCore.Models.MarketContext? intelligence = null;
+                    BotCore.Models.MarketContext? intelligence = null!;
                     try
                     {
                         if (intelligenceService != null)
@@ -2603,7 +2603,7 @@ namespace OrchestratorAgent
                     }
 
                     // Load latest zone data for optimal stop/target placement
-                    BotCore.Services.ZoneData? zones = null;
+                    BotCore.Services.ZoneData? zones = null!;
                     try
                     {
                         if (zoneService != null)

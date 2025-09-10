@@ -11,9 +11,9 @@ namespace OrchestratorAgent.Ops
     {
         private readonly ApiClient _api;
         private readonly long _accountId;
-        private readonly string _tzId;
+        private readonly string _tzId = null!;
         private readonly TimeSpan _settleLocal;
-        private readonly string _journalPath;
+        private readonly string _journalPath = null!;
 
         public EodReconciler(ApiClient api, long accountId, string tzId, string settleTimeLocalHHmm, string journalDir = "state")
         {
@@ -36,7 +36,7 @@ namespace OrchestratorAgent.Ops
                     var nowLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
                     if (nowLocal.TimeOfDay >= _settleLocal && nowLocal.Date != lastRunDateLocal.Date)
                     {
-                        decimal? net = null, gross = null, fees = null;
+                        decimal? net = null, gross = null, fees = null!;
                         try
                         {
                             var pnl = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct);

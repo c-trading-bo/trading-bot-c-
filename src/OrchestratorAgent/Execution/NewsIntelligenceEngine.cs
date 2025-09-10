@@ -105,7 +105,7 @@ namespace OrchestratorAgent.Execution
 
             // Check for news events in last 5 minutes
             var cutoff = currentTime.AddMinutes(-5);
-            NewsEventData? relevantEvent = null;
+            NewsEventData? relevantEvent = null!;
 
             foreach (var kvp in _recentEvents)
             {

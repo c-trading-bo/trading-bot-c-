@@ -15,9 +15,9 @@ public class CVaRPPO : IDisposable
     private readonly string _modelBasePath;
     
     // Neural network components (simplified implementation)
-    private PolicyNetwork _policyNetwork;
-    private ValueNetwork _valueNetwork;
-    private CVaRNetwork _cvarNetwork;
+    private PolicyNetwork _policyNetwork = null!;
+    private ValueNetwork _valueNetwork = null!;
+    private CVaRNetwork _cvarNetwork = null!;
     
     // Experience buffer
     private readonly ConcurrentQueue<Experience> _experienceBuffer = new();
@@ -182,7 +182,7 @@ public class CVaRPPO : IDisposable
     /// <summary>
     /// Get action from policy network
     /// </summary>
-    public async Task<ActionResult> GetActionAsync(double[] state, bool deterministic = false, CancellationToken cancellationToken = default)
+    public Task<ActionResult> GetActionAsync(double[] state, bool deterministic = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -233,14 +233,14 @@ public class CVaRPPO : IDisposable
             _logger.LogDebug("[CVAR_PPO] Action selected: {Action} (prob: {Prob:F3}, value: {Value:F3}, cvar: {CVaR:F3})", 
                 action, actionProb, valueEstimate, cvarEstimate);
 
-            return result;
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CVAR_PPO] Error getting action");
             
             // Return safe default action
-            return new ActionResult
+            var defaultResult = new ActionResult
             {
                 Action = 0, // Hold action
                 ActionProbability = 1.0,
@@ -250,6 +250,8 @@ public class CVaRPPO : IDisposable
                 ActionProbabilities = new double[_config.ActionSize],
                 Timestamp = DateTime.UtcNow
             };
+            
+            return Task.FromResult(defaultResult);
         }
     }
 
@@ -762,9 +764,9 @@ public class PolicyNetwork : IDisposable
     private readonly int _actionSize;
     private readonly int _hiddenSize;
     private double[,] _weights1;
-    private double[] _bias1;
+    private double[] _bias1 = null!;
     private double[,] _weights2;
-    private double[] _bias2;
+    private double[] _bias2 = null!;
 
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
     {
@@ -884,8 +886,8 @@ public class ValueNetwork : IDisposable
     private readonly int _stateSize;
     private readonly int _hiddenSize;
     private double[,] _weights1;
-    private double[] _bias1;
-    private double[] _weights2;
+    private double[] _bias1 = null!;
+    private double[] _weights2 = null!;
     private double _bias2;
 
     public ValueNetwork(int stateSize, int hiddenSize)

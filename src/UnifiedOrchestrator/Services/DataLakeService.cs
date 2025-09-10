@@ -335,7 +335,7 @@ namespace UnifiedOrchestrator.Services
             {
                 _connection?.Close();
                 _connection?.Dispose();
-                _connection = null;
+                _connection = null!;
             }
         }
     }

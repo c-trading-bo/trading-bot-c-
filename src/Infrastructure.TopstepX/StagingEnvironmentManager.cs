@@ -43,7 +43,7 @@ public class StagingEnvironmentManager
             result.HasValidCredentials = true;
 
             // Step 2: Configure environment variables for staging
-            await ConfigureEnvironmentVariables(credentialDiscovery.RecommendedCredentials!);
+            ConfigureEnvironmentVariables(credentialDiscovery.RecommendedCredentials!);
             result.EnvironmentConfigured = true;
 
             // Step 3: Setup TopstepX API endpoints for staging
@@ -79,7 +79,7 @@ public class StagingEnvironmentManager
         return result;
     }
 
-    private async Task ConfigureEnvironmentVariables(TopstepXCredentials credentials)
+    private void ConfigureEnvironmentVariables(TopstepXCredentials credentials)
     {
         var stagingVars = new Dictionary<string, string>
         {

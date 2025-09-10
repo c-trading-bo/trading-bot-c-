@@ -53,7 +53,7 @@ public class MetaLearner
     /// <summary>
     /// Fast adaptation to a new market regime/task
     /// </summary>
-    public async Task<PolicyNetwork> AdaptToTaskAsync(
+    public Task<PolicyNetwork> AdaptToTaskAsync(
         string taskId, 
         List<TaskExperience> supportSet, 
         CancellationToken cancellationToken = default)
@@ -97,12 +97,12 @@ public class MetaLearner
             // Update adaptation history
             UpdateAdaptationHistory(taskId, supportSet.Count, adaptedPolicy);
             
-            return adaptedPolicy;
+            return Task.FromResult(adaptedPolicy);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[META] Failed to adapt to task: {TaskId}", taskId);
-            return _metaPolicy.Clone(); // Return meta-policy as fallback
+            return Task.FromResult(_metaPolicy.Clone()); // Return meta-policy as fallback
         }
     }
 
@@ -216,7 +216,7 @@ public class MetaLearner
     /// <summary>
     /// Fast adaptation without storing the adapted policy
     /// </summary>
-    private async Task<PolicyNetwork> AdaptToTaskFastAsync(List<TaskExperience> supportSet)
+    private Task<PolicyNetwork> AdaptToTaskFastAsync(List<TaskExperience> supportSet)
     {
         var adaptedPolicy = _metaPolicy.Clone();
         
@@ -233,7 +233,7 @@ public class MetaLearner
             ApplyGradients(adaptedPolicy, gradients, _config.TaskLearningRate);
         }
         
-        return adaptedPolicy;
+        return Task.FromResult(adaptedPolicy);
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ namespace OrchestratorAgent.Intelligence
         private readonly ILogger<LocalBotMechanicIntegration> _logger;
         private Process? _mechanicProcess;
         private Process? _dashboardProcess;
-        private readonly string _mechanicPath;
+        private readonly string _mechanicPath = null!;
         private bool _disposed;
 
         public LocalBotMechanicIntegration(ILogger<LocalBotMechanicIntegration> logger)

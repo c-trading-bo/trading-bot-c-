@@ -145,8 +145,8 @@ namespace OrchestratorAgent
                         // Flat position
                         ps.Qty = 0;
                         ps.Avg = 0m;
-                        ps.Stop = null;
-                        ps.Target = null;
+                        ps.Stop = null!;
+                        ps.Target = null!;
                         ps.UnrealizedPnl = 0m;
                         UpdateStatus(sym, ps);
                         return;

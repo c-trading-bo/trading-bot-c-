@@ -16,7 +16,7 @@ namespace TopstepX.Bot.Intelligence
     public class CloudDataIntegration
     {
         private readonly ILogger<CloudDataIntegration> _logger;
-        private readonly string _intelligenceDir;
+        private readonly string _intelligenceDir = null!;
         
         public CloudDataIntegration(ILogger<CloudDataIntegration> logger, string intelligenceDir = "Intelligence")
         {

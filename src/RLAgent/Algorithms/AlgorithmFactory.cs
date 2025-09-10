@@ -263,10 +263,10 @@ public class MetaLearningAlgorithmWrapper : IRLAlgorithm
         _metaLearner = metaLearner;
     }
 
-    public async Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
+    public Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
     {
         var policy = _metaLearner.GetTaskPolicy(_currentTaskId) ?? _metaLearner.GetMetaPolicy();
-        return policy.Predict(state);
+        return Task.FromResult(policy.Predict(state));
     }
 
     public void StoreExperience(double[] state, double[] action, double reward, double[] nextState, bool done)

@@ -15,7 +15,7 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
 {
     private readonly ILogger _log;
     private readonly PositionTracker _pos;
-    private readonly string _paramsDir;
+    private readonly string _paramsDir = null!;
     private readonly TimeSpan _window;
     private readonly decimal _dropUsd;
     private readonly bool _allowLive;

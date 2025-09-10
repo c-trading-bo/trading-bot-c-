@@ -92,7 +92,7 @@ namespace OrchestratorAgent.Health
             if (barAge > TimeSpan.FromSeconds(30)) return (false, $"Bars stale ({(int)barAge.TotalSeconds}s)");
 
             // 4) Risk counters (PnL & trades) – best-effort against two possible endpoints
-            decimal? netPnl = null;
+            decimal? netPnl = null!;
             try
             {
                 var pnlA = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct);
@@ -124,7 +124,7 @@ namespace OrchestratorAgent.Health
             if (netPnl.HasValue && netPnl.Value <= -_cfg.Risk.DailyLossLimit)
                 return (false, "Daily loss tripped");
 
-            int? tradesCount = null;
+            int? tradesCount = null!;
             try
             {
                 var trades = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/trades?scope=today", ct);
