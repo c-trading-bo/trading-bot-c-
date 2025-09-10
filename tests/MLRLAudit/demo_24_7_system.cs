@@ -1,5 +1,6 @@
+extern alias BotCoreTest;
+
 using System;
-using BotCore.Config;
 
 public static class QuickDemo
 {

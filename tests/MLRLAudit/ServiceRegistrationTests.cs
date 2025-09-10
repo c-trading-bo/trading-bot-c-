@@ -1,10 +1,9 @@
+extern alias BotCoreTest;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using BotCore.Auth;
-using BotCore.Services;
-using BotCore.Extensions;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -26,7 +25,7 @@ namespace UnitTests.DI
             var serviceProvider = services.BuildServiceProvider();
 
             // Assert
-            var httpClient = serviceProvider.GetService<ITopstepXHttpClient>();
+            var httpClient = serviceProvider.GetService<BotCoreTest::BotCore.Services.ITopstepXHttpClient>();
             Assert.NotNull(httpClient);
         }
 
@@ -46,8 +45,8 @@ namespace UnitTests.DI
             var serviceProvider = services.BuildServiceProvider();
 
             // Assert
-            var authService = serviceProvider.GetService<ITopstepAuth>();
-            var httpClient = serviceProvider.GetService<ITopstepXHttpClient>();
+            var authService = serviceProvider.GetService<BotCoreTest::BotCore.Auth.ITopstepAuth>();
+            var httpClient = serviceProvider.GetService<BotCoreTest::BotCore.Services.ITopstepXHttpClient>();
             
             Assert.NotNull(authService);
             Assert.NotNull(httpClient);
@@ -67,8 +66,8 @@ namespace UnitTests.DI
             var serviceProvider = services.BuildServiceProvider();
 
             // Assert - Should return same instance
-            var httpClient1 = serviceProvider.GetService<ITopstepXHttpClient>();
-            var httpClient2 = serviceProvider.GetService<ITopstepXHttpClient>();
+            var httpClient1 = serviceProvider.GetService<BotCoreTest::BotCore.Services.ITopstepXHttpClient>();
+            var httpClient2 = serviceProvider.GetService<BotCoreTest::BotCore.Services.ITopstepXHttpClient>();
             
             Assert.Same(httpClient1, httpClient2);
         }
@@ -89,7 +88,7 @@ namespace UnitTests.DI
             var serviceProvider = services.BuildServiceProvider();
 
             // Act
-            var authService = serviceProvider.GetRequiredService<ITopstepAuth>();
+            var authService = serviceProvider.GetRequiredService<BotCoreTest::BotCore.Auth.ITopstepAuth>();
             var (jwt, _) = await authService.GetFreshJwtAsync();
 
             // Assert

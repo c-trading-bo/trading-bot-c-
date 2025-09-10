@@ -1,17 +1,18 @@
+extern alias BotCoreTest;
+
 using System;
 using Xunit;
 using Microsoft.Extensions.Logging.Abstractions;
-using BotCore.Services;
 
 namespace TradingBot.Tests.Unit;
 
 public class SecurityServiceTests
 {
-    private readonly SecurityService _securityService;
+    private readonly BotCoreTest::BotCore.Services.SecurityService _securityService;
 
     public SecurityServiceTests()
     {
-        _securityService = new SecurityService(NullLogger<SecurityService>.Instance);
+        _securityService = new BotCoreTest::BotCore.Services.SecurityService(NullLogger<BotCoreTest::BotCore.Services.SecurityService>.Instance);
     }
 
     [Theory]

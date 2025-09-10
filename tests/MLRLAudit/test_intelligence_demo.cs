@@ -1,13 +1,13 @@
+extern alias BotCoreTest;
+
 using Microsoft.Extensions.Logging;
-using BotCore.Services;
-using BotCore.Models;
 using System.Text.Json;
 
 // Simple test program to demonstrate Intelligence Service
-var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<IntelligenceService>();
+var logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<BotCoreTest::BotCore.Services.IntelligenceService>();
 
 // Test with example signals file
-var intelligenceService = new IntelligenceService(logger, "Intelligence/data/signals/example_latest.json");
+var intelligenceService = new BotCoreTest::BotCore.Services.IntelligenceService(logger, "Intelligence/data/signals/example_latest.json");
 
 Console.WriteLine("=== Intelligence Service Demo ===");
 Console.WriteLine();

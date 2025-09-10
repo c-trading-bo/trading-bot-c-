@@ -3,13 +3,13 @@
  * This script verifies that the C# bot can consume intelligence data
  */
 
+extern alias BotCoreTest;
+
 using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using BotCore.Services;
-using BotCore.Models;
 
 namespace TestBotIntelligence
 {

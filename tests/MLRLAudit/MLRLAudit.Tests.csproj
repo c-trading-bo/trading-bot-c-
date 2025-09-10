@@ -26,6 +26,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/UnifiedOrchestrator/UnifiedOrchestrator.csproj" />
+    <ProjectReference Include="../../src/Strategies/Strategies.csproj" />
+    <ProjectReference Include="../../src/BotCore/BotCore.csproj">
+      <Aliases>BotCoreTest</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

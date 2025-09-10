@@ -1,6 +1,7 @@
+extern alias BotCoreTest;
+
 using System;
 using System.Threading.Tasks;
-using TradingBot.Critical;
 using Microsoft.Extensions.Logging;
 
 namespace TradingBot.Tests

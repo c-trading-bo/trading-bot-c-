@@ -1,3 +1,5 @@
+extern alias BotCoreTest;
+
 using System;
 using System.Net.Http;
 using System.Threading;
@@ -5,21 +7,19 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using BotCore.Auth;
-using BotCore.Services;
 
 namespace UnitTests.Http
 {
     public class HttpClientAuthIntegrationTests
     {
-        private readonly Mock<ILogger<TopstepXHttpClient>> _mockLogger;
-        private readonly Mock<ITopstepAuth> _mockAuthService;
+        private readonly Mock<ILogger<BotCoreTest::BotCore.Services.TopstepXHttpClient>> _mockLogger;
+        private readonly Mock<BotCoreTest::BotCore.Auth.ITopstepAuth> _mockAuthService;
         private readonly HttpClient _httpClient;
 
         public HttpClientAuthIntegrationTests()
         {
-            _mockLogger = new Mock<ILogger<TopstepXHttpClient>>();
-            _mockAuthService = new Mock<ITopstepAuth>();
+            _mockLogger = new Mock<ILogger<BotCoreTest::BotCore.Services.TopstepXHttpClient>>();
+            _mockAuthService = new Mock<BotCoreTest::BotCore.Auth.ITopstepAuth>();
             _httpClient = new HttpClient();
         }
 
