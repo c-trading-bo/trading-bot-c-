@@ -6,16 +6,18 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Infrastructure.TopstepX;
+using TradingBot.Abstractions;
 
 namespace UnitTests.Auth
 {
     public class AuthRefreshTests
     {
-        private readonly Mock<ILogger<BotCoreTest::BotCore.Auth.CachedTopstepAuth>> _mockLogger;
+        private readonly Mock<ILogger<CachedTopstepAuth>> _mockLogger;
         
         public AuthRefreshTests()
         {
-            _mockLogger = new Mock<ILogger<BotCoreTest::BotCore.Auth.CachedTopstepAuth>>();
+            _mockLogger = new Mock<ILogger<CachedTopstepAuth>>();
         }
 
         [Fact]
@@ -33,7 +35,7 @@ namespace UnitTests.Auth
                 return Task.FromResult(mockJwt);
             };
 
-            var auth = new BotCoreTest::BotCore.Auth.CachedTopstepAuth(fetchJwt, _mockLogger.Object);
+            var auth = new CachedTopstepAuth(fetchJwt, _mockLogger.Object);
             
             // Initial fetch to set token
             await auth.GetFreshJwtAsync();
@@ -65,7 +67,7 @@ namespace UnitTests.Auth
                 return Task.FromResult(refreshCallCount == 1 ? initialJwt : refreshedJwt);
             };
 
-            var auth = new BotCoreTest::BotCore.Auth.CachedTopstepAuth(fetchJwt, _mockLogger.Object);
+            var auth = new CachedTopstepAuth(fetchJwt, _mockLogger.Object);
             
             // Initial fetch to set expiring token
             await auth.GetFreshJwtAsync();
@@ -99,7 +101,7 @@ namespace UnitTests.Auth
                 return refreshCallCount == 1 ? initialJwt : refreshedJwt;
             };
 
-            var auth = new BotCoreTest::BotCore.Auth.CachedTopstepAuth(fetchJwt, _mockLogger.Object);
+            var auth = new CachedTopstepAuth(fetchJwt, _mockLogger.Object);
             
             // Initial fetch to set expiring token
             await auth.GetFreshJwtAsync();
@@ -140,7 +142,7 @@ namespace UnitTests.Auth
                 throw refreshException;
             };
 
-            var auth = new BotCoreTest::BotCore.Auth.CachedTopstepAuth(fetchJwt, _mockLogger.Object);
+            var auth = new CachedTopstepAuth(fetchJwt, _mockLogger.Object);
             
             // Initial fetch to set expiring token
             await auth.GetFreshJwtAsync();
@@ -180,7 +182,7 @@ namespace UnitTests.Auth
                 return CreateMockJwt(DateTimeOffset.UtcNow.AddMinutes(15));
             };
 
-            var auth = new BotCoreTest::BotCore.Auth.CachedTopstepAuth(fetchJwt, _mockLogger.Object);
+            var auth = new CachedTopstepAuth(fetchJwt, _mockLogger.Object);
             
             // Initial fetch to set expiring token
             await auth.GetFreshJwtAsync();

@@ -7,19 +7,21 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Infrastructure.TopstepX;
+using TradingBot.Abstractions;
 
 namespace UnitTests.Http
 {
     public class HttpClientAuthIntegrationTests : IDisposable
     {
         private readonly Mock<ILogger<BotCoreTest::BotCore.Services.TopstepXHttpClient>> _mockLogger;
-        private readonly Mock<BotCoreTest::BotCore.Auth.ITopstepAuth> _mockAuthService;
+        private readonly Mock<ITopstepAuth> _mockAuthService;
         private readonly HttpClient _httpClient;
 
         public HttpClientAuthIntegrationTests()
         {
             _mockLogger = new Mock<ILogger<BotCoreTest::BotCore.Services.TopstepXHttpClient>>();
-            _mockAuthService = new Mock<BotCoreTest::BotCore.Auth.ITopstepAuth>();
+            _mockAuthService = new Mock<ITopstepAuth>();
             _httpClient = new HttpClient();
         }
 
