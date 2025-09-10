@@ -196,7 +196,7 @@ public class AutoRemediationSystem
         return actions;
     }
 
-    private async Task<List<RemediationAction>> RemediateCredentialIssues(
+    private Task<List<RemediationAction>> RemediateCredentialIssues(
         TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
@@ -243,10 +243,10 @@ public class AutoRemediationSystem
             actions.Add(action);
         }
 
-        return actions;
+        return Task.FromResult(actions);
     }
 
-    private async Task<List<RemediationAction>> RemediatePerformanceIssues(
+    private Task<List<RemediationAction>> RemediatePerformanceIssues(
         TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
@@ -314,10 +314,10 @@ public class AutoRemediationSystem
             actions.Add(action);
         }
 
-        return actions;
+        return Task.FromResult(actions);
     }
 
-    private async Task<List<RemediationAction>> RemediateSecurityIssues(
+    private Task<List<RemediationAction>> RemediateSecurityIssues(
         TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
@@ -355,10 +355,10 @@ public class AutoRemediationSystem
             actions.Add(action);
         }
 
-        return actions;
+        return Task.FromResult(actions);
     }
 
-    private async Task<List<RemediationAction>> RemediateTestFailures(
+    private Task<List<RemediationAction>> RemediateTestFailures(
         TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
@@ -425,7 +425,7 @@ public class AutoRemediationSystem
             actions.Add(action);
         }
 
-        return actions;
+        return Task.FromResult(actions);
     }
 
     private List<ManualReviewItem> IdentifyManualReviewItems(
