@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.Json;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 using BotCore.Infrastructure;
 using BotCore.Testing;
 
@@ -254,7 +255,7 @@ public class ComprehensiveReportingSystem
         return analysis;
     }
 
-    private async Task<List<FeatureInfo>> AnalyzeImplementedFeatures()
+    private Task<List<FeatureInfo>> AnalyzeImplementedFeatures()
     {
         var features = new List<FeatureInfo>();
 
@@ -267,10 +268,10 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Performance Monitoring", Status = "Implemented", Coverage = 80 });
         features.Add(new FeatureInfo { Name = "Comprehensive Reporting", Status = "Implemented", Coverage = 87 });
 
-        return features;
+        return Task.FromResult(features);
     }
 
-    private async Task<List<FeatureInfo>> AnalyzeUnexercisedFeatures()
+    private Task<List<FeatureInfo>> AnalyzeUnexercisedFeatures()
     {
         var features = new List<FeatureInfo>();
 
@@ -279,7 +280,7 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Real-time Market Data", Status = "Partial", Coverage = 65 });
         features.Add(new FeatureInfo { Name = "Advanced ML Strategies", Status = "Partial", Coverage = 70 });
 
-        return features;
+        return Task.FromResult(features);
     }
 
     private double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
@@ -332,7 +333,7 @@ public class ComprehensiveReportingSystem
         return status;
     }
 
-    private async Task<TechnicalDebtAnalysis> AnalyzeTechnicalDebt()
+    private Task<TechnicalDebtAnalysis> AnalyzeTechnicalDebt()
     {
         var analysis = new TechnicalDebtAnalysis();
 
@@ -358,7 +359,7 @@ public class ComprehensiveReportingSystem
             new() { Severity = "Low", Description = "File permissions not set on all platforms", Recommendation = "Add cross-platform file security" }
         };
 
-        return analysis;
+        return Task.FromResult(analysis);
     }
 
     private async Task<SecurityCompliance> AnalyzeSecurityCompliance()
@@ -428,7 +429,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private async Task<double> AnalyzeNetworkSecurity()
+    private Task<double> AnalyzeNetworkSecurity()
     {
         var score = 0.0;
 
@@ -442,7 +443,7 @@ public class ComprehensiveReportingSystem
         // Check timeout configuration
         score += 30; // We have proper timeouts
 
-        return Math.Min(score, 100);
+        return Task.FromResult(Math.Min(score, 100));
     }
 
     private EnvironmentStatus CollectEnvironmentStatus()

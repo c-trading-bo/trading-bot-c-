@@ -168,7 +168,7 @@ namespace BotCore
             return null;
         }
 
-        public async Task CleanupOldDataAsync(int retentionDays = 7)
+        public Task CleanupOldDataAsync(int retentionDays = 7)
         {
             var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
             var pattern = "live_trades_*.jsonl";
@@ -184,6 +184,8 @@ namespace BotCore
                     _logger.LogInformation("[EnhancedTrainingData] Removed old file: {FileName}", fileInfo.Name);
                 }
             }
+            
+            return Task.CompletedTask;
         }
 
         private async Task SaveTradeDataAsync(TradeData tradeData)
@@ -211,7 +213,7 @@ namespace BotCore
                 tradeData.Result, tradeData.StrategyUsed);
         }
 
-        private async Task<List<decimal>> GetCurrentMarketFeaturesAsync(TradeSignalData signalData)
+        private Task<List<decimal>> GetCurrentMarketFeaturesAsync(TradeSignalData signalData)
         {
             // Extract features from the signal data and current market state
             var features = new List<decimal>();
@@ -253,7 +255,7 @@ namespace BotCore
                 features.Add(0m);
             }
 
-            return features.Take(43).ToList();
+            return Task.FromResult(features.Take(43).ToList());
         }
 
         private static decimal GetRegimeScore(string? regime)

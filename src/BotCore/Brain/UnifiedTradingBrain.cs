@@ -275,13 +275,13 @@ namespace BotCore.Brain
 
         #region ML Model Predictions
 
-        private async Task<MarketRegime> DetectMarketRegimeAsync(MarketContext context, CancellationToken cancellationToken)
+        private Task<MarketRegime> DetectMarketRegimeAsync(MarketContext context, CancellationToken cancellationToken)
         {
             if (_metaClassifier == null || !IsInitialized)
             {
                 // Fallback: use volatility-based regime detection
-                return context.Volatility > 0.3m ? MarketRegime.HighVolatility :
-                       context.Volatility < 0.15m ? MarketRegime.LowVolatility : MarketRegime.Normal;
+                return Task.FromResult(context.Volatility > 0.3m ? MarketRegime.HighVolatility :
+                       context.Volatility < 0.15m ? MarketRegime.LowVolatility : MarketRegime.Normal);
             }
 
             try
@@ -289,18 +289,18 @@ namespace BotCore.Brain
                 // Analyze market regime using technical indicators and volatility
                 // ONNX model integration planned for future enhancement
                 if (context.VolumeRatio > 1.5m && context.Volatility > 0.25m)
-                    return MarketRegime.Trending;
+                    return Task.FromResult(MarketRegime.Trending);
                 if (context.Volatility < 0.15m && Math.Abs(context.PriceChange) < 0.5m)
-                    return MarketRegime.Ranging;
+                    return Task.FromResult(MarketRegime.Ranging);
                 if (context.Volatility > 0.4m)
-                    return MarketRegime.HighVolatility;
+                    return Task.FromResult(MarketRegime.HighVolatility);
                 
-                return MarketRegime.Normal;
+                return Task.FromResult(MarketRegime.Normal);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Meta classifier prediction failed, using fallback");
-                return MarketRegime.Normal;
+                return Task.FromResult(MarketRegime.Normal);
             }
         }
 
@@ -349,7 +349,7 @@ namespace BotCore.Brain
             }
         }
 
-        private async Task<PricePrediction> PredictPriceDirectionAsync(
+        private Task<PricePrediction> PredictPriceDirectionAsync(
             MarketContext context, 
             IList<Bar> bars, 
             CancellationToken cancellationToken)
@@ -364,13 +364,13 @@ namespace BotCore.Brain
                     var direction = priceChange > 0 ? PriceDirection.Up : PriceDirection.Down;
                     var probability = Math.Min(0.75m, 0.5m + Math.Abs(priceChange) / (context.Atr ?? 10));
                     
-                    return new PricePrediction
+                    return Task.FromResult(new PricePrediction
                     {
                         Direction = direction,
                         Probability = probability,
                         ExpectedMove = Math.Abs(priceChange),
                         TimeHorizon = TimeSpan.FromMinutes(30)
-                    };
+                    });
                 }
             }
 
@@ -405,24 +405,24 @@ namespace BotCore.Brain
                     probability = 0.5m;
                 }
                 
-                return new PricePrediction
+                return Task.FromResult(new PricePrediction
                 {
                     Direction = direction,
                     Probability = probability,
                     ExpectedMove = context.Atr ?? 10,
                     TimeHorizon = TimeSpan.FromMinutes(30)
-                };
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "LSTM prediction failed, using fallback");
-                return new PricePrediction
+                return Task.FromResult(new PricePrediction
                 {
                     Direction = PriceDirection.Sideways,
                     Probability = 0.5m,
                     ExpectedMove = 5,
                     TimeHorizon = TimeSpan.FromMinutes(30)
-                };
+                });
             }
         }
 
@@ -621,7 +621,7 @@ namespace BotCore.Brain
         /// Generate enhanced candidates that integrate with AllStrategies.cs
         /// This replaces the manual candidate generation
         /// </summary>
-        private async Task<List<Candidate>> GenerateEnhancedCandidatesAsync(
+        private Task<List<Candidate>> GenerateEnhancedCandidatesAsync(
             string symbol,
             Env env,
             Levels levels,
@@ -676,14 +676,14 @@ namespace BotCore.Brain
                 _logger.LogDebug("🎯 [BRAIN-ENHANCE] {Symbol}: Generated {Count} AI-enhanced candidates from {Strategy}",
                     symbol, enhancedCandidates.Count, strategySelection.SelectedStrategy);
                 
-                return enhancedCandidates;
+                return Task.FromResult(enhancedCandidates);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [BRAIN-ENHANCE] Error generating enhanced candidates");
                 
                 // Fallback to original AllStrategies logic
-                return AllStrategies.generate_candidates(symbol, env, levels, bars, risk);
+                return Task.FromResult(AllStrategies.generate_candidates(symbol, env, levels, bars, risk));
             }
         }
 

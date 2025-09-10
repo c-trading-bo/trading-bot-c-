@@ -190,7 +190,7 @@ namespace TopstepX.S11
         private readonly IOrderRouter _router; private readonly S11Config _cfg; private readonly INewsGate _newsGate;
         private readonly State _es; private readonly State _nq;
         
-        public S11Strategy(IOrderRouter router, S11Config cfg = null, INewsGate newsGate = null)
+        public S11Strategy(IOrderRouter router, S11Config? cfg = null, INewsGate? newsGate = null)
         { _router=router; _cfg=cfg??new S11Config(); _newsGate=newsGate??new NullNewsGate(); _es=new State(Instrument.ES,_router,_cfg); _nq=new State(Instrument.NQ,_router,_cfg); }
 
         public void WarmupDaily(Instrument instr, IEnumerable<(DateTime dateEt, double high, double low)> days)

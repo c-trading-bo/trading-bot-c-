@@ -282,7 +282,7 @@ public sealed class OnnxModelLoader : IDisposable
     /// <summary>
     /// Health probe: smoke-predict on canned feature row
     /// </summary>
-    private async Task<HealthProbeResult> HealthProbeAsync(InferenceSession session)
+    private Task<HealthProbeResult> HealthProbeAsync(InferenceSession session)
     {
         try
         {
@@ -307,11 +307,11 @@ public sealed class OnnxModelLoader : IDisposable
 
             if (inputs.Count == 0)
             {
-                return new HealthProbeResult 
+                return Task.FromResult(new HealthProbeResult 
                 { 
                     IsHealthy = false, 
                     ErrorMessage = "No valid inputs created for health probe" 
-                };
+                });
             }
 
             // Run inference with canned data
@@ -323,11 +323,11 @@ public sealed class OnnxModelLoader : IDisposable
             var outputCount = results.Count();
             if (outputCount == 0)
             {
-                return new HealthProbeResult 
+                return Task.FromResult(new HealthProbeResult 
                 { 
                     IsHealthy = false, 
                     ErrorMessage = "Model produced no outputs during health probe" 
-                };
+                });
             }
 
             // Check for NaN or invalid outputs
@@ -338,11 +338,11 @@ public sealed class OnnxModelLoader : IDisposable
                     var hasNaN = tensor.ToArray().Any(f => float.IsNaN(f) || float.IsInfinity(f));
                     if (hasNaN)
                     {
-                        return new HealthProbeResult 
+                        return Task.FromResult(new HealthProbeResult 
                         { 
                             IsHealthy = false, 
                             ErrorMessage = "Model output contains NaN or Infinity values" 
-                        };
+                        });
                     }
                 }
             }
@@ -350,19 +350,19 @@ public sealed class OnnxModelLoader : IDisposable
             _logger.LogDebug("[ONNX-Loader] Health probe passed in {Duration}ms with {OutputCount} outputs", 
                 inferenceDuration.TotalMilliseconds, outputCount);
 
-            return new HealthProbeResult 
+            return Task.FromResult(new HealthProbeResult 
             { 
                 IsHealthy = true, 
                 InferenceDurationMs = inferenceDuration.TotalMilliseconds 
-            };
+            });
         }
         catch (Exception ex)
         {
-            return new HealthProbeResult 
+            return Task.FromResult(new HealthProbeResult 
             { 
                 IsHealthy = false, 
                 ErrorMessage = ex.Message 
-            };
+            });
         }
     }
 
@@ -1054,7 +1054,7 @@ public sealed class OnnxModelLoader : IDisposable
     /// <summary>
     /// Clean up old model versions
     /// </summary>
-    public async Task CleanupOldVersionsAsync(int keepVersions = 5, CancellationToken cancellationToken = default)
+    public Task CleanupOldVersionsAsync(int keepVersions = 5, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1084,6 +1084,8 @@ public sealed class OnnxModelLoader : IDisposable
         {
             _logger.LogError(ex, "[ONNX-Registry] Failed to cleanup old model versions");
         }
+        
+        return Task.CompletedTask;
     }
 
     private async Task<string> CalculateFileHashAsync(string filePath, CancellationToken cancellationToken)

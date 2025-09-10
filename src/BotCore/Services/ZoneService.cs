@@ -210,7 +210,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     /// <summary>
     /// Parse enhanced zone data format
     /// </summary>
-    private async Task<ZoneData?> ParseEnhancedZoneData(string json, string symbol)
+    private Task<ZoneData?> ParseEnhancedZoneData(string json, string symbol)
     {
         try
         {
@@ -306,12 +306,12 @@ public class ZoneService : IZoneService, ISupplyDemandService
                 zoneData.GeneratedAt = generatedAt;
             }
 
-            return zoneData;
+            return Task.FromResult<ZoneData?>(zoneData);
         }
         catch (Exception ex)
         {
             _logger.LogDebug("[ZONES] Failed to parse enhanced format: {Error}", ex.Message);
-            return null;
+            return Task.FromResult<ZoneData?>(null);
         }
     }
 

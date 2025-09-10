@@ -1,7 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using BotCore.Auth;
+using TradingBot.Abstractions;
+using Infrastructure.TopstepX;
 using BotCore.Infrastructure;
 using BotCore.Testing;
 using BotCore.Reporting;
@@ -87,7 +88,7 @@ public class DeploymentPipelineOrchestrator
         return result;
     }
 
-    private async Task<CredentialDetectionResult> ExecuteCredentialDetection()
+    private Task<CredentialDetectionResult> ExecuteCredentialDetection()
     {
         var result = new CredentialDetectionResult();
 
@@ -129,7 +130,7 @@ public class DeploymentPipelineOrchestrator
             result.IsSuccessful = false;
         }
 
-        return result;
+        return Task.FromResult(result);
     }
 
     private async Task<StagingDeploymentResult> ExecuteStagingDeployment()

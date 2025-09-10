@@ -156,10 +156,11 @@ namespace TopstepX.Bot.Core.Services
                     .WithAutomaticReconnect()
                     .Build();
                 
-                _userHubConnection.Closed += async (error) =>
+                _userHubConnection.Closed += (error) =>
                 {
                     _logger.LogWarning("📡 User Hub connection closed: {Error}", error?.Message ?? "Unknown");
                     _errorMonitoring.UpdateComponentHealth("UserHub", ErrorHandlingMonitoringSystem.HealthStatus.Warning, error?.Message);
+                    return Task.CompletedTask;
                 };
                 
                 _userHubConnection.Reconnected += async (connectionId) =>
@@ -175,10 +176,11 @@ namespace TopstepX.Bot.Core.Services
                     .WithAutomaticReconnect()
                     .Build();
                 
-                _marketHubConnection.Closed += async (error) =>
+                _marketHubConnection.Closed += (error) =>
                 {
                     _logger.LogWarning("📡 Market Hub connection closed: {Error}", error?.Message ?? "Unknown");
                     _errorMonitoring.UpdateComponentHealth("MarketHub", ErrorHandlingMonitoringSystem.HealthStatus.Warning, error?.Message);
+                    return Task.CompletedTask;
                 };
                 
                 _marketHubConnection.Reconnected += async (connectionId) =>
@@ -271,11 +273,11 @@ namespace TopstepX.Bot.Core.Services
             
             var checks = new List<(string Name, Func<Task<bool>> Check)>
             {
-                ("EmergencyStop", async () => !_emergencyStop.IsEmergencyStop),
-                ("UserHubConnection", async () => _userHubConnection?.State == HubConnectionState.Connected),
-                ("MarketHubConnection", async () => _marketHubConnection?.State == HubConnectionState.Connected),
+                ("EmergencyStop", () => Task.FromResult(!_emergencyStop.IsEmergencyStop)),
+                ("UserHubConnection", () => Task.FromResult(_userHubConnection?.State == HubConnectionState.Connected)),
+                ("MarketHubConnection", () => Task.FromResult(_marketHubConnection?.State == HubConnectionState.Connected)),
                 ("ApiConnectivity", TestApiConnectivityAsync),
-                ("ConfigurationValid", async () => ValidateConfiguration())
+                ("ConfigurationValid", () => Task.FromResult(ValidateConfiguration()))
             };
             
             var passedChecks = 0;
@@ -416,7 +418,7 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
-        private async void OnRiskViolationDetected(object? sender, RiskViolationEventArgs e)
+        private void OnRiskViolationDetected(object? sender, RiskViolationEventArgs e)
         {
             _logger.LogCritical("🚨 RISK VIOLATION: {Symbol} - {Violations}", 
                 e.Symbol, string.Join(", ", e.Violations));
@@ -428,7 +430,7 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
-        private async void OnCriticalErrorDetected(object? sender, CriticalErrorEventArgs e)
+        private void OnCriticalErrorDetected(object? sender, CriticalErrorEventArgs e)
         {
             _logger.LogCritical("🚨 CRITICAL ERROR in {Component}: {Message}", e.Component, e.Exception.Message);
             

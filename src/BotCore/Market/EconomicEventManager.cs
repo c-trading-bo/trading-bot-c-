@@ -72,7 +72,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
     }
 
-    public async Task<IEnumerable<EconomicEvent>> GetUpcomingEventsAsync(TimeSpan timeWindow)
+    public Task<IEnumerable<EconomicEvent>> GetUpcomingEventsAsync(TimeSpan timeWindow)
     {
         var cutoffTime = DateTime.UtcNow.Add(timeWindow);
         
@@ -86,11 +86,11 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             _logger.LogDebug("[EconomicEventManager] Found {Count} upcoming events in next {TimeWindow}", 
                 upcomingEvents.Count, timeWindow);
 
-            return upcomingEvents;
+            return Task.FromResult(upcomingEvents.AsEnumerable());
         }
     }
 
-    public async Task<IEnumerable<EconomicEvent>> GetEventsByImpactAsync(EventImpact minImpact)
+    public Task<IEnumerable<EconomicEvent>> GetEventsByImpactAsync(EventImpact minImpact)
     {
         lock (_lockObject)
         {
@@ -102,7 +102,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             _logger.LogDebug("[EconomicEventManager] Found {Count} events with impact >= {Impact}", 
                 filteredEvents.Count, minImpact);
 
-            return filteredEvents;
+            return Task.FromResult(filteredEvents.AsEnumerable());
         }
     }
 
@@ -134,7 +134,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         return false;
     }
 
-    public async Task<TradingRestriction> GetTradingRestrictionAsync(string symbol)
+    public Task<TradingRestriction> GetTradingRestrictionAsync(string symbol)
     {
         if (_tradingRestrictions.TryGetValue(symbol, out var restriction))
         {
@@ -152,13 +152,13 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                 };
                 
                 OnTradingRestrictionChanged?.Invoke(this, expiredRestriction);
-                return expiredRestriction;
+                return Task.FromResult(expiredRestriction);
             }
 
-            return restriction;
+            return Task.FromResult(restriction);
         }
 
-        return new TradingRestriction { Symbol = symbol, IsRestricted = false };
+        return Task.FromResult(new TradingRestriction { Symbol = symbol, IsRestricted = false });
     }
 
     public async Task ShutdownAsync()

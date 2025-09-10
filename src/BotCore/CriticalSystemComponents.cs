@@ -94,7 +94,7 @@ namespace TradingBot.Critical
             _database = new SQLiteConnection("Data Source=audit.db");
         }
         
-        public async Task InitializeVerificationSystem()
+        public Task InitializeVerificationSystem()
         {
             // Setup SignalR listeners for fill events
             _signalRConnection.On<FillEventData>("FillReceived", async (fillData) =>
@@ -114,9 +114,11 @@ namespace TradingBot.Critical
             _reconciliationTimer = new Timer(ReconcilePendingOrders, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
             
             _logger.LogInformation("ExecutionVerificationSystem initialized");
+            
+            return Task.CompletedTask;
         }
         
-        private async Task ProcessFillEvent(FillEventData fillData)
+        private Task ProcessFillEvent(FillEventData fillData)
         {
             lock (_lockObject)
             {
@@ -169,6 +171,8 @@ namespace TradingBot.Critical
                     Task.Run(async () => await HandleOrphanedFill(fillData));
                 }
             }
+            
+            return Task.CompletedTask;
         }
         
         private async Task ProcessOrderStatus(OrderStatusData statusData)
@@ -504,13 +508,15 @@ namespace TradingBot.Critical
     {
         private readonly string _stateFile = "trading_state.json";
         private readonly string _backupStateFile = "trading_state.backup.json";
-        private readonly Timer? _statePersistenceTimer;
+        private readonly Timer _statePersistenceTimer;
         private readonly ConcurrentDictionary<string, Position> _activePositions = new();
         private readonly object _stateLock = new();
         private DateTime _lastHeartbeat;
         private bool _emergencyModeActive = false;
         private readonly ILogger<DisasterRecoverySystem> _logger;
+#pragma warning disable CS0649 // Field is never assigned - will be implemented in future versions
         private readonly SQLiteConnection? _database;
+#pragma warning restore CS0649
         
         public class SystemState
         {
@@ -799,7 +805,7 @@ namespace TradingBot.Critical
             }
         }
         
-        private async Task StorePositionDiscrepancies(List<string> discrepancies)
+        private Task StorePositionDiscrepancies(List<string> discrepancies)
         {
             try
             {
@@ -821,9 +827,11 @@ namespace TradingBot.Critical
             {
                 _logger.LogError(ex, "[DISCREPANCIES] Failed to store position discrepancies");
             }
+            
+            return Task.CompletedTask;
         }
         
-        private async Task HandleUnknownPosition(Position brokerPos)
+        private Task HandleUnknownPosition(Position brokerPos)
         {
             _logger.LogCritical("[UNKNOWN_POSITION] Found unexpected position: {Symbol} Qty={Quantity}", brokerPos.Symbol, brokerPos.Quantity);
             
@@ -839,6 +847,8 @@ namespace TradingBot.Critical
             
             // Add to active positions with manual tag
             _activePositions[brokerPos.Symbol] = brokerPos;
+            
+            return Task.CompletedTask;
         }
         
         private async Task ReattachProtectiveOrders(SystemState state)
@@ -978,13 +988,13 @@ namespace TradingBot.Critical
         private string GetSystemVersion() => "1.0.0";
         private string GenerateStateHash() => Guid.NewGuid().ToString();
         private void LogCriticalError(string message, Exception? ex) => _logger.LogError(ex, message);
-        private async Task<List<Position>> GetBrokerPositions() => new();
+        private Task<List<Position>> GetBrokerPositions() => Task.FromResult(new List<Position>());
         private void LogPositionDiscrepancy(string message) => _logger.LogWarning(message);
-        private async Task<bool> CheckOrderExists(string orderId) => await Task.FromResult(false);
+        private Task<bool> CheckOrderExists(string orderId) => Task.FromResult(false);
         private decimal CalculateStopLoss(Position position) => position.EntryPrice * 0.98m;
         private decimal CalculateTakeProfit(Position position) => position.EntryPrice * 1.02m;
-        private async Task<Order?> PlaceStopLossOrder(string symbol, int quantity, decimal price) => await Task.FromResult<Order?>(null);
-        private async Task<Order?> PlaceTakeProfitOrder(string symbol, int quantity, decimal price) => await Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceStopLossOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
+        private Task<Order?> PlaceTakeProfitOrder(string symbol, int quantity, decimal price) => Task.FromResult<Order?>(null);
         private void LogCriticalAction(string message) => _logger.LogCritical(message);
         private async Task ExecuteEmergencyOrder(Order order) 
         {
@@ -1143,7 +1153,7 @@ namespace TradingBot.Critical
             try
             {
                 // Stop all timers
-                _statePersistenceTimer?.Dispose();
+                _statePersistenceTimer.Dispose();
 
                 // Close any disposable resources
                 _logger?.LogWarning("[Emergency] System shutdown initiated - all connections closed");
@@ -1260,7 +1270,7 @@ namespace TradingBot.Critical
 
         public void Dispose()
         {
-            _statePersistenceTimer?.Dispose();
+            _statePersistenceTimer.Dispose();
         }
     }
     

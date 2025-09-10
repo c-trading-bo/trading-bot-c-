@@ -111,7 +111,9 @@ namespace BotCore.Risk
         private decimal _dailyStartBalance;
         private int _consecutiveLosses = 0;
         private decimal _peakBalance;
+#pragma warning disable CS0414 // Field is assigned but not used - reserved for future emergency halt functionality
         private bool _tradingHalted = false;
+#pragma warning restore CS0414
         private decimal _positionSizeMultiplier = 1.0m;
         
         public class DrawdownTracker

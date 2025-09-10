@@ -25,7 +25,7 @@ namespace TopstepX.Bot.Intelligence
         /// <summary>
         /// Start Local Bot Mechanic in background
         /// </summary>
-        public async Task<bool> StartMechanicAsync()
+        public Task<bool> StartMechanicAsync()
         {
             try
             {
@@ -34,7 +34,7 @@ namespace TopstepX.Bot.Intelligence
                 if (!File.Exists(autoStartPath))
                 {
                     Console.WriteLine("❌ Local Bot Mechanic not found");
-                    return false;
+                    return Task.FromResult(false);
                 }
                 
                 var startInfo = new ProcessStartInfo
@@ -53,7 +53,7 @@ namespace TopstepX.Bot.Intelligence
                 if (_mechanicProcess != null)
                 {
                     Console.WriteLine($"🧠 Local Bot Mechanic started (PID: {_mechanicProcess.Id})");
-                    return true;
+                    return Task.FromResult(true);
                 }
             }
             catch (Exception ex)
@@ -61,7 +61,7 @@ namespace TopstepX.Bot.Intelligence
                 Console.WriteLine($"❌ Failed to start Local Bot Mechanic: {ex.Message}");
             }
             
-            return false;
+            return Task.FromResult(false);
         }
         
         /// <summary>
