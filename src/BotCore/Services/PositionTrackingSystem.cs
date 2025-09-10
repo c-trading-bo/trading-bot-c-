@@ -91,7 +91,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 Fill fill;
-                Position position;
+                Position? position;
                 
                 lock (_lockObject)
                 {
@@ -209,7 +209,7 @@ namespace TopstepX.Bot.Core.Services
             await CheckAccountRiskAsync();
         }
         
-        private async Task CheckRiskLimitsAsync(Position position)
+        private Task CheckRiskLimitsAsync(Position position)
         {
             var violations = new List<string>();
             
@@ -241,9 +241,11 @@ namespace TopstepX.Bot.Core.Services
                 
                 RiskViolationDetected?.Invoke(this, eventArgs);
             }
+            
+            return Task.CompletedTask;
         }
         
-        private async Task CheckAccountRiskAsync()
+        private Task CheckAccountRiskAsync()
         {
             var totalDailyPnL = _positions.Values.Sum(p => p.DailyPnL);
             var totalUnrealizedPnL = _positions.Values.Sum(p => p.UnrealizedPnL);
@@ -275,6 +277,8 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogCritical("🚨 ACCOUNT RISK VIOLATION: {Violations}", string.Join(", ", violations));
                 RiskViolationDetected?.Invoke(this, eventArgs);
             }
+            
+            return Task.CompletedTask;
         }
         
         private void ReconcilePositions(object? state)

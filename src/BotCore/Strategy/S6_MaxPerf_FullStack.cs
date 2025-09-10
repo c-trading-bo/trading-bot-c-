@@ -167,7 +167,7 @@ namespace TopstepX.S6
     {
         private readonly IOrderRouter _router; private readonly S6Config _cfg;
         private readonly State _es; private readonly State _nq;
-        public S6Strategy(IOrderRouter router, S6Config cfg = null)
+        public S6Strategy(IOrderRouter router, S6Config? cfg = null)
         { _router=router; _cfg=cfg??new S6Config(); _es=new State(Instrument.ES,_router,_cfg); _nq=new State(Instrument.NQ,_router,_cfg); }
 
         public void WarmupDaily(Instrument instr, IEnumerable<(DateTime dateEt, double high, double low)> days)

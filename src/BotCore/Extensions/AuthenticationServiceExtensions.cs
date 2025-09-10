@@ -36,14 +36,14 @@ public static class AuthenticationServiceExtensions
         // Register auth service factory function
         services.AddSingleton<Func<CancellationToken, Task<string>>>(serviceProvider =>
         {
-            return async (cancellationToken) =>
+            return (cancellationToken) =>
             {
                 // This would typically call the actual TopstepAuthAgent
                 // For now, fallback to environment variable
                 var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
                 if (!string.IsNullOrEmpty(jwt))
                 {
-                    return jwt;
+                    return Task.FromResult(jwt);
                 }
                 
                 // In production, this would authenticate with username/password

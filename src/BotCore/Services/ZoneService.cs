@@ -306,7 +306,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
                 zoneData.GeneratedAt = generatedAt;
             }
 
-            return Task.FromResult(zoneData);
+            return Task.FromResult<ZoneData?>(zoneData);
         }
         catch (Exception ex)
         {

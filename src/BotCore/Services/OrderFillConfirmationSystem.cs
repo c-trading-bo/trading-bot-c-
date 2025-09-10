@@ -241,7 +241,7 @@ namespace TopstepX.Bot.Core.Services
             }
         }
         
-        private async Task ProcessOrderUpdateAsync(GatewayUserOrder orderUpdate)
+        private Task ProcessOrderUpdateAsync(GatewayUserOrder orderUpdate)
         {
             try
             {
@@ -254,7 +254,7 @@ namespace TopstepX.Bot.Core.Services
                     trackingRecord.IsVerified = true;
                     
                     _logger.LogInformation("ORDER UPDATE: account={AccountId} status={Status} orderId={OrderId} reason={Reason}",
-                        SecurityHelpers.MaskAccountId(orderUpdate.AccountId), orderUpdate.Status, SecurityHelpers.MaskOrderId(orderUpdate.OrderId), orderUpdate.Reason ?? "N/A");
+                        SecurityHelpers.MaskAccountId(orderUpdate.AccountId ?? "Unknown"), orderUpdate.Status, SecurityHelpers.MaskOrderId(orderUpdate.OrderId ?? "Unknown"), orderUpdate.Reason ?? "N/A");
                     
                     if (orderUpdate.Status == "FILLED" || orderUpdate.Status == "PARTIALLY_FILLED")
                     {
@@ -283,6 +283,8 @@ namespace TopstepX.Bot.Core.Services
             {
                 _logger.LogError(ex, "❌ Error processing order update");
             }
+            
+            return Task.CompletedTask;
         }
         
         private async Task ProcessTradeUpdateAsync(GatewayUserTrade tradeUpdate)
@@ -308,7 +310,7 @@ namespace TopstepX.Bot.Core.Services
                     trackingRecord.Fills.Add(fillConfirmation);
                     
                     _logger.LogInformation("TRADE CONFIRMED: account={AccountId} orderId={OrderId} fillPrice={FillPrice:F2} qty={Quantity} time={Time:yyyy-MM-dd HH:mm:ss}",
-                        SecurityHelpers.MaskAccountId(tradeUpdate.AccountId), SecurityHelpers.MaskOrderId(tradeUpdate.OrderId), tradeUpdate.FillPrice, tradeUpdate.Quantity, DateTime.UtcNow);
+                        SecurityHelpers.MaskAccountId(tradeUpdate.AccountId ?? "Unknown"), SecurityHelpers.MaskOrderId(tradeUpdate.OrderId ?? "Unknown"), tradeUpdate.FillPrice, tradeUpdate.Quantity, DateTime.UtcNow);
                     
                     // Update position tracker
                     await _positionTracker.ProcessFillAsync(
