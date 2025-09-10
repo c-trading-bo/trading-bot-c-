@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using TopstepX.Bot.Abstractions;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -467,25 +468,6 @@ namespace TopstepX.Bot.Core.Services
         public int Quantity { get; set; }
         public decimal Commission { get; set; }
         public string? Exchange { get; set; }
-    }
-    
-    public class ApiOrderResponse
-    {
-        public bool IsSuccess { get; set; }
-        public string? OrderId { get; set; }
-        public string? ErrorMessage { get; set; }
-        
-        public static ApiOrderResponse Success(string orderId) => new() { IsSuccess = true, OrderId = orderId };
-        public static ApiOrderResponse Failed(string error) => new() { IsSuccess = false, ErrorMessage = error };
-    }
-    
-    public class ApiOrderDetails
-    {
-        public string OrderId { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string Symbol { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public decimal Price { get; set; }
     }
     
     public class OrderResult

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
+using TopstepX.Bot.Abstractions;
 
 namespace TopstepX.Bot.Core.Services
 {
