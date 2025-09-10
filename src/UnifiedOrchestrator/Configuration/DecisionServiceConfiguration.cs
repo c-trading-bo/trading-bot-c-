@@ -15,6 +15,7 @@ public class WorkflowSchedulingOptions
     public bool Enabled { get; set; } = true;
     public Dictionary<string, WorkflowScheduleConfig> DefaultSchedules { get; set; } = new();
     public List<string> MarketHolidays { get; set; } = new();
+    public string TimeZone { get; set; } = "America/New_York";
 }
 
 /// <summary>
@@ -32,6 +33,12 @@ public class WorkflowScheduleConfig
     public string? Global { get; set; }
     public string? Weekends { get; set; }
     public string? Disabled { get; set; }
+    
+    // CME Futures Session Configuration
+    public string? SessionOpen { get; set; }
+    public string? SessionClose { get; set; }
+    public string? DailyBreakStart { get; set; }
+    public string? DailyBreakEnd { get; set; }
 }
 
 /// <summary>

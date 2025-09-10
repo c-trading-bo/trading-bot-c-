@@ -145,20 +145,36 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
 
         try
         {
-            // Get the workflow schedule configuration
-            if (!_workflowSchedules.TryGetValue(workflowId, out var scheduleConfig))
-            {
-                _logger.LogDebug("[SCHEDULER] No schedule found for workflow: {WorkflowId}, using default interval", workflowId);
-                return DateTime.UtcNow.AddHours(1);
-            }
-
             var currentTime = DateTime.UtcNow;
+            var timeZone = _schedulingOptions.TimeZone ?? "America/New_York";
             
             // Check if it's a market holiday
             if (CronScheduler.IsMarketHoliday(currentTime, _schedulingOptions.MarketHolidays))
             {
                 _logger.LogDebug("[SCHEDULER] Market holiday detected, scheduling for next business day");
-                return GetNextBusinessDay(currentTime).AddHours(9); // 9 AM next business day
+                return GetNextBusinessDay(currentTime).AddHours(18); // 6 PM ET next business day (Sunday session open)
+            }
+
+            // Check if we're in CME daily maintenance break
+            if (CronScheduler.IsMaintenanceBreak(currentTime, timeZone))
+            {
+                _logger.LogDebug("[SCHEDULER] CME maintenance break detected (5-6 PM ET), scheduling after maintenance");
+                // Schedule for 6 PM ET (end of maintenance break)
+                var targetTimeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+                var et = TimeZoneInfo.ConvertTimeFromUtc(currentTime, targetTimeZoneInfo);
+                var endOfBreak = new DateTime(et.Year, et.Month, et.Day, 18, 0, 0, DateTimeKind.Unspecified);
+                return TimeZoneInfo.ConvertTimeToUtc(endOfBreak, targetTimeZoneInfo);
+            }
+
+            // Get the workflow schedule configuration or use futures_default
+            if (!_workflowSchedules.TryGetValue(workflowId, out var scheduleConfig))
+            {
+                // Try to get futures_default configuration
+                if (!_workflowSchedules.TryGetValue("futures_default", out scheduleConfig))
+                {
+                    _logger.LogDebug("[SCHEDULER] No schedule found for workflow: {WorkflowId}, using default interval", workflowId);
+                    return DateTime.UtcNow.AddHours(1);
+                }
             }
 
             // Create WorkflowSchedule instance for current evaluation
@@ -173,7 +189,11 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
                 Regular = scheduleConfig.Regular,
                 Global = scheduleConfig.Global,
                 Weekends = scheduleConfig.Weekends,
-                Disabled = scheduleConfig.Disabled
+                Disabled = scheduleConfig.Disabled,
+                SessionOpen = scheduleConfig.SessionOpen,
+                SessionClose = scheduleConfig.SessionClose,
+                DailyBreakStart = scheduleConfig.DailyBreakStart,
+                DailyBreakEnd = scheduleConfig.DailyBreakEnd
             };
 
             // Get the active schedule for current time
@@ -185,13 +205,18 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
                 return DateTime.UtcNow.AddHours(1);
             }
 
-            // Parse the cron expression and get next execution
-            var nextExecution = CronScheduler.GetNextExecution(activeSchedule, currentTime);
+            // Parse the cron expression and get next execution with timezone support
+            var nextExecution = CronScheduler.GetNextExecution(activeSchedule, currentTime, timeZone);
             
             if (nextExecution.HasValue)
             {
-                _logger.LogDebug("[SCHEDULER] Next execution for {WorkflowId}: {NextExecution} (using schedule: {Schedule})", 
-                    workflowId, nextExecution.Value, activeSchedule);
+                // Convert to Eastern Time for logging
+                var targetTimeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+                var nextExecutionET = TimeZoneInfo.ConvertTimeFromUtc(nextExecution.Value, targetTimeZoneInfo);
+                
+                _logger.LogDebug("[SCHEDULER] Next execution for {WorkflowId}: {NextExecutionUTC} UTC ({NextExecutionET} ET) (using schedule: {Schedule})", 
+                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss"), 
+                    nextExecutionET.ToString("yyyy-MM-dd HH:mm:ss"), activeSchedule);
                 return nextExecution.Value;
             }
 
@@ -207,13 +232,30 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
 
     private DateTime GetNextBusinessDay(DateTime date)
     {
-        var next = date.AddDays(1);
-        while (next.DayOfWeek == DayOfWeek.Saturday || next.DayOfWeek == DayOfWeek.Sunday ||
-               CronScheduler.IsMarketHoliday(next, _schedulingOptions.MarketHolidays))
+        var timeZone = _schedulingOptions.TimeZone ?? "America/New_York";
+        var targetTimeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZone);
+        
+        // Convert to ET for business day calculation
+        var et = TimeZoneInfo.ConvertTimeFromUtc(date, targetTimeZoneInfo);
+        var next = et.AddDays(1);
+        
+        while (next.DayOfWeek == DayOfWeek.Saturday || 
+               CronScheduler.IsMarketHoliday(TimeZoneInfo.ConvertTimeToUtc(next, targetTimeZoneInfo), _schedulingOptions.MarketHolidays))
         {
             next = next.AddDays(1);
         }
-        return next;
+        
+        // Return the next business day at market open time
+        // For CME futures, Sunday 6 PM ET is the weekly open
+        if (next.DayOfWeek == DayOfWeek.Sunday)
+        {
+            return TimeZoneInfo.ConvertTimeToUtc(new DateTime(next.Year, next.Month, next.Day, 18, 0, 0), targetTimeZoneInfo);
+        }
+        else
+        {
+            // For other weekdays, return start of session (after maintenance break if applicable)
+            return TimeZoneInfo.ConvertTimeToUtc(new DateTime(next.Year, next.Month, next.Day, 18, 0, 0), targetTimeZoneInfo);
+        }
     }
 
     public new async Task StartAsync(CancellationToken cancellationToken = default)
