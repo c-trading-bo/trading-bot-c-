@@ -22,6 +22,11 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     private readonly object? _dataOrchestrator;
     private readonly DateTime _startTime;
     private bool _isConnectedToTopstep = false;
+    
+    // Workflow tracking for real stats
+    private readonly Dictionary<string, UnifiedWorkflow> _registeredWorkflows = new();
+    private readonly HashSet<string> _activeWorkflows = new();
+    private readonly object _workflowLock = new();
 
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
@@ -187,20 +192,32 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     public IReadOnlyList<UnifiedWorkflow> GetWorkflows()
     {
-        // Implementation would return actual workflows
-        return new List<UnifiedWorkflow>();
+        lock (_workflowLock)
+        {
+            return _registeredWorkflows.Values.ToList();
+        }
     }
 
     public UnifiedWorkflow? GetWorkflow(string workflowId)
     {
-        // Implementation would find workflow by ID
-        return null;
+        lock (_workflowLock)
+        {
+            _registeredWorkflows.TryGetValue(workflowId, out var workflow);
+            return workflow;
+        }
     }
 
     public async Task RegisterWorkflowAsync(UnifiedWorkflow workflow, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[UNIFIED] Registering workflow: {WorkflowId}", workflow.Id);
+        
+        lock (_workflowLock)
+        {
+            _registeredWorkflows[workflow.Id] = workflow;
+        }
+        
         await Task.Delay(50, cancellationToken); // Simulate registration
+        _logger.LogInformation("[UNIFIED] Workflow registered successfully: {WorkflowId}", workflow.Id);
     }
 
     public async Task<WorkflowExecutionResult> ExecuteWorkflowAsync(string workflowId, Dictionary<string, object>? parameters = null, CancellationToken cancellationToken = default)
@@ -208,13 +225,36 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         try
         {
             _logger.LogInformation("[UNIFIED] Executing workflow: {WorkflowId}", workflowId);
+            
+            // Mark workflow as active
+            lock (_workflowLock)
+            {
+                _activeWorkflows.Add(workflowId);
+            }
+            
             await Task.Delay(100, cancellationToken); // Simulate execution
-            return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = $"Workflow {workflowId} executed successfully" } };
+            
+            var result = new WorkflowExecutionResult 
+            { 
+                Success = true, 
+                Results = new() { ["message"] = $"Workflow {workflowId} executed successfully" } 
+            };
+            
+            _logger.LogInformation("[UNIFIED] Workflow executed successfully: {WorkflowId}", workflowId);
+            return result;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[UNIFIED] Failed to execute workflow: {WorkflowId}", workflowId);
             return new WorkflowExecutionResult { Success = false, ErrorMessage = $"Workflow execution failed: {ex.Message}" };
+        }
+        finally
+        {
+            // Remove from active workflows
+            lock (_workflowLock)
+            {
+                _activeWorkflows.Remove(workflowId);
+            }
         }
     }
 
@@ -227,16 +267,29 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     public async Task<OrchestratorStatus> GetStatusAsync()
     {
         var systemStatus = await GetSystemStatusAsync();
-        return new OrchestratorStatus
+        
+        int activeCount, totalCount;
+        lock (_workflowLock)
+        {
+            activeCount = _activeWorkflows.Count;
+            totalCount = _registeredWorkflows.Count;
+        }
+        
+        var status = new OrchestratorStatus
         {
             IsRunning = systemStatus.IsHealthy,
             IsConnectedToTopstep = _isConnectedToTopstep,
-            ActiveWorkflows = 0, // Would count actual active workflows
-            TotalWorkflows = 0,  // Would count total registered workflows
+            ActiveWorkflows = activeCount,
+            TotalWorkflows = totalCount,
             StartTime = _startTime,
             Uptime = DateTime.UtcNow - _startTime,
             ComponentStatus = systemStatus.ComponentStatuses.ToDictionary(k => k.Key, v => (object)v.Value),
             RecentErrors = new List<string>() // Would contain actual recent errors
         };
+        
+        _logger.LogDebug("[UNIFIED] Status: {ActiveWorkflows} active, {TotalWorkflows} total workflows", 
+            activeCount, totalCount);
+            
+        return status;
     }
 }

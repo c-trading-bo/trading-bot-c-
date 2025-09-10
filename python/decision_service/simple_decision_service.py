@@ -322,7 +322,34 @@ def run_server(host="127.0.0.1", port=7080):
         httpd.shutdown()
 
 if __name__ == "__main__":
-    host = os.getenv("DECISION_SERVICE_HOST", "127.0.0.1")
-    port = int(os.getenv("DECISION_SERVICE_PORT", "7080"))
+    import argparse
     
-    run_server(host, port)
+    parser = argparse.ArgumentParser(description='Simple Decision Service')
+    parser.add_argument('--input', type=str, help='Input data for decision')
+    parser.add_argument('--host', type=str, default=os.getenv("DECISION_SERVICE_HOST", "127.0.0.1"), 
+                       help='Server host')
+    parser.add_argument('--port', type=int, default=int(os.getenv("DECISION_SERVICE_PORT", "7080")), 
+                       help='Server port')
+    parser.add_argument('--server', action='store_true', help='Run as HTTP server')
+    
+    args = parser.parse_args()
+    
+    if args.input:
+        # Command line mode - used by C# Python integration
+        try:
+            input_data = json.loads(args.input) if args.input.startswith('{') else {"input": args.input}
+            result = decision_service.on_signal(input_data)
+            
+            # Return the decision in a simple format
+            if result.get("gate", False):
+                decision = f"BUY" if result.get("finalContracts", 0) > 0 else "HOLD"
+            else:
+                decision = "HOLD"
+                
+            print(decision)
+        except Exception as e:
+            print("HOLD")  # Safe fallback
+            sys.exit(1)
+    else:
+        # Server mode
+        run_server(args.host, args.port)

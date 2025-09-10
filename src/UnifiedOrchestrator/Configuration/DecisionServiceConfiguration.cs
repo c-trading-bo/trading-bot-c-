@@ -1,4 +1,63 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Net.Http;
+using Microsoft.Extensions.Logging;
+
 namespace TradingBot.UnifiedOrchestrator.Configuration;
+
+/// <summary>
+/// Configuration for workflow scheduling system
+/// </summary>
+public class WorkflowSchedulingOptions
+{
+    public bool Enabled { get; set; } = true;
+    public Dictionary<string, WorkflowScheduleConfig> DefaultSchedules { get; set; } = new();
+    public List<string> MarketHolidays { get; set; } = new();
+}
+
+/// <summary>
+/// Configuration for individual workflow schedule
+/// </summary>
+public class WorkflowScheduleConfig
+{
+    public string? MarketHours { get; set; }
+    public string? ExtendedHours { get; set; }
+    public string? Overnight { get; set; }
+    public string? CoreHours { get; set; }
+    public string? FirstHour { get; set; }
+    public string? LastHour { get; set; }
+    public string? Regular { get; set; }
+    public string? Global { get; set; }
+    public string? Weekends { get; set; }
+    public string? Disabled { get; set; }
+}
+
+/// <summary>
+/// Configuration for Python integration
+/// </summary>
+public class PythonIntegrationOptions
+{
+    public bool Enabled { get; set; } = true;
+    public string PythonPath { get; set; } = "/usr/bin/python3";
+    public string WorkingDirectory { get; set; } = "./python";
+    public Dictionary<string, string> ScriptPaths { get; set; } = new();
+    public int Timeout { get; set; } = 30;
+}
+
+/// <summary>
+/// Configuration for model loading system
+/// </summary>
+public class ModelLoadingOptions
+{
+    public bool Enabled { get; set; } = true;
+    public bool OnnxEnabled { get; set; } = true;
+    public string ModelsDirectory { get; set; } = "./models";
+    public string FallbackMode { get; set; } = "simulation";
+    public Dictionary<string, string> ModelPaths { get; set; } = new();
+    public int HealthCheckInterval { get; set; } = 300;
+}
 
 /// <summary>
 /// Configuration options for DecisionServiceLauncher
@@ -52,17 +111,21 @@ public class DecisionServiceIntegrationOptions
 }
 
 /// <summary>
-/// Client for DecisionService
+/// Client for DecisionService with Python integration
 /// </summary>
 public class DecisionServiceClient
 {
     private readonly DecisionServiceOptions _options;
     private readonly HttpClient _httpClient;
+    private readonly PythonIntegrationOptions _pythonOptions;
+    private readonly ILogger<DecisionServiceClient>? _logger;
 
-    public DecisionServiceClient(DecisionServiceOptions options, HttpClient httpClient)
+    public DecisionServiceClient(DecisionServiceOptions options, HttpClient httpClient, PythonIntegrationOptions pythonOptions, ILogger<DecisionServiceClient>? logger = null)
     {
         _options = options;
         _httpClient = httpClient;
+        _pythonOptions = pythonOptions;
+        _logger = logger;
         _httpClient.BaseAddress = new Uri(_options.ServiceUrl);
         _httpClient.Timeout = TimeSpan.FromSeconds(_options.RequestTimeoutSeconds);
     }
@@ -86,7 +149,18 @@ public class DecisionServiceClient
     {
         try
         {
-            // In DRY_RUN mode, return conservative decision
+            // Try Python model first if enabled
+            if (_pythonOptions.Enabled)
+            {
+                var pythonResult = await CallPythonModelAsync(input, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(pythonResult))
+                {
+                    _logger?.LogInformation("[DECISION_SERVICE] Python model decision: {Decision}", pythonResult);
+                    return pythonResult;
+                }
+            }
+            
+            // Fallback to built-in decision logic
             await Task.Delay(100, cancellationToken); // Simulate processing time
             
             // Parse input and make conservative decision
@@ -106,8 +180,73 @@ public class DecisionServiceClient
         catch (Exception ex)
         {
             // Log error and return safe default
-            Console.WriteLine($"Error in decision service: {ex.Message}");
+            _logger?.LogError(ex, "[DECISION_SERVICE] Error in decision service: {Message}", ex.Message);
             return "HOLD";
+        }
+    }
+
+    private async Task<string?> CallPythonModelAsync(string input, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!_pythonOptions.ScriptPaths.TryGetValue("decisionService", out var scriptPath))
+            {
+                _logger?.LogWarning("[PYTHON] No decision service script path configured");
+                return null;
+            }
+
+            var processStartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = _pythonOptions.PythonPath,
+                Arguments = $"\"{scriptPath}\" --input \"{input}\"",
+                WorkingDirectory = _pythonOptions.WorkingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = new System.Diagnostics.Process { StartInfo = processStartInfo };
+            
+            var timeout = TimeSpan.FromSeconds(_pythonOptions.Timeout);
+            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(timeout);
+
+            _logger?.LogDebug("[PYTHON] Calling Python decision service: {PythonPath} {Arguments}", 
+                _pythonOptions.PythonPath, processStartInfo.Arguments);
+
+            process.Start();
+            
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            
+            await process.WaitForExitAsync(cts.Token);
+            
+            var output = await outputTask;
+            var error = await errorTask;
+            
+            if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+            {
+                var decision = output.Trim();
+                _logger?.LogInformation("[PYTHON] Python model returned: {Decision}", decision);
+                return decision;
+            }
+            else
+            {
+                _logger?.LogWarning("[PYTHON] Python process failed. Exit code: {ExitCode}, Error: {Error}", 
+                    process.ExitCode, error);
+                return null;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger?.LogWarning("[PYTHON] Python model call timed out");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[PYTHON] Error calling Python model: {Message}", ex.Message);
+            return null;
         }
     }
 }
