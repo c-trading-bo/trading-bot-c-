@@ -287,7 +287,7 @@ namespace OrchestratorAgent.Execution
 
     public class CalibrationTracker
     {
-        private readonly string _key;
+        private readonly string _key = null!;
         private readonly List<CalibrationDataPoint> _dataPoints = new();
 
         public CalibrationTracker(string key)

@@ -169,7 +169,7 @@ public static class TuningRunner
             var levels = new Levels();
 
             // Backtest loop: single open trade at a time
-            Trade? open = null;
+            Trade? open = null!;
             var equity = new List<decimal> { 0m };
             int wins = 0, losses = 0, trades = 0;
 
@@ -187,7 +187,7 @@ public static class TuningRunner
                         trades++;
                         if (won) wins++; else losses++;
                         var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
-                        open = null;
+                        open = null!;
                     }
                 }
 
@@ -335,7 +335,7 @@ public static class TuningRunner
 
         var env = new Env { Symbol = symbolRoot };
         var levels = new Levels();
-        Trade? open = null;
+        Trade? open = null!;
         var equity = new List<decimal> { 0m };
         int wins = 0, losses = 0, trades = 0;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -351,7 +351,7 @@ public static class TuningRunner
                     trades++;
                     if (won) wins++; else losses++;
                     var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
-                    open = null;
+                    open = null!;
                 }
             }
             history.Add(b);
@@ -465,7 +465,7 @@ public static class TuningRunner
 
             var env = new Env { Symbol = symbolRoot };
             var levels = new Levels();
-            Trade? open = null;
+            Trade? open = null!;
             var equity = new List<decimal> { 0m };
             int wins = 0, losses = 0, trades = 0;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -479,7 +479,7 @@ public static class TuningRunner
                         trades++;
                         if (won) wins++; else losses++;
                         var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
-                        open = null;
+                        open = null!;
                     }
                 }
                 history.Add(b);
@@ -615,7 +615,7 @@ public static class TuningRunner
 
         var env = new Env { Symbol = symbolRoot };
         var levels = new Levels();
-        Trade? open = null;
+        Trade? open = null!;
         var equity = new List<decimal> { 0m };
         int wins = 0, losses = 0, trades = 0;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -638,7 +638,7 @@ public static class TuningRunner
                 {
                     trades++; if (won) wins++; else losses++;
                     var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
-                    open = null;
+                    open = null!;
                 }
             }
             history.Add(b);
@@ -726,7 +726,7 @@ public static class TuningRunner
 
             var env = new Env { Symbol = symbolRoot };
             var levels = new Levels();
-            Trade? open = null;
+            Trade? open = null!;
             var equity = new List<decimal> { 0m };
             int wins = 0, losses = 0, trades = 0;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -812,7 +812,7 @@ public static class TuningRunner
 
             var env = new Env { Symbol = symbolRoot };
             var levels = new Levels();
-            Trade? open = null;
+            Trade? open = null!;
             var equity = new List<decimal> { 0m };
             int wins = 0, losses = 0, trades = 0;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -888,7 +888,7 @@ public static class TuningRunner
 
         var env = new Env { Symbol = symbolRoot };
         var levels = new Levels();
-        Trade? open = null;
+        Trade? open = null!;
         var equity = new List<decimal> { 0m };
         int wins = 0, losses = 0, trades = 0;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
@@ -903,7 +903,7 @@ public static class TuningRunner
                 {
                     trades++; if (won) wins++; else losses++;
                     var lastEq = equity[^1]; equity.Add(lastEq + pnlUsd);
-                    open = null;
+                    open = null!;
                 }
             }
             history.Add(b);

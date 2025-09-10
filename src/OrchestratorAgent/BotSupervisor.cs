@@ -471,7 +471,7 @@ namespace OrchestratorAgent
                         if ((DateTime.UtcNow - lastPnlFetch).TotalSeconds >= 60)
                         {
                             lastPnlFetch = DateTime.UtcNow;
-                            decimal? net = null;
+                            decimal? net = null!;
                             try
                             {
                                 var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct);
@@ -828,10 +828,10 @@ namespace OrchestratorAgent
                 }
             }, ct);
 
-            bool? prevPaused = null;
-            string? prevLive = null;
-            DateTime? lastWarn30 = null;
-            DateTime? lastWarn60 = null;
+            bool? prevPaused = null!;
+            string? prevLive = null!;
+            DateTime? lastWarn30 = null!;
+            DateTime? lastWarn60 = null!;
             while (!ct.IsCancellationRequested)
             {
                 // Market data staleness checks every second (independent of bars)

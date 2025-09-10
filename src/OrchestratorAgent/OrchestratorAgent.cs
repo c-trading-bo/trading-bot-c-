@@ -244,7 +244,7 @@ namespace OrchestratorAgent
 
         public bool CanOpen(string rootSymbol, int desiredQty, out string? reason)
         {
-            reason = null;
+            reason = null!;
             if (!_policy.Enabled) return true;
 
             _pnl.ResetIfNewDay(DateTimeOffset.UtcNow);

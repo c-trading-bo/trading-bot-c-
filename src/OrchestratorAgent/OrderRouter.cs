@@ -282,7 +282,7 @@ namespace OrchestratorAgent
                 int trailTicks = ResolveIntEnv("BRACKET_TRAIL_TICKS", 6);
 
                 // Try to fetch symbol to allow per-symbol overrides like BRACKET_TP_ES_TICKS
-                string? symbol = null;
+                string? symbol = null!;
                 try
                 {
                     var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct);

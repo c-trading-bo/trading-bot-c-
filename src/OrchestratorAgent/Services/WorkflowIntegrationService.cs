@@ -17,8 +17,8 @@ namespace OrchestratorAgent.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<WorkflowIntegrationService> _logger;
-        private readonly string _intelligenceDataPath;
-        private readonly string _githubToken;
+        private readonly string _intelligenceDataPath = null!;
+        private readonly string _githubToken = null!;
         private readonly string _repoOwner = "c-trading-bo";
         private readonly string _repoName = "trading-bot-c-";
 

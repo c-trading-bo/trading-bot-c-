@@ -148,15 +148,15 @@ namespace OrchestratorAgent.ML
     {
         private readonly ILogger<RlSizer> _logger;
         private InferenceSession? _session;
-        private readonly float[] _actions;
+        private readonly float[] _actions = null!;
         private readonly bool _sampleAction;
-        private string[] _inputNames;
+        private string[] _inputNames = null!;
         private readonly Random _rng = new();
-        private readonly string _modelPath;
+        private readonly string _modelPath = null!;
         private DateTime _modelLastWrite;
         private readonly int _maxAgeMinutes;
 
-        public bool IsLoaded => _session != null;
+        public bool IsLoaded => _session != null!;
         public float[] AvailableActions => _actions.ToArray();
 
         public RlSizer(
@@ -182,7 +182,7 @@ namespace OrchestratorAgent.ML
             {
                 // Dispose existing session
                 _session?.Dispose();
-                _session = null;
+                _session = null!;
 
                 if (!File.Exists(_modelPath))
                 {
@@ -210,7 +210,7 @@ namespace OrchestratorAgent.ML
             {
                 _logger.LogError(ex, "[RlSizer] Failed to load model from {Path}", _modelPath);
                 _session?.Dispose();
-                _session = null;
+                _session = null!;
             }
         }
 
@@ -256,7 +256,7 @@ namespace OrchestratorAgent.ML
                 using var results = _session.Run(inputs);
 
                 // Extract logits (policy output)
-                DenseTensor<float>? logits = null;
+                DenseTensor<float>? logits = null!;
                 foreach (var output in results)
                 {
                     if (output.Name == "logits")

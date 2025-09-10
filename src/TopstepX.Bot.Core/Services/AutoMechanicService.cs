@@ -18,8 +18,8 @@ namespace TopstepX.Bot.Core.Services
     {
         private readonly ILogger<AutoMechanicService> _logger;
         private Process? _mechanicProcess;
-        private readonly string _mechanicPath;
-        private readonly string _statusPath;
+        private readonly string _mechanicPath = null!;
+        private readonly string _statusPath = null!;
         private Timer? _statusCheckTimer;
 
         public AutoMechanicService(ILogger<AutoMechanicService> logger)
