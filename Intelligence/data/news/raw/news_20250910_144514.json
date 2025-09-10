@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-10T14:45:14.629960",
+  "article_count": 60,
+  "avg_sentiment": 0.026666666666666665,
+  "news_intensity": 1.0,
+  "volatility_score": 30,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": true,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 30
+  },
+  "regime_hint": "volatile",
+  "articles": [
+    {
+      "title": "Cloudbeds partners with Revenue Analytics for smarter pricing",
+      "summary": "",
+      "published": "2025-09-10T14:37:32Z",
+      "link": "https://finance.yahoo.com/news/cloudbeds-partners-revenue-analytics-smarter-143732547.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+      "summary": "",
+      "published": "2025-09-10T14:36:21Z",
+      "link": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Investors wary of Treasury's 30-year bond auction after recent disappointments",
+      "summary": "",
+      "published": "2025-09-10T14:31:23Z",
+      "link": "https://finance.yahoo.com/news/investors-wary-treasurys-30-bond-143123515.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Inflation Data Hits Dow; Oracle Soars As AI Leader Craters (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-10T14:29:37Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-oracle-orcl-stock/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Binance, Franklin Templeton to Collaborate on Digital Asset Initiatives",
+      "summary": "",
+      "published": "2025-09-10T14:31:19Z",
+      "link": "https://finance.yahoo.com/news/binance-franklin-templeton-collaborate-digital-143119301.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Potbelly is being acquired by gas station and convenience chain RaceTrac for $566 million",
+      "summary": "",
+      "published": "2025-09-10T14:07:47Z",
+      "link": "https://finance.yahoo.com/news/potbelly-being-acquired-gas-station-140747841.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s boost to insurers could cost Americans on Medicare Advantage plan a whole lot more",
+      "summary": "",
+      "published": "2025-09-10T14:25:00Z",
+      "link": "https://finance.yahoo.com/news/trump-boost-insurers-could-cost-142500659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US wholesale inventories revised lower in July",
+      "summary": "",
+      "published": "2025-09-10T14:22:43Z",
+      "link": "https://finance.yahoo.com/news/us-wholesale-inventories-revised-lower-142243631.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Is One of the Hardest Decisions in the Industry\u2014And One of the Most Misunderstood",
+      "summary": "",
+      "published": "2025-09-10T14:18:44Z",
+      "link": "https://finance.yahoo.com/news/one-hardest-decisions-industry-one-141844293.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Technical Assessment: Bullish in the Intermediate-Term",
+      "summary": "",
+      "published": "2025-09-10T11:03:07Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44653_TechnicalAnalysis_1757502187000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Mortgage demand jumps as rates fall to lowest since 2024",
+      "summary": "",
+      "published": "2025-09-10T14:31:00Z",
+      "link": "https://finance.yahoo.com/news/mortgage-demand-jumps-rates-fall-143100887.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Sound Shore Fund Added Teva Pharmaceutical Industries Limited (TEVA) in Q2",
+      "summary": "",
+      "published": "2025-09-10T14:18:01Z",
+      "link": "https://finance.yahoo.com/news/why-sound-shore-fund-added-141801924.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rubrik Stock Plunges Amid High Expectations Amid Earnings Q2 Beat",
+      "summary": "",
+      "published": "2025-09-10T14:17:57Z",
+      "link": "https://www.investors.com/news/technology/rubrik-stock-rbrk-rubrik-earnings-news-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Joby Stock Jumps On Expanded Air Taxi Partnership With Uber",
+      "summary": "",
+      "published": "2025-09-10T14:16:09Z",
+      "link": "https://www.investors.com/news/joby-stock-uber-partnership-air-taxi-expanded-blade/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Gets Scant Mention At Apple iPhone 17 Launch Event",
+      "summary": "",
+      "published": "2025-09-10T14:14:31Z",
+      "link": "https://www.investors.com/news/technology/apple-stock-down-after-iphone-17-launch-event/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Digest: W",
+      "summary": "",
+      "published": "2025-09-10T10:48:47Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44651_MarketSummary_1757501327000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "4 Things Your Neighbor Who Retired Early Won\u2019t Tell You About Their Financial Plan",
+      "summary": "",
+      "published": "2025-09-10T14:30:13Z",
+      "link": "https://finance.yahoo.com/news/4-things-neighbor-retired-early-131607666.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Reasons Apple Stock Could Gain More Than 20%",
+      "summary": "",
+      "published": "2025-09-10T14:14:00Z",
+      "link": "https://www.barrons.com/articles/apple-stock-price-iphone-17-air-8137c1ad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Chewy Tumbles From Early Buy Point On In-Line Earnings",
+      "summary": "",
+      "published": "2025-09-10T14:13:18Z",
+      "link": "https://www.investors.com/news/chewy-stock-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Cloudbeds partners with Revenue Analytics for smarter pricing",
+      "summary": "",
+      "published": "2025-09-10T14:37:32Z",
+      "link": "https://finance.yahoo.com/news/cloudbeds-partners-revenue-analytics-smarter-143732547.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+      "summary": "",
+      "published": "2025-09-10T14:36:21Z",
+      "link": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Investors wary of Treasury's 30-year bond auction after recent disappointments",
+      "summary": "",
+      "published": "2025-09-10T14:31:23Z",
+      "link": "https://finance.yahoo.com/news/investors-wary-treasurys-30-bond-143123515.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Inflation Data Hits Dow; Oracle Soars As AI Leader Craters (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-10T14:29:37Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-oracle-orcl-stock/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Binance, Franklin Templeton to Collaborate on Digital Asset Initiatives",
+      "summary": "",
+      "published": "2025-09-10T14:31:19Z",
+      "link": "https://finance.yahoo.com/news/binance-franklin-templeton-collaborate-digital-143119301.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Potbelly is being acquired by gas station and convenience chain RaceTrac for $566 million",
+      "summary": "",
+      "published": "2025-09-10T14:07:47Z",
+      "link": "https://finance.yahoo.com/news/potbelly-being-acquired-gas-station-140747841.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s boost to insurers could cost Americans on Medicare Advantage plan a whole lot more",
+      "summary": "",
+      "published": "2025-09-10T14:25:00Z",
+      "link": "https://finance.yahoo.com/news/trump-boost-insurers-could-cost-142500659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US wholesale inventories revised lower in July",
+      "summary": "",
+      "published": "2025-09-10T14:22:43Z",
+      "link": "https://finance.yahoo.com/news/us-wholesale-inventories-revised-lower-142243631.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Is One of the Hardest Decisions in the Industry\u2014And One of the Most Misunderstood",
+      "summary": "",
+      "published": "2025-09-10T14:18:44Z",
+      "link": "https://finance.yahoo.com/news/one-hardest-decisions-industry-one-141844293.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Technical Assessment: Bullish in the Intermediate-Term",
+      "summary": "",
+      "published": "2025-09-10T11:03:07Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44653_TechnicalAnalysis_1757502187000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Mortgage demand jumps as rates fall to lowest since 2024",
+      "summary": "",
+      "published": "2025-09-10T14:31:00Z",
+      "link": "https://finance.yahoo.com/news/mortgage-demand-jumps-rates-fall-143100887.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Sound Shore Fund Added Teva Pharmaceutical Industries Limited (TEVA) in Q2",
+      "summary": "",
+      "published": "2025-09-10T14:18:01Z",
+      "link": "https://finance.yahoo.com/news/why-sound-shore-fund-added-141801924.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rubrik Stock Plunges Amid High Expectations Amid Earnings Q2 Beat",
+      "summary": "",
+      "published": "2025-09-10T14:17:57Z",
+      "link": "https://www.investors.com/news/technology/rubrik-stock-rbrk-rubrik-earnings-news-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Joby Stock Jumps On Expanded Air Taxi Partnership With Uber",
+      "summary": "",
+      "published": "2025-09-10T14:16:09Z",
+      "link": "https://www.investors.com/news/joby-stock-uber-partnership-air-taxi-expanded-blade/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "AI Gets Scant Mention At Apple iPhone 17 Launch Event",
+      "summary": "",
+      "published": "2025-09-10T14:14:31Z",
+      "link": "https://www.investors.com/news/technology/apple-stock-down-after-iphone-17-launch-event/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Digest: W",
+      "summary": "",
+      "published": "2025-09-10T10:48:47Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44651_MarketSummary_1757501327000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "4 Things Your Neighbor Who Retired Early Won\u2019t Tell You About Their Financial Plan",
+      "summary": "",
+      "published": "2025-09-10T14:30:13Z",
+      "link": "https://finance.yahoo.com/news/4-things-neighbor-retired-early-131607666.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "3 Reasons Apple Stock Could Gain More Than 20%",
+      "summary": "",
+      "published": "2025-09-10T14:14:00Z",
+      "link": "https://www.barrons.com/articles/apple-stock-price-iphone-17-air-8137c1ad?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Chewy Tumbles From Early Buy Point On In-Line Earnings",
+      "summary": "",
+      "published": "2025-09-10T14:13:18Z",
+      "link": "https://www.investors.com/news/chewy-stock-earnings/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Inflation Data Hits Dow; Oracle Soars As AI Leader Craters (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-10T14:29:37Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-oracle-orcl-stock/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Potbelly is being acquired by gas station and convenience chain RaceTrac for $566 million",
+      "summary": "",
+      "published": "2025-09-10T14:07:47Z",
+      "link": "https://finance.yahoo.com/news/potbelly-being-acquired-gas-station-140747841.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Gearbox deposits recover from 80% crash as users pour $250m into new lending market",
+      "summary": "",
+      "published": "2025-09-10T14:27:20Z",
+      "link": "https://finance.yahoo.com/news/gearbox-deposits-recover-80-crash-142720540.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Trump\u2019s boost to insurers could cost Americans on Medicare Advantage plan a whole lot more",
+      "summary": "",
+      "published": "2025-09-10T14:25:00Z",
+      "link": "https://finance.yahoo.com/news/trump-boost-insurers-could-cost-142500659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US wholesale inventories revised lower in July",
+      "summary": "",
+      "published": "2025-09-10T14:22:43Z",
+      "link": "https://finance.yahoo.com/news/us-wholesale-inventories-revised-lower-142243631.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Is One of the Hardest Decisions in the Industry\u2014And One of the Most Misunderstood",
+      "summary": "",
+      "published": "2025-09-10T14:18:44Z",
+      "link": "https://finance.yahoo.com/news/one-hardest-decisions-industry-one-141844293.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Sound Shore Fund Added Teva Pharmaceutical Industries Limited (TEVA) in Q2",
+      "summary": "",
+      "published": "2025-09-10T14:18:01Z",
+      "link": "https://finance.yahoo.com/news/why-sound-shore-fund-added-141801924.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Bitcoin Price Gets a Boost from Producer Price Index Print",
+      "summary": "",
+      "published": "2025-09-10T14:25:29Z",
+      "link": "https://finance.yahoo.com/news/bitcoin-price-gets-boost-producer-142529749.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rubrik Stock Plunges Amid High Expectations Amid Earnings Q2 Beat",
+      "summary": "",
+      "published": "2025-09-10T14:17:57Z",
+      "link": "https://www.investors.com/news/technology/rubrik-stock-rbrk-rubrik-earnings-news-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    }
+  ]
+}

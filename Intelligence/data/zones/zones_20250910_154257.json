@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-09-10T16:41:47.490854",
+  "timestamp": "2025-09-10T15:42:57.658509",
   "symbol": "ES=F",
-  "current_price": 6544.5,
+  "current_price": 6540.75,
   "supply_zones": [
     {
       "price_level": 5520.0,
@@ -183,10 +183,14 @@
     }
   ],
   "poc": 6477.875,
-  "nearest_supply": null,
+  "nearest_supply": {
+    "price": 6541.75,
+    "distance": 1.0,
+    "strength": 36.94486983154671
+  },
   "nearest_demand": {
     "price": 6410.25,
-    "distance": 134.25,
+    "distance": 130.5,
     "strength": 37.02837542874961
   },
   "statistics": {

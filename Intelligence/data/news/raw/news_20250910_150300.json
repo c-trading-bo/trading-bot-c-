@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-10T15:03:00.892504",
+  "article_count": 60,
+  "avg_sentiment": 0.065,
+  "news_intensity": 1.0,
+  "volatility_score": 24,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": true,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 24
+  },
+  "regime_hint": "volatile",
+  "articles": [
+    {
+      "title": "Statkraft sells 49% stake in Indian hydropower JV",
+      "summary": "",
+      "published": "2025-09-10T14:51:55Z",
+      "link": "https://finance.yahoo.com/news/statkraft-sells-49-stake-indian-145155370.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.4,
+      "has_numbers": true
+    },
+    {
+      "title": "Oracle Is the New Nvidia, for Better or Worse",
+      "summary": "",
+      "published": "2025-09-10T14:44:00Z",
+      "link": "https://www.wsj.com/tech/ai/oracle-orcl-stock-nvidia-ai-55d58813?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock-led group in talks to raise around $10.3 billion for Aramco deal, sources say",
+      "summary": "",
+      "published": "2025-09-10T14:43:41Z",
+      "link": "https://finance.yahoo.com/news/blackrock-led-group-talks-raise-144341788.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle Shares Skyrocket as Software Giant Scores Massive AI Deals",
+      "summary": "",
+      "published": "2025-09-10T14:39:00Z",
+      "link": "https://www.wsj.com/business/earnings/oracle-stock-orcl-ai-deals-047216cd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+      "summary": "",
+      "published": "2025-09-10T14:36:21Z",
+      "link": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Mortgage Demand Soars to the Highest Application Levels Since 2022",
+      "summary": "",
+      "published": "2025-09-10T14:48:44Z",
+      "link": "https://finance.yahoo.com/news/mortgage-demand-soars-highest-application-144844773.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Rises as Softer U.S. Data Supports Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-10T14:36:00Z",
+      "link": "https://www.wsj.com/articles/gold-rises-driven-by-safe-haven-demand-9d93e6b8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Traders Swarm Bullish Oracle Bets",
+      "summary": "",
+      "published": "2025-09-10T14:31:47Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-10-2025/card/traders-swarm-bullish-oracle-bets-61zhEiY6ylUrV4GoiaVO?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Investors wary of Treasury's 30-year bond auction after recent disappointments",
+      "summary": "",
+      "published": "2025-09-10T14:31:23Z",
+      "link": "https://finance.yahoo.com/news/investors-wary-treasurys-30-bond-143123515.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Technical Assessment: Bullish in the Intermediate-Term",
+      "summary": "",
+      "published": "2025-09-10T11:03:07Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44653_TechnicalAnalysis_1757502187000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Finmid expands embedded finance to 30 European countries",
+      "summary": "",
+      "published": "2025-09-10T14:48:08Z",
+      "link": "https://finance.yahoo.com/news/finmid-expands-embedded-finance-30-144808920.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Inflation Data Hits Dow; Oracle Soars As AI Leader Craters (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-10T14:29:37Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-oracle-orcl-stock/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s boost to insurers could cost Americans on Medicare Advantage plan a whole lot more",
+      "summary": "",
+      "published": "2025-09-10T14:25:00Z",
+      "link": "https://finance.yahoo.com/news/trump-boost-insurers-could-cost-142500659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US wholesale inventories revised lower in July",
+      "summary": "",
+      "published": "2025-09-10T14:22:43Z",
+      "link": "https://finance.yahoo.com/news/us-wholesale-inventories-revised-lower-142243631.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Is One of the Hardest Decisions in the Industry\u2014And One of the Most Misunderstood",
+      "summary": "",
+      "published": "2025-09-10T14:18:44Z",
+      "link": "https://finance.yahoo.com/news/one-hardest-decisions-industry-one-141844293.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Digest: W",
+      "summary": "",
+      "published": "2025-09-10T10:48:47Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44651_MarketSummary_1757501327000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cloudbeds partners with Revenue Analytics for smarter pricing",
+      "summary": "",
+      "published": "2025-09-10T14:37:32Z",
+      "link": "https://finance.yahoo.com/news/cloudbeds-partners-revenue-analytics-smarter-143732547.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Sound Shore Fund Added Teva Pharmaceutical Industries Limited (TEVA) in Q2",
+      "summary": "",
+      "published": "2025-09-10T14:18:01Z",
+      "link": "https://finance.yahoo.com/news/why-sound-shore-fund-added-141801924.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rubrik Stock Plunges Amid High Expectations Amid Earnings Q2 Beat",
+      "summary": "",
+      "published": "2025-09-10T14:17:57Z",
+      "link": "https://www.investors.com/news/technology/rubrik-stock-rbrk-rubrik-earnings-news-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Statkraft sells 49% stake in Indian hydropower JV",
+      "summary": "",
+      "published": "2025-09-10T14:51:55Z",
+      "link": "https://finance.yahoo.com/news/statkraft-sells-49-stake-indian-145155370.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.4,
+      "has_numbers": true
+    },
+    {
+      "title": "Oracle Is the New Nvidia, for Better or Worse",
+      "summary": "",
+      "published": "2025-09-10T14:44:00Z",
+      "link": "https://www.wsj.com/tech/ai/oracle-orcl-stock-nvidia-ai-55d58813?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock-led group in talks to raise around $10.3 billion for Aramco deal, sources say",
+      "summary": "",
+      "published": "2025-09-10T14:43:41Z",
+      "link": "https://finance.yahoo.com/news/blackrock-led-group-talks-raise-144341788.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle Shares Skyrocket as Software Giant Scores Massive AI Deals",
+      "summary": "",
+      "published": "2025-09-10T14:39:00Z",
+      "link": "https://www.wsj.com/business/earnings/oracle-stock-orcl-ai-deals-047216cd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+      "summary": "",
+      "published": "2025-09-10T14:36:21Z",
+      "link": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Mortgage Demand Soars to the Highest Application Levels Since 2022",
+      "summary": "",
+      "published": "2025-09-10T14:48:44Z",
+      "link": "https://finance.yahoo.com/news/mortgage-demand-soars-highest-application-144844773.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Rises as Softer U.S. Data Supports Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-10T14:36:00Z",
+      "link": "https://www.wsj.com/articles/gold-rises-driven-by-safe-haven-demand-9d93e6b8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Traders Swarm Bullish Oracle Bets",
+      "summary": "",
+      "published": "2025-09-10T14:31:47Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-10-2025/card/traders-swarm-bullish-oracle-bets-61zhEiY6ylUrV4GoiaVO?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Investors wary of Treasury's 30-year bond auction after recent disappointments",
+      "summary": "",
+      "published": "2025-09-10T14:31:23Z",
+      "link": "https://finance.yahoo.com/news/investors-wary-treasurys-30-bond-143123515.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Technical Assessment: Bullish in the Intermediate-Term",
+      "summary": "",
+      "published": "2025-09-10T11:03:07Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44653_TechnicalAnalysis_1757502187000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Finmid expands embedded finance to 30 European countries",
+      "summary": "",
+      "published": "2025-09-10T14:48:08Z",
+      "link": "https://finance.yahoo.com/news/finmid-expands-embedded-finance-30-144808920.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Stock Market Today: Inflation Data Hits Dow; Oracle Soars As AI Leader Craters (Live Coverage)",
+      "summary": "",
+      "published": "2025-09-10T14:29:37Z",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-inflation-data-oracle-orcl-stock/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Trump\u2019s boost to insurers could cost Americans on Medicare Advantage plan a whole lot more",
+      "summary": "",
+      "published": "2025-09-10T14:25:00Z",
+      "link": "https://finance.yahoo.com/news/trump-boost-insurers-could-cost-142500659.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US wholesale inventories revised lower in July",
+      "summary": "",
+      "published": "2025-09-10T14:22:43Z",
+      "link": "https://finance.yahoo.com/news/us-wholesale-inventories-revised-lower-142243631.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "This Is One of the Hardest Decisions in the Industry\u2014And One of the Most Misunderstood",
+      "summary": "",
+      "published": "2025-09-10T14:18:44Z",
+      "link": "https://finance.yahoo.com/news/one-hardest-decisions-industry-one-141844293.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Market Digest: W",
+      "summary": "",
+      "published": "2025-09-10T10:48:47Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44651_MarketSummary_1757501327000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Cloudbeds partners with Revenue Analytics for smarter pricing",
+      "summary": "",
+      "published": "2025-09-10T14:37:32Z",
+      "link": "https://finance.yahoo.com/news/cloudbeds-partners-revenue-analytics-smarter-143732547.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Here\u2019s Why Sound Shore Fund Added Teva Pharmaceutical Industries Limited (TEVA) in Q2",
+      "summary": "",
+      "published": "2025-09-10T14:18:01Z",
+      "link": "https://finance.yahoo.com/news/why-sound-shore-fund-added-141801924.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Rubrik Stock Plunges Amid High Expectations Amid Earnings Q2 Beat",
+      "summary": "",
+      "published": "2025-09-10T14:17:57Z",
+      "link": "https://www.investors.com/news/technology/rubrik-stock-rbrk-rubrik-earnings-news-q2-2026/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": -0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Statkraft sells 49% stake in Indian hydropower JV",
+      "summary": "",
+      "published": "2025-09-10T14:51:55Z",
+      "link": "https://finance.yahoo.com/news/statkraft-sells-49-stake-indian-145155370.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.4,
+      "has_numbers": true
+    },
+    {
+      "title": "Oracle Is the New Nvidia, for Better or Worse",
+      "summary": "",
+      "published": "2025-09-10T14:44:00Z",
+      "link": "https://www.wsj.com/tech/ai/oracle-orcl-stock-nvidia-ai-55d58813?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "BlackRock-led group in talks to raise around $10.3 billion for Aramco deal, sources say",
+      "summary": "",
+      "published": "2025-09-10T14:43:41Z",
+      "link": "https://finance.yahoo.com/news/blackrock-led-group-talks-raise-144341788.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle Shares Skyrocket as Software Giant Scores Massive AI Deals",
+      "summary": "",
+      "published": "2025-09-10T14:39:00Z",
+      "link": "https://www.wsj.com/business/earnings/oracle-stock-orcl-ai-deals-047216cd?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+      "summary": "",
+      "published": "2025-09-10T14:36:21Z",
+      "link": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Daily Spotlight: Raising 2026 GDP Forecast",
+      "summary": "",
+      "published": "2025-09-10T11:04:26Z",
+      "link": "https://finance.yahoo.com/research/reports/ARGUS_44654_MarketOutlook_1757502266000?yptr=yahoo&ncid=yahooproperties_plusresear_nm5q6ze1cei",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Mortgage Demand Soars to the Highest Application Levels Since 2022",
+      "summary": "",
+      "published": "2025-09-10T14:48:44Z",
+      "link": "https://finance.yahoo.com/news/mortgage-demand-soars-highest-application-144844773.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Gold Rises as Softer U.S. Data Supports Rate Cut Bets",
+      "summary": "",
+      "published": "2025-09-10T14:36:00Z",
+      "link": "https://www.wsj.com/articles/gold-rises-driven-by-safe-haven-demand-9d93e6b8?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Traders Swarm Bullish Oracle Bets",
+      "summary": "",
+      "published": "2025-09-10T14:31:47Z",
+      "link": "https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-09-10-2025/card/traders-swarm-bullish-oracle-bets-61zhEiY6ylUrV4GoiaVO?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Investors wary of Treasury's 30-year bond auction after recent disappointments",
+      "summary": "",
+      "published": "2025-09-10T14:31:23Z",
+      "link": "https://finance.yahoo.com/news/investors-wary-treasurys-30-bond-143123515.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
