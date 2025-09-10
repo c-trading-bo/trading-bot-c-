@@ -197,7 +197,26 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     public async Task RunMLModelsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Running ML models...");
+        
+        // Trigger intelligence event
+        var eventArgs = new IntelligenceEventArgs 
+        { 
+            EventType = "MLModelsStarted", 
+            Message = "ML models processing started",
+            Timestamp = DateTime.UtcNow
+        };
+        IntelligenceEvent?.Invoke(this, eventArgs);
+        
         await Task.Delay(100, cancellationToken); // Simulate ML processing
+        
+        // Trigger completion event
+        eventArgs = new IntelligenceEventArgs 
+        { 
+            EventType = "MLModelsCompleted", 
+            Message = "ML models processing completed",
+            Timestamp = DateTime.UtcNow
+        };
+        IntelligenceEvent?.Invoke(this, eventArgs);
     }
 
     public async Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)

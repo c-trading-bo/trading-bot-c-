@@ -11,6 +11,7 @@ using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using Infrastructure.TopstepX;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -305,7 +306,7 @@ public class Program
         Console.WriteLine("🔧 Registering core BotCore services...");
         
         // Register authentication and credential management services from Infrastructure.TopstepX
-        services.AddSingleton<Infrastructure.TopstepX.TopstepXCredentialManager>();
+        services.AddSingleton<TopstepXCredentialManager>();
         services.AddHttpClient<BotCore.Services.AutoTopstepXLoginService>();
         services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
         
@@ -519,7 +520,7 @@ public class AdvancedSystemInitializationService : IHostedService
         _serviceProvider = serviceProvider;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("🚀 Advanced System Initialization Service starting");
         
@@ -534,11 +535,12 @@ public class AdvancedSystemInitializationService : IHostedService
             }
 
             _logger.LogInformation("✅ Advanced System Initialization completed successfully");
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Advanced System Initialization failed");
-            throw;
+            return Task.FromException(ex);
         }
     }
 

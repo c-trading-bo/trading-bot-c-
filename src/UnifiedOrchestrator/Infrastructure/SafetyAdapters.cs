@@ -67,7 +67,7 @@ public class RiskManagerAdapter : IRiskManager
         _logger.LogDebug("🔍 Assessing risk for trading decision");
         
         // Simple risk assessment - approve all in DRY_RUN mode
-        return await Task.FromResult(new RiskAssessment
+        var assessment = new RiskAssessment
         {
             RiskScore = 0.3m,
             MaxPositionSize = 5m,
@@ -76,7 +76,27 @@ public class RiskManagerAdapter : IRiskManager
             RiskLevel = "LOW",
             Warnings = new List<string>(),
             Timestamp = DateTime.UtcNow
-        });
+        };
+
+        // Trigger events if risk score is elevated (for demonstration)
+        if (assessment.RiskScore > 0.5m)
+        {
+            var breach = new RiskBreach 
+            { 
+                Type = "RISK_THRESHOLD",
+                Description = "Risk threshold exceeded in assessment",
+                Severity = 0.75m,  // Numeric severity level
+                Message = "Risk threshold exceeded",
+                CurrentValue = assessment.RiskScore,
+                Limit = 0.5m,
+                Timestamp = DateTime.UtcNow
+            };
+            RiskBreachDetected?.Invoke(breach);
+            OnRiskBreach?.Invoke(breach);
+            _isBreached = true;
+        }
+        
+        return await Task.FromResult(assessment);
     }
 }
 
@@ -98,7 +118,7 @@ public class HealthMonitorAdapter : IHealthMonitor
     {
         _logger.LogDebug("🔍 Getting health status for {Component}", componentName);
         
-        return await Task.FromResult(new HealthStatus
+        var status = new HealthStatus
         {
             ComponentName = componentName,
             IsHealthy = true,
@@ -109,7 +129,13 @@ public class HealthMonitorAdapter : IHealthMonitor
             ErrorRate = 0.0,
             AverageLatencyMs = 50.0,
             StatusMessage = "System operational"
-        });
+        };
+
+        // Trigger health status change events (for demonstration)
+        HealthStatusChanged?.Invoke(status);
+        OnHealthChanged?.Invoke(status);
+        
+        return await Task.FromResult(status);
     }
 
     public async Task StartMonitoringAsync()
