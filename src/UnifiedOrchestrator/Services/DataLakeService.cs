@@ -139,7 +139,7 @@ namespace UnifiedOrchestrator.Services
             }
         }
 
-        public async Task<List<FeatureSet>> RetrieveFeaturesAsync(string featureSetName, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+        public Task<List<FeatureSet>> RetrieveFeaturesAsync(string featureSetName, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
         {
             try
             {
@@ -181,12 +181,12 @@ namespace UnifiedOrchestrator.Services
                 }
 
                 _logger.LogDebug("Retrieved {Count} feature sets for {FeatureSetName}", results.Count, featureSetName);
-                return results;
+                return Task.FromResult(results);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve features for {FeatureSetName}", featureSetName);
-                return new List<FeatureSet>();
+                return Task.FromResult(new List<FeatureSet>());
             }
         }
 
