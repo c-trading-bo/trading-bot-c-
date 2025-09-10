@@ -1,5 +1,3 @@
-extern alias SafetyProject;
-
 using TradingBot.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;

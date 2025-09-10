@@ -75,16 +75,16 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
         }
     }
 
-    public async Task<TradingBot.UnifiedOrchestrator.Models.WorkflowStatus> GetWorkflowStatusAsync(string workflowId, CancellationToken cancellationToken = default)
+    public Task<TradingBot.UnifiedOrchestrator.Models.WorkflowStatus> GetWorkflowStatusAsync(string workflowId, CancellationToken cancellationToken = default)
     {
         // Implementation would get actual workflow status
-        return new TradingBot.UnifiedOrchestrator.Models.WorkflowStatus
+        return Task.FromResult(new TradingBot.UnifiedOrchestrator.Models.WorkflowStatus
         {
             WorkflowId = workflowId,
             Status = "Unknown",
             LastRun = DateTime.MinValue,
             NextRun = DateTime.MaxValue
-        };
+        });
     }
 
     // IWorkflowScheduler interface implementation
