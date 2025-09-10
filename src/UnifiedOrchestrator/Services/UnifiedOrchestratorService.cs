@@ -97,9 +97,9 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _logger.LogInformation("✅ Unified trading system shutdown complete");
     }
 
-    public async Task<SystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
+    public Task<SystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
     {
-        return new SystemStatus
+        return Task.FromResult(new SystemStatus
         {
             IsHealthy = true,
             ComponentStatuses = new()
@@ -109,7 +109,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
                 ["Data"] = "Operational"
             },
             LastUpdated = DateTime.UtcNow
-        };
+        });
     }
 
     public async Task<bool> ExecuteEmergencyShutdownAsync(CancellationToken cancellationToken = default)

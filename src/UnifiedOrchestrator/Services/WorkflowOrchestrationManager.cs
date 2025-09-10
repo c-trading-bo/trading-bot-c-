@@ -79,7 +79,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
         }
     }
 
-    public async Task<List<TradingBot.UnifiedOrchestrator.Models.WorkflowStatus>> GetAllWorkflowStatusesAsync(CancellationToken cancellationToken = default)
+    public Task<List<TradingBot.UnifiedOrchestrator.Models.WorkflowStatus>> GetAllWorkflowStatusesAsync(CancellationToken cancellationToken = default)
     {
         var statuses = new List<TradingBot.UnifiedOrchestrator.Models.WorkflowStatus>();
         
@@ -94,7 +94,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
             });
         }
         
-        return statuses;
+        return Task.FromResult(statuses);
     }
 
     // IWorkflowOrchestrationManager interface implementation

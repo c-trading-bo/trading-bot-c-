@@ -60,7 +60,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
         await Task.CompletedTask;
     }
 
-    public async Task<MarketData> GetLatestMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
+    public Task<MarketData> GetLatestMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -68,7 +68,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
             
             // Implementation would get actual market data
             // For now, return simulated data
-            return new MarketData
+            return Task.FromResult(new MarketData
             {
                 Symbol = symbol,
                 Timestamp = DateTime.UtcNow,
@@ -77,7 +77,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
                 Low = 5495,
                 Close = 5505,
                 Volume = 1000
-            };
+            });
         }
         catch (Exception ex)
         {
@@ -86,7 +86,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
         }
     }
 
-    public async Task<List<MarketData>> GetHistoricalDataAsync(string symbol, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    public Task<List<MarketData>> GetHistoricalDataAsync(string symbol, DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -95,7 +95,7 @@ public class DataOrchestratorService : BackgroundService, IDataOrchestrator
             
             // Implementation would get actual historical data
             // For now, return empty list
-            return new List<MarketData>();
+            return Task.FromResult(new List<MarketData>());
         }
         catch (Exception ex)
         {

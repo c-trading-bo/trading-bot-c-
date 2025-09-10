@@ -133,17 +133,17 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         }
     }
 
-    public async Task<PositionStatus> GetPositionStatusAsync(string symbol, CancellationToken cancellationToken = default)
+    public Task<PositionStatus> GetPositionStatusAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        // Implementation would get current position status
-        return new PositionStatus
+        // Implementation would get current position status  
+        return Task.FromResult(new PositionStatus
         {
             Symbol = symbol,
             Quantity = 0,
             AveragePrice = 0,
             UnrealizedPnL = 0,
             IsOpen = false
-        };
+        });
     }
 
     // ITradingOrchestrator interface implementation
