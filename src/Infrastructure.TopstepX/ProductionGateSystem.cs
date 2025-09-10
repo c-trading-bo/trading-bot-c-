@@ -243,7 +243,7 @@ public class ProductionGateSystem
         return await _autoRemediation.ExecuteAutoRemediationAsync(testResults, basicReport);
     }
 
-    private async Task<ProductionReadinessAssessment> ExecuteProductionReadinessAssessment(ProductionGateResult gateResult)
+    private Task<ProductionReadinessAssessment> ExecuteProductionReadinessAssessment(ProductionGateResult gateResult)
     {
         var assessment = new ProductionReadinessAssessment();
 
@@ -285,7 +285,7 @@ public class ProductionGateSystem
             assessment.IsProductionReady = false;
         }
 
-        return assessment;
+        return Task.FromResult(assessment);
     }
 
     private async Task<ComprehensiveReport> GenerateComprehensiveReport(ProductionGateResult gateResult)
@@ -388,10 +388,10 @@ public class ProductionGateSystem
         return hasEnvCredentials;
     }
 
-    private async Task<bool> ValidateNetworkSecurity()
+    private Task<bool> ValidateNetworkSecurity()
     {
         var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "";
-        return apiBase.StartsWith("https://");
+        return Task.FromResult(apiBase.StartsWith("https://"));
     }
 
     private bool ValidateConfigurationSecurity()
