@@ -38,7 +38,7 @@ namespace UnitTests.Http
                 .Setup(x => x.GetFreshJwtAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync((jwt, expiry));
 
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
 
             // Act & Assert - This will fail due to network call, but we want to verify auth is called
             try
@@ -70,7 +70,7 @@ namespace UnitTests.Http
                 .Setup(x => x.GetFreshJwtAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync((jwt, expiry));
 
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
             var content = new StringContent("test");
 
             // Act & Assert - This will fail due to network call, but we want to verify auth is called
@@ -98,7 +98,7 @@ namespace UnitTests.Http
                 .Setup(x => x.EnsureFreshTokenAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(authException);
 
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
 
             // Act & Assert
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -121,7 +121,7 @@ namespace UnitTests.Http
         public async Task Constructor_WithoutAuthService_ShouldNotThrow()
         {
             // Act & Assert - Should not throw when auth service is null
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, null);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, null);
             
             Assert.NotNull(client);
         }
@@ -130,7 +130,7 @@ namespace UnitTests.Http
         public async Task GetAsync_WithoutAuthService_ShouldFallbackToEnvironment()
         {
             // Arrange
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, null);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, null);
 
             // Act & Assert - This will fail due to network call, but should not throw auth errors
             try
@@ -154,7 +154,7 @@ namespace UnitTests.Http
                 .Setup(x => x.EnsureFreshTokenAsync(It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new OperationCanceledException());
 
-            var client = new TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
+            var client = new BotCoreTest::BotCore.Services.TopstepXHttpClient(_httpClient, _mockLogger.Object, _mockAuthService.Object);
 
             using var cts = new CancellationTokenSource();
             cts.Cancel();

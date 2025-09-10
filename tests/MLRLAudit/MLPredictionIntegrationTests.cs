@@ -8,6 +8,7 @@ using Moq;
 using Xunit;
 using TradingBot.IntelligenceStack;
 using TradingBot.RLAgent;
+using TradingBot.Abstractions;
 
 // Use alias to resolve ambiguous references
 using IntelStackEnsemblePrediction = TradingBot.IntelligenceStack.EnsemblePrediction;
@@ -130,13 +131,13 @@ namespace TradingBot.Tests.Unit
                 Options.Create(new OnnxEnsembleOptions()));
             
             // Setup ONNX ensemble to return anomalous prediction
-            var anomalousPrediction = new IntelStackEnsemblePrediction
+            var anomalousPrediction = new RLAgentEnsemblePrediction
             {
                 Confidence = 0.3,
                 EnsembleResult = 0.1f,
                 IsAnomaly = true,
                 LatencyMs = 25.0,
-                Predictions = new System.Collections.Generic.Dictionary<string, IntelStackModelPrediction>()
+                Predictions = new System.Collections.Generic.Dictionary<string, RLAgentModelPrediction>()
             };
 
             mockEnsemble
@@ -172,13 +173,13 @@ namespace TradingBot.Tests.Unit
                 Mock.Of<ILogger<OnnxEnsembleWrapper>>(),
                 Options.Create(new OnnxEnsembleOptions()));
             
-            var prediction = new IntelStackEnsemblePrediction
+            var prediction = new RLAgentEnsemblePrediction
             {
                 Confidence = 0.75,
                 EnsembleResult = ensembleResult,
                 IsAnomaly = false,
                 LatencyMs = 10.0,
-                Predictions = new System.Collections.Generic.Dictionary<string, IntelStackModelPrediction>()
+                Predictions = new System.Collections.Generic.Dictionary<string, RLAgentModelPrediction>()
             };
 
             mockEnsemble
