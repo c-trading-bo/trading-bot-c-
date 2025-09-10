@@ -1,0 +1,30 @@
+CRITICAL SYSTEM ERROR
+=====================
+Time: 2025-09-10 16:35:57 UTC
+Component: TradingSystemIntegration
+Error: The server returned status code '401' when status code '101' was expected.
+Error ID: 54726164696E
+
+IMMEDIATE ACTION REQUIRED:
+- Check system logs for details
+- Verify trading positions are safe
+- Consider emergency stop if trading related
+
+Stack Trace:
+   at System.Net.WebSockets.WebSocketHandle.ValidateResponse(HttpResponseMessage response, String secValue)
+   at System.Net.WebSockets.WebSocketHandle.ConnectAsync(Uri uri, HttpMessageInvoker invoker, CancellationToken cancellationToken, ClientWebSocketOptions options)
+   at System.Net.WebSockets.ClientWebSocket.ConnectAsyncCore(Uri uri, HttpMessageInvoker invoker, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport.DefaultWebSocketFactory(WebSocketConnectionContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.Internal.WebSocketsTransport.StartAsync(Uri url, TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.StartTransport(Uri connectUrl, HttpTransportType transportType, TransferFormat transferFormat, CancellationToken cancellationToken, Boolean useStatefulReconnect)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.SelectAndStartTransport(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.StartAsyncCore(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnectionFactory.ConnectAsync(EndPoint endPoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnectionFactory.ConnectAsync(EndPoint endPoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsyncCore(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsyncInner(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsync(CancellationToken cancellationToken)
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 258
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 289
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.ExecuteAsync(CancellationToken stoppingToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 91

@@ -165,6 +165,7 @@ public class Program
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddHostedService<UnifiedOrchestratorService>();
+        
         Console.WriteLine("🚀 REAL sophisticated orchestrators registered - DISTRIBUTED ARCHITECTURE");
 
         // NO MORE FAKE MasterOrchestrator - using REAL sophisticated services only
@@ -204,10 +205,145 @@ public class Program
         // Register PositionTrackingSystem (379 lines) from Safety project
         services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
         
-        // Register TradingSystemIntegrationService (533 lines) from BotCore
-        services.AddSingleton<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
+        // Register TradingSystemIntegrationService (533 lines) from BotCore as HOSTED SERVICE for live TopstepX connection
+        // Configure TradingSystemIntegrationService for live TopstepX connection
+        services.AddSingleton<TopstepX.Bot.Core.Services.TradingSystemIntegrationService.TradingSystemConfiguration>(serviceProvider =>
+        {
+            var topstepXConfig = configuration.GetSection("TopstepX");
+            return new TopstepX.Bot.Core.Services.TradingSystemIntegrationService.TradingSystemConfiguration
+            {
+                TopstepXApiBaseUrl = topstepXConfig["ApiBaseUrl"] ?? Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com",
+                UserHubUrl = topstepXConfig["UserHubUrl"] ?? Environment.GetEnvironmentVariable("RTC_USER_HUB") ?? "https://rtc.topstepx.com/hubs/user",
+                MarketHubUrl = topstepXConfig["MarketHubUrl"] ?? Environment.GetEnvironmentVariable("RTC_MARKET_HUB") ?? "https://rtc.topstepx.com/hubs/market",
+                AccountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "",
+                ApiToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "",
+                EnableDryRunMode = Environment.GetEnvironmentVariable("ENABLE_DRY_RUN") != "false",
+                EnableAutoExecution = Environment.GetEnvironmentVariable("ENABLE_AUTO_EXECUTION") == "true",
+                MaxDailyLoss = decimal.Parse(Environment.GetEnvironmentVariable("DAILY_LOSS_CAP_R") ?? "-1000"),
+                MaxPositionSize = decimal.Parse(Environment.GetEnvironmentVariable("MAX_POSITION_SIZE") ?? "5")
+            };
+        });
+
+        // Register JWT token provider function for dynamic token refresh
+        services.AddSingleton<Func<Task<string?>>>(serviceProvider =>
+        {
+            return async () =>
+            {
+                try
+                {
+                    // Add small delay to ensure the operation is truly async
+                    await Task.Delay(1);
+                    
+                    // Try to get fresh token from AutoTopstepXLoginService first
+                    var autoLoginServices = serviceProvider.GetServices<IHostedService>()
+                        .OfType<BotCore.Services.AutoTopstepXLoginService>()
+                        .FirstOrDefault();
+                    
+                    if (autoLoginServices?.IsAuthenticated == true && !string.IsNullOrEmpty(autoLoginServices.JwtToken))
+                    {
+                        return autoLoginServices.JwtToken;
+                    }
+                    
+                    // Fallback to environment variable
+                    var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                    if (!string.IsNullOrEmpty(envToken))
+                    {
+                        return envToken;
+                    }
+                    
+                    // Last resort: try to wait a bit for the auto login service
+                    if (autoLoginServices != null)
+                    {
+                        for (int i = 0; i < 10; i++) // Wait up to 5 seconds
+                        {
+                            await Task.Delay(500);
+                            if (autoLoginServices.IsAuthenticated && !string.IsNullOrEmpty(autoLoginServices.JwtToken))
+                            {
+                                return autoLoginServices.JwtToken;
+                            }
+                        }
+                    }
+                    
+                    return null;
+                }
+                catch (Exception)
+                {
+                    // Fallback to environment variable on error
+                    return Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                }
+            };
+        });
+
+                // Register AutoTopstepXLoginService with HTTP client FIRST (for token refresh)
+        services.AddHttpClient<BotCore.Services.AutoTopstepXLoginService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.topstepx.com");
+            client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        
+        // Register AutoTopstepXLoginService as HOSTED SERVICE FIRST for automatic token refresh
+        services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
+        
+        // THEN register TradingSystemIntegrationService so it starts AFTER auth is ready
+        services.AddHostedService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();        
         
         Console.WriteLine("🛡️ CRITICAL SAFETY SYSTEMS registered - Emergency stops, monitoring, confirmations");
+        
+        // ================================================================================
+        // ADVANCED INFRASTRUCTURE - ML/DATA MANAGEMENT  
+        // ================================================================================
+        
+        // Register WorkflowOrchestrationManager (466 lines)
+        services.AddSingleton<WorkflowOrchestrationManager>();
+        
+        // Register workflow scheduling options
+        services.AddSingleton<WorkflowSchedulingOptions>(provider => 
+            provider.GetService<IOptionsMonitor<WorkflowSchedulingOptions>>()?.CurrentValue ?? new WorkflowSchedulingOptions());
+        
+        Console.WriteLine("🏗️ ADVANCED INFRASTRUCTURE registered - Workflow, events, data feeds, integration");
+        
+        // ================================================================================
+        // PYTHON INTEGRATION - ML/RL Decision Service
+        // ================================================================================
+        
+        // Register the ML/RL Decision Service with Python sidecar
+        services.AddSingleton<DecisionServiceLauncher>();
+        services.AddSingleton<DecisionServiceIntegration>();
+        
+        // Register the Python UCB Launcher
+        services.AddSingleton<PythonUcbLauncher>();
+        
+        Console.WriteLine("🧠 ML/RL DECISION SERVICE registered - Python sidecar with C# integration");
+        Console.WriteLine($"   📍 Service URL: http://127.0.0.1:7080");
+        Console.WriteLine($"   🚀 Auto-launch: True");
+        Console.WriteLine($"   🔄 Auto-restart: True");
+        
+        // ================================================================================
+        // AUTHENTICATION - TopstepX Credential Management
+        // ================================================================================
+        
+        // Register Credential Manager
+        services.AddSingleton<TopstepXCredentialManager>();
+        
+        // Register TopstepAuthAgent (authentication service)
+        services.AddSingleton<TopstepAuthAgent>();
+        
+        // Register CredentialManager as singleton
+        services.AddSingleton<TopstepXCredentialManager>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<TopstepXCredentialManager>>();
+            return new TopstepXCredentialManager(logger);
+        });
+        
+        // Register TopstepAuthAgent with HTTP client
+        services.AddHttpClient<TopstepAuthAgent>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.topstepx.com");
+            client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
+        });
+        
+        Console.WriteLine("🔐 AUTHENTICATION SERVICES registered - TopstepX credentials and auto-login");
         
         // ================================================================================
         // ADVANCED INFRASTRUCTURE - ML/DATA MANAGEMENT  
@@ -327,8 +463,9 @@ public class Program
         
         // Register authentication and credential management services from Infrastructure.TopstepX
         services.AddSingleton<TopstepXCredentialManager>();
-        services.AddHttpClient<BotCore.Services.AutoTopstepXLoginService>();
-        services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
+        
+        // Register AutoTopstepXLoginService as HOSTED SERVICE for automatic token refresh
+        services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
         
         // Register ALL critical system components that exist in BotCore
         try 
@@ -433,6 +570,7 @@ public class Program
         services.AddSingleton<BotCore.UserHubClient>();
         services.AddSingleton<BotCore.MarketHubClient>();
         services.AddSingleton<BotCore.UserHubAgent>();
+        
         services.AddSingleton<BotCore.PositionAgent>();
         services.AddSingleton<BotCore.MarketDataAgent>();
         services.AddSingleton<BotCore.ModelUpdaterService>();

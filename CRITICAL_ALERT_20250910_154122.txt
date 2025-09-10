@@ -1,0 +1,27 @@
+CRITICAL SYSTEM ERROR
+=====================
+Time: 2025-09-10 15:41:22 UTC
+Component: TradingSystemIntegration
+Error: Response status code does not indicate success: 401 (Unauthorized).
+Error ID: 54726164696E
+
+IMMEDIATE ACTION REQUIRED:
+- Check system logs for details
+- Verify trading positions are safe
+- Consider emergency stop if trading related
+
+Stack Trace:
+   at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.NegotiateAsync(Uri url, HttpClient httpClient, ILogger logger, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.GetNegotiationResponseAsync(Uri uri, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.SelectAndStartTransport(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.StartAsyncCore(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnection.StartAsync(TransferFormat transferFormat, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnectionFactory.ConnectAsync(EndPoint endPoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Http.Connections.Client.HttpConnectionFactory.ConnectAsync(EndPoint endPoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsyncCore(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsyncInner(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.SignalR.Client.HubConnection.StartAsync(CancellationToken cancellationToken)
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 196
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 221
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.ExecuteAsync(CancellationToken stoppingToken) in /workspaces/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 87
