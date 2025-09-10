@@ -20,6 +20,8 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     private readonly object? _tradingOrchestrator;
     private readonly object? _intelligenceOrchestrator;
     private readonly object? _dataOrchestrator;
+    private readonly DateTime _startTime;
+    private bool _isConnectedToTopstep = false;
 
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
@@ -30,6 +32,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _tradingOrchestrator = null!; // Will be resolved later
         _intelligenceOrchestrator = null!; // Will be resolved later
         _dataOrchestrator = null!; // Will be resolved later
+        _startTime = DateTime.UtcNow;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -78,6 +81,20 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _logger.LogDebug("Trading Orchestrator: {Status}", _tradingOrchestrator != null ? "Available" : "Not initialized");
         _logger.LogDebug("Intelligence Orchestrator: {Status}", _intelligenceOrchestrator != null ? "Available" : "Not initialized");
         _logger.LogDebug("Data Orchestrator: {Status}", _dataOrchestrator != null ? "Available" : "Not initialized");
+        
+        // In production, this would establish TopstepX connection
+        // For now, simulate connection status check
+        try
+        {
+            // Simulate connection check
+            await Task.Delay(50, cancellationToken);
+            _isConnectedToTopstep = true; // Would be actual connection result
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "TopstepX connection check failed - running in offline mode");
+            _isConnectedToTopstep = false;
+        }
         
         await Task.CompletedTask;
         
@@ -213,13 +230,13 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         return new OrchestratorStatus
         {
             IsRunning = systemStatus.IsHealthy,
-            IsConnectedToTopstep = true, // Placeholder
-            ActiveWorkflows = 0,
-            TotalWorkflows = 0,
-            StartTime = DateTime.UtcNow.AddHours(-1), // Placeholder
-            Uptime = TimeSpan.FromHours(1), // Placeholder
+            IsConnectedToTopstep = _isConnectedToTopstep,
+            ActiveWorkflows = 0, // Would count actual active workflows
+            TotalWorkflows = 0,  // Would count total registered workflows
+            StartTime = _startTime,
+            Uptime = DateTime.UtcNow - _startTime,
             ComponentStatus = systemStatus.ComponentStatuses.ToDictionary(k => k.Key, v => (object)v.Value),
-            RecentErrors = new List<string>()
+            RecentErrors = new List<string>() // Would contain actual recent errors
         };
     }
 }
