@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-09T18:28:49.915852",
+  "timestamp": "2025-09-10T09:23:11.355179",
   "analysis_mode": "comprehensive",
-  "market_session": "regular",
-  "total_articles_processed": 12,
+  "market_session": "extended",
+  "total_articles_processed": 5,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -38,128 +38,83 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
-    },
-    "TSLA": {
-      "sentiment_score": 0.1460641835016835,
-      "article_count": 9,
+      "sentiment_score": 0.3,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Apple\u2019s Big iPhone 17 and Smartwatch Event",
-          "sentiment": 0.3477272727272727,
-          "textblob_score": 0.06818181818181818,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-09/apple-s-big-iphone-17-and-smartwatch-event-video",
-          "published": "Tue, 09 Sep 2025 18:13:09 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Altice USA Switches Advisers to Revive Debt-Reshuffle Talks",
-          "sentiment": 0.26249999999999996,
-          "textblob_score": 0.375,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-09/altice-usa-switches-advisers-to-revive-debt-reshuffle-talks",
-          "published": "Tue, 09 Sep 2025 18:00:05 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Bank of France Sees Sustained Growth Despite Political Headwinds",
+          "title": "Cathie Wood predicts Bitcoin will outperform gold despite setback",
           "sentiment": 0.3,
           "textblob_score": 0.0,
           "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-09/bank-of-france-sees-sustained-growth-despite-political-headwinds",
-          "published": "Tue, 09 Sep 2025 18:00:00 GMT",
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/cathie-wood-predicts-bitcoin-outperform-231606963.html",
+          "published": "2025-09-08T23:16:06Z",
           "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Stocks Recover After Jobs Revision Boosts Chances of Rate Cuts",
-          "sentiment": 0.12249999999999998,
-          "textblob_score": 0.175,
-          "keyword_score": 0.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-09/us-stocks-climb-ahead-of-jobs-revisions-as-rate-cut-bets-rise",
-          "published": "Tue, 09 Sep 2025 13:40:21 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "California in Talks to Pay Hundreds of Millions to Valero to Stave Off Refinery Shutdown",
-          "sentiment": -0.3,
-          "textblob_score": 0.0,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-09/california-may-pay-valero-hundreds-of-millions-to-keep-sf-bay-area-refinery-open",
-          "published": "Tue, 09 Sep 2025 15:31:03 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Citi Sees Investment-Banking Fees, Markets Up Mid-Single Digits",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-09/citi-sees-investment-banking-fees-markets-up-mid-single-digits",
-          "published": "Tue, 09 Sep 2025 17:32:27 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Oil Advances as Israel\u2019s Strike in Qatar Revives Risk Premium",
-          "sentiment": 0.1366666666666667,
-          "textblob_score": -0.2333333333333333,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-08/latest-oil-market-news-and-analysis-for-sept-9",
-          "published": "Mon, 08 Sep 2025 23:32:17 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Anglo American buys Canada's Teck in Big Mining Deal | Open Interest 9/9/2025",
-          "sentiment": 0.38451704545454546,
-          "textblob_score": 0.12073863636363635,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-09/open-interest-9-9-2025-video",
-          "published": "Tue, 09 Sep 2025 17:19:39 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Economy created 911,000 fewer jobs in 2024-25 than reported. It\u2019s more ammo for Fed rate cut.",
-          "sentiment": -0.23933333333333331,
-          "textblob_score": 0.0866666666666667,
-          "keyword_score": -1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/economy-created-911-000-fewer-jobs-in-2024-2025-than-originally-reported-more-ammo-for-fed-rate-cut-0562a068?mod=mw_rss_topstories",
-          "published": "Tue, 09 Sep 2025 14:56:00 GMT",
-          "relevance_keywords": [
-            "EV"
+            "Bitcoin"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.9,
+      "confidence": 0.1,
+      "sources": [
+        "yahoo_finance"
+      ]
+    },
+    "TSLA": {
+      "sentiment_score": 0.5826590909090908,
+      "article_count": 4,
+      "articles": [
+        {
+          "title": "Tax Overhaul Boosts Coal India\u2019s Push to Replace Pricey Imports",
+          "sentiment": 1.0,
+          "textblob_score": 1.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-10/tax-overhaul-boosts-coal-india-s-push-to-replace-pricey-imports",
+          "published": "Wed, 10 Sep 2025 08:49:24 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Saudi Real Estate Developer Almjadiah Gains in Trading Debut",
+          "sentiment": 0.44699999999999995,
+          "textblob_score": 0.21000000000000002,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-10/saudi-real-estate-developer-almjadiah-gains-in-trading-debut",
+          "published": "Wed, 10 Sep 2025 08:05:26 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Oracle\u2019s stock surges toward its best day since 1999. These huge numbers explain why.",
+          "sentiment": 0.6036363636363636,
+          "textblob_score": 0.4337662337662338,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/oracles-stock-surges-toward-best-day-in-years-these-huge-numbers-explain-why-4a7e95ab?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 00:17:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "These companies could be to self-driving trucks and tractors what Tesla is to cars",
+          "sentiment": 0.27999999999999997,
+          "textblob_score": 0.4,
+          "keyword_score": 0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/the-next-vehicles-to-go-driverless-may-shock-you-and-could-be-a-great-investment-b5dfc4f3?mod=mw_rss_topstories",
+          "published": "Tue, 09 Sep 2025 22:59:00 GMT",
+          "relevance_keywords": [
+            "Tesla"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.4,
       "sources": [
         "bloomberg",
         "marketwatch"
@@ -174,54 +129,12 @@
       "sources": []
     },
     "AAPL": {
-      "sentiment_score": 0.3957859848484848,
-      "article_count": 3,
-      "articles": [
-        {
-          "title": "People Will Get Into Apple Stores: Analyst Milanesi",
-          "sentiment": 0.45511363636363633,
-          "textblob_score": 0.2215909090909091,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-09/people-will-get-into-apple-stores-analyst-milanesi-video",
-          "published": "Tue, 09 Sep 2025 18:18:43 GMT",
-          "relevance_keywords": [
-            "Apple",
-            "iPhone"
-          ]
-        },
-        {
-          "title": "Apple\u2019s Big iPhone 17 and Smartwatch Event",
-          "sentiment": 0.3477272727272727,
-          "textblob_score": 0.06818181818181818,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-09/apple-s-big-iphone-17-and-smartwatch-event-video",
-          "published": "Tue, 09 Sep 2025 18:13:09 GMT",
-          "relevance_keywords": [
-            "Apple",
-            "iPhone"
-          ]
-        },
-        {
-          "title": "Anglo American buys Canada's Teck in Big Mining Deal | Open Interest 9/9/2025",
-          "sentiment": 0.38451704545454546,
-          "textblob_score": 0.12073863636363635,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-09/open-interest-9-9-2025-video",
-          "published": "Tue, 09 Sep 2025 17:19:39 GMT",
-          "relevance_keywords": [
-            "Apple",
-            "iPhone"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.3,
-      "sources": [
-        "bloomberg"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     }
   },
   "sources_used": [
