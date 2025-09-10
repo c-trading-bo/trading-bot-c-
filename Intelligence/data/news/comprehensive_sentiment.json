@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-10T09:23:11.355179",
+  "timestamp": "2025-09-10T15:22:44.226134",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "total_articles_processed": 5,
+  "market_session": "regular",
+  "total_articles_processed": 8,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -38,103 +38,144 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.3,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Cathie Wood predicts Bitcoin will outperform gold despite setback",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/cathie-wood-predicts-bitcoin-outperform-231606963.html",
-          "published": "2025-09-08T23:16:06Z",
-          "relevance_keywords": [
-            "Bitcoin"
-          ]
-        }
-      ],
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
       "signal": "NEUTRAL",
-      "confidence": 0.1,
-      "sources": [
-        "yahoo_finance"
-      ]
+      "confidence": 0.0,
+      "sources": []
     },
     "TSLA": {
-      "sentiment_score": 0.5826590909090908,
+      "sentiment_score": 0.3351262626262626,
       "article_count": 4,
       "articles": [
         {
-          "title": "Tax Overhaul Boosts Coal India\u2019s Push to Replace Pricey Imports",
-          "sentiment": 1.0,
-          "textblob_score": 1.0,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-10/tax-overhaul-boosts-coal-india-s-push-to-replace-pricey-imports",
-          "published": "Wed, 10 Sep 2025 08:49:24 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Saudi Real Estate Developer Almjadiah Gains in Trading Debut",
-          "sentiment": 0.44699999999999995,
-          "textblob_score": 0.21000000000000002,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-10/saudi-real-estate-developer-almjadiah-gains-in-trading-debut",
-          "published": "Wed, 10 Sep 2025 08:05:26 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Oracle\u2019s stock surges toward its best day since 1999. These huge numbers explain why.",
-          "sentiment": 0.6036363636363636,
-          "textblob_score": 0.4337662337662338,
+          "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
+          "sentiment": 0.3477272727272727,
+          "textblob_score": 0.06818181818181818,
           "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/oracles-stock-surges-toward-best-day-in-years-these-huge-numbers-explain-why-4a7e95ab?mod=mw_rss_topstories",
-          "published": "Wed, 10 Sep 2025 00:17:00 GMT",
+          "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 14:34:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "These companies could be to self-driving trucks and tractors what Tesla is to cars",
-          "sentiment": 0.27999999999999997,
-          "textblob_score": 0.4,
+          "title": "Oracle\u2019s stock is doing something never seen before on Wall Street: Inside the historic move",
+          "sentiment": 0.45499999999999996,
+          "textblob_score": 0.22142857142857145,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/oracles-stock-is-doing-something-never-seen-before-on-wall-street-inside-the-historic-move-ab2453f6?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 14:30:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Emma Heming Willis on moving husband Bruce Willis into a second home for dementia care: \u2018I know it raises eyebrows [but] you have to do what\u2019s right\u2019",
+          "sentiment": 0.08999999999999998,
+          "textblob_score": 0.12857142857142856,
           "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/the-next-vehicles-to-go-driverless-may-shock-you-and-could-be-a-great-investment-b5dfc4f3?mod=mw_rss_topstories",
-          "published": "Tue, 09 Sep 2025 22:59:00 GMT",
+          "url": "https://www.marketwatch.com/story/emma-heming-willis-on-moving-husband-bruce-willis-into-a-second-home-for-dementia-care-i-know-it-raises-eyebrowsyou-have-to-do-whats-right-3ffe931a?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 13:40:00 GMT",
           "relevance_keywords": [
-            "Tesla"
+            "EV"
+          ]
+        },
+        {
+          "title": "Tesla\u2019s Elon Musk still leads the billionaires, but Oracle\u2019s Larry Ellison is quickly gaining on him",
+          "sentiment": 0.4477777777777777,
+          "textblob_score": 0.2111111111111111,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/elon-musk-still-leads-the-billionaires-but-larry-ellison-is-coming-up-fast-a962edaf?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 12:46:00 GMT",
+          "relevance_keywords": [
+            "Tesla",
+            "Elon Musk"
           ]
         }
       ],
       "signal": "BULLISH",
       "confidence": 0.4,
       "sources": [
-        "bloomberg",
         "marketwatch"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": 0.17757575757575755,
+      "article_count": 2,
+      "articles": [
+        {
+          "title": "Oracle Is the New Nvidia, for Better or Worse",
+          "sentiment": 0.055151515151515146,
+          "textblob_score": 0.07878787878787878,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.wsj.com/tech/ai/oracle-orcl-stock-nvidia-ai-55d58813?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-10T14:44:00Z",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "Quantum Computing Stocks: Nvidia's Growing Appetite For Startup Investments",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://www.investors.com/news/technology/quantum-computing-stocks-nvidia-psiquantum-quera/?src=A00220&yptr=yahoo",
+          "published": "2025-09-10T14:36:21Z",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.2,
+      "sources": [
+        "yahoo_finance"
+      ]
     },
     "AAPL": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "sentiment_score": 0.3588636363636364,
+      "article_count": 2,
+      "articles": [
+        {
+          "title": "Goldman Trader Urges Stock Investors to Watch for Cracks in Data",
+          "sentiment": 0.37,
+          "textblob_score": 0.1,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-10/goldman-trader-urges-stock-investors-to-watch-for-cracks-in-data",
+          "published": "Wed, 10 Sep 2025 14:10:53 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
+          "sentiment": 0.3477272727272727,
+          "textblob_score": 0.06818181818181818,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
+          "published": "Wed, 10 Sep 2025 14:34:00 GMT",
+          "relevance_keywords": [
+            "Apple",
+            "iPhone"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.2,
+      "sources": [
+        "bloomberg",
+        "marketwatch"
+      ]
     }
   },
   "sources_used": [
