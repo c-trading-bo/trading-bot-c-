@@ -30,6 +30,19 @@ public class SecurityServiceTests
         Assert.DoesNotContain("abc123def456", result);
         Assert.DoesNotContain("secret123", result);
         Assert.DoesNotContain("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", result);
+        
+        // Use expectedPattern for validation
+        if (!string.IsNullOrEmpty(expectedPattern))
+        {
+            var expectedParts = expectedPattern.Split("[REDACTED]");
+            foreach (var part in expectedParts)
+            {
+                if (!string.IsNullOrWhiteSpace(part))
+                {
+                    Assert.Contains(part, result);
+                }
+            }
+        }
     }
 
     [Theory]
@@ -45,6 +58,19 @@ public class SecurityServiceTests
         Assert.Contains("****", result);
         Assert.DoesNotContain("567890", result);
         Assert.DoesNotContain("543210", result);
+        
+        // Use expectedPattern for validation
+        if (!string.IsNullOrEmpty(expectedPattern))
+        {
+            var expectedParts = expectedPattern.Split("[REDACTED]");
+            foreach (var part in expectedParts)
+            {
+                if (!string.IsNullOrWhiteSpace(part))
+                {
+                    Assert.Contains(part, result);
+                }
+            }
+        }
     }
 
     [Theory]
@@ -59,6 +85,19 @@ public class SecurityServiceTests
         Assert.Contains("@[REDACTED]", result);
         Assert.DoesNotContain("example.com", result);
         Assert.DoesNotContain("company.org", result);
+        
+        // Use expectedPattern for validation
+        if (!string.IsNullOrEmpty(expectedPattern))
+        {
+            var expectedParts = expectedPattern.Split("[REDACTED]");
+            foreach (var part in expectedParts)
+            {
+                if (!string.IsNullOrWhiteSpace(part))
+                {
+                    Assert.Contains(part, result);
+                }
+            }
+        }
     }
 
     [Fact]
@@ -138,6 +177,19 @@ public class SecurityServiceTests
         Assert.Contains("[REDACTED]", result);
         Assert.DoesNotContain("abc123token456", result);
         Assert.DoesNotContain("dXNlcjpwYXNzd29yZA==", result);
+        
+        // Use expected for validation
+        if (!string.IsNullOrEmpty(expected))
+        {
+            var expectedParts = expected.Split("[REDACTED]");
+            foreach (var part in expectedParts)
+            {
+                if (!string.IsNullOrWhiteSpace(part))
+                {
+                    Assert.Contains(part, result);
+                }
+            }
+        }
     }
 
     [Fact]
