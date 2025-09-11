@@ -33,6 +33,23 @@ public static class SecurityHelpers
     }
     
     /// <summary>
+    /// Masks a specific account ID value for secure logging
+    /// </summary>
+    /// <param name="accountId">The account ID to mask</param>
+    /// <returns>The masked account ID as ****1234</returns>
+    public static string MaskSpecificAccountId(string? accountId)
+    {
+        if (string.IsNullOrEmpty(accountId))
+            return "[REDACTED]";
+            
+        if (accountId.Length <= 4)
+            return "****";
+            
+        var lastFour = accountId.Substring(accountId.Length - 4);
+        return $"****{lastFour}";
+    }
+    
+    /// <summary>
     /// Masks order IDs in log messages for security
     /// </summary>
     /// <param name="message">The log message that may contain order IDs</param>
