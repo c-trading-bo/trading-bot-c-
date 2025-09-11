@@ -1,40 +1,82 @@
 {
-  "timestamp": "2025-09-11T09:22:59.018141",
+  "timestamp": "2025-09-11T12:42:14.642906",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
   "total_articles_processed": 13,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.3145833333333333,
-      "article_count": 1,
+      "sentiment_score": 0.34687500000000004,
+      "article_count": 2,
       "articles": [
         {
-          "title": "Klarna IPO: Exciting Growth And Broad Market Appeal, But Complex Business With Rising Credit Risk",
-          "sentiment": 0.3145833333333333,
-          "textblob_score": 0.020833333333333332,
-          "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4821971-klarna-ipo-exciting-growth-and-broad-market-appeal-but-complex-business-with-rising-credit-risk?source=feed_all_articles",
-          "published": "Thu, 11 Sep 2025 05:21:24 -0400",
+          "title": "Stock market today: Dow, S&P 500, Nasdaq futures tip higher with CPI inflation data on deck",
+          "sentiment": 0.175,
+          "textblob_score": 0.25,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-tip-higher-with-cpi-inflation-data-on-deck-232148847.html",
+          "published": "2025-09-10T23:21:48Z",
           "relevance_keywords": [
-            "broad market"
+            "S&P"
+          ]
+        },
+        {
+          "title": "Always trust your first guess: One Wall Street bank is reinstating its bullish S&P 500 target",
+          "sentiment": 0.51875,
+          "textblob_score": 0.3125,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/always-trust-your-first-guess-one-wall-street-bank-is-reinstating-its-bullish-s-p-500-target-0c5e9fae?mod=mw_rss_topstories",
+          "published": "Thu, 11 Sep 2025 11:25:00 GMT",
+          "relevance_keywords": [
+            "S&P"
           ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.1,
+      "confidence": 0.2,
       "sources": [
-        "seeking_alpha"
+        "yahoo_finance",
+        "marketwatch"
       ]
     },
     "NQ": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": -0.04128787878787879,
+      "article_count": 2,
+      "articles": [
+        {
+          "title": "Stock market today: Dow, S&P 500, Nasdaq futures tip higher with CPI inflation data on deck",
+          "sentiment": 0.175,
+          "textblob_score": 0.25,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-tip-higher-with-cpi-inflation-data-on-deck-232148847.html",
+          "published": "2025-09-10T23:21:48Z",
+          "relevance_keywords": [
+            "Nasdaq"
+          ]
+        },
+        {
+          "title": "ECB Expected to Hold Rates; Search Continue for Charlie Kirk Killer | Bloomberg Brief 9/11/2025",
+          "sentiment": -0.25757575757575757,
+          "textblob_score": 0.060606060606060615,
+          "keyword_score": -1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-11/bloomberg-brief-9-11-2025-video",
+          "published": "Thu, 11 Sep 2025 10:56:16 GMT",
+          "relevance_keywords": [
+            "Nasdaq",
+            "Nasdaq 100"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.2,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg"
+      ]
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -61,89 +103,78 @@
       "sources": []
     },
     "TSLA": {
-      "sentiment_score": 0.29913131313131314,
-      "article_count": 9,
+      "sentiment_score": 0.1566177398989899,
+      "article_count": 8,
       "articles": [
         {
-          "title": "Evergrande Liquidators Get Bids for Unit From State-Owned Firms",
-          "sentiment": 0.46624999999999994,
-          "textblob_score": 0.2375,
-          "keyword_score": 1.0,
+          "title": "Treasury Yields Sink as In-Line CPI Fuels Fed Bets: Markets Wrap",
+          "sentiment": -0.3,
+          "textblob_score": 0.0,
+          "keyword_score": -1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/evergrande-liquidators-get-bids-for-unit-from-state-owned-firms",
-          "published": "Thu, 11 Sep 2025 09:08:19 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-10/stock-market-today-dow-s-p-live-updates",
+          "published": "Wed, 10 Sep 2025 22:46:57 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Elite Hong Kong School Threatened With Eviction by US Church",
-          "sentiment": 0.13999999999999999,
-          "textblob_score": 0.19999999999999998,
+          "title": "OPEC Still Sees Tight Oil Market Despite Supply Increases",
+          "sentiment": 0.2583333333333333,
+          "textblob_score": -0.05952380952380953,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-11/opec-still-sees-tight-oil-market-despite-supply-increases",
+          "published": "Thu, 11 Sep 2025 12:00:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Indonesia\u2019s New Finance Chief May Recast Predecessor\u2019s Budget",
+          "sentiment": 0.3564772727272727,
+          "textblob_score": 0.08068181818181817,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-11/indonesia-s-new-finance-chief-moves-fast-with-12-billion-economic-boost",
+          "published": "Thu, 11 Sep 2025 03:05:06 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "ECB Set to Pause Rate Cut, Oracle Shares Soar Fueling AI Stock Rally | The Opening Trade 9/11",
+          "sentiment": 0.304040404040404,
+          "textblob_score": 0.14862914862914864,
+          "keyword_score": 0.6666666666666666,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-11/the-opening-trade-9-11-video",
+          "published": "Thu, 11 Sep 2025 11:07:22 GMT",
+          "relevance_keywords": [
+            "Elon Musk",
+            "EV"
+          ]
+        },
+        {
+          "title": "ECB Expected to Hold Rates; Search Continue for Charlie Kirk Killer | Bloomberg Brief 9/11/2025",
+          "sentiment": -0.25757575757575757,
+          "textblob_score": 0.060606060606060615,
+          "keyword_score": -1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-11/bloomberg-brief-9-11-2025-video",
+          "published": "Thu, 11 Sep 2025 10:56:16 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Fed to Do Right Thing for Wrong Reason, Chiavarone Says",
+          "sentiment": 0.06666666666666665,
+          "textblob_score": 0.09523809523809523,
           "keyword_score": 0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/elite-hong-kong-school-threatened-with-eviction-by-us-church",
-          "published": "Thu, 11 Sep 2025 07:38:15 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Oil Market Can\u2019t Absorb Increase in Supplies: IEA Says",
-          "sentiment": 0.349,
-          "textblob_score": 0.06999999999999999,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/oil-market-can-t-absorb-increase-in-supplies-iea-says-video",
-          "published": "Thu, 11 Sep 2025 09:04:38 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Chinese Carmakers May Keep Price Edge Despite Mexico Levies",
-          "sentiment": 0.2270833333333333,
-          "textblob_score": -0.10416666666666667,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/chinese-carmakers-may-keep-price-advantage-despite-mexico-levies",
-          "published": "Thu, 11 Sep 2025 06:51:17 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Thai Builder Sees Plant Boom as Firms Flee Trump\u2019s China Duties",
-          "sentiment": 0.14848484848484847,
-          "textblob_score": 0.21212121212121213,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/thai-builder-sees-plant-boom-as-firms-flee-trump-s-china-duties",
-          "published": "Thu, 11 Sep 2025 08:26:26 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Citi\u2019s Manthey on Europe Stocks Outperformance",
-          "sentiment": 0.475,
-          "textblob_score": 0.25,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/city-says-europe-stocks-outperformance-has-further-to-go-video",
-          "published": "Thu, 11 Sep 2025 07:58:39 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Why Broadcom\u2019s stock led the chip sector\u2019s rally on Wednesday",
-          "sentiment": 0.4113636363636364,
-          "textblob_score": 0.1590909090909091,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/why-broadcoms-stock-is-leading-the-chip-sectors-rally-on-wednesday-549ba49a?mod=mw_rss_topstories",
-          "published": "Thu, 11 Sep 2025 00:39:00 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-11/fed-to-do-right-thing-for-wrong-reason-chiavarone-says-video",
+          "published": "Thu, 11 Sep 2025 10:49:54 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -155,26 +186,26 @@
           "keyword_score": 0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/fun-came-before-paying-bills-my-brother-in-law-is-in-his-70s-and-homeless-are-we-responsible-for-him-f1d86d54?mod=mw_rss_topstories",
-          "published": "Wed, 10 Sep 2025 23:46:00 GMT",
+          "published": "Thu, 11 Sep 2025 12:00:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Sirius XM Holdings: Like A Publicly Traded Leveraged Buyout",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
+          "title": "Why I'm More Bullish On Wolfspeed Now Than Ever",
+          "sentiment": 0.6499999999999999,
+          "textblob_score": 0.5,
           "keyword_score": 1.0,
           "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4821962-siriusxm-like-a-publicly-traded-leveraged-buyout?source=feed_all_articles",
-          "published": "Thu, 11 Sep 2025 05:01:34 -0400",
+          "url": "https://seekingalpha.com/article/4822030-why-im-more-bullish-on-wolfspeed-now-than-ever?source=feed_all_articles",
+          "published": "Thu, 11 Sep 2025 08:31:51 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.9,
+      "confidence": 0.8,
       "sources": [
         "bloomberg",
         "marketwatch",
@@ -182,55 +213,19 @@
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.2608712121212121,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Was Jim Cramer Right About NVIDIA (NVDA)?",
-          "sentiment": 0.19999999999999998,
-          "textblob_score": 0.2857142857142857,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/jim-cramer-nvidia-nvda-211903043.html",
-          "published": "2025-09-09T21:19:03Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Nvidia-baked Cusp AI Raises $100m In Series A Funding",
-          "sentiment": 0.3217424242424242,
-          "textblob_score": 0.031060606060606056,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/nvidia-baked-cusp-ai-raises-100m-in-series-a-funding-video",
-          "published": "Thu, 11 Sep 2025 08:42:12 GMT",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        }
-      ],
-      "signal": "NEUTRAL",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance",
-        "bloomberg"
-      ]
-    },
-    "AAPL": {
-      "sentiment_score": 0.3217424242424242,
+      "sentiment_score": 0.304040404040404,
       "article_count": 1,
       "articles": [
         {
-          "title": "Nvidia-baked Cusp AI Raises $100m In Series A Funding",
-          "sentiment": 0.3217424242424242,
-          "textblob_score": 0.031060606060606056,
-          "keyword_score": 1.0,
+          "title": "ECB Set to Pause Rate Cut, Oracle Shares Soar Fueling AI Stock Rally | The Opening Trade 9/11",
+          "sentiment": 0.304040404040404,
+          "textblob_score": 0.14862914862914864,
+          "keyword_score": 0.6666666666666666,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/nvidia-baked-cusp-ai-raises-100m-in-series-a-funding-video",
-          "published": "Thu, 11 Sep 2025 08:42:12 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-11/the-opening-trade-9-11-video",
+          "published": "Thu, 11 Sep 2025 11:07:22 GMT",
           "relevance_keywords": [
-            "Mac"
+            "Nvidia"
           ]
         }
       ],
@@ -239,6 +234,14 @@
       "sources": [
         "bloomberg"
       ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     }
   },
   "sources_used": [
