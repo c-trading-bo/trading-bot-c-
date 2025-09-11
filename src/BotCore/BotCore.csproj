@@ -22,6 +22,7 @@
     <ProjectReference Include="..\\Abstractions\\Abstractions.csproj" />
     <ProjectReference Include="..\\IntelligenceStack\\IntelligenceStack.csproj" />
     <ProjectReference Include="..\\Infrastructure.TopstepX\\Infrastructure.TopstepX.csproj" />
+    <ProjectReference Include="..\\RLAgent\\RLAgent.csproj" />
     <!-- <ProjectReference Include="..\\Safety\\Safety.csproj" /> -->
   </ItemGroup>
 
