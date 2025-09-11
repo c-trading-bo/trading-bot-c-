@@ -65,7 +65,8 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _httpClient = new HttpClient(handler)
         {
-            Timeout = TimeSpan.FromSeconds(30)
+            Timeout = TimeSpan.FromSeconds(30),
+            BaseAddress = new Uri(_configuration["TopstepX:ApiUrl"] ?? "https://api.topstepx.com")
         };
 
         // Set environment variable for .NET HTTP handler compatibility
@@ -501,10 +502,8 @@ public class TopstepXService : ITopstepXService, IDisposable
     {
         try
         {
-            var apiUrl = _configuration["TopstepX:ApiUrl"] ?? "https://api.topstepx.com";
-            var tokenEndpoint = $"{apiUrl.TrimEnd('/')}/auth/token";
-
-            var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+            // Use relative path since BaseAddress is configured
+            var request = new HttpRequestMessage(HttpMethod.Post, "auth/token");
 
             var loginPayload = new
             {
@@ -551,7 +550,7 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         if (!IsConnected)
         {
-            _logger.LogInformation("[TOPSTEPX] Auto-reconnect triggered");
+            _logger.LogInformation("[TOPSTEPX] Auto-reconnect triggered - connection not active");
             _ = Task.Run(async () =>
             {
                 try
@@ -563,6 +562,69 @@ public class TopstepXService : ITopstepXService, IDisposable
                     _logger.LogWarning(ex, "[TOPSTEPX] Auto-reconnect failed");
                 }
             });
+        }
+        else
+        {
+            // Perform health check ping for connected state
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await PerformHealthCheckPing();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[TOPSTEPX] Health check ping failed");
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Performs a health check ping to verify the connection is still responsive
+    /// </summary>
+    private async Task PerformHealthCheckPing()
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected)
+            return;
+
+        try
+        {
+            // Try to invoke a simple ping method with timeout
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            
+            await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                _hubConnection,
+                () => _hubConnection.InvokeAsync("Ping", cancellationToken: cts.Token),
+                _logger,
+                cts.Token,
+                maxAttempts: 1,  // Single attempt for health check
+                waitMs: 1000);
+
+            _logger.LogDebug("[TOPSTEPX] Health check ping successful");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[TOPSTEPX] Health check ping failed - connection may be unhealthy");
+            
+            // If ping fails, trigger reconnection
+            if (!_isConnecting)
+            {
+                _logger.LogInformation("[TOPSTEPX] Triggering reconnection due to failed health check");
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await DisconnectAsync();
+                        await Task.Delay(1000); // Brief delay before reconnecting
+                        await ConnectAsync();
+                    }
+                    catch (Exception reconEx)
+                    {
+                        _logger.LogError(reconEx, "[TOPSTEPX] Health check triggered reconnection failed");
+                    }
+                });
+            }
         }
     }
 
