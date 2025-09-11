@@ -1,27 +1,30 @@
-// Real-Time Trading Progress Monitor
-// Tracks strategy performance, win rates, and session statistics
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using BotCore.Models;
 using BotCore.Config;
+using TradingBot.Abstractions;
+using System.Threading.Tasks;
 
 namespace BotCore.Services
 {
     /// <summary>
     /// Monitors trading progress and performance metrics in real-time
+    /// Uses structured logging instead of dashboard display
     /// </summary>
     public class TradingProgressMonitor : IDisposable
     {
         private readonly ILogger<TradingProgressMonitor> _logger;
+        private readonly ITradingLogger? _tradingLogger;
         private readonly Dictionary<string, TradingMetrics> _metrics = new();
         private readonly object _metricsLock = new object();
-        private DateTime _lastDashboardUpdate = DateTime.MinValue;
+        private DateTime _lastProgressReport = DateTime.MinValue;
 
-        public TradingProgressMonitor(ILogger<TradingProgressMonitor> logger)
+        public TradingProgressMonitor(ILogger<TradingProgressMonitor> logger, ITradingLogger? tradingLogger = null)
         {
             _logger = logger;
+            _tradingLogger = tradingLogger;
         }
 
         /// <summary>
@@ -90,111 +93,102 @@ namespace BotCore.Services
 
                 metrics.LastUpdated = DateTime.UtcNow;
 
-                // Log significant trades
+                // Schedule async logging outside the lock
+                var metricsSnapshot = new TradingMetrics
+                {
+                    StrategyId = metrics.StrategyId,
+                    Instrument = metrics.Instrument,
+                    TotalTrades = metrics.TotalTrades,
+                    WinningTrades = metrics.WinningTrades,
+                    TotalPnL = metrics.TotalPnL,
+                    MLConfidenceAvg = metrics.MLConfidenceAvg,
+                    IsImproving = metrics.IsImproving,
+                    LastUpdated = metrics.LastUpdated
+                };
+
+                // Log significant trades with structured data (fire and forget)
                 if (Math.Abs(result.PnL) > 100 || metrics.TotalTrades % 10 == 0)
                 {
-                    LogProgress(metrics);
+                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot));
                 }
             }
         }
 
         /// <summary>
-        /// Display comprehensive trading dashboard
+        /// Log comprehensive trading progress using structured logging
         /// </summary>
-        public void DisplayDashboard(bool force = false)
+        public async Task LogProgressReportAsync(bool force = false)
         {
-            if (!force && DateTime.UtcNow - _lastDashboardUpdate < TimeSpan.FromMinutes(5))
+            if (!force && DateTime.UtcNow - _lastProgressReport < TimeSpan.FromMinutes(5))
                 return;
 
-            _lastDashboardUpdate = DateTime.UtcNow;
+            _lastProgressReport = DateTime.UtcNow;
+
+            object progressData;
+            int totalTrades;
+            double overallWinRate;
+            double totalPnL;
 
             lock (_metricsLock)
             {
-                Console.Clear();
-                Console.WriteLine("╔══════════════════════════════════════════════════════════════════╗");
-                Console.WriteLine("║           24/7 ES & NQ TRADING SYSTEM - LIVE PROGRESS           ║");
-                Console.WriteLine("╠══════════════════════════════════════════════════════════════════╣");
-                Console.WriteLine($"║ Time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC                 ║");
+                totalTrades = _metrics.Values.Sum(m => m.TotalTrades);
+                totalPnL = _metrics.Values.Sum(m => m.TotalPnL);
+                var totalWins = _metrics.Values.Sum(m => m.WinningTrades);
+                overallWinRate = totalTrades > 0 ? (double)totalWins / totalTrades : 0;
 
-                // Current session info
-                var currentSession = ES_NQ_TradingSchedule.GetCurrentSession(DateTime.UtcNow.TimeOfDay);
-                if (currentSession != null)
+                progressData = new
                 {
-                    Console.WriteLine($"║ Session: {currentSession.Description,-35}           ║");
-                    Console.WriteLine($"║ Primary: {currentSession.PrimaryInstrument,-35}           ║");
-                }
-                else
-                {
-                    Console.WriteLine("║ Session: MARKET CLOSED                                           ║");
-                }
+                    totalTrades,
+                    totalPnL,
+                    overallWinRate,
+                    instrumentMetrics = _metrics.Values.GroupBy(m => m.Instrument)
+                        .ToDictionary(g => g.Key, g => g.Select(m => new
+                        {
+                            strategy = m.StrategyId,
+                            trades = m.TotalTrades,
+                            winRate = m.WinRate,
+                            pnl = m.TotalPnL,
+                            mlConfidence = m.MLConfidenceAvg,
+                            isImproving = m.IsImproving
+                        }).ToArray()),
+                    bestTimes = GetBestTradingTimes().Take(5).ToArray(),
+                    activeStrategies = _metrics.Values.Select(m => m.StrategyId).Distinct().Count(),
+                    currentSession = ES_NQ_TradingSchedule.GetCurrentSession(DateTime.UtcNow.TimeOfDay)?.Description ?? "MARKET CLOSED"
+                };
+            }
 
-                Console.WriteLine("╠══════════════════════════════════════════════════════════════════╣");
+            _logger.LogInformation("Trading Progress Report: {TotalTrades} trades, {OverallWinRate:P1} win rate, ${TotalPnL:F2} PnL", 
+                totalTrades, overallWinRate, totalPnL);
 
-                // Display ES metrics
-                Console.WriteLine("║ ES FUTURES:                                                      ║");
-                DisplayInstrumentMetrics("ES");
-
-                Console.WriteLine("║                                                                  ║");
-                Console.WriteLine("║ NQ FUTURES:                                                      ║");
-                DisplayInstrumentMetrics("NQ");
-
-                Console.WriteLine("╠══════════════════════════════════════════════════════════════════╣");
-                Console.WriteLine("║ BEST PERFORMING TIMES:                                          ║");
-
-                // Show best times for each strategy
-                var bestTimes = GetBestTradingTimes();
-                foreach (var time in bestTimes.Take(5))
-                {
-                    Console.WriteLine($"║  {time.Hour:00}:00 | {time.Strategy} | WR: {time.WinRate:P0} | {time.Session,-15} ║");
-                }
-
-                Console.WriteLine("╠══════════════════════════════════════════════════════════════════╣");
-                Console.WriteLine("║ DAILY SUMMARY:                                                  ║");
-                DisplayDailySummary();
-
-                Console.WriteLine("╚══════════════════════════════════════════════════════════════════╝");
+            if (_tradingLogger != null)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Progress Report", progressData);
             }
         }
 
-        private void DisplayInstrumentMetrics(string instrument)
+        private async Task LogProgressAsync(TradingMetrics metrics)
         {
-            var instrumentMetrics = _metrics.Values.Where(m => m.Instrument == instrument).ToList();
-
-            if (!instrumentMetrics.Any())
+            var progressData = new
             {
-                Console.WriteLine($"║  No trades yet for {instrument}                                        ║");
-                return;
-            }
+                strategy = metrics.StrategyId,
+                instrument = metrics.Instrument,
+                trades = metrics.TotalTrades,
+                winRate = metrics.WinRate,
+                pnl = metrics.TotalPnL,
+                avgPnL = metrics.AveragePnL,
+                maxDrawdown = metrics.MaxDrawdown,
+                mlConfidence = metrics.MLConfidenceAvg,
+                isImproving = metrics.IsImproving,
+                lastUpdated = metrics.LastUpdated
+            };
 
-            foreach (var m in instrumentMetrics.OrderBy(x => x.StrategyId))
+            _logger.LogInformation("Strategy Progress: {Strategy} on {Instrument} - {Trades} trades, {WinRate:P1} WR, ${PnL:F2} PnL", 
+                metrics.StrategyId, metrics.Instrument, metrics.TotalTrades, metrics.WinRate, metrics.TotalPnL);
+
+            if (_tradingLogger != null)
             {
-                var arrow = m.IsImproving ? "↑" : "↓";
-                var color = m.WinRate > 0.55 ? ConsoleColor.Green : m.WinRate < 0.45 ? ConsoleColor.Red : ConsoleColor.Yellow;
-
-                Console.ForegroundColor = color;
-                Console.WriteLine($"║  {m.StrategyId,-4} | Trades: {m.TotalTrades,4} | WR: {m.WinRate:P1} {arrow} | PnL: ${m.TotalPnL,8:F2} | ML: {m.MLConfidenceAvg:P0} ║");
-                Console.ResetColor();
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Strategy Progress", progressData);
             }
-        }
-
-        private void DisplayDailySummary()
-        {
-            var totalTrades = _metrics.Values.Sum(m => m.TotalTrades);
-            var totalPnL = _metrics.Values.Sum(m => m.TotalPnL);
-            var totalWins = _metrics.Values.Sum(m => m.WinningTrades);
-            var overallWinRate = totalTrades > 0 ? (double)totalWins / totalTrades : 0;
-            var avgMLConfidence = _metrics.Values.Where(m => m.MLConfidenceAvg > 0).Any()
-                ? _metrics.Values.Where(m => m.MLConfidenceAvg > 0).Average(m => m.MLConfidenceAvg)
-                : 0.0;
-
-            var summaryColor = totalPnL > 0 ? ConsoleColor.Green : ConsoleColor.Red;
-            Console.ForegroundColor = summaryColor;
-            Console.WriteLine($"║  Total Trades: {totalTrades,4} | Win Rate: {overallWinRate:P1} | PnL: ${totalPnL,8:F2} | ML Avg: {avgMLConfidence:P0}  ║");
-            Console.ResetColor();
-
-            // Show active strategies count
-            var activeStrategies = _metrics.Values.Select(m => m.StrategyId).Distinct().Count();
-            Console.WriteLine($"║  Active Strategies: {activeStrategies} | Sessions Today: {GetSessionsToday()}              ║");
         }
 
         private List<BestTime> GetBestTradingTimes()
@@ -277,19 +271,6 @@ namespace BotCore.Services
             }
         }
 
-        private void LogProgress(TradingMetrics metrics)
-        {
-            _logger.LogInformation(
-                "[Progress] {Strategy}-{Instrument}: {Trades} trades, {WinRate:P1} WR, ${PnL:F2} PnL, {Improving}",
-                metrics.StrategyId,
-                metrics.Instrument,
-                metrics.TotalTrades,
-                metrics.WinRate,
-                metrics.TotalPnL,
-                metrics.IsImproving ? "IMPROVING" : "DECLINING"
-            );
-        }
-
         /// <summary>
         /// Get summary statistics for external reporting
         /// </summary>
@@ -331,6 +312,7 @@ namespace BotCore.Services
         public Dictionary<int, int> WinsByHour { get; set; } = new();
         public Dictionary<int, double> WinRateByHour { get; set; } = new();
         public double TotalPnL { get; set; }
+        public double AveragePnL => TotalTrades > 0 ? TotalPnL / TotalTrades : 0;
         public double AverageWin { get; set; }
         public double AverageLoss { get; set; }
         public double MaxDrawdown { get; set; }

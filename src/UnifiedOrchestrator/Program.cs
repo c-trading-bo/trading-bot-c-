@@ -113,9 +113,16 @@ public class Program
 
     private static void ConfigureUnifiedServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Register ConsoleDashboardService first for clean logging
-        services.AddSingleton<Services.ConsoleDashboardService>();
-        services.AddHostedService<Services.ConsoleDashboardService>();
+        // Register TradingLogger for production-ready logging
+        services.Configure<TradingLoggerOptions>(options =>
+        {
+            var logDir = Environment.GetEnvironmentVariable("TRADING_LOG_DIR") ?? 
+                        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TradingBot", "Logs");
+            options.LogDirectory = logDir;
+            options.BatchSize = int.Parse(Environment.GetEnvironmentVariable("LOG_BATCH_SIZE") ?? "1000");
+            options.MaxFileSizeBytes = long.Parse(Environment.GetEnvironmentVariable("LOG_MAX_FILE_SIZE") ?? "104857600"); // 100MB
+        });
+        services.AddSingleton<ITradingLogger, Services.TradingLogger>();
 
         // Register TopstepX AccountService for live account data
         services.AddHttpClient<AccountService>(client =>
