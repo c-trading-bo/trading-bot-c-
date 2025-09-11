@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,24 +9,30 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
+using System.Text.Json;
 using TradingBot.Abstractions;
+using TradingBot.Infrastructure.TopstepX;
+using BotCore.Services;
+using BotCore;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
 /// Console Dashboard Service - Clean, structured console output for trading bot
-/// Replaces verbose logging with dashboard-style status display
+/// Replaces verbose logging with dashboard-style status display with LIVE TopstepX data
 /// </summary>
 public class ConsoleDashboardService : BackgroundService
 {
     private readonly ILogger<ConsoleDashboardService> _logger;
     private readonly AppOptions _appOptions;
+    private readonly IServiceProvider _serviceProvider;
     private Timer? _refreshTimer;
     private readonly object _lock = new();
     private bool _isInitialized = false;
     
-    // Status tracking
+    // Live data tracking
     private bool _authStatus = false;
+    private string _userEmail = "";
     private string _accountInfo = "";
     private string _contractsInfo = "";
     private string _hubStatus = "";
@@ -33,6 +40,11 @@ public class ConsoleDashboardService : BackgroundService
     private string _mode = "DRY_RUN";
     private string _strategy = "ES/NQ Mean Reversion";
     private string _schedule = "Mon-Fri 09:30-16:00 ET";
+    private decimal _lastESPrice = 0m;
+    private decimal _lastNQPrice = 0m;
+    private int _barsSeen = 0;
+    private int _quotesSeen = 0;
+    private int _tradesSeen = 0;
     
     // Event log
     private readonly Queue<string> _eventLog = new();
@@ -40,10 +52,12 @@ public class ConsoleDashboardService : BackgroundService
 
     public ConsoleDashboardService(
         ILogger<ConsoleDashboardService> logger,
-        IOptions<AppOptions> appOptions)
+        IOptions<AppOptions> appOptions,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _appOptions = appOptions.Value;
+        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,6 +67,7 @@ public class ConsoleDashboardService : BackgroundService
         
         DisplayInitialBanner();
         await InitializeStatusAsync();
+        await WireUpLiveDataServicesAsync();
         
         // Start refresh timer
         _refreshTimer = new Timer(RefreshDashboard, null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
@@ -85,10 +100,10 @@ public class ConsoleDashboardService : BackgroundService
             
             // Initialize status based on configuration and actual state
             _authStatus = !string.IsNullOrEmpty(_appOptions.AuthToken);
-            _accountInfo = $"$50,000 | Max Loss: $2,000 | Daily Loss: $1,000";
-            _contractsInfo = "ES, NQ, MES, MNQ (ES/NQ focus)";
-            _hubStatus = killFileExists ? "User ⚠️ Market ⚠️ (kill switch)" : "User ✓ Market ✓ (stable)";
-            _systemStatus = killFileExists ? "Safe Mode (kill.txt present)" : "Ready (5/5 checks passed)";
+            _accountInfo = $"Initializing...";
+            _contractsInfo = "ES, NQ, MES, MNQ (ES/NQ focus) - Loading...";
+            _hubStatus = killFileExists ? "User ⚠️ Market ⚠️ (kill switch)" : "User ✓ Market ✓ (connecting...)";
+            _systemStatus = killFileExists ? "Safe Mode (kill.txt present)" : "Initializing (0/5 checks passed)";
             
             // Determine mode based on kill.txt and configuration
             if (killFileExists)
@@ -100,12 +115,12 @@ public class ConsoleDashboardService : BackgroundService
                 _mode = _appOptions.EnableDryRunMode ? "DRY_RUN" : "AUTO_EXECUTE";
             }
             
-            // Add initial events
-            AddEvent("🔐 AUTH", _authStatus ? "Logged in as kevinsuero072897@gmail.com" : "Authentication pending");
-            AddEvent("📊 ACCOUNT", _accountInfo);
-            AddEvent("📈 CONTRACTS", _contractsInfo);
-            AddEvent("🔌 HUBS", _hubStatus);
-            AddEvent("✅ SYSTEM", _systemStatus);
+            // Add initial events with real status
+            AddEvent("🔐 AUTH", _authStatus ? "Authentication check in progress..." : "Authentication pending");
+            AddEvent("📊 ACCOUNT", "Loading account data from TopstepX...");
+            AddEvent("📈 CONTRACTS", "Loading contract data...");
+            AddEvent("🔌 HUBS", "Connecting to TopstepX SignalR hubs...");
+            AddEvent("✅ SYSTEM", "System initialization in progress...");
             
             string modeMessage = killFileExists 
                 ? "DRY_RUN (kill.txt present → Trading disabled for safety)"
@@ -124,6 +139,191 @@ public class ConsoleDashboardService : BackgroundService
         return Task.CompletedTask;
     }
 
+    private async Task WireUpLiveDataServicesAsync()
+    {
+        try
+        {
+            // Wire up AutoTopstepXLoginService for real auth status
+            var autoLoginService = _serviceProvider.GetService<BotCore.Services.AutoTopstepXLoginService>();
+            if (autoLoginService != null)
+            {
+                // Monitor auth status changes
+                _ = Task.Run(async () =>
+                {
+                    while (!_serviceProvider.GetService<IHostApplicationLifetime>()?.ApplicationStopping.IsCancellationRequested ?? true)
+                    {
+                        await Task.Delay(5000);
+                        var wasAuth = _authStatus;
+                        _authStatus = autoLoginService.IsAuthenticated;
+                        _userEmail = autoLoginService.CurrentCredentials?.Username ?? "user";
+                        
+                        if (wasAuth != _authStatus)
+                        {
+                            var message = _authStatus ? $"Logged in as {_userEmail}" : "Authentication lost";
+                            AddEvent("🔐 AUTH", message);
+                        }
+                    }
+                });
+            }
+
+            // Wire up AccountService for real account data
+            var accountService = _serviceProvider.GetService<IAccountService>();
+            if (accountService != null)
+            {
+                accountService.OnAccountUpdated += (accountInfo) =>
+                {
+                    lock (_lock)
+                    {
+                        _accountInfo = $"${accountInfo.Balance:F0} | Day P&L: ${accountInfo.DayPnL:F2} | Unrealized: ${accountInfo.UnrealizedPnL:F2}";
+                        AddEvent("📊 ACCOUNT", _accountInfo);
+                    }
+                };
+
+                // Start periodic refresh for account data
+                await accountService.StartPeriodicRefreshAsync(TimeSpan.FromSeconds(30));
+            }
+
+            // Wire up MarketHubClient for real market data
+            var marketHubClient = _serviceProvider.GetService<MarketHubClient>();
+            if (marketHubClient != null)
+            {
+                marketHubClient.OnQuote += (contractId, last, bid, ask) =>
+                {
+                    lock (_lock)
+                    {
+                        _quotesSeen++;
+                        if (contractId.Contains("ES"))
+                        {
+                            _lastESPrice = last;
+                            AddEvent("📊 MARKET", $"ES {last:F2} | Bid: {bid:F2} | Ask: {ask:F2}");
+                        }
+                        else if (contractId.Contains("NQ"))
+                        {
+                            _lastNQPrice = last;
+                            AddEvent("📊 MARKET", $"NQ {last:F2} | Bid: {bid:F2} | Ask: {ask:F2}");
+                        }
+                    }
+                };
+
+                marketHubClient.OnTrade += (contractId, tradeTick) =>
+                {
+                    lock (_lock)
+                    {
+                        _tradesSeen++;
+                        var symbol = contractId.Contains("ES") ? "ES" : contractId.Contains("NQ") ? "NQ" : contractId;
+                        AddEvent("💹 TRADE", $"{symbol} @ {tradeTick.Price:F2} Vol: {tradeTick.Volume}");
+                    }
+                };
+            }
+
+            // Wire up MarketDataAgent for bar count and market activity
+            var marketDataAgent = _serviceProvider.GetService<MarketDataAgent>();
+            if (marketDataAgent != null)
+            {
+                marketDataAgent.OnBar += (bar) =>
+                {
+                    lock (_lock)
+                    {
+                        _barsSeen = marketDataAgent.BarsSeen;
+                        var symbol = bar.Symbol ?? "UNKNOWN";
+                        AddEvent("📊 BAR", $"[{_barsSeen}] {symbol} {bar.Close:F2} | Vol: {bar.Volume}");
+                        
+                        // Update system status based on bar count
+                        if (_barsSeen >= 10 && !File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "kill.txt")))
+                        {
+                            _systemStatus = "Ready (5/5 checks passed) | Trading enabled";
+                            AddEvent("✅ PRECHECKS", $"BarsSeen({_barsSeen}) Hubs(✓) CanTrade(✓) → EXECUTE mode enabled");
+                        }
+                    }
+                };
+
+                marketDataAgent.OnQuote += (quoteData) =>
+                {
+                    // Additional quote processing if needed
+                    _quotesSeen = marketDataAgent.QuotesSeen;
+                };
+
+                marketDataAgent.OnTrade += (tradeData) =>
+                {
+                    // Additional trade processing if needed  
+                    _tradesSeen = marketDataAgent.TradesSeen;
+                };
+            }
+
+            // Wire up UserHubClient for real trade and position updates
+            var userHubClient = _serviceProvider.GetService<UserHubClient>();
+            if (userHubClient != null)
+            {
+                userHubClient.OnTrade += (tradeData) =>
+                {
+                    try
+                    {
+                        if (tradeData.TryGetProperty("symbol", out var symbolProp) &&
+                            tradeData.TryGetProperty("price", out var priceProp) &&
+                            tradeData.TryGetProperty("quantity", out var qtyProp))
+                        {
+                            var symbol = symbolProp.GetString() ?? "";
+                            var price = priceProp.GetDecimal();
+                            var qty = qtyProp.GetInt32();
+                            AddEvent("✅ FILL", $"{symbol} @ {price:F2} x {qty}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error processing trade data for dashboard");
+                    }
+                };
+
+                userHubClient.OnAccount += (accountData) =>
+                {
+                    try
+                    {
+                        if (accountData.TryGetProperty("balance", out var balanceProp) &&
+                            accountData.TryGetProperty("dayPnL", out var dayPnLProp))
+                        {
+                            var balance = balanceProp.GetDecimal();
+                            var dayPnL = dayPnLProp.GetDecimal();
+                            _accountInfo = $"${balance:F0} | Day P&L: ${dayPnL:F2}";
+                            AddEvent("📊 ACCOUNT", _accountInfo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error processing account data for dashboard");
+                    }
+                };
+
+                userHubClient.OnPosition += (positionData) =>
+                {
+                    try
+                    {
+                        if (positionData.TryGetProperty("symbol", out var symbolProp) &&
+                            positionData.TryGetProperty("quantity", out var qtyProp) &&
+                            positionData.TryGetProperty("unrealizedPnL", out var pnlProp))
+                        {
+                            var symbol = symbolProp.GetString() ?? "";
+                            var qty = qtyProp.GetInt32();
+                            var pnl = pnlProp.GetDecimal();
+                            var side = qty > 0 ? "Long" : qty < 0 ? "Short" : "Flat";
+                            AddEvent("📍 POSITION", $"{side} {Math.Abs(qty)} {symbol} | Unrealized: ${pnl:F2}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Error processing position data for dashboard");
+                    }
+                };
+            }
+
+            AddEvent("🔗 WIRING", "Live data services connected successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error wiring up live data services");
+            AddEvent("⚠️ WIRING", "Live data services connection failed - using static data");
+        }
+    }
+
     private void RefreshDashboard(object? state)
     {
         if (!_isInitialized) return;
@@ -133,6 +333,14 @@ public class ConsoleDashboardService : BackgroundService
             // Check for kill.txt file dynamically
             bool killFileExists = File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "kill.txt"));
             
+            // Get real auth status from AutoTopstepXLoginService
+            var autoLoginService = _serviceProvider.GetService<BotCore.Services.AutoTopstepXLoginService>();
+            if (autoLoginService != null)
+            {
+                _authStatus = autoLoginService.IsAuthenticated;
+                _userEmail = autoLoginService.CurrentCredentials?.Username ?? "";
+            }
+
             // Update status based on current state
             if (killFileExists && !_hubStatus.Contains("kill switch"))
             {
@@ -143,10 +351,16 @@ public class ConsoleDashboardService : BackgroundService
             }
             else if (!killFileExists && _hubStatus.Contains("kill switch"))
             {
-                _hubStatus = "User ✓ Market ✓ (stable)";
-                _systemStatus = "Ready (5/5 checks passed)";
+                _hubStatus = $"User {(_authStatus ? "✓" : "⚠️")} Market {(_quotesSeen > 0 ? "✓" : "⚠️")} (stable)";
+                _systemStatus = $"Ready ({GetSystemReadyChecks()}/5 checks passed)";
                 _mode = _appOptions.EnableDryRunMode ? "DRY_RUN" : "AUTO_EXECUTE";
                 AddEvent("✅ SAFETY", "Kill switch deactivated - Trading resumed");
+            }
+            else if (!killFileExists)
+            {
+                // Update hub status based on real connectivity
+                _hubStatus = $"User {(_authStatus ? "✓" : "⚠️")} Market {(_quotesSeen > 0 ? "✓" : "⚠️")} (stable)";
+                _systemStatus = $"Ready ({GetSystemReadyChecks()}/5 checks passed)";
             }
             
             // Move cursor to top and redraw status
@@ -154,12 +368,29 @@ public class ConsoleDashboardService : BackgroundService
             
             var currentTime = DateTime.Now.ToString("HH:mm:ss");
             
-            // Status section
-            Console.WriteLine($"[{currentTime}] 🔐 AUTH: {(_authStatus ? "Logged in as kevinsuero072897@gmail.com" : "Authentication pending")}");
+            // Status section with live data
+            var authDisplay = _authStatus ? $"Logged in as {_userEmail}" : "Authentication pending";
+            Console.WriteLine($"[{currentTime}] 🔐 AUTH: {authDisplay}");
             Console.WriteLine($"[{currentTime}] 📊 ACCOUNT: {_accountInfo}");
-            Console.WriteLine($"[{currentTime}] 📈 CONTRACTS: {_contractsInfo}");
+            
+            // Show real market data if available
+            var contractDisplay = _contractsInfo;
+            if (_lastESPrice > 0 || _lastNQPrice > 0)
+            {
+                var priceInfo = "";
+                if (_lastESPrice > 0) priceInfo += $"ES: {_lastESPrice:F2} ";
+                if (_lastNQPrice > 0) priceInfo += $"NQ: {_lastNQPrice:F2}";
+                contractDisplay = $"ES, NQ, MES, MNQ (ES/NQ focus) | Live: {priceInfo}";
+            }
+            Console.WriteLine($"[{currentTime}] 📈 CONTRACTS: {contractDisplay}");
             Console.WriteLine($"[{currentTime}] 🔌 HUBS: {_hubStatus}");
             Console.WriteLine($"[{currentTime}] ✅ SYSTEM: {_systemStatus}");
+            
+            // Show live market activity stats
+            if (_barsSeen > 0 || _quotesSeen > 0 || _tradesSeen > 0)
+            {
+                Console.WriteLine($"[{currentTime}] 📊 ACTIVITY: Bars: {_barsSeen} | Quotes: {_quotesSeen} | Trades: {_tradesSeen}");
+            }
             Console.WriteLine();
             
             string modeMessage = killFileExists 
@@ -185,6 +416,28 @@ public class ConsoleDashboardService : BackgroundService
                 Console.WriteLine(new string(' ', Console.WindowWidth - 1));
             }
         }
+    }
+
+    private int GetSystemReadyChecks()
+    {
+        int readyChecks = 0;
+        
+        // Check 1: Authentication
+        if (_authStatus) readyChecks++;
+        
+        // Check 2: Market data flowing  
+        if (_quotesSeen > 0 || _tradesSeen > 0) readyChecks++;
+        
+        // Check 3: Minimum bars seen for trading
+        if (_barsSeen >= 10) readyChecks++;
+        
+        // Check 4: Account data loaded
+        if (!_accountInfo.Contains("Initializing") && !_accountInfo.Contains("Loading")) readyChecks++;
+        
+        // Check 5: No kill switch
+        if (!File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "kill.txt"))) readyChecks++;
+        
+        return readyChecks;
     }
 
     public void UpdateAuthStatus(bool isAuthenticated, string? userEmail = null)

@@ -11,6 +11,7 @@ using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
 using DotNetEnv;
 using static DotNetEnv.Env;
@@ -115,6 +116,31 @@ public class Program
         // Register ConsoleDashboardService first for clean logging
         services.AddSingleton<Services.ConsoleDashboardService>();
         services.AddHostedService<Services.ConsoleDashboardService>();
+
+        // Register TopstepX AccountService for live account data
+        services.AddHttpClient<AccountService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.topstepx.com");
+            client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddSingleton<IAccountService>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<AccountService>>();
+            var appOptions = provider.GetRequiredService<IOptions<AppOptions>>();
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(AccountService));
+            
+            // Configure authentication when JWT token is available
+            var jwtToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            if (!string.IsNullOrEmpty(jwtToken))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+            }
+            
+            return new AccountService(logger, appOptions, httpClient);
+        });
 
         // Configure AppOptions for Safety components
         var appOptions = new AppOptions
