@@ -78,6 +78,20 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
             _isRefreshing = true;
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Starting token refresh");
 
+            // Always check environment variable first as AutoTopstepXLoginService updates it
+            var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            if (!string.IsNullOrEmpty(envToken) && envToken != _currentToken)
+            {
+                _currentToken = envToken;
+                _tokenExpiry = DateTime.UtcNow.AddHours(1);
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+                    "Token refreshed from environment variable");
+                
+                TokenRefreshed?.Invoke(_currentToken);
+                return;
+            }
+
             // Try to get fresh token from AutoTopstepXLoginService
             var autoLoginServices = _serviceProvider.GetServices<IHostedService>()
                 .OfType<BotCore.Services.AutoTopstepXLoginService>()
@@ -95,8 +109,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 return;
             }
 
-            // Fallback to environment variable
-            var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            // If we already have a token from environment, use it even if it's the same
             if (!string.IsNullOrEmpty(envToken))
             {
                 _currentToken = envToken;

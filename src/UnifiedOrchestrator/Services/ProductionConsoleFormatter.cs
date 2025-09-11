@@ -80,7 +80,7 @@ public class ProductionConsoleFormatter : ConsoleFormatter
     {
         LogLevel.Error => "\u001b[31m",      // RED
         LogLevel.Warning => "\u001b[33m",    // YELLOW  
-        LogLevel.Information => "\u001b[36m", // CYAN
+        LogLevel.Information => "\u001b[37m", // WHITE
         LogLevel.Debug => "\u001b[37m",      // WHITE
         _ => "\u001b[32m"                    // GREEN for success
     };
@@ -89,7 +89,7 @@ public class ProductionConsoleFormatter : ConsoleFormatter
     {
         LogLevel.Error => "🔴",
         LogLevel.Warning => "🟡", 
-        LogLevel.Information => "🔵",
+        LogLevel.Information => "⚪",
         LogLevel.Debug => "⚪",
         _ => "🟢"
     };
