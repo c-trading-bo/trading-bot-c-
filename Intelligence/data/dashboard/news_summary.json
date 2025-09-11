@@ -1,12 +1,12 @@
 {
-  "timestamp": "2025-09-10T18:35:48.560117",
+  "timestamp": "2025-09-11T06:38:09.232276",
   "analysis_mode": "comprehensive",
-  "market_session": "regular",
-  "workflow_run": "45",
+  "market_session": "extended",
+  "workflow_run": "46",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-10T18:30:58.611349",
+    "timestamp": "2025-09-11T06:33:20.044233",
     "analysis_mode": "comprehensive",
-    "market_session": "regular",
+    "market_session": "extended",
     "total_articles_processed": 9,
     "sentiment_threshold": 0.3,
     "instruments": {
@@ -19,27 +19,12 @@
         "sources": []
       },
       "NQ": {
-        "sentiment_score": 0.055999999999999994,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Nasdaq Builds on Record High Ahead of Key Jobs Data Revision",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-09T09:30:50Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "SPY": {
         "sentiment_score": 0.0,
@@ -66,41 +51,65 @@
         "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.1361759259259259,
-        "article_count": 4,
+        "sentiment_score": 0.2261201298701299,
+        "article_count": 7,
         "articles": [
           {
-            "title": "Nasdaq Builds on Record High Ahead of Key Jobs Data Revision",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.barrons.com/livecoverage/stock-market-news-today-090925/card/nasdaq-builds-on-record-high-as-markets-focus-on-fed-rate-cuts-ahead-of-key-jobs-revisions-4zRGHtGrtv5zwJAzTadC?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-09T09:30:50Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "401(k) savers play it safe, even as demand for private assets surges",
-            "sentiment": 0.475,
-            "textblob_score": 0.25,
+            "title": "Filecoin's FIL Pares Gains to Trade Little Changed After Testing $2.50 Resistance Level",
+            "sentiment": 0.16875,
+            "textblob_score": -0.1875,
             "keyword_score": 1.0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/401k-savers-play-it-safe-even-as-demand-for-private-assets-surges-090048478.html",
-            "published": "2025-09-09T09:00:48Z",
+            "url": "https://finance.yahoo.com/news/filecoins-fil-pares-gains-trade-181922622.html",
+            "published": "2025-09-09T18:19:22Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "What the Pentagon\u2019s\u00a0Rare Earths Deal Gets Right and Wrong",
-            "sentiment": 0.13370370370370369,
-            "textblob_score": 0.191005291005291,
-            "keyword_score": 0,
+            "title": "This Tesla Rival Is Ramping Up Robotaxis in the Middle East. Should You Buy Its Stock Here?",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/tesla-rival-ramping-robotaxis-middle-185723925.html",
+            "published": "2025-09-09T18:57:23Z",
+            "relevance_keywords": [
+              "Tesla"
+            ]
+          },
+          {
+            "title": "Activist Investor Reveals Bargain in Japan\u2019s Utility Shares",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/newsletters/2025-09-10/what-the-pentagon-s-rare-earths-deal-gets-right-and-wrong",
-            "published": "Wed, 10 Sep 2025 17:37:54 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-11/activist-investor-reveals-bargain-in-japan-s-utility-shares",
+            "published": "Thu, 11 Sep 2025 04:04:01 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Why Broadcom\u2019s stock led the chip sector\u2019s rally on Wednesday",
+            "sentiment": 0.4113636363636364,
+            "textblob_score": 0.1590909090909091,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/why-broadcoms-stock-is-leading-the-chip-sectors-rally-on-wednesday-549ba49a?mod=mw_rss_topstories",
+            "published": "Thu, 11 Sep 2025 00:39:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "\u2018Fun came before paying bills\u2019: My brother-in-law is in his 70s and homeless. Are we responsible for him?",
+            "sentiment": 0.175,
+            "textblob_score": 0.25,
+            "keyword_score": 0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/fun-came-before-paying-bills-my-brother-in-law-is-in-his-70s-and-homeless-are-we-responsible-for-him-f1d86d54?mod=mw_rss_topstories",
+            "published": "Wed, 10 Sep 2025 23:46:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -112,14 +121,26 @@
             "keyword_score": 0,
             "source": "marketwatch",
             "url": "https://www.marketwatch.com/story/nios-stock-dives-as-ev-maker-raises-1-billion-at-shareholders-expense-28b2e763?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 18:01:00 GMT",
+            "published": "Wed, 10 Sep 2025 22:35:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
+            "sentiment": 0.3477272727272727,
+            "textblob_score": 0.06818181818181818,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
+            "published": "Wed, 10 Sep 2025 22:31:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.4,
+        "confidence": 0.7,
         "sources": [
           "yahoo_finance",
           "bloomberg",
@@ -127,73 +148,51 @@
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.07840909090909091,
-        "article_count": 4,
+        "sentiment_score": 0.3,
+        "article_count": 1,
         "articles": [
           {
-            "title": "Nvidia\u2019s \u2018Wow\u2019 Factor Is Fading",
-            "sentiment": 0.06999999999999999,
-            "textblob_score": 0.1,
-            "keyword_score": 0,
+            "title": "NVIDIA (NVDA) Remains a Franchise Pick as Jefferies Reiterates Buy",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
             "source": "yahoo_finance",
-            "url": "https://www.wsj.com/tech/ai/nvidia-stock-nvda-growth-827999c7?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-09T09:30:00Z",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "Brookfield Says It Lined Up Backers for New AI Strategy",
-            "sentiment": 0.22363636363636363,
-            "textblob_score": -0.10909090909090909,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-10/brookfield-says-it-already-lined-up-backers-for-new-ai-strategy",
-            "published": "Wed, 10 Sep 2025 15:37:40 GMT",
-            "relevance_keywords": [
-              "artificial intelligence"
-            ]
-          },
-          {
-            "title": "Oracle Shares Jump 40% on Bullish AI Outlook",
-            "sentiment": 0.09,
-            "textblob_score": -0.3,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-10/oracle-shares-jump-40-on-bullish-ai-outlook-video",
-            "published": "Wed, 10 Sep 2025 17:33:31 GMT",
-            "relevance_keywords": [
-              "artificial intelligence"
-            ]
-          },
-          {
-            "title": "Beyond Nvidia: The Data Center And AI Ecosystem Is On Fire",
-            "sentiment": -0.06999999999999999,
-            "textblob_score": -0.1,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4821662-beyond-nvidia-data-center-ai-ecosystem-on-fire?source=feed_all_articles",
-            "published": "Wed, 10 Sep 2025 14:12:00 -0400",
+            "url": "https://finance.yahoo.com/news/nvidia-nvda-remains-franchise-pick-190205857.html",
+            "published": "2025-09-09T19:02:05Z",
             "relevance_keywords": [
               "Nvidia"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.4,
+        "confidence": 0.1,
         "sources": [
-          "yahoo_finance",
-          "bloomberg",
-          "seeking_alpha"
+          "yahoo_finance"
         ]
       },
       "AAPL": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "sentiment_score": 0.3477272727272727,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
+            "sentiment": 0.3477272727272727,
+            "textblob_score": 0.06818181818181818,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
+            "published": "Wed, 10 Sep 2025 22:31:00 GMT",
+            "relevance_keywords": [
+              "Apple",
+              "iPhone"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.1,
+        "sources": [
+          "marketwatch"
+        ]
       }
     },
     "sources_used": [
@@ -206,8 +205,8 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-10T18:35:45.667423",
-    "market_session": "regular",
+    "timestamp": "2025-09-11T06:38:06.792664",
+    "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
       "sentiment": 0.0,
@@ -228,7 +227,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-10T18:30:54.597867",
+    "timestamp": "2025-09-11T06:33:17.703332",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -328,22 +327,22 @@
         "keyword": "futures"
       },
       {
+        "title": " \u300a \u671f\u8ca8 \u300b \u671f\u4ea4\u6240\u8abf\u6574\u591a\u6a94\u671f\u8ca8\u4fdd\u8b49\u91d1 11\u65e5\u4e00\u822c\u4ea4\u6613\u6642\u6bb5\u7d50\u675f\u5f8c\u5be6\u65bd - \u8ca1\u7d93",
+        "url": "https://www.chinatimes.com/realtimenews/20250911001170-260410",
+        "source": "chinatimes.com",
+        "date": "20250911T010000Z",
+        "keyword": "futures"
+      },
+      {
         "title": "\u671f\u8d27\u5e02\u573a\u4ea4\u6295\u6d3b\u8dc3 -- \u7ecf\u6d4e \u00b7 \u79d1\u6280 -- \u4eba\u6c11\u7f51",
         "url": "http://finance.people.com.cn/n1/2025/0726/c1004-40530039.html",
         "source": "finance.people.com.cn",
         "date": "20250726T043000Z",
         "keyword": "futures"
-      },
-      {
-        "title": "\u671f\u8d27\u4e1a\u8fce\u6765\u4e92\u8054\u7f51\u8425\u9500\u7ba1\u7406\u65b0\u89c4 10\u67089\u65e5\u8d77\u6b63\u5f0f\u5b9e\u65bd _ \u671f\u8d27 _ \u91d1\u878d\u9891\u9053\u9996\u9875 _ \u8d22\u7ecf\u7f51 - CAIJING . COM . CN",
-        "url": "http://finance.caijing.com.cn/20250826/5109314.shtml",
-        "source": "finance.caijing.com.cn",
-        "date": "20250826T041500Z",
-        "keyword": "futures"
       }
     ]
   },
-  "overall_market_sentiment": "NEUTRAL",
+  "overall_market_sentiment": "BULLISH",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
