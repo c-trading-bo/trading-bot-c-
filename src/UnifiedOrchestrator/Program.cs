@@ -11,6 +11,7 @@ using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
+using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
 using DotNetEnv;
 using static DotNetEnv.Env;
@@ -84,7 +85,6 @@ public class Program
             }
             catch
             {
-                Console.WriteLine("⚠️ Failed to write error log to file");
             }
             
             Environment.Exit(1);
@@ -113,7 +113,34 @@ public class Program
 
     private static void ConfigureUnifiedServices(IServiceCollection services, IConfiguration configuration)
     {
-        Console.WriteLine("🔧 Configuring Unified Orchestrator Services...");
+        // Register ConsoleDashboardService first for clean logging
+        services.AddSingleton<Services.ConsoleDashboardService>();
+        services.AddHostedService<Services.ConsoleDashboardService>();
+
+        // Register TopstepX AccountService for live account data
+        services.AddHttpClient<AccountService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.topstepx.com");
+            client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddSingleton<IAccountService>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<AccountService>>();
+            var appOptions = provider.GetRequiredService<IOptions<AppOptions>>();
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(AccountService));
+            
+            // Configure authentication when JWT token is available
+            var jwtToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+            if (!string.IsNullOrEmpty(jwtToken))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+            }
+            
+            return new AccountService(logger, appOptions, httpClient);
+        });
 
         // Configure AppOptions for Safety components
         var appOptions = new AppOptions
@@ -149,7 +176,6 @@ public class Program
 
         // Register the CENTRAL MESSAGE BUS - The "ONE BRAIN" communication system
         services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
-        Console.WriteLine("🧠 Central Message Bus registered - ONE BRAIN communication enabled");
 
         // Register required interfaces with REAL Safety implementations
         services.AddSingleton<IKillSwitchWatcher, Trading.Safety.KillSwitchWatcher>();
@@ -165,8 +191,6 @@ public class Program
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddHostedService<UnifiedOrchestratorService>();
-        
-        Console.WriteLine("🚀 REAL sophisticated orchestrators registered - DISTRIBUTED ARCHITECTURE");
 
         // NO MORE FAKE MasterOrchestrator - using REAL sophisticated services only
 
@@ -186,8 +210,6 @@ public class Program
         // Register ML Memory Manager - Sophisticated ML model management (458 lines)
         services.AddSingleton<BotCore.ML.OnnxModelLoader>();
         services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
-        
-        Console.WriteLine("🧠 SOPHISTICATED AI/ML BRAIN SYSTEM registered - UnifiedTradingBrain + UCB + RiskEngine");
         
         // ================================================================================
         // CRITICAL SAFETY SYSTEMS - PRODUCTION TRADING SAFETY
@@ -286,9 +308,7 @@ public class Program
         services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
         
         // THEN register TradingSystemIntegrationService so it starts AFTER auth is ready
-        services.AddHostedService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();        
-        
-        Console.WriteLine("🛡️ CRITICAL SAFETY SYSTEMS registered - Emergency stops, monitoring, confirmations");
+        services.AddHostedService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
         
         // ================================================================================
         // ADVANCED INFRASTRUCTURE - ML/DATA MANAGEMENT  
@@ -301,7 +321,6 @@ public class Program
         services.AddSingleton<WorkflowSchedulingOptions>(provider => 
             provider.GetService<IOptionsMonitor<WorkflowSchedulingOptions>>()?.CurrentValue ?? new WorkflowSchedulingOptions());
         
-        Console.WriteLine("🏗️ ADVANCED INFRASTRUCTURE registered - Workflow, events, data feeds, integration");
         
         // ================================================================================
         // PYTHON INTEGRATION - ML/RL Decision Service
@@ -313,11 +332,6 @@ public class Program
         
         // Register the Python UCB Launcher
         services.AddSingleton<PythonUcbLauncher>();
-        
-        Console.WriteLine("🧠 ML/RL DECISION SERVICE registered - Python sidecar with C# integration");
-        Console.WriteLine($"   📍 Service URL: http://127.0.0.1:7080");
-        Console.WriteLine($"   🚀 Auto-launch: True");
-        Console.WriteLine($"   🔄 Auto-restart: True");
         
         // ================================================================================
         // AUTHENTICATION - TopstepX Credential Management
@@ -343,8 +357,6 @@ public class Program
             client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
         });
         
-        Console.WriteLine("🔐 AUTHENTICATION SERVICES registered - TopstepX credentials and auto-login");
-        
         // ================================================================================
         // ADVANCED INFRASTRUCTURE - ML/DATA MANAGEMENT  
         // ================================================================================
@@ -360,8 +372,6 @@ public class Program
         
         // Register AdvancedSystemIntegrationService (386 lines)
         services.AddSingleton<AdvancedSystemIntegrationService>();
-        
-        Console.WriteLine("🏗️ ADVANCED INFRASTRUCTURE registered - Workflow, events, data feeds, integration");
         
         // ================================================================================
         // ML/RL DECISION SERVICE INTEGRATION - FULLY AUTOMATED
@@ -436,11 +446,6 @@ public class Program
         // Register feature demonstration service
         services.AddHostedService<FeatureDemonstrationService>();
         
-        Console.WriteLine("🧠 ML/RL DECISION SERVICE registered - Python sidecar with C# integration");
-        Console.WriteLine($"   📍 Service URL: {decisionServiceOptions.BaseUrl}");
-        Console.WriteLine($"   🚀 Auto-launch: {decisionServiceLauncherOptions.Enabled}");
-        Console.WriteLine($"   🔄 Auto-restart: {decisionServiceLauncherOptions.AutoRestart}");
-        
         // ================================================================================
         // AUTHENTICATION & TOPSTEPX SERVICES
         // ================================================================================
@@ -449,17 +454,13 @@ public class Program
         // services.AddSingleton<TradingBot.Infrastructure.TopstepX.TopstepXCredentialManager>();
         // services.AddSingleton<TradingBot.Infrastructure.TopstepX.AutoTopstepXLoginService>();
         
-        Console.WriteLine("🔐 AUTHENTICATION SERVICES registered - TopstepX credentials and auto-login");
-        
         // ================================================================================
         // CORE BOTCORE SERVICES REGISTRATION - ALL SOPHISTICATED SERVICES
         // ================================================================================
         
         // Core BotCore Services - ALL sophisticated implementations with proper dependencies
-        Console.WriteLine("🔧 Registering ALL sophisticated BotCore services...");
         
         // Register services that have interfaces first
-        Console.WriteLine("🔧 Registering core BotCore services...");
         
         // Register authentication and credential management services from Infrastructure.TopstepX
         services.AddSingleton<TopstepXCredentialManager>();
@@ -471,14 +472,12 @@ public class Program
         try 
         {
             // Add required interfaces and implementations first
-            Console.WriteLine("🔧 Registering base interfaces and fallback implementations...");
             
             // Register fallback implementations for required interfaces
             // This prevents dependency injection errors
             try
             {
                 // Try to register sophisticated services, with fallbacks for missing dependencies
-                Console.WriteLine("🛡️ Attempting to register risk management components...");
                 
                 // Register EmergencyStopSystem (fewer dependencies) from BotCore
                 services.TryAddSingleton<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
@@ -490,7 +489,6 @@ public class Program
                 services.TryAddSingleton<BotCore.Services.TopstepXService>();
                 services.TryAddSingleton<TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
-                Console.WriteLine("✅ Core services with minimal dependencies registered");
                 
                 // Try to register more complex services (these might fail due to missing dependencies)
                 try 
@@ -506,24 +504,18 @@ public class Program
                     services.TryAddSingleton<BotCore.EnhancedTrainingDataService>();
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
                     
-                    Console.WriteLine("✅ Advanced services registered (dependencies permitting)");
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Console.WriteLine($"⚠️ Some advanced services skipped due to dependencies: {ex.Message}");
                 }
                 
-                Console.WriteLine("✅ Sophisticated BotCore services registration completed - graceful degradation enabled");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"⚠️ Service registration with graceful fallbacks: {ex.Message}");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"⚠️ Service registration failed, using basic registration: {ex.Message}");
-            Console.WriteLine("✅ Core sophisticated services prepared for MasterOrchestrator integration");
         }
 
         // ================================================================================
@@ -532,11 +524,9 @@ public class Program
         
         // Register the complete intelligence stack with all new features
         RegisterIntelligenceStackServices(services, configuration);
-        Console.WriteLine("🤖 INTELLIGENCE STACK registered - All ML/RL components integrated");
 
         // Register the core unified trading brain
         services.AddSingleton<BotCore.Brain.UnifiedTradingBrain>();
-        Console.WriteLine("🧠 Unified Trading Brain registered - Core AI intelligence enabled");
         
         // ================================================================================
         // ADVANCED ML/AI SERVICES REGISTRATION - ALL MACHINE LEARNING SYSTEMS  
@@ -552,18 +542,15 @@ public class Program
             var memoryManager = provider.GetService<BotCore.ML.IMLMemoryManager>();
             return new BotCore.ML.StrategyMlModelManager(logger, memoryManager);
         });
-        Console.WriteLine("🤖 Advanced ML/AI services registered - Memory management & enhanced models active");
         
         // Register BotCore LocalBotMechanicIntegration service if available  
         try
         {
             // Note: LocalBotMechanicIntegration exists in Intelligence folder, not BotCore.Services
             // Will integrate this separately when Intelligence folder is properly referenced
-            Console.WriteLine("⚠️ LocalBotMechanicIntegration integration planned for future phase");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Console.WriteLine($"⚠️ LocalBotMechanicIntegration registration skipped: {ex.Message}");
         }
         
         // Register core agents and clients that exist in BotCore
@@ -574,7 +561,6 @@ public class Program
         services.AddSingleton<BotCore.PositionAgent>();
         services.AddSingleton<BotCore.MarketDataAgent>();
         services.AddSingleton<BotCore.ModelUpdaterService>();
-        Console.WriteLine("🔗 Core agents and clients registered - Connectivity & data systems active");
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
         services.AddSingleton<TradingOrchestratorService>();
@@ -583,7 +569,6 @@ public class Program
         services.AddSingleton<WorkflowSchedulerService>();
         services.AddSingleton<WorkflowOrchestrationManager>();
         services.AddSingleton<AdvancedSystemIntegrationService>();
-        Console.WriteLine("🎼 Advanced orchestrator services registered - All systems will be coordinated by MasterOrchestrator");
 
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
@@ -595,12 +580,9 @@ public class Program
         if (enableUcb)
         {
             services.AddSingleton<BotCore.ML.UCBManager>();
-            Console.WriteLine($"🎯 UCB Manager registered - UCB service at {ucbUrl}");
-            Console.WriteLine("🐍 Python UCB service will auto-launch with UnifiedOrchestrator");
         }
         else
         {
-            Console.WriteLine("⚠️ UCB Manager disabled - Set ENABLE_UCB=1 to enable");
         }
 
         // Auto-detect paper trading mode
@@ -612,22 +594,18 @@ public class Program
         {
             // Register distributed orchestrators for sophisticated trading system
             services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
-            Console.WriteLine("✅ Trading Orchestrator registered with TopstepX credentials");
         }
         else
         {
-            Console.WriteLine("⚠️ No TopstepX credentials - Trading Orchestrator will run in simulation mode");
         }
         
         // Register distributed orchestrator components for sophisticated system
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IWorkflowScheduler, WorkflowSchedulerService>();
-        Console.WriteLine("🧠 Distributed orchestrators registered - Intelligence, Data, and Workflow systems active");
         
         // Register Cloud Data Integration - Links 27 GitHub workflows to trading decisions
         services.AddSingleton<TradingBot.Abstractions.ICloudDataIntegration, CloudDataIntegrationService>();
-        Console.WriteLine("🌐 Cloud Data Integration enabled - GitHub workflows linked to trading");
 
         // ================================================================================
         // ADVANCED SYSTEM INITIALIZATION SERVICE
@@ -635,14 +613,12 @@ public class Program
         
         // Register the advanced system initialization service to wire everything together
         services.AddHostedService<AdvancedSystemInitializationService>();
-        Console.WriteLine("🚀 Advanced System Initialization Service registered - Will integrate all systems on startup");
 
         // Register the main unified orchestrator service
         services.AddSingleton<UnifiedOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
         services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
-        Console.WriteLine("✅ DISTRIBUTED ORCHESTRATOR SERVICES CONFIGURED - ALL SOPHISTICATED SYSTEMS PREPARED FOR INTEGRATION");
     }
 
     /// <summary>
@@ -650,13 +626,10 @@ public class Program
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
     {
-        Console.WriteLine("🔧 Registering Intelligence Stack services...");
 
         // Register the real intelligence stack services
         services.AddIntelligenceStack(configuration);
 
-        Console.WriteLine("✅ Intelligence Stack services registered with REAL implementations");
-        Console.WriteLine("🔄 All features are ENABLED by default and will start automatically");
     }
 
 }
@@ -738,22 +711,18 @@ public static class EnvironmentLoader
                 {
                     Env.Load(envFile);
                     loadedFiles.Add(envFile);
-                    Console.WriteLine($"✅ Loaded environment file: {envFile}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"⚠️ Error loading {envFile}: {ex.Message}");
             }
         }
 
         if (loadedFiles.Count == 0)
         {
-            Console.WriteLine("⚠️ No .env files found - using system environment variables only");
         }
         else
         {
-            Console.WriteLine($"📋 Loaded {loadedFiles.Count} environment file(s)");
             
             // Check if TopstepX credentials are available
             var username = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
@@ -761,15 +730,10 @@ public static class EnvironmentLoader
             
             if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
             {
-                Console.WriteLine($"🔐 TopstepX credentials detected for: {username}");
-                Console.WriteLine("🎯 Auto paper trading mode will be enabled");
             }
             else
             {
-                Console.WriteLine("⚠️ TopstepX credentials not found - demo mode will be used");
             }
         }
-        
-        Console.WriteLine();
     }
 }
