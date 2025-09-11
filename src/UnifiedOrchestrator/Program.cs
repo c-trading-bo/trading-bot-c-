@@ -14,6 +14,7 @@ using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
+using BotCore.Services;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -507,7 +508,7 @@ public class Program
                 services.TryAddSingleton<BotCore.Services.PerformanceTracker>();
                 services.TryAddSingleton<BotCore.Services.TradingProgressMonitor>();
                 services.TryAddSingleton<BotCore.Services.TimeOptimizedStrategyManager>();
-                services.TryAddSingleton<BotCore.Services.TopstepXService>();
+                services.TryAddSingleton<ITopstepXService, TopstepXService>();
                 services.TryAddSingleton<TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
                 

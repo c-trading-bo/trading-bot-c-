@@ -80,7 +80,7 @@ namespace BotCore.Services
         /// <summary>
         /// Evaluate strategies for an instrument with time and ML optimization
         /// </summary>
-        public async Task<StrategyEvaluationResult> EvaluateInstrumentAsync(string instrument, MarketData data, IReadOnlyList<Bar> bars)
+        public async Task<StrategyEvaluationResult> EvaluateInstrumentAsync(string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             var currentTime = GetMarketTime(data.Timestamp);
             var session = ES_NQ_TradingSchedule.GetCurrentSession(currentTime);
@@ -195,7 +195,7 @@ namespace BotCore.Services
             return performanceMap.ContainsKey(closestHour) ? performanceMap[closestHour] : 0.75;
         }
 
-        private async Task<MarketRegime> GetMarketRegimeAsync(string instrument, MarketData data, IReadOnlyList<Bar> bars)
+        private async Task<MarketRegime> GetMarketRegimeAsync(string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             try
             {
@@ -223,7 +223,7 @@ namespace BotCore.Services
             }
         }
 
-        private decimal[] ExtractRegimeFeatures(string instrument, MarketData data, IReadOnlyList<Bar> bars)
+        private decimal[] ExtractRegimeFeatures(string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             if (bars.Count < 50) return CreateDefaultFeatures();
 
@@ -237,7 +237,7 @@ namespace BotCore.Services
             var volume = CalculateVolumeProfile(bars);
             
             // Market microstructure features
-            var bidAskSpread = data.BidPrice > 0 && data.AskPrice > 0 ? (data.AskPrice - data.BidPrice) / data.BidPrice : 0.001m;
+            var bidAskSpread = data.Bid > 0 && data.Ask > 0 ? (decimal)((data.Ask - data.Bid) / data.Bid) : 0.001m;
             var imbalance = CalculateOrderBookImbalance(data);
             
             // Time-based features
@@ -250,7 +250,7 @@ namespace BotCore.Services
                 (decimal)volatility, (decimal)trend, (decimal)momentum, (decimal)rsi,
                 (decimal)volume.AverageVolume, bidAskSpread, imbalance,
                 hourOfDay, timeToClose,
-                data.LastPrice / 5000m, // Normalized price
+                (decimal)data.Close / 5000m, // Normalized price
                 CalculateATRNormalized(bars), CalculateBollingerPosition(bars),
                 CalculateVWAP(bars), CalculateMarketStress(bars)
             });
@@ -379,7 +379,7 @@ namespace BotCore.Services
             return adjustment;
         }
 
-        private List<Candidate> GenerateStrategyCandidates(string strategyId, string instrument, MarketData data, IReadOnlyList<Bar> bars)
+        private List<Candidate> GenerateStrategyCandidates(string strategyId, string instrument, TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             // Use existing AllStrategies system to generate candidates
             try
@@ -399,7 +399,7 @@ namespace BotCore.Services
             }
         }
 
-        private Env CreateEnvironment(MarketData data, IReadOnlyList<Bar> bars)
+        private Env CreateEnvironment(TradingBot.Abstractions.MarketData data, IReadOnlyList<Bar> bars)
         {
             // Create environment for strategy evaluation
             return new Env
@@ -564,7 +564,7 @@ namespace BotCore.Services
             return denominator != 0 ? numerator / denominator : 0.85;
         }
 
-        private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument, BotCore.Models.Signal signal, MarketData data)
+        private ES_NQ_Correlation CheckES_NQ_Correlation(string instrument, BotCore.Models.Signal signal, TradingBot.Abstractions.MarketData data)
         {
             // ES/NQ correlation analysis using advanced statistical methods
             var correlation = CalculateRealTimeCorrelation(instrument);
@@ -677,17 +677,17 @@ namespace BotCore.Services
             };
         }
 
-        private decimal CalculateOrderBookImbalance(MarketData data)
+        private decimal CalculateOrderBookImbalance(TradingBot.Abstractions.MarketData data)
         {
             // Use Bid/Ask prices to estimate imbalance since MarketData doesn't have sizes
             if (data.Bid == 0 && data.Ask == 0) return 0m;
             
-            var spread = data.Ask - data.Bid;
+            var spread = (decimal)(data.Ask - data.Bid);
             if (spread <= 0) return 0m;
             
             // Calculate imbalance based on where Last price sits in bid-ask spread
-            var midPoint = (data.Bid + data.Ask) / 2;
-            var pricePosition = data.Last - midPoint;
+            var midPoint = (decimal)(data.Bid + data.Ask) / 2;
+            var pricePosition = (decimal)data.Close - midPoint;
             
             // Normalize to -1 to +1 range
             return Math.Max(-1m, Math.Min(1m, pricePosition / (spread / 2)));

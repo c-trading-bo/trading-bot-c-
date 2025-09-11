@@ -36,29 +36,32 @@ public static class AuthenticationServiceExtensions
         // Register auth service factory function
         services.AddSingleton<Func<CancellationToken, Task<string>>>(serviceProvider =>
         {
-            return (cancellationToken) =>
+            return async (cancellationToken) =>
             {
-                // This would typically call the actual TopstepAuthAgent
-                // For now, fallback to environment variable
+                // First check for existing JWT in environment
                 var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
                 if (!string.IsNullOrEmpty(jwt))
                 {
-                    return Task.FromResult(jwt);
+                    return jwt;
                 }
                 
-                // In production, this would authenticate with username/password
+                // Use real TopstepAuthAgent for authentication
                 var username = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
                 var apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
                 
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
                 {
-                    // Would call actual authentication endpoint
+                    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+                    var httpClient = httpClientFactory.CreateClient("Topstep");
+                    var authAgent = new TopstepAuthAgent(httpClient);
+                    
                     var logger = serviceProvider.GetRequiredService<ILogger<CachedTopstepAuth>>();
-                    logger.LogWarning("Auth function placeholder - implement actual authentication logic");
-                    throw new NotImplementedException("Implement actual TopstepX authentication");
+                    logger.LogInformation("Authenticating with TopstepX using real API call");
+                    
+                    return await authAgent.GetJwtAsync(username, apiKey, cancellationToken);
                 }
                 
-                throw new InvalidOperationException("No authentication credentials available");
+                throw new InvalidOperationException("No authentication credentials available (TOPSTEPX_USERNAME and TOPSTEPX_API_KEY required)");
             };
         });
 

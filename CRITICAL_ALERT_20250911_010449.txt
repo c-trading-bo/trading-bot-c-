@@ -1,0 +1,27 @@
+CRITICAL SYSTEM ERROR
+=====================
+Time: 2025-09-11 01:04:49 UTC
+Component: TradingSystemIntegration
+Error: Name or service not known (api.topstepx.com:443)
+Error ID: 54726164696E
+
+IMMEDIATE ACTION REQUIRED:
+- Check system logs for details
+- Verify trading positions are safe
+- Consider emergency stop if trading related
+
+Stack Trace:
+   at System.Net.Http.HttpConnectionPool.ConnectToTcpHostAsync(String host, Int32 port, HttpRequestMessage initialRequest, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.ConnectAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.CreateHttp11ConnectionAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.AddHttp11ConnectionAsync(QueueItem queueItem)
+   at System.Threading.Tasks.TaskCompletionSourceWithCancellation`1.WaitWithCancellationAsync(CancellationToken cancellationToken)
+   at System.Net.Http.HttpConnectionPool.SendWithVersionDetectionAndRetryAsync(HttpRequestMessage request, Boolean async, Boolean doRequestAuth, CancellationToken cancellationToken)
+   at System.Net.Http.RedirectHandler.SendAsync(HttpRequestMessage request, Boolean async, CancellationToken cancellationToken)
+   at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+   at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
+   at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.GetFreshJwtAsync() in /home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 430
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 207
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.SetupSignalRConnectionsAsync(CancellationToken cancellationToken) in /home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 277
+   at TopstepX.Bot.Core.Services.TradingSystemIntegrationService.ExecuteAsync(CancellationToken stoppingToken) in /home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/Services/TradingSystemIntegrationService.cs:line 102
