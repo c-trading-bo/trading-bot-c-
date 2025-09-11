@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
+using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -19,6 +20,10 @@ public interface ISignalRConnectionManager
     bool IsUserHubConnected { get; }
     bool IsMarketHubConnected { get; }
     event Action<string> ConnectionStateChanged;
+    
+    // TopstepX specification compliant subscription methods
+    Task<bool> SubscribeToUserEventsAsync(string accountId);
+    Task<bool> SubscribeToMarketEventsAsync(string contractId);
 }
 
 public class SignalRConnectionManager : ISignalRConnectionManager, IHostedService, IDisposable
@@ -255,14 +260,42 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         try
         {
-            if (_userHub?.State != HubConnectionState.Connected && _userHubWired)
+            // Check User Hub health with ping
+            if (_userHub?.State == HubConnectionState.Connected)
+            {
+                try
+                {
+                    await PerformHealthCheckPing(_userHub, "UserHub");
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                        $"User Hub ping failed: {ex.Message}");
+                    _userHubWired = false;
+                }
+            }
+            else if (_userHubWired)
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
                     $"User Hub health check failed - State: {_userHub?.State}");
                 _userHubWired = false;
             }
 
-            if (_marketHub?.State != HubConnectionState.Connected && _marketHubWired)
+            // Check Market Hub health with ping  
+            if (_marketHub?.State == HubConnectionState.Connected)
+            {
+                try
+                {
+                    await PerformHealthCheckPing(_marketHub, "MarketHub");
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                        $"Market Hub ping failed: {ex.Message}");
+                    _marketHubWired = false;
+                }
+            }
+            else if (_marketHubWired)
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
                     $"Market Hub health check failed - State: {_marketHub?.State}");
@@ -272,6 +305,122 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error during connection health check");
+        }
+    }
+
+    /// <summary>
+    /// Performs a health check ping to verify connection responsiveness
+    /// </summary>
+    private async Task PerformHealthCheckPing(HubConnection hubConnection, string hubName)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        
+        await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+            hubConnection,
+            () => hubConnection.InvokeAsync("Ping", cancellationToken: cts.Token),
+            _logger,
+            cts.Token,
+            maxAttempts: 1);
+            
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+            $"{hubName} health ping successful");
+    }
+
+    /// <summary>
+    /// Safely subscribe to user hub events with TopstepX specification compliance
+    /// </summary>
+    /// <param name="accountId">The account ID to subscribe to</param>
+    /// <returns>True if subscription successful, false otherwise</returns>
+    public async Task<bool> SubscribeToUserEventsAsync(string accountId)
+    {
+        try
+        {
+            // Validate account ID format per TopstepX specification
+            var validatedAccountId = TopstepXSubscriptionValidator.ValidateAccountIdForSubscription(accountId, _logger);
+            
+            var userHub = await GetUserHubConnectionAsync();
+            
+            // Subscribe to all user events using TopstepX compliant methods
+            var subscriptionMethods = TopstepXSubscriptionValidator.GetSupportedUserHubMethods();
+            bool anySuccess = false;
+            
+            foreach (var method in subscriptionMethods)
+            {
+                try
+                {
+                    await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                        userHub,
+                        () => userHub.InvokeAsync(method, validatedAccountId),
+                        _logger,
+                        CancellationToken.None);
+                        
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Successfully subscribed to {method} for account {TradingBot.Abstractions.SecurityHelpers.HashAccountId(validatedAccountId)}");
+                    anySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        $"Failed to subscribe to {method} for account {TradingBot.Abstractions.SecurityHelpers.HashAccountId(validatedAccountId)}: {ex.Message}");
+                }
+            }
+            
+            return anySuccess;
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"Failed to subscribe to user events: {ex.Message}");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Safely subscribe to market hub events with TopstepX specification compliance
+    /// </summary>
+    /// <param name="contractId">The contract ID to subscribe to (e.g., "ES", "NQ")</param>
+    /// <returns>True if subscription successful, false otherwise</returns>
+    public async Task<bool> SubscribeToMarketEventsAsync(string contractId)
+    {
+        try
+        {
+            // Validate contract ID format per TopstepX specification
+            var validatedContractId = TopstepXSubscriptionValidator.ValidateContractIdForSubscription(contractId, _logger);
+            
+            var marketHub = await GetMarketHubConnectionAsync();
+            
+            // Subscribe to all market events using TopstepX compliant methods
+            var subscriptionMethods = TopstepXSubscriptionValidator.GetSupportedMarketHubMethods();
+            bool anySuccess = false;
+            
+            foreach (var method in subscriptionMethods)
+            {
+                try
+                {
+                    await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                        marketHub,
+                        () => marketHub.InvokeAsync(method, validatedContractId),
+                        _logger,
+                        CancellationToken.None);
+                        
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Successfully subscribed to {method} for contract {validatedContractId}");
+                    anySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        $"Failed to subscribe to {method} for contract {validatedContractId}: {ex.Message}");
+                }
+            }
+            
+            return anySuccess;
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"Failed to subscribe to market events: {ex.Message}");
+            return false;
         }
     }
 
