@@ -14,6 +14,7 @@ using TradingBot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
 using BotCore.Services;
 using BotCore;
+using BotCore.Config;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -38,8 +39,8 @@ public class ConsoleDashboardService : BackgroundService
     private string _hubStatus = "";
     private string _systemStatus = "";
     private string _mode = "DRY_RUN";
-    private string _strategy = "ES/NQ Mean Reversion";
-    private string _schedule = "Mon-Fri 09:30-16:00 ET";
+    private string _strategy = "S2, S3, S6, S11 (4 enabled strategies)";
+    private string _schedule = "Sun 6PM - Fri 5PM ET (Futures Hours)";
     private decimal _lastESPrice = 0m;
     private decimal _lastNQPrice = 0m;
     private int _barsSeen = 0;
@@ -128,7 +129,7 @@ public class ConsoleDashboardService : BackgroundService
             AddEvent("📍 MODE", modeMessage);
             
             AddEvent("🎯 STRATEGY", $"{_strategy} | Risk: 1% per trade");
-            AddEvent("🕐 SCHEDULE", $"{_schedule} | Next: 09:30:00");
+            AddEvent("🕐 SCHEDULE", $"{_schedule} | Current session check...");
             
             if (killFileExists)
             {
@@ -164,6 +165,11 @@ public class ConsoleDashboardService : BackgroundService
                         }
                     }
                 });
+                AddEvent("🔗 WIRING", "AutoTopstepXLoginService connected");
+            }
+            else
+            {
+                AddEvent("⚠️ AUTH", "AutoTopstepXLoginService not available - authentication status unknown");
             }
 
             // Wire up AccountService for real account data
@@ -181,6 +187,11 @@ public class ConsoleDashboardService : BackgroundService
 
                 // Start periodic refresh for account data
                 await accountService.StartPeriodicRefreshAsync(TimeSpan.FromSeconds(30));
+                AddEvent("🔗 WIRING", "AccountService connected");
+            }
+            else
+            {
+                AddEvent("⚠️ ACCOUNT", "AccountService not available - account data will be static");
             }
 
             // Wire up MarketHubClient for real market data
@@ -214,6 +225,11 @@ public class ConsoleDashboardService : BackgroundService
                         AddEvent("💹 TRADE", $"{symbol} @ {tradeTick.Price:F2} Vol: {tradeTick.Volume}");
                     }
                 };
+                AddEvent("🔗 WIRING", "MarketHubClient connected");
+            }
+            else
+            {
+                AddEvent("⚠️ MARKET", "MarketHubClient not available - no live market data");
             }
 
             // Wire up MarketDataAgent for bar count and market activity
@@ -248,6 +264,11 @@ public class ConsoleDashboardService : BackgroundService
                     // Additional trade processing if needed  
                     _tradesSeen = marketDataAgent.TradesSeen;
                 };
+                AddEvent("🔗 WIRING", "MarketDataAgent connected");
+            }
+            else
+            {
+                AddEvent("⚠️ DATA", "MarketDataAgent not available - no bar count/market activity tracking");
             }
 
             // Wire up UserHubClient for real trade and position updates
@@ -313,14 +334,20 @@ public class ConsoleDashboardService : BackgroundService
                         _logger.LogDebug(ex, "Error processing position data for dashboard");
                     }
                 };
+                AddEvent("🔗 WIRING", "UserHubClient connected");
+            }
+            else
+            {
+                AddEvent("⚠️ TRADES", "UserHubClient not available - no live trade/position updates");
             }
 
-            AddEvent("🔗 WIRING", "Live data services connected successfully");
+            AddEvent("🔗 WIRING", "Live data services initialization completed");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error wiring up live data services");
-            AddEvent("⚠️ WIRING", "Live data services connection failed - using static data");
+            AddEvent("⚠️ WIRING", $"Live data services setup failed: {ex.Message}");
+            AddEvent("🔧 DEBUG", "Some features may not work correctly - check service registrations");
         }
     }
 
@@ -398,7 +425,7 @@ public class ConsoleDashboardService : BackgroundService
                 : $"{_mode} (kill.txt not present → AUTO_EXECUTE available)";
             Console.WriteLine($"[{currentTime}] 📍 MODE: {modeMessage}");
             Console.WriteLine($"[{currentTime}] 🎯 STRATEGY: {_strategy} | Risk: 1% per trade");
-            Console.WriteLine($"[{currentTime}] 🕐 SCHEDULE: {_schedule} | Next: 09:30:00");
+            Console.WriteLine($"[{currentTime}] 🕐 SCHEDULE: {_schedule} | Session: {GetCurrentSession()}");
             Console.WriteLine();
             Console.WriteLine("════════════════════════════════════════════════════════════════════════");
             Console.WriteLine();
@@ -537,6 +564,29 @@ public class ConsoleDashboardService : BackgroundService
         while (_eventLog.Count > MaxEventLogEntries)
         {
             _eventLog.Dequeue();
+        }
+    }
+
+    private string GetCurrentSession()
+    {
+        try
+        {
+            var now = DateTime.Now;
+            var et = TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
+            var currentSession = ES_NQ_TradingSchedule.GetCurrentSession(et.TimeOfDay);
+            
+            if (currentSession != null)
+            {
+                return $"{currentSession.Description} ({et:HH:mm} ET)";
+            }
+            else
+            {
+                return $"Market Closed ({et:HH:mm} ET)";
+            }
+        }
+        catch (Exception ex)
+        {
+            return $"Schedule Error: {ex.Message}";
         }
     }
 
