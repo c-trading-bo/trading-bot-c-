@@ -7,7 +7,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Text;
-// using Trading.Safety;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -583,12 +583,12 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             await _hubConnection.InvokeAsync("SubscribeOrders", accountId).ConfigureAwait(false);
-            _logger.LogInformation("[TOPSTEPX] Subscribed to orders for account {AccountId}", accountId);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to orders for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to orders for account {AccountId}", accountId);
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to orders for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return false;
         }
     }
@@ -604,12 +604,12 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             await _hubConnection.InvokeAsync("SubscribeTrades", accountId).ConfigureAwait(false);
-            _logger.LogInformation("[TOPSTEPX] Subscribed to trades for account {AccountId}", accountId);
+            _logger.LogInformation("[TOPSTEPX] Subscribed to trades for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to trades for account {AccountId}", accountId);
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to trades for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return false;
         }
     }
