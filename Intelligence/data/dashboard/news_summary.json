@@ -1,22 +1,37 @@
 {
-  "timestamp": "2025-09-11T06:38:09.232276",
+  "timestamp": "2025-09-11T09:27:44.475979",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "workflow_run": "46",
+  "workflow_run": "47",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-11T06:33:20.044233",
+    "timestamp": "2025-09-11T09:22:59.018141",
     "analysis_mode": "comprehensive",
     "market_session": "extended",
-    "total_articles_processed": 9,
+    "total_articles_processed": 13,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "sentiment_score": 0.3145833333333333,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Klarna IPO: Exciting Growth And Broad Market Appeal, But Complex Business With Rising Credit Risk",
+            "sentiment": 0.3145833333333333,
+            "textblob_score": 0.020833333333333332,
+            "keyword_score": 1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4821971-klarna-ipo-exciting-growth-and-broad-market-appeal-but-complex-business-with-rising-credit-risk?source=feed_all_articles",
+            "published": "Thu, 11 Sep 2025 05:21:24 -0400",
+            "relevance_keywords": [
+              "broad market"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.1,
+        "sources": [
+          "seeking_alpha"
+        ]
       },
       "NQ": {
         "sentiment_score": 0.0,
@@ -51,41 +66,77 @@
         "sources": []
       },
       "TSLA": {
-        "sentiment_score": 0.2261201298701299,
-        "article_count": 7,
+        "sentiment_score": 0.29913131313131314,
+        "article_count": 9,
         "articles": [
           {
-            "title": "Filecoin's FIL Pares Gains to Trade Little Changed After Testing $2.50 Resistance Level",
-            "sentiment": 0.16875,
-            "textblob_score": -0.1875,
+            "title": "Evergrande Liquidators Get Bids for Unit From State-Owned Firms",
+            "sentiment": 0.46624999999999994,
+            "textblob_score": 0.2375,
             "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/filecoins-fil-pares-gains-trade-181922622.html",
-            "published": "2025-09-09T18:19:22Z",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-11/evergrande-liquidators-get-bids-for-unit-from-state-owned-firms",
+            "published": "Thu, 11 Sep 2025 09:08:19 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "This Tesla Rival Is Ramping Up Robotaxis in the Middle East. Should You Buy Its Stock Here?",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/tesla-rival-ramping-robotaxis-middle-185723925.html",
-            "published": "2025-09-09T18:57:23Z",
+            "title": "Elite Hong Kong School Threatened With Eviction by US Church",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.19999999999999998,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-11/elite-hong-kong-school-threatened-with-eviction-by-us-church",
+            "published": "Thu, 11 Sep 2025 07:38:15 GMT",
             "relevance_keywords": [
-              "Tesla"
+              "EV"
             ]
           },
           {
-            "title": "Activist Investor Reveals Bargain in Japan\u2019s Utility Shares",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
+            "title": "Oil Market Can\u2019t Absorb Increase in Supplies: IEA Says",
+            "sentiment": 0.349,
+            "textblob_score": 0.06999999999999999,
             "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-11/activist-investor-reveals-bargain-in-japan-s-utility-shares",
-            "published": "Thu, 11 Sep 2025 04:04:01 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-11/oil-market-can-t-absorb-increase-in-supplies-iea-says-video",
+            "published": "Thu, 11 Sep 2025 09:04:38 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Chinese Carmakers May Keep Price Edge Despite Mexico Levies",
+            "sentiment": 0.2270833333333333,
+            "textblob_score": -0.10416666666666667,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-11/chinese-carmakers-may-keep-price-advantage-despite-mexico-levies",
+            "published": "Thu, 11 Sep 2025 06:51:17 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Thai Builder Sees Plant Boom as Firms Flee Trump\u2019s China Duties",
+            "sentiment": 0.14848484848484847,
+            "textblob_score": 0.21212121212121213,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-11/thai-builder-sees-plant-boom-as-firms-flee-trump-s-china-duties",
+            "published": "Thu, 11 Sep 2025 08:26:26 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Citi\u2019s Manthey on Europe Stocks Outperformance",
+            "sentiment": 0.475,
+            "textblob_score": 0.25,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-11/city-says-europe-stocks-outperformance-has-further-to-go-video",
+            "published": "Thu, 11 Sep 2025 07:58:39 GMT",
             "relevance_keywords": [
               "EV"
             ]
@@ -115,83 +166,83 @@
             ]
           },
           {
-            "title": "Nio\u2019s stock dives as EV maker raises $1 billion at shareholders\u2019 expense",
-            "sentiment": -0.12,
-            "textblob_score": -0.17142857142857143,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/nios-stock-dives-as-ev-maker-raises-1-billion-at-shareholders-expense-28b2e763?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 22:35:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
-            "sentiment": 0.3477272727272727,
-            "textblob_score": 0.06818181818181818,
+            "title": "Sirius XM Holdings: Like A Publicly Traded Leveraged Buyout",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
             "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 22:31:00 GMT",
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4821962-siriusxm-like-a-publicly-traded-leveraged-buyout?source=feed_all_articles",
+            "published": "Thu, 11 Sep 2025 05:01:34 -0400",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.7,
+        "confidence": 0.9,
         "sources": [
-          "yahoo_finance",
           "bloomberg",
-          "marketwatch"
+          "marketwatch",
+          "seeking_alpha"
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.3,
-        "article_count": 1,
+        "sentiment_score": 0.2608712121212121,
+        "article_count": 2,
         "articles": [
           {
-            "title": "NVIDIA (NVDA) Remains a Franchise Pick as Jefferies Reiterates Buy",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
+            "title": "Was Jim Cramer Right About NVIDIA (NVDA)?",
+            "sentiment": 0.19999999999999998,
+            "textblob_score": 0.2857142857142857,
+            "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/nvidia-nvda-remains-franchise-pick-190205857.html",
-            "published": "2025-09-09T19:02:05Z",
+            "url": "https://finance.yahoo.com/news/jim-cramer-nvidia-nvda-211903043.html",
+            "published": "2025-09-09T21:19:03Z",
+            "relevance_keywords": [
+              "Nvidia"
+            ]
+          },
+          {
+            "title": "Nvidia-baked Cusp AI Raises $100m In Series A Funding",
+            "sentiment": 0.3217424242424242,
+            "textblob_score": 0.031060606060606056,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-11/nvidia-baked-cusp-ai-raises-100m-in-series-a-funding-video",
+            "published": "Thu, 11 Sep 2025 08:42:12 GMT",
             "relevance_keywords": [
               "Nvidia"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
+        "confidence": 0.2,
         "sources": [
-          "yahoo_finance"
+          "yahoo_finance",
+          "bloomberg"
         ]
       },
       "AAPL": {
-        "sentiment_score": 0.3477272727272727,
+        "sentiment_score": 0.3217424242424242,
         "article_count": 1,
         "articles": [
           {
-            "title": "Don\u2019t let Apple\u2019s stock dip fool you. The iPhone 17 could power a big rally.",
-            "sentiment": 0.3477272727272727,
-            "textblob_score": 0.06818181818181818,
+            "title": "Nvidia-baked Cusp AI Raises $100m In Series A Funding",
+            "sentiment": 0.3217424242424242,
+            "textblob_score": 0.031060606060606056,
             "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/dont-let-apples-stock-dip-fool-you-the-iphone-17-could-power-a-big-rally-ea1ba9b8?mod=mw_rss_topstories",
-            "published": "Wed, 10 Sep 2025 22:31:00 GMT",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-11/nvidia-baked-cusp-ai-raises-100m-in-series-a-funding-video",
+            "published": "Thu, 11 Sep 2025 08:42:12 GMT",
             "relevance_keywords": [
-              "Apple",
-              "iPhone"
+              "Mac"
             ]
           }
         ],
         "signal": "BULLISH",
         "confidence": 0.1,
         "sources": [
-          "marketwatch"
+          "bloomberg"
         ]
       }
     },
@@ -205,7 +256,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-11T06:38:06.792664",
+    "timestamp": "2025-09-11T09:27:42.363444",
     "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
@@ -227,7 +278,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-11T06:33:17.703332",
+    "timestamp": "2025-09-11T09:22:56.088146",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
