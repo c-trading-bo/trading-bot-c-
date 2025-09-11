@@ -69,15 +69,17 @@ public class OrderService : IOrderService
 
             // Real POST to /api/Order/place with retries and idempotency
             // This replaces: return Guid.NewGuid().ToString();
+            // FIXED: Use ProjectX API specification exactly
             var orderPayload = new
             {
-                symbol = request.Symbol,
-                side = request.Side,
-                quantity = request.Quantity,
-                price = request.Price,
-                orderType = request.OrderType,
-                customTag = request.CustomTag,
-                accountId = request.AccountId
+                accountId = long.Parse(request.AccountId),  // ProjectX expects integer accountId
+                contractId = request.Symbol,               // ProjectX uses contractId, not symbol
+                type = GetOrderTypeValue(request.OrderType), // ProjectX: 1=Limit, 2=Market, 4=Stop
+                side = GetSideValue(request.Side),         // ProjectX: 0=Bid(buy), 1=Ask(sell)
+                size = (int)request.Quantity,              // ProjectX expects integer size
+                limitPrice = request.OrderType.ToUpper() == "LIMIT" ? request.Price : (decimal?)null,
+                stopPrice = request.OrderType.ToUpper() == "STOP" ? request.Price : (decimal?)null,
+                customTag = request.CustomTag
             };
 
             var content = new StringContent(JsonSerializer.Serialize(orderPayload), 
@@ -133,6 +135,36 @@ public class OrderService : IOrderService
         }
     }
 
+    /// <summary>
+    /// Convert order type string to ProjectX API integer value
+    /// ProjectX API: 1 = Limit, 2 = Market, 4 = Stop, 5 = TrailingStop
+    /// </summary>
+    private static int GetOrderTypeValue(string orderType)
+    {
+        return orderType.ToUpper() switch
+        {
+            "LIMIT" => 1,
+            "MARKET" => 2,
+            "STOP" => 4,
+            "TRAILING_STOP" => 5,
+            _ => 1 // Default to limit
+        };
+    }
+
+    /// <summary>
+    /// Convert side string to ProjectX API integer value
+    /// ProjectX API: 0 = Bid (buy), 1 = Ask (sell)
+    /// </summary>
+    private static int GetSideValue(string side)
+    {
+        return side.ToUpper() switch
+        {
+            "BUY" => 0,
+            "SELL" => 1,
+            _ => 0 // Default to buy
+        };
+    }
+
     public async Task<OrderStatus> GetOrderStatusAsync(string orderId)
     {
         try
@@ -162,7 +194,18 @@ public class OrderService : IOrderService
         try
         {
             _logger.LogInformation("[ORDER] Cancelling order {OrderId} via TopstepX API", orderId);
-            var response = await _httpClient.DeleteAsync($"/api/Order/cancel/{orderId}", cancellationToken);
+            
+            // FIXED: Use ProjectX API specification - POST to /api/Order/cancel with body
+            var cancelPayload = new
+            {
+                accountId = long.Parse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "0"),
+                orderId = long.Parse(orderId)
+            };
+            
+            var content = new StringContent(JsonSerializer.Serialize(cancelPayload), 
+                System.Text.Encoding.UTF8, "application/json");
+            
+            var response = await _httpClient.PostAsync("/api/Order/cancel", content, cancellationToken);
             var success = response.IsSuccessStatusCode;
             
             if (success)

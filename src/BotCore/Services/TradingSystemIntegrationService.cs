@@ -356,16 +356,16 @@ namespace TopstepX.Bot.Core.Services
                     return OrderResult.Success(customTag, customTag);
                 }
 
-                // Submit real order to TopstepX API
+                // Submit real order to TopstepX API - FIXED: Use ProjectX API specification
                 var orderPayload = new
                 {
-                    accountId = request.AccountId,
-                    symbol = request.Symbol,
-                    quantity = request.Quantity,
-                    price = entryPrice,
-                    side = request.Side,
-                    orderType = request.OrderType,
-                    timeInForce = request.TimeInForce,
+                    accountId = long.Parse(request.AccountId),
+                    contractId = request.Symbol,               // ProjectX uses contractId, not symbol  
+                    type = GetOrderTypeValue(request.OrderType), // ProjectX: 1=Limit, 2=Market, 4=Stop
+                    side = GetSideValue(request.Side),         // ProjectX: 0=Bid(buy), 1=Ask(sell)
+                    size = request.Quantity,                   // ProjectX expects integer size
+                    limitPrice = request.OrderType.ToUpper() == "LIMIT" ? entryPrice : (decimal?)null,
+                    stopPrice = request.OrderType.ToUpper() == "STOP" ? entryPrice : (decimal?)null,
                     customTag = customTag
                 };
 
@@ -401,6 +401,36 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogError(ex, "[ORDER] Exception during order placement");
                 return OrderResult.Failed($"Exception: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Convert order type string to ProjectX API integer value
+        /// ProjectX API: 1 = Limit, 2 = Market, 4 = Stop, 5 = TrailingStop
+        /// </summary>
+        private static int GetOrderTypeValue(string orderType)
+        {
+            return orderType.ToUpper() switch
+            {
+                "LIMIT" => 1,
+                "MARKET" => 2,
+                "STOP" => 4,
+                "TRAILING_STOP" => 5,
+                _ => 1 // Default to limit
+            };
+        }
+
+        /// <summary>
+        /// Convert side string to ProjectX API integer value
+        /// ProjectX API: 0 = Bid (buy), 1 = Ask (sell)
+        /// </summary>
+        private static int GetSideValue(string side)
+        {
+            return side.ToUpper() switch
+            {
+                "BUY" => 0,
+                "SELL" => 1,
+                _ => 0 // Default to buy
+            };
         }
 
         /// <summary>
@@ -1730,7 +1760,6 @@ namespace TopstepX.Bot.Core.Services
         public bool IsEmergencyStop { get; set; }
         public bool IsDryRunMode { get; set; }
         public double HealthScore { get; set; }
-        public int ComponentCount { get; set; }
         public int CriticalComponents { get; set; }
         public DateTime LastUpdate { get; set; }
         public int BarsSeen { get; set; }

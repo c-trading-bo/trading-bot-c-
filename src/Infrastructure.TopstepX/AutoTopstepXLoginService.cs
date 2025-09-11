@@ -4,7 +4,6 @@ using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
 using System.Text.Json;
 using System.Net.Http.Json;
-using System.Linq;
 // // using Trading.Safety;
 
 namespace BotCore.Services;
@@ -180,7 +179,7 @@ public class AutoTopstepXLoginService : BackgroundService
     {
         try
         {
-            // Ensure BaseAddress is set
+            // Ensure BaseAddress is set - UPDATED: Use working TopstepX API
             if (_httpClient.BaseAddress == null)
             {
                 _httpClient.BaseAddress = new Uri("https://api.topstepx.com");
@@ -191,10 +190,11 @@ public class AutoTopstepXLoginService : BackgroundService
 
             _logger.LogInformation("🔍 Searching for account information via TopstepX API...");
             
-            // First, search for accounts to get the GUID
+            // Enhanced: Search for ALL accounts (not just by account number)
             var searchRequest = new
             {
-                accountNumber = CurrentCredentials!.Username // Account display number
+                // Remove accountNumber filter to get ALL accounts available to this user
+                onlyActiveAccounts = true  // Only get active accounts per ProjectX API docs
             };
             
             var searchContent = JsonContent.Create(searchRequest);
@@ -214,25 +214,67 @@ public class AutoTopstepXLoginService : BackgroundService
                     accountsElement.ValueKind == JsonValueKind.Array &&
                     accountsElement.GetArrayLength() > 0)
                 {
-                    // Use intelligent account selection rules
-                    var selectedAccount = SelectBestAccount(accountsElement);
+                    _logger.LogInformation("🔍 FOUND {Count} ACCOUNT(S) - Analyzing all available accounts...", accountsElement.GetArrayLength());
                     
-                    if (selectedAccount != null && selectedAccount.Value.TryGetProperty("id", out var idProp))
+                    // Log ALL available accounts to help identify the Trading Combine account
+                    var accountIndex = 0;
+                    foreach (var account in accountsElement.EnumerateArray())
                     {
-                        AccountId = idProp.GetInt64().ToString();
+                        accountIndex++;
+                        var accountId = account.TryGetProperty("id", out var idProp) ? idProp.GetInt64().ToString() : "Unknown";
+                        var accountName = account.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : "Unknown";
+                        var canTrade = account.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
+                        var balance = account.TryGetProperty("balance", out var balProp) ? balProp.GetDecimal() : 0m;
+                        var accountType = accountName?.Contains("PRAC") == true ? "PRACTICE" : 
+                                         accountName?.Contains("TST") == true ? "TEST" : 
+                                         balance == 50000m ? "TRADING_COMBINE_50K" : "LIVE";
+                        
+                        _logger.LogInformation("📋 Account {Index}: ID={AccountId}, Name={AccountName}, Type={AccountType}, CanTrade={CanTrade}, Balance=${Balance:F2}", 
+                            accountIndex, accountId, accountName, accountType, canTrade, balance);
+                    }
+                    
+                    // ENHANCED: Look for Trading Combine account (50K balance) first, then any tradable account
+                    JsonElement? tradingCombineAccount = null;
+                    JsonElement? tradableAccount = null;
+                    
+                    foreach (var account in accountsElement.EnumerateArray())
+                    {
+                        var canTrade2 = account.TryGetProperty("canTrade", out var canTradeProp2) && canTradeProp2.GetBoolean();
+                        var balance2 = account.TryGetProperty("balance", out var balProp2) ? balProp2.GetDecimal() : 0m;
+                        var accountName2 = account.TryGetProperty("name", out var nameProp2) ? nameProp2.GetString() : "";
+                        
+                        // Prioritize Trading Combine account (50K balance, non-practice)
+                        if (canTrade2 && balance2 == 50000m && !string.IsNullOrEmpty(accountName2) && !accountName2.Contains("PRAC"))
+                        {
+                            tradingCombineAccount = account;
+                            _logger.LogInformation("🎯 FOUND TRADING COMBINE ACCOUNT: Balance=${Balance:F2}, Name={Name}", balance2, accountName2);
+                            break;
+                        }
+                        
+                        // Fallback: any tradable account
+                        if (canTrade2 && tradableAccount == null)
+                        {
+                            tradableAccount = account;
+                        }
+                    }
+                    
+                    // Select Trading Combine account if found, otherwise first tradable account
+                    var selectedAccount = tradingCombineAccount ?? tradableAccount ?? accountsElement[0];
+                    var accountSelectionReason = tradingCombineAccount.HasValue ? "Trading Combine (50K)" : 
+                                                tradableAccount.HasValue ? "First Tradable" : "First Available";
+                    
+                    if (selectedAccount.TryGetProperty("id", out var selectedIdProp))
+                    {
+                        AccountId = selectedIdProp.GetInt64().ToString();
                         CurrentCredentials!.AccountId = AccountId;
                         Environment.SetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID", AccountId);
                         
-                        var accountName = selectedAccount.Value.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? "Unknown" : "Unknown";
-                        var canTrade = selectedAccount.Value.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
-                        var balance = selectedAccount.Value.TryGetProperty("balance", out var balProp) ? balProp.GetDecimal() : 0m;
-                        var displayNumber = selectedAccount.Value.TryGetProperty("displayNumber", out var displayProp) ? displayProp.GetString() ?? "" : "";
-                        var alias = selectedAccount.Value.TryGetProperty("alias", out var aliasProp) ? aliasProp.GetString() ?? "" : "";
-                        var phase = selectedAccount.Value.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() ?? "" : "";
-                        var status = selectedAccount.Value.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "" : "";
+                        var accountName = selectedAccount.TryGetProperty("name", out var selectedNameProp) ? selectedNameProp.GetString() : "Unknown";
+                        var canTrade = selectedAccount.TryGetProperty("canTrade", out var selectedCanTradeProp) ? selectedCanTradeProp.GetBoolean() : false;
+                        var balance = selectedAccount.TryGetProperty("balance", out var selectedBalProp) ? selectedBalProp.GetDecimal() : 0m;
                         
-                        _logger.LogInformation("✅ Selected account: id={AccountId} display={DisplayNumber} alias={Alias} canTrade={CanTrade} phase={Phase} status={Status} balance=${Balance:F2}", 
-                            AccountId, displayNumber, alias, canTrade, phase, status, balance);
+                        _logger.LogInformation("✅ SELECTED ACCOUNT ({Reason}) - ID: {AccountId}, Name: {AccountName}, CanTrade: {CanTrade}, Balance: ${Balance:F2}", 
+                            accountSelectionReason, AccountId, accountName, canTrade, balance);
                         
                         // CRITICAL: Retry SignalR subscriptions with the retrieved account ID
                         if (_signalRConnectionManager != null)
@@ -258,7 +300,7 @@ public class AutoTopstepXLoginService : BackgroundService
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ No suitable account found in search response");
+                        _logger.LogWarning("⚠️ Account search response missing 'id' property");
                     }
                 }
                 else
@@ -277,102 +319,6 @@ public class AutoTopstepXLoginService : BackgroundService
         {
             _logger.LogWarning(ex, "⚠️ Failed to get account info, but login still successful");
         }
-    }
-
-    /// <summary>
-    /// Intelligent account selection using environment hints and business rules
-    /// </summary>
-    private JsonElement? SelectBestAccount(JsonElement accountsArray)
-    {
-        var accounts = accountsArray.EnumerateArray().ToList();
-        if (!accounts.Any()) return null;
-
-        _logger.LogInformation("📋 Found {Count} accounts, applying selection rules...", accounts.Count);
-
-        // Environment hint overrides
-        var hintDisplayNumber = Environment.GetEnvironmentVariable("TOPSTEP_ACCOUNT_DISPLAY");
-        var hintAlias = Environment.GetEnvironmentVariable("TOPSTEP_ACCOUNT_ALIAS");
-
-        // Log all accounts for visibility
-        foreach (var account in accounts)
-        {
-            var id = account.TryGetProperty("id", out var idProp) ? idProp.GetInt64().ToString() : "?";
-            var displayNumber = account.TryGetProperty("displayNumber", out var displayProp) ? displayProp.GetString() : "";
-            var alias = account.TryGetProperty("alias", out var aliasProp) ? aliasProp.GetString() : "";
-            var canTrade = account.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
-            var status = account.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : "";
-            var phase = account.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() : "";
-            
-            _logger.LogDebug("   Account: id={Id} display={Display} alias={Alias} canTrade={CanTrade} status={Status} phase={Phase}",
-                id, displayNumber, alias, canTrade, status, phase);
-        }
-
-        // Rule 1: Environment hint for display number
-        if (!string.IsNullOrEmpty(hintDisplayNumber))
-        {
-            foreach (var account in accounts)
-            {
-                if (account.TryGetProperty("displayNumber", out var dp) && 
-                    dp.GetString()?.Equals(hintDisplayNumber, StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    _logger.LogInformation("🎯 Selected account via TOPSTEP_ACCOUNT_DISPLAY hint: {DisplayNumber}", hintDisplayNumber);
-                    return account;
-                }
-            }
-        }
-
-        // Rule 2: Environment hint for alias
-        if (!string.IsNullOrEmpty(hintAlias))
-        {
-            foreach (var account in accounts)
-            {
-                if (account.TryGetProperty("alias", out var ap) && 
-                    ap.GetString()?.Contains(hintAlias, StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    _logger.LogInformation("🎯 Selected account via TOPSTEP_ACCOUNT_ALIAS hint: {Alias}", hintAlias);
-                    return account;
-                }
-            }
-        }
-
-        // Rule 3: Active status + canTrade + Evaluation phase
-        foreach (var account in accounts)
-        {
-            if (account.TryGetProperty("status", out var statusProp) && statusProp.GetString()?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true &&
-                account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean() &&
-                account.TryGetProperty("phase", out var phaseProp) && 
-                (phaseProp.GetString()?.Contains("Eval", StringComparison.OrdinalIgnoreCase) == true ||
-                 phaseProp.GetString()?.Contains("Combine", StringComparison.OrdinalIgnoreCase) == true))
-            {
-                _logger.LogInformation("🎯 Selected active evaluation/combine account");
-                return account;
-            }
-        }
-
-        // Rule 4: Active status + canTrade (any account)
-        foreach (var account in accounts)
-        {
-            if (account.TryGetProperty("status", out var statusProp) && statusProp.GetString()?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true &&
-                account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean())
-            {
-                _logger.LogInformation("🎯 Selected active tradable account");
-                return account;
-            }
-        }
-
-        // Rule 5: First account that can trade
-        foreach (var account in accounts)
-        {
-            if (account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean())
-            {
-                _logger.LogInformation("🎯 Selected first tradable account");
-                return account;
-            }
-        }
-
-        // Rule 6: Fallback to first account
-        _logger.LogWarning("⚠️ No tradable accounts found, using first available account");
-        return accounts.First();
     }
 
     private async Task TokenRefreshLoop(CancellationToken cancellationToken)

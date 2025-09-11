@@ -37,10 +37,10 @@ namespace BotCore.Auth
                      Environment.GetEnvironmentVariable("TOPSTEP_API_KEY") ?? 
                      throw new InvalidOperationException("TOPSTEPX_API_KEY or TOPSTEP_API_KEY environment variable not set.");
             
-            // Ensure base address is set
+            // Ensure base address is set - UPDATED: Use ProjectX Gateway API
             if (_http.BaseAddress == null)
             {
-                _http.BaseAddress = new Uri("https://api.topstepx.com");
+                _http.BaseAddress = new Uri("https://gateway-api-demo.s2f.projectx.com");
             }
         }
 

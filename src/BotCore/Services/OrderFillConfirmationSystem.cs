@@ -265,22 +265,24 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
+                // FIXED: Use ProjectX API specification exactly
                 var orderPayload = new
                 {
-                    accountId = accountId,
-                    symbol = request.Symbol,
-                    quantity = request.Quantity,
-                    price = request.Price,
-                    side = request.Side,
-                    orderType = request.OrderType,
-                    timeInForce = request.TimeInForce,
-                    clientOrderId = request.ClientOrderId
+                    accountId = long.Parse(accountId),
+                    contractId = request.Symbol,               // ProjectX uses contractId, not symbol
+                    type = GetOrderTypeValue(request.OrderType), // ProjectX: 1=Limit, 2=Market, 4=Stop
+                    side = GetSideValue(request.Side),         // ProjectX: 0=Bid(buy), 1=Ask(sell)
+                    size = request.Quantity,                   // ProjectX expects integer size
+                    limitPrice = request.OrderType.ToUpper() == "LIMIT" ? request.Price : (decimal?)null,
+                    stopPrice = request.OrderType.ToUpper() == "STOP" ? request.Price : (decimal?)null,
+                    customTag = request.ClientOrderId
                 };
                 
                 var json = JsonSerializer.Serialize(orderPayload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync("/api/orders", content);
+                // FIXED: Use correct ProjectX endpoint
+                var response = await _httpClient.PostAsync("/api/Order/place", content);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -301,7 +303,37 @@ namespace TopstepX.Bot.Core.Services
                 return ApiOrderResponse.Failed($"API Exception: {ex.Message}");
             }
         }
-        
+
+        /// <summary>
+        /// Convert order type string to ProjectX API integer value
+        /// ProjectX API: 1 = Limit, 2 = Market, 4 = Stop, 5 = TrailingStop
+        /// </summary>
+        private static int GetOrderTypeValue(string orderType)
+        {
+            return orderType.ToUpper() switch
+            {
+                "LIMIT" => 1,
+                "MARKET" => 2,
+                "STOP" => 4,
+                "TRAILING_STOP" => 5,
+                _ => 1 // Default to limit
+            };
+        }
+
+        /// <summary>
+        /// Convert side string to ProjectX API integer value
+        /// ProjectX API: 0 = Bid (buy), 1 = Ask (sell)
+        /// </summary>
+        private static int GetSideValue(string side)
+        {
+            return side.ToUpper() switch
+            {
+                "BUY" => 0,
+                "SELL" => 1,
+                _ => 0 // Default to buy
+            };
+        }
+
         private Task ProcessOrderUpdateAsync(GatewayUserOrder orderUpdate)
         {
             try
@@ -469,7 +501,17 @@ namespace TopstepX.Bot.Core.Services
                 if (_orderTracking.TryGetValue(clientOrderId, out var trackingRecord) && 
                     !string.IsNullOrEmpty(trackingRecord.GatewayOrderId))
                 {
-                    var response = await _httpClient.DeleteAsync($"/api/orders/{trackingRecord.GatewayOrderId}?accountId={accountId}");
+                    // FIXED: Use ProjectX API specification - POST to /api/Order/cancel with body
+                    var cancelPayload = new
+                    {
+                        accountId = long.Parse(accountId),
+                        orderId = long.Parse(trackingRecord.GatewayOrderId)
+                    };
+                    
+                    var json = JsonSerializer.Serialize(cancelPayload);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                    
+                    var response = await _httpClient.PostAsync("/api/Order/cancel", content);
                     
                     if (response.IsSuccessStatusCode)
                     {

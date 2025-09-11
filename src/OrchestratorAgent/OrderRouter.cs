@@ -178,11 +178,12 @@ namespace OrchestratorAgent
             {
                 accountId = _accountId,
                 contractId,
-                side = sideBuy0Sell1,
-                qty = qtyAdj,
-                price = px,
+                type = GetOrderTypeValue(orderType),    // ProjectX: 1=Limit, 2=Market, 4=Stop
+                side = sideBuy0Sell1,                   // Already correct: 0=Buy, 1=Sell
+                size = qtyAdj,                          // ProjectX expects integer size
+                limitPrice = orderType == "LIMIT" ? px : (decimal?)null,
+                stopPrice = orderType == "STOP" ? px : (decimal?)null,
                 customTag = cid,
-                orderType,
                 timeInForce = tif
             };
 
@@ -494,6 +495,22 @@ namespace OrchestratorAgent
             // Safe default
             return symbol.Equals("NQ", StringComparison.OrdinalIgnoreCase) ? 2 : 1;
         }
+        
+        /// <summary>
+        /// Convert order type string to ProjectX API numeric value
+        /// </summary>
+        private static int GetOrderTypeValue(string orderType)
+        {
+            return orderType.ToUpper() switch
+            {
+                "LIMIT" => 1,
+                "MARKET" => 2,
+                "STOP" => 4,
+                "TRAILING_STOP" => 5,
+                _ => 1 // Default to LIMIT
+            };
+        }
+        
         private static void TrimQueueWindow(ConcurrentQueue<DateTime> q, TimeSpan window)
         {
             var cutoff = DateTime.UtcNow - window;

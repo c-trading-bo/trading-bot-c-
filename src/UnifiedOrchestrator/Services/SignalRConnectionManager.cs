@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
@@ -17,84 +14,41 @@ using TradingBot.Infrastructure.TopstepX;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Connection state machine states for strict startup order
+/// Rate-limit-aware retry policy with conservative delays to avoid hitting TopstepX rate limits
+/// Based on ProjectX docs: 200 requests/60 seconds, returns HTTP 429 when exceeded
 /// </summary>
-public enum ConnectionState
+public class ExponentialBackoffRetryPolicy : IRetryPolicy
 {
-    Initializing,
-    ValidatingCredentials,
-    ReadyToConnect,
-    Connecting,
-    Connected,
-    Subscribing,
-    Subscribed,
-    Disconnected,
-    Error
+    public TimeSpan? NextRetryDelay(RetryContext retryContext)
+    {
+        // Max 3 retries with much longer delays to avoid rate limiting
+        if (retryContext.PreviousRetryCount >= 3)
+            return null;
+
+        // Very conservative delays: 45s, 90s, 180s to stay well under rate limits
+        var delaySeconds = retryContext.PreviousRetryCount switch
+        {
+            0 => 45,  // First retry after 45 seconds
+            1 => 90,  // Second retry after 90 seconds  
+            2 => 180, // Third retry after 180 seconds (3 minutes)
+            _ => 300  // Fallback: 5 minutes
+        };
+        
+        return TimeSpan.FromSeconds(delaySeconds);
+    }
 }
 
-/// <summary>
-/// Subscription registry item with reference counting for proper resource management
-/// </summary>
-internal class SubscriptionItem
-{
-    public string Key { get; set; } = string.Empty;
-    public string HubMethod { get; set; } = string.Empty;
-    public string Target { get; set; } = string.Empty; // AccountId or ContractId
-    public int RefCount { get; set; } = 0;
-    public DateTime LastSubscribed { get; set; } = DateTime.UtcNow;
-    public bool IsActive { get; set; } = false;
-}
-
-/// <summary>
-/// Production-ready SignalR Connection Manager with proper subscription registry
-/// 
-/// Key Features:
-/// - Single shared connection per hub type (User Hub, Market Hub)
-/// - Subscription registry with ref-counting to prevent duplicate server subscriptions
-/// - Centralized JWT management with automatic refresh
-/// - Exponential backoff reconnection with state validation
-/// - Event pub/sub for features to consume without managing connections
-/// 
-/// Guardrails:
-/// - Initialize creds → JWT → build connection → connect → subscribe → start features (strict order)
-/// - No feature creates connections; only the manager does
-/// - All subscriptions go through the manager with ref-counting
-/// - On reconnect, replays entire subscription set automatically
-/// </summary>
 public class SignalRConnectionManager : ISignalRConnectionManager, IHostedService, IDisposable
 {
-    private const string COMPONENT_NAME = "SignalRManager";
-    private const string USER_HUB_URL = "https://rtc.topstepx.com/hubs/user";
-    private const string MARKET_HUB_URL = "https://rtc.topstepx.com/hubs/market";
-    
     private readonly ILogger<SignalRConnectionManager> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly ITokenProvider _tokenProvider;
-    private readonly IJwtLifecycleManager _jwtLifecycleManager;
-    private readonly IEnvironmentValidator _environmentValidator;
-    private readonly ISnapshotManager _snapshotManager;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-    
-    // State management
-    private ConnectionState _userHubState = ConnectionState.Initializing;
-    private ConnectionState _marketHubState = ConnectionState.Initializing;
-    private readonly object _stateLock = new();
-    
-    // Connection health metrics
-    private DateTime _userHubConnectedSince = DateTime.MinValue;
-    private DateTime _marketHubConnectedSince = DateTime.MinValue;
-    private int _userHubDisconnectionCount = 0;
-    private int _marketHubDisconnectionCount = 0;
-    
-    // Subscription registry with ref-counting
-    private readonly ConcurrentDictionary<string, SubscriptionItem> _subscriptionRegistry = new();
-    private readonly object _subscriptionLock = new();
     
     private HubConnection? _userHub;
     private HubConnection? _marketHub;
     private volatile bool _userHubWired = false;
     private volatile bool _marketHubWired = false;
-    private volatile bool _disposed = false;
     private readonly Timer _connectionHealthTimer;
 
     public bool IsUserHubConnected => _userHub?.State == HubConnectionState.Connected && _userHubWired;
@@ -113,21 +67,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public SignalRConnectionManager(
         ILogger<SignalRConnectionManager> logger,
         ITradingLogger tradingLogger,
-        ITokenProvider tokenProvider,
-        IJwtLifecycleManager jwtLifecycleManager,
-        IEnvironmentValidator environmentValidator,
-        ISnapshotManager snapshotManager)
+        ITokenProvider tokenProvider)
     {
         _logger = logger;
         _tradingLogger = tradingLogger;
         _tokenProvider = tokenProvider;
-        _jwtLifecycleManager = jwtLifecycleManager;
-        _environmentValidator = environmentValidator;
-        _snapshotManager = snapshotManager;
-        
-        // Subscribe to token lifecycle events
-        _jwtLifecycleManager.TokenNeedsRefresh += OnTokenNeedsRefresh;
-        _jwtLifecycleManager.TokenRefreshed += OnTokenRefreshed;
         
         // Health check timer every 30 seconds
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, 
@@ -135,127 +79,6 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             
         // Set environment variable for .NET HTTP handler compatibility  
         Environment.SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER", "false");
-    }
-
-    /// <summary>
-    /// State transition with logging for debugging
-    /// </summary>
-    private void TransitionState(string hubName, ConnectionState newState)
-    {
-        lock (_stateLock)
-        {
-            var currentState = hubName == "UserHub" ? _userHubState : _marketHubState;
-            
-            if (currentState != newState)
-            {
-                if (hubName == "UserHub")
-                    _userHubState = newState;
-                else
-                    _marketHubState = newState;
-                
-                _logger.LogInformation("[TOPSTEPX] {HubName} state transition: {OldState} → {NewState}", 
-                    hubName, currentState, newState);
-                
-                _ = Task.Run(async () => await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                    $"{hubName} state transition: {currentState} → {newState}"));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Token lifecycle event handler - triggers reconnection when token needs refresh
-    /// </summary>
-    private async void OnTokenNeedsRefresh(string expiredToken)
-    {
-        try
-        {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME,
-                "JWT token needs refresh - triggering hub reconnections");
-            
-            // Refresh token first
-            await _tokenProvider.RefreshTokenAsync();
-            
-            // Force reconnection with new token
-            await ForceReconnectWithNewTokenAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error handling token refresh");
-        }
-    }
-
-    /// <summary>
-    /// Token refreshed event handler
-    /// </summary>
-    private async void OnTokenRefreshed(string newToken)
-    {
-        try
-        {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                "JWT token refreshed successfully - validating new token");
-            
-            var isValid = await _jwtLifecycleManager.ValidateTokenAsync(newToken);
-            if (isValid)
-            {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                    "New JWT token validated - connections will use refreshed token");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error handling token refresh event");
-        }
-    }
-
-    /// <summary>
-    /// Force reconnection with new token
-    /// </summary>
-    private async Task ForceReconnectWithNewTokenAsync()
-    {
-        await _connectionLock.WaitAsync();
-        try
-        {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                "Forcing reconnection with refreshed token");
-
-            // Store current subscriptions for replay
-            var activeSubscriptions = new List<SubscriptionItem>();
-            lock (_subscriptionLock)
-            {
-                activeSubscriptions.AddRange(_subscriptionRegistry.Values.Where(s => s.IsActive));
-            }
-
-            // Disconnect current connections
-            if (_userHub?.State == HubConnectionState.Connected)
-            {
-                TransitionState("UserHub", ConnectionState.Disconnected);
-                await _userHub.DisposeAsync();
-                _userHub = null;
-                _userHubWired = false;
-            }
-
-            if (_marketHub?.State == HubConnectionState.Connected)
-            {
-                TransitionState("MarketHub", ConnectionState.Disconnected);
-                await _marketHub.DisposeAsync();
-                _marketHub = null;
-                _marketHubWired = false;
-            }
-
-            // Re-establish connections with new token
-            await GetUserHubConnectionAsync();
-            await GetMarketHubConnectionAsync();
-
-            // Replay subscriptions
-            await ReplayAllSubscriptionsAsync();
-
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                "Reconnection with refreshed token completed");
-        }
-        finally
-        {
-            _connectionLock.Release();
-        }
     }
 
     /// <summary>
@@ -294,7 +117,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     /// </summary>
     private async Task<bool> StartConnectionWithRetry(HubConnection hubConnection, string hubName)
     {
-        const int maxRetries = 3;
+        const int maxRetries = 3; // Reduced retries to avoid rate limits
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
@@ -312,19 +135,43 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 _logger.LogInformation("[TOPSTEPX] {HubName} connection started successfully. State: {State}", 
                     hubName, hubConnection.State);
                 
-                // CRITICAL: Wait and validate connection stability
+                // CRITICAL: Extended stability validation for TopstepX connections
                 _logger.LogInformation("[TOPSTEPX] {HubName} validating connection stability...", hubName);
-                await Task.Delay(1000); // Reduced stabilization delay for TopstepX
                 
-                if (hubConnection.State == HubConnectionState.Connected)
+                // Wait longer and check multiple times for stable connection
+                for (int check = 1; check <= 3; check++)
                 {
-                    _logger.LogInformation("[TOPSTEPX] {HubName} connection validated - State: {State}, ID: {ConnectionId}", 
-                        hubName, hubConnection.State, hubConnection.ConnectionId ?? "pending");
+                    await Task.Delay(2000); // 2 seconds between checks
+                    
+                    if (hubConnection.State == HubConnectionState.Connected && 
+                        !string.IsNullOrEmpty(hubConnection.ConnectionId))
+                    {
+                        _logger.LogInformation("[TOPSTEPX] {HubName} stability check {Check}/3: ✅ State: {State}, ID: {ConnectionId}", 
+                            hubName, check, hubConnection.State, hubConnection.ConnectionId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[TOPSTEPX] {HubName} stability check {Check}/3: ❌ State: {State}, ID: {ConnectionId}", 
+                            hubName, check, hubConnection.State, hubConnection.ConnectionId ?? "null");
+                        
+                        if (check == 3) // Final check failed
+                        {
+                            throw new InvalidOperationException($"{hubName} connection unstable after extended validation");
+                        }
+                    }
+                }
+                
+                // Final validation
+                if (hubConnection.State == HubConnectionState.Connected && 
+                    !string.IsNullOrEmpty(hubConnection.ConnectionId))
+                {
+                    _logger.LogInformation("[TOPSTEPX] {HubName} connection validated after extended checks - State: {State}, ID: {ConnectionId}", 
+                        hubName, hubConnection.State, hubConnection.ConnectionId);
                     return true;
                 }
                 else
                 {
-                    _logger.LogWarning("[TOPSTEPX] {HubName} connection became unstable - State: {State}, ID: {ConnectionId}", 
+                    _logger.LogWarning("[TOPSTEPX] {HubName} connection failed final validation - State: {State}, ID: {ConnectionId}", 
                         hubName, hubConnection.State, hubConnection.ConnectionId ?? "null");
                     throw new InvalidOperationException($"{hubName} connection unstable after start");
                 }
@@ -335,8 +182,15 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
 
                 if (attempt < maxRetries)
                 {
-                    var delay = TimeSpan.FromSeconds(Math.Pow(2, attempt)); // Exponential backoff
-                    _logger.LogInformation("[TOPSTEPX] Retrying {HubName} in {Delay} seconds...", 
+                    // Very conservative delays to avoid TopstepX rate limiting (200 requests/60s)
+                    var delay = TimeSpan.FromSeconds(attempt switch 
+                    {
+                        1 => 45,  // First retry: 45 seconds (more conservative)
+                        2 => 90,  // Second retry: 90 seconds (even longer)
+                        _ => 180  // Fallback: 3 minutes
+                    });
+                    
+                    _logger.LogInformation("[TOPSTEPX] Retrying {HubName} in {Delay} seconds (rate limit protection)...", 
                         hubName, delay.TotalSeconds);
                     await Task.Delay(delay);
                 }
@@ -361,46 +215,34 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 return _userHub;
             }
 
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing User Hub connection");
 
             var token = await _tokenProvider.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
                     "Cannot connect to User Hub - no valid JWT token");
                 throw new InvalidOperationException("No valid JWT token available for User Hub connection");
             }
 
             // Log token info for debugging (without exposing the actual token)
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 $"Using JWT token for User Hub: length={token.Length}, starts_with_Bearer={token.StartsWith("Bearer ")}, has_dots={token.Count(c => c == '.')}");
 
             // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
             if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 token = token.Substring(7);
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME, 
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
                     "Removed 'Bearer' prefix from JWT token for User Hub");
             }
 
             _userHub?.DisposeAsync();
             _userHub = new HubConnectionBuilder()
-                .WithUrl(USER_HUB_URL, options =>
+                .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
-                    // ENHANCED: Use thread-safe token provider that always returns freshest token
-                    options.AccessTokenProvider = async () => 
-                    {
-                        var freshToken = await _tokenProvider.GetTokenAsync();
-                        
-                        // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
-                        if (!string.IsNullOrEmpty(freshToken) && freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            freshToken = freshToken.Substring(7);
-                        }
-                        
-                        return freshToken;
-                    };
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -415,14 +257,18 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // Try WebSockets first, then fallback to other transports
+                    // Enhanced TopstepX-specific transport configuration
                     options.Transports = HttpTransportType.WebSockets |
                                        HttpTransportType.LongPolling |
                                        HttpTransportType.ServerSentEvents;
 
-                    // Set connection timeouts
-                    options.CloseTimeout = TimeSpan.FromSeconds(30);
+                    // Extended timeouts for TopstepX stability
+                    options.CloseTimeout = TimeSpan.FromSeconds(45);
                     options.SkipNegotiation = false; // Allow negotiation for transport fallback
+                    
+                    // Add custom headers for TopstepX
+                    options.Headers.Add("User-Agent", "TradingBot-SignalR/1.0");
+                    options.Headers.Add("Accept", "application/json");
                 })
                 .WithAutomaticReconnect(new ExponentialBackoffRetryPolicy())
                 .ConfigureLogging(logging =>
@@ -433,10 +279,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 })
                 .Build();
 
-            // Configure connection timeouts for production use
-            _userHub.ServerTimeout = TimeSpan.FromSeconds(60);
-            _userHub.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(30);
+            // Enhanced timeouts for TopstepX production environment
+            _userHub.ServerTimeout = TimeSpan.FromSeconds(90);  // Increased from 60
+            _userHub.KeepAliveInterval = TimeSpan.FromSeconds(20); // Increased from 15
+            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Increased from 30
 
             SetupUserHubEventHandlers();
             
@@ -445,18 +291,22 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             if (connected)
             {
                 _userHubWired = true;
-                _userHubConnectedSince = DateTime.UtcNow;
                 
-                TransitionState("UserHub", ConnectionState.Connected);
+                // DEFERRED: Don't subscribe immediately - wait for account ID from login service
+                // The AutoTopstepXLoginService will call RetrySubscriptionsWithAccountId() after login
+                var accountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+                if (!string.IsNullOrEmpty(accountId))
+                {
+                    _logger.LogInformation("[TOPSTEPX] User Hub: Account ID available, will attempt subscription");
+                    // Try subscription but don't fail the connection if it doesn't work
+                    _ = Task.Run(async () => await RetrySubscriptionsWithAccountId(accountId));
+                }
+                else
+                {
+                    _logger.LogInformation("[TOPSTEPX] User Hub: Connection established, waiting for account ID from login service");
+                }
                 
-                // DEFERRED: Don't subscribe immediately - wait for explicit subscription requests
-                // Features will call RequestSubscriptionAsync() with proper ref-counting
-                _logger.LogInformation("[TOPSTEPX] User Hub: Connection established, waiting for subscription requests from features");
-                
-                // Replay any existing subscriptions after reconnect
-                await ReplayAllSubscriptionsAsync();
-                
-                _logger.LogInformation("[TOPSTEPX] User Hub connection established and ready for trading");
+                _logger.LogInformation("[TOPSTEPX] User Hub connection established and confirmed ready");
                 ConnectionStateChanged?.Invoke($"UserHub:Connected");
             }
 
@@ -483,13 +333,13 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 return _marketHub;
             }
 
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing Market Hub connection");
 
             var token = await _tokenProvider.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
                     "Cannot connect to Market Hub - no valid JWT token");
                 throw new InvalidOperationException("No valid JWT token available for Market Hub connection");
             }
@@ -504,21 +354,9 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
 
             _marketHub?.DisposeAsync();
             _marketHub = new HubConnectionBuilder()
-                .WithUrl(MARKET_HUB_URL, options =>
+                .WithUrl("https://rtc.topstepx.com/hubs/market", options =>
                 {
-                    // ENHANCED: Use thread-safe token provider that always returns freshest token
-                    options.AccessTokenProvider = async () => 
-                    {
-                        var freshToken = await _tokenProvider.GetTokenAsync();
-                        
-                        // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
-                        if (!string.IsNullOrEmpty(freshToken) && freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-                        {
-                            freshToken = freshToken.Substring(7);
-                        }
-                        
-                        return freshToken;
-                    };
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -563,13 +401,17 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             if (connected)
             {
                 _marketHubWired = true;
-                _marketHubConnectedSince = DateTime.UtcNow;
                 
-                TransitionState("MarketHub", ConnectionState.Connected);
-                
-                // NOTE: No automatic subscriptions here - features will request specific contracts
-                // via RequestSubscriptionAsync() based on their dynamic contract selection
-                _logger.LogInformation("[TOPSTEPX] Market Hub: Connection established, waiting for feature subscription requests");
+                // CRITICAL: Immediately subscribe to keep connection alive (from working version)
+                try
+                {
+                    await _marketHub.InvokeAsync("SubscribeContractQuotes", "ES"); // Subscribe to ES market data
+                    _logger.LogInformation("[TOPSTEPX] Market Hub: Subscribed to ES market data to keep connection alive");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[TOPSTEPX] Market Hub: Failed to subscribe to market data, but connection established");
+                }
                 
                 _logger.LogInformation("[TOPSTEPX] Market Hub connection established and confirmed ready");
                 ConnectionStateChanged?.Invoke($"MarketHub:Connected");
@@ -587,88 +429,30 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_userHub == null) return;
 
-        // ENHANCED: Connection lifecycle handlers with WebSocket close reason logging
+        // Connection lifecycle handlers
         _userHub.Closed += async (exception) =>
         {
             _userHubWired = false;
-            _userHubDisconnectionCount++;
-            
-            TransitionState("UserHub", ConnectionState.Disconnected);
-            
-            var connectionDuration = _userHubConnectedSince != DateTime.MinValue 
-                ? DateTime.UtcNow - _userHubConnectedSince
-                : TimeSpan.Zero;
-            
             var reason = exception?.Message ?? "Normal closure";
-            var details = $"Reason: {reason}, Duration: {connectionDuration:hh\\:mm\\:ss}, Disconnections: {_userHubDisconnectionCount}";
-            
-            // Check for auth-related close codes
-            if (exception != null)
-            {
-                var message = exception.Message.ToLower();
-                if (message.Contains("401") || message.Contains("unauthorized"))
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME,
-                        $"🔒 User Hub closed due to authentication failure: {details}");
-                    
-                    // Trigger token refresh on auth failure
-                    _ = Task.Run(async () => await _tokenProvider.RefreshTokenAsync());
-                }
-                else if (message.Contains("403") || message.Contains("forbidden"))
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME,
-                        $"🚫 User Hub closed due to authorization failure: {details}");
-                }
-                else
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME,
-                        $"⚠️ User Hub connection closed: {details}");
-                }
-            }
-            else
-            {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                    $"✅ User Hub closed gracefully: {details}");
-            }
-            
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                $"User Hub connection closed: {reason}");
             ConnectionStateChanged?.Invoke($"UserHub:Disconnected:{reason}");
         };
 
         _userHub.Reconnecting += async (exception) =>
         {
             _userHubWired = false;
-            TransitionState("UserHub", ConnectionState.Connecting);
-            
-            var reason = exception?.Message ?? "Connection lost";
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME, 
-                $"🔄 User Hub reconnecting due to: {reason}");
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                "User Hub reconnecting...");
             ConnectionStateChanged?.Invoke("UserHub:Reconnecting");
         };
 
         _userHub.Reconnected += async (connectionId) =>
         {
             _userHubWired = true;
-            _userHubConnectedSince = DateTime.UtcNow;
-            
-            TransitionState("UserHub", ConnectionState.Connected);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"✅ User Hub reconnected successfully: {connectionId}");
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                $"User Hub reconnected successfully: {connectionId}");
             ConnectionStateChanged?.Invoke($"UserHub:Reconnected:{connectionId}");
-            
-            // Trigger snapshot reconciliation after reconnect
-            try
-            {
-                // Note: Account ID would need to be passed or stored - placeholder for now
-                // await _snapshotManager.ReconcileAfterReconnectAsync(accountId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to reconcile snapshot after User Hub reconnection");
-            }
-            
-            // Replay subscriptions automatically
-            _ = Task.Run(async () => await ReplayAllSubscriptionsAsync());
         };
         
         // CRITICAL: Data reception handlers - completing the state machine
@@ -703,79 +487,28 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_marketHub == null) return;
 
-        // ENHANCED: Connection lifecycle handlers with WebSocket close reason logging
+        // Connection lifecycle handlers
         _marketHub.Closed += async (exception) =>
         {
             _marketHubWired = false;
-            _marketHubDisconnectionCount++;
-            
-            TransitionState("MarketHub", ConnectionState.Disconnected);
-            
-            var connectionDuration = _marketHubConnectedSince != DateTime.MinValue 
-                ? DateTime.UtcNow - _marketHubConnectedSince
-                : TimeSpan.Zero;
-            
             var reason = exception?.Message ?? "Normal closure";
-            var details = $"Reason: {reason}, Duration: {connectionDuration:hh\\:mm\\:ss}, Disconnections: {_marketHubDisconnectionCount}";
-            
-            // Check for auth-related close codes
-            if (exception != null)
-            {
-                var message = exception.Message.ToLower();
-                if (message.Contains("401") || message.Contains("unauthorized"))
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME,
-                        $"🔒 Market Hub closed due to authentication failure: {details}");
-                    
-                    // Trigger token refresh on auth failure
-                    _ = Task.Run(async () => await _tokenProvider.RefreshTokenAsync());
-                }
-                else if (message.Contains("403") || message.Contains("forbidden"))
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME,
-                        $"🚫 Market Hub closed due to authorization failure: {details}");
-                }
-                else
-                {
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME,
-                        $"⚠️ Market Hub connection closed: {details}");
-                }
-            }
-            else
-            {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                    $"✅ Market Hub closed gracefully: {details}");
-            }
-            
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                $"Market Hub connection closed: {reason}");
             ConnectionStateChanged?.Invoke($"MarketHub:Disconnected:{reason}");
         };
 
         _marketHub.Reconnecting += async (exception) =>
         {
             _marketHubWired = false;
-            TransitionState("MarketHub", ConnectionState.Connecting);
-            
-            var reason = exception?.Message ?? "Connection lost";
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME, 
-                $"🔄 Market Hub reconnecting due to: {reason}");
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                "Market Hub reconnecting...");
             ConnectionStateChanged?.Invoke("MarketHub:Reconnecting");
         };
 
         _marketHub.Reconnected += async (connectionId) =>
         {
             _marketHubWired = true;
-            _marketHubConnectedSince = DateTime.UtcNow;
-            
-            TransitionState("MarketHub", ConnectionState.Connected);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"✅ Market Hub reconnected successfully: {connectionId}");
-            ConnectionStateChanged?.Invoke($"MarketHub:Reconnected:{connectionId}");
-            
-            // Replay subscriptions automatically
-            _ = Task.Run(async () => await ReplayAllSubscriptionsAsync());
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 $"Market Hub reconnected successfully: {connectionId}");
             ConnectionStateChanged?.Invoke($"MarketHub:Reconnected:{connectionId}");
         };
@@ -867,231 +600,127 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     }
 
     /// <summary>
-    /// Request a subscription through the manager with ref-counting
-    /// Multiple features can request the same subscription without duplicate server calls
+    /// Safely subscribe to user hub events with TopstepX specification compliance
     /// </summary>
-    public async Task<bool> RequestSubscriptionAsync(string hubMethod, string target, string featureName)
-    {
-        if (_disposed) return false;
-        
-        var key = $"{hubMethod}:{target}";
-        
-        lock (_subscriptionLock)
-        {
-            if (_subscriptionRegistry.TryGetValue(key, out var existing))
-            {
-                existing.RefCount++;
-                _logger.LogDebug("[TOPSTEPX] Subscription ref-count increased: {Key} -> {RefCount} (requested by {Feature})", 
-                    key, existing.RefCount, featureName);
-                return existing.IsActive;
-            }
-            
-            // Create new subscription entry
-            _subscriptionRegistry[key] = new SubscriptionItem
-            {
-                Key = key,
-                HubMethod = hubMethod,
-                Target = target,
-                RefCount = 1,
-                LastSubscribed = DateTime.UtcNow,
-                IsActive = false
-            };
-            
-            _logger.LogInformation("[TOPSTEPX] New subscription requested: {Key} (by {Feature})", key, featureName);
-        }
-        
-        // Actually perform the subscription
-        return await PerformSubscriptionAsync(hubMethod, target);
-    }
-    
-    /// <summary>
-    /// Release a subscription with ref-counting
-    /// Only unsubscribes from server when ref-count reaches zero
-    /// </summary>
-    public Task<bool> ReleaseSubscriptionAsync(string hubMethod, string target, string featureName)
-    {
-        if (_disposed) return Task.FromResult(false);
-        
-        var key = $"{hubMethod}:{target}";
-        
-        lock (_subscriptionLock)
-        {
-            if (!_subscriptionRegistry.TryGetValue(key, out var existing))
-            {
-                _logger.LogWarning("[TOPSTEPX] Attempted to release non-existent subscription: {Key} (by {Feature})", 
-                    key, featureName);
-                return Task.FromResult(false);
-            }
-            
-            existing.RefCount--;
-            _logger.LogDebug("[TOPSTEPX] Subscription ref-count decreased: {Key} -> {RefCount} (released by {Feature})", 
-                key, existing.RefCount, featureName);
-            
-            if (existing.RefCount <= 0)
-            {
-                _subscriptionRegistry.TryRemove(key, out _);
-                _logger.LogInformation("[TOPSTEPX] Subscription removed (ref-count zero): {Key}", key);
-                
-                // Optionally unsubscribe from server here
-                // Most SignalR hubs don't have explicit unsubscribe methods
-                return Task.FromResult(true);
-            }
-        }
-        
-        return Task.FromResult(true);
-    }
-    
-    /// <summary>
-    /// Get current subscription manifest for logging and debugging
-    /// </summary>
-    public Dictionary<string, (int RefCount, bool IsActive, DateTime LastSubscribed)> GetSubscriptionManifest()
-    {
-        var manifest = new Dictionary<string, (int, bool, DateTime)>();
-        
-        lock (_subscriptionLock)
-        {
-            foreach (var kvp in _subscriptionRegistry)
-            {
-                var item = kvp.Value;
-                manifest[kvp.Key] = (item.RefCount, item.IsActive, item.LastSubscribed);
-            }
-        }
-        
-        return manifest;
-    }
-    
-    /// <summary>
-    /// Replay all active subscriptions on reconnect
-    /// </summary>
-    private async Task ReplayAllSubscriptionsAsync()
-    {
-        var subscriptionsToReplay = new List<SubscriptionItem>();
-        
-        lock (_subscriptionLock)
-        {
-            foreach (var item in _subscriptionRegistry.Values)
-            {
-                if (item.RefCount > 0)
-                {
-                    subscriptionsToReplay.Add(new SubscriptionItem
-                    {
-                        Key = item.Key,
-                        HubMethod = item.HubMethod,
-                        Target = item.Target,
-                        RefCount = item.RefCount
-                    });
-                }
-            }
-        }
-        
-        _logger.LogInformation("[TOPSTEPX] Replaying {Count} subscriptions after reconnect", subscriptionsToReplay.Count);
-        
-        foreach (var item in subscriptionsToReplay)
-        {
-            try
-            {
-                var success = await PerformSubscriptionAsync(item.HubMethod, item.Target);
-                if (success)
-                {
-                    lock (_subscriptionLock)
-                    {
-                        if (_subscriptionRegistry.TryGetValue(item.Key, out var existing))
-                        {
-                            existing.IsActive = true;
-                            existing.LastSubscribed = DateTime.UtcNow;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
-                    $"Failed to replay subscription {item.Key}: {ex.Message}");
-            }
-        }
-        
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-            "Subscription replay completed - ready for trading");
-    }
-    
-    /// <summary>
-    /// Actually perform the subscription call to the hub
-    /// </summary>
-    private async Task<bool> PerformSubscriptionAsync(string hubMethod, string target)
+    /// <param name="accountId">The account ID to subscribe to</param>
+    /// <returns>True if subscription successful, false otherwise</returns>
+    public async Task<bool> SubscribeToUserEventsAsync(string accountId)
     {
         try
         {
-            var hub = hubMethod.StartsWith("Subscribe") && hubMethod.Contains("Order") || hubMethod.Contains("Trade") 
-                ? await GetUserHubConnectionAsync() 
-                : await GetMarketHubConnectionAsync();
-                
-            await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
-                hub,
-                () => hub.InvokeAsync(hubMethod, target),
-                _logger,
-                CancellationToken.None);
-                
-            // Mark as active in registry
-            var key = $"{hubMethod}:{target}";
-            lock (_subscriptionLock)
+            // Validate account ID format per TopstepX specification
+            var validatedAccountId = TopstepXSubscriptionValidator.ValidateAccountIdForSubscription(accountId, _logger);
+            
+            var userHub = await GetUserHubConnectionAsync();
+            
+            // Subscribe to all user events using TopstepX compliant methods
+            var subscriptionMethods = TopstepXSubscriptionValidator.GetSupportedUserHubMethods();
+            bool anySuccess = false;
+            
+            foreach (var method in subscriptionMethods)
             {
-                if (_subscriptionRegistry.TryGetValue(key, out var item))
+                try
                 {
-                    item.IsActive = true;
-                    item.LastSubscribed = DateTime.UtcNow;
+                    await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                        userHub,
+                        () => userHub.InvokeAsync(method, validatedAccountId),
+                        _logger,
+                        CancellationToken.None);
+                        
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Successfully subscribed to {method} for account {TradingBot.Abstractions.SecurityHelpers.HashAccountId(validatedAccountId)}");
+                    anySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        $"Failed to subscribe to {method} for account {TradingBot.Abstractions.SecurityHelpers.HashAccountId(validatedAccountId)}: {ex.Message}");
                 }
             }
             
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"Successfully subscribed: {hubMethod}({target})");
-            return true;
+            return anySuccess;
         }
         catch (Exception ex)
         {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
-                $"Failed to subscribe {hubMethod}({target}): {ex.Message}");
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"Failed to subscribe to user events: {ex.Message}");
             return false;
         }
     }
-
+    
     /// <summary>
-    /// Subscribe to user events using the subscription registry
+    /// Safely subscribe to market hub events with TopstepX specification compliance
     /// </summary>
-    public async Task<bool> SubscribeToUserEventsAsync(string accountId)
-    {
-        if (string.IsNullOrEmpty(accountId))
-        {
-            _logger.LogWarning("[TOPSTEPX] Cannot subscribe to user events - account ID is empty");
-            return false;
-        }
-
-        // Validate account ID format per TopstepX specification
-        var validatedAccountId = TopstepXSubscriptionValidator.ValidateAccountIdForSubscription(accountId, _logger);
-        
-        // Use the subscription registry for proper ref-counting
-        var orderSuccess = await RequestSubscriptionAsync("SubscribeOrders", validatedAccountId, "UserEvents");
-        var tradeSuccess = await RequestSubscriptionAsync("SubscribeTrades", validatedAccountId, "UserEvents");
-        
-        return orderSuccess && tradeSuccess;
-    }
-
-    /// <summary>
-    /// Subscribe to market events using the subscription registry
-    /// </summary>
+    /// <param name="contractId">The contract ID to subscribe to (e.g., "ES", "NQ")</param>
+    /// <returns>True if subscription successful, false otherwise</returns>
     public async Task<bool> SubscribeToMarketEventsAsync(string contractId)
     {
-        if (string.IsNullOrEmpty(contractId))
+        try
         {
-            _logger.LogWarning("[TOPSTEPX] Cannot subscribe to market events - contract ID is empty");
+            // Validate contract ID format per TopstepX specification
+            var validatedContractId = TopstepXSubscriptionValidator.ValidateContractIdForSubscription(contractId, _logger);
+            
+            var marketHub = await GetMarketHubConnectionAsync();
+            
+            // Subscribe to all market events using TopstepX compliant methods
+            var subscriptionMethods = TopstepXSubscriptionValidator.GetSupportedMarketHubMethods();
+            bool anySuccess = false;
+            
+            foreach (var method in subscriptionMethods)
+            {
+                try
+                {
+                    await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                        marketHub,
+                        () => marketHub.InvokeAsync(method, validatedContractId),
+                        _logger,
+                        CancellationToken.None);
+                        
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Successfully subscribed to {method} for contract {validatedContractId}");
+                    anySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        $"Failed to subscribe to {method} for contract {validatedContractId}: {ex.Message}");
+                }
+            }
+            
+            return anySuccess;
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"Failed to subscribe to market events: {ex.Message}");
             return false;
         }
+    }
 
-        // Use the subscription registry for proper ref-counting
-        return await RequestSubscriptionAsync("SubscribeToContract", contractId, "MarketEvents");
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            "SignalR Connection Manager started");
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            "SignalR Connection Manager stopping");
+        
+        if (_userHub != null)
+        {
+            await _userHub.DisposeAsync();
+        }
+        
+        if (_marketHub != null)
+        {
+            await _marketHub.DisposeAsync();
+        }
     }
 
     /// <summary>
-    /// Retry subscriptions with valid account ID after login
+    /// Retry subscriptions with a valid account ID after login completes
     /// </summary>
     public async Task<bool> RetrySubscriptionsWithAccountId(string accountId)
     {
@@ -1101,198 +730,46 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             return false;
         }
 
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-            $"Retrying subscriptions with validated account ID: {accountId.Substring(0, Math.Min(4, accountId.Length))}***");
-
-        // Re-subscribe to user events with the validated account ID
-        var success = await SubscribeToUserEventsAsync(accountId);
+        _logger.LogInformation("[TOPSTEPX] Retrying subscriptions with account ID: {AccountId}", accountId);
         
-        if (success)
+        bool success = false;
+        
+        // Retry User Hub subscriptions if connected
+        if (_userHub?.State == HubConnectionState.Connected)
         {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                "✅ Subscription retry completed successfully");
+            try
+            {
+                await _userHub.InvokeAsync("SubscribeOrders", accountId);
+                await _userHub.InvokeAsync("SubscribeTrades", accountId);
+                _logger.LogInformation("[TOPSTEPX] User Hub: Successfully subscribed to orders and trades for account {AccountId}", accountId);
+                success = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[TOPSTEPX] User Hub: Failed to subscribe with account {AccountId}", accountId);
+            }
         }
         else
         {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME,
-                "❌ Subscription retry failed");
+            _logger.LogWarning("[TOPSTEPX] User Hub not connected - cannot subscribe");
         }
-        
+
         return success;
     }
 
-    /// <summary>
-    /// IHostedService implementation with strict startup order:
-    /// Initialize creds → JWT → build connection → connect → subscribe → start features
-    /// </summary>
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        if (_disposed) return;
-        
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-            "Starting SignalR Connection Manager with enhanced startup validation");
-        
-        try
-        {
-            // Step 0: Environment validation (new requirement)
-            TransitionState("UserHub", ConnectionState.Initializing);
-            TransitionState("MarketHub", ConnectionState.Initializing);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME,
-                "🔍 Step 0: Validating environment for trading operations...");
-                
-            var environmentValid = await _environmentValidator.ValidateEnvironmentAsync();
-            if (!environmentValid)
-            {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, COMPONENT_NAME,
-                    "⚠️ Environment validation warnings detected - proceeding with caution");
-            }
-            
-            // Step 1: Strict JWT validation (enhanced)
-            TransitionState("UserHub", ConnectionState.ValidatingCredentials);
-            TransitionState("MarketHub", ConnectionState.ValidatingCredentials);
-            
-            var token = await _tokenProvider.GetTokenAsync();
-            if (string.IsNullOrEmpty(token))
-            {
-                throw new InvalidOperationException("No valid JWT token available during startup");
-            }
-            
-            // Enhanced JWT validation using lifecycle manager
-            var tokenValid = await _jwtLifecycleManager.ValidateTokenAsync(token);
-            if (!tokenValid)
-            {
-                throw new InvalidOperationException("JWT token validation failed - token may be expired or invalid");
-            }
-            
-            var tokenExpiry = _jwtLifecycleManager.GetTokenExpiry(token);
-            var lifetimePercentage = _jwtLifecycleManager.GetTokenLifetimePercentage(token);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"✅ Step 1: JWT validated successfully - expires: {tokenExpiry:yyyy-MM-dd HH:mm:ss} UTC ({lifetimePercentage:F1}% used)");
-            
-            // Step 2: Transition to ready state and establish connections
-            TransitionState("UserHub", ConnectionState.ReadyToConnect);
-            TransitionState("MarketHub", ConnectionState.ReadyToConnect);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                "🔌 Step 2: Establishing hub connections with validated credentials...");
-            
-            // Initialize connections in parallel for faster startup
-            var userHubTask = GetUserHubConnectionAsync();
-            var marketHubTask = GetMarketHubConnectionAsync();
-            
-            await Task.WhenAll(userHubTask, marketHubTask);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                "✅ Step 2: Hub connections established and validated");
-            
-            // Step 3: Verify connection states and prepare subscriptions
-            TransitionState("UserHub", ConnectionState.Connected);
-            TransitionState("MarketHub", ConnectionState.Connected);
-            
-            var manifest = GetSubscriptionManifest();
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"📋 Step 3: Subscription registry initialized ({manifest.Count} active subscriptions)");
-            
-            // Step 4: Signal ready for features to start
-            ConnectionStateChanged?.Invoke("AllHubs:Ready");
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                "🚀 Enhanced SignalR Connection Manager startup complete - ready for production trading");
-        }
-        catch (Exception ex)
-        {
-            TransitionState("UserHub", ConnectionState.Error);
-            TransitionState("MarketHub", ConnectionState.Error);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
-                $"❌ Enhanced SignalR startup failed: {ex.Message}");
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Graceful shutdown with subscription cleanup
-    /// </summary>
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        if (_disposed) return;
-        
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-            "Stopping SignalR Connection Manager gracefully");
-        
-        try
-        {
-            // Log final subscription manifest
-            var manifest = GetSubscriptionManifest();
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                $"📋 Final subscription manifest: {manifest.Count} active subscriptions");
-            
-            // Signal shutdown to features
-            ConnectionStateChanged?.Invoke("AllHubs:Stopping");
-            
-            // Allow graceful disconnection
-            await Task.Delay(1000, cancellationToken);
-            
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, COMPONENT_NAME, 
-                "✅ SignalR Connection Manager stopped gracefully");
-        }
-        catch (Exception ex)
-        {
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, COMPONENT_NAME, 
-                $"⚠️ Error during SignalR shutdown: {ex.Message}");
-        }
-    }
-
-
-    /// <summary>
-    /// Implement proper dispose pattern
-    /// </summary>
     public void Dispose()
     {
-        Dispose(true);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed && disposing)
-        {
-            _disposed = true;
-            
-            _connectionHealthTimer?.Dispose();
-            _connectionLock.Dispose();
-            
-            // Clear subscription registry
-            lock (_subscriptionLock)
-            {
-                _subscriptionRegistry.Clear();
-            }
-            
-            // Dispose hub connections
-            if (_userHub != null)
-            {
-                _ = Task.Run(async () => await _userHub.DisposeAsync());
-            }
-            
-            if (_marketHub != null)
-            {
-                _ = Task.Run(async () => await _marketHub.DisposeAsync());
-            }
-        }
-    }
-
-    // Finalizer
-    ~SignalRConnectionManager()
-    {
-        Dispose(false);
+        _connectionHealthTimer?.Dispose();
+        _connectionLock.Dispose();
+        _userHub?.DisposeAsync();
+        _marketHub?.DisposeAsync();
     }
 }
 
 /// <summary>
-/// Exponential backoff retry policy for SignalR connections  
+/// Custom retry policy for SignalR connections with exponential backoff
 /// </summary>
-public class ExponentialBackoffRetryPolicy : IRetryPolicy
+public class RetryPolicy : IRetryPolicy
 {
     public TimeSpan? NextRetryDelay(RetryContext retryContext)
     {
