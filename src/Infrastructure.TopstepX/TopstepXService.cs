@@ -39,7 +39,6 @@ public class TopstepXService : ITopstepXService, IDisposable
     private readonly Timer _reconnectTimer;
     private volatile bool _isConnecting;
     private volatile bool _disposed;
-    private volatile bool _wired = false; // Double-subscription guard
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -218,12 +217,7 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _hubConnection.Closed += async (error) =>
         {
-            _logger.LogWarning("[TOPSTEPX] Connection closed");
-            // Log the error details securely without exposing them
-            if (error != null)
-            {
-                _logger.LogDebug("Connection closed with error: {ErrorType}", error.GetType().Name);
-            }
+            _logger.LogWarning("[TOPSTEPX] Connection closed: {Error}", error?.Message ?? "Unknown reason");
 
             // Don't auto-reconnect immediately, let the timer handle it
             await Task.Delay(1000);
@@ -231,17 +225,13 @@ public class TopstepXService : ITopstepXService, IDisposable
 
         _hubConnection.Reconnecting += (error) =>
         {
-            _logger.LogInformation("[TOPSTEPX] Attempting reconnection");
-            if (error != null)
-            {
-                _logger.LogDebug("Reconnecting due to: {ErrorType}", error.GetType().Name);
-            }
+            _logger.LogInformation("[TOPSTEPX] Reconnecting: {Error}", error?.Message ?? "Network issue");
             return Task.CompletedTask;
         };
 
         _hubConnection.Reconnected += async (connectionId) =>
         {
-            _logger.LogInformation("[TOPSTEPX] Reconnected successfully");
+            _logger.LogInformation("[TOPSTEPX] Reconnected with ID: {ConnectionId}", connectionId);
 
             // Re-subscribe to market data after reconnection
             try
@@ -324,7 +314,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             OnError?.Invoke(message);
         });
 
-        // GatewayUserOrder handler - subscribe and correlate by customTag
+        // GatewayUserOrder handler - keep this for order tracking
         _hubConnection.On<JsonElement>("GatewayUserOrder", (data) =>
         {
             try
@@ -332,21 +322,8 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var order = JsonSerializer.Deserialize<GatewayUserOrder>(data.GetRawText());
                 if (order != null)
                 {
-                    var orderData = new
-                    {
-                        timestamp = DateTime.UtcNow,
-                        component = "topstepx_service",
-                        operation = "gateway_user_order",
-                        accountId = order.AccountId,
-                        orderId = order.OrderId,
-                        customTag = order.CustomTag,
-                        status = order.Status,
-                        reason = order.Reason
-                    };
-
-                    _logger.LogInformation("ORDER: {OrderData}", 
-                        System.Text.Json.JsonSerializer.Serialize(orderData));
-
+                    _logger.LogInformation("[ORDER] account={AccountId} orderId={OrderId} status={Status} tag={CustomTag} reason={Reason}",
+                        order.AccountId, order.OrderId, order.Status, order.CustomTag, order.Reason);
                     OnGatewayUserOrder?.Invoke(order);
                 }
             }
@@ -356,7 +333,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
         });
 
-        // GatewayUserTrade handler - subscribe and correlate by customTag
+        // GatewayUserTrade handler - keep this for trade tracking  
         _hubConnection.On<JsonElement>("GatewayUserTrade", (data) =>
         {
             try
@@ -364,21 +341,8 @@ public class TopstepXService : ITopstepXService, IDisposable
                 var trade = JsonSerializer.Deserialize<GatewayUserTrade>(data.GetRawText());
                 if (trade != null)
                 {
-                    var tradeData = new
-                    {
-                        timestamp = DateTime.UtcNow,
-                        component = "topstepx_service",
-                        operation = "gateway_user_trade",
-                        accountId = trade.AccountId,
-                        orderId = trade.OrderId,
-                        fillPrice = TradingBot.Infrastructure.TopstepX.Px.F2(trade.FillPrice),
-                        quantity = trade.Quantity,
-                        time = trade.Time.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-                    };
-
-                    _logger.LogInformation("TRADE: {TradeData}", 
-                        System.Text.Json.JsonSerializer.Serialize(tradeData));
-
+                    _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice:F2} qty={Quantity} time={Time:yyyy-MM-ddTHH:mm:ss.fffZ}",
+                        trade.AccountId, trade.OrderId, trade.FillPrice, trade.Quantity, trade.Time);
                     OnGatewayUserTrade?.Invoke(trade);
                 }
             }
@@ -387,26 +351,6 @@ public class TopstepXService : ITopstepXService, IDisposable
                 _logger.LogError(ex, "[TOPSTEPX] Error processing GatewayUserTrade");
             }
         });
-
-        // Mark as wired to prevent double subscription
-        if (!_wired)
-        {
-            _wired = true;
-            _logger.LogDebug("[TOPSTEPX] Message handlers registered successfully");
-        }
-        else
-        {
-            var guardData = new
-            {
-                timestamp = DateTime.UtcNow,
-                component = "topstepx_service",
-                operation = "register_handlers",
-                guard = "already_wired"
-            };
-
-            _logger.LogWarning("SUBSCRIPTION_GUARD: {GuardData}", 
-                System.Text.Json.JsonSerializer.Serialize(guardData));
-        }
     }
 
     private async Task<bool> StartConnectionWithRetry()
@@ -464,8 +408,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             // Subscribe to Level 2 data if enabled
-            var enableLevel2Section = _configuration.GetSection("TopstepX:EnableLevel2");
-            var enableLevel2 = enableLevel2Section.Exists() && bool.Parse(enableLevel2Section.Value ?? "false");
+            var enableLevel2 = _configuration.GetValue<bool>("TopstepX:EnableLevel2", false);
             if (enableLevel2)
             {
                 foreach (var symbol in symbols)
@@ -518,8 +461,8 @@ public class TopstepXService : ITopstepXService, IDisposable
                 }
             }
 
-            _logger.LogError("[TOPSTEPX] JWT request failed with status: {Status}",
-                response.StatusCode);
+            _logger.LogError("[TOPSTEPX] JWT request failed: {Status} {Content}",
+                response.StatusCode, await response.Content.ReadAsStringAsync());
             return null;
         }
         catch (Exception ex)
