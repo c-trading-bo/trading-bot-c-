@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
+using System.Runtime.InteropServices;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.UnifiedOrchestrator.Models;
@@ -96,11 +97,17 @@ public class Program
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();
-                logging.AddConsole();
+                logging.AddConsole(options => 
+                {
+                    options.FormatterName = "Production";
+                });
+                logging.AddConsoleFormatter<ProductionConsoleFormatter, Microsoft.Extensions.Logging.Console.ConsoleFormatterOptions>();
                 logging.SetMinimumLevel(LogLevel.Information);
-                // REDUCE NOISE - Override Microsoft and System logging
+                // REDUCE NOISE - Override Microsoft and System logging to warnings only
                 logging.AddFilter("Microsoft", LogLevel.Warning);
                 logging.AddFilter("System", LogLevel.Warning);
+                logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Error);
+                logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Error);
             })
             .ConfigureServices((context, services) =>
             {
@@ -121,8 +128,46 @@ public class Program
             options.LogDirectory = logDir;
             options.BatchSize = int.Parse(Environment.GetEnvironmentVariable("LOG_BATCH_SIZE") ?? "1000");
             options.MaxFileSizeBytes = long.Parse(Environment.GetEnvironmentVariable("LOG_MAX_FILE_SIZE") ?? "104857600"); // 100MB
+            options.LogRetentionDays = int.Parse(Environment.GetEnvironmentVariable("LOG_RETENTION_DAYS") ?? "30");
+            options.DebugLogRetentionDays = int.Parse(Environment.GetEnvironmentVariable("DEBUG_LOG_RETENTION_DAYS") ?? "7");
+            options.EnablePerformanceMetrics = Environment.GetEnvironmentVariable("ENABLE_PERFORMANCE_METRICS") != "false";
+            options.EnableCriticalAlerts = Environment.GetEnvironmentVariable("ENABLE_CRITICAL_ALERTS") != "false";
+            options.MarketDataSamplingRate = int.Parse(Environment.GetEnvironmentVariable("MARKET_DATA_SAMPLING_RATE") ?? "10");
+            options.MLPredictionAggregationCount = int.Parse(Environment.GetEnvironmentVariable("ML_PREDICTION_AGGREGATION") ?? "100");
         });
         services.AddSingleton<ITradingLogger, Services.TradingLogger>();
+
+        // Register centralized token provider for authentication management
+        services.AddSingleton<ITokenProvider, CentralizedTokenProvider>();
+        services.AddHostedService<CentralizedTokenProvider>(provider => 
+            (CentralizedTokenProvider)provider.GetRequiredService<ITokenProvider>());
+
+        // Register SignalR connection manager for stable hub connections  
+        services.AddSingleton<ISignalRConnectionManager, SignalRConnectionManager>();
+        services.AddHostedService<SignalRConnectionManager>(provider => 
+            (SignalRConnectionManager)provider.GetRequiredService<ISignalRConnectionManager>());
+
+        // Register platform-aware Python path resolver
+        services.AddSingleton<IPythonPathResolver, PlatformAwarePythonPathResolver>();
+
+        // Register monitoring integration for metrics and log querying
+        services.AddHostedService<MonitoringIntegrationService>();
+
+        // Register enhanced authentication service for comprehensive auth logging
+        services.AddHostedService<EnhancedAuthenticationService>();
+
+        // Register system health monitoring service
+        services.AddHostedService<SystemHealthMonitoringService>();
+
+        // Register trading activity logger for comprehensive trading event logging
+        services.AddSingleton<TradingActivityLogger>();
+
+        // Register log retention service for automatic cleanup
+        services.AddHostedService<LogRetentionService>();
+
+        // Register error handling service with fallback logging mechanisms
+        services.AddSingleton<ErrorHandlingService>();
+        services.AddHostedService<ErrorHandlingService>(provider => provider.GetRequiredService<ErrorHandlingService>());
 
         // Register TopstepX AccountService for live account data
         services.AddHttpClient<AccountService>(client =>
@@ -167,8 +212,20 @@ public class Program
         // Configure workflow scheduling options
         services.Configure<WorkflowSchedulingOptions>(configuration.GetSection("WorkflowScheduling"));
         
-        // Configure Python integration options
-        services.Configure<PythonIntegrationOptions>(configuration.GetSection("PythonIntegration"));
+        // Configure Python integration options with platform-aware paths
+        services.Configure<PythonIntegrationOptions>(options =>
+        {
+            options.Enabled = Environment.GetEnvironmentVariable("ENABLE_PYTHON_INTEGRATION") != "false";
+            options.PythonPath = Environment.GetEnvironmentVariable("PYTHON_EXECUTABLE") ?? 
+                (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "python.exe" : "/usr/bin/python3");
+            options.WorkingDirectory = Environment.GetEnvironmentVariable("PYTHON_WORKING_DIR") ?? "./python";
+            options.ScriptPaths = new Dictionary<string, string>
+            {
+                ["decisionService"] = "./python/decision_service/simple_decision_service.py",
+                ["modelInference"] = "./python/ucb/neural_ucb_topstep.py"
+            };
+            options.Timeout = int.Parse(Environment.GetEnvironmentVariable("PYTHON_TIMEOUT") ?? "30");
+        });
         
         // Configure model loading options
         services.Configure<ModelLoadingOptions>(configuration.GetSection("ModelLoading"));
@@ -253,54 +310,11 @@ public class Program
             };
         });
 
-        // Register JWT token provider function for dynamic token refresh
+        // Register JWT token provider function for backward compatibility with existing services
         services.AddSingleton<Func<Task<string?>>>(serviceProvider =>
         {
-            return async () =>
-            {
-                try
-                {
-                    // Add small delay to ensure the operation is truly async
-                    await Task.Delay(1);
-                    
-                    // Try to get fresh token from AutoTopstepXLoginService first
-                    var autoLoginServices = serviceProvider.GetServices<IHostedService>()
-                        .OfType<BotCore.Services.AutoTopstepXLoginService>()
-                        .FirstOrDefault();
-                    
-                    if (autoLoginServices?.IsAuthenticated == true && !string.IsNullOrEmpty(autoLoginServices.JwtToken))
-                    {
-                        return autoLoginServices.JwtToken;
-                    }
-                    
-                    // Fallback to environment variable
-                    var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-                    if (!string.IsNullOrEmpty(envToken))
-                    {
-                        return envToken;
-                    }
-                    
-                    // Last resort: try to wait a bit for the auto login service
-                    if (autoLoginServices != null)
-                    {
-                        for (int i = 0; i < 10; i++) // Wait up to 5 seconds
-                        {
-                            await Task.Delay(500);
-                            if (autoLoginServices.IsAuthenticated && !string.IsNullOrEmpty(autoLoginServices.JwtToken))
-                            {
-                                return autoLoginServices.JwtToken;
-                            }
-                        }
-                    }
-                    
-                    return null;
-                }
-                catch (Exception)
-                {
-                    // Fallback to environment variable on error
-                    return Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
-                }
-            };
+            var tokenProvider = serviceProvider.GetRequiredService<ITokenProvider>();
+            return async () => await tokenProvider.GetTokenAsync();
         });
 
                 // Register AutoTopstepXLoginService with HTTP client FIRST (for token refresh)
@@ -566,7 +580,13 @@ public class Program
         services.AddSingleton<BotCore.UserHubAgent>();
         
         services.AddSingleton<BotCore.PositionAgent>();
-        services.AddSingleton<BotCore.MarketDataAgent>();
+        services.AddSingleton<BotCore.MarketDataAgent>(provider =>
+        {
+            var tokenProvider = provider.GetRequiredService<ITokenProvider>();
+            var token = tokenProvider.GetTokenAsync().GetAwaiter().GetResult() ?? 
+                       Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "";
+            return new BotCore.MarketDataAgent(token);
+        });
         services.AddSingleton<BotCore.ModelUpdaterService>();
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
