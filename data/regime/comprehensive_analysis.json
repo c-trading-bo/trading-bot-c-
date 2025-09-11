@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-09-10T19:11:43.268619",
+  "timestamp": "2025-09-11T07:14:37.555770",
   "analysis_mode": "comprehensive",
-  "session_type": "market_hours",
+  "session_type": "extended",
   "lookback_period": 30,
   "assets_analyzed": 10,
   "successful_analysis": 0,
@@ -9,39 +9,39 @@
   "individual_regimes": {
     "SPY": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:41.939113"
+      "timestamp": "2025-09-11T07:14:36.508530"
     },
     "QQQ": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:42.144399"
+      "timestamp": "2025-09-11T07:14:36.649333"
     },
     "IWM": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:42.409906"
+      "timestamp": "2025-09-11T07:14:36.804123"
     },
     "TLT": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:42.569877"
+      "timestamp": "2025-09-11T07:14:36.977046"
     },
     "GLD": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:42.677026"
+      "timestamp": "2025-09-11T07:14:37.079713"
     },
     "BTC-USD": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:42.937942"
+      "timestamp": "2025-09-11T07:14:37.255511"
     },
     "^GSPC": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:43.066457"
+      "timestamp": "2025-09-11T07:14:37.352073"
     },
     "^IXIC": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:43.171917"
+      "timestamp": "2025-09-11T07:14:37.456146"
     },
     "^RUT": {
       "error": "single positional indexer is out-of-bounds",
-      "timestamp": "2025-09-10T19:11:43.268520"
+      "timestamp": "2025-09-11T07:14:37.555637"
     }
   }
 }
