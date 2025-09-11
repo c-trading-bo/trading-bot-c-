@@ -143,6 +143,17 @@ public class Program
         services.AddHostedService<CentralizedTokenProvider>(provider => 
             (CentralizedTokenProvider)provider.GetRequiredService<ITokenProvider>());
 
+        // Register enhanced JWT lifecycle manager for token refresh coordination
+        services.AddSingleton<IJwtLifecycleManager, JwtLifecycleManager>();
+        services.AddHostedService<JwtLifecycleManager>(provider => 
+            (JwtLifecycleManager)provider.GetRequiredService<IJwtLifecycleManager>());
+
+        // Register environment validator for startup validation
+        services.AddSingleton<IEnvironmentValidator, EnvironmentValidator>();
+
+        // Register snapshot manager for state reconciliation
+        services.AddSingleton<ISnapshotManager, SnapshotManager>();
+
         // Register SignalR connection manager for stable hub connections  
         services.AddSingleton<ISignalRConnectionManager, SignalRConnectionManager>();
         services.AddHostedService<SignalRConnectionManager>(provider => 
