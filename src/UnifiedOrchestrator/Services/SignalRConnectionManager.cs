@@ -29,23 +29,6 @@ public class ExponentialBackoffRetryPolicy : IRetryPolicy
     }
 }
 
-/// <summary>
-/// Production-ready SignalR hub connection manager with proper state management
-/// Fixes hub connection instability and double subscription issues
-/// </summary>
-public interface ISignalRConnectionManager
-{
-    Task<HubConnection> GetUserHubConnectionAsync();
-    Task<HubConnection> GetMarketHubConnectionAsync();
-    bool IsUserHubConnected { get; }
-    bool IsMarketHubConnected { get; }
-    event Action<string> ConnectionStateChanged;
-    
-    // TopstepX specification compliant subscription methods
-    Task<bool> SubscribeToUserEventsAsync(string accountId);
-    Task<bool> SubscribeToMarketEventsAsync(string contractId);
-}
-
 public class SignalRConnectionManager : ISignalRConnectionManager, IHostedService, IDisposable
 {
     private readonly ILogger<SignalRConnectionManager> _logger;
@@ -63,6 +46,14 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public bool IsMarketHubConnected => _marketHub?.State == HubConnectionState.Connected && _marketHubWired;
 
     public event Action<string>? ConnectionStateChanged;
+    
+    // Data reception events - completing the connection state machine
+    public event Action<object>? OnMarketDataReceived;
+    public event Action<object>? OnContractQuotesReceived;
+    public event Action<object>? OnGatewayUserOrderReceived;
+    public event Action<object>? OnGatewayUserTradeReceived;
+    public event Action<object>? OnFillUpdateReceived;
+    public event Action<object>? OnOrderUpdateReceived;
 
     public SignalRConnectionManager(
         ILogger<SignalRConnectionManager> logger,
@@ -391,6 +382,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_userHub == null) return;
 
+        // Connection lifecycle handlers
         _userHub.Closed += async (exception) =>
         {
             _userHubWired = false;
@@ -415,12 +407,40 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 $"User Hub reconnected successfully: {connectionId}");
             ConnectionStateChanged?.Invoke($"UserHub:Reconnected:{connectionId}");
         };
+        
+        // CRITICAL: Data reception handlers - completing the state machine
+        _userHub.On<object>("GatewayUserOrder", (orderData) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] User Hub: Received GatewayUserOrder");
+            OnGatewayUserOrderReceived?.Invoke(orderData);
+        });
+        
+        _userHub.On<object>("GatewayUserTrade", (tradeData) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] User Hub: Received GatewayUserTrade");
+            OnGatewayUserTradeReceived?.Invoke(tradeData);
+        });
+        
+        _userHub.On<object>("FillUpdate", (fillData) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] User Hub: Received FillUpdate");
+            OnFillUpdateReceived?.Invoke(fillData);
+        });
+        
+        _userHub.On<object>("OrderUpdate", (orderUpdateData) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] User Hub: Received OrderUpdate");
+            OnOrderUpdateReceived?.Invoke(orderUpdateData);
+        });
+        
+        _logger.LogInformation("[TOPSTEPX] User Hub: All data reception handlers registered");
     }
 
     private void SetupMarketHubEventHandlers()
     {
         if (_marketHub == null) return;
 
+        // Connection lifecycle handlers
         _marketHub.Closed += async (exception) =>
         {
             _marketHubWired = false;
@@ -445,6 +465,21 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 $"Market Hub reconnected successfully: {connectionId}");
             ConnectionStateChanged?.Invoke($"MarketHub:Reconnected:{connectionId}");
         };
+        
+        // CRITICAL: Data reception handlers - completing the state machine
+        _marketHub.On<object>("MarketData", (marketData) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] Market Hub: Received MarketData");
+            OnMarketDataReceived?.Invoke(marketData);
+        });
+        
+        _marketHub.On<object>("ContractQuotes", (contractQuotes) =>
+        {
+            _logger.LogDebug("[TOPSTEPX] Market Hub: Received ContractQuotes");
+            OnContractQuotesReceived?.Invoke(contractQuotes);
+        });
+        
+        _logger.LogInformation("[TOPSTEPX] Market Hub: All data reception handlers registered");
     }
 
     private async void CheckConnectionHealth(object? state)
