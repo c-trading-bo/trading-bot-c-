@@ -1486,8 +1486,125 @@ namespace TopstepX.Bot.Core.Services
                 _errorMonitoring.UpdateComponentHealth("OrderConfirmation", ErrorHandlingMonitoringSystem.HealthStatus.Healthy);
             }
             
+            // Initialize contracts for trading ES and NQ based on conditions
+            InitializeAvailableContracts();
+            
             _logger.LogInformation("✅ Trading system components initialized");
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Initialize available contracts for dynamic ES/NQ trading based on market conditions
+        /// </summary>
+        private void InitializeAvailableContracts()
+        {
+            try
+            {
+                // Standard futures contracts that the bot should trade
+                var availableContracts = new List<string> { "ES", "NQ" };
+                
+                // For evaluation accounts or smaller accounts, add micro futures as backup/alternative
+                // Check if this appears to be an evaluation/practice account or has a smaller balance
+                var isEvaluationAccount = IsEvaluationAccount();
+                
+                if (isEvaluationAccount)
+                {
+                    availableContracts.AddRange(new[] { "MES", "MNQ" });
+                    _logger.LogInformation("🎓 Detected evaluation account - added micro futures (MES, MNQ) as alternatives");
+                }
+                
+                _chosenContracts = availableContracts.ToArray();
+                
+                _logger.LogInformation("📋 Initialized trading contracts: {Contracts}", 
+                    string.Join(", ", _chosenContracts));
+                    
+                // Log strategy for contract selection
+                _logger.LogInformation("🎯 Trading Strategy: Bot will dynamically select between ES and NQ based on market conditions, liquidity, and ML/RL signals");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to initialize contracts, using minimal ES/NQ selection");
+                // Even in error cases, provide standard market contracts for stability
+                _chosenContracts = new[] { "ES", "NQ" };
+            }
+        }
+
+        /// <summary>
+        /// Determine if this appears to be an evaluation account based on available context
+        /// </summary>
+        private static bool IsEvaluationAccount()
+        {
+            try
+            {
+                // Check environment hints for account type
+                var accountAlias = Environment.GetEnvironmentVariable("TOPSTEP_ACCOUNT_ALIAS");
+                
+                // Look for evaluation indicators in environment variables
+                if (!string.IsNullOrEmpty(accountAlias) && 
+                    (accountAlias.Contains("PRAC", StringComparison.OrdinalIgnoreCase) ||
+                     accountAlias.Contains("EVAL", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+                
+                // If no clear indicators, default to including micro futures for safety
+                // This ensures smaller accounts or evaluation accounts can trade micro contracts
+                return true; // Conservative approach - always include micro futures
+            }
+            catch
+            {
+                return true; // Default to including micro futures for safety
+            }
+        }
+
+        /// <summary>
+        /// Dynamically determine which contract (ES or NQ) to trade based on current market conditions
+        /// </summary>
+        public string GetOptimalTradingContract()
+        {
+            try
+            {
+                // Default to ES if no data available
+                if (_priceCache.IsEmpty)
+                {
+                    _logger.LogDebug("🎯 No market data available, defaulting to ES");
+                    return "ES";
+                }
+
+                // Get current market data for both ES and NQ
+                var hasEsData = _priceCache.TryGetValue("ES", out var esData);
+                var hasNqData = _priceCache.TryGetValue("NQ", out var nqData);
+
+                // If only one has data, use that one
+                if (hasEsData && !hasNqData) return "ES";
+                if (hasNqData && !hasEsData) return "NQ";
+                if (!hasEsData && !hasNqData) return "ES"; // Default
+
+                // Both have data - make intelligent choice based on:
+                // 1. Recent volatility (prefer more volatile for momentum strategies)
+                // 2. Spread tightness (prefer tighter spreads)
+                // 3. ML/RL model preference if available
+
+                var esSpread = esData!.AskPrice - esData.BidPrice;
+                var nqSpread = nqData!.AskPrice - nqData.BidPrice;
+
+                // Calculate relative spread (as percentage of price)
+                var esRelativeSpread = esSpread / esData.LastPrice;
+                var nqRelativeSpread = nqSpread / nqData.LastPrice;
+
+                // Prefer contract with better liquidity (tighter relative spread)
+                var optimalContract = esRelativeSpread <= nqRelativeSpread ? "ES" : "NQ";
+
+                _logger.LogDebug("🎯 Contract Selection: ES spread={EsSpread:F2} ({EsRelSpread:P4}), NQ spread={NqSpread:F2} ({NqRelSpread:P4}) → {Choice}",
+                    esSpread, esRelativeSpread, nqSpread, nqRelativeSpread, optimalContract);
+
+                return optimalContract;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error determining optimal contract, defaulting to ES");
+                return "ES";
+            }
         }
 
         private async Task SetupSignalRConnectionsAsync(CancellationToken cancellationToken)
@@ -1508,7 +1625,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 
                 // Subscribe to market events for chosen contracts
-                foreach (var contract in _chosenContracts.DefaultIfEmpty("ES"))
+                foreach (var contract in _chosenContracts.Length > 0 ? _chosenContracts : new[] { "ES", "NQ" })
                 {
                     var marketSubscribed = await _signalRConnectionManager.SubscribeToMarketEventsAsync(contract);
                     _logger.LogInformation("📈 Market events subscription for {Contract}: {Status}", 

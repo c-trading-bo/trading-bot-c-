@@ -3,6 +3,8 @@ using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
 using System.Text.Json;
+using System.Net.Http.Json;
+using System.Linq;
 // // using Trading.Safety;
 
 namespace BotCore.Services;
@@ -16,6 +18,7 @@ public class AutoTopstepXLoginService : BackgroundService
     private readonly TopstepXCredentialManager _credentialManager;
     private readonly TopstepAuthAgent _authAgent;
     private readonly HttpClient _httpClient;
+    private readonly ISignalRConnectionManager? _signalRConnectionManager;
 
     public bool IsAuthenticated { get; private set; }
     public string? JwtToken { get; private set; }
@@ -26,12 +29,14 @@ public class AutoTopstepXLoginService : BackgroundService
         ILogger<AutoTopstepXLoginService> logger,
         TopstepXCredentialManager credentialManager,
         TopstepAuthAgent authAgent,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        ISignalRConnectionManager? signalRConnectionManager = null)
     {
         _logger = logger;
         _credentialManager = credentialManager;
         _authAgent = authAgent;
         _httpClient = httpClient;
+        _signalRConnectionManager = signalRConnectionManager;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -175,36 +180,199 @@ public class AutoTopstepXLoginService : BackgroundService
     {
         try
         {
+            // Ensure BaseAddress is set
+            if (_httpClient.BaseAddress == null)
+            {
+                _httpClient.BaseAddress = new Uri("https://api.topstepx.com");
+            }
+            
             _httpClient.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", JwtToken);
 
-            var response = await _httpClient.GetAsync("/api/Account", cancellationToken);
+            _logger.LogInformation("🔍 Searching for account information via TopstepX API...");
             
-            if (response.IsSuccessStatusCode)
+            // First, search for accounts to get the GUID
+            var searchRequest = new
             {
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                using var doc = JsonDocument.Parse(content);
+                accountNumber = CurrentCredentials!.Username // Account display number
+            };
+            
+            var searchContent = JsonContent.Create(searchRequest);
+            var searchResponse = await _httpClient.PostAsync("/api/Account/search", searchContent, cancellationToken);
+            
+            _logger.LogInformation("📡 Account search response: {StatusCode} {ReasonPhrase}", 
+                searchResponse.StatusCode, searchResponse.ReasonPhrase);
+            
+            if (searchResponse.IsSuccessStatusCode)
+            {
+                var searchResult = await searchResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogDebug("📄 Account search response content: {Content}", searchResult);
                 
-                if (doc.RootElement.TryGetProperty("data", out var dataElement) && 
-                    dataElement.ValueKind == JsonValueKind.Array &&
-                    dataElement.GetArrayLength() > 0)
+                using var searchDoc = JsonDocument.Parse(searchResult);
+                
+                if (searchDoc.RootElement.TryGetProperty("accounts", out var accountsElement) && 
+                    accountsElement.ValueKind == JsonValueKind.Array &&
+                    accountsElement.GetArrayLength() > 0)
                 {
-                    var firstAccount = dataElement[0];
-                    if (firstAccount.TryGetProperty("id", out var idProp))
+                    // Use intelligent account selection rules
+                    var selectedAccount = SelectBestAccount(accountsElement);
+                    
+                    if (selectedAccount != null && selectedAccount.Value.TryGetProperty("id", out var idProp))
                     {
-                        AccountId = idProp.GetString();
+                        AccountId = idProp.GetInt64().ToString();
                         CurrentCredentials!.AccountId = AccountId;
                         Environment.SetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID", AccountId);
                         
-                        _logger.LogInformation("✅ Retrieved account information");
+                        var accountName = selectedAccount.Value.TryGetProperty("name", out var nameProp) ? nameProp.GetString() ?? "Unknown" : "Unknown";
+                        var canTrade = selectedAccount.Value.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
+                        var balance = selectedAccount.Value.TryGetProperty("balance", out var balProp) ? balProp.GetDecimal() : 0m;
+                        var displayNumber = selectedAccount.Value.TryGetProperty("displayNumber", out var displayProp) ? displayProp.GetString() ?? "" : "";
+                        var alias = selectedAccount.Value.TryGetProperty("alias", out var aliasProp) ? aliasProp.GetString() ?? "" : "";
+                        var phase = selectedAccount.Value.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() ?? "" : "";
+                        var status = selectedAccount.Value.TryGetProperty("status", out var statusProp) ? statusProp.GetString() ?? "" : "";
+                        
+                        _logger.LogInformation("✅ Selected account: id={AccountId} display={DisplayNumber} alias={Alias} canTrade={CanTrade} phase={Phase} status={Status} balance=${Balance:F2}", 
+                            AccountId, displayNumber, alias, canTrade, phase, status, balance);
+                        
+                        // CRITICAL: Retry SignalR subscriptions with the retrieved account ID
+                        if (_signalRConnectionManager != null)
+                        {
+                            _logger.LogInformation("🔄 Retrying SignalR subscriptions with account ID: {AccountId}", AccountId);
+                            try
+                            {
+                                var subscriptionSuccess = await _signalRConnectionManager.RetrySubscriptionsWithAccountId(AccountId);
+                                if (subscriptionSuccess)
+                                {
+                                    _logger.LogInformation("✅ SignalR subscriptions successful for account {AccountId}", AccountId);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("⚠️ SignalR subscriptions failed for account {AccountId}", AccountId);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "⚠️ Error retrying SignalR subscriptions for account {AccountId}", AccountId);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ No suitable account found in search response");
                     }
                 }
+                else
+                {
+                    _logger.LogWarning("⚠️ Account search response missing or empty 'accounts' array");
+                }
+            }
+            else
+            {
+                var errorContent = await searchResponse.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("⚠️ Failed to search for account info - {StatusCode}: {Content}", 
+                    searchResponse.StatusCode, errorContent);
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "⚠️ Failed to get account info, but login still successful");
         }
+    }
+
+    /// <summary>
+    /// Intelligent account selection using environment hints and business rules
+    /// </summary>
+    private JsonElement? SelectBestAccount(JsonElement accountsArray)
+    {
+        var accounts = accountsArray.EnumerateArray().ToList();
+        if (!accounts.Any()) return null;
+
+        _logger.LogInformation("📋 Found {Count} accounts, applying selection rules...", accounts.Count);
+
+        // Environment hint overrides
+        var hintDisplayNumber = Environment.GetEnvironmentVariable("TOPSTEP_ACCOUNT_DISPLAY");
+        var hintAlias = Environment.GetEnvironmentVariable("TOPSTEP_ACCOUNT_ALIAS");
+
+        // Log all accounts for visibility
+        foreach (var account in accounts)
+        {
+            var id = account.TryGetProperty("id", out var idProp) ? idProp.GetInt64().ToString() : "?";
+            var displayNumber = account.TryGetProperty("displayNumber", out var displayProp) ? displayProp.GetString() : "";
+            var alias = account.TryGetProperty("alias", out var aliasProp) ? aliasProp.GetString() : "";
+            var canTrade = account.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
+            var status = account.TryGetProperty("status", out var statusProp) ? statusProp.GetString() : "";
+            var phase = account.TryGetProperty("phase", out var phaseProp) ? phaseProp.GetString() : "";
+            
+            _logger.LogDebug("   Account: id={Id} display={Display} alias={Alias} canTrade={CanTrade} status={Status} phase={Phase}",
+                id, displayNumber, alias, canTrade, status, phase);
+        }
+
+        // Rule 1: Environment hint for display number
+        if (!string.IsNullOrEmpty(hintDisplayNumber))
+        {
+            foreach (var account in accounts)
+            {
+                if (account.TryGetProperty("displayNumber", out var dp) && 
+                    dp.GetString()?.Equals(hintDisplayNumber, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    _logger.LogInformation("🎯 Selected account via TOPSTEP_ACCOUNT_DISPLAY hint: {DisplayNumber}", hintDisplayNumber);
+                    return account;
+                }
+            }
+        }
+
+        // Rule 2: Environment hint for alias
+        if (!string.IsNullOrEmpty(hintAlias))
+        {
+            foreach (var account in accounts)
+            {
+                if (account.TryGetProperty("alias", out var ap) && 
+                    ap.GetString()?.Contains(hintAlias, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    _logger.LogInformation("🎯 Selected account via TOPSTEP_ACCOUNT_ALIAS hint: {Alias}", hintAlias);
+                    return account;
+                }
+            }
+        }
+
+        // Rule 3: Active status + canTrade + Evaluation phase
+        foreach (var account in accounts)
+        {
+            if (account.TryGetProperty("status", out var statusProp) && statusProp.GetString()?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true &&
+                account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean() &&
+                account.TryGetProperty("phase", out var phaseProp) && 
+                (phaseProp.GetString()?.Contains("Eval", StringComparison.OrdinalIgnoreCase) == true ||
+                 phaseProp.GetString()?.Contains("Combine", StringComparison.OrdinalIgnoreCase) == true))
+            {
+                _logger.LogInformation("🎯 Selected active evaluation/combine account");
+                return account;
+            }
+        }
+
+        // Rule 4: Active status + canTrade (any account)
+        foreach (var account in accounts)
+        {
+            if (account.TryGetProperty("status", out var statusProp) && statusProp.GetString()?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true &&
+                account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean())
+            {
+                _logger.LogInformation("🎯 Selected active tradable account");
+                return account;
+            }
+        }
+
+        // Rule 5: First account that can trade
+        foreach (var account in accounts)
+        {
+            if (account.TryGetProperty("canTrade", out var canTradeProp) && canTradeProp.GetBoolean())
+            {
+                _logger.LogInformation("🎯 Selected first tradable account");
+                return account;
+            }
+        }
+
+        // Rule 6: Fallback to first account
+        _logger.LogWarning("⚠️ No tradable accounts found, using first available account");
+        return accounts.First();
     }
 
     private async Task TokenRefreshLoop(CancellationToken cancellationToken)

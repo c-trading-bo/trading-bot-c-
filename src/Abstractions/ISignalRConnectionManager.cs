@@ -20,6 +20,9 @@ public interface ISignalRConnectionManager
     Task<bool> SubscribeToUserEventsAsync(string accountId);
     Task<bool> SubscribeToMarketEventsAsync(string contractId);
     
+    // Retry subscriptions with valid account ID after login
+    Task<bool> RetrySubscriptionsWithAccountId(string accountId);
+    
     // Data reception events - completing the connection state machine
     event Action<object> OnMarketDataReceived;
     event Action<object> OnContractQuotesReceived;

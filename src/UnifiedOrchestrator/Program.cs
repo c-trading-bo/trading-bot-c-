@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.InteropServices;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
@@ -42,21 +43,21 @@ public class Program
         EnvironmentLoader.LoadEnvironmentFiles();
         
         Console.WriteLine(@"
-╔═══════════════════════════════════════════════════════════════════════════════════════╗
-║                          🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀                    ║
-║                                                                                       ║
-║  🧠 ONE BRAIN - Consolidates all trading bot functionality into one unified system   ║
-║  ⚡ ONE SYSTEM - Replaces 4+ separate orchestrators with clean, integrated solution  ║
-║  🔄 ONE WORKFLOW ENGINE - All workflows managed by single scheduler                  ║
-║  🌐 ONE TOPSTEPX CONNECTION - Unified API and SignalR hub management                ║
-║  📊 ONE INTELLIGENCE SYSTEM - ML/RL models and predictions unified                  ║
-║  📈 ONE TRADING ENGINE - All trading logic consolidated                             ║
-║  📁 ONE DATA SYSTEM - Centralized data collection and reporting                     ║
-║                                                                                       ║
-║  ✅ Clean Build - No duplicated logic or conflicts                                  ║
-║  🔧 Wired Together - All 1000+ features work in unison                             ║
-║  🎯 Single Purpose - Connect to TopstepX and trade effectively                     ║
-╚═══════════════════════════════════════════════════════════════════════════════════════╝
+================================================================================
+                    🚀 UNIFIED TRADING ORCHESTRATOR SYSTEM 🚀                       
+                                                                               
+  🧠 ONE BRAIN - Consolidates all trading bot functionality into one     
+  ⚡ ONE SYSTEM - Replaces 4+ separate orchestrators with clean solution
+  🔄 ONE WORKFLOW ENGINE - All workflows managed by single scheduler  
+  🌐 ONE TOPSTEPX CONNECTION - Unified API and SignalR hub management      
+  📊 ONE INTELLIGENCE SYSTEM - ML/RL models and predictions unified         
+  📈 ONE TRADING ENGINE - All trading logic consolidated               
+  📁 ONE DATA SYSTEM - Centralized data collection and reporting          
+                                                                               
+  ✅ Clean Build - No duplicated logic or conflicts                         
+  🔧 Wired Together - All 1000+ features work in unison                     
+  🎯 Single Purpose - Connect to TopstepX and trade effectively             
+================================================================================
         ");
 
         try
@@ -285,8 +286,20 @@ public class Program
         // Register ErrorHandlingMonitoringSystem (529 lines) from BotCore  
         services.AddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
         
-        // Register OrderFillConfirmationSystem (520 lines) from BotCore
-        services.AddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
+        // OrderFillConfirmationSystem (520 lines) - Now uses shared SignalR connections
+        // Configure OrderFillConfirmationSystem to use shared SignalR connections via SignalRConnectionManager
+        services.AddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>>();
+            var httpClient = provider.GetRequiredService<HttpClient>();
+            var positionTracker = provider.GetRequiredService<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+            var emergencyStop = provider.GetRequiredService<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
+            var signalRConnectionManager = provider.GetRequiredService<ISignalRConnectionManager>();
+            
+            // Use the new constructor that accepts ISignalRConnectionManager for shared connections
+            return new TopstepX.Bot.Core.Services.OrderFillConfirmationSystem(
+                logger, httpClient, signalRConnectionManager, positionTracker, emergencyStop);
+        });
         
         // Register PositionTrackingSystem (379 lines) from Safety project
         services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
@@ -486,8 +499,8 @@ public class Program
         // Register authentication and credential management services from Infrastructure.TopstepX
         services.AddSingleton<TopstepXCredentialManager>();
         
-        // Register AutoTopstepXLoginService as HOSTED SERVICE for automatic token refresh
-        services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
+        // AutoTopstepXLoginService already registered above (line 369) - NO DUPLICATE NEEDED
+        // services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
         
         // Register ALL critical system components that exist in BotCore
         try 
@@ -507,7 +520,8 @@ public class Program
                 services.TryAddSingleton<BotCore.Services.PerformanceTracker>();
                 services.TryAddSingleton<BotCore.Services.TradingProgressMonitor>();
                 services.TryAddSingleton<BotCore.Services.TimeOptimizedStrategyManager>();
-                services.TryAddSingleton<BotCore.Services.TopstepXService>();
+                // DISABLED: TopstepXService creates its own SignalR connections, conflicts with SignalRConnectionManager
+                // services.TryAddSingleton<BotCore.Services.TopstepXService>();
                 services.TryAddSingleton<TopstepX.Bot.Intelligence.LocalBotMechanicIntegration>();
                 
                 
@@ -518,7 +532,7 @@ public class Program
                     services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
                     services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
-                    services.TryAddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>();
+                    // OrderFillConfirmationSystem already registered above with proper factory
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
                     services.TryAddSingleton<BotCore.Services.NewsIntelligenceEngine>();
                     services.TryAddSingleton<BotCore.Services.ZoneService>();
@@ -557,6 +571,32 @@ public class Program
         services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
         services.AddSingleton<BotCore.Market.RedundantDataFeedManager>();
         services.AddSingleton<BotCore.Market.IEconomicEventManager, BotCore.Market.EconomicEventManager>();
+        
+        // Register FeatureConfig and FeatureEngineering - REQUIRED for TradingSystemIntegrationService
+        services.AddSingleton<TradingBot.RLAgent.FeatureConfig>(provider => 
+        {
+            return new TradingBot.RLAgent.FeatureConfig
+            {
+                MaxBufferSize = 1000,
+                TopKFeatures = 10,
+                StreamingStaleThresholdSeconds = 30,
+                StreamingCleanupAfterMinutes = 30,
+                DefaultProfile = new TradingBot.RLAgent.RegimeProfile
+                {
+                    VolatilityLookback = 20,
+                    TrendLookback = 50,
+                    VolumeLookback = 20,
+                    RsiLookback = 14,
+                    BollingerLookback = 20,
+                    AtrLookback = 14,
+                    MicrostructureLookback = 100,
+                    OrderFlowLookback = 50,
+                    TradeDirectionDecay = 0.9
+                }
+            };
+        });
+        services.AddSingleton<TradingBot.RLAgent.FeatureEngineering>();
+        
         services.AddSingleton<BotCore.ML.StrategyMlModelManager>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<BotCore.ML.StrategyMlModelManager>>();
@@ -575,18 +615,22 @@ public class Program
         }
         
         // Register core agents and clients that exist in BotCore
-        services.AddSingleton<BotCore.UserHubClient>();
-        services.AddSingleton<BotCore.MarketHubClient>();
-        services.AddSingleton<BotCore.UserHubAgent>();
-        
+        // TEMPORARILY DISABLED: These legacy services create their own HubConnection objects, conflicting with shared SignalRConnectionManager
+        // services.AddSingleton<BotCore.UserHubClient>();  // EventFacade - Safe to enable, but not needed if using SignalRConnectionManager events
+        // services.AddSingleton<BotCore.MarketHubClient>(); // Creates own HubConnection - CONFLICTS
+        // services.AddSingleton<BotCore.UserHubAgent>();    // Creates own HubConnection - CONFLICTS
+
         services.AddSingleton<BotCore.PositionAgent>();
-        services.AddSingleton<BotCore.MarketDataAgent>(provider =>
-        {
-            var tokenProvider = provider.GetRequiredService<ITokenProvider>();
-            var token = tokenProvider.GetTokenAsync().GetAwaiter().GetResult() ?? 
-                       Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "";
-            return new BotCore.MarketDataAgent(token);
-        });
+        
+        // TEMPORARILY DISABLED: MarketDataAgent creates own HubConnection - CONFLICTS with SignalRConnectionManager
+        // MarketDataAgent functionality is now provided by SignalRConnectionManager's OnMarketDataReceived events
+        // services.AddSingleton<BotCore.MarketDataAgent>(provider =>
+        // {
+        //     var tokenProvider = provider.GetRequiredService<ITokenProvider>();
+        //     var token = tokenProvider.GetTokenAsync().GetAwaiter().GetResult() ?? 
+        //                Environment.GetEnvironmentVariable("TOPSTEPX_JWT") ?? "";
+        //     return new BotCore.MarketDataAgent(token);
+        // });
         services.AddSingleton<BotCore.ModelUpdaterService>();
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator

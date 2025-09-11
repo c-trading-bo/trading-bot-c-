@@ -87,23 +87,23 @@ public class ProductionConsoleFormatter : ConsoleFormatter
 
     private static string GetLevelIcon(LogLevel level) => level switch
     {
-        LogLevel.Error => "🔴",
-        LogLevel.Warning => "🟡", 
-        LogLevel.Information => "⚪",
-        LogLevel.Debug => "⚪",
-        _ => "🟢"
+        LogLevel.Error => "[ERR]",
+        LogLevel.Warning => "[WARN]", 
+        LogLevel.Information => "[INFO]",
+        LogLevel.Debug => "[DBG]",
+        _ => "[LOG]"
     };
 
     private static string GetCategoryIcon(string category)
     {
-        if (category.Contains("Trading")) return "📈";
-        if (category.Contains("Auth")) return "🔐";
-        if (category.Contains("Hub") || category.Contains("SignalR")) return "🌐";
-        if (category.Contains("ML") || category.Contains("Intelligence")) return "🤖";
-        if (category.Contains("Risk")) return "⚖️";
-        if (category.Contains("Market")) return "📊";
-        if (category.Contains("Order")) return "📋";
-        return "⚙️";
+        if (category.Contains("Trading")) return "[TRADE]";
+        if (category.Contains("Auth")) return "[AUTH]";
+        if (category.Contains("Hub") || category.Contains("SignalR")) return "[HUB]";
+        if (category.Contains("ML") || category.Contains("Intelligence")) return "[ML]";
+        if (category.Contains("Risk")) return "[RISK]";
+        if (category.Contains("Market")) return "[MKT]";
+        if (category.Contains("Order")) return "[ORDER]";
+        return "[SYS]";
     }
 
     private static string GetShortCategory(string category)
