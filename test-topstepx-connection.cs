@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Infrastructure.TopstepX;
-using BotCore.Services;
 using TradingBot.Abstractions;
 
 /// <summary>

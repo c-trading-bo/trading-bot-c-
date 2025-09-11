@@ -15,6 +15,7 @@ using BotCore.Risk;
 using BotCore.ML;
 using TradingBot.IntelligenceStack;
 using TradingBot.Infrastructure.TopstepX;
+using Infrastructure.TopstepX;
 using BotCore;
 
 namespace TradingBot.Core.Intelligence

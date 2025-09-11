@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text;
 // using Trading.Safety;
 
-namespace BotCore.Services;
+namespace Infrastructure.TopstepX;
 
 /// <summary>
 /// Enhanced TopstepX service with improved SignalR connection handling

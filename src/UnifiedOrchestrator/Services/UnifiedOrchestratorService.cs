@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
 using BotCore.Services;
+using Infrastructure.TopstepX;
 using System;
 using System.Collections.Generic;
 using System.Linq;
