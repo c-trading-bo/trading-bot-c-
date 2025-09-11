@@ -425,7 +425,11 @@ public class TopstepXService : ITopstepXService, IDisposable
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await _hubConnection.StartAsync(cts.Token);
 
-                _logger.LogInformation("[TOPSTEPX] Connection started successfully. State: {State}", _hubConnection.State);
+                // CRITICAL FIX: Wait for connection to be fully established
+                // This prevents the race condition where subscriptions are called before connection is ready
+                await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.WaitForConnected(_hubConnection, TimeSpan.FromSeconds(30), cts.Token, _logger);
+
+                _logger.LogInformation("[TOPSTEPX] Connection started and confirmed ready. State: {State}", _hubConnection.State);
                 return true;
             }
             catch (Exception ex)
@@ -446,9 +450,9 @@ public class TopstepXService : ITopstepXService, IDisposable
 
     private async Task SubscribeToMarketData()
     {
-        if (_hubConnection?.State != HubConnectionState.Connected)
+        if (_hubConnection == null)
         {
-            _logger.LogWarning("[TOPSTEPX] Cannot subscribe - not connected");
+            _logger.LogWarning("[TOPSTEPX] Cannot subscribe - hub connection is null");
             return;
         }
 
@@ -459,7 +463,13 @@ public class TopstepXService : ITopstepXService, IDisposable
 
             foreach (var symbol in symbols)
             {
-                await _hubConnection.InvokeAsync("SubscribeToMarketData", symbol.Trim());
+                // Use SignalRSafeInvoker to ensure connection is ready before invoking
+                await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                    _hubConnection,
+                    () => _hubConnection.InvokeAsync("SubscribeToMarketData", symbol.Trim()),
+                    _logger,
+                    CancellationToken.None);
+                    
                 _logger.LogInformation("[TOPSTEPX] Subscribed to market data for {Symbol}", symbol.Trim());
             }
 
@@ -470,7 +480,12 @@ public class TopstepXService : ITopstepXService, IDisposable
             {
                 foreach (var symbol in symbols)
                 {
-                    await _hubConnection.InvokeAsync("SubscribeToLevel2", symbol.Trim());
+                    await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                        _hubConnection,
+                        () => _hubConnection.InvokeAsync("SubscribeToLevel2", symbol.Trim()),
+                        _logger,
+                        CancellationToken.None);
+                        
                     _logger.LogInformation("[TOPSTEPX] Subscribed to Level 2 data for {Symbol}", symbol.Trim());
                 }
             }
@@ -576,13 +591,19 @@ public class TopstepXService : ITopstepXService, IDisposable
     {
         try
         {
-            if (_hubConnection?.State != HubConnectionState.Connected)
+            if (_hubConnection == null)
             {
-                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to orders - not connected");
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to orders - hub connection is null");
                 return false;
             }
 
-            await _hubConnection.InvokeAsync("SubscribeOrders", accountId).ConfigureAwait(false);
+            // Use SignalRSafeInvoker to ensure safe invocation with connection state checking
+            await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                _hubConnection,
+                () => _hubConnection.InvokeAsync("SubscribeOrders", accountId),
+                _logger,
+                CancellationToken.None);
+                
             _logger.LogInformation("[TOPSTEPX] Subscribed to orders for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return true;
         }
@@ -597,13 +618,19 @@ public class TopstepXService : ITopstepXService, IDisposable
     {
         try
         {
-            if (_hubConnection?.State != HubConnectionState.Connected)
+            if (_hubConnection == null)
             {
-                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to trades - not connected");
+                _logger.LogWarning("[TOPSTEPX] Cannot subscribe to trades - hub connection is null");
                 return false;
             }
 
-            await _hubConnection.InvokeAsync("SubscribeTrades", accountId).ConfigureAwait(false);
+            // Use SignalRSafeInvoker to ensure safe invocation with connection state checking
+            await TradingBot.Infrastructure.TopstepX.SignalRSafeInvoker.InvokeWhenConnected(
+                _hubConnection,
+                () => _hubConnection.InvokeAsync("SubscribeTrades", accountId),
+                _logger,
+                CancellationToken.None);
+                
             _logger.LogInformation("[TOPSTEPX] Subscribed to trades for account {AccountId}", SecurityHelpers.MaskSpecificAccountId(accountId));
             return true;
         }

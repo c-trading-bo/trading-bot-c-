@@ -79,6 +79,14 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 throw new InvalidOperationException("No valid JWT token available for User Hub connection");
             }
 
+            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring(7);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    "Removed 'Bearer' prefix from JWT token for User Hub");
+            }
+
             _userHub?.DisposeAsync();
             _userHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
@@ -88,13 +96,22 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 .WithAutomaticReconnect(new RetryPolicy())
                 .Build();
 
+            // Configure connection timeouts for production use
+            _userHub.ServerTimeout = TimeSpan.FromSeconds(60);
+            _userHub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(30);
+
             SetupUserHubEventHandlers();
             
+            // Start connection and wait for it to be fully established
             await _userHub.StartAsync();
+            
+            // CRITICAL FIX: Wait for connection to be ready before marking as wired
+            await BotCore.HubSafe.WaitForConnected(_userHub, TimeSpan.FromSeconds(30), CancellationToken.None, _logger);
             _userHubWired = true;
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-                "User Hub connection established successfully");
+                "User Hub connection established and confirmed ready");
 
             ConnectionStateChanged?.Invoke($"UserHub:Connected");
             return _userHub;
@@ -131,6 +148,14 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 throw new InvalidOperationException("No valid JWT token available for Market Hub connection");
             }
 
+            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring(7);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    "Removed 'Bearer' prefix from JWT token for Market Hub");
+            }
+
             _marketHub?.DisposeAsync();
             _marketHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/market", options =>
@@ -140,13 +165,22 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 .WithAutomaticReconnect(new RetryPolicy())
                 .Build();
 
+            // Configure connection timeouts for production use
+            _marketHub.ServerTimeout = TimeSpan.FromSeconds(60);
+            _marketHub.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(30);
+
             SetupMarketHubEventHandlers();
             
+            // Start connection and wait for it to be fully established
             await _marketHub.StartAsync();
+            
+            // CRITICAL FIX: Wait for connection to be ready before marking as wired
+            await BotCore.HubSafe.WaitForConnected(_marketHub, TimeSpan.FromSeconds(30), CancellationToken.None, _logger);
             _marketHubWired = true;
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-                "Market Hub connection established successfully");
+                "Market Hub connection established and confirmed ready");
 
             ConnectionStateChanged?.Invoke($"MarketHub:Connected");
             return _marketHub;
