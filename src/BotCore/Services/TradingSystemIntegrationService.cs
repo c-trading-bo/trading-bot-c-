@@ -14,6 +14,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TopstepX.Bot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
+using BotCore.Models;
+using BotCore.Strategy;
+using BotCore.Risk;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -47,6 +50,10 @@ namespace TopstepX.Bot.Core.Services
         private readonly ConcurrentDictionary<string, MarketData> _priceCache = new();
         private volatile int _barsSeen = 0;
         private DateTime _lastMarketDataUpdate = DateTime.MinValue;
+        
+        // Bar Data Storage for Strategy Evaluation - ENHANCED
+        private readonly ConcurrentDictionary<string, List<Bar>> _barCache = new();
+        private readonly RiskEngine _riskEngine = new();
         
         // Trading Loop state - NEW IMPLEMENTATION  
         private readonly Timer _tradingEvaluationTimer;
@@ -132,6 +139,9 @@ namespace TopstepX.Bot.Core.Services
                 null,
                 Timeout.Infinite,
                 (int)TimeSpan.FromSeconds(_config.TradingEvaluationIntervalSeconds).TotalMilliseconds);
+
+            // Initialize bar cache with symbols
+            InitializeBarCache();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -356,8 +366,8 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// NEW IMPLEMENTATION: Trading strategy evaluation method
-        /// Evaluates trade opportunities based on market data and strategy logic
+        /// ENHANCED IMPLEMENTATION: Trading strategy evaluation using AllStrategies
+        /// Connects existing sophisticated strategies (S1-S14) to trading execution
         /// </summary>
         private async Task EvaluateTradeOpportunitiesAsync()
         {
@@ -371,35 +381,12 @@ namespace TopstepX.Bot.Core.Services
                 if (!await PerformTradingPrechecksAsync())
                     return;
 
-                // Get latest market data for ES and MES
-                if (!_priceCache.TryGetValue("ES", out var esData) || 
-                    !_priceCache.TryGetValue("MES", out var mesData))
-                {
-                    _logger.LogDebug("[STRATEGY] Insufficient market data for evaluation");
-                    return;
-                }
-
-                // Simple momentum strategy implementation
-                var signal = await GenerateTradingSignalAsync(esData);
+                // Get symbols to evaluate (ES, MES, NQ, MNQ)
+                var symbols = new[] { "ES", "MES", "NQ", "MNQ" };
                 
-                if (signal != null && signal.Strength > 0.7m) // High confidence threshold
+                foreach (var symbol in symbols)
                 {
-                    var orderRequest = new PlaceOrderRequest
-                    {
-                        Symbol = signal.Symbol,
-                        Side = signal.Direction,
-                        Quantity = CalculatePositionSize(signal),
-                        Price = signal.EntryPrice,
-                        StopPrice = signal.StopLoss,
-                        TargetPrice = signal.TakeProfit,
-                        CustomTag = $"STRATEGY-{signal.Strategy}",
-                        AccountId = _config.AccountId
-                    };
-
-                    var result = await PlaceOrderAsync(orderRequest);
-                    
-                    _logger.LogInformation("[STRATEGY] Signal executed: {Symbol} {Direction} Strength={Strength:F2} Result={Success}",
-                        signal.Symbol, signal.Direction, signal.Strength, result.IsSuccess);
+                    await EvaluateSymbolStrategiesAsync(symbol);
                 }
             }
             catch (Exception ex)
@@ -413,72 +400,198 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// NEW IMPLEMENTATION: Generate trading signals based on market data
-        /// Simple momentum/breakout strategy implementation
+        /// Evaluate all strategies for a specific symbol using AllStrategies.generate_candidates
         /// </summary>
-        private Task<TradingSignal?> GenerateTradingSignalAsync(MarketData marketData)
+        private async Task EvaluateSymbolStrategiesAsync(string symbol)
         {
             try
             {
-                // Simple momentum strategy based on price movement
-                var currentPrice = marketData.LastPrice;
-                var spread = marketData.Spread;
-                
-                // Ensure spread is reasonable for trading
-                if (spread > currentPrice * 0.001m) // More than 0.1% spread
+                // Get market data for the symbol
+                if (!_priceCache.TryGetValue(symbol, out var marketData))
                 {
-                    return Task.FromResult<TradingSignal?>(null);
+                    _logger.LogDebug("[STRATEGY] No market data available for {Symbol}", symbol);
+                    return;
                 }
 
-                // Simple breakout logic (placeholder for more sophisticated strategy)
-                var isUptrend = currentPrice > (marketData.BidPrice + marketData.AskPrice) / 2;
-                var volatility = Math.Abs(spread / currentPrice);
-                
-                if (volatility < 0.0005m) // Low volatility threshold
+                // Get bar data for the symbol
+                if (!_barCache.TryGetValue(symbol, out var bars) || bars.Count < 20)
                 {
-                    return Task.FromResult<TradingSignal?>(null);
+                    _logger.LogDebug("[STRATEGY] Insufficient bar data for {Symbol} (need 20+, have {Count})", symbol, bars?.Count ?? 0);
+                    return;
                 }
 
-                var signal = new TradingSignal
+                // Create environment for strategy evaluation
+                var env = new Env
                 {
-                    Symbol = marketData.Symbol,
-                    Direction = isUptrend ? "BUY" : "SELL",
-                    Strength = Math.Min(volatility * 1000, 1.0m), // Convert to 0-1 scale
-                    Strategy = "MOMENTUM_BREAKOUT",
-                    EntryPrice = isUptrend ? marketData.AskPrice : marketData.BidPrice,
-                    StopLoss = isUptrend ? currentPrice - (currentPrice * 0.005m) : currentPrice + (currentPrice * 0.005m),
-                    TakeProfit = isUptrend ? currentPrice + (currentPrice * 0.01m) : currentPrice - (currentPrice * 0.01m),
-                    Timestamp = DateTime.UtcNow
+                    Symbol = symbol,
+                    atr = CalculateATR(bars),
+                    volz = CalculateVolZ(bars) // Use our own implementation
                 };
 
-                return Task.FromResult<TradingSignal?>(signal);
+                // Create levels (placeholder - could be enhanced with real support/resistance levels)
+                var levels = new Levels();
+
+                // Generate strategy candidates using AllStrategies
+                var candidates = AllStrategies.generate_candidates(symbol, env, levels, bars, _riskEngine);
+
+                _logger.LogInformation("[STRATEGY] Generated {Count} candidates for {Symbol}", candidates.Count, symbol);
+
+                // Process each candidate
+                foreach (var candidate in candidates.Where(c => Math.Abs(c.qty) > 0))
+                {
+                    await ProcessStrategyCandidateAsync(candidate);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[STRATEGY] Error generating trading signal");
-                return Task.FromResult<TradingSignal?>(null);
+                _logger.LogError(ex, "[STRATEGY] Error evaluating strategies for {Symbol}", symbol);
             }
         }
 
         /// <summary>
-        /// Calculate position size based on risk management rules
+        /// Process a strategy candidate and place order if conditions are met
         /// </summary>
-        private decimal CalculatePositionSize(TradingSignal signal)
+        private async Task ProcessStrategyCandidateAsync(Candidate candidate)
         {
             try
             {
-                // Base position size (could be enhanced with portfolio heat, volatility, etc.)
-                var baseSize = 1m;
+                // Validate candidate
+                if (!ValidateCandidate(candidate))
+                    return;
+
+                // Convert candidate to order request
+                var orderRequest = new PlaceOrderRequest
+                {
+                    Symbol = candidate.symbol,
+                    Side = candidate.side == Side.BUY ? "BUY" : "SELL",
+                    Quantity = (decimal)Math.Abs(candidate.qty),
+                    Price = candidate.entry,
+                    StopPrice = candidate.stop,
+                    TargetPrice = candidate.t1,
+                    CustomTag = candidate.Tag,
+                    AccountId = _config.AccountId
+                };
+
+                // Place the order
+                var result = await PlaceOrderAsync(orderRequest);
                 
-                // Adjust based on confidence
-                var adjustedSize = baseSize * signal.Strength;
-                
-                // Ensure within max position size limits
-                return Math.Min(adjustedSize, _config.MaxPositionSize);
+                _logger.LogInformation("[STRATEGY] Strategy {StrategyId} signal executed: {Symbol} {Side} Qty={Qty} Entry={Entry} Stop={Stop} Target={Target} Result={Success}",
+                    candidate.strategy_id, candidate.symbol, candidate.side, candidate.qty, 
+                    Px.F2(candidate.entry), Px.F2(candidate.stop), Px.F2(candidate.t1), result.IsSuccess);
             }
-            catch
+            catch (Exception ex)
             {
-                return 1m; // Safe fallback
+                _logger.LogError(ex, "[STRATEGY] Error processing candidate for {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
+            }
+        }
+
+        /// <summary>
+        /// Validate strategy candidate before order placement
+        /// </summary>
+        private bool ValidateCandidate(Candidate candidate)
+        {
+            // Check if symbol is supported
+            if (string.IsNullOrEmpty(candidate.symbol))
+            {
+                _logger.LogDebug("[VALIDATION] Invalid symbol for candidate {StrategyId}", candidate.strategy_id);
+                return false;
+            }
+
+            // Check if prices are valid
+            if (candidate.entry <= 0 || candidate.stop <= 0 || candidate.t1 <= 0)
+            {
+                _logger.LogDebug("[VALIDATION] Invalid prices for candidate {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
+                return false;
+            }
+
+            // Calculate risk/reward ratio
+            var isLong = candidate.side == Side.BUY;
+            var risk = isLong ? candidate.entry - candidate.stop : candidate.stop - candidate.entry;
+            var reward = isLong ? candidate.t1 - candidate.entry : candidate.entry - candidate.t1;
+
+            if (risk <= 0)
+            {
+                _logger.LogDebug("[VALIDATION] Non-positive risk for candidate {StrategyId} {Symbol}", candidate.strategy_id, candidate.symbol);
+                return false;
+            }
+
+            var rrRatio = reward / risk;
+            if (rrRatio < 1.0m) // Minimum 1:1 risk/reward
+            {
+                _logger.LogDebug("[VALIDATION] Poor risk/reward ratio {RRRatio:F2} for candidate {StrategyId} {Symbol}", rrRatio, candidate.strategy_id, candidate.symbol);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Calculate ATR (Average True Range) for volatility measurement
+        /// </summary>
+        private decimal CalculateATR(List<Bar> bars, int period = 14)
+        {
+            if (bars.Count < period + 1)
+                return 1m; // Default ATR
+
+            var trueRanges = new List<decimal>();
+            
+            for (int i = 1; i < bars.Count && trueRanges.Count < period; i++)
+            {
+                var current = bars[i];
+                var previous = bars[i - 1];
+                
+                var tr1 = current.High - current.Low;
+                var tr2 = Math.Abs(current.High - previous.Close);
+                var tr3 = Math.Abs(current.Low - previous.Close);
+                
+                trueRanges.Add(Math.Max(tr1, Math.Max(tr2, tr3)));
+            }
+            
+            return trueRanges.Any() ? trueRanges.Average() : 1m;
+        }
+
+        /// <summary>
+        /// Calculate VolZ (volatility z-score) - regime proxy using recent returns
+        /// </summary>
+        private decimal CalculateVolZ(List<Bar> bars, int lookback = 50)
+        {
+            if (bars.Count < lookback + 1)
+                return 0m;
+
+            var returns = new List<decimal>(lookback);
+            for (int i = bars.Count - lookback; i < bars.Count; i++)
+            {
+                if (i > 0 && bars[i - 1].Close > 0)
+                {
+                    var ret = (bars[i].Close / bars[i - 1].Close) - 1m;
+                    returns.Add(ret);
+                }
+            }
+
+            if (returns.Count < 2)
+                return 0m;
+
+            var mean = returns.Average();
+            var variance = returns.Sum(r => (r - mean) * (r - mean)) / (returns.Count - 1);
+            var stdDev = (decimal)Math.Sqrt((double)variance);
+            
+            if (stdDev <= 0)
+                return 0m;
+
+            var lastReturn = returns.LastOrDefault();
+            return (lastReturn - mean) / stdDev;
+        }
+
+        /// <summary>
+        /// Initialize bar cache with empty collections for supported symbols
+        /// </summary>
+        private void InitializeBarCache()
+        {
+            var symbols = new[] { "ES", "MES", "NQ", "MNQ" };
+            foreach (var symbol in symbols)
+            {
+                _barCache.TryAdd(symbol, new List<Bar>());
+                _logger.LogDebug("[BAR_CACHE] Initialized bar cache for {Symbol}", symbol);
             }
         }
 
@@ -548,7 +661,7 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// ENHANCED: Market data event handler with price cache updates
+        /// ENHANCED: Market data event handler with price cache and bar data updates
         /// </summary>
         private Task OnMarketDataReceived(object marketDataObj)
         {
@@ -578,6 +691,9 @@ namespace TopstepX.Bot.Core.Services
                     _priceCache.AddOrUpdate(symbol, marketData, (key, old) => marketData);
                     _lastMarketDataUpdate = DateTime.UtcNow;
                     
+                    // Update bar cache for strategy evaluation
+                    UpdateBarCache(symbol, marketData);
+                    
                     // Increment bars seen counter
                     Interlocked.Increment(ref _barsSeen);
 
@@ -592,6 +708,68 @@ namespace TopstepX.Bot.Core.Services
             }
             
             return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Update bar cache with new market data for strategy evaluation
+        /// </summary>
+        private void UpdateBarCache(string symbol, MarketData marketData)
+        {
+            try
+            {
+                // Get or create bar list for symbol
+                var bars = _barCache.GetOrAdd(symbol, _ => new List<Bar>());
+
+                // Create a new bar from market data
+                // Note: This is a simplified approach. In production, you might want to aggregate
+                // multiple market data updates into proper time-based bars (1m, 5m, etc.)
+                var currentTime = DateTime.UtcNow;
+                
+                // Check if we should create a new bar or update the current one
+                var lastBar = bars.LastOrDefault();
+                var shouldCreateNewBar = lastBar == null || 
+                    currentTime.Subtract(lastBar.Start).TotalMinutes >= 1; // 1-minute bars
+
+                if (shouldCreateNewBar)
+                {
+                    // Create new bar
+                    var newBar = new Bar
+                    {
+                        Start = currentTime,
+                        Ts = ((DateTimeOffset)currentTime).ToUnixTimeMilliseconds(),
+                        Symbol = symbol,
+                        Open = marketData.LastPrice,
+                        High = marketData.LastPrice,
+                        Low = marketData.LastPrice,
+                        Close = marketData.LastPrice,
+                        Volume = (int)marketData.Volume
+                    };
+                    
+                    bars.Add(newBar);
+                    
+                    // Keep only last 200 bars for memory efficiency
+                    if (bars.Count > 200)
+                    {
+                        bars.RemoveAt(0);
+                    }
+                }
+                else if (lastBar != null)
+                {
+                    // Update current bar
+                    lastBar.High = Math.Max(lastBar.High, marketData.LastPrice);
+                    lastBar.Low = Math.Min(lastBar.Low, marketData.LastPrice);
+                    lastBar.Close = marketData.LastPrice;
+                    lastBar.Volume += (int)marketData.Volume;
+                }
+
+                _logger.LogTrace("[BAR_CACHE] Updated {Symbol}: {BarCount} bars, Latest: O={Open} H={High} L={Low} C={Close}",
+                    symbol, bars.Count, 
+                    lastBar?.Open ?? 0, lastBar?.High ?? 0, lastBar?.Low ?? 0, lastBar?.Close ?? 0);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[BAR_CACHE] Error updating bar cache for {Symbol}", symbol);
+            }
         }
 
         /// <summary>
@@ -767,21 +945,6 @@ namespace TopstepX.Bot.Core.Services
             
             _logger.LogInformation("✅ Trading system cleanup completed");
         }
-    }
-
-    /// <summary>
-    /// Trading signal model for strategy evaluation
-    /// </summary>
-    public class TradingSignal
-    {
-        public string Symbol { get; set; } = string.Empty;
-        public string Direction { get; set; } = string.Empty; // BUY/SELL
-        public decimal Strength { get; set; } = 0m; // 0-1
-        public string Strategy { get; set; } = string.Empty;
-        public decimal EntryPrice { get; set; } = 0m;
-        public decimal StopLoss { get; set; } = 0m;
-        public decimal TakeProfit { get; set; } = 0m;
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
