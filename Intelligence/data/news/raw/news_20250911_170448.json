@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-09-11T17:11:39.049316",
+  "timestamp": "2025-09-11T17:04:48.890218",
   "article_count": 60,
-  "avg_sentiment": 0.08166666666666669,
+  "avg_sentiment": 0.09500000000000001,
   "news_intensity": 1.0,
-  "volatility_score": 4,
+  "volatility_score": 6,
   "events": {
     "fomc_detected": false,
     "cpi_detected": false,
@@ -11,7 +11,7 @@
     "earnings_detected": true,
     "panic_detected": false,
     "euphoria_detected": false,
-    "major_event_score": 4
+    "major_event_score": 6
   },
   "regime_hint": "neutral",
   "articles": [
@@ -205,37 +205,37 @@
       "has_numbers": false
     },
     {
-      "title": "SurgePays Inc. Deploys AI-Powered Retail Media Platform",
+      "title": "Exclusive-IPO of Winklevoss-founded crypto exchange Gemini over 20 times oversubscribed, sources say",
       "summary": "",
-      "published": "2025-09-11T17:01:58Z",
-      "link": "https://finance.yahoo.com/news/surgepays-inc-deploys-ai-powered-170158675.html",
-      "source": "yahoo_finance",
-      "sentiment": 0.3,
-      "has_numbers": false
-    },
-    {
-      "title": "SK Telecom Partners with Aduna to Expand Global Network API Ecosystem",
-      "summary": "",
-      "published": "2025-09-11T17:01:56Z",
-      "link": "https://finance.yahoo.com/news/sk-telecom-partners-aduna-expand-170156518.html",
+      "published": "2025-09-11T16:50:27Z",
+      "link": "https://finance.yahoo.com/news/exclusive-ipo-winklevoss-founded-crypto-165027665.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "Telef\u00f3nica Outlines Strategy to Consolidate European Telecoms, Divest Latin American Assets",
+      "title": "What Do Analysts Think About Toast, Inc. (TOST)?",
       "summary": "",
-      "published": "2025-09-11T17:01:54Z",
-      "link": "https://finance.yahoo.com/news/telef-nica-outlines-strategy-consolidate-170154775.html",
+      "published": "2025-09-11T16:49:21Z",
+      "link": "https://finance.yahoo.com/news/analysts-think-toast-inc-tost-164921710.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "Rogers Communications Launches Xfinity StreamSaver Bundle with Netflix, Disney+, Apple TV+",
+      "title": "Barclays Maintains a Hold on Enbridge (ENB)",
       "summary": "",
-      "published": "2025-09-11T17:01:52Z",
-      "link": "https://finance.yahoo.com/news/rogers-communications-launches-xfinity-streamsaver-170152441.html",
+      "published": "2025-09-11T16:49:20Z",
+      "link": "https://finance.yahoo.com/news/barclays-maintains-hold-enbridge-enb-164920991.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "What Does Wall Street Think About Grab Holdings Limited (GRAB)?",
+      "summary": "",
+      "published": "2025-09-11T16:49:23Z",
+      "link": "https://finance.yahoo.com/news/does-wall-street-think-grab-164923797.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
@@ -250,48 +250,48 @@
       "has_numbers": false
     },
     {
-      "title": "BCE Inc. Acquires Ziply Fiber, Expands North American Fiber Footprint",
+      "title": "Ferragamo Recruits New Ad Interim CFO from Company\u2019s Ranks",
       "summary": "",
-      "published": "2025-09-11T17:01:50Z",
-      "link": "https://finance.yahoo.com/news/bce-inc-acquires-ziply-fiber-170150467.html",
+      "published": "2025-09-11T16:53:28Z",
+      "link": "https://finance.yahoo.com/news/ferragamo-recruits-ad-interim-cfo-165328238.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "T-Mobile US Increases Synergy Expectations, Accelerates Integration of UScellular Acquisition",
+      "title": "Redburn Atlantic Initiates Coverage on Infosys (INFY) With a Sell Rating",
       "summary": "",
-      "published": "2025-09-11T17:01:49Z",
-      "link": "https://finance.yahoo.com/news/t-mobile-us-increases-synergy-170149727.html",
+      "published": "2025-09-11T16:49:18Z",
+      "link": "https://finance.yahoo.com/news/redburn-atlantic-initiates-coverage-infosys-164918258.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Kepler Capital Maintains a Hold Rating on GSK plc (GSK)",
+      "summary": "",
+      "published": "2025-09-11T16:49:16Z",
+      "link": "https://finance.yahoo.com/news/kepler-capital-maintains-hold-rating-164916163.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "Comcast, Amazon Announce Expanded Distribution Agreements for Streaming Services",
+      "title": "Morgan Stanley Lifts PT on Samsara (IOT) to $53 From $50, Keeps an Equal Weight Rating",
       "summary": "",
-      "published": "2025-09-11T17:01:47Z",
-      "link": "https://finance.yahoo.com/news/comcast-amazon-announce-expanded-distribution-170147255.html",
+      "published": "2025-09-11T16:49:15Z",
+      "link": "https://finance.yahoo.com/news/morgan-stanley-lifts-pt-samsara-164915323.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "Susquehanna Raises Hewlett Packard Enterprise (HPE) PT to $21, Cites Juniper Networks Acquisition",
+      "title": "Citi Remains a Hold on Super Micro Computer (SMCI)",
       "summary": "",
-      "published": "2025-09-11T17:01:44Z",
-      "link": "https://finance.yahoo.com/news/susquehanna-raises-hewlett-packard-enterprise-170144858.html",
+      "published": "2025-09-11T16:49:14Z",
+      "link": "https://finance.yahoo.com/news/citi-remains-hold-super-micro-164914430.html",
       "source": "yahoo_finance",
-      "sentiment": 0.0,
-      "has_numbers": false
-    },
-    {
-      "title": "AT&T Expands Camp Fire Partnership to Bridge Digital Divide with $750K Contribution",
-      "summary": "",
-      "published": "2025-09-11T17:01:46Z",
-      "link": "https://finance.yahoo.com/news/t-expands-camp-fire-partnership-170146078.html",
-      "source": "yahoo_finance",
-      "sentiment": 0.0,
+      "sentiment": 0.2,
       "has_numbers": false
     },
     {
@@ -304,48 +304,48 @@
       "has_numbers": false
     },
     {
-      "title": "Allstate Corporation Partners with Big 12 Conference to Launch \u201cAllstate Championship Series\u201d",
+      "title": "Rezolve AI Stock Soars On The Promise Of A $30 Trillion Market",
       "summary": "",
-      "published": "2025-09-11T17:01:42Z",
-      "link": "https://finance.yahoo.com/news/allstate-corporation-partners-big-12-170142748.html",
+      "published": "2025-09-11T16:52:38Z",
+      "link": "https://finance.yahoo.com/news/rezolve-ai-stock-soars-promise-165238147.html",
       "source": "yahoo_finance",
-      "sentiment": 0.0,
+      "sentiment": 0.3,
       "has_numbers": false
     },
     {
-      "title": "Bristol Myers Squibb, BioNTech Announce Positive Interim Data from Phase 2 Trial of Pumitamig in Lung Cancer",
+      "title": "TD Cowen Remains Bullish on On Semiconductor Corporation (ON)",
       "summary": "",
-      "published": "2025-09-11T17:01:41Z",
-      "link": "https://finance.yahoo.com/news/bristol-myers-squibb-biontech-announce-170141724.html",
+      "published": "2025-09-11T16:49:12Z",
+      "link": "https://finance.yahoo.com/news/td-cowen-remains-bullish-semiconductor-164912740.html",
       "source": "yahoo_finance",
-      "sentiment": 0.1,
+      "sentiment": 0.2,
       "has_numbers": false
     },
     {
-      "title": "Delta Air Lines Settles $79M Class-Action Lawsuit Over 2020 Jet Fuel Dump",
+      "title": "Wall Street is Bullish on PDD Holdings (PDD), Here\u2019s Why?",
       "summary": "",
-      "published": "2025-09-11T17:01:38Z",
-      "link": "https://finance.yahoo.com/news/delta-air-lines-settles-79m-170138086.html",
+      "published": "2025-09-11T16:49:09Z",
+      "link": "https://finance.yahoo.com/news/wall-street-bullish-pdd-holdings-164909153.html",
       "source": "yahoo_finance",
-      "sentiment": -0.3,
+      "sentiment": 0.2,
       "has_numbers": false
     },
     {
-      "title": "Elevance Health Reduces Medicare Footprint, Exits Standalone Part D Plans for Profitability",
+      "title": "J.P. Morgan Reiterates a Buy Rating on Hewlett Packard Enterprise (HPE)",
       "summary": "",
-      "published": "2025-09-11T17:01:39Z",
-      "link": "https://finance.yahoo.com/news/elevance-health-reduces-medicare-footprint-170139380.html",
+      "published": "2025-09-11T16:49:09Z",
+      "link": "https://finance.yahoo.com/news/j-p-morgan-reiterates-buy-164909341.html",
       "source": "yahoo_finance",
-      "sentiment": 0.0,
+      "sentiment": 0.2,
       "has_numbers": false
     },
     {
-      "title": "EQT Corporation Secures 20-Year LNG Export Agreement with Commonwealth LNG",
+      "title": "J.P. Morgan Maintains a Buy on Teva Pharmaceutical (TEVA) With a $23 PT",
       "summary": "",
-      "published": "2025-09-11T17:01:33Z",
-      "link": "https://finance.yahoo.com/news/eqt-corporation-secures-20-lng-170133635.html",
+      "published": "2025-09-11T16:49:10Z",
+      "link": "https://finance.yahoo.com/news/j-p-morgan-maintains-buy-164910638.html",
       "source": "yahoo_finance",
-      "sentiment": 0.0,
+      "sentiment": 0.2,
       "has_numbers": false
     },
     {
@@ -358,21 +358,21 @@
       "has_numbers": false
     },
     {
-      "title": "KeyBanc Lowers Expand Energy (EXE) PT to $127 Due to Revised Natural Gas Price Forecast",
+      "title": "BMO Capital Maintains a Hold on Bristol-Myers Squibb Company (BMY)",
       "summary": "",
-      "published": "2025-09-11T17:01:35Z",
-      "link": "https://finance.yahoo.com/news/keybanc-lowers-expand-energy-exe-170135001.html",
+      "published": "2025-09-11T16:49:07Z",
+      "link": "https://finance.yahoo.com/news/bmo-capital-maintains-hold-bristol-164907085.html",
       "source": "yahoo_finance",
       "sentiment": 0.0,
       "has_numbers": false
     },
     {
-      "title": "Truist Raises Citigroup (C) PT to $105, Cites Strong Q2 2025 Performance",
+      "title": "UBS Maintains a Hold Rating on The Kroger Co (KR)",
       "summary": "",
-      "published": "2025-09-11T17:01:31Z",
-      "link": "https://finance.yahoo.com/news/truist-raises-citigroup-c-pt-170131453.html",
+      "published": "2025-09-11T16:49:07Z",
+      "link": "https://finance.yahoo.com/news/ubs-maintains-hold-rating-kroger-164907851.html",
       "source": "yahoo_finance",
-      "sentiment": 0.2,
+      "sentiment": 0.0,
       "has_numbers": false
     },
     {

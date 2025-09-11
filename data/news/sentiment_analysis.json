@@ -1,26 +1,14 @@
 {
-  "timestamp": "2025-09-11T12:42:14.642906",
+  "timestamp": "2025-09-11T15:20:54.152649",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "total_articles_processed": 13,
+  "market_session": "regular",
+  "total_articles_processed": 10,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.34687500000000004,
-      "article_count": 2,
+      "sentiment_score": 0.51875,
+      "article_count": 1,
       "articles": [
-        {
-          "title": "Stock market today: Dow, S&P 500, Nasdaq futures tip higher with CPI inflation data on deck",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-tip-higher-with-cpi-inflation-data-on-deck-232148847.html",
-          "published": "2025-09-10T23:21:48Z",
-          "relevance_keywords": [
-            "S&P"
-          ]
-        },
         {
           "title": "Always trust your first guess: One Wall Street bank is reinstating its bullish S&P 500 target",
           "sentiment": 0.51875,
@@ -28,53 +16,38 @@
           "keyword_score": 1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/always-trust-your-first-guess-one-wall-street-bank-is-reinstating-its-bullish-s-p-500-target-0c5e9fae?mod=mw_rss_topstories",
-          "published": "Thu, 11 Sep 2025 11:25:00 GMT",
+          "published": "Thu, 11 Sep 2025 13:34:00 GMT",
           "relevance_keywords": [
             "S&P"
           ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.2,
+      "confidence": 0.1,
       "sources": [
-        "yahoo_finance",
         "marketwatch"
       ]
     },
     "NQ": {
-      "sentiment_score": -0.04128787878787879,
-      "article_count": 2,
+      "sentiment_score": 0.052500000000000005,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Stock market today: Dow, S&P 500, Nasdaq futures tip higher with CPI inflation data on deck",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
+          "title": "Tech Stocks Are Doing So Well Investors Are Starting to Worry",
+          "sentiment": 0.052500000000000005,
+          "textblob_score": 0.07500000000000001,
           "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-tip-higher-with-cpi-inflation-data-on-deck-232148847.html",
-          "published": "2025-09-10T23:21:48Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        },
-        {
-          "title": "ECB Expected to Hold Rates; Search Continue for Charlie Kirk Killer | Bloomberg Brief 9/11/2025",
-          "sentiment": -0.25757575757575757,
-          "textblob_score": 0.060606060606060615,
-          "keyword_score": -1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/bloomberg-brief-9-11-2025-video",
-          "published": "Thu, 11 Sep 2025 10:56:16 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-11/tech-stocks-are-doing-so-well-investors-are-starting-to-worry",
+          "published": "Thu, 11 Sep 2025 09:30:00 GMT",
           "relevance_keywords": [
-            "Nasdaq",
-            "Nasdaq 100"
+            "tech stocks"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.2,
+      "confidence": 0.1,
       "sources": [
-        "yahoo_finance",
         "bloomberg"
       ]
     },
@@ -95,135 +68,125 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
-    },
-    "TSLA": {
-      "sentiment_score": 0.1566177398989899,
-      "article_count": 8,
+      "sentiment_score": 0.6033333333333333,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Treasury Yields Sink as In-Line CPI Fuels Fed Bets: Markets Wrap",
-          "sentiment": -0.3,
-          "textblob_score": 0.0,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-10/stock-market-today-dow-s-p-live-updates",
-          "published": "Wed, 10 Sep 2025 22:46:57 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "OPEC Still Sees Tight Oil Market Despite Supply Increases",
-          "sentiment": 0.2583333333333333,
-          "textblob_score": -0.05952380952380953,
+          "title": "Figure Technology\u2019s IPO pricing a sign of strong demand for crypto company\u2019s stock",
+          "sentiment": 0.6033333333333333,
+          "textblob_score": 0.4333333333333333,
           "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/opec-still-sees-tight-oil-market-despite-supply-increases",
-          "published": "Thu, 11 Sep 2025 12:00:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Indonesia\u2019s New Finance Chief May Recast Predecessor\u2019s Budget",
-          "sentiment": 0.3564772727272727,
-          "textblob_score": 0.08068181818181817,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/indonesia-s-new-finance-chief-moves-fast-with-12-billion-economic-boost",
-          "published": "Thu, 11 Sep 2025 03:05:06 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "ECB Set to Pause Rate Cut, Oracle Shares Soar Fueling AI Stock Rally | The Opening Trade 9/11",
-          "sentiment": 0.304040404040404,
-          "textblob_score": 0.14862914862914864,
-          "keyword_score": 0.6666666666666666,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/the-opening-trade-9-11-video",
-          "published": "Thu, 11 Sep 2025 11:07:22 GMT",
-          "relevance_keywords": [
-            "Elon Musk",
-            "EV"
-          ]
-        },
-        {
-          "title": "ECB Expected to Hold Rates; Search Continue for Charlie Kirk Killer | Bloomberg Brief 9/11/2025",
-          "sentiment": -0.25757575757575757,
-          "textblob_score": 0.060606060606060615,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/bloomberg-brief-9-11-2025-video",
-          "published": "Thu, 11 Sep 2025 10:56:16 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Fed to Do Right Thing for Wrong Reason, Chiavarone Says",
-          "sentiment": 0.06666666666666665,
-          "textblob_score": 0.09523809523809523,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/fed-to-do-right-thing-for-wrong-reason-chiavarone-says-video",
-          "published": "Thu, 11 Sep 2025 10:49:54 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "\u2018Fun came before paying bills\u2019: My brother-in-law is in his 70s and homeless. Are we responsible for him?",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/fun-came-before-paying-bills-my-brother-in-law-is-in-his-70s-and-homeless-are-we-responsible-for-him-f1d86d54?mod=mw_rss_topstories",
-          "published": "Thu, 11 Sep 2025 12:00:00 GMT",
+          "url": "https://www.marketwatch.com/story/figure-technologys-ipo-pricing-a-sign-of-strong-demand-for-crypto-companys-stock-fef600d4?mod=mw_rss_topstories",
+          "published": "Thu, 11 Sep 2025 14:29:00 GMT",
+          "relevance_keywords": [
+            "crypto"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.1,
+      "sources": [
+        "marketwatch"
+      ]
+    },
+    "TSLA": {
+      "sentiment_score": 0.262125,
+      "article_count": 6,
+      "articles": [
+        {
+          "title": "GE Vernova Inc. (GEV) Was \u201cVery Smart\u201d To Get Out Of The Wind Business, Says Jim Cramer",
+          "sentiment": 0.195,
+          "textblob_score": 0.2785714285714286,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/ge-vernova-inc-gev-very-145703860.html",
+          "published": "2025-09-11T14:57:03Z",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Why I'm More Bullish On Wolfspeed Now Than Ever",
-          "sentiment": 0.6499999999999999,
-          "textblob_score": 0.5,
+          "title": "Jim Cramer Believes Cramer discussed Sweetgreen, Inc. (SG) Is Struggling Due To $15 Meals",
+          "sentiment": -0.0875,
+          "textblob_score": -0.125,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/jim-cramer-believes-cramer-discussed-145448911.html",
+          "published": "2025-09-11T14:54:48Z",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Robots Step In More Than Ever When Credit Traders Go on Vacation",
+          "sentiment": 0.08399999999999999,
+          "textblob_score": 0.12,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-11/robots-step-in-more-than-ever-when-credit-traders-go-on-vacation",
+          "published": "Thu, 11 Sep 2025 15:00:02 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "China Evergrande Unit Get Bids From From State-Owned Firms",
+          "sentiment": 0.46624999999999994,
+          "textblob_score": 0.2375,
           "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4822030-why-im-more-bullish-on-wolfspeed-now-than-ever?source=feed_all_articles",
-          "published": "Thu, 11 Sep 2025 08:31:51 -0400",
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-11/evergrande-liquidators-get-bids-for-unit-from-state-owned-firms",
+          "published": "Thu, 11 Sep 2025 09:08:19 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "First-time unemployment claims surge to highest level since 2021 \u2014 but most of the increase is tied to Texas flooding",
+          "sentiment": 0.5566666666666666,
+          "textblob_score": 0.3666666666666667,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/jobless-claims-surge-to-highest-level-in-almost-4-years-824d0d24?mod=mw_rss_topstories",
+          "published": "Thu, 11 Sep 2025 14:18:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Nvidia\u2019s stock is deemed a buy. The future looks even brighter on \u2018the only thing that matters.\u2019",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/nvidias-stock-deemed-a-buy-the-future-looks-even-brighter-on-the-only-thing-that-matters-bb448628?mod=mw_rss_topstories",
+          "published": "Thu, 11 Sep 2025 13:48:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.8,
+      "confidence": 0.6,
       "sources": [
+        "yahoo_finance",
         "bloomberg",
-        "marketwatch",
-        "seeking_alpha"
+        "marketwatch"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.304040404040404,
+      "sentiment_score": 0.35833333333333334,
       "article_count": 1,
       "articles": [
         {
-          "title": "ECB Set to Pause Rate Cut, Oracle Shares Soar Fueling AI Stock Rally | The Opening Trade 9/11",
-          "sentiment": 0.304040404040404,
-          "textblob_score": 0.14862914862914864,
-          "keyword_score": 0.6666666666666666,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-11/the-opening-trade-9-11-video",
-          "published": "Thu, 11 Sep 2025 11:07:22 GMT",
+          "title": "Nvidia\u2019s stock is deemed a buy. The future looks even brighter on \u2018the only thing that matters.\u2019",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/nvidias-stock-deemed-a-buy-the-future-looks-even-brighter-on-the-only-thing-that-matters-bb448628?mod=mw_rss_topstories",
+          "published": "Thu, 11 Sep 2025 13:48:00 GMT",
           "relevance_keywords": [
             "Nvidia"
           ]
@@ -232,7 +195,7 @@
       "signal": "BULLISH",
       "confidence": 0.1,
       "sources": [
-        "bloomberg"
+        "marketwatch"
       ]
     },
     "AAPL": {
