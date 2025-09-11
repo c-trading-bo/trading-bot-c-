@@ -63,21 +63,21 @@ namespace TradingBot.Tests.Unit
                 Options.Create(new OnnxEnsembleOptions()));
             
             // Setup ONNX ensemble to return valid prediction
-            var expectedPrediction = new IntelStackEnsemblePrediction
+            var expectedPrediction = new RLAgentEnsemblePrediction
             {
                 Confidence = 0.85,
                 EnsembleResult = 0.75f,
                 IsAnomaly = false,
                 LatencyMs = 15.0,
-                Predictions = new System.Collections.Generic.Dictionary<string, IntelStackModelPrediction>
+                Predictions = new System.Collections.Generic.Dictionary<string, RLAgentModelPrediction>
                 {
-                    ["test_model"] = new IntelStackModelPrediction { Value = 0.75f, Confidence = 0.85, ModelName = "test_model" }
+                    ["test_model"] = new RLAgentModelPrediction { Value = 0.75f, Confidence = 0.85, ModelName = "test_model" }
                 }
             };
 
             mockEnsemble
                 .Setup(x => x.PredictAsync(It.IsAny<float[]>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(expectedPrediction);
+                .Returns(Task.FromResult(expectedPrediction));
 
             mockServiceProvider
                 .Setup(x => x.GetService(typeof(TradingBot.RLAgent.OnnxEnsembleWrapper)))
@@ -210,6 +210,7 @@ namespace TradingBot.Tests.Unit
             var mockDecisionLogger = new Mock<IDecisionLogger>();
             var mockStartupValidator = new Mock<TradingBot.Abstractions.IStartupValidator>();
             var mockIdempotentOrderService = new Mock<IIdempotentOrderService>();
+            var mockOnlineLearningSystem = new Mock<IOnlineLearningSystem>();
             var mockHttpClient = new Mock<System.Net.Http.HttpClient>();
             var mockCloudFlowOptions = Options.Create(new CloudFlowOptions());
 
@@ -224,6 +225,7 @@ namespace TradingBot.Tests.Unit
                 mockDecisionLogger.Object,
                 mockStartupValidator.Object,
                 mockIdempotentOrderService.Object,
+                mockOnlineLearningSystem.Object,
                 new System.Net.Http.HttpClient(),
                 mockCloudFlowOptions);
 
