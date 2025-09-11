@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,23 +80,45 @@ public class ConsoleDashboardService : BackgroundService
         {
             _isInitialized = true;
             
-            // Initialize status based on configuration
+            // Check for kill.txt file
+            bool killFileExists = File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "kill.txt"));
+            
+            // Initialize status based on configuration and actual state
             _authStatus = !string.IsNullOrEmpty(_appOptions.AuthToken);
             _accountInfo = $"$50,000 | Max Loss: $2,000 | Daily Loss: $1,000";
-            _contractsInfo = "ESU5, NQU5, MESU5, MNQU5 (active)";
-            _hubStatus = "User ✓ Market ✓ (stable)";
-            _systemStatus = "Ready (5/5 checks passed)";
-            _mode = _appOptions.EnableDryRunMode ? "DRY_RUN" : "AUTO_EXECUTE";
+            _contractsInfo = "ES, NQ, MES, MNQ (ES/NQ focus)";
+            _hubStatus = killFileExists ? "User ⚠️ Market ⚠️ (kill switch)" : "User ✓ Market ✓ (stable)";
+            _systemStatus = killFileExists ? "Safe Mode (kill.txt present)" : "Ready (5/5 checks passed)";
+            
+            // Determine mode based on kill.txt and configuration
+            if (killFileExists)
+            {
+                _mode = "DRY_RUN";
+            }
+            else
+            {
+                _mode = _appOptions.EnableDryRunMode ? "DRY_RUN" : "AUTO_EXECUTE";
+            }
             
             // Add initial events
-            AddEvent("🔐 AUTH", _authStatus ? "Logged in successfully" : "Authentication pending");
+            AddEvent("🔐 AUTH", _authStatus ? "Logged in as kevinsuero072897@gmail.com" : "Authentication pending");
             AddEvent("📊 ACCOUNT", _accountInfo);
             AddEvent("📈 CONTRACTS", _contractsInfo);
             AddEvent("🔌 HUBS", _hubStatus);
             AddEvent("✅ SYSTEM", _systemStatus);
-            AddEvent("📍 MODE", $"{_mode} (kill.txt not present → AUTO_EXECUTE available)");
+            
+            string modeMessage = killFileExists 
+                ? "DRY_RUN (kill.txt present → Trading disabled for safety)"
+                : $"{_mode} (kill.txt not present → AUTO_EXECUTE available)";
+            AddEvent("📍 MODE", modeMessage);
+            
             AddEvent("🎯 STRATEGY", $"{_strategy} | Risk: 1% per trade");
             AddEvent("🕐 SCHEDULE", $"{_schedule} | Next: 09:30:00");
+            
+            if (killFileExists)
+            {
+                AddEvent("⚠️ SAFETY", "Kill switch activated - All trading disabled");
+            }
         }
         
         return Task.CompletedTask;
@@ -107,6 +130,25 @@ public class ConsoleDashboardService : BackgroundService
 
         lock (_lock)
         {
+            // Check for kill.txt file dynamically
+            bool killFileExists = File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "kill.txt"));
+            
+            // Update status based on current state
+            if (killFileExists && !_hubStatus.Contains("kill switch"))
+            {
+                _hubStatus = "User ⚠️ Market ⚠️ (kill switch)";
+                _systemStatus = "Safe Mode (kill.txt present)";
+                _mode = "DRY_RUN";
+                AddEvent("⚠️ SAFETY", "Kill switch activated - All trading disabled");
+            }
+            else if (!killFileExists && _hubStatus.Contains("kill switch"))
+            {
+                _hubStatus = "User ✓ Market ✓ (stable)";
+                _systemStatus = "Ready (5/5 checks passed)";
+                _mode = _appOptions.EnableDryRunMode ? "DRY_RUN" : "AUTO_EXECUTE";
+                AddEvent("✅ SAFETY", "Kill switch deactivated - Trading resumed");
+            }
+            
             // Move cursor to top and redraw status
             Console.SetCursorPosition(0, 4);
             
@@ -119,7 +161,11 @@ public class ConsoleDashboardService : BackgroundService
             Console.WriteLine($"[{currentTime}] 🔌 HUBS: {_hubStatus}");
             Console.WriteLine($"[{currentTime}] ✅ SYSTEM: {_systemStatus}");
             Console.WriteLine();
-            Console.WriteLine($"[{currentTime}] 📍 MODE: {_mode} (kill.txt not present → AUTO_EXECUTE available)");
+            
+            string modeMessage = killFileExists 
+                ? "DRY_RUN (kill.txt present → Trading disabled for safety)"
+                : $"{_mode} (kill.txt not present → AUTO_EXECUTE available)";
+            Console.WriteLine($"[{currentTime}] 📍 MODE: {modeMessage}");
             Console.WriteLine($"[{currentTime}] 🎯 STRATEGY: {_strategy} | Risk: 1% per trade");
             Console.WriteLine($"[{currentTime}] 🕐 SCHEDULE: {_schedule} | Next: 09:30:00");
             Console.WriteLine();
