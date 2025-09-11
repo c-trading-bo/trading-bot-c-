@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TopstepX.Bot.Abstractions;
+using TradingBot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
 using BotCore.Models;
 using BotCore.Strategy;
@@ -44,6 +45,7 @@ namespace TopstepX.Bot.Core.Services
         private readonly TimeOptimizedStrategyManager _timeOptimizedStrategyManager;
         private readonly FeatureEngineering _featureEngineering;
         private readonly StrategyMlModelManager _strategyMlModelManager;
+        private readonly ISignalRConnectionManager _signalRConnectionManager;
         
         // Account/contract selection fields
         private string[] _chosenContracts = Array.Empty<string>();
@@ -131,7 +133,8 @@ namespace TopstepX.Bot.Core.Services
             TradingSystemConfiguration config,
             TimeOptimizedStrategyManager timeOptimizedStrategyManager,
             FeatureEngineering featureEngineering,
-            StrategyMlModelManager strategyMlModelManager)
+            StrategyMlModelManager strategyMlModelManager,
+            ISignalRConnectionManager signalRConnectionManager)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -145,6 +148,15 @@ namespace TopstepX.Bot.Core.Services
             _timeOptimizedStrategyManager = timeOptimizedStrategyManager;
             _featureEngineering = featureEngineering;
             _strategyMlModelManager = strategyMlModelManager;
+            _signalRConnectionManager = signalRConnectionManager;
+            
+            // Wire up SignalR data reception handlers to complete the connection state machine
+            _signalRConnectionManager.OnMarketDataReceived += (data) => _ = OnMarketDataReceived(data);
+            _signalRConnectionManager.OnContractQuotesReceived += (data) => _ = OnMarketDataReceived(data); // Use same handler for both
+            _signalRConnectionManager.OnGatewayUserOrderReceived += OnGatewayUserOrderReceived;
+            _signalRConnectionManager.OnGatewayUserTradeReceived += OnGatewayUserTradeReceived;
+            _signalRConnectionManager.OnFillUpdateReceived += (data) => _ = OnFillConfirmed(data);
+            _signalRConnectionManager.OnOrderUpdateReceived += OnOrderUpdateReceived;
             
             // Setup HTTP client
             _httpClient.BaseAddress = new Uri(_config.TopstepXApiBaseUrl);
@@ -955,9 +967,9 @@ namespace TopstepX.Bot.Core.Services
                 return Task.FromResult(false);
             }
 
-            // Check hub connections
-            var userHubConnected = _userHubConnection?.State == HubConnectionState.Connected;
-            var marketHubConnected = _marketHubConnection?.State == HubConnectionState.Connected;
+            // Check hub connections using SignalRConnectionManager
+            var userHubConnected = _signalRConnectionManager.IsUserHubConnected;
+            var marketHubConnected = _signalRConnectionManager.IsMarketHubConnected;
             
             if (!userHubConnected || !marketHubConnected)
             {
@@ -1237,6 +1249,79 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
+        /// Gateway User Order handler - completing the SignalR state machine
+        /// </summary>
+        private void OnGatewayUserOrderReceived(object orderObj)
+        {
+            try
+            {
+                var orderJson = JsonSerializer.Serialize(orderObj);
+                var orderElement = JsonSerializer.Deserialize<JsonElement>(orderJson);
+
+                if (orderElement.TryGetProperty("orderId", out var orderIdElement) &&
+                    orderElement.TryGetProperty("status", out var statusElement))
+                {
+                    var orderId = orderIdElement.GetString() ?? string.Empty;
+                    var status = statusElement.GetString() ?? string.Empty;
+                    var customTag = orderElement.TryGetProperty("customTag", out var tagElement) ? tagElement.GetString() ?? string.Empty : string.Empty;
+
+                    // Log order status per instructions
+                    _logger.LogInformation("[ORDER] account={AccountId} status={Status} orderId={OrderId} tag={CustomTag}",
+                        _config.AccountId, status, orderId, customTag);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ORDER] Error processing GatewayUserOrder event");
+            }
+        }
+
+        /// <summary>
+        /// Gateway User Trade handler - completing the SignalR state machine
+        /// </summary>
+        private void OnGatewayUserTradeReceived(object tradeObj)
+        {
+            try
+            {
+                var tradeJson = JsonSerializer.Serialize(tradeObj);
+                var tradeElement = JsonSerializer.Deserialize<JsonElement>(tradeJson);
+
+                if (tradeElement.TryGetProperty("orderId", out var orderIdElement) &&
+                    tradeElement.TryGetProperty("fillPrice", out var priceElement) &&
+                    tradeElement.TryGetProperty("quantity", out var qtyElement))
+                {
+                    var orderId = orderIdElement.GetString() ?? string.Empty;
+                    var fillPrice = priceElement.GetDecimal();
+                    var quantity = qtyElement.GetDecimal();
+
+                    // Log trade execution per instructions
+                    _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time}",
+                        _config.AccountId, orderId, Px.F2(fillPrice), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[TRADE] Error processing GatewayUserTrade event");
+            }
+        }
+
+        /// <summary>
+        /// Order Update handler - completing the SignalR state machine
+        /// </summary>
+        private void OnOrderUpdateReceived(object orderUpdateObj)
+        {
+            try
+            {
+                _logger.LogDebug("[ORDER_UPDATE] Received order update");
+                // Add specific order update processing logic here if needed
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ORDER_UPDATE] Error processing order update");
+            }
+        }
+
+        /// <summary>
         /// Update ML/RL system with execution data for continuous learning
         /// </summary>
         private Task UpdateMlRlSystemWithFillAsync(string orderId, string symbol, decimal fillPrice, decimal quantity, string side)
@@ -1407,53 +1492,52 @@ namespace TopstepX.Bot.Core.Services
 
         private async Task SetupSignalRConnectionsAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("📡 Setting up SignalR connections...");
+            _logger.LogInformation("📡 Setting up SignalR connections with production-ready connection manager...");
             
-            // Setup User Hub connection
-            _userHubConnection = new HubConnectionBuilder()
-                .WithUrl(_config.UserHubUrl)
-                .WithAutomaticReconnect()
-                .Build();
+            try
+            {
+                // Use the robust SignalR Connection Manager instead of manual connection setup
+                _userHubConnection = await _signalRConnectionManager.GetUserHubConnectionAsync();
+                _marketHubConnection = await _signalRConnectionManager.GetMarketHubConnectionAsync();
+                
+                // Subscribe to user events for the configured account
+                if (!string.IsNullOrEmpty(_config.AccountId))
+                {
+                    var userSubscribed = await _signalRConnectionManager.SubscribeToUserEventsAsync(_config.AccountId);
+                    _logger.LogInformation("📊 User events subscription: {Status}", userSubscribed ? "SUCCESS" : "FAILED");
+                }
+                
+                // Subscribe to market events for chosen contracts
+                foreach (var contract in _chosenContracts.DefaultIfEmpty("ES"))
+                {
+                    var marketSubscribed = await _signalRConnectionManager.SubscribeToMarketEventsAsync(contract);
+                    _logger.LogInformation("📈 Market events subscription for {Contract}: {Status}", 
+                        contract, marketSubscribed ? "SUCCESS" : "FAILED");
+                }
 
-            // Setup Market Hub connection  
-            _marketHubConnection = new HubConnectionBuilder()
-                .WithUrl(_config.MarketHubUrl)
-                .WithAutomaticReconnect()
-                .Build();
-
-            await Task.WhenAll(
-                _userHubConnection.StartAsync(cancellationToken),
-                _marketHubConnection.StartAsync(cancellationToken)
-            );
-
-            _logger.LogInformation("✅ SignalR connections established");
+                _logger.LogInformation("✅ SignalR connections established with production-ready state machine");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to setup SignalR connections");
+                throw;
+            }
         }
 
         private void SetupEventHandlers()
         {
-            if (_userHubConnection != null)
-            {
-                _userHubConnection.On<object>("FillUpdate", OnFillConfirmed);
-                _userHubConnection.On<object>("OrderUpdate", (order) => 
-                {
-                    _logger.LogDebug("[ORDER_UPDATE] Received order update");
-                });
-            }
-
-            if (_marketHubConnection != null)
-            {
-                _marketHubConnection.On<object>("MarketData", OnMarketDataReceived);
-                _marketHubConnection.On<object>("ContractQuotes", OnMarketDataReceived);
-            }
+            // Event handlers are now automatically wired through SignalRConnectionManager
+            // in the constructor - this ensures proper connection state machine
+            _logger.LogInformation("📡 Event handlers are wired through SignalRConnectionManager for robust state management");
         }
 
         private Task PerformSystemReadinessChecksAsync()
         {
             _logger.LogInformation("🔍 Performing system readiness checks...");
             
-            // Check connections
-            var userHubReady = _userHubConnection?.State == HubConnectionState.Connected;
-            var marketHubReady = _marketHubConnection?.State == HubConnectionState.Connected;
+            // Check connections using SignalRConnectionManager
+            var userHubReady = _signalRConnectionManager.IsUserHubConnected;
+            var marketHubReady = _signalRConnectionManager.IsMarketHubConnected;
             
             _logger.LogInformation("📊 System Status - UserHub: {UserHub}, MarketHub: {MarketHub}, BarsSeen: {BarsSeen}",
                 userHubReady, marketHubReady, _barsSeen);
@@ -1478,9 +1562,9 @@ namespace TopstepX.Bot.Core.Services
         {
             var score = 1.0;
             
-            // Reduce score for disconnected hubs
-            if (_userHubConnection?.State != HubConnectionState.Connected) score -= 0.3;
-            if (_marketHubConnection?.State != HubConnectionState.Connected) score -= 0.3;
+            // Reduce score for disconnected hubs using SignalRConnectionManager
+            if (!_signalRConnectionManager.IsUserHubConnected) score -= 0.3;
+            if (!_signalRConnectionManager.IsMarketHubConnected) score -= 0.3;
             
             // Reduce score for stale data
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;
