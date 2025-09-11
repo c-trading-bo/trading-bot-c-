@@ -789,54 +789,6 @@ namespace OrchestratorAgent
                             return new BotCore.Services.ZoneService(logger, zonesPath);
                         });
 
-                        // Dashboard functionality commented out - missing Dashboard module
-                        /*
-                        // Register RealtimeHub with metrics provider capturing current pos/status
-                        webBuilder.Services.AddSingleton<Dashboard.RealtimeHub>(sp =>
-                        {
-                            var logger = sp.GetRequiredService<ILogger<Dashboard.RealtimeHub>>();
-                            Dashboard.MetricsSnapshot MetricsProvider()
-                            {
-                                // Build metrics from PositionTracker snapshot
-                                var snap = posTracker.Snapshot();
-                                decimal realized = 0m, unreal = 0m;
-                                var chips = new List<Dashboard.PositionChip>();
-                                foreach (var kv in snap)
-                                {
-                                    var ps = kv.Value;
-                                    realized += ps.RealizedUsd;
-                                    unreal += ps.UnrealizedUsd;
-                                    // Map contractId keys back to root symbols for UI matching (ES/NQ)
-                                    var key = kv.Key;
-                                    string symOut = key;
-                                    try
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(esContract) && string.Equals(key, esContract, StringComparison.OrdinalIgnoreCase)) symOut = esRoot;
-                                        else if (!string.IsNullOrWhiteSpace(nqContract) && string.Equals(key, nqContract, StringComparison.OrdinalIgnoreCase)) symOut = nqRoot;
-                                    }
-                                    catch { }
-                                    chips.Add(new Dashboard.PositionChip(symOut, ps.Qty, ps.AvgPrice, ps.LastPrice, ps.UnrealizedUsd, ps.RealizedUsd));
-                                }
-                                var mode = (Environment.GetEnvironmentVariable("PAPER_MODE") == "1") ? "PAPER" : (Environment.GetEnvironmentVariable("SHADOW_MODE") == "1") ? "SHADOW" : "LIVE";
-                                var day = realized + unreal;
-                                decimal mdl = 1000m;
-                                try { mdl = status.Get<decimal?>("risk.daily.max") ?? mdl; } catch { }
-                                var remaining = mdl + Math.Min(0m, realized);
-                                var userHubState = "Connected"; // simplify; refine from actual hub state if desired
-                                var marketHubState = "Connected";
-
-                                // Flags for dashboard badges derived from status/env
-                                // (we'll extend the MetricsSnapshot to include them)
-                                bool curfewNoNew = status.Get<bool?>("curfew.no_new") ?? false;
-                                bool dayPnlNoNew = status.Get<bool?>("day_pnl.no_new") ?? false;
-
-                                return new Dashboard.MetricsSnapshot(accountId, mode, realized, unreal, day, mdl, remaining, userHubState, marketHubState, DateTime.Now, chips, curfewNoNew, dayPnlNoNew);
-                            }
-                            return new Dashboard.RealtimeHub(logger, MetricsProvider);
-                        });
-                        webBuilder.Services.AddHostedService(sp => sp.GetRequiredService<Dashboard.RealtimeHub>());
-                        */
-                        
                         // Add Workflow Integration Services
                         webBuilder.Services.AddSingleton<OrchestratorAgent.Intelligence.WorkflowIntegrationService>();
                         // Note: Intelligence integration pending project references fix
@@ -844,7 +796,6 @@ namespace OrchestratorAgent
                         var web = webBuilder.Build();
                         web.UseDefaultFiles();
                         web.UseStaticFiles();
-                        // dashboardHub = web.Services.GetRequiredService<Dashboard.RealtimeHub>(); // Commented out - Dashboard not available
                         rlSizer = web.Services.GetRequiredService<OrchestratorAgent.ML.RlSizer>();
                         sizerCanary = web.Services.GetRequiredService<OrchestratorAgent.ML.SizerCanary>();
 
@@ -853,7 +804,6 @@ namespace OrchestratorAgent
 
                         // Get zone service from DI container
                         zoneService = web.Services.GetRequiredService<BotCore.Services.IZoneService>();
-                        // web.MapDashboard(dashboardHub); // Commented out - Dashboard not available
 
                         // Map health endpoints on same Kestrel host
                         web.MapGet("/healthz", async () =>
