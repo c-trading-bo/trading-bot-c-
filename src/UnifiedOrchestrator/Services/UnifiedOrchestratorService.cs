@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 using TradingBot.UnifiedOrchestrator.Models;
+using BotCore.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 {
     private readonly ILogger<UnifiedOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
+    private readonly ITopstepXService? _topstepXService;
     private readonly object? _tradingOrchestrator;
     private readonly object? _intelligenceOrchestrator;
     private readonly object? _dataOrchestrator;
@@ -30,10 +32,12 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
-        ICentralMessageBus messageBus)
+        ICentralMessageBus messageBus,
+        ITopstepXService? topstepXService = null)
     {
         _logger = logger;
         _messageBus = messageBus;
+        _topstepXService = topstepXService;
         _tradingOrchestrator = null!; // Will be resolved later
         _intelligenceOrchestrator = null!; // Will be resolved later
         _dataOrchestrator = null!; // Will be resolved later
@@ -87,13 +91,34 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _logger.LogDebug("Intelligence Orchestrator: {Status}", _intelligenceOrchestrator != null ? "Available" : "Not initialized");
         _logger.LogDebug("Data Orchestrator: {Status}", _dataOrchestrator != null ? "Available" : "Not initialized");
         
-        // In production, this would establish TopstepX connection
-        // For now, simulate connection status check
+        // Establish real TopstepX connection using Infrastructure.TopstepX.TopstepXService
         try
         {
-            // Simulate connection check
-            await Task.Delay(50, cancellationToken);
-            _isConnectedToTopstep = true; // Would be actual connection result
+            if (_topstepXService != null)
+            {
+                _logger.LogInformation("🔌 Checking TopstepX connection status...");
+                _isConnectedToTopstep = _topstepXService.IsConnected;
+                
+                if (!_isConnectedToTopstep)
+                {
+                    _logger.LogInformation("🔄 Attempting to connect to TopstepX...");
+                    _isConnectedToTopstep = await _topstepXService.ConnectAsync();
+                }
+                
+                if (_isConnectedToTopstep)
+                {
+                    _logger.LogInformation("✅ TopstepX connection established successfully");
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ TopstepX connection failed - running in offline mode");
+                }
+            }
+            else
+            {
+                _logger.LogInformation("ℹ️ TopstepX service not available - running in offline mode");
+                _isConnectedToTopstep = false;
+            }
         }
         catch (Exception ex)
         {
