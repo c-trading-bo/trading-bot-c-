@@ -18,11 +18,19 @@ public class AutoTopstepXLoginService : BackgroundService
     private readonly TopstepAuthAgent _authAgent;
     private readonly HttpClient _httpClient;
     private readonly ISignalRConnectionManager? _signalRConnectionManager;
-
+    
+    // Authentication readiness signaling for coordinated startup
+    private readonly TaskCompletionSource<bool> _authReadyTaskSource = new();
+    
     public bool IsAuthenticated { get; private set; }
     public string? JwtToken { get; private set; }
     public string? AccountId { get; private set; }
     public TopstepXCredentials? CurrentCredentials { get; private set; }
+    
+    /// <summary>
+    /// Task that completes when authentication is ready and account is selected
+    /// </summary>
+    public Task<bool> AuthReadyTask => _authReadyTaskSource.Task;
 
     public AutoTopstepXLoginService(
         ILogger<AutoTopstepXLoginService> logger,
@@ -78,6 +86,13 @@ public class AutoTopstepXLoginService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error in AutoTopstepXLoginService");
+            
+            // Signal authentication failure for coordinated SignalR startup
+            if (!_authReadyTaskSource.Task.IsCompleted)
+            {
+                _authReadyTaskSource.SetResult(false);
+                _logger.LogError("❌ Authentication failed signal sent - SignalR will not attempt connection");
+            }
         }
     }
 
@@ -116,6 +131,13 @@ public class AutoTopstepXLoginService : BackgroundService
         }
 
         _logger.LogWarning("⚠️ No credentials discovered - bot will run in demo mode");
+        
+        // Signal authentication failure for coordinated SignalR startup
+        if (!_authReadyTaskSource.Task.IsCompleted)
+        {
+            _authReadyTaskSource.SetResult(false);
+            _logger.LogWarning("⚠️ No credentials signal sent - SignalR will not attempt connection");
+        }
     }
 
     private async Task AttemptLogin(CancellationToken cancellationToken)
@@ -275,6 +297,13 @@ public class AutoTopstepXLoginService : BackgroundService
                         
                         _logger.LogInformation("✅ SELECTED ACCOUNT ({Reason}) - ID: {AccountId}, Name: {AccountName}, CanTrade: {CanTrade}, Balance: ${Balance:F2}", 
                             accountSelectionReason, AccountId, accountName, canTrade, balance);
+                        
+                        // CRITICAL: Signal authentication readiness for coordinated SignalR startup
+                        if (!_authReadyTaskSource.Task.IsCompleted)
+                        {
+                            _authReadyTaskSource.SetResult(true);
+                            _logger.LogInformation("🚀 Authentication ready signal sent - SignalR can now safely connect");
+                        }
                         
                         // CRITICAL: Retry SignalR subscriptions with the retrieved account ID
                         if (_signalRConnectionManager != null)

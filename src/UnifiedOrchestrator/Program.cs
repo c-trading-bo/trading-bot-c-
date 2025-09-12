@@ -242,13 +242,7 @@ public class Program
         // Configure model loading options
         services.Configure<ModelLoadingOptions>(configuration.GetSection("ModelLoading"));
 
-        // Core HTTP client for TopstepX API
-        services.AddHttpClient<TopstepAuthAgent>(client =>
-        {
-            client.BaseAddress = new Uri("https://api.topstepx.com");
-            client.DefaultRequestHeaders.Add("User-Agent", "UnifiedTradingOrchestrator/1.0");
-            client.Timeout = TimeSpan.FromSeconds(30); // Prevent hanging on network issues
-        });
+        // Core HTTP client registration (MOVED TO AUTHENTICATION SECTION BELOW)
 
         // Register the CENTRAL MESSAGE BUS - The "ONE BRAIN" communication system
         services.AddSingleton<ICentralMessageBus, CentralMessageBus>();
@@ -270,8 +264,7 @@ public class Program
 
         // NO MORE FAKE MasterOrchestrator - using REAL sophisticated services only
 
-        // Register TopstepX authentication agent
-        services.AddSingleton<TopstepAuthAgent>();
+        // TopstepAuthAgent registration moved to authentication section below
 
         // ================================================================================
         // AI/ML TRADING BRAIN REGISTRATION - DUAL ML APPROACH WITH UCB
@@ -349,8 +342,12 @@ public class Program
             client.Timeout = TimeSpan.FromSeconds(30);
         });
         
-        // Register AutoTopstepXLoginService as HOSTED SERVICE FIRST for automatic token refresh
-        services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
+        // Register AutoTopstepXLoginService as SINGLETON FIRST 
+        services.AddSingleton<BotCore.Services.AutoTopstepXLoginService>();
+        
+        // THEN register the same singleton instance as HOSTED SERVICE for automatic token refresh
+        services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>(provider => 
+            provider.GetRequiredService<BotCore.Services.AutoTopstepXLoginService>());
         
         // THEN register TradingSystemIntegrationService so it starts AFTER auth is ready
         services.AddHostedService<TopstepX.Bot.Core.Services.TradingSystemIntegrationService>();
@@ -379,28 +376,23 @@ public class Program
         services.AddSingleton<PythonUcbLauncher>();
         
         // ================================================================================
-        // AUTHENTICATION - TopstepX Credential Management
+        // AUTHENTICATION - TopstepX Credential Management (CONSOLIDATED)
         // ================================================================================
         
-        // Register Credential Manager
-        services.AddSingleton<TopstepXCredentialManager>();
-        
-        // Register TopstepAuthAgent (authentication service)
-        services.AddSingleton<TopstepAuthAgent>();
-        
-        // Register CredentialManager as singleton
+        // Register Credential Manager (SINGLE REGISTRATION)
         services.AddSingleton<TopstepXCredentialManager>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<TopstepXCredentialManager>>();
             return new TopstepXCredentialManager(logger);
         });
         
-        // Register TopstepAuthAgent with HTTP client
+        // Register TopstepAuthAgent with HTTP client (SINGLE REGISTRATION)
         services.AddHttpClient<TopstepAuthAgent>(client =>
         {
             client.BaseAddress = new Uri("https://api.topstepx.com");
             client.DefaultRequestHeaders.Add("User-Agent", "TopstepX-TradingBot/1.0");
         });
+        services.AddSingleton<TopstepAuthAgent>();
         
         // ================================================================================
         // ADVANCED INFRASTRUCTURE - ML/DATA MANAGEMENT  
@@ -508,7 +500,7 @@ public class Program
         // Register services that have interfaces first
         
         // Register authentication and credential management services from Infrastructure.TopstepX
-        services.AddSingleton<TopstepXCredentialManager>();
+        // TopstepXCredentialManager already registered above - NO DUPLICATE NEEDED
         
         // AutoTopstepXLoginService already registered above (line 369) - NO DUPLICATE NEEDED
         // services.AddHostedService<BotCore.Services.AutoTopstepXLoginService>();
