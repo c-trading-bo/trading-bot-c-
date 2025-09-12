@@ -15,7 +15,66 @@ public class TopstepXCredentialManager
     public TopstepXCredentialManager(ILogger<TopstepXCredentialManager> logger)
     {
         _logger = logger;
-        _credentialsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".topstepx", "credentials.json");
+        
+        // FIXED: Use Roaming AppData instead of legacy .topstepx path
+        var appDataPath = Environment.GetEnvironmentVariable("TRADING_CREDENTIALS_PATH") ?? 
+                         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "TradingBot");
+        _credentialsPath = Path.Combine(appDataPath, "credentials.json");
+        
+        // Clean up legacy .topstepx path if it exists
+        CleanupLegacyCredentialPaths();
+    }
+
+    /// <summary>
+    /// Clean up legacy .topstepx credential paths
+    /// Implements credential path cleanup requirement
+    /// </summary>
+    private void CleanupLegacyCredentialPaths()
+    {
+        try
+        {
+            var legacyPaths = new[]
+            {
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".topstepx"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".topstep"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tsx")
+            };
+
+            foreach (var legacyPath in legacyPaths)
+            {
+                if (Directory.Exists(legacyPath))
+                {
+                    try
+                    {
+                        // Before removing, try to migrate credentials if they exist
+                        var legacyCredFile = Path.Combine(legacyPath, "credentials.json");
+                        if (File.Exists(legacyCredFile) && !File.Exists(_credentialsPath))
+                        {
+                            var credContent = File.ReadAllText(legacyCredFile);
+                            var directory = Path.GetDirectoryName(_credentialsPath);
+                            if (!Directory.Exists(directory))
+                            {
+                                Directory.CreateDirectory(directory!);
+                            }
+                            File.WriteAllText(_credentialsPath, credContent);
+                            _logger.LogInformation("📦 Migrated credentials from legacy path: {LegacyPath}", legacyPath);
+                        }
+
+                        // Remove legacy directory
+                        Directory.Delete(legacyPath, recursive: true);
+                        _logger.LogInformation("🧹 Cleaned up legacy credential path: {LegacyPath}", legacyPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "⚠️ Could not clean up legacy path: {LegacyPath}", legacyPath);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "⚠️ Error during legacy credential path cleanup");
+        }
     }
 
     public TopstepXCredentials? LoadCredentials()

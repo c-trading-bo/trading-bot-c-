@@ -4,6 +4,7 @@ using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
@@ -50,6 +51,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private volatile bool _userHubWired = false;
     private volatile bool _marketHubWired = false;
     private readonly Timer _connectionHealthTimer;
+    private readonly SemaphoreSlim _tokenRefreshLock = new(1, 1);
 
     public bool IsUserHubConnected => _userHub?.State == HubConnectionState.Connected && _userHubWired;
     public bool IsMarketHubConnected => _marketHub?.State == HubConnectionState.Connected && _marketHubWired;
@@ -77,8 +79,236 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, 
             TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
             
-        // Set environment variable for .NET HTTP handler compatibility  
-        Environment.SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER", "false");
+        // FIXED: Remove legacy HTTP handler override - use default SocketsHttpHandler
+        // Environment.SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER", "false");
+        
+        // FIXED: Subscribe to token refresh events for immediate hub restart
+        _tokenProvider.TokenRefreshed += OnTokenRefreshed;
+    }
+
+    /// <summary>
+    /// Handle token refresh events with immediate hub restart
+    /// Implements the token refresh policy requirement
+    /// </summary>
+    private async void OnTokenRefreshed(string newToken)
+    {
+        if (await _tokenRefreshLock.WaitAsync(TimeSpan.FromSeconds(5)))
+        {
+            try
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "Fresh token arrived - checking hub connection states for restart");
+
+                var needsUserHubRestart = _userHub == null || 
+                                        _userHub.State != HubConnectionState.Connected || 
+                                        string.IsNullOrEmpty(_userHub.ConnectionId);
+
+                var needsMarketHubRestart = _marketHub == null || 
+                                          _marketHub.State != HubConnectionState.Connected || 
+                                          string.IsNullOrEmpty(_marketHub.ConnectionId);
+
+                if (needsUserHubRestart || needsMarketHubRestart)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Restarting hubs due to fresh token - UserHub: {needsUserHubRestart}, MarketHub: {needsMarketHubRestart}");
+
+                    // FIXED: Remove "skip restarts" logic - always restart on fresh token if hub is disconnected
+                    if (needsUserHubRestart)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await GetUserHubConnectionAsync();
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                    "User Hub restarted successfully with fresh token");
+                            }
+                            catch (Exception ex)
+                            {
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                    $"User Hub restart failed: {ex.Message}");
+                            }
+                        });
+                    }
+
+                    if (needsMarketHubRestart)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await GetMarketHubConnectionAsync();
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                    "Market Hub restarted successfully with fresh token");
+                            }
+                            catch (Exception ex)
+                            {
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                    $"Market Hub restart failed: {ex.Message}");
+                            }
+                        });
+                    }
+                }
+                else
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+                        "Fresh token received but both hubs are already connected - no restart needed");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                    $"Error handling token refresh: {ex.Message}");
+            }
+            finally
+            {
+                _tokenRefreshLock.Release();
+            }
+        }
+        else
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                "Token refresh handling skipped - already processing another refresh");
+        }
+    }
+
+    /// <summary>
+    /// Wait for JWT token readiness with timeout and logging
+    /// Implements 30-45 second delay for token readiness as required
+    /// </summary>
+    private async Task<string?> WaitForJwtReadinessAsync(CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var timeout = TimeSpan.FromSeconds(45); // Max 45 seconds as specified
+        var checkInterval = TimeSpan.FromSeconds(2);
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            "Waiting for JWT token readiness before establishing hub connections...");
+        
+        while (DateTime.UtcNow - startTime < timeout)
+        {
+            var token = await _tokenProvider.GetTokenAsync();
+            
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Validate JWT format and timing
+                if (await ValidateJwtTokenAsync(token))
+                {
+                    var waitTime = DateTime.UtcNow - startTime;
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"JWT token ready after {waitTime.TotalSeconds:F1} seconds");
+                    return token;
+                }
+                else
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                        "JWT token found but validation failed (timing/format issues)");
+                }
+            }
+            
+            // Log periodic wait status
+            var elapsed = DateTime.UtcNow - startTime;
+            if (elapsed.TotalSeconds > 10 && elapsed.TotalSeconds % 10 < 2) // Log every 10 seconds
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    $"Still waiting for JWT token... {elapsed.TotalSeconds:F0}s elapsed");
+            }
+            
+            await Task.Delay(checkInterval, cancellationToken);
+        }
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+            $"JWT token readiness timeout after {timeout.TotalSeconds} seconds");
+        return null;
+    }
+
+    /// <summary>
+    /// Validate JWT token format and timing
+    /// Implements clock validation for JWT not-before/expiry
+    /// </summary>
+    private async Task<bool> ValidateJwtTokenAsync(string token)
+    {
+        try
+        {
+            // Remove Bearer prefix if present
+            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring(7);
+            }
+            
+            // Check JWT format (should have 3 parts separated by dots)
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    "JWT token format invalid - expected 3 parts separated by dots");
+                return false;
+            }
+            
+            // Decode payload to check timing (basic validation)
+            try
+            {
+                var payloadBytes = Convert.FromBase64String(AddBase64Padding(parts[1]));
+                var payloadJson = System.Text.Encoding.UTF8.GetString(payloadBytes);
+                using var doc = JsonDocument.Parse(payloadJson);
+                
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                
+                // Check expiry (exp claim)
+                if (doc.RootElement.TryGetProperty("exp", out var expElement))
+                {
+                    var exp = expElement.GetInt64();
+                    if (now >= exp)
+                    {
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                            $"JWT token expired - exp: {exp}, now: {now}");
+                        return false;
+                    }
+                }
+                
+                // Check not-before (nbf claim)
+                if (doc.RootElement.TryGetProperty("nbf", out var nbfElement))
+                {
+                    var nbf = nbfElement.GetInt64();
+                    if (now < nbf)
+                    {
+                        var skew = nbf - now;
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                            $"JWT token not yet valid - nbf: {nbf}, now: {now}, skew: {skew}s (check system clock)");
+                        return false;
+                    }
+                }
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+                    "JWT token timing validation passed");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    $"JWT payload decode failed: {ex.Message}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"JWT validation error: {ex.Message}");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Add padding to Base64 string for proper decoding
+    /// </summary>
+    private static string AddBase64Padding(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: return base64 + "==";
+            case 3: return base64 + "=";
+            default: return base64;
+        }
     }
 
     /// <summary>
@@ -218,19 +448,20 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing User Hub connection");
 
-            var token = await _tokenProvider.GetTokenAsync();
+            // FIXED: Wait for JWT readiness before any connection attempt
+            var token = await WaitForJwtReadinessAsync();
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
-                    "Cannot connect to User Hub - no valid JWT token");
-                throw new InvalidOperationException("No valid JWT token available for User Hub connection");
+                    "Cannot connect to User Hub - JWT token readiness timeout");
+                throw new InvalidOperationException("JWT token readiness timeout - cannot establish User Hub connection");
             }
 
             // Log token info for debugging (without exposing the actual token)
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-                $"Using JWT token for User Hub: length={token.Length}, starts_with_Bearer={token.StartsWith("Bearer ")}, has_dots={token.Count(c => c == '.')}");
+                $"Using validated JWT token for User Hub: length={token.Length}, has_dots={token.Count(c => c == '.')}");
 
-            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            // FIXED: Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
             if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 token = token.Substring(7);
@@ -242,7 +473,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             _userHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+                    // FIXED: AccessTokenProvider that always returns freshest token
+                    options.AccessTokenProvider = async () => 
+                    {
+                        var freshToken = await _tokenProvider.GetTokenAsync();
+                        if (!string.IsNullOrEmpty(freshToken) && freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            freshToken = freshToken.Substring(7);
+                        }
+                        return freshToken;
+                    };
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -257,14 +497,12 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // Enhanced TopstepX-specific transport configuration
-                    options.Transports = HttpTransportType.WebSockets |
-                                       HttpTransportType.LongPolling |
-                                       HttpTransportType.ServerSentEvents;
+                    // FIXED: Force WebSockets transport and skip negotiation
+                    options.Transports = HttpTransportType.WebSockets;
+                    options.SkipNegotiation = true;
 
                     // Extended timeouts for TopstepX stability
                     options.CloseTimeout = TimeSpan.FromSeconds(45);
-                    options.SkipNegotiation = false; // Allow negotiation for transport fallback
                     
                     // Add custom headers for TopstepX
                     options.Headers.Add("User-Agent", "TradingBot-SignalR/1.0");
@@ -336,15 +574,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing Market Hub connection");
 
-            var token = await _tokenProvider.GetTokenAsync();
+            // FIXED: Wait for JWT readiness before any connection attempt
+            var token = await WaitForJwtReadinessAsync();
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
-                    "Cannot connect to Market Hub - no valid JWT token");
-                throw new InvalidOperationException("No valid JWT token available for Market Hub connection");
+                    "Cannot connect to Market Hub - JWT token readiness timeout");
+                throw new InvalidOperationException("JWT token readiness timeout - cannot establish Market Hub connection");
             }
 
-            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            // FIXED: Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
             if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 token = token.Substring(7);
@@ -356,7 +595,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             _marketHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/market", options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+                    // FIXED: AccessTokenProvider that always returns freshest token
+                    options.AccessTokenProvider = async () => 
+                    {
+                        var freshToken = await _tokenProvider.GetTokenAsync();
+                        if (!string.IsNullOrEmpty(freshToken) && freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            freshToken = freshToken.Substring(7);
+                        }
+                        return freshToken;
+                    };
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -371,14 +619,12 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // Try WebSockets first, then fallback to other transports
-                    options.Transports = HttpTransportType.WebSockets |
-                                       HttpTransportType.LongPolling |
-                                       HttpTransportType.ServerSentEvents;
+                    // FIXED: Force WebSockets transport and skip negotiation
+                    options.Transports = HttpTransportType.WebSockets;
+                    options.SkipNegotiation = true;
 
                     // Set connection timeouts
                     options.CloseTimeout = TimeSpan.FromSeconds(30);
-                    options.SkipNegotiation = false; // Allow negotiation for transport fallback
                 })
                 .WithAutomaticReconnect(new ExponentialBackoffRetryPolicy())
                 .ConfigureLogging(logging =>
@@ -759,8 +1005,15 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
 
     public void Dispose()
     {
+        // Unsubscribe from token refresh events
+        if (_tokenProvider != null)
+        {
+            _tokenProvider.TokenRefreshed -= OnTokenRefreshed;
+        }
+        
         _connectionHealthTimer?.Dispose();
         _connectionLock.Dispose();
+        _tokenRefreshLock.Dispose();
         _userHub?.DisposeAsync();
         _marketHub?.DisposeAsync();
     }
