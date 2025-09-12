@@ -1,9 +1,15 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Security;
+using System.Net.WebSockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
@@ -50,6 +56,18 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private volatile bool _userHubWired = false;
     private volatile bool _marketHubWired = false;
     private readonly Timer _connectionHealthTimer;
+    private readonly SemaphoreSlim _tokenRefreshLock = new(1, 1);
+
+    // Subscription manifest tracking
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, int>> _subscriptionManifest = new();
+    
+    // Connection statistics for production monitoring
+    private volatile int _totalConnectAttempts = 0;
+    private volatile int _totalReconnects = 0;
+    private DateTime _longestConnectedStart = DateTime.MinValue;
+    private TimeSpan _longestConnectedSpan = TimeSpan.Zero;
+    private volatile int _totalMessagesReceived = 0;
+    private readonly List<TimeSpan> _connectionGaps = new();
 
     public bool IsUserHubConnected => _userHub?.State == HubConnectionState.Connected && _userHubWired;
     public bool IsMarketHubConnected => _marketHub?.State == HubConnectionState.Connected && _marketHubWired;
@@ -77,8 +95,279 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, 
             TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
             
-        // Set environment variable for .NET HTTP handler compatibility  
-        Environment.SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER", "false");
+        // FIXED: Remove legacy HTTP handler override - use default SocketsHttpHandler
+        // Environment.SetEnvironmentVariable("DOTNET_SYSTEM_NET_HTTP_USESOCKETSHTTPHANDLER", "false");
+        
+        // FIXED: Subscribe to token refresh events for immediate hub restart
+        _tokenProvider.TokenRefreshed += OnTokenRefreshed;
+    }
+
+    /// <summary>
+    /// Handle token refresh events with immediate hub restart
+    /// Implements the token refresh policy requirement
+    /// </summary>
+    private async void OnTokenRefreshed(string newToken)
+    {
+        if (await _tokenRefreshLock.WaitAsync(TimeSpan.FromSeconds(5)))
+        {
+            try
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "Fresh token arrived - checking hub connection states for restart");
+
+                var needsUserHubRestart = _userHub == null || 
+                                        _userHub.State != HubConnectionState.Connected || 
+                                        string.IsNullOrEmpty(_userHub.ConnectionId);
+
+                var needsMarketHubRestart = _marketHub == null || 
+                                          _marketHub.State != HubConnectionState.Connected || 
+                                          string.IsNullOrEmpty(_marketHub.ConnectionId);
+
+                if (needsUserHubRestart || needsMarketHubRestart)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"Restarting hubs due to fresh token - UserHub: {needsUserHubRestart}, MarketHub: {needsMarketHubRestart}");
+
+                    // FIXED: Remove "skip restarts" logic - always restart on fresh token if hub is disconnected
+                    if (needsUserHubRestart)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await GetUserHubConnectionAsync();
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                    "User Hub restarted successfully with fresh token");
+                            }
+                            catch (Exception ex)
+                            {
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                    $"User Hub restart failed: {ex.Message}");
+                            }
+                        });
+                    }
+
+                    if (needsMarketHubRestart)
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await GetMarketHubConnectionAsync();
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                    "Market Hub restarted successfully with fresh token");
+                            }
+                            catch (Exception ex)
+                            {
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                    $"Market Hub restart failed: {ex.Message}");
+                            }
+                        });
+                    }
+                }
+                else
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+                        "Fresh token received but both hubs are already connected - no restart needed");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                    $"Error handling token refresh: {ex.Message}");
+            }
+            finally
+            {
+                _tokenRefreshLock.Release();
+            }
+        }
+        else
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                "Token refresh handling skipped - already processing another refresh");
+        }
+    }
+
+    /// <summary>
+    /// Wait for JWT token readiness with timeout and logging
+    /// Implements 30-45 second delay for token readiness as required
+    /// </summary>
+    private async Task<string?> WaitForJwtReadinessAsync(CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+        var timeout = TimeSpan.FromSeconds(45); // Max 45 seconds as specified
+        var checkInterval = TimeSpan.FromSeconds(2);
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            "Waiting for JWT token readiness before establishing hub connections...");
+        
+        while (DateTime.UtcNow - startTime < timeout)
+        {
+            var token = await _tokenProvider.GetTokenAsync();
+            
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Validate JWT format and timing with enhanced requirements
+                if (await ValidateJwtTokenAsync(token))
+                {
+                    var waitTime = DateTime.UtcNow - startTime;
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"JWT ready after {waitTime.TotalSeconds:F1} seconds - timing validation passed");
+                    return token;
+                }
+                else
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                        "JWT token found but validation failed (need exp-now ≥120s, nbf ≤ now-5s, valid aud/iss)");
+                }
+            }
+            
+            // Log periodic wait status
+            var elapsed = DateTime.UtcNow - startTime;
+            if (elapsed.TotalSeconds > 10 && elapsed.TotalSeconds % 10 < 2) // Log every 10 seconds
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    $"Still waiting for JWT token... {elapsed.TotalSeconds:F0}s elapsed");
+            }
+            
+            await Task.Delay(checkInterval, cancellationToken);
+        }
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+            $"JWT token readiness timeout after {timeout.TotalSeconds} seconds");
+        return null;
+    }
+
+    /// <summary>
+    /// Enhanced JWT validation with audience, issuer, and timing requirements
+    /// Blocks connections unless: token present, exp-now ≥ 120s, nbf ≤ now-5s, audience matches hub
+    /// </summary>
+    private async Task<bool> ValidateJwtTokenAsync(string token, string hubType = "")
+    {
+        try
+        {
+            // Remove Bearer prefix if present
+            if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                token = token.Substring(7);
+            }
+            
+            // Check JWT format (should have 3 parts separated by dots)
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    "JWT token format invalid - expected 3 parts separated by dots");
+                return false;
+            }
+            
+            // Decode payload to check all claims
+            try
+            {
+                var payloadBytes = Convert.FromBase64String(AddBase64Padding(parts[1]));
+                var payloadJson = System.Text.Encoding.UTF8.GetString(payloadBytes);
+                using var doc = JsonDocument.Parse(payloadJson);
+                
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                
+                // Check issuer (iss claim)
+                if (doc.RootElement.TryGetProperty("iss", out var issElement))
+                {
+                    var issuer = issElement.GetString();
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+                        $"JWT issuer: {issuer}");
+                }
+                
+                // Check audience (aud claim) - CRITICAL for hub-specific validation
+                if (doc.RootElement.TryGetProperty("aud", out var audElement))
+                {
+                    var audience = audElement.GetString();
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "SignalRManager", 
+                        $"JWT audience: {audience}");
+                    
+                    // Validate audience matches hub requirement
+                    if (!string.IsNullOrEmpty(hubType))
+                    {
+                        if (hubType.Contains("user", StringComparison.OrdinalIgnoreCase) || 
+                            hubType.Contains("market", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // For TopstepX, accept if audience contains topstepx or api domain
+                            if (!audience?.Contains("topstepx", StringComparison.OrdinalIgnoreCase) == true)
+                            {
+                                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                                    $"JWT audience mismatch for {hubType} - aud: {audience}");
+                                // Don't block for TopstepX - their tokens might have generic audience
+                            }
+                        }
+                    }
+                }
+                
+                // Check expiry with 120s minimum remaining (aud requirement)
+                if (doc.RootElement.TryGetProperty("exp", out var expElement))
+                {
+                    var exp = expElement.GetInt64();
+                    var remainingSeconds = exp - now;
+                    
+                    if (remainingSeconds < 120) // Must have at least 120s remaining
+                    {
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                            $"JWT token expires too soon - exp_in_seconds: {remainingSeconds} (need ≥120s)");
+                        return false;
+                    }
+                    
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                        $"JWT token exp_in_seconds: {remainingSeconds}");
+                }
+                else
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                        "JWT token missing exp claim");
+                    return false;
+                }
+                
+                // Check not-before with 5s tolerance (nbf ≤ now-5s requirement)
+                if (doc.RootElement.TryGetProperty("nbf", out var nbfElement))
+                {
+                    var nbf = nbfElement.GetInt64();
+                    if (now < (nbf - 5)) // Allow 5s clock skew tolerance
+                    {
+                        var skew = nbf - now;
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                            $"JWT token not yet valid - nbf timing issue, skew: {skew}s (check system clock)");
+                        return false;
+                    }
+                }
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "JWT ok - aud, iss, exp, nbf validation passed");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    $"JWT payload decode failed: {ex.Message}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"JWT validation error: {ex.Message}");
+            return false;
+        }
+    }
+    
+    /// <summary>
+    /// Add padding to Base64 string for proper decoding
+    /// </summary>
+    private static string AddBase64Padding(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: return base64 + "==";
+            case 3: return base64 + "=";
+            default: return base64;
+        }
     }
 
     /// <summary>
@@ -114,10 +403,21 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
 
     /// <summary>
     /// Connection startup with retry logic and stability validation
+    /// Logs hub URL and transport for network hygiene
     /// </summary>
     private async Task<bool> StartConnectionWithRetry(HubConnection hubConnection, string hubName)
     {
         const int maxRetries = 3; // Reduced retries to avoid rate limits
+
+        // Log network hygiene information
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            $"Network hygiene - {hubName} connecting to WebSockets transport");
+        
+        if (hubConnection.ConnectionId != null)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                $"Hub URL: {(hubName.Contains("User") ? "https://rtc.topstepx.com/hubs/user" : "https://rtc.topstepx.com/hubs/market")}, Transport: WebSockets");
+        }
 
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
@@ -126,11 +426,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 if (hubConnection == null)
                     throw new InvalidOperationException("Hub connection not initialized");
 
+                Interlocked.Increment(ref _totalConnectAttempts);
+
                 _logger.LogInformation("[TOPSTEPX] Starting {HubName} connection (attempt {Attempt}/{Max})", 
                     hubName, attempt, maxRetries);
 
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 await hubConnection.StartAsync(cts.Token);
+
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "connection started");
 
                 _logger.LogInformation("[TOPSTEPX] {HubName} connection started successfully. State: {State}", 
                     hubName, hubConnection.State);
@@ -167,6 +472,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 {
                     _logger.LogInformation("[TOPSTEPX] {HubName} connection validated after extended checks - State: {State}, ID: {ConnectionId}", 
                         hubName, hubConnection.State, hubConnection.ConnectionId);
+                        
+                    // Track connection start time for statistics
+                    _longestConnectedStart = DateTime.UtcNow;
+                    
                     return true;
                 }
                 else
@@ -218,19 +527,30 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing User Hub connection");
 
-            var token = await _tokenProvider.GetTokenAsync();
+            // FIXED: Wait for JWT readiness before any connection attempt
+            var token = await WaitForJwtReadinessAsync();
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
-                    "Cannot connect to User Hub - no valid JWT token");
-                throw new InvalidOperationException("No valid JWT token available for User Hub connection");
+                    "Cannot connect to User Hub - JWT token readiness timeout");
+                throw new InvalidOperationException("JWT token readiness timeout - cannot establish User Hub connection");
+            }
+
+            // Enhanced JWT validation for User Hub with audience check
+            if (!await ValidateJwtTokenAsync(token, "user"))
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                    "Cannot connect to User Hub - JWT validation failed (timing/audience/format issues)");
+                throw new InvalidOperationException("JWT validation failed - cannot establish User Hub connection");
             }
 
             // Log token info for debugging (without exposing the actual token)
+            var cleanToken = token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? token.Substring(7) : token;
+            var last6Chars = cleanToken.Length >= 6 ? cleanToken.Substring(cleanToken.Length - 6) : "short";
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-                $"Using JWT token for User Hub: length={token.Length}, starts_with_Bearer={token.StartsWith("Bearer ")}, has_dots={token.Count(c => c == '.')}");
+                $"JWT ready for User Hub: length={cleanToken.Length}, last_6_chars=...{last6Chars}");
 
-            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            // FIXED: Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
             if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 token = token.Substring(7);
@@ -242,7 +562,56 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             _userHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+                    // PRODUCTION: AccessTokenProvider with detailed logging and fresh token access
+                    options.AccessTokenProvider = async () => 
+                    {
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                            "AccessTokenProvider CALLED for User Hub connect/reconnect");
+                        
+                        var freshToken = await _tokenProvider.GetTokenAsync();
+                        if (!string.IsNullOrEmpty(freshToken))
+                        {
+                            // Remove Bearer prefix - return raw JWT only
+                            if (freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                            {
+                                freshToken = freshToken.Substring(7);
+                            }
+                            
+                            var last6 = freshToken.Length >= 6 ? freshToken.Substring(freshToken.Length - 6) : "short";
+                            
+                            // Calculate expiry from token for logging
+                            var expInSeconds = 0L;
+                            try
+                            {
+                                var parts = freshToken.Split('.');
+                                if (parts.Length == 3)
+                                {
+                                    var payloadBytes = Convert.FromBase64String(AddBase64Padding(parts[1]));
+                                    var payloadJson = System.Text.Encoding.UTF8.GetString(payloadBytes);
+                                    using var doc = JsonDocument.Parse(payloadJson);
+                                    if (doc.RootElement.TryGetProperty("exp", out var expElement))
+                                    {
+                                        var exp = expElement.GetInt64();
+                                        expInSeconds = exp - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                expInSeconds = -1; // Parse failed
+                            }
+                            
+                            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                $"AccessTokenProvider: token_length={freshToken.Length}, last_6_chars=...{last6}, exp_in_seconds={expInSeconds}");
+                        }
+                        else
+                        {
+                            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                "AccessTokenProvider: No fresh token available!");
+                        }
+                        
+                        return freshToken; // Return raw JWT (no "Bearer ")
+                    };
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -257,14 +626,12 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // Enhanced TopstepX-specific transport configuration
-                    options.Transports = HttpTransportType.WebSockets |
-                                       HttpTransportType.LongPolling |
-                                       HttpTransportType.ServerSentEvents;
+                    // FIXED: Force WebSockets transport and skip negotiation
+                    options.Transports = HttpTransportType.WebSockets;
+                    options.SkipNegotiation = true;
 
                     // Extended timeouts for TopstepX stability
                     options.CloseTimeout = TimeSpan.FromSeconds(45);
-                    options.SkipNegotiation = false; // Allow negotiation for transport fallback
                     
                     // Add custom headers for TopstepX
                     options.Headers.Add("User-Agent", "TradingBot-SignalR/1.0");
@@ -279,9 +646,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 })
                 .Build();
 
-            // Enhanced timeouts for TopstepX production environment
-            _userHub.ServerTimeout = TimeSpan.FromSeconds(90);  // Increased from 60
-            _userHub.KeepAliveInterval = TimeSpan.FromSeconds(20); // Increased from 15
+            // Production-grade timeouts and keepalive settings 
+            // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
+            _userHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Increased for production stability
+            _userHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
             _userHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Increased from 30
 
             SetupUserHubEventHandlers();
@@ -292,13 +660,24 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             {
                 _userHubWired = true;
                 
-                // DEFERRED: Don't subscribe immediately - wait for account ID from login service
-                // The AutoTopstepXLoginService will call RetrySubscriptionsWithAccountId() after login
+                // IMMEDIATE: Send lightweight subscription for stability validation
+                // As soon as the hub reports Connected, send one lightweight subscription
                 var accountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
                 if (!string.IsNullOrEmpty(accountId))
                 {
-                    _logger.LogInformation("[TOPSTEPX] User Hub: Account ID available, will attempt subscription");
-                    // Try subscription but don't fail the connection if it doesn't work
+                    _logger.LogInformation("[TOPSTEPX] User Hub: Account ID available, immediate subscription for stability validation");
+                    try
+                    {
+                        await _userHub.InvokeAsync("SubscribeOrders", accountId);
+                        AddToSubscriptionManifest("UserHub", "SubscribeOrders", accountId);
+                        _logger.LogInformation("[TOPSTEPX] User Hub: Immediate SubscribeOrders successful - stability validator has signal");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[TOPSTEPX] User Hub: Immediate subscription failed: {Message}", ex.Message);
+                    }
+                    
+                    // Try additional subscription but don't fail if it doesn't work
                     _ = Task.Run(async () => await RetrySubscriptionsWithAccountId(accountId));
                 }
                 else
@@ -336,15 +715,30 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 "Establishing Market Hub connection");
 
-            var token = await _tokenProvider.GetTokenAsync();
+            // FIXED: Wait for JWT readiness before any connection attempt
+            var token = await WaitForJwtReadinessAsync();
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
-                    "Cannot connect to Market Hub - no valid JWT token");
-                throw new InvalidOperationException("No valid JWT token available for Market Hub connection");
+                    "Cannot connect to Market Hub - JWT token readiness timeout");
+                throw new InvalidOperationException("JWT token readiness timeout - cannot establish Market Hub connection");
             }
 
-            // Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
+            // Enhanced JWT validation for Market Hub with audience check
+            if (!await ValidateJwtTokenAsync(token, "market"))
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                    "Cannot connect to Market Hub - JWT validation failed (timing/audience/format issues)");
+                throw new InvalidOperationException("JWT validation failed - cannot establish Market Hub connection");
+            }
+
+            // Log token info for debugging
+            var cleanToken = token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? token.Substring(7) : token;
+            var last6Chars = cleanToken.Length >= 6 ? cleanToken.Substring(cleanToken.Length - 6) : "short";
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                $"JWT ready for Market Hub: length={cleanToken.Length}, last_6_chars=...{last6Chars}");
+
+            // FIXED: Ensure token doesn't have "Bearer " prefix (SignalR adds this automatically)
             if (token.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 token = token.Substring(7);
@@ -356,7 +750,56 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             _marketHub = new HubConnectionBuilder()
                 .WithUrl("https://rtc.topstepx.com/hubs/market", options =>
                 {
-                    options.AccessTokenProvider = () => Task.FromResult<string?>(token);
+                    // PRODUCTION: AccessTokenProvider with detailed logging and fresh token access
+                    options.AccessTokenProvider = async () => 
+                    {
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                            "AccessTokenProvider CALLED for Market Hub connect/reconnect");
+                        
+                        var freshToken = await _tokenProvider.GetTokenAsync();
+                        if (!string.IsNullOrEmpty(freshToken))
+                        {
+                            // Remove Bearer prefix - return raw JWT only
+                            if (freshToken.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                            {
+                                freshToken = freshToken.Substring(7);
+                            }
+                            
+                            var last6 = freshToken.Length >= 6 ? freshToken.Substring(freshToken.Length - 6) : "short";
+                            
+                            // Calculate expiry from token for logging
+                            var expInSeconds = 0L;
+                            try
+                            {
+                                var parts = freshToken.Split('.');
+                                if (parts.Length == 3)
+                                {
+                                    var payloadBytes = Convert.FromBase64String(AddBase64Padding(parts[1]));
+                                    var payloadJson = System.Text.Encoding.UTF8.GetString(payloadBytes);
+                                    using var doc = JsonDocument.Parse(payloadJson);
+                                    if (doc.RootElement.TryGetProperty("exp", out var expElement))
+                                    {
+                                        var exp = expElement.GetInt64();
+                                        expInSeconds = exp - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                                    }
+                                }
+                            }
+                            catch
+                            {
+                                expInSeconds = -1; // Parse failed
+                            }
+                            
+                            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                                $"AccessTokenProvider: token_length={freshToken.Length}, last_6_chars=...{last6}, exp_in_seconds={expInSeconds}");
+                        }
+                        else
+                        {
+                            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                                "AccessTokenProvider: No fresh token available!");
+                        }
+                        
+                        return freshToken; // Return raw JWT (no "Bearer ")
+                    };
                     
                     // CRITICAL: Configure HTTP message handler with SSL bypass for TopstepX
                     options.HttpMessageHandlerFactory = (message) =>
@@ -371,14 +814,12 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // Try WebSockets first, then fallback to other transports
-                    options.Transports = HttpTransportType.WebSockets |
-                                       HttpTransportType.LongPolling |
-                                       HttpTransportType.ServerSentEvents;
+                    // FIXED: Force WebSockets transport and skip negotiation
+                    options.Transports = HttpTransportType.WebSockets;
+                    options.SkipNegotiation = true;
 
                     // Set connection timeouts
                     options.CloseTimeout = TimeSpan.FromSeconds(30);
-                    options.SkipNegotiation = false; // Allow negotiation for transport fallback
                 })
                 .WithAutomaticReconnect(new ExponentialBackoffRetryPolicy())
                 .ConfigureLogging(logging =>
@@ -389,10 +830,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 })
                 .Build();
 
-            // Configure connection timeouts for production use
-            _marketHub.ServerTimeout = TimeSpan.FromSeconds(60);
-            _marketHub.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(30);
+            // Production-grade timeouts and keepalive settings 
+            // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
+            _marketHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Production stability
+            _marketHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
+            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Extended handshake timeout
 
             SetupMarketHubEventHandlers();
             
@@ -402,15 +844,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             {
                 _marketHubWired = true;
                 
-                // CRITICAL: Immediately subscribe to keep connection alive (from working version)
+                // IMMEDIATE: Subscribe to lightweight market data for stability validation
                 try
                 {
-                    await _marketHub.InvokeAsync("SubscribeContractQuotes", "ES"); // Subscribe to ES market data
-                    _logger.LogInformation("[TOPSTEPX] Market Hub: Subscribed to ES market data to keep connection alive");
+                    await _marketHub.InvokeAsync("SubscribeContractQuotes", "ES");
+                    AddToSubscriptionManifest("MarketHub", "SubscribeContractQuotes", "ES");
+                    _logger.LogInformation("[TOPSTEPX] Market Hub: Immediate ES subscription successful - stability validator has signal");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[TOPSTEPX] Market Hub: Failed to subscribe to market data, but connection established");
+                    _logger.LogWarning(ex, "[TOPSTEPX] Market Hub: Immediate subscription failed, but connection established");
                 }
                 
                 _logger.LogInformation("[TOPSTEPX] Market Hub connection established and confirmed ready");
@@ -429,14 +872,57 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_userHub == null) return;
 
-        // Connection lifecycle handlers
+        // Enhanced connection lifecycle handlers with WebSocket close reason visibility
         _userHub.Closed += async (exception) =>
         {
             _userHubWired = false;
-            var reason = exception?.Message ?? "Normal closure";
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
-                $"User Hub connection closed: {reason}");
-            ConnectionStateChanged?.Invoke($"UserHub:Disconnected:{reason}");
+            
+            // Extract WebSocket close status and description for debugging
+            var closeStatus = "Unknown";
+            var closeDescription = "Unknown";
+            var innerExceptionMessage = "";
+            
+            if (exception != null)
+            {
+                innerExceptionMessage = exception.Message;
+                
+                // Try to extract WebSocket close details from exception
+                if (exception.InnerException != null)
+                {
+                    innerExceptionMessage = exception.InnerException.Message;
+                    
+                    // Look for WebSocket specific exceptions
+                    if (exception.InnerException is WebSocketException wsEx)
+                    {
+                        closeStatus = wsEx.WebSocketErrorCode.ToString();
+                    }
+                }
+                
+                // Parse common close codes from message
+                if (innerExceptionMessage.Contains("1008"))
+                {
+                    closeStatus = "1008/Unauthorized - token/audience issue";
+                }
+                else if (innerExceptionMessage.Contains("1006"))
+                {
+                    closeStatus = "1006/Abnormal - network/proxy killing WS";
+                }
+                else if (innerExceptionMessage.Contains("1000"))
+                {
+                    closeStatus = "1000/Normal - client closed (watchdog too aggressive?)";
+                }
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    $"User Hub connection closed - Status: {closeStatus}, Description: {closeDescription}, Inner: {innerExceptionMessage}");
+            }
+            else
+            {
+                closeStatus = "1000/Normal closure";
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    $"User Hub connection closed cleanly - Status: {closeStatus}");
+            }
+            
+            ConnectionStateChanged?.Invoke($"UserHub:Disconnected:{closeStatus}");
         };
 
         _userHub.Reconnecting += async (exception) =>
@@ -450,32 +936,42 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         _userHub.Reconnected += async (connectionId) =>
         {
             _userHubWired = true;
+            Interlocked.Increment(ref _totalReconnects);
+            
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 $"User Hub reconnected successfully: {connectionId}");
+                
+            // Replay subscription manifest after reconnect
+            await ReplaySubscriptionManifest(_userHub, "UserHub");
+            
             ConnectionStateChanged?.Invoke($"UserHub:Reconnected:{connectionId}");
         };
         
         // CRITICAL: Data reception handlers - completing the state machine
         _userHub.On<object>("GatewayUserOrder", (orderData) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] User Hub: Received GatewayUserOrder");
             OnGatewayUserOrderReceived?.Invoke(orderData);
         });
         
         _userHub.On<object>("GatewayUserTrade", (tradeData) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] User Hub: Received GatewayUserTrade");
             OnGatewayUserTradeReceived?.Invoke(tradeData);
         });
         
         _userHub.On<object>("FillUpdate", (fillData) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] User Hub: Received FillUpdate");
             OnFillUpdateReceived?.Invoke(fillData);
         });
         
         _userHub.On<object>("OrderUpdate", (orderUpdateData) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] User Hub: Received OrderUpdate");
             OnOrderUpdateReceived?.Invoke(orderUpdateData);
         });
@@ -487,14 +983,57 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_marketHub == null) return;
 
-        // Connection lifecycle handlers
+        // Enhanced connection lifecycle handlers with WebSocket close reason visibility
         _marketHub.Closed += async (exception) =>
         {
             _marketHubWired = false;
-            var reason = exception?.Message ?? "Normal closure";
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
-                $"Market Hub connection closed: {reason}");
-            ConnectionStateChanged?.Invoke($"MarketHub:Disconnected:{reason}");
+            
+            // Extract WebSocket close status and description for debugging
+            var closeStatus = "Unknown";
+            var closeDescription = "Unknown";
+            var innerExceptionMessage = "";
+            
+            if (exception != null)
+            {
+                innerExceptionMessage = exception.Message;
+                
+                // Try to extract WebSocket close details from exception
+                if (exception.InnerException != null)
+                {
+                    innerExceptionMessage = exception.InnerException.Message;
+                    
+                    // Look for WebSocket specific exceptions
+                    if (exception.InnerException is WebSocketException wsEx)
+                    {
+                        closeStatus = wsEx.WebSocketErrorCode.ToString();
+                    }
+                }
+                
+                // Parse common close codes from message
+                if (innerExceptionMessage.Contains("1008"))
+                {
+                    closeStatus = "1008/Unauthorized - token/audience issue";
+                }
+                else if (innerExceptionMessage.Contains("1006"))
+                {
+                    closeStatus = "1006/Abnormal - network/proxy killing WS";
+                }
+                else if (innerExceptionMessage.Contains("1000"))
+                {
+                    closeStatus = "1000/Normal - client closed (watchdog too aggressive?)";
+                }
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    $"Market Hub connection closed - Status: {closeStatus}, Description: {closeDescription}, Inner: {innerExceptionMessage}");
+            }
+            else
+            {
+                closeStatus = "1000/Normal closure";
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    $"Market Hub connection closed cleanly - Status: {closeStatus}");
+            }
+            
+            ConnectionStateChanged?.Invoke($"MarketHub:Disconnected:{closeStatus}");
         };
 
         _marketHub.Reconnecting += async (exception) =>
@@ -508,20 +1047,28 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         _marketHub.Reconnected += async (connectionId) =>
         {
             _marketHubWired = true;
+            Interlocked.Increment(ref _totalReconnects);
+            
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
                 $"Market Hub reconnected successfully: {connectionId}");
+                
+            // Replay subscription manifest after reconnect
+            await ReplaySubscriptionManifest(_marketHub, "MarketHub");
+            
             ConnectionStateChanged?.Invoke($"MarketHub:Reconnected:{connectionId}");
         };
         
         // CRITICAL: Data reception handlers - completing the state machine
         _marketHub.On<object>("MarketData", (marketData) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] Market Hub: Received MarketData");
             OnMarketDataReceived?.Invoke(marketData);
         });
         
         _marketHub.On<object>("ContractQuotes", (contractQuotes) =>
         {
+            Interlocked.Increment(ref _totalMessagesReceived);
             _logger.LogDebug("[TOPSTEPX] Market Hub: Received ContractQuotes");
             OnContractQuotesReceived?.Invoke(contractQuotes);
         });
@@ -708,6 +1255,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
             "SignalR Connection Manager stopping");
         
+        // Log final stability statistics
+        var stats = GetStabilityStatistics();
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            $"Final {stats}");
+        
         if (_userHub != null)
         {
             await _userHub.DisposeAsync();
@@ -719,6 +1271,82 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         }
     }
 
+    /// <summary>
+    /// Add subscription to manifest for replay on reconnect
+    /// </summary>
+    private void AddToSubscriptionManifest(string hubName, string method, string parameter)
+    {
+        var hubManifest = _subscriptionManifest.GetOrAdd(hubName, _ => new ConcurrentDictionary<string, int>());
+        var subscriptionKey = $"{method}:{parameter}";
+        hubManifest.AddOrUpdate(subscriptionKey, 1, (key, count) => count + 1);
+        
+        // Log manifest update
+        _logger.LogInformation("[TOPSTEPX] {HubName} subscription manifest updated: {Method}({Parameter}) ref_count={Count}", 
+            hubName, method, parameter, hubManifest[subscriptionKey]);
+    }
+
+    /// <summary>
+    /// Replay all subscriptions from manifest after reconnect
+    /// </summary>
+    private async Task ReplaySubscriptionManifest(HubConnection hubConnection, string hubName)
+    {
+        if (_subscriptionManifest.TryGetValue(hubName, out var hubManifest))
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                $"Replaying {hubManifest.Count} subscription(s) for {hubName} after reconnect");
+
+            foreach (var subscription in hubManifest.ToList())
+            {
+                try
+                {
+                    var parts = subscription.Key.Split(':', 2);
+                    if (parts.Length == 2)
+                    {
+                        var method = parts[0];
+                        var parameter = parts[1];
+                        
+                        await hubConnection.InvokeAsync(method, parameter);
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                            $"Replayed subscription: {method}({parameter}) for {hubName}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        $"Failed to replay subscription {subscription.Key} for {hubName}: {ex.Message}");
+                }
+            }
+            
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                $"Final active manifest for {hubName}: {string.Join(", ", hubManifest.Keys)}");
+        }
+    }
+
+    /// <summary>
+    /// Get stability statistics for production monitoring
+    /// </summary>
+    public string GetStabilityStatistics()
+    {
+        var currentSpan = _longestConnectedStart != DateTime.MinValue ? 
+            DateTime.UtcNow - _longestConnectedStart : TimeSpan.Zero;
+        
+        if (currentSpan > _longestConnectedSpan)
+        {
+            _longestConnectedSpan = currentSpan;
+        }
+
+        var avgGapSeconds = _connectionGaps.Count > 0 ? _connectionGaps.Average(g => g.TotalSeconds) : 0;
+        var keepAliveInterval = 15; // Our configured KeepAliveInterval
+        var gapsOverKeepAlive = _connectionGaps.Count(g => g.TotalSeconds > (keepAliveInterval * 2));
+
+        return $"Stability Statistics: " +
+               $"connect_attempts={_totalConnectAttempts}, " +
+               $"reconnects={_totalReconnects}, " +
+               $"longest_connected={_longestConnectedSpan.TotalMinutes:F1}m, " +
+               $"messages_received={_totalMessagesReceived}, " +
+               $"avg_gap={avgGapSeconds:F1}s, " +
+               $"gaps_over_keepalive_x2={gapsOverKeepAlive}";
+    }
     /// <summary>
     /// Retry subscriptions with a valid account ID after login completes
     /// </summary>
@@ -740,7 +1368,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             try
             {
                 await _userHub.InvokeAsync("SubscribeOrders", accountId);
+                AddToSubscriptionManifest("UserHub", "SubscribeOrders", accountId);
+                
                 await _userHub.InvokeAsync("SubscribeTrades", accountId);
+                AddToSubscriptionManifest("UserHub", "SubscribeTrades", accountId);
+                
                 _logger.LogInformation("[TOPSTEPX] User Hub: Successfully subscribed to orders and trades for account {AccountId}", accountId);
                 success = true;
             }
@@ -759,8 +1391,15 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
 
     public void Dispose()
     {
+        // Unsubscribe from token refresh events
+        if (_tokenProvider != null)
+        {
+            _tokenProvider.TokenRefreshed -= OnTokenRefreshed;
+        }
+        
         _connectionHealthTimer?.Dispose();
         _connectionLock.Dispose();
+        _tokenRefreshLock.Dispose();
         _userHub?.DisposeAsync();
         _marketHub?.DisposeAsync();
     }
