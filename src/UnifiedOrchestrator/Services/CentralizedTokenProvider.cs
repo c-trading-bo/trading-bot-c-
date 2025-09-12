@@ -19,6 +19,7 @@ public interface ITokenProvider
     Task RefreshTokenAsync();
     bool IsTokenValid { get; }
     event Action<string> TokenRefreshed;
+    Task<string?> WaitForJwtAsync(TimeSpan timeout);
 }
 
 public class CentralizedTokenProvider : ITokenProvider, IHostedService
@@ -147,6 +148,42 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider started");
         await RefreshTokenAsync();
+    }
+
+    public async Task<string?> WaitForJwtAsync(TimeSpan timeout)
+    {
+        var startTime = DateTime.UtcNow;
+        var checkInterval = TimeSpan.FromSeconds(2);
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+            $"Waiting for JWT token readiness (timeout: {timeout.TotalSeconds}s)...");
+        
+        while (DateTime.UtcNow - startTime < timeout)
+        {
+            var token = await GetTokenAsync();
+            
+            if (!string.IsNullOrEmpty(token) && IsTokenValid)
+            {
+                var waitTime = DateTime.UtcNow - startTime;
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+                    $"JWT token ready after {waitTime.TotalSeconds:F1} seconds");
+                return token;
+            }
+            
+            // Log periodic wait status
+            var elapsed = DateTime.UtcNow - startTime;
+            if (elapsed.TotalSeconds > 10 && elapsed.TotalSeconds % 10 < 2) // Log every 10 seconds
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+                    $"Still waiting for JWT token... {elapsed.TotalSeconds:F0}s elapsed");
+            }
+            
+            await Task.Delay(checkInterval);
+        }
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "TokenProvider", 
+            $"JWT token readiness timeout after {timeout.TotalSeconds} seconds");
+        return null;
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)

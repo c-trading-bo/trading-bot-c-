@@ -440,13 +440,21 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 _logger.LogInformation("[TOPSTEPX] {HubName} connection started successfully. State: {State}", 
                     hubName, hubConnection.State);
                 
-                // CRITICAL: Extended stability validation for TopstepX connections
+                // CRITICAL: Extended stability validation for TopstepX connections with warm-up period
+                _logger.LogInformation("[TOPSTEPX] {HubName} allowing warm-up period before stability checks...", hubName);
+                
+                // Give warm-up window after Connected before checks (as recommended in problem statement)
+                await Task.Delay(TimeSpan.FromSeconds(5)); // 5-second warm-up period
+                
                 _logger.LogInformation("[TOPSTEPX] {HubName} validating connection stability...", hubName);
                 
-                // Wait longer and check multiple times for stable connection
+                // Wait longer and check multiple times for stable connection (spread out checks at 5s intervals)
                 for (int check = 1; check <= 3; check++)
                 {
-                    await Task.Delay(2000); // 2 seconds between checks
+                    if (check > 1) // Don't delay before first check since we already waited 5s
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(5)); // 5 seconds between checks
+                    }
                     
                     if (hubConnection.State == HubConnectionState.Connected && 
                         !string.IsNullOrEmpty(hubConnection.ConnectionId))
@@ -647,10 +655,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 .Build();
 
             // Production-grade timeouts and keepalive settings 
-            // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
-            _userHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Increased for production stability
+            // Configure timeouts as recommended: ServerTimeout=60s, KeepAliveInterval=15s, HandshakeTimeout=30s
+            _userHub.ServerTimeout = TimeSpan.FromSeconds(60);  // As recommended in problem statement
             _userHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
-            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Increased from 30
+            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(30);  // As recommended in problem statement
 
             SetupUserHubEventHandlers();
             
@@ -831,10 +839,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 .Build();
 
             // Production-grade timeouts and keepalive settings 
-            // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
-            _marketHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Production stability
+            // Configure timeouts as recommended: ServerTimeout=60s, KeepAliveInterval=15s, HandshakeTimeout=30s
+            _marketHub.ServerTimeout = TimeSpan.FromSeconds(60);  // As recommended in problem statement
             _marketHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
-            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Extended handshake timeout
+            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(30);  // As recommended in problem statement
 
             SetupMarketHubEventHandlers();
             
@@ -1247,7 +1255,45 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-            "SignalR Connection Manager started");
+            "SignalR Connection Manager starting - waiting for JWT readiness...");
+
+        // Wait up to 2 minutes for AutoLogin to obtain JWT (as recommended in problem statement)
+        var token = await _tokenProvider.WaitForJwtAsync(TimeSpan.FromMinutes(2));
+        if (string.IsNullOrEmpty(token))
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                "Failed to start SignalR connections - JWT token readiness timeout");
+            return;
+        }
+
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+            "JWT token ready - establishing SignalR connections...");
+
+        try
+        {
+            // Start User Hub connection
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                "Starting User Hub connection...");
+            await GetUserHubConnectionAsync();
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                "✅ User Hub connected successfully");
+
+            // Start Market Hub connection
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                "Starting Market Hub connection...");
+            await GetMarketHubConnectionAsync();
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                "✅ Market Hub connected successfully");
+
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                "SignalR Connection Manager started successfully - all hubs connected");
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                $"Failed to establish SignalR connections during startup: {ex.Message}");
+            throw; // Re-throw to indicate startup failure
+        }
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
