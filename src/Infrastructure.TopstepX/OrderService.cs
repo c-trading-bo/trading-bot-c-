@@ -13,7 +13,12 @@ namespace TradingBot.Infrastructure.TopstepX;
 public interface IOrderService : TradingBot.Abstractions.IBrokerAdapter
 {
     Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request);
+    
+    [Obsolete("Use SearchOrdersAsync instead for better performance and filtering.")]
     Task<OrderStatus> GetOrderStatusAsync(string orderId);
+    
+    Task<JsonElement> SearchOrdersAsync(object searchRequest);
+    Task<JsonElement> SearchOpenOrdersAsync(object searchRequest);
 }
 
 public record PlaceOrderRequest(
@@ -31,6 +36,7 @@ public record OrderStatus(string OrderId, string Status, string Reason, DateTime
 
 public class OrderService : IOrderService
 {
+    private const string JsonContentType = "application/json";
     private readonly ILogger<OrderService> _logger;
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
@@ -43,6 +49,13 @@ public class OrderService : IOrderService
         _config = config.Value;
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri(_config.ApiBase);
+        
+        // Configure JWT authentication if token is available
+        if (!string.IsNullOrEmpty(_config.AuthToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _config.AuthToken);
+        }
     }
 
     public async Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request)
@@ -67,9 +80,7 @@ public class OrderService : IOrderService
             _logger.LogInformation("[ORDER] LIVE: Placing {Side} {Qty} {Symbol} @ {Price} tag={Tag}", 
                 request.Side, request.Quantity, request.Symbol, request.Price, request.CustomTag);
 
-            // Real POST to /api/Order/place with retries and idempotency
-            // This replaces: return Guid.NewGuid().ToString();
-            // FIXED: Use ProjectX API specification exactly
+            // Real POST to /api/Order/place with retries and idempotency - ProjectX API specification
             var orderPayload = new
             {
                 accountId = long.Parse(request.AccountId),  // ProjectX expects integer accountId
@@ -83,7 +94,7 @@ public class OrderService : IOrderService
             };
 
             var content = new StringContent(JsonSerializer.Serialize(orderPayload), 
-                System.Text.Encoding.UTF8, "application/json");
+                System.Text.Encoding.UTF8, JsonContentType);
 
             // Retry logic for transient failures
             for (int attempt = 1; attempt <= 3; attempt++)
@@ -105,8 +116,8 @@ public class OrderService : IOrderService
                     else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                     {
                         // Don't retry 4xx errors
-                        var error = await response.Content.ReadAsStringAsync();
-                        _logger.LogError("[ORDER] Bad request received");
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        _logger.LogError("[ORDER] Bad request received: {ErrorContent}", errorContent);
                         return new OrderResult(false, null, "Invalid order request - please check order parameters");
                     }
                     else
@@ -189,6 +200,32 @@ public class OrderService : IOrderService
         }
     }
 
+    /// <summary>
+    /// Implements POST /api/Order/search
+    /// </summary>
+    public async Task<JsonElement> SearchOrdersAsync(object searchRequest)
+    {
+        _logger.LogInformation("[ORDER_SEARCH] Searching orders with payload: {Payload}", JsonSerializer.Serialize(searchRequest));
+        var content = new StringContent(JsonSerializer.Serialize(searchRequest), System.Text.Encoding.UTF8, JsonContentType);
+        var response = await _httpClient.PostAsync("/api/Order/search", content);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+
+    /// <summary>
+    /// Implements POST /api/Order/search/open
+    /// </summary>
+    public async Task<JsonElement> SearchOpenOrdersAsync(object searchRequest)
+    {
+        _logger.LogInformation("[ORDER_SEARCH] Searching open orders with payload: {Payload}", JsonSerializer.Serialize(searchRequest));
+        var content = new StringContent(JsonSerializer.Serialize(searchRequest), System.Text.Encoding.UTF8, JsonContentType);
+        var response = await _httpClient.PostAsync("/api/Order/search/open", content);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+
     public async Task<bool> CancelOrderAsync(string orderId, CancellationToken cancellationToken = default)
     {
         try
@@ -203,7 +240,7 @@ public class OrderService : IOrderService
             };
             
             var content = new StringContent(JsonSerializer.Serialize(cancelPayload), 
-                System.Text.Encoding.UTF8, "application/json");
+                System.Text.Encoding.UTF8, JsonContentType);
             
             var response = await _httpClient.PostAsync("/api/Order/cancel", content, cancellationToken);
             var success = response.IsSuccessStatusCode;

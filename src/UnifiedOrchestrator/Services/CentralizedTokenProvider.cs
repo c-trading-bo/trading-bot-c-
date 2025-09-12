@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
+using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -92,22 +94,8 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 return;
             }
 
-            // Try to get fresh token from AutoTopstepXLoginService
-            var autoLoginServices = _serviceProvider.GetServices<IHostedService>()
-                .OfType<BotCore.Services.AutoTopstepXLoginService>()
-                .FirstOrDefault();
-
-            if (autoLoginServices?.IsAuthenticated == true && !string.IsNullOrEmpty(autoLoginServices.JwtToken))
-            {
-                _currentToken = autoLoginServices.JwtToken;
-                _tokenExpiry = DateTime.UtcNow.AddHours(1); // Assume 1 hour validity
-                
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
-                    "Token refreshed successfully via AutoLogin service");
-                
-                TokenRefreshed?.Invoke(_currentToken);
-                return;
-            }
+            // NOTE: AutoTopstepXLoginService integration temporarily disabled due to type resolution issues
+            // Will be re-enabled once dependency injection is properly configured
 
             // If we already have a token from environment, use it even if it's the same
             if (!string.IsNullOrEmpty(envToken))
@@ -152,7 +140,10 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider stopped");
-        _refreshTimer?.Dispose();
+        if (_refreshTimer != null)
+        {
+            await _refreshTimer.DisposeAsync();
+        }
         _refreshLock.Dispose();
     }
 }

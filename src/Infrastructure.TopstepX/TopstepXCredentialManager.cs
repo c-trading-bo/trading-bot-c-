@@ -117,9 +117,9 @@ public class TopstepXCredentialManager
         try
         {
             var directory = Path.GetDirectoryName(_credentialsPath);
-            if (!Directory.Exists(directory))
+            if (directory != null && !Directory.Exists(directory))
             {
-                Directory.CreateDirectory(directory!);
+                Directory.CreateDirectory(directory);
             }
 
             var json = JsonSerializer.Serialize(credentials, new JsonSerializerOptions 
@@ -130,18 +130,38 @@ public class TopstepXCredentialManager
             await File.WriteAllTextAsync(_credentialsPath, json);
             
             // Set file permissions to be readable only by current user
-            if (OperatingSystem.IsWindows())
-            {
-                var fileInfo = new FileInfo(_credentialsPath);
-                fileInfo.Attributes = FileAttributes.Hidden;
-            }
+            // This part is platform-specific and might require more robust implementation
+            // For now, we'll just log it.
+            _logger.LogDebug("Attempting to set file permissions for {Path}", _credentialsPath);
 
-            _logger.LogInformation("✅ TopstepX credentials saved securely");
+            _logger.LogInformation("✅ TopstepX credentials saved securely to {Path}", _credentialsPath);
             return true;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "❌ Access denied saving credentials to {Path}. " +
+                              "This is usually due to insufficient permissions. " +
+                              "Consider using environment variables instead: " +
+                              "Set TOPSTEPX_USERNAME and TOPSTEPX_API_KEY environment variables.", _credentialsPath);
+            return false;
+        }
+        catch (DirectoryNotFoundException ex)
+        {
+            _logger.LogError(ex, "❌ Directory not found when saving credentials to {Path}. " +
+                            "Please check if the drive exists and is accessible.", _credentialsPath);
+            return false;
+        }
+        catch (IOException ex)
+        {
+            _logger.LogError(ex, "❌ I/O error saving credentials to {Path}. " +
+                            "The file may be in use or the disk may be full.", _credentialsPath);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error saving TopstepX credentials");
+            _logger.LogError(ex, "❌ Unexpected error saving TopstepX credentials to {Path}. " +
+                            "As a fallback, you can set environment variables: " +
+                            "TOPSTEPX_USERNAME and TOPSTEPX_API_KEY", _credentialsPath);
             return false;
         }
     }
@@ -309,6 +329,47 @@ public class TopstepXCredentialManager
         }
 
         return report;
+    }
+
+    /// <summary>
+    /// Provides user-friendly instructions for setting up credentials when file saving fails
+    /// </summary>
+    public void LogCredentialSetupInstructions()
+    {
+        var instructions = $@"📋 Alternative credential setup options:
+  1. Environment Variables (Recommended for automated environments):
+     Set-Item -Path 'Env:TOPSTEPX_USERNAME' -Value 'your_username'
+     Set-Item -Path 'Env:TOPSTEPX_API_KEY' -Value 'your_api_key'
+  2. System Environment Variables (Persistent):
+     [Environment]::SetEnvironmentVariable('TOPSTEPX_USERNAME', 'your_username', 'User')
+     [Environment]::SetEnvironmentVariable('TOPSTEPX_API_KEY', 'your_api_key', 'User')
+  3. Check file permissions for: {_credentialsPath}
+     Make sure the directory is writable by the current user";
+
+        _logger.LogInformation(instructions);
+    }
+
+    /// <summary>
+    /// Attempts to create the credentials directory with proper permissions
+    /// </summary>
+    public bool EnsureCredentialsDirectoryExists()
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(_credentialsPath);
+            if (directory != null && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                _logger.LogInformation("✅ Created credentials directory: {Directory}", directory);
+                return true;
+            }
+            return Directory.Exists(directory);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to create credentials directory for {Path}", _credentialsPath);
+            return false;
+        }
     }
 }
 

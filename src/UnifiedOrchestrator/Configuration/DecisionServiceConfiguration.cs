@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace TradingBot.UnifiedOrchestrator.Configuration;
 
@@ -198,61 +199,68 @@ public class DecisionServiceClient
         {
             if (!_pythonOptions.ScriptPaths.TryGetValue("decisionService", out var scriptPath))
             {
-                _logger?.LogWarning("[PYTHON] No decision service script path configured");
+                _logger?.LogWarning("[PYTHON] 'decisionService' script path not configured in ScriptPaths.");
                 return null;
             }
 
-            var processStartInfo = new System.Diagnostics.ProcessStartInfo
+            // Ensure the working directory is an absolute path
+            var workingDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _pythonOptions.WorkingDirectory));
+            if (!Directory.Exists(workingDirectory))
+            {
+                _logger?.LogError("[PYTHON] Python working directory not found at: {WorkingDirectory}", workingDirectory);
+                return null;
+            }
+            
+            var fullScriptPath = Path.Combine(workingDirectory, scriptPath);
+            if (!File.Exists(fullScriptPath))
+            {
+                 _logger?.LogError("[PYTHON] Python script not found at: {FullScriptPath}", fullScriptPath);
+                return null;
+            }
+
+            var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = _pythonOptions.PythonPath,
-                Arguments = $"\"{scriptPath}\" --input \"{input}\"",
-                WorkingDirectory = _pythonOptions.WorkingDirectory,
+                Arguments = $"\"{fullScriptPath}\" --input \"{input}\"",
+                WorkingDirectory = workingDirectory,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
             };
 
-            using var process = new System.Diagnostics.Process { StartInfo = processStartInfo };
-            
-            var timeout = TimeSpan.FromSeconds(_pythonOptions.Timeout);
-            var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(timeout);
+            _logger?.LogInformation("[PYTHON] Executing: {FileName} {Arguments} in {WorkingDirectory}", startInfo.FileName, startInfo.Arguments, startInfo.WorkingDirectory);
 
-            _logger?.LogDebug("[PYTHON] Calling Python decision service: {PythonPath} {Arguments}", 
-                _pythonOptions.PythonPath, processStartInfo.Arguments);
-
-            process.Start();
-            
-            var outputTask = process.StandardOutput.ReadToEndAsync();
-            var errorTask = process.StandardError.ReadToEndAsync();
-            
-            await process.WaitForExitAsync(cts.Token);
-            
-            var output = await outputTask;
-            var error = await errorTask;
-            
-            if (process.ExitCode == 0 && !string.IsNullOrWhiteSpace(output))
+            using var process = System.Diagnostics.Process.Start(startInfo);
+            if (process == null)
             {
-                var decision = output.Trim();
-                _logger?.LogInformation("[PYTHON] Python model returned: {Decision}", decision);
-                return decision;
-            }
-            else
-            {
-                _logger?.LogWarning("[PYTHON] Python process failed. Exit code: {ExitCode}, Error: {Error}", 
-                    process.ExitCode, error);
+                _logger?.LogError("[PYTHON] Failed to start Python process.");
                 return null;
             }
+
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode != 0)
+            {
+                _logger?.LogError("[PYTHON] Python script exited with code {ExitCode}. Error: {Error}", process.ExitCode, error);
+                return null;
+            }
+            
+            var result = output.Trim();
+            _logger?.LogInformation("[PYTHON] Python script output: {Output}", result);
+            return result;
         }
-        catch (OperationCanceledException)
+        catch (System.ComponentModel.Win32Exception ex)
         {
-            _logger?.LogWarning("[PYTHON] Python model call timed out");
+            _logger?.LogError(ex, "[PYTHON] Win32Exception: Error starting Python process. Is '{PythonPath}' in your system's PATH? Message: {Message}", _pythonOptions.PythonPath, ex.Message);
             return null;
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "[PYTHON] Error calling Python model: {Message}", ex.Message);
+            _logger?.LogError(ex, "[PYTHON] An unexpected error occurred while calling the Python model: {Message}", ex.Message);
             return null;
         }
     }

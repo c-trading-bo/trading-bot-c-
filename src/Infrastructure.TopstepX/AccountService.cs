@@ -35,7 +35,7 @@ public record PositionInfo(
     decimal UnrealizedPnL
 );
 
-public class AccountService : IAccountService
+public class AccountService : IAccountService, IDisposable
 {
     private readonly ILogger<AccountService> _logger;
     private readonly AppOptions _config;
@@ -64,7 +64,6 @@ public class AccountService : IAccountService
             try
             {
                 // Real GET to /api/Account/{accountId}
-                // This replaces: return new { Balance = 50000m, BuyingPower = 200000m };
                 var response = await _httpClient.GetAsync($"/api/Account/{_config.AccountId}");
                 
                 if (response.IsSuccessStatusCode)

@@ -4,9 +4,8 @@ using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
 using System.Text.Json;
 using System.Net.Http.Json;
-// // using Trading.Safety;
 
-namespace BotCore.Services;
+namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
 /// Automatic TopstepX login service that handles authentication on startup
@@ -18,6 +17,7 @@ public class AutoTopstepXLoginService : BackgroundService
     private readonly TopstepAuthAgent _authAgent;
     private readonly HttpClient _httpClient;
     private readonly ISignalRConnectionManager? _signalRConnectionManager;
+    private readonly ILoginCompletionState _loginCompletionState;
 
     public bool IsAuthenticated { get; private set; }
     public string? JwtToken { get; private set; }
@@ -29,13 +29,15 @@ public class AutoTopstepXLoginService : BackgroundService
         TopstepXCredentialManager credentialManager,
         TopstepAuthAgent authAgent,
         HttpClient httpClient,
-        ISignalRConnectionManager? signalRConnectionManager = null)
+        ISignalRConnectionManager? signalRConnectionManager = null,
+        ILoginCompletionState? loginCompletionState = null)
     {
         _logger = logger;
         _credentialManager = credentialManager;
         _authAgent = authAgent;
         _httpClient = httpClient;
         _signalRConnectionManager = signalRConnectionManager;
+        _loginCompletionState = loginCompletionState ?? new LoginCompletionState();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -154,19 +156,29 @@ public class AutoTopstepXLoginService : BackgroundService
                 await GetAccountInfo(cancellationToken);
 
                 // Save updated credentials
-                await _credentialManager.SaveCredentialsAsync(CurrentCredentials);
+                var credentialsSaved = await _credentialManager.SaveCredentialsAsync(CurrentCredentials);
+                if (!credentialsSaved)
+                {
+                    _logger.LogWarning("⚠️ Login successful but credentials could not be saved to disk. " +
+                                      "You may need to re-authenticate on next startup. " +
+                                      "Check file permissions for the credentials directory.");
+                    _credentialManager.LogCredentialSetupInstructions();
+                }
 
                 IsAuthenticated = true;
                 _logger.LogInformation("🎉 TopstepX login successful! Bot ready for paper trading.");
+
+                // ** CRITICAL: Signal that login is complete **
+                _loginCompletionState.SetLoginCompleted();
             }
             else
             {
                 _logger.LogError("❌ Failed to obtain JWT token");
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning("⏰ TopstepX login timeout - network issues or slow response");
+            _logger.LogWarning(ex, "⏰ TopstepX login timeout - network issues or slow response");
         }
         catch (Exception ex)
         {
@@ -196,128 +208,103 @@ public class AutoTopstepXLoginService : BackgroundService
                 // Remove accountNumber filter to get ALL accounts available to this user
                 onlyActiveAccounts = true  // Only get active accounts per ProjectX API docs
             };
+
+            var response = await _httpClient.PostAsJsonAsync("/api/Account/search", searchRequest, cancellationToken);
             
-            var searchContent = JsonContent.Create(searchRequest);
-            var searchResponse = await _httpClient.PostAsync("/api/Account/search", searchContent, cancellationToken);
-            
-            _logger.LogInformation("📡 Account search response: {StatusCode} {ReasonPhrase}", 
-                searchResponse.StatusCode, searchResponse.ReasonPhrase);
-            
-            if (searchResponse.IsSuccessStatusCode)
+            _logger.LogInformation("📡 Account search response: {StatusCode} {ReasonPhrase}", response.StatusCode, response.ReasonPhrase);
+
+            if (response.IsSuccessStatusCode)
             {
-                var searchResult = await searchResponse.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogDebug("📄 Account search response content: {Content}", searchResult);
+                var jsonResponse = await response.Content.ReadAsStringAsync(cancellationToken);
                 
-                using var searchDoc = JsonDocument.Parse(searchResult);
+                // Log raw JSON for debugging
+                _logger.LogTrace("Account search raw response: {JsonResponse}", jsonResponse);
+
+                using var doc = JsonDocument.Parse(jsonResponse);
                 
-                if (searchDoc.RootElement.TryGetProperty("accounts", out var accountsElement) && 
-                    accountsElement.ValueKind == JsonValueKind.Array &&
-                    accountsElement.GetArrayLength() > 0)
+                if (!doc.RootElement.TryGetProperty("accounts", out var data))
                 {
-                    _logger.LogInformation("🔍 FOUND {Count} ACCOUNT(S) - Analyzing all available accounts...", accountsElement.GetArrayLength());
-                    
-                    // Log ALL available accounts to help identify the Trading Combine account
-                    var accountIndex = 0;
-                    foreach (var account in accountsElement.EnumerateArray())
+                    _logger.LogWarning("⚠️ Account search response does not contain 'accounts' property. Full response: {JsonResponse}", jsonResponse);
+                    return;
+                }
+
+                if (data.ValueKind == JsonValueKind.Array && data.GetArrayLength() > 0)
+                {
+                    _logger.LogInformation("🔍 FOUND {Count} ACCOUNT(S) - Analyzing all available accounts...", data.GetArrayLength());
+
+                    var accounts = new List<TopstepAccount>();
+                    foreach (var accElement in data.EnumerateArray())
                     {
-                        accountIndex++;
-                        var accountId = account.TryGetProperty("id", out var idProp) ? idProp.GetInt64().ToString() : "Unknown";
-                        var accountName = account.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : "Unknown";
-                        var canTrade = account.TryGetProperty("canTrade", out var canTradeProp) ? canTradeProp.GetBoolean() : false;
-                        var balance = account.TryGetProperty("balance", out var balProp) ? balProp.GetDecimal() : 0m;
-                        var accountType = accountName?.Contains("PRAC") == true ? "PRACTICE" : 
-                                         accountName?.Contains("TST") == true ? "TEST" : 
-                                         balance == 50000m ? "TRADING_COMBINE_50K" : "LIVE";
-                        
-                        _logger.LogInformation("📋 Account {Index}: ID={AccountId}, Name={AccountName}, Type={AccountType}, CanTrade={CanTrade}, Balance=${Balance:F2}", 
-                            accountIndex, accountId, accountName, accountType, canTrade, balance);
-                    }
-                    
-                    // ENHANCED: Look for Trading Combine account (50K balance) first, then any tradable account
-                    JsonElement? tradingCombineAccount = null;
-                    JsonElement? tradableAccount = null;
-                    
-                    foreach (var account in accountsElement.EnumerateArray())
-                    {
-                        var canTrade2 = account.TryGetProperty("canTrade", out var canTradeProp2) && canTradeProp2.GetBoolean();
-                        var balance2 = account.TryGetProperty("balance", out var balProp2) ? balProp2.GetDecimal() : 0m;
-                        var accountName2 = account.TryGetProperty("name", out var nameProp2) ? nameProp2.GetString() : "";
-                        
-                        // Prioritize Trading Combine account (50K balance, non-practice)
-                        if (canTrade2 && balance2 == 50000m && !string.IsNullOrEmpty(accountName2) && !accountName2.Contains("PRAC"))
+                        try
                         {
-                            tradingCombineAccount = account;
-                            _logger.LogInformation("🎯 FOUND TRADING COMBINE ACCOUNT: Balance=${Balance:F2}, Name={Name}", balance2, accountName2);
-                            break;
+                            var account = new TopstepAccount
+                            {
+                                Id = accElement.TryGetProperty("id", out var id) && id.TryGetInt64(out var idVal) ? idVal : 0,
+                                Name = accElement.TryGetProperty("name", out var name) ? name.GetString() : "N/A",
+                                Type = accElement.TryGetProperty("type", out var type) ? type.GetString() : "N/A",
+                                CanTrade = accElement.TryGetProperty("canTrade", out var canTrade) && canTrade.GetBoolean(),
+                                Balance = accElement.TryGetProperty("balance", out var balance) && balance.TryGetDecimal(out var balVal) ? balVal : 0m
+                            };
+                            
+                            if (account.Id == 0)
+                            {
+                                _logger.LogWarning("Skipping account with invalid or missing 'id'.");
+                                continue;
+                            }
+
+                            accounts.Add(account);
+                            _logger.LogInformation("📋 Account {Index}: ID={Id}, Name={Name}, Type={Type}, CanTrade={CanTrade}, Balance=${Balance}", 
+                                accounts.Count, account.Id, account.Name, account.Type, account.CanTrade, account.Balance);
                         }
-                        
-                        // Fallback: any tradable account
-                        if (canTrade2 && tradableAccount == null)
+                        catch (Exception ex)
                         {
-                            tradableAccount = account;
+                            _logger.LogWarning(ex, "Error parsing one of the accounts in the search response. JSON: {AccountJson}", accElement.ToString());
                         }
                     }
-                    
-                    // Select Trading Combine account if found, otherwise first tradable account
-                    var selectedAccount = tradingCombineAccount ?? tradableAccount ?? accountsElement[0];
-                    var accountSelectionReason = tradingCombineAccount.HasValue ? "Trading Combine (50K)" : 
-                                                tradableAccount.HasValue ? "First Tradable" : "First Available";
-                    
-                    if (selectedAccount.TryGetProperty("id", out var selectedIdProp))
+
+                    // Select the best account based on type (Trading Combine > Practice)
+                    var selectedAccount = accounts
+                        .OrderBy(a => a.Type != "TRADING_COMBINE_50K") // Prioritize Trading Combine
+                        .ThenByDescending(a => a.Balance)
+                        .FirstOrDefault(a => a.CanTrade);
+
+                    if (selectedAccount != null)
                     {
-                        AccountId = selectedIdProp.GetInt64().ToString();
-                        CurrentCredentials!.AccountId = AccountId;
-                        Environment.SetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID", AccountId);
-                        
-                        var accountName = selectedAccount.TryGetProperty("name", out var selectedNameProp) ? selectedNameProp.GetString() : "Unknown";
-                        var canTrade = selectedAccount.TryGetProperty("canTrade", out var selectedCanTradeProp) ? selectedCanTradeProp.GetBoolean() : false;
-                        var balance = selectedAccount.TryGetProperty("balance", out var selectedBalProp) ? selectedBalProp.GetDecimal() : 0m;
-                        
-                        _logger.LogInformation("✅ SELECTED ACCOUNT ({Reason}) - ID: {AccountId}, Name: {AccountName}, CanTrade: {CanTrade}, Balance: ${Balance:F2}", 
-                            accountSelectionReason, AccountId, accountName, canTrade, balance);
-                        
-                        // CRITICAL: Retry SignalR subscriptions with the retrieved account ID
+                        AccountId = selectedAccount.Id.ToString();
+                        _logger.LogInformation("✅ SELECTED ACCOUNT (ID: {Id}, Type: {Type}) - Name: {Name}, CanTrade: {CanTrade}, Balance: ${Balance}", 
+                            selectedAccount.Id, selectedAccount.Type, selectedAccount.Name, selectedAccount.CanTrade, selectedAccount.Balance);
+
+                        // ** CRITICAL: Retry subscriptions now that we have the account ID **
                         if (_signalRConnectionManager != null)
                         {
                             _logger.LogInformation("🔄 Retrying SignalR subscriptions with account ID: {AccountId}", AccountId);
-                            try
+                            var subscribed = await _signalRConnectionManager.RetrySubscriptionsWithAccountId(AccountId);
+                            if (!subscribed)
                             {
-                                var subscriptionSuccess = await _signalRConnectionManager.RetrySubscriptionsWithAccountId(AccountId);
-                                if (subscriptionSuccess)
-                                {
-                                    _logger.LogInformation("✅ SignalR subscriptions successful for account {AccountId}", AccountId);
-                                }
-                                else
-                                {
-                                    _logger.LogWarning("⚠️ SignalR subscriptions failed for account {AccountId}", AccountId);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "⚠️ Error retrying SignalR subscriptions for account {AccountId}", AccountId);
+                                _logger.LogWarning("⚠️ SignalR subscriptions failed for account {AccountId}", AccountId);
                             }
                         }
                     }
                     else
                     {
-                        _logger.LogWarning("⚠️ Account search response missing 'id' property");
+                        _logger.LogWarning("⚠️ No suitable trading account with CanTrade=true found for this user.");
                     }
                 }
                 else
                 {
-                    _logger.LogWarning("⚠️ Account search response missing or empty 'accounts' array");
+                    _logger.LogWarning("⚠️ No trading accounts found for this user, or 'data' is not an array. Response: {JsonResponse}", jsonResponse);
                 }
             }
             else
             {
-                var errorContent = await searchResponse.Content.ReadAsStringAsync(cancellationToken);
-                _logger.LogWarning("⚠️ Failed to search for account info - {StatusCode}: {Content}", 
-                    searchResponse.StatusCode, errorContent);
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("❌ Failed to get account info. Status: {StatusCode}, Response: {ErrorContent}", 
+                    response.StatusCode, errorContent);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ Failed to get account info, but login still successful");
+            _logger.LogError(ex, "❌ Error getting account info");
         }
     }
 
