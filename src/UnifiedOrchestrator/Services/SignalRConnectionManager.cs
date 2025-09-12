@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using TradingBot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
 
@@ -49,6 +50,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private readonly ILogger<SignalRConnectionManager> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly ITokenProvider _tokenProvider;
+    private readonly IServiceProvider _serviceProvider;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     
     private HubConnection? _userHub;
@@ -85,11 +87,13 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public SignalRConnectionManager(
         ILogger<SignalRConnectionManager> logger,
         ITradingLogger tradingLogger,
-        ITokenProvider tokenProvider)
+        ITokenProvider tokenProvider,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _tradingLogger = tradingLogger;
         _tokenProvider = tokenProvider;
+        _serviceProvider = serviceProvider;
         
         // Health check timer every 30 seconds
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, 
@@ -189,7 +193,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     }
 
     /// <summary>
-    /// Wait for JWT token readiness with timeout and logging
+    /// Wait for JWT token readiness AND authentication service coordination with timeout and logging
     /// Implements 30-45 second delay for token readiness as required
     /// </summary>
     private async Task<string?> WaitForJwtReadinessAsync(CancellationToken cancellationToken = default)
@@ -199,8 +203,52 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         var checkInterval = TimeSpan.FromSeconds(2);
         
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
-            "Waiting for JWT token readiness before establishing hub connections...");
+            "Waiting for JWT token readiness AND authentication service coordination...");
         
+        // First, wait for authentication service to signal readiness
+        try
+        {
+            // Try getting the service from the singleton registration (most reliable)
+            var authService = _serviceProvider.GetService<BotCore.Services.AutoTopstepXLoginService>();
+            
+            if (authService != null)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "Found AutoTopstepXLoginService - waiting for authentication readiness signal...");
+                
+                using var authCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                authCts.CancelAfter(TimeSpan.FromSeconds(30)); // 30 second timeout for auth
+                
+                var authReady = await authService.AuthReadyTask.WaitAsync(authCts.Token);
+                if (!authReady)
+                {
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                        "Authentication service signaled failure - aborting SignalR connection");
+                    return null;
+                }
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SignalRManager", 
+                    "✅ Authentication service signaled ready - proceeding with JWT validation");
+            }
+            else
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                    "AutoTopstepXLoginService not found in DI container - proceeding without coordination");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "SignalRManager", 
+                "Authentication readiness timeout - aborting SignalR connection");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "SignalRManager", 
+                $"Error waiting for authentication readiness: {ex.Message} - proceeding anyway");
+        }
+        
+        // Now wait for JWT token validation
         while (DateTime.UtcNow - startTime < timeout)
         {
             var token = await _tokenProvider.GetTokenAsync();
@@ -440,37 +488,90 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 _logger.LogInformation("[TOPSTEPX] {HubName} connection started successfully. State: {State}", 
                     hubName, hubConnection.State);
                 
-                // CRITICAL: Extended stability validation for TopstepX connections
-                _logger.LogInformation("[TOPSTEPX] {HubName} validating connection stability...", hubName);
+                // MICROSOFT DOCS: Wait for handshake completion (ConnectionId indicates handshake success)
+                // Increased timeout to match HandshakeTimeout setting (60s)
+                var handshakeComplete = false;
+                var readyWaitTime = 0;
+                const int maxHandshakeWait = 60000; // Match our HandshakeTimeout setting
                 
-                // Wait longer and check multiple times for stable connection
-                for (int check = 1; check <= 3; check++)
+                while (!handshakeComplete && readyWaitTime < maxHandshakeWait)
                 {
-                    await Task.Delay(2000); // 2 seconds between checks
-                    
-                    if (hubConnection.State == HubConnectionState.Connected && 
-                        !string.IsNullOrEmpty(hubConnection.ConnectionId))
+                    if (!string.IsNullOrEmpty(hubConnection.ConnectionId) && 
+                        hubConnection.State == HubConnectionState.Connected)
                     {
-                        _logger.LogInformation("[TOPSTEPX] {HubName} stability check {Check}/3: ✅ State: {State}, ID: {ConnectionId}", 
-                            hubName, check, hubConnection.State, hubConnection.ConnectionId);
+                        handshakeComplete = true;
+                        break;
                     }
-                    else
+                    
+                    await Task.Delay(200); // Check every 200ms instead of 100ms
+                    readyWaitTime += 200;
+                    
+                    // Log progress every 5 seconds
+                    if (readyWaitTime % 5000 == 0)
                     {
-                        _logger.LogWarning("[TOPSTEPX] {HubName} stability check {Check}/3: ❌ State: {State}, ID: {ConnectionId}", 
-                            hubName, check, hubConnection.State, hubConnection.ConnectionId ?? "null");
-                        
-                        if (check == 3) // Final check failed
-                        {
-                            throw new InvalidOperationException($"{hubName} connection unstable after extended validation");
-                        }
+                        _logger.LogInformation("[TOPSTEPX] {HubName} handshake in progress... ({Elapsed}ms, State: {State}, ConnectionId: {ConnId})", 
+                            hubName, readyWaitTime, hubConnection.State, 
+                            string.IsNullOrEmpty(hubConnection.ConnectionId) ? "null" : "available");
                     }
                 }
                 
-                // Final validation
+                if (!handshakeComplete)
+                {
+                    throw new TimeoutException($"{hubName} handshake timeout after {maxHandshakeWait}ms. State: {hubConnection.State}, ConnectionId available: {!string.IsNullOrEmpty(hubConnection.ConnectionId)}");
+                }
+                
+                _logger.LogInformation("[TOPSTEPX] {HubName} ready for invocations. ConnectionId: {ConnectionId}", 
+                    hubName, hubConnection.ConnectionId);
+                
+                // IMPORTANT: Add delay before attempting invocations to ensure connection is fully stabilized
+                await Task.Delay(2000); // 2 second stabilization delay
+                
+                // RECHECK: Verify connection is still active before attempting invocations
+                if (hubConnection.State != HubConnectionState.Connected || string.IsNullOrEmpty(hubConnection.ConnectionId))
+                {
+                    throw new InvalidOperationException($"{hubName} connection became unstable during stabilization period");
+                }
+                
+                // IMMEDIATE: Send subscription right after connection is stable
+                if (hubConnection.State == HubConnectionState.Connected && hubName.Contains("User"))
+                {
+                    var accountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+                    if (!string.IsNullOrEmpty(accountId))
+                    {
+                        try
+                        {
+                            await hubConnection.InvokeAsync("SubscribeOrders", accountId, cts.Token);
+                            _logger.LogInformation("[TOPSTEPX] {HubName} immediate subscription sent - preventing timeout", hubName);
+                        }
+                        catch (Exception subEx)
+                        {
+                            _logger.LogWarning(subEx, "[TOPSTEPX] {HubName} immediate subscription failed: {Message}", hubName, subEx.Message);
+                        }
+                    }
+                }
+                else if (hubConnection.State == HubConnectionState.Connected && hubName.Contains("Market"))
+                {
+                    try
+                    {
+                        await hubConnection.InvokeAsync("SubscribeContractQuotes", "ES", cts.Token);
+                        _logger.LogInformation("[TOPSTEPX] {HubName} immediate ES subscription sent - preventing timeout", hubName);
+                    }
+                    catch (Exception subEx)
+                    {
+                        _logger.LogWarning(subEx, "[TOPSTEPX] {HubName} immediate subscription failed: {Message}", hubName, subEx.Message);
+                    }
+                }
+                
+                // REDUCED: Lighter stability validation after immediate subscription
+                _logger.LogInformation("[TOPSTEPX] {HubName} validating connection stability (post-subscription)...", hubName);
+                
+                // Single stability check after subscription
+                await Task.Delay(1000); // Reduced to 1 second
+                
                 if (hubConnection.State == HubConnectionState.Connected && 
                     !string.IsNullOrEmpty(hubConnection.ConnectionId))
                 {
-                    _logger.LogInformation("[TOPSTEPX] {HubName} connection validated after extended checks - State: {State}, ID: {ConnectionId}", 
+                    _logger.LogInformation("[TOPSTEPX] {HubName} stability check: ✅ State: {State}, ID: {ConnectionId}", 
                         hubName, hubConnection.State, hubConnection.ConnectionId);
                         
                     // Track connection start time for statistics
@@ -480,9 +581,9 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 }
                 else
                 {
-                    _logger.LogWarning("[TOPSTEPX] {HubName} connection failed final validation - State: {State}, ID: {ConnectionId}", 
+                    _logger.LogWarning("[TOPSTEPX] {HubName} stability check: ❌ State: {State}, ID: {ConnectionId}", 
                         hubName, hubConnection.State, hubConnection.ConnectionId ?? "null");
-                    throw new InvalidOperationException($"{hubName} connection unstable after start");
+                    throw new InvalidOperationException($"{hubName} connection unstable after subscription");
                 }
             }
             catch (Exception ex)
@@ -626,23 +727,35 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // FIXED: Force WebSockets transport and skip negotiation
-                    options.Transports = HttpTransportType.WebSockets;
-                    options.SkipNegotiation = true;
-
+                    // ATTEMPT: Allow full transport negotiation instead of WebSocket-only
+                    // TopstepX may require proper SignalR negotiation sequence
+                    options.SkipNegotiation = false; // Allow negotiation
+                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets | 
+                                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
+                    
                     // Extended timeouts for TopstepX stability
                     options.CloseTimeout = TimeSpan.FromSeconds(45);
                     
-                    // Add custom headers for TopstepX
+                    // MICROSOFT DOCS: Add required headers for TopstepX SignalR
                     options.Headers.Add("User-Agent", "TradingBot-SignalR/1.0");
                     options.Headers.Add("Accept", "application/json");
+                    options.Headers.Add("Cache-Control", "no-cache");
+                    options.Headers.Add("Pragma", "no-cache");
+                    
+                    // MICROSOFT DOCS: Minimal WebSocket configuration for TopstepX
+                    options.WebSocketConfiguration = wsOptions =>
+                    {
+                        wsOptions.KeepAliveInterval = TimeSpan.FromSeconds(20);
+                        // Remove SubProtocol - might be causing handshake rejection
+                    };
                 })
                 .WithAutomaticReconnect(new ExponentialBackoffRetryPolicy())
                 .ConfigureLogging(logging =>
                 {
-                    logging.SetMinimumLevel(LogLevel.Information);
-                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Warning);
-                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Warning);
+                    // MICROSOFT DOCS: Enable detailed SignalR logging for User Hub handshake debugging
+                    logging.SetMinimumLevel(LogLevel.Debug);
+                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Debug);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Debug);
                 })
                 .Build();
 
@@ -650,7 +763,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
             _userHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Increased for production stability
             _userHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
-            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Increased from 30
+            // MICROSOFT DOCS: HandshakeTimeout is critical for "ConnectionId not available" issues
+            _userHub.HandshakeTimeout = TimeSpan.FromSeconds(60);  // Increased from 45s based on MS docs
 
             SetupUserHubEventHandlers();
             
@@ -660,23 +774,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             {
                 _userHubWired = true;
                 
-                // IMMEDIATE: Send lightweight subscription for stability validation
-                // As soon as the hub reports Connected, send one lightweight subscription
+                // Additional subscriptions handled via background task
                 var accountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
                 if (!string.IsNullOrEmpty(accountId))
                 {
-                    _logger.LogInformation("[TOPSTEPX] User Hub: Account ID available, immediate subscription for stability validation");
-                    try
-                    {
-                        await _userHub.InvokeAsync("SubscribeOrders", accountId);
-                        AddToSubscriptionManifest("UserHub", "SubscribeOrders", accountId);
-                        _logger.LogInformation("[TOPSTEPX] User Hub: Immediate SubscribeOrders successful - stability validator has signal");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "[TOPSTEPX] User Hub: Immediate subscription failed: {Message}", ex.Message);
-                    }
-                    
+                    AddToSubscriptionManifest("UserHub", "SubscribeOrders", accountId);
                     // Try additional subscription but don't fail if it doesn't work
                     _ = Task.Run(async () => await RetrySubscriptionsWithAccountId(accountId));
                 }
@@ -814,9 +916,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                         return message;
                     };
 
-                    // FIXED: Force WebSockets transport and skip negotiation
-                    options.Transports = HttpTransportType.WebSockets;
-                    options.SkipNegotiation = true;
+                    // ATTEMPT: Allow full transport negotiation instead of WebSocket-only
+                    // TopstepX may require proper SignalR negotiation sequence
+                    options.SkipNegotiation = false; // Allow negotiation
+                    options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets | 
+                                        Microsoft.AspNetCore.Http.Connections.HttpTransportType.LongPolling;
 
                     // Set connection timeouts
                     options.CloseTimeout = TimeSpan.FromSeconds(30);
@@ -824,9 +928,10 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 .WithAutomaticReconnect(new ExponentialBackoffRetryPolicy())
                 .ConfigureLogging(logging =>
                 {
-                    logging.SetMinimumLevel(LogLevel.Information);
-                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Warning);
-                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Warning);
+                    // ATTEMPT: Enable detailed SignalR logging for Market Hub handshake debugging
+                    logging.SetMinimumLevel(LogLevel.Debug);
+                    logging.AddFilter("Microsoft.AspNetCore.SignalR.Client", LogLevel.Debug);
+                    logging.AddFilter("Microsoft.AspNetCore.Http.Connections.Client", LogLevel.Debug);
                 })
                 .Build();
 
@@ -834,7 +939,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             // KeepAliveInterval ~10–15s and ServerTimeout ≥30–45s per requirements
             _marketHub.ServerTimeout = TimeSpan.FromSeconds(45);  // Production stability
             _marketHub.KeepAliveInterval = TimeSpan.FromSeconds(15); // Set to 15s for production
-            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(45);  // Extended handshake timeout
+            // MICROSOFT DOCS: HandshakeTimeout is critical for "ConnectionId not available" issues
+            _marketHub.HandshakeTimeout = TimeSpan.FromSeconds(60);  // Increased from 45s based on MS docs
 
             SetupMarketHubEventHandlers();
             
@@ -844,17 +950,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             {
                 _marketHubWired = true;
                 
-                // IMMEDIATE: Subscribe to lightweight market data for stability validation
-                try
-                {
-                    await _marketHub.InvokeAsync("SubscribeContractQuotes", "ES");
-                    AddToSubscriptionManifest("MarketHub", "SubscribeContractQuotes", "ES");
-                    _logger.LogInformation("[TOPSTEPX] Market Hub: Immediate ES subscription successful - stability validator has signal");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[TOPSTEPX] Market Hub: Immediate subscription failed, but connection established");
-                }
+                // Additional subscriptions will be handled via immediate subscription in StartConnectionWithRetry
+                AddToSubscriptionManifest("MarketHub", "SubscribeContractQuotes", "ES");
                 
                 _logger.LogInformation("[TOPSTEPX] Market Hub connection established and confirmed ready");
                 ConnectionStateChanged?.Invoke($"MarketHub:Connected");
