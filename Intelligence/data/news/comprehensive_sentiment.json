@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-12T09:22:50.645414",
+  "timestamp": "2025-09-12T12:41:54.885161",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
   "total_articles_processed": 7,
@@ -38,9 +38,33 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.45166666666666666,
-      "article_count": 1,
+      "sentiment_score": 0.2038888888888889,
+      "article_count": 3,
       "articles": [
+        {
+          "title": "Texas crypto Ponzi operator denied $12.5M bankruptcy discharge",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/texas-crypto-ponzi-operator-denied-004704887.html",
+          "published": "2025-09-11T00:47:04Z",
+          "relevance_keywords": [
+            "crypto"
+          ]
+        },
+        {
+          "title": "'We're Not Trying To Be Michael Saylor,' Figma CEO Dylan Field Says The Firm Is Not A Bitcoin Holding Company Despite BTC ETF Holdings",
+          "sentiment": -0.13999999999999999,
+          "textblob_score": -0.2,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/were-not-trying-michael-saylor-010057239.html",
+          "published": "2025-09-11T01:00:57Z",
+          "relevance_keywords": [
+            "Bitcoin"
+          ]
+        },
         {
           "title": "Gemini\u2019s IPO rides the crypto craze to further the fortunes of the Winklevoss twins",
           "sentiment": 0.45166666666666666,
@@ -48,21 +72,22 @@
           "keyword_score": 1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/geminis-ipo-rides-the-crypto-craze-to-further-the-fortunes-of-the-winklevoss-twins-3f716738?mod=mw_rss_topstories",
-          "published": "Fri, 12 Sep 2025 02:34:00 GMT",
+          "published": "Fri, 12 Sep 2025 10:45:00 GMT",
           "relevance_keywords": [
             "crypto"
           ]
         }
       ],
-      "signal": "BULLISH",
-      "confidence": 0.1,
+      "signal": "NEUTRAL",
+      "confidence": 0.3,
       "sources": [
+        "yahoo_finance",
         "marketwatch"
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.24395833333333333,
-      "article_count": 5,
+      "sentiment_score": 0.37805555555555553,
+      "article_count": 4,
       "articles": [
         {
           "title": "Liberty Mutual car insurance review 2025: 3 out of 5 stars",
@@ -77,25 +102,13 @@
           ]
         },
         {
-          "title": "Gas Markets Brace for Glut With No Sign of China Demand Rebound",
-          "sentiment": 0.330625,
-          "textblob_score": 0.04375000000000001,
+          "title": "Bloomberg Wealth: Vlad Tenev",
+          "sentiment": 0.41055555555555556,
+          "textblob_score": 0.15793650793650793,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-12/gas-markets-brace-for-glut-with-no-sign-of-china-demand-rebound",
-          "published": "Fri, 12 Sep 2025 08:58:44 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Amundi CIO: Market Has Adjusted to French Risks",
-          "sentiment": -0.2125,
-          "textblob_score": 0.125,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-12/amundi-cio-market-has-adjusted-to-french-risks-video",
-          "published": "Fri, 12 Sep 2025 08:16:39 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-10/bloomberg-wealth-vlad-tenev-video",
+          "published": "Wed, 10 Sep 2025 12:31:55 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -107,54 +120,40 @@
           "keyword_score": 1.0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/geminis-ipo-rides-the-crypto-craze-to-further-the-fortunes-of-the-winklevoss-twins-3f716738?mod=mw_rss_topstories",
-          "published": "Fri, 12 Sep 2025 02:34:00 GMT",
+          "published": "Fri, 12 Sep 2025 10:45:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Adobe\u2019s earnings beat shows investors that AI is finally paying off, and the stock rises",
+          "title": "Leveraged ETFs: Single-Stock Surge",
           "sentiment": 0.3,
           "textblob_score": 0.0,
           "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/adobes-stock-has-fallen-after-the-last-four-earnings-calls-can-ai-finally-deliver-cb3242ec?mod=mw_rss_topstories",
-          "published": "Fri, 12 Sep 2025 00:13:00 GMT",
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4822390-leveraged-etfs-single-stock-surge?source=feed_all_articles",
+          "published": "Fri, 12 Sep 2025 08:00:00 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
-      "signal": "NEUTRAL",
-      "confidence": 0.5,
+      "signal": "BULLISH",
+      "confidence": 0.4,
       "sources": [
         "yahoo_finance",
         "bloomberg",
-        "marketwatch"
+        "marketwatch",
+        "seeking_alpha"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.5104242424242424,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Super Micro\u2019s stock is getting an Nvidia bump. Here\u2019s the latest update.",
-          "sentiment": 0.5104242424242424,
-          "textblob_score": 0.3006060606060606,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/super-micros-stock-is-getting-an-nvidia-bump-heres-the-latest-update-96f74aa7?mod=mw_rss_topstories",
-          "published": "Fri, 12 Sep 2025 00:15:00 GMT",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.1,
-      "sources": [
-        "marketwatch"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "AAPL": {
       "sentiment_score": 0.0,
