@@ -1,32 +1,17 @@
 {
-  "timestamp": "2025-09-12T06:32:11.277142",
+  "timestamp": "2025-09-12T09:22:50.645414",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 10,
+  "total_articles_processed": 7,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.34199999999999997,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Asian Stocks Near Record High, Europe Futures Gain: Markets Wrap",
-          "sentiment": 0.34199999999999997,
-          "textblob_score": 0.060000000000000005,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-11/stock-market-today-dow-s-p-live-updates",
-          "published": "Thu, 11 Sep 2025 22:46:53 GMT",
-          "relevance_keywords": [
-            "equity index"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.1,
-      "sources": [
-        "bloomberg"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "NQ": {
       "sentiment_score": 0.0,
@@ -76,29 +61,41 @@
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.28503333333333336,
+      "sentiment_score": 0.24395833333333333,
       "article_count": 5,
       "articles": [
         {
-          "title": "Australia\u2019s Biggest Gas Export Plant Gets Final Approval to Run to 2070",
-          "sentiment": 0.349,
-          "textblob_score": 0.06999999999999999,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-12/woodside-s-north-west-shelf-gets-final-nod-to-run-to-2070-in-australia",
-          "published": "Fri, 12 Sep 2025 04:32:22 GMT",
+          "title": "Liberty Mutual car insurance review 2025: 3 out of 5 stars",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/personal-finance/insurance/review/liberty-mutual-car-insurance-review-213225343.html",
+          "published": "2025-09-10T21:32:25Z",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Market Rally Can Continue 'for a While,' JPMorgan Asset Management Says",
-          "sentiment": 0.2125,
-          "textblob_score": -0.125,
+          "title": "Gas Markets Brace for Glut With No Sign of China Demand Rebound",
+          "sentiment": 0.330625,
+          "textblob_score": 0.04375000000000001,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-12/market-rally-can-continue-for-a-while-jpmorgan-says-video",
-          "published": "Fri, 12 Sep 2025 04:12:03 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-12/gas-markets-brace-for-glut-with-no-sign-of-china-demand-rebound",
+          "published": "Fri, 12 Sep 2025 08:58:44 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Amundi CIO: Market Has Adjusted to French Risks",
+          "sentiment": -0.2125,
+          "textblob_score": 0.125,
+          "keyword_score": -1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-12/amundi-cio-market-has-adjusted-to-french-risks-video",
+          "published": "Fri, 12 Sep 2025 08:16:39 GMT",
           "relevance_keywords": [
             "EV"
           ]
@@ -126,44 +123,20 @@
           "relevance_keywords": [
             "EV"
           ]
-        },
-        {
-          "title": "HIGH: Revenue Without Duration Risk",
-          "sentiment": 0.11199999999999999,
-          "textblob_score": 0.16,
-          "keyword_score": 0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4822386-high-revenue-without-duration-risk?source=feed_all_articles",
-          "published": "Fri, 12 Sep 2025 02:16:34 -0400",
-          "relevance_keywords": [
-            "EV"
-          ]
         }
       ],
       "signal": "NEUTRAL",
       "confidence": 0.5,
       "sources": [
+        "yahoo_finance",
         "bloomberg",
-        "marketwatch",
-        "seeking_alpha"
+        "marketwatch"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.40521212121212125,
-      "article_count": 2,
+      "sentiment_score": 0.5104242424242424,
+      "article_count": 1,
       "articles": [
-        {
-          "title": "Why Is Nvidia Stock (NVDA) Soaring Today?",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/why-nvidia-stock-nvda-soaring-183730030.html",
-          "published": "2025-09-10T18:37:30Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
         {
           "title": "Super Micro\u2019s stock is getting an Nvidia bump. Here\u2019s the latest update.",
           "sentiment": 0.5104242424242424,
@@ -178,34 +151,18 @@
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance",
-        "marketwatch"
-      ]
-    },
-    "AAPL": {
-      "sentiment_score": 0.27999999999999997,
-      "article_count": 1,
-      "articles": [
-        {
-          "title": "Cheap pharmaceuticals from China and India put Americans at risk. Here\u2019s the cure.",
-          "sentiment": 0.27999999999999997,
-          "textblob_score": 0.4,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/cheap-pharmaceuticals-from-china-and-india-put-americans-at-risk-heres-the-antidote-3f9061f2?mod=mw_rss_topstories",
-          "published": "Thu, 11 Sep 2025 21:54:00 GMT",
-          "relevance_keywords": [
-            "Mac"
-          ]
-        }
-      ],
-      "signal": "NEUTRAL",
       "confidence": 0.1,
       "sources": [
         "marketwatch"
       ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     }
   },
   "sources_used": [
