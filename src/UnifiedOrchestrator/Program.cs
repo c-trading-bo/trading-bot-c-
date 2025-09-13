@@ -338,6 +338,45 @@ public class Program
         // Register ML Memory Manager - Sophisticated ML model management (458 lines)
         services.AddSingleton<BotCore.ML.OnnxModelLoader>();
         services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
+
+        // ================================================================================
+        // 🏆 CHAMPION/CHALLENGER ARCHITECTURE - SAFE MODEL MANAGEMENT 🏆
+        // ================================================================================
+        
+        // Register Model Registry for versioned, immutable artifacts
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry, TradingBot.UnifiedOrchestrator.Runtime.FileModelRegistry>();
+        
+        // Register Atomic Model Router Factory for lock-free champion access
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IModelRouterFactory, TradingBot.UnifiedOrchestrator.Runtime.ModelRouterFactory>();
+        
+        // Register Read-Only Inference Brain (replaces shared mutable UnifiedTradingBrain)
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IInferenceBrain, TradingBot.UnifiedOrchestrator.Brains.InferenceBrain>();
+        
+        // Register Write-Only Training Brain for isolated challenger creation
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITrainingBrain, TradingBot.UnifiedOrchestrator.Brains.TrainingBrain>();
+        
+        // Register Artifact Builders for ONNX and UCB serialization
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.OnnxArtifactBuilder>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IArtifactBuilder, TradingBot.UnifiedOrchestrator.Artifacts.UcbSerializer>();
+        
+        // Register Market Hours Service for timing gates
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IMarketHoursService, TradingBot.UnifiedOrchestrator.Scheduling.FuturesMarketHours>();
+        
+        // Register Shadow Tester for A/B validation
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IShadowTester, TradingBot.UnifiedOrchestrator.Promotion.ShadowTester>();
+        
+        // Register Position Service for flat validation
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.IPositionService, TradingBot.UnifiedOrchestrator.Promotion.MockPositionService>();
+        
+        // Register Promotion Service with atomic swaps and instant rollback
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService, TradingBot.UnifiedOrchestrator.Promotion.PromotionService>();
+        
+        // Register Validation Service for demonstration
+        services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.ChampionChallengerValidationService>();
+        
+        Console.WriteLine("🏆 Champion/Challenger Architecture registered successfully - Live trading inference now read-only with atomic model swaps");
+        
+        // ================================================================================
         
         // ================================================================================
         // CRITICAL SAFETY SYSTEMS - PRODUCTION TRADING SAFETY
