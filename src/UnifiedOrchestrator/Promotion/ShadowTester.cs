@@ -232,13 +232,13 @@ public class ShadowTester : IShadowTester
         }
     }
 
-    private TradingContext CreateMockTradingContext(Random random)
+    private Models.TradingContext CreateMockTradingContext(Random random)
     {
-        return new TradingContext
+        return new Models.TradingContext
         {
             Symbol = "ES",
             Timestamp = DateTime.UtcNow.AddMinutes(-random.Next(1000)),
-            Price = 4500 + (decimal)(random.NextDouble() * 100 - 50),
+            CurrentPrice = 4500 + (decimal)(random.NextDouble() * 100 - 50),
             Volume = random.Next(100, 1000),
             Volatility = (decimal)(random.NextDouble() * 0.5),
             CurrentPosition = random.Next(-2, 3),
@@ -247,7 +247,7 @@ public class ShadowTester : IShadowTester
         };
     }
 
-    private async Task<ShadowDecision> GetModelDecisionAsync(object model, TradingContext context, CancellationToken cancellationToken)
+    private async Task<ShadowDecision> GetModelDecisionAsync(object model, Models.TradingContext context, CancellationToken cancellationToken)
     {
         await Task.Delay(Random.Shared.Next(1, 10), cancellationToken); // Simulate inference time
         

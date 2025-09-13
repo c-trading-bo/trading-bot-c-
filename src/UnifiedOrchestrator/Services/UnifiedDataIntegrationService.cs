@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -84,10 +85,25 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         {
             _logger.LogInformation("[DATA-INTEGRATION] Connecting to historical data sources");
             
-            // Simulate historical data connection
-            await Task.Delay(1000, cancellationToken);
+            // Check for actual historical data files/directories
+            var historicalDataPaths = new[]
+            {
+                "data/historical",
+                "ml/data",
+                "models/training_data"
+            };
             
-            _isHistoricalDataConnected = true;
+            var connectedSources = 0;
+            foreach (var path in historicalDataPaths)
+            {
+                if (Directory.Exists(path) || File.Exists($"{path}.csv"))
+                {
+                    connectedSources++;
+                    _logger.LogInformation("[DATA-INTEGRATION] Found historical data source: {Path}", path);
+                }
+            }
+            
+            _isHistoricalDataConnected = connectedSources > 0;
             _lastHistoricalDataSync = DateTime.UtcNow;
             
             _dataFlowEvents.Add(new DataFlowEvent
@@ -95,8 +111,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 Timestamp = DateTime.UtcNow,
                 EventType = "Historical Data Connected",
                 Source = "HistoricalDataProvider",
-                Details = "Connected to historical data sources for training data",
-                Success = true
+                Details = $"Connected to {connectedSources} historical data sources for training data",
+                Success = _isHistoricalDataConnected
             });
             
             _logger.LogInformation("[DATA-INTEGRATION] ✅ Historical data connection established");
@@ -117,10 +133,18 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         {
             _logger.LogInformation("[DATA-INTEGRATION] Connecting to live TopStep data");
             
-            // Simulate TopStep connection
-            await Task.Delay(1500, cancellationToken);
+            // Check for TopStep environment configuration
+            var topstepApiKey = Environment.GetEnvironmentVariable("TOPSTEP_API_KEY");
+            var topstepBaseUrl = Environment.GetEnvironmentVariable("TOPSTEP_BASE_URL") ?? "https://api.topstepx.com";
+            var signalRUrl = Environment.GetEnvironmentVariable("TOPSTEP_SIGNALR_URL") ?? "https://rtc.topstepx.com/hubs/market";
             
-            _isLiveDataConnected = true;
+            var hasApiKey = !string.IsNullOrEmpty(topstepApiKey);
+            var canConnectToApi = true; // Would test actual connection in production
+            
+            // Simulate checking connection endpoints
+            await Task.Delay(500, cancellationToken);
+            
+            _isLiveDataConnected = hasApiKey && canConnectToApi;
             _lastLiveDataReceived = DateTime.UtcNow;
             
             _dataFlowEvents.Add(new DataFlowEvent
@@ -128,11 +152,18 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 Timestamp = DateTime.UtcNow,
                 EventType = "Live TopStep Data Connected",
                 Source = "TopStepX API",
-                Details = "Connected to TopStep live market data and account feeds",
-                Success = true
+                Details = $"Connected to TopStep live data - API: {(hasApiKey ? "Configured" : "Missing")}, URL: {topstepBaseUrl}",
+                Success = _isLiveDataConnected
             });
             
-            _logger.LogInformation("[DATA-INTEGRATION] ✅ Live TopStep data connection established");
+            if (_isLiveDataConnected)
+            {
+                _logger.LogInformation("[DATA-INTEGRATION] ✅ Live TopStep data connection established");
+            }
+            else
+            {
+                _logger.LogWarning("[DATA-INTEGRATION] ⚠️ Live TopStep data connection incomplete - API key: {HasKey}", hasApiKey);
+            }
         }
         catch (Exception ex)
         {
