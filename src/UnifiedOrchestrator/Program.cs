@@ -371,6 +371,15 @@ public class Program
         // Register Promotion Service with atomic swaps and instant rollback
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService, TradingBot.UnifiedOrchestrator.Promotion.PromotionService>();
         
+        // Register Production Validation Service for runtime proof
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionValidationService>();
+        
+        // Register Rollback Drill Service for rollback evidence under load
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IRollbackDrillService, TradingBot.UnifiedOrchestrator.Services.RollbackDrillService>();
+        
+        // Register Trading Brain Adapter for UnifiedTradingBrain parity
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITradingBrainAdapter, TradingBot.UnifiedOrchestrator.Brains.TradingBrainAdapter>();
+        
         // Register Validation Service for demonstration
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.ChampionChallengerValidationService>();
         
