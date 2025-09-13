@@ -14,15 +14,19 @@ public class FuturesMarketHours : IMarketHoursService
 {
     private readonly ILogger<FuturesMarketHours> _logger;
     
-    // CME Futures trading hours (Eastern Time)
+    // CME E-mini S&P 500 (ES) Futures trading hours (Eastern Time)
+    // Nearly 24/5 trading: Sunday 6:00 PM ET to Friday 5:00 PM ET
+    // Daily maintenance break: 5:00 PM - 6:00 PM ET Monday-Thursday
     private readonly TimeSpan MarketOpenTime = new(18, 0, 0);  // 6:00 PM ET (Sunday-Thursday)
     private readonly TimeSpan MarketCloseTime = new(17, 0, 0); // 5:00 PM ET (Monday-Friday)
     
-    // Safe promotion windows (Eastern Time)
-    private readonly TimeSpan OvernightWindowStart = new(4, 30, 0);  // 4:30 AM ET
-    private readonly TimeSpan OvernightWindowEnd = new(5, 0, 0);     // 5:00 AM ET
-    private readonly TimeSpan PostCloseWindowStart = new(16, 0, 0);  // 4:00 PM ET
-    private readonly TimeSpan PostCloseWindowEnd = new(16, 15, 0);   // 4:15 PM ET
+    // Safe promotion windows (Eastern Time) - Low volume/volatility periods
+    private readonly TimeSpan EarlyMorningWindowStart = new(3, 0, 0);   // 3:00 AM ET
+    private readonly TimeSpan EarlyMorningWindowEnd = new(4, 0, 0);     // 4:00 AM ET  
+    private readonly TimeSpan LunchWindowStart = new(11, 0, 0);         // 11:00 AM ET
+    private readonly TimeSpan LunchWindowEnd = new(13, 0, 0);           // 1:00 PM ET
+    private readonly TimeSpan MaintenanceWindowStart = new(17, 0, 0);   // 5:00 PM ET (daily break)
+    private readonly TimeSpan MaintenanceWindowEnd = new(18, 0, 0);     // 6:00 PM ET
 
     public FuturesMarketHours(ILogger<FuturesMarketHours> logger)
     {
@@ -31,7 +35,8 @@ public class FuturesMarketHours : IMarketHoursService
 
     /// <summary>
     /// Check if current time is within a safe promotion window
-    /// Safe windows: overnight 4:30-5:00 ET, post-close 16:00-16:15 ET, weekends
+    /// Safe windows: early morning 3:00-4:00 AM ET, lunch 11:00 AM-1:00 PM ET, daily maintenance 5:00-6:00 PM ET, weekends
+    /// These periods typically have lower volatility and volume
     /// </summary>
     public async Task<bool> IsInSafePromotionWindowAsync(CancellationToken cancellationToken = default)
     {
@@ -41,26 +46,36 @@ public class FuturesMarketHours : IMarketHoursService
         var dayOfWeek = etNow.DayOfWeek;
         var timeOfDay = etNow.TimeOfDay;
 
-        // Weekend is always safe (Saturday and Sunday)
-        if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+        // Weekend is always safe (Friday after 5 PM to Sunday before 6 PM)
+        if (dayOfWeek == DayOfWeek.Saturday || 
+            (dayOfWeek == DayOfWeek.Sunday && timeOfDay < MarketOpenTime) ||
+            (dayOfWeek == DayOfWeek.Friday && timeOfDay >= MarketCloseTime))
         {
-            _logger.LogDebug("In safe promotion window: Weekend");
+            _logger.LogDebug("In safe promotion window: Weekend/Market Closed");
             return true;
         }
 
-        // Overnight window: 4:30-5:00 AM ET (Monday-Friday)
-        if (timeOfDay >= OvernightWindowStart && timeOfDay <= OvernightWindowEnd)
+        // Early morning low-volume window: 3:00-4:00 AM ET
+        if (timeOfDay >= EarlyMorningWindowStart && timeOfDay <= EarlyMorningWindowEnd)
         {
-            _logger.LogDebug("In safe promotion window: Overnight ({Start}-{End} ET)", 
-                OvernightWindowStart, OvernightWindowEnd);
+            _logger.LogDebug("In safe promotion window: Early morning ({Start}-{End} ET)", 
+                EarlyMorningWindowStart, EarlyMorningWindowEnd);
             return true;
         }
 
-        // Post-close window: 4:00-4:15 PM ET (Monday-Friday)
-        if (timeOfDay >= PostCloseWindowStart && timeOfDay <= PostCloseWindowEnd)
+        // Lunch time low-volatility window: 11:00 AM-1:00 PM ET
+        if (timeOfDay >= LunchWindowStart && timeOfDay <= LunchWindowEnd)
         {
-            _logger.LogDebug("In safe promotion window: Post-close ({Start}-{End} ET)", 
-                PostCloseWindowStart, PostCloseWindowEnd);
+            _logger.LogDebug("In safe promotion window: Lunch period ({Start}-{End} ET)", 
+                LunchWindowStart, LunchWindowEnd);
+            return true;
+        }
+
+        // Daily maintenance window: 5:00-6:00 PM ET (when market is closed for maintenance)
+        if (timeOfDay >= MaintenanceWindowStart && timeOfDay <= MaintenanceWindowEnd)
+        {
+            _logger.LogDebug("In safe promotion window: Daily maintenance ({Start}-{End} ET)", 
+                MaintenanceWindowStart, MaintenanceWindowEnd);
             return true;
         }
 
@@ -87,15 +102,19 @@ public class FuturesMarketHours : IMarketHoursService
         // Try to find next safe window today
         var nextWindows = new[]
         {
-            // Post-close window today (if not passed)
-            timeOfDay < PostCloseWindowStart ? 
-                currentDate.Add(PostCloseWindowStart) : (DateTime?)null,
+            // Lunch window today (if not passed)
+            timeOfDay < LunchWindowStart ? 
+                currentDate.Add(LunchWindowStart) : (DateTime?)null,
             
-            // Overnight window tomorrow morning
-            currentDate.AddDays(1).Add(OvernightWindowStart),
+            // Daily maintenance window today (if not passed)  
+            timeOfDay < MaintenanceWindowStart ?
+                currentDate.Add(MaintenanceWindowStart) : (DateTime?)null,
             
-            // Post-close window tomorrow
-            currentDate.AddDays(1).Add(PostCloseWindowStart)
+            // Early morning window tomorrow
+            currentDate.AddDays(1).Add(EarlyMorningWindowStart),
+            
+            // Lunch window tomorrow
+            currentDate.AddDays(1).Add(LunchWindowStart)
         };
 
         foreach (var window in nextWindows)
@@ -166,8 +185,10 @@ public class FuturesMarketHours : IMarketHoursService
         return timeOfDay switch
         {
             var t when t >= new TimeSpan(6, 0, 0) && t < new TimeSpan(9, 30, 0) => "PRE_MARKET",
-            var t when t >= new TimeSpan(9, 30, 0) && t < new TimeSpan(16, 0, 0) => "OPEN",
-            var t when t >= new TimeSpan(16, 0, 0) && t < new TimeSpan(17, 0, 0) => "CLOSE",
+            var t when t >= new TimeSpan(9, 30, 0) && t < new TimeSpan(11, 0, 0) => "MORNING_SESSION", 
+            var t when t >= new TimeSpan(11, 0, 0) && t < new TimeSpan(13, 0, 0) => "LUNCH_SESSION",
+            var t when t >= new TimeSpan(13, 0, 0) && t < new TimeSpan(16, 0, 0) => "AFTERNOON_SESSION",
+            var t when t >= new TimeSpan(16, 0, 0) && t < new TimeSpan(17, 0, 0) => "CLOSE_SESSION",
             _ => "OVERNIGHT"
         };
     }
