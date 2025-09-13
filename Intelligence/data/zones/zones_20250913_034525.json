@@ -1,8 +1,19 @@
 {
-  "timestamp": "2025-09-13T05:43:11.352842",
+  "timestamp": "2025-09-13T03:45:25.483122",
   "symbol": "ES=F",
   "current_price": 6588.5,
   "supply_zones": [
+    {
+      "price_level": 5520.0,
+      "zone_top": 5531.04,
+      "zone_bottom": 5508.96,
+      "strength": 100,
+      "volume": 3096194,
+      "timeframe": "1d",
+      "created": "2025-04-09T00:00:00-04:00",
+      "touches": 0,
+      "active": true
+    },
     {
       "price_level": 6535.75,
       "zone_top": 6548.8215,
@@ -179,7 +190,7 @@
     "strength": 27.387748804196885
   },
   "statistics": {
-    "total_supply_zones": 5,
+    "total_supply_zones": 6,
     "total_demand_zones": 10,
     "timeframes_analyzed": [
       "1h",

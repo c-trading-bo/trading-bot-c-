@@ -1,0 +1,469 @@
+{
+  "timestamp": "2025-09-13T04:45:19.025954",
+  "article_count": 60,
+  "avg_sentiment": 0.07,
+  "news_intensity": 1.0,
+  "volatility_score": 12,
+  "events": {
+    "fomc_detected": false,
+    "cpi_detected": false,
+    "nfp_detected": false,
+    "earnings_detected": true,
+    "panic_detected": false,
+    "euphoria_detected": false,
+    "major_event_score": 12
+  },
+  "regime_hint": "neutral",
+  "articles": [
+    {
+      "title": "RH Trims Outlook Amid Continued Tariff Uncertainty",
+      "summary": "",
+      "published": "2025-09-11T21:43:00Z",
+      "link": "https://www.wsj.com/business/earnings/rh-trims-outlook-amid-continued-tariff-uncertainty-6f95ac03?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle is giving Wall Street numbers it can bet on as Larry Ellison's tech giant becomes investors' new favorite AI play",
+      "summary": "",
+      "published": "2025-09-11T21:51:36Z",
+      "link": "https://finance.yahoo.com/news/oracle-giving-wall-street-numbers-135136218.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ETF Education: Understanding ETF Liquidity",
+      "summary": "",
+      "published": "2025-09-11T21:30:00Z",
+      "link": "https://finance.yahoo.com/news/etf-education-understanding-etf-liquidity-213000360.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Klarna\u2019s Formerly Flashy Marketing Might Seem \u2018More Boring\u2019",
+      "summary": "",
+      "published": "2025-09-11T21:26:00Z",
+      "link": "https://www.wsj.com/articles/why-klarnas-formerly-flashy-marketing-might-seem-more-boring-43b71f0a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should you close your HYSA before opening a new one?",
+      "summary": "",
+      "published": "2025-09-11T21:25:22Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/article/should-you-close-hysa-before-opening-new-one-212522664.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Boeing falling behind on certifying its 777X, CEO says",
+      "summary": "",
+      "published": "2025-09-11T21:00:33Z",
+      "link": "https://finance.yahoo.com/news/boeing-falling-behind-certifying-777x-210033260.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Figure surges in Wall Street debut, valuation tops $7B",
+      "summary": "",
+      "published": "2025-09-11T21:53:49Z",
+      "link": "https://finance.yahoo.com/news/figure-surges-wall-street-debut-215349023.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Differentiated Approach for IPO Readiness: Rose & Co. CEO Karen Snow, Live at Nasdaq",
+      "summary": "",
+      "published": "2025-09-11T21:20:37Z",
+      "link": "https://finance.yahoo.com/news/differentiated-approach-ipo-readiness-rose-212037692.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Squares Up on Thursday with Gains",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/corn-squares-thursday-gains-222556835.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Soybeans Push Higher into Thursday\u2019s Close",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/soybeans-push-higher-thursday-close-222556872.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ESG Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-11T21:17:00Z",
+      "link": "https://www.wsj.com/articles/esg-roundup-market-talk-9926fa9c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "REX-Osprey XRP and memecoin ETFs to debut with different structure next week",
+      "summary": "",
+      "published": "2025-09-11T22:02:19Z",
+      "link": "https://finance.yahoo.com/news/rex-osprey-xrp-memecoin-etfs-220219152.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US oil titan to cut up to 25% of its workforce \u2014 impacting thousands. So what happened to \u2018drill baby drill\u2019?",
+      "summary": "",
+      "published": "2025-09-11T21:10:00Z",
+      "link": "https://finance.yahoo.com/news/us-oil-titan-cut-25-211000963.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Cognizant Pledges to Expand AI Education and Upskill Workforce",
+      "summary": "",
+      "published": "2025-09-11T21:07:27Z",
+      "link": "https://finance.yahoo.com/news/cognizant-pledges-expand-ai-education-210727838.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "ExlService Holdings Highlights Sustainability Achievements in Annual Report",
+      "summary": "",
+      "published": "2025-09-11T21:07:29Z",
+      "link": "https://finance.yahoo.com/news/exlservice-holdings-highlights-sustainability-achievements-210729346.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Interactive Strength Inc. (TRNR) Touts Robust Revenue Growth on its Acquisition Target",
+      "summary": "",
+      "published": "2025-09-11T21:07:28Z",
+      "link": "https://finance.yahoo.com/news/interactive-strength-inc-trnr-touts-210728077.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Expanding Emerging Market Access to Dollar: Maurice",
+      "summary": "",
+      "published": "2025-09-11T22:04:31Z",
+      "link": "https://finance.yahoo.com/video/expanding-emerging-market-access-dollar-220431726.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "CACI International Awarded $124M Canadian Armed Forces Contract for Counter-Drone Systems",
+      "summary": "",
+      "published": "2025-09-11T21:06:25Z",
+      "link": "https://finance.yahoo.com/news/caci-international-awarded-124m-canadian-210625945.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Adobe Stock Price Target Cut to $460 by Oppenheimer Ahead of Q3 Earnings",
+      "summary": "",
+      "published": "2025-09-11T21:05:50Z",
+      "link": "https://finance.yahoo.com/news/adobe-stock-price-target-cut-210550158.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Recap: Mortgage Rates Fall, OpenDoor Technologies Stock Surges",
+      "summary": "",
+      "published": "2025-09-11T21:06:02Z",
+      "link": "https://www.wsj.com/livecoverage/cpi-report-today-inflation-stock-market-09-11-2025/card/heard-on-the-street-recap-mortgage-rates-fall-opendoor-technologies-stock-surges-mSS0o5h7kzF3Myg9vLdi?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "RH Trims Outlook Amid Continued Tariff Uncertainty",
+      "summary": "",
+      "published": "2025-09-11T21:43:00Z",
+      "link": "https://www.wsj.com/business/earnings/rh-trims-outlook-amid-continued-tariff-uncertainty-6f95ac03?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle is giving Wall Street numbers it can bet on as Larry Ellison's tech giant becomes investors' new favorite AI play",
+      "summary": "",
+      "published": "2025-09-11T21:51:36Z",
+      "link": "https://finance.yahoo.com/news/oracle-giving-wall-street-numbers-135136218.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ETF Education: Understanding ETF Liquidity",
+      "summary": "",
+      "published": "2025-09-11T21:30:00Z",
+      "link": "https://finance.yahoo.com/news/etf-education-understanding-etf-liquidity-213000360.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Klarna\u2019s Formerly Flashy Marketing Might Seem \u2018More Boring\u2019",
+      "summary": "",
+      "published": "2025-09-11T21:26:00Z",
+      "link": "https://www.wsj.com/articles/why-klarnas-formerly-flashy-marketing-might-seem-more-boring-43b71f0a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should you close your HYSA before opening a new one?",
+      "summary": "",
+      "published": "2025-09-11T21:25:22Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/article/should-you-close-hysa-before-opening-new-one-212522664.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Boeing falling behind on certifying its 777X, CEO says",
+      "summary": "",
+      "published": "2025-09-11T21:00:33Z",
+      "link": "https://finance.yahoo.com/news/boeing-falling-behind-certifying-777x-210033260.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Figure surges in Wall Street debut, valuation tops $7B",
+      "summary": "",
+      "published": "2025-09-11T21:53:49Z",
+      "link": "https://finance.yahoo.com/news/figure-surges-wall-street-debut-215349023.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Differentiated Approach for IPO Readiness: Rose & Co. CEO Karen Snow, Live at Nasdaq",
+      "summary": "",
+      "published": "2025-09-11T21:20:37Z",
+      "link": "https://finance.yahoo.com/news/differentiated-approach-ipo-readiness-rose-212037692.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Squares Up on Thursday with Gains",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/corn-squares-thursday-gains-222556835.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Soybeans Push Higher into Thursday\u2019s Close",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/soybeans-push-higher-thursday-close-222556872.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ESG Roundup: Market Talk",
+      "summary": "",
+      "published": "2025-09-11T21:17:00Z",
+      "link": "https://www.wsj.com/articles/esg-roundup-market-talk-9926fa9c?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "REX-Osprey XRP and memecoin ETFs to debut with different structure next week",
+      "summary": "",
+      "published": "2025-09-11T22:02:19Z",
+      "link": "https://finance.yahoo.com/news/rex-osprey-xrp-memecoin-etfs-220219152.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "US oil titan to cut up to 25% of its workforce \u2014 impacting thousands. So what happened to \u2018drill baby drill\u2019?",
+      "summary": "",
+      "published": "2025-09-11T21:10:00Z",
+      "link": "https://finance.yahoo.com/news/us-oil-titan-cut-25-211000963.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": true
+    },
+    {
+      "title": "Cognizant Pledges to Expand AI Education and Upskill Workforce",
+      "summary": "",
+      "published": "2025-09-11T21:07:27Z",
+      "link": "https://finance.yahoo.com/news/cognizant-pledges-expand-ai-education-210727838.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "ExlService Holdings Highlights Sustainability Achievements in Annual Report",
+      "summary": "",
+      "published": "2025-09-11T21:07:29Z",
+      "link": "https://finance.yahoo.com/news/exlservice-holdings-highlights-sustainability-achievements-210729346.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Interactive Strength Inc. (TRNR) Touts Robust Revenue Growth on its Acquisition Target",
+      "summary": "",
+      "published": "2025-09-11T21:07:28Z",
+      "link": "https://finance.yahoo.com/news/interactive-strength-inc-trnr-touts-210728077.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Expanding Emerging Market Access to Dollar: Maurice",
+      "summary": "",
+      "published": "2025-09-11T22:04:31Z",
+      "link": "https://finance.yahoo.com/video/expanding-emerging-market-access-dollar-220431726.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "CACI International Awarded $124M Canadian Armed Forces Contract for Counter-Drone Systems",
+      "summary": "",
+      "published": "2025-09-11T21:06:25Z",
+      "link": "https://finance.yahoo.com/news/caci-international-awarded-124m-canadian-210625945.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Adobe Stock Price Target Cut to $460 by Oppenheimer Ahead of Q3 Earnings",
+      "summary": "",
+      "published": "2025-09-11T21:05:50Z",
+      "link": "https://finance.yahoo.com/news/adobe-stock-price-target-cut-210550158.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Heard on the Street Recap: Mortgage Rates Fall, OpenDoor Technologies Stock Surges",
+      "summary": "",
+      "published": "2025-09-11T21:06:02Z",
+      "link": "https://www.wsj.com/livecoverage/cpi-report-today-inflation-stock-market-09-11-2025/card/heard-on-the-street-recap-mortgage-rates-fall-opendoor-technologies-stock-surges-mSS0o5h7kzF3Myg9vLdi?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.1,
+      "has_numbers": false
+    },
+    {
+      "title": "RH Trims Outlook Amid Continued Tariff Uncertainty",
+      "summary": "",
+      "published": "2025-09-11T21:43:00Z",
+      "link": "https://www.wsj.com/business/earnings/rh-trims-outlook-amid-continued-tariff-uncertainty-6f95ac03?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Oracle is giving Wall Street numbers it can bet on as Larry Ellison's tech giant becomes investors' new favorite AI play",
+      "summary": "",
+      "published": "2025-09-11T21:51:36Z",
+      "link": "https://finance.yahoo.com/news/oracle-giving-wall-street-numbers-135136218.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "ETF Education: Understanding ETF Liquidity",
+      "summary": "",
+      "published": "2025-09-11T21:30:00Z",
+      "link": "https://finance.yahoo.com/news/etf-education-understanding-etf-liquidity-213000360.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Why Klarna\u2019s Formerly Flashy Marketing Might Seem \u2018More Boring\u2019",
+      "summary": "",
+      "published": "2025-09-11T21:26:00Z",
+      "link": "https://www.wsj.com/articles/why-klarnas-formerly-flashy-marketing-might-seem-more-boring-43b71f0a?siteid=yhoof2&yptr=yahoo",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Should you close your HYSA before opening a new one?",
+      "summary": "",
+      "published": "2025-09-11T21:25:22Z",
+      "link": "https://finance.yahoo.com/personal-finance/banking/article/should-you-close-hysa-before-opening-new-one-212522664.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Boeing falling behind on certifying its 777X, CEO says",
+      "summary": "",
+      "published": "2025-09-11T21:00:33Z",
+      "link": "https://finance.yahoo.com/news/boeing-falling-behind-certifying-777x-210033260.html",
+      "source": "yahoo_finance",
+      "sentiment": -0.2,
+      "has_numbers": false
+    },
+    {
+      "title": "Figure surges in Wall Street debut, valuation tops $7B",
+      "summary": "",
+      "published": "2025-09-11T21:53:49Z",
+      "link": "https://finance.yahoo.com/news/figure-surges-wall-street-debut-215349023.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.3,
+      "has_numbers": false
+    },
+    {
+      "title": "Differentiated Approach for IPO Readiness: Rose & Co. CEO Karen Snow, Live at Nasdaq",
+      "summary": "",
+      "published": "2025-09-11T21:20:37Z",
+      "link": "https://finance.yahoo.com/news/differentiated-approach-ipo-readiness-rose-212037692.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    },
+    {
+      "title": "Corn Squares Up on Thursday with Gains",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/corn-squares-thursday-gains-222556835.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.4,
+      "has_numbers": false
+    },
+    {
+      "title": "Soybeans Push Higher into Thursday\u2019s Close",
+      "summary": "",
+      "published": "2025-09-11T22:25:56Z",
+      "link": "https://finance.yahoo.com/news/soybeans-push-higher-thursday-close-222556872.html",
+      "source": "yahoo_finance",
+      "sentiment": 0.0,
+      "has_numbers": false
+    }
+  ]
+}
