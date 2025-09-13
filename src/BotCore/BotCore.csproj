@@ -27,4 +27,9 @@
     <!-- <ProjectReference Include="..\\Safety\\Safety.csproj" /> -->
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Services\ES_NQ_CorrelationManager.cs" />
+    <Compile Remove="Services\ES_NQ_PortfolioHeatManager.cs" />
+  </ItemGroup>
+
 </Project>
