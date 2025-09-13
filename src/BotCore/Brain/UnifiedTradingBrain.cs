@@ -7,6 +7,7 @@ using BotCore.ML;
 using BotCore.Bandits;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using TradingBot.RLAgent; // For CVaRPPO and ActionResult
 
 namespace BotCore.Brain
 {
@@ -50,10 +51,10 @@ namespace BotCore.Brain
         private readonly NeuralUcbBandit _strategySelector;
         private readonly ConcurrentDictionary<string, MarketContext> _marketContexts = new();
         private readonly ConcurrentDictionary<string, TradingPerformance> _performance = new();
+        private readonly CVaRPPO _cvarPPO; // Direct injection instead of loading from memory
         
         // ML Models for different decision points
         private object? _lstmPricePredictor;
-        private object? _rlPositionSizer;
         private object? _metaClassifier;
         private object? _marketRegimeDetector;
         private INeuralNetwork? _confidenceNetwork;
@@ -76,11 +77,13 @@ namespace BotCore.Brain
         public UnifiedTradingBrain(
             ILogger<UnifiedTradingBrain> logger,
             IMLMemoryManager memoryManager,
-            StrategyMlModelManager modelManager)
+            StrategyMlModelManager modelManager,
+            CVaRPPO cvarPPO)
         {
             _logger = logger;
             _memoryManager = memoryManager;
             _modelManager = modelManager;
+            _cvarPPO = cvarPPO; // Direct injection
             
             // Initialize Neural UCB for strategy selection using ONNX-based neural network
             var onnxLoader = new OnnxModelLoader(new Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelLoader>());
@@ -91,7 +94,7 @@ namespace BotCore.Brain
             // Initialize confidence network for model confidence prediction
             _confidenceNetwork = new OnnxNeuralNetwork(onnxLoader, neuralNetworkLogger, "models/confidence_prediction.onnx");
             
-            _logger.LogInformation("🧠 [UNIFIED-BRAIN] Initialized - Ready to make intelligent trading decisions");
+            _logger.LogInformation("🧠 [UNIFIED-BRAIN] Initialized with direct CVaR-PPO injection - Ready to make intelligent trading decisions");
         }
 
         /// <summary>
@@ -108,9 +111,8 @@ namespace BotCore.Brain
                 _lstmPricePredictor = await _memoryManager.LoadModelAsync<object>(
                     "models/rl_model.onnx", "v1");
                 
-                // Load RL agent for position sizing - use your real CVaR PPO agent
-                _rlPositionSizer = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl/cvar_ppo_agent.onnx", "v1");
+                // CVaR-PPO is already injected and initialized via DI container
+                _logger.LogInformation("✅ [CVAR-PPO] Using direct injection from DI container");
                 
                 // Load meta classifier for market regime - use your test CVaR model
                 _metaClassifier = await _memoryManager.LoadModelAsync<object>(
@@ -121,7 +123,7 @@ namespace BotCore.Brain
                     "models/rl_model.onnx", "v1");
 
                 IsInitialized = true;
-                _logger.LogInformation("✅ [UNIFIED-BRAIN] All models loaded successfully - Brain is ONLINE");
+                _logger.LogInformation("✅ [UNIFIED-BRAIN] All models loaded successfully - Brain is ONLINE with production CVaR-PPO");
             }
             catch (Exception ex)
             {
@@ -517,28 +519,49 @@ namespace BotCore.Brain
 
             contracts = Math.Max(0, Math.Min(contracts, maxContracts));
 
-            // Legacy RL sizing integration (if available)
-            if (_rlPositionSizer != null && IsInitialized)
+            // 🚀 PRODUCTION CVaR-PPO POSITION SIZING INTEGRATION
+            if (_cvarPPO != null && IsInitialized)
             {
                 try
                 {
-                    var rlMultiplier = _modelManager.GetPositionSizeMultiplier(
-                        strategy.SelectedStrategy,
-                        context.Symbol,
-                        context.CurrentPrice,
-                        context.Atr ?? 10,
-                        (decimal)strategy.Confidence,
-                        (decimal)prediction.Probability,
-                        new List<Bar>()
-                    );
+                    // Create state vector for CVaR-PPO model
+                    var state = CreateCVaRStateVector(context, strategy, prediction);
                     
-                    // Combine RL recommendation with TopStep compliance
-                    contracts = (int)(contracts * Math.Clamp(rlMultiplier, 0.5m, 1.5m));
+                    // Get action from trained CVaR-PPO model
+                    var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken);
+                    
+                    // Convert CVaR-PPO action to contract sizing
+                    var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts, context);
+                    
+                    // Apply CVaR risk controls
+                    var riskAdjustedContracts = ApplyCVaRRiskControls(cvarContracts, actionResult, context);
+                    
+                    contracts = Math.Max(0, Math.Min(riskAdjustedContracts, maxContracts));
+                    
+                    _logger.LogInformation("🎯 [CVAR-PPO] Action={Action}, Prob={Prob:F3}, Value={Value:F3}, CVaR={CVaR:F3}, Contracts={Contracts}", 
+                        actionResult.Action, actionResult.ActionProbability, actionResult.ValueEstimate, actionResult.CVaREstimate, contracts);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "RL position sizing failed, using TopStep compliance sizing");
+                    _logger.LogError(ex, "CVaR-PPO position sizing failed, using TopStep compliance sizing");
+                    // contracts remains unchanged - use TopStep compliance sizing
                 }
+            }
+            else
+            {
+                // Fallback to legacy RL if CVaR-PPO not available
+                var rlMultiplier = _modelManager.GetPositionSizeMultiplier(
+                    strategy.SelectedStrategy,
+                    context.Symbol,
+                    context.CurrentPrice,
+                    context.Atr ?? 10,
+                    (decimal)strategy.Confidence,
+                    (decimal)prediction.Probability,
+                    new List<Bar>()
+                );
+                
+                contracts = (int)(contracts * Math.Clamp(rlMultiplier, 0.5m, 1.5m));
+                _logger.LogDebug("📊 [LEGACY-RL] Using fallback RL multiplier: {Multiplier:F2}", rlMultiplier);
             }
 
             _logger.LogDebug("📊 [POSITION-SIZE] {Symbol}: Confidence={Confidence:P1}, Drawdown={Drawdown:C}, " +
@@ -925,6 +948,113 @@ namespace BotCore.Brain
             {
                 _logger.LogError(ex, "❌ [BRAIN-RETRAIN] Model retraining failed");
             }
+        }
+
+        #endregion
+
+        #region Production CVaR-PPO Integration
+
+        /// <summary>
+        /// Create comprehensive state vector for CVaR-PPO position sizing model
+        /// </summary>
+        private double[] CreateCVaRStateVector(MarketContext context, StrategySelection strategy, PricePrediction prediction)
+        {
+            return new double[]
+            {
+                // Market microstructure features (normalized 0-1)
+                (double)Math.Min(1.0m, context.Volatility / 2.0m), // Volatility ratio [0-1]
+                Math.Tanh((double)(context.PriceChange / 20.0m)), // Price change momentum [-1,1]
+                (double)Math.Min(1.0m, context.VolumeRatio / 3.0m), // Volume surge ratio [0-1]
+                (double)Math.Min(1.0m, (context.Atr ?? 10.0m) / 50.0m), // ATR normalized [0-1]
+                (double)context.TrendStrength, // Trend strength [0-1]
+                
+                // Strategy selection features  
+                (double)strategy.Confidence, // Neural UCB confidence [0-1]
+                Math.Min(1.0, (double)strategy.UcbValue / 10.0), // UCB exploration value normalized
+                strategy.SelectedStrategy switch { // Strategy type encoding
+                    "S2_VWAP" => 0.25, "S3_Compression" => 0.5, 
+                    "S11_Opening" => 0.75, "S12_Momentum" => 1.0, _ => 0.0
+                },
+                
+                // LSTM prediction features
+                (double)prediction.Probability, // Price direction confidence [0-1]
+                (int)prediction.Direction / 2.0 + 0.5, // Direction: Down=0, Sideways=0.5, Up=1
+                
+                // Temporal features (cyclical encoding)
+                Math.Sin(2 * Math.PI * context.TimeOfDay.TotalHours / 24.0), // Hour of day
+                Math.Cos(2 * Math.PI * context.TimeOfDay.TotalHours / 24.0),
+                
+                // Risk management features
+                (double)Math.Max(-1.0m, Math.Min(1.0m, _currentDrawdown / TopStepConfig.MAX_DRAWDOWN)), // Drawdown ratio [-1,1]
+                (double)Math.Max(-1.0m, Math.Min(1.0m, _dailyPnl / TopStepConfig.DAILY_LOSS_LIMIT)), // Daily P&L ratio [-1,1]
+                
+                // Portfolio state features
+                Math.Min(1.0, DecisionsToday / 50.0), // Decision frequency normalized [0-1]
+                (double)WinRateToday, // Current session win rate [0-1]
+            };
+        }
+
+        /// <summary>
+        /// Convert CVaR-PPO action result to contract count
+        /// </summary>
+        private int ConvertCVaRActionToContracts(ActionResult actionResult, int baseContracts, MarketContext context)
+        {
+            // CVaR-PPO actions map to position size multipliers
+            // Action 0=No Trade, 1=Micro(0.25x), 2=Small(0.5x), 3=Normal(1x), 4=Large(1.5x), 5=Max(2x)
+            var sizeMultiplier = actionResult.Action switch
+            {
+                0 => 0.0m,   // No trade
+                1 => 0.25m,  // Micro position
+                2 => 0.5m,   // Small position  
+                3 => 1.0m,   // Normal position
+                4 => 1.5m,   // Large position
+                5 => 2.0m,   // Maximum position
+                _ => 1.0m    // Default to normal
+            };
+            
+            // Apply action probability weighting - reduce size for uncertain actions
+            var probabilityAdjustment = (decimal)Math.Max(0.3, actionResult.ActionProbability);
+            
+            // Apply value estimate adjustment - reduce size for negative expected value
+            var valueAdjustment = (decimal)Math.Max(0.2, Math.Min(1.5, 0.5 + actionResult.ValueEstimate));
+            
+            var adjustedMultiplier = sizeMultiplier * probabilityAdjustment * valueAdjustment;
+            var contracts = (int)Math.Round(baseContracts * adjustedMultiplier);
+            
+            return Math.Max(0, contracts);
+        }
+
+        /// <summary>
+        /// Apply CVaR risk controls to position sizing
+        /// </summary>
+        private int ApplyCVaRRiskControls(int contracts, ActionResult actionResult, MarketContext context)
+        {
+            if (contracts <= 0) return 0;
+            
+            // CVaR tail risk adjustment - reduce position if high tail risk
+            var cvarAdjustment = 1.0m;
+            if (actionResult.CVaREstimate < -0.1) // High negative tail risk
+            {
+                cvarAdjustment = 0.5m; // Cut position in half
+            }
+            else if (actionResult.CVaREstimate < -0.05) // Moderate tail risk
+            {
+                cvarAdjustment = 0.75m; // Reduce position by 25%
+            }
+            
+            // Volatility regime adjustment
+            var volAdjustment = context.Volatility switch
+            {
+                > 0.6m => 0.6m,  // High volatility - very conservative
+                > 0.4m => 0.8m,  // Moderate volatility - somewhat conservative
+                > 0.2m => 1.0m,  // Normal volatility - no adjustment
+                _ => 1.2m        // Low volatility - can be more aggressive
+            };
+            
+            var finalMultiplier = cvarAdjustment * volAdjustment;
+            var adjustedContracts = (int)Math.Round(contracts * finalMultiplier);
+            
+            return Math.Max(0, adjustedContracts);
         }
 
         #endregion

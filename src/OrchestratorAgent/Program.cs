@@ -27,8 +27,38 @@ using Trading.Safety;
 
 namespace OrchestratorAgent
 {
+    // ❌ DISABLED - REPLACED BY UNIFIED ORCHESTRATOR SYSTEM ❌
+    //
+    // This OrchestratorAgent has been replaced by:
+    // src/UnifiedOrchestrator/Program.cs
+    //
+    // The UnifiedOrchestrator provides:
+    // - EnhancedTradingBrainIntegration with all ML/RL/Cloud services
+    // - Neural UCB + CVaR-PPO + LSTM algorithms
+    // - 30 GitHub workflows integration
+    // - Production-grade error handling and monitoring
+    //
+    // To prevent conflicts, this system is DISABLED.
+    // To run the active system: cd src/UnifiedOrchestrator && dotnet run
+    
     public static class Program
     {
+        public static async Task Main(string[] args)
+        {
+            Console.WriteLine("❌ OrchestratorAgent DISABLED");
+            Console.WriteLine("🚀 Use UnifiedOrchestrator instead:");
+            Console.WriteLine("   cd src/UnifiedOrchestrator && dotnet run");
+            Console.WriteLine("");
+            Console.WriteLine("⚠️  This system has been replaced by the enhanced multi-brain system.");
+            Console.WriteLine("⚠️  Running this could conflict with your production trading bot.");
+            
+            await Task.Delay(3000);
+            return;
+        }
+        
+        // Original code preserved but disabled to prevent conflicts
+        #if DISABLED_LEGACY_ORCHESTRATOR
+
         // Session & ops guards (process-wide)
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Collections.Generic.List<DateTime>> _entriesPerHour = new(StringComparer.OrdinalIgnoreCase);
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Dir, DateTime When)> _lastEntryIntent = new(StringComparer.OrdinalIgnoreCase);
@@ -3399,5 +3429,7 @@ namespace OrchestratorAgent
             var random = new Random(symbol.GetHashCode() + DateTime.UtcNow.Day);
             return (decimal)(random.NextDouble() * 0.4 + 0.1); // 0.1 to 0.5 range
         }
+        
+        #endif // DISABLED_LEGACY_ORCHESTRATOR
     }
 }

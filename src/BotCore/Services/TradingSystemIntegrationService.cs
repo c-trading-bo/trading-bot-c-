@@ -20,6 +20,7 @@ using BotCore.Strategy;
 using BotCore.Risk;
 using BotCore.Services;
 using BotCore.ML;
+using BotCore.Brain;
 using TradingBot.RLAgent;
 
 namespace TopstepX.Bot.Core.Services
@@ -45,6 +46,7 @@ namespace TopstepX.Bot.Core.Services
         private readonly TimeOptimizedStrategyManager _timeOptimizedStrategyManager;
         private readonly FeatureEngineering _featureEngineering;
         private readonly StrategyMlModelManager _strategyMlModelManager;
+        private readonly UnifiedTradingBrain _unifiedTradingBrain;
         private readonly ISignalRConnectionManager _signalRConnectionManager;
         
         // Account/contract selection fields
@@ -134,6 +136,7 @@ namespace TopstepX.Bot.Core.Services
             TimeOptimizedStrategyManager timeOptimizedStrategyManager,
             FeatureEngineering featureEngineering,
             StrategyMlModelManager strategyMlModelManager,
+            UnifiedTradingBrain unifiedTradingBrain,
             ISignalRConnectionManager signalRConnectionManager)
         {
             _logger = logger;
@@ -148,6 +151,7 @@ namespace TopstepX.Bot.Core.Services
             _timeOptimizedStrategyManager = timeOptimizedStrategyManager;
             _featureEngineering = featureEngineering;
             _strategyMlModelManager = strategyMlModelManager;
+            _unifiedTradingBrain = unifiedTradingBrain;
             _signalRConnectionManager = signalRConnectionManager;
             
             // Wire up SignalR data reception handlers to complete the connection state machine
@@ -509,8 +513,14 @@ namespace TopstepX.Bot.Core.Services
                 // PHASE 4: Generate strategy candidates using AllStrategies with ML/RL enhancements
                 var candidates = AllStrategies.generate_candidates(symbol, env, levels, bars, _riskEngine);
                 
-                // PHASE 5: ML Model Enhancement - Use available methods
-                var mlEnhancedCandidates = candidates; // Use candidates as-is for now
+                // PHASE 5: ML/RL BRAIN ENHANCEMENT - Use UnifiedTradingBrain for intelligent decisions
+                var brainDecision = await _unifiedTradingBrain.MakeIntelligentDecisionAsync(
+                    symbol, env, levels, bars, _riskEngine, cancellationToken: default);
+                var mlEnhancedCandidates = brainDecision.EnhancedCandidates;
+                
+                _logger.LogInformation("[ML/RL-BRAIN] 🧠 Brain Decision: Strategy={Strategy} ({Confidence:P1}), Direction={Direction} ({Probability:P1}), Size={SizeMultiplier:F2}x",
+                    brainDecision.RecommendedStrategy, brainDecision.StrategyConfidence, 
+                    brainDecision.PriceDirection, brainDecision.PriceProbability, brainDecision.OptimalPositionMultiplier);
                 
                 // PHASE 6: AllStrategies Signal Generation - Generate high-confidence signals using existing sophisticated strategies
                 var marketSnapshot = CreateMarketSnapshot(symbol, marketData, bars);

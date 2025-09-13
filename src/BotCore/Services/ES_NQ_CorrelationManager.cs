@@ -251,22 +251,19 @@ namespace BotCore.Services
         {
             try
             {
-                // Production integration with TopstepX API
-                // This would use your existing TopstepX client infrastructure
-                /*
-                if (_marketData is ITopstepXMarketData topstepClient)
+                // REAL TOPSTEPX HISTORICAL DATA: Use native /api/History/retrieveBars
+                var topstepBars = await FetchTopstepXHistoricalBarsAsync(symbol, count);
+                if (topstepBars != null && topstepBars.Count > 0)
                 {
-                    var bars = await topstepClient.GetHistoricalBarsAsync(symbol, count, TimeSpan.FromMinutes(1));
-                    return bars?.ToList();
+                    _logger.LogInformation("[CORRELATION] Retrieved {Count} REAL TopstepX historical bars for {Symbol}", topstepBars.Count, symbol);
+                    return topstepBars;
                 }
-                */
                 
-                await Task.Delay(5); // Simulate API call
-                return null; // Return null when TopstepX client not available
+                return null; // Return null to fall through to next data source
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[CORRELATION] TopstepX bars unavailable for {Symbol}", symbol);
+                _logger.LogWarning(ex, "[CORRELATION] TopstepX historical data unavailable for {Symbol}, falling back to next source", symbol);
                 return null;
             }
         }
@@ -346,6 +343,264 @@ namespace BotCore.Services
                 _logger.LogDebug(ex, "[CORRELATION] MarketDataService bars unavailable for {Symbol}", symbol);
                 return null;
             }
+        }
+        
+        /// <summary>
+        /// Fetch real historical data from TopstepX /api/History/retrieveBars endpoint
+        /// </summary>
+        private async Task<List<Bar>?> FetchTopstepXHistoricalBarsAsync(string symbol, int count)
+        {
+            try
+            {
+                // Get JWT token from environment
+                var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                if (string.IsNullOrEmpty(jwt))
+                {
+                    _logger.LogDebug("[CORRELATION] No TOPSTEPX_JWT found for historical data fetching");
+                    return null;
+                }
+                
+                // Map symbol to contract ID
+                var contractId = GetContractIdForSymbol(symbol);
+                if (string.IsNullOrEmpty(contractId))
+                {
+                    _logger.LogDebug("[CORRELATION] No contract ID found for symbol {Symbol}", symbol);
+                    return null;
+                }
+                
+                // Calculate time window - get last few days to ensure we have enough bars
+                var endTime = DateTime.UtcNow;
+                var startTime = endTime.AddDays(-7); // Get 7 days of data to ensure we have enough
+                
+                // Create HTTP client for TopstepX API
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
+                
+                // Create request body
+                var requestBody = new
+                {
+                    contractId = contractId,
+                    live = false, // Use simulation data for consistency
+                    startTime = startTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    endTime = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    unit = 2, // Minutes
+                    unitNumber = 1, // 1-minute bars
+                    limit = Math.Max(count, 5000), // Get more than requested to ensure we have enough
+                    includePartialBar = false
+                };
+                
+                _logger.LogDebug("[CORRELATION] Fetching TopstepX historical data for {Symbol} ({ContractId}) from {StartTime} to {EndTime}", 
+                    symbol, contractId, startTime, endTime);
+                
+                // Make API call
+                var response = await httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("[CORRELATION] TopstepX History API failed: {StatusCode} - {Error}", 
+                        response.StatusCode, errorContent);
+                    return null;
+                }
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("[CORRELATION] TopstepX History API response length: {Length} characters", responseContent.Length);
+                
+                // Parse response to Bar objects
+                var bars = ParseTopstepXHistoricalResponse(responseContent, symbol);
+                
+                if (bars != null && bars.Count > 0)
+                {
+                    // Return the most recent bars requested
+                    var recentBars = bars.OrderByDescending(b => b.Timestamp).Take(count).OrderBy(b => b.Timestamp).ToList();
+                    _logger.LogInformation("[CORRELATION] Retrieved {Count} TopstepX historical bars for {Symbol} (requested {RequestedCount})", 
+                        recentBars.Count, symbol, count);
+                    return recentBars;
+                }
+                
+                _logger.LogWarning("[CORRELATION] No bars parsed from TopstepX response for {Symbol}", symbol);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CORRELATION] Error fetching TopstepX historical data for {Symbol}", symbol);
+                return null;
+            }
+        }
+        
+        /// <summary>
+        /// Get TopstepX contract ID for symbol
+        /// </summary>
+        private string? GetContractIdForSymbol(string symbol)
+        {
+            return symbol.ToUpper() switch
+            {
+                "ES" => "CON.F.US.EP.U25", // E-mini S&P 500
+                "NQ" => "CON.F.US.ENQ.U25", // E-mini NASDAQ-100
+                _ => null
+            };
+        }
+        
+        /// <summary>
+        /// Parse TopstepX historical response to Bar objects
+        /// </summary>
+        private List<Bar>? ParseTopstepXHistoricalResponse(string responseContent, string symbol)
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(responseContent);
+                var root = document.RootElement;
+                
+                // Check for success field
+                if (root.TryGetProperty("success", out var successElement) && !successElement.GetBoolean())
+                {
+                    _logger.LogWarning("[CORRELATION] TopstepX History API returned success=false for {Symbol}", symbol);
+                    return null;
+                }
+                
+                // TopstepX format: { "bars": [...], "success": true, "errorCode": 0, "errorMessage": null }
+                if (!root.TryGetProperty("bars", out var barsElement) || barsElement.ValueKind != JsonValueKind.Array)
+                {
+                    _logger.LogWarning("[CORRELATION] No 'bars' array found in TopstepX response for {Symbol}", symbol);
+                    return null;
+                }
+                
+                var bars = new List<Bar>();
+                foreach (var barElement in barsElement.EnumerateArray())
+                {
+                    try
+                    {
+                        var bar = new Bar
+                        {
+                            Symbol = symbol,
+                            Timestamp = ParseTopstepXTimestamp(barElement),
+                            Open = ParseDecimalField(barElement, "o", "open"),
+                            High = ParseDecimalField(barElement, "h", "high"), 
+                            Low = ParseDecimalField(barElement, "l", "low"),
+                            Close = ParseDecimalField(barElement, "c", "close"),
+                            Volume = ParseLongField(barElement, "v", "volume")
+                        };
+                        
+                        // Validate bar data
+                        if (bar.Open > 0 && bar.High > 0 && bar.Low > 0 && bar.Close > 0 && 
+                            bar.High >= bar.Low && bar.High >= bar.Open && bar.High >= bar.Close &&
+                            bar.Low <= bar.Open && bar.Low <= bar.Close)
+                        {
+                            bars.Add(bar);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("[CORRELATION] Invalid bar data for {Symbol}: O:{Open} H:{High} L:{Low} C:{Close}", 
+                                symbol, bar.Open, bar.High, bar.Low, bar.Close);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "[CORRELATION] Error parsing individual bar for {Symbol}", symbol);
+                        // Continue with other bars
+                    }
+                }
+                
+                _logger.LogInformation("[CORRELATION] Parsed {Count} valid bars from TopstepX response for {Symbol}", bars.Count, symbol);
+                return bars;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[CORRELATION] Error parsing TopstepX historical response for {Symbol}", symbol);
+                return null;
+            }
+        }
+        
+        private DateTime ParseTopstepXTimestamp(JsonElement barElement)
+        {
+            // TopstepX uses 't' field with ISO 8601 format: "2025-09-12T20:59:00+00:00"
+            if (barElement.TryGetProperty("t", out var timestampElement) && timestampElement.ValueKind == JsonValueKind.String)
+            {
+                var timestampString = timestampElement.GetString();
+                if (!string.IsNullOrEmpty(timestampString) && DateTime.TryParse(timestampString, out var dateTime))
+                {
+                    return dateTime.ToUniversalTime();
+                }
+            }
+            
+            // Fallback: try other common timestamp field names
+            var timestampFields = new[] { "timestamp", "time", "date", "dateTime" };
+            
+            foreach (var field in timestampFields)
+            {
+                if (barElement.TryGetProperty(field, out var fieldElement))
+                {
+                    if (fieldElement.ValueKind == JsonValueKind.String)
+                    {
+                        if (DateTime.TryParse(fieldElement.GetString(), out var dateTime))
+                        {
+                            return dateTime.ToUniversalTime();
+                        }
+                    }
+                    else if (fieldElement.ValueKind == JsonValueKind.Number)
+                    {
+                        // Unix timestamp (seconds or milliseconds)
+                        var unixTime = fieldElement.GetInt64();
+                        if (unixTime > 1000000000000) // Milliseconds
+                        {
+                            return DateTimeOffset.FromUnixTimeMilliseconds(unixTime).DateTime;
+                        }
+                        else // Seconds
+                        {
+                            return DateTimeOffset.FromUnixTimeSeconds(unixTime).DateTime;
+                        }
+                    }
+                }
+            }
+            
+            // Fallback to current time if no valid timestamp found
+            _logger.LogDebug("[CORRELATION] No valid timestamp found in bar element, using current time");
+            return DateTime.UtcNow;
+        }
+        
+        private decimal ParseDecimalField(JsonElement barElement, params string[] fieldNames)
+        {
+            foreach (var fieldName in fieldNames)
+            {
+                if (barElement.TryGetProperty(fieldName, out var fieldElement))
+                {
+                    if (fieldElement.ValueKind == JsonValueKind.Number)
+                    {
+                        return fieldElement.GetDecimal();
+                    }
+                    else if (fieldElement.ValueKind == JsonValueKind.String)
+                    {
+                        if (decimal.TryParse(fieldElement.GetString(), out var decimalValue))
+                        {
+                            return decimalValue;
+                        }
+                    }
+                }
+            }
+            return 0m;
+        }
+        
+        private long ParseLongField(JsonElement barElement, params string[] fieldNames)
+        {
+            foreach (var fieldName in fieldNames)
+            {
+                if (barElement.TryGetProperty(fieldName, out var fieldElement))
+                {
+                    if (fieldElement.ValueKind == JsonValueKind.Number)
+                    {
+                        return fieldElement.GetInt64();
+                    }
+                    else if (fieldElement.ValueKind == JsonValueKind.String)
+                    {
+                        if (long.TryParse(fieldElement.GetString(), out var longValue))
+                        {
+                            return longValue;
+                        }
+                    }
+                }
+            }
+            return 0L;
         }
         
         /// <summary>

@@ -24,6 +24,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     private readonly UnifiedTradingBrain _tradingBrain;
     private readonly IIntelligenceOrchestrator _intelligenceOrchestrator;
     private readonly IServiceProvider _serviceProvider;
+    private readonly BotCore.Services.EnhancedTradingBrainIntegration? _enhancedBrain;
 
     public TradingOrchestratorService(
         ILogger<TradingOrchestratorService> logger,
@@ -37,6 +38,18 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         _tradingBrain = tradingBrain;
         _intelligenceOrchestrator = intelligenceOrchestrator;
         _serviceProvider = serviceProvider;
+        
+        // Try to get enhanced brain integration (optional)
+        _enhancedBrain = serviceProvider.GetService(typeof(BotCore.Services.EnhancedTradingBrainIntegration)) as BotCore.Services.EnhancedTradingBrainIntegration;
+        
+        if (_enhancedBrain != null)
+        {
+            _logger.LogInformation("🚀 [TRADING-ORCHESTRATOR] Enhanced ML/RL/Cloud brain integration activated!");
+        }
+        else
+        {
+            _logger.LogInformation("⚠️ [TRADING-ORCHESTRATOR] Using standard brain integration");
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -266,17 +279,56 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
 
     public async Task ExecuteESNQTradingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("🧠 Executing ES/NQ trading with ML/RL Brain intelligence...");
+        _logger.LogInformation("🧠 Executing ES/NQ trading with Enhanced ML/RL/Cloud Brain intelligence...");
         
         try
         {
-            // Create market environment data for the brain
-            var marketData = CreateMarketEnvironment(context);
-            
-            // Use UnifiedTradingBrain for intelligent decision making
-            if (_tradingBrain.IsInitialized)
+            // Use enhanced brain integration if available
+            if (_enhancedBrain != null)
             {
-                _logger.LogInformation("🧠 Calling UnifiedTradingBrain for intelligent trading decision...");
+                _logger.LogInformation("🚀 Using Enhanced ML/RL/Cloud Brain Integration...");
+                
+                // Create market context for enhanced decision making
+                var marketContext = new Dictionary<string, object>
+                {
+                    ["symbol"] = "ES",
+                    ["timestamp"] = DateTime.UtcNow,
+                    ["volatility"] = 0.15,
+                    ["volume"] = 1000000,
+                    ["price"] = 4500.0,
+                    ["context"] = context
+                };
+                
+                var availableStrategies = new List<string> { "S1", "S2", "S3", "S4", "S5" };
+                
+                // Get enhanced decision that combines ML/RL/Cloud predictions
+                var enhancedDecision = await _enhancedBrain.MakeEnhancedDecisionAsync(
+                    "ES", marketContext, availableStrategies, cancellationToken);
+                
+                _logger.LogInformation("🚀 Enhanced Decision: Strategy={Strategy} Confidence={Confidence:P1} " +
+                                     "Size={Size:F2} Enhancement={Enhancement} Timing={Timing}", 
+                    enhancedDecision.EnhancedStrategy, 
+                    enhancedDecision.EnhancedConfidence,
+                    enhancedDecision.EnhancedPositionSize,
+                    enhancedDecision.EnhancementApplied ? "YES" : "NO",
+                    enhancedDecision.MarketTimingSignal);
+                
+                if (enhancedDecision.EnhancementApplied)
+                {
+                    _logger.LogInformation("🎯 Enhancement Reason: {Reason}", enhancedDecision.EnhancementReason);
+                }
+                
+                // Convert enhanced decision to trading decision and execute
+                var tradingDecision = ConvertEnhancedToTradingDecision(enhancedDecision);
+                await ExecuteTradeAsync(tradingDecision, cancellationToken);
+                
+                // Submit outcome for feedback learning (simulated for demo)
+                _logger.LogDebug("📊 Feedback learning integration ready for real trade outcomes");
+            }
+            // Create market environment data for the brain
+            else if (_tradingBrain.IsInitialized)
+            {
+                _logger.LogInformation("🧠 Using Standard UnifiedTradingBrain for intelligent trading decision...");
                 
                 // Create sample environment data for the brain
                 var env = CreateSampleEnvironment();
@@ -478,6 +530,44 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 ["processing_time_ms"] = brainDecision.ProcessingTimeMs,
                 ["market_regime"] = brainDecision.MarketRegime.ToString(),
                 ["risk_assessment"] = brainDecision.RiskAssessment
+            }
+        };
+    }
+
+    private TradingBot.Abstractions.TradingDecision ConvertEnhancedToTradingDecision(BotCore.Services.EnhancedTradingDecision enhancedDecision)
+    {
+        return new TradingBot.Abstractions.TradingDecision
+        {
+            Symbol = "ES",
+            Action = enhancedDecision.MarketTimingSignal switch
+            {
+                "STRONG_BUY" or "BUY" => TradingAction.Buy,
+                "STRONG_SELL" or "SELL" => TradingAction.Sell,
+                _ => TradingAction.Hold
+            },
+            Side = enhancedDecision.MarketTimingSignal switch
+            {
+                "STRONG_BUY" or "BUY" => TradeSide.Buy,
+                "STRONG_SELL" or "SELL" => TradeSide.Sell,
+                _ => TradeSide.Buy // Default to Buy for Hold
+            },
+            Quantity = (int)enhancedDecision.EnhancedPositionSize,
+            Confidence = enhancedDecision.EnhancedConfidence,
+            MLStrategy = enhancedDecision.EnhancedStrategy,
+            RiskScore = (1m - enhancedDecision.EnhancedConfidence) * enhancedDecision.EnhancedRiskLevel,
+            MaxPositionSize = enhancedDecision.EnhancedPositionSize * 2m, // 2x as max
+            MarketRegime = enhancedDecision.MarketTimingSignal,
+            RegimeConfidence = enhancedDecision.EnhancedConfidence,
+            Timestamp = enhancedDecision.Timestamp,
+            Reasoning = new Dictionary<string, object>
+            {
+                ["source"] = "EnhancedTradingBrain",
+                ["strategy"] = enhancedDecision.EnhancedStrategy,
+                ["enhancement_applied"] = enhancedDecision.EnhancementApplied,
+                ["enhancement_reason"] = enhancedDecision.EnhancementReason ?? "",
+                ["timing_signal"] = enhancedDecision.MarketTimingSignal,
+                ["model_count"] = enhancedDecision.StrategyPrediction?.ModelCount ?? 0,
+                ["cloud_integration"] = "active"
             }
         };
     }

@@ -247,7 +247,7 @@ public class DatasetBuilder
         };
     }
 
-    private async Task<TrainingSample?> BuildSampleAsync(
+    private Task<TrainingSample?> BuildSampleAsync(
         string symbol, 
         List<Bar> bars, 
         int currentIndex, 
@@ -304,7 +304,7 @@ public class DatasetBuilder
             // Binary classification: 1 if price goes up by more than threshold, 0 otherwise
             var label = priceReturn > config.MinimumReturnThreshold ? 1.0 : 0.0;
 
-            return new TrainingSample
+            var sample = new TrainingSample
             {
                 Features = features,
                 Label = label,
@@ -319,12 +319,14 @@ public class DatasetBuilder
                     ["forward_periods"] = config.ForwardLookPeriod
                 }
             };
+            
+            return Task.FromResult<TrainingSample?>(sample);
         }
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "[DATASET_BUILDER] Failed to build sample for {Symbol} at {Timestamp}", 
                 symbol, bars[currentIndex].Start);
-            return null;
+            return Task.FromResult<TrainingSample?>(null);
         }
     }
 

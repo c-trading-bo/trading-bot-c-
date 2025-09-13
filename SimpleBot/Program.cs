@@ -11,6 +11,26 @@ class Program
 {
     static async Task Main(string[] args)
     {
+        Console.WriteLine("❌ SimpleBot DISABLED");
+        Console.WriteLine("🚀 Use UnifiedOrchestrator instead:");
+        Console.WriteLine("   cd src/UnifiedOrchestrator && dotnet run");
+        Console.WriteLine("");
+        Console.WriteLine("⚠️  This simple bot has been replaced by the enhanced multi-brain system.");
+        Console.WriteLine("⚠️  The UnifiedOrchestrator provides all SimpleBot functionality plus:");
+        Console.WriteLine("   • Neural UCB + CVaR-PPO + LSTM algorithms");
+        Console.WriteLine("   • 7 ML/RL/Cloud production services");
+        Console.WriteLine("   • 30 GitHub workflows integration");
+        Console.WriteLine("   • Enterprise-grade monitoring and error handling");
+        
+        await Task.Delay(3000);
+        return;
+    }
+    
+    // Original code preserved but disabled to prevent conflicts
+    #if DISABLED_SIMPLE_BOT
+    
+    static async Task MainLegacy(string[] args)
+    {
         // Load .env files for unified credential management
         LoadDotEnv();
         
@@ -115,4 +135,6 @@ class Program
             Console.WriteLine($"[Environment] Warning: Failed to load .env files: {ex.Message}");
         }
     }
+    
+    #endif // DISABLED_SIMPLE_BOT
 }

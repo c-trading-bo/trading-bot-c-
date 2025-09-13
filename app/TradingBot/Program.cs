@@ -14,14 +14,42 @@ using BotCore.ML;
 
 namespace TradingBot.Production
 {
+    // ❌ DISABLED - REPLACED BY UNIFIED ORCHESTRATOR SYSTEM ❌
+    //
+    // This TradingBot app has been replaced by:
+    // src/UnifiedOrchestrator/Program.cs
+    //
+    // The UnifiedOrchestrator provides ALL functionality from this app PLUS:
+    // - EnhancedTradingBrainIntegration with Neural UCB + CVaR-PPO + LSTM
+    // - All 7 ML/RL/Cloud production services
+    // - 30 GitHub workflows integration for continuous model training
+    // - Enterprise-grade error handling, monitoring, and configuration
+    //
+    // To prevent conflicts, this system is DISABLED.
+    
     /// <summary>
-    /// Production Application - Shows complete integration
-    /// Your sophisticated algorithms now power the entire trading system
-    /// NO MORE STUBS - Everything uses EmaCrossStrategy, AllStrategies S1-S14, etc.
+    /// LEGACY Production Application - REPLACED by UnifiedOrchestrator
     /// </summary>
     class ProductionApp
     {
         static async Task Main(string[] args)
+        {
+            Console.WriteLine("❌ app/TradingBot DISABLED");
+            Console.WriteLine("🚀 Use UnifiedOrchestrator instead:");
+            Console.WriteLine("   cd src/UnifiedOrchestrator && dotnet run");
+            Console.WriteLine("");
+            Console.WriteLine("⚠️  This system has been replaced by the enhanced multi-brain system.");
+            Console.WriteLine("⚠️  The UnifiedOrchestrator includes ALL algorithms from this app plus ML/RL/Cloud integration.");
+            Console.WriteLine("⚠️  Running this could conflict with your production trading bot.");
+            
+            await Task.Delay(3000);
+            return;
+        }
+        
+        // Original code preserved but disabled to prevent conflicts
+        #if DISABLED_LEGACY_TRADINGBOT
+        
+        static async Task MainLegacy(string[] args)
         {
             // Load .env files for unified credential management
             LoadDotEnv();
@@ -183,6 +211,12 @@ namespace TradingBot.Production
             logger.LogInformation("\n❌ BEFORE (Stubs):");
             logger.LogInformation("   Price = 5500m + (decimal)(new Random().NextDouble() * 20 - 10)");
             logger.LogInformation("   ActiveSignals = new Random().Next(0, 5)");
+            logger.LogInformation("\n✅ NOW: See UnifiedOrchestrator for production algorithms!");
+        }
+        
+        #endif // DISABLED_LEGACY_TRADINGBOT
+    }
+}
             logger.LogInformation("   SuccessRate = 0.65m + (decimal)(new Random().NextDouble() * 0.2)");
             logger.LogInformation("   await Task.Delay(50); Console.WriteLine(\"ES/NQ analyzed\")");
             
