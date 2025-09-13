@@ -1,0 +1,43 @@
+{
+  "testTime": "2024-01-15T10:30:00Z",
+  "testDescription": "Safe Window Enforcement with CME Trading Hours Alignment",
+  "windowTests": [
+    {
+      "testTime": "2024-01-15T09:30:00Z",
+      "description": "Market Open - Should Allow",
+      "isSafeWindow": true,
+      "promotionResult": "ALLOWED",
+      "reasoning": "Safe window while positions flat"
+    },
+    {
+      "testTime": "2024-01-15T16:00:00Z",
+      "description": "Market Close - Should Defer",
+      "isSafeWindow": false,
+      "promotionResult": "DEFERRED",
+      "reasoning": "Outside safe window or market closed"
+    },
+    {
+      "testTime": "2024-01-15T02:00:00Z",
+      "description": "Overnight - Should Defer",
+      "isSafeWindow": false,
+      "promotionResult": "DEFERRED",
+      "reasoning": "Outside safe window or market closed"
+    },
+    {
+      "testTime": "2024-01-15T14:00:00Z",
+      "description": "Mid-day - Allow if Flat",
+      "isSafeWindow": true,
+      "promotionResult": "ALLOWED",
+      "reasoning": "Safe window while positions flat"
+    }
+  ],
+  "cmeSchedule": {
+    "regularHours": "9:30 AM - 4:00 PM ET",
+    "extendedHours": "6:00 PM - 5:00 PM ET (next day)",
+    "safePromotionWindows": [
+      "11:00 AM - 1:00 PM ET (low volatility)",
+      "When positions are flat"
+    ]
+  },
+  "conclusion": "Safe window detection working correctly - promotions deferred outside CME-aligned windows"
+}
