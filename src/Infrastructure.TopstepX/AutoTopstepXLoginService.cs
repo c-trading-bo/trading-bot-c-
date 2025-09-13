@@ -263,10 +263,14 @@ public class AutoTopstepXLoginService : BackgroundService
                     }
 
                     // Select the best account based on type (Trading Combine > Practice)
+                    // Prioritize 50K Trading Combine account for live trading
                     var selectedAccount = accounts
-                        .OrderBy(a => a.Type != "TRADING_COMBINE_50K") // Prioritize Trading Combine
+                        .Where(a => a.CanTrade)
+                        .OrderBy(a => a.Name?.Contains("50KTC") != true) // Prioritize 50K Trading Combine (50KTC)
+                        .ThenBy(a => a.Name?.Contains("TRADING_COMBINE") != true)
+                        .ThenBy(a => a.Name?.Contains("PRAC") == true) // Deprioritize practice accounts
                         .ThenByDescending(a => a.Balance)
-                        .FirstOrDefault(a => a.CanTrade);
+                        .FirstOrDefault();
 
                     if (selectedAccount != null)
                     {

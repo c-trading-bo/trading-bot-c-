@@ -34,3 +34,19 @@ public class SimpleLoginCompletionState : ILoginCompletionState
         }
     }
 }
+
+/// <summary>
+/// Bridge to convert local ILoginCompletionState to TradingBot.Abstractions.ILoginCompletionState
+/// </summary>
+public class BridgeLoginCompletionState : TradingBot.Abstractions.ILoginCompletionState
+{
+    private readonly ILoginCompletionState _localState;
+
+    public BridgeLoginCompletionState(ILoginCompletionState localState)
+    {
+        _localState = localState;
+    }
+
+    public Task WaitForLoginCompletion() => _localState.WaitForLoginCompletion();
+    public void SetLoginCompleted() => _localState.SetLoginCompleted();
+}

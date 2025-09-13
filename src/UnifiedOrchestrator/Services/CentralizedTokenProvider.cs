@@ -34,6 +34,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     private string? _currentToken;
     private DateTime _tokenExpiry = DateTime.MinValue;
     private volatile bool _isRefreshing = false;
+    private AutoTopstepXLoginService? _autoLoginService;
 
     public event Action<string>? TokenRefreshed;
     public bool IsTokenValid => !string.IsNullOrEmpty(_currentToken) && DateTime.UtcNow < _tokenExpiry.AddMinutes(-5);
@@ -53,21 +54,62 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
 
     public async Task<string?> GetTokenAsync()
     {
-        if (IsTokenValid)
+        // Try to get the AutoTopstepXLoginService if we haven't already
+        if (_autoLoginService == null)
         {
+            _autoLoginService = _serviceProvider.GetService<AutoTopstepXLoginService>();
+        }
+
+        // First priority: Get token directly from AutoTopstepXLoginService
+        if (_autoLoginService?.JwtToken != null)
+        {
+            _logger.LogInformation("[TOKEN_PROVIDER] Got JWT from AutoTopstepXLoginService: Length={Length}", 
+                _autoLoginService.JwtToken.Length);
+            
+            // Update our cached token if it's different
+            if (_autoLoginService.JwtToken != _currentToken)
+            {
+                _currentToken = _autoLoginService.JwtToken;
+                _tokenExpiry = DateTime.UtcNow.AddHours(1);
+                _logger.LogInformation("[TOKEN_PROVIDER] JWT token updated from AutoTopstepXLoginService");
+            }
             return _currentToken;
         }
 
-        if (!_isRefreshing)
+        // Fallback: Check environment variable (for compatibility)
+        var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+        _logger.LogInformation("[TOKEN_PROVIDER] Environment variable TOPSTEPX_JWT: {HasToken}, Length: {Length}", 
+            !string.IsNullOrEmpty(envToken), envToken?.Length ?? 0);
+        
+        if (!string.IsNullOrEmpty(envToken))
         {
-            _ = Task.Run(async () => await RefreshTokenAsync()); // Fire and forget refresh
+            // Update our cached token if we found one in environment
+            if (envToken != _currentToken)
+            {
+                _currentToken = envToken;
+                _tokenExpiry = DateTime.UtcNow.AddHours(1);
+                _logger.LogInformation("[TOKEN_PROVIDER] JWT token updated from environment variable");
+            }
+            return _currentToken;
         }
 
-        // Add small async delay
-        await Task.Delay(1);
+        // If no token found and we have a cached valid token, use it
+        if (IsTokenValid)
+        {
+            _logger.LogInformation("[TOKEN_PROVIDER] Using cached valid token");
+            return _currentToken;
+        }
 
-        // Return current token even if expired (better than null)
-        return _currentToken ?? Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+        // If no environment token and we're not already refreshing, try to refresh
+        if (!_isRefreshing)
+        {
+            await RefreshTokenAsync();
+        }
+
+        // Return whatever we have (could be null if refresh failed)
+        _logger.LogInformation("[TOKEN_PROVIDER] Returning token: {HasToken}, Length: {Length}", 
+            !string.IsNullOrEmpty(_currentToken), _currentToken?.Length ?? 0);
+        return _currentToken;
     }
 
     public async Task RefreshTokenAsync()

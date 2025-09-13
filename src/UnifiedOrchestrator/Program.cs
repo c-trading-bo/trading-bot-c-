@@ -137,6 +137,14 @@ public class Program
         // Register login completion state for SignalR connection management
         services.AddSingleton<Services.ILoginCompletionState, Services.SimpleLoginCompletionState>();
         
+        // Register TradingBot.Abstractions.ILoginCompletionState for AutoTopstepXLoginService
+        // Bridge the local interface to the abstractions interface
+        services.AddSingleton<TradingBot.Abstractions.ILoginCompletionState>(provider => 
+        {
+            var localState = provider.GetRequiredService<Services.ILoginCompletionState>();
+            return new BridgeLoginCompletionState(localState);
+        });
+        
         // Register TradingLogger for production-ready logging
         services.Configure<TradingLoggerOptions>(options =>
         {
@@ -183,6 +191,9 @@ public class Program
 
         // Register enhanced authentication service for comprehensive auth logging
         services.AddHostedService<EnhancedAuthenticationService>();
+
+        // Register AutoTopstepXLoginService to handle login completion signaling
+        services.AddHostedService<AutoTopstepXLoginService>();
 
         // Register system health monitoring service
         services.AddHostedService<SystemHealthMonitoringService>();
@@ -282,6 +293,9 @@ public class Program
         
         // Configure model loading options
         services.Configure<ModelLoadingOptions>(configuration.GetSection("ModelLoading"));
+
+        // General HTTP client for dependency injection
+        services.AddHttpClient();
 
         // Core HTTP client for TopstepX API
         services.AddHttpClient<TopstepAuthAgent>(client =>
