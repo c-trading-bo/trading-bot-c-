@@ -530,8 +530,8 @@ public class Program
                 // Try to register more complex services (these might fail due to missing dependencies)
                 try 
                 {
-                    services.TryAddSingleton<BotCore.Services.ES_NQ_CorrelationManager>();
-                    services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
+                    // services.TryAddSingleton<BotCore.Services.ES_NQ_CorrelationManager>();
+                    // services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
                     services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
                     // OrderFillConfirmationSystem already registered above with proper factory
