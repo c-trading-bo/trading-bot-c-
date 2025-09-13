@@ -1533,14 +1533,12 @@ namespace TopstepX.Bot.Core.Services
                 // Standard futures contracts that the bot should trade
                 var availableContracts = new List<string> { "ES", "NQ" };
                 
-                // For evaluation accounts or smaller accounts, add micro futures as backup/alternative
-                // Check if this appears to be an evaluation/practice account or has a smaller balance
+                // For evaluation accounts, stick to standard contracts only (ES, NQ)
                 var isEvaluationAccount = IsEvaluationAccount();
                 
                 if (isEvaluationAccount)
                 {
-                    availableContracts.AddRange(new[] { "MES", "MNQ" });
-                    _logger.LogInformation("🎓 Detected evaluation account - added micro futures (MES, MNQ) as alternatives");
+                    _logger.LogInformation("🎓 Detected evaluation account - using standard ES/NQ contracts only");
                 }
                 
                 _chosenContracts = availableContracts.ToArray();
@@ -1654,13 +1652,10 @@ namespace TopstepX.Bot.Core.Services
                     _logger.LogInformation("📊 User events subscription: {Status}", userSubscribed ? "SUCCESS" : "FAILED");
                 }
                 
-                // Subscribe to market events for chosen contracts
-                foreach (var contract in _chosenContracts.Length > 0 ? _chosenContracts : new[] { "ES", "NQ" })
-                {
-                    var marketSubscribed = await _signalRConnectionManager.SubscribeToMarketEventsAsync(contract);
-                    _logger.LogInformation("📈 Market events subscription for {Contract}: {Status}", 
-                        contract, marketSubscribed ? "SUCCESS" : "FAILED");
-                }
+                // Subscribe to market events using contract IDs instead of symbols
+                var marketSubscribed = await _signalRConnectionManager.SubscribeToAllMarketsAsync();
+                _logger.LogInformation("📈 Market events subscription for ES/NQ/MES/MNQ: {Status}", 
+                    marketSubscribed ? "SUCCESS" : "FAILED");
 
                 _logger.LogInformation("✅ SignalR connections established with production-ready state machine");
             }

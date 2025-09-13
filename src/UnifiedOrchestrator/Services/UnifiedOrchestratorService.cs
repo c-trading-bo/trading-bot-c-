@@ -17,6 +17,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 {
     private readonly ILogger<UnifiedOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
+    private readonly ISignalRConnectionManager _signalRManager;
     private readonly object? _tradingOrchestrator;
     private readonly object? _intelligenceOrchestrator;
     private readonly object? _dataOrchestrator;
@@ -30,10 +31,12 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
-        ICentralMessageBus messageBus)
+        ICentralMessageBus messageBus,
+        ISignalRConnectionManager signalRManager)
     {
         _logger = logger;
         _messageBus = messageBus;
+        _signalRManager = signalRManager;
         _tradingOrchestrator = null!; // Will be resolved later
         _intelligenceOrchestrator = null!; // Will be resolved later
         _dataOrchestrator = null!; // Will be resolved later
@@ -87,13 +90,19 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         _logger.LogDebug("Intelligence Orchestrator: {Status}", _intelligenceOrchestrator != null ? "Available" : "Not initialized");
         _logger.LogDebug("Data Orchestrator: {Status}", _dataOrchestrator != null ? "Available" : "Not initialized");
         
-        // In production, this would establish TopstepX connection
-        // For now, simulate connection status check
+        // Check actual TopstepX connection status via SignalR connection manager
         try
         {
-            // Simulate connection check
-            await Task.Delay(50, cancellationToken);
-            _isConnectedToTopstep = true; // Would be actual connection result
+            // Get actual connection status from SignalR manager
+            var userHubConnected = _signalRManager.IsUserHubConnected;
+            var marketHubConnected = _signalRManager.IsMarketHubConnected;
+            _isConnectedToTopstep = userHubConnected && marketHubConnected;
+            
+            _logger.LogInformation("🔗 TopstepX connection status - User Hub: {UserHub}, Market Hub: {MarketHub}, Overall: {Overall}", 
+                userHubConnected, marketHubConnected, _isConnectedToTopstep);
+                
+            // Subscribe to connection state changes for real-time updates
+            _signalRManager.ConnectionStateChanged += OnConnectionStateChanged;
         }
         catch (Exception ex)
         {
@@ -291,5 +300,27 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             activeCount, totalCount);
             
         return status;
+    }
+    
+    private void OnConnectionStateChanged(string hubName)
+    {
+        // Update connection status when SignalR connection state changes
+        try
+        {
+            var userHubConnected = _signalRManager.IsUserHubConnected;
+            var marketHubConnected = _signalRManager.IsMarketHubConnected;
+            var previousStatus = _isConnectedToTopstep;
+            _isConnectedToTopstep = userHubConnected && marketHubConnected;
+            
+            if (_isConnectedToTopstep != previousStatus)
+            {
+                _logger.LogInformation("🔗 TopstepX connection status updated - User Hub: {UserHub}, Market Hub: {MarketHub}, Overall: {Overall}", 
+                    userHubConnected, marketHubConnected, _isConnectedToTopstep);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update TopstepX connection status");
+        }
     }
 }

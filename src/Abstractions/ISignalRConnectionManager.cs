@@ -19,6 +19,7 @@ public interface ISignalRConnectionManager
     // TopstepX specification compliant subscription methods
     Task<bool> SubscribeToUserEventsAsync(string accountId);
     Task<bool> SubscribeToMarketEventsAsync(string contractId);
+    Task<bool> SubscribeToAllMarketsAsync();
     
     // Retry subscriptions with valid account ID after login
     Task<bool> RetrySubscriptionsWithAccountId(string accountId);

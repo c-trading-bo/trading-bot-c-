@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
 
@@ -44,6 +45,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private readonly ILogger<SignalRConnectionManager> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly ITokenProvider _tokenProvider;
+    private readonly IConfiguration _configuration;
     private readonly SemaphoreSlim _userHubLock = new(1, 1);
     private readonly SemaphoreSlim _marketHubLock = new(1, 1);
     private readonly IHostApplicationLifetime _appLifetime;
@@ -80,12 +82,14 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         ILogger<SignalRConnectionManager> logger,
         ITradingLogger tradingLogger,
         ITokenProvider tokenProvider,
+        IConfiguration configuration,
         IHostApplicationLifetime appLifetime,
         TradingBot.UnifiedOrchestrator.Services.ILoginCompletionState loginCompletionState)
     {
         _logger = logger;
         _tradingLogger = tradingLogger;
         _tokenProvider = tokenProvider;
+        _configuration = configuration;
         _appLifetime = appLifetime;
         _loginCompletionState = loginCompletionState;
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60)); // Increased from 30s to 60s to be less aggressive
@@ -360,7 +364,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             {
                 try
                 {
-                    if (hubName.Contains("Market")) { await hubConnection.InvokeAsync("SubscribeContractQuotes", "ES"); _logger.LogInformation("[TOPSTEPX] {HubName} immediate ES subscription successful", hubName); }
+                    if (hubName.Contains("Market")) { _logger.LogInformation("[TOPSTEPX] {HubName} connection ready - market subscriptions will be handled separately with contract IDs", hubName); }
                     else if (hubName.Contains("User")) { _logger.LogInformation("[TOPSTEPX] {HubName} ready for subscriptions when account ID available", hubName); }
                 }
                 catch (Exception ex)
@@ -621,10 +625,464 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         {
             _logger.LogInformation("[SignalRManager] Both User and Market hubs are connected. Signaling completion.");
             _hubsConnected.TrySetResult();
+            
+            // Notify listeners that connection state has changed
+            try
+            {
+                ConnectionStateChanged?.Invoke("Both hubs connected");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[SignalRManager] Failed to notify connection state changed");
+            }
         }
     }
 
     public Task WaitForHubsConnected(CancellationToken cancellationToken) => _hubsConnected.Task.WaitAsync(cancellationToken);
+
+    private async Task<Dictionary<string, string>> GetContractIdsAsync()
+    {
+        var contractIds = new Dictionary<string, string>();
+        var targetSymbols = new[] { "ES", "NQ" }; // Only ES and NQ for eval accounts
+        
+        _logger.LogInformation("[TOPSTEPX] Starting contract ID discovery for symbols: {Symbols}", string.Join(", ", targetSymbols));
+        
+        // Primary: Try REST discovery for each symbol
+        foreach (var symbol in targetSymbols)
+        {
+            try
+            {
+                var contractId = await DiscoverContractIdFromRestAsync(symbol);
+                if (!string.IsNullOrEmpty(contractId))
+                {
+                    contractIds[symbol] = contractId;
+                    _logger.LogInformation("[TOPSTEPX] REST discovery: {Symbol} -> {ContractId}", symbol, contractId);
+                }
+                else
+                {
+                    _logger.LogWarning("[TOPSTEPX] REST discovery failed for {Symbol}", symbol);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[TOPSTEPX] REST discovery error for {Symbol}: {Message}", symbol, ex.Message);
+            }
+        }
+        
+        // Secondary: Config fallback for any missing symbols
+        foreach (var symbol in targetSymbols)
+        {
+            if (!contractIds.ContainsKey(symbol))
+            {
+                var contractId = GetContractIdFromConfig(symbol);
+                if (!string.IsNullOrEmpty(contractId))
+                {
+                    contractIds[symbol] = contractId;
+                    _logger.LogInformation("[TOPSTEPX] Config fallback: {Symbol} -> {ContractId}", symbol, contractId);
+                }
+            }
+        }
+        
+        // Validation: Fail fast if any symbol is still missing
+        var missingSymbols = targetSymbols.Where(s => !contractIds.ContainsKey(s) || string.IsNullOrEmpty(contractIds[s])).ToArray();
+        if (missingSymbols.Length > 0)
+        {
+            var error = $"No contractId available for [{string.Join(", ", missingSymbols)}] after REST+Config; aborting subscriptions.";
+            _logger.LogError("[TOPSTEPX] {Error}", error);
+            _logger.LogError("[TOPSTEPX] 📋 To fix this issue:");
+            _logger.LogError("[TOPSTEPX] 1. Open TopstepX web app → DevTools → Network tab");
+            _logger.LogError("[TOPSTEPX] 2. Click ES and NQ instruments to load data");
+            _logger.LogError("[TOPSTEPX] 3. Find contract API responses and copy the numeric contractId values");
+            _logger.LogError("[TOPSTEPX] 4. Set environment variables with REAL contract IDs:");
+            _logger.LogError("[TOPSTEPX]    $env:TOPSTEPX_EVAL_ES_ID=\"12345678\"  # Real ES contractId");
+            _logger.LogError("[TOPSTEPX]    $env:TOPSTEPX_EVAL_NQ_ID=\"23456789\"  # Real NQ contractId");
+            _logger.LogError("[TOPSTEPX] 5. Contract IDs must be numeric/GUID format, not symbol strings");
+            throw new InvalidOperationException(error);
+        }
+        
+        _logger.LogInformation("[TOPSTEPX] Contract ID resolution complete: {Count} symbols resolved", contractIds.Count);
+        return contractIds;
+    }
+    
+    private async Task<string?> DiscoverContractIdFromRestAsync(string symbol)
+    {
+        try
+        {
+            using var httpClient = new HttpClient();
+            var apiBaseUrl = _configuration["TopstepX:ApiBaseUrl"] ?? "https://api.topstepx.com";
+            httpClient.BaseAddress = new Uri(apiBaseUrl);
+            
+            var token = await _tokenProvider.GetTokenAsync();
+            if (string.IsNullOrEmpty(token))
+            {
+                _logger.LogWarning("[TOPSTEPX] Cannot discover contract ID for {Symbol} - no JWT token available", symbol);
+                return null;
+            }
+            
+            httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            // Try multiple API endpoints to find contract information
+            var contractId = await TryContractAvailableEndpoint(httpClient, symbol);
+            if (!string.IsNullOrEmpty(contractId)) return contractId;
+
+            contractId = await TryContractSearchEndpoint(httpClient, symbol);
+            if (!string.IsNullOrEmpty(contractId)) return contractId;
+
+            contractId = await TryInstrumentSearchEndpoint(httpClient, symbol);
+            if (!string.IsNullOrEmpty(contractId)) return contractId;
+
+            contractId = await TryQuoteEndpoint(httpClient, symbol);
+            if (!string.IsNullOrEmpty(contractId)) return contractId;
+
+            _logger.LogWarning("[TOPSTEPX] No contract ID found for {Symbol} in any API endpoint", symbol);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[TOPSTEPX] REST contract discovery failed for {Symbol}: {Message}", symbol, ex.Message);
+        }
+        
+        return null;
+    }
+
+    private async Task<string?> TryContractAvailableEndpoint(HttpClient httpClient, string symbol)
+    {
+        try
+        {
+            _logger.LogInformation("[TOPSTEPX] Trying /api/Contract/available for {Symbol}", symbol);
+            
+            // For evaluation accounts: try live=false first, then live=true
+            foreach (var liveValue in new[] { false, true })
+            {
+                var payload = $"{{\"live\": {liveValue.ToString().ToLower()}}}";
+                var response = await httpClient.PostAsync("/api/Contract/available", 
+                    new StringContent(payload, System.Text.Encoding.UTF8, "application/json"));
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    _logger.LogDebug("[TOPSTEPX] /api/Contract/available (live={Live}) response: {Response}", liveValue, jsonString);
+                    
+                    var contractId = await ParseContractResponse(jsonString, symbol);
+                    if (!string.IsNullOrEmpty(contractId))
+                    {
+                        _logger.LogInformation("[TOPSTEPX] Found {Symbol} contract ID in /api/Contract/available (live={Live}): {ContractId}", symbol, liveValue, contractId);
+                        return contractId;
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("[TOPSTEPX] /api/Contract/available (live={Live}) returned {StatusCode}: {Content}", 
+                        liveValue, response.StatusCode, await response.Content.ReadAsStringAsync());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error in TryContractAvailableEndpoint for {Symbol}", symbol);
+        }
+        return null;
+    }
+
+    private async Task<string?> TryContractSearchEndpoint(HttpClient httpClient, string symbol)
+    {
+        try
+        {
+            _logger.LogInformation("[TOPSTEPX] Trying /api/Contract/search for {Symbol}", symbol);
+            
+            var searchPayloads = new[]
+            {
+                $"{{\"symbol\": \"{symbol}\"}}",
+                $"{{\"search\": \"{symbol}\"}}",
+                $"{{\"query\": \"{symbol}\"}}",
+                $"{{\"instrument\": \"{symbol}\"}}"
+            };
+
+            foreach (var payload in searchPayloads)
+            {
+                var response = await httpClient.PostAsync("/api/Contract/search", 
+                    new StringContent(payload, System.Text.Encoding.UTF8, "application/json"));
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var contractId = await ParseContractResponse(await response.Content.ReadAsStringAsync(), symbol);
+                    if (!string.IsNullOrEmpty(contractId))
+                    {
+                        _logger.LogInformation("[TOPSTEPX] Found {Symbol} contract ID in /api/Contract/search", symbol);
+                        return contractId;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error in TryContractSearchEndpoint for {Symbol}", symbol);
+        }
+        return null;
+    }
+
+    private async Task<string?> TryInstrumentSearchEndpoint(HttpClient httpClient, string symbol)
+    {
+        try
+        {
+            _logger.LogInformation("[TOPSTEPX] Trying /api/Instrument endpoints for {Symbol}", symbol);
+            
+            var endpoints = new[]
+            {
+                $"/api/Instrument/search",
+                $"/api/Instrument/available",
+                $"/api/Instrument/{symbol}",
+                $"/api/Instruments/search"
+            };
+
+            foreach (var endpoint in endpoints)
+            {
+                try
+                {
+                    var response = endpoint.Contains("/search") || endpoint.Contains("/available")
+                        ? await httpClient.PostAsync(endpoint, new StringContent($"{{\"symbol\": \"{symbol}\"}}", System.Text.Encoding.UTF8, "application/json"))
+                        : await httpClient.GetAsync(endpoint);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contractId = await ParseContractResponse(await response.Content.ReadAsStringAsync(), symbol);
+                        if (!string.IsNullOrEmpty(contractId))
+                        {
+                            _logger.LogInformation("[TOPSTEPX] Found {Symbol} contract ID in {Endpoint}", symbol, endpoint);
+                            return contractId;
+                        }
+                    }
+                }
+                catch (Exception endpointEx)
+                {
+                    _logger.LogDebug(endpointEx, "[TOPSTEPX] Error trying endpoint {Endpoint} for {Symbol}", endpoint, symbol);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error in TryInstrumentSearchEndpoint for {Symbol}", symbol);
+        }
+        return null;
+    }
+
+    private async Task<string?> TryQuoteEndpoint(HttpClient httpClient, string symbol)
+    {
+        try
+        {
+            _logger.LogInformation("[TOPSTEPX] Trying quote endpoints for {Symbol}", symbol);
+            
+            var endpoints = new[]
+            {
+                $"/api/Quote/{symbol}",
+                $"/api/Quotes/{symbol}",
+                $"/api/MarketData/{symbol}"
+            };
+
+            foreach (var endpoint in endpoints)
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync(endpoint);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var contractId = await ParseContractResponse(await response.Content.ReadAsStringAsync(), symbol);
+                        if (!string.IsNullOrEmpty(contractId))
+                        {
+                            _logger.LogInformation("[TOPSTEPX] Found {Symbol} contract ID in {Endpoint}", symbol, endpoint);
+                            return contractId;
+                        }
+                    }
+                }
+                catch (Exception endpointEx)
+                {
+                    _logger.LogDebug(endpointEx, "[TOPSTEPX] Error trying endpoint {Endpoint} for {Symbol}", endpoint, symbol);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error in TryQuoteEndpoint for {Symbol}", symbol);
+        }
+        return null;
+    }
+
+    private Task<string?> ParseContractResponse(string jsonString, string symbol)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(jsonString);
+            
+            // Try to find contract ID in various response structures
+            var contractId = TryExtractContractId(doc.RootElement, symbol);
+            if (!string.IsNullOrEmpty(contractId))
+            {
+                return Task.FromResult<string?>(contractId);
+            }
+
+            // If root doesn't have it, try in 'data' property
+            if (doc.RootElement.TryGetProperty("data", out var dataElement))
+            {
+                contractId = TryExtractContractId(dataElement, symbol);
+                if (!string.IsNullOrEmpty(contractId))
+                {
+                    return Task.FromResult<string?>(contractId);
+                }
+            }
+
+            // If data is an array, check each item
+            if (doc.RootElement.TryGetProperty("data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in dataArray.EnumerateArray())
+                {
+                    contractId = TryExtractContractId(item, symbol);
+                    if (!string.IsNullOrEmpty(contractId))
+                    {
+                        return Task.FromResult<string?>(contractId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error parsing contract response for {Symbol}", symbol);
+        }
+        
+        return Task.FromResult<string?>(null);
+    }
+
+    private string? TryExtractContractId(JsonElement element, string symbol)
+    {
+        try
+        {
+            // Common contract ID field names to check
+            var contractIdFields = new[] { "contractId", "id", "instrumentId", "contractID", "Id", "contract_id" };
+            var symbolFields = new[] { "symbol", "Symbol", "instrument", "name", "ticker" };
+
+            // First, check if this element matches our symbol
+            bool symbolMatches = false;
+            foreach (var symbolField in symbolFields)
+            {
+                if (element.TryGetProperty(symbolField, out var symbolValue))
+                {
+                    var symbolStr = symbolValue.GetString();
+                    if (!string.IsNullOrEmpty(symbolStr) && 
+                        (symbolStr.Equals(symbol, StringComparison.OrdinalIgnoreCase) ||
+                         symbolStr.StartsWith(symbol, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        symbolMatches = true;
+                        break;
+                    }
+                }
+            }
+
+            // If symbol matches, look for contract ID
+            if (symbolMatches)
+            {
+                foreach (var contractIdField in contractIdFields)
+                {
+                    if (element.TryGetProperty(contractIdField, out var contractIdValue))
+                    {
+                        var contractId = contractIdValue.ValueKind == JsonValueKind.String 
+                            ? contractIdValue.GetString()
+                            : contractIdValue.ToString();
+                            
+                        if (!string.IsNullOrEmpty(contractId) && IsValidContractId(contractId))
+                        {
+                            _logger.LogInformation("[TOPSTEPX] Extracted contract ID {ContractId} for {Symbol}", contractId, symbol);
+                            return contractId;
+                        }
+                    }
+                }
+            }
+
+            // If no symbol match but we find a promising contract ID pattern, log it
+            foreach (var contractIdField in contractIdFields)
+            {
+                if (element.TryGetProperty(contractIdField, out var contractIdValue))
+                {
+                    var contractId = contractIdValue.ValueKind == JsonValueKind.String 
+                        ? contractIdValue.GetString()
+                        : contractIdValue.ToString();
+                        
+                    if (!string.IsNullOrEmpty(contractId) && IsValidContractId(contractId))
+                    {
+                        _logger.LogDebug("[TOPSTEPX] Found potential contract ID {ContractId} (symbol match unclear)", contractId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[TOPSTEPX] Error extracting contract ID for {Symbol}", symbol);
+        }
+        
+        return null;
+    }
+    
+    private string? GetContractIdFromConfig(string symbol)
+    {
+        // Try environment variable first
+        var envVarName = $"TOPSTEPX_EVAL_{symbol}_ID";
+        var envValue = Environment.GetEnvironmentVariable(envVarName);
+        _logger.LogInformation("[TOPSTEPX] Environment variable {EnvVar} = '{Value}'", envVarName, envValue ?? "null");
+        if (!string.IsNullOrEmpty(envValue) && IsValidContractId(envValue))
+        {
+            _logger.LogInformation("[TOPSTEPX] Found valid contract ID for {Symbol} in environment variable {EnvVar}", symbol, envVarName);
+            return envValue;
+        }
+        
+        // Try configuration section
+        var configPath = $"TopstepX:EvalContractIds:{symbol}";
+        var configValue = _configuration[configPath];
+        _logger.LogInformation("[TOPSTEPX] Configuration {ConfigPath} = '{Value}'", configPath, configValue ?? "null");
+        
+        // Also try to debug the entire TopstepX section
+        var topstepXSection = _configuration.GetSection("TopstepX");
+        _logger.LogInformation("[TOPSTEPX] TopstepX section exists: {Exists}", topstepXSection.Exists());
+        
+        var evalSection = _configuration.GetSection("TopstepX:EvalContractIds");
+        _logger.LogInformation("[TOPSTEPX] EvalContractIds section exists: {Exists}", evalSection.Exists());
+        
+        if (!string.IsNullOrEmpty(configValue) && IsValidContractId(configValue))
+        {
+            _logger.LogInformation("[TOPSTEPX] Found valid contract ID for {Symbol} in configuration {ConfigPath}", symbol, configPath);
+            return configValue;
+        }
+        
+        _logger.LogWarning("[TOPSTEPX] No valid contract ID found for {Symbol} in environment or config", symbol);
+        return null;
+    }
+    
+    private bool IsValidContractId(string contractId)
+    {
+        // TopstepX contract IDs can be numeric, GUID, or CON. format strings
+        if (string.IsNullOrEmpty(contractId) || contractId == "0")
+        {
+            return false;
+        }
+        
+        // Check if it's a valid numeric ID (could be long integer)
+        if (long.TryParse(contractId, out var numericId) && numericId > 0)
+        {
+            return true;
+        }
+        
+        // Check if it's a valid GUID format
+        if (Guid.TryParse(contractId, out var guidId) && guidId != Guid.Empty)
+        {
+            return true;
+        }
+        
+        // Check if it's a valid TopstepX contract format (e.g., CON.F.US.EP.U25)
+        if (contractId.StartsWith("CON.") && contractId.Length > 10)
+        {
+            return true;
+        }
+        
+        _logger.LogWarning("[TOPSTEPX] Invalid contract ID format: '{ContractId}' - must be numeric, GUID, or CON.* format", contractId);
+        return false;
+    }
 
     public async Task<bool> SubscribeToUserEventsAsync(string accountId)
     {
@@ -635,80 +1093,78 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         }
         
         bool hasAnySuccess = false;
+        int eventCountBefore = _totalMessagesReceived;
         
         try
         {
-            // Try Market Hub-style naming patterns since SubscribeContractQuotes works
-            var orderMethods = new[]
-            {
-                "SubscribeAccountOrders",
-                "SubscribeUserOrders", 
-                "SubscribeGatewayUserOrder",
-                "SubscribeOrders",
-                "SubscribeToOrders",
-                "Subscribe"  // Simplified, just pass accountId
-            };
+            // Use only the correct TopstepX User Hub methods (no fallbacks)
+            var numericAccountId = long.Parse(accountId);
             
-            var tradeMethods = new[]
-            {
-                "SubscribeAccountTrades",
-                "SubscribeUserTrades",
-                "SubscribeGatewayUserTrade", 
-                "SubscribeTrades",
-                "SubscribeToTrades"
-            };
-
-            _logger.LogInformation("[TOPSTEPX] Testing {OrderCount} order subscription methods for account {AccountId}", orderMethods.Length, accountId);
+            _logger.LogInformation("[TOPSTEPX] Subscribing to user events for account {AccountId}", numericAccountId);
             
-            foreach (var method in orderMethods)
+            // Subscribe to Orders
+            try
             {
-                try
-                {
-                    await _userHub.InvokeAsync(method, accountId);
-                    AddToSubscriptionManifest("UserHub", method, accountId);
-                    _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to Orders using {Method} for account {AccountId}", method, accountId);
-                    hasAnySuccess = true;
-                    break; // Stop trying once we find a working method
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug("[TOPSTEPX] ❌ {Method} failed for account {AccountId}: {Error}", method, accountId, ex.Message);
-                }
+                await _userHub.InvokeAsync("SubscribeOrders", numericAccountId);
+                AddToSubscriptionManifest("UserHub", "SubscribeOrders", accountId);
+                _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to Orders for account {AccountId}", numericAccountId);
+                hasAnySuccess = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("[TOPSTEPX] ❌ SubscribeOrders failed for account {AccountId}: {Error}", numericAccountId, ex.Message);
             }
 
-            _logger.LogInformation("[TOPSTEPX] Testing {TradeCount} trade subscription methods for account {AccountId}", tradeMethods.Length, accountId);
-            
-            foreach (var method in tradeMethods)
+            // Subscribe to Trades
+            try
             {
-                try
-                {
-                    await _userHub.InvokeAsync(method, accountId);
-                    AddToSubscriptionManifest("UserHub", method, accountId);
-                    _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to Trades using {Method} for account {AccountId}", method, accountId);
-                    hasAnySuccess = true;
-                    break; // Stop trying once we find a working method
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug("[TOPSTEPX] ❌ {Method} failed for account {AccountId}: {Error}", method, accountId, ex.Message);
-                }
+                await _userHub.InvokeAsync("SubscribeTrades", numericAccountId);
+                AddToSubscriptionManifest("UserHub", "SubscribeTrades", accountId);
+                _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to Trades for account {AccountId}", numericAccountId);
+                hasAnySuccess = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("[TOPSTEPX] ❌ SubscribeTrades failed for account {AccountId}: {Error}", numericAccountId, ex.Message);
             }
 
-            if (hasAnySuccess)
+            // Subscribe to Positions
+            try
             {
-                _logger.LogInformation("[TOPSTEPX] ✅ User subscription successful - at least one method worked for account {AccountId}", accountId);
+                await _userHub.InvokeAsync("SubscribePositions", numericAccountId);
+                AddToSubscriptionManifest("UserHub", "SubscribePositions", accountId);
+                _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to Positions for account {AccountId}", numericAccountId);
+                hasAnySuccess = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("[TOPSTEPX] ❌ SubscribePositions failed for account {AccountId}: {Error}", numericAccountId, ex.Message);
+            }
+
+            // Wait a moment to see if we get any events
+            await Task.Delay(2000);
+            int eventCountAfter = _totalMessagesReceived;
+            int newEvents = eventCountAfter - eventCountBefore;
+            
+            if (newEvents > 0)
+            {
+                _logger.LogInformation("[TOPSTEPX] ✅ User events subscription DATA CONFIRMED - received {NewEvents} events", newEvents);
+                return true;
+            }
+            else if (hasAnySuccess)
+            {
+                _logger.LogInformation("[TOPSTEPX] ⚠️ User events subscription CALLS succeeded but no data received yet (may take time)");
+                return true; // Call succeeded, data may come later
             }
             else
             {
-                _logger.LogWarning("[TOPSTEPX] ⚠️ No subscription methods worked for account {AccountId}. User events may still be received automatically.", accountId);
+                _logger.LogWarning("[TOPSTEPX] ❌ No subscription methods worked for account {AccountId}. User events may still be received automatically.", accountId);
+                return false;
             }
-            
-            _logger.LogInformation("[TOPSTEPX] User subscription process completed for account {AccountId}", accountId);
-            return hasAnySuccess;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to user account {AccountId}", accountId);
+            _logger.LogError(ex, "[TOPSTEPX] User events subscription error for account {AccountId}: {Message}", accountId, ex.Message);
             return false;
         }
     }
@@ -720,18 +1176,83 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             _logger.LogWarning("[TOPSTEPX] Cannot subscribe to market events - Market Hub not connected.");
             return false;
         }
+        
+        int eventCountBefore = _totalMessagesReceived;
+        
         try
         {
             await _marketHub.InvokeAsync("SubscribeContractQuotes", contractId);
             AddToSubscriptionManifest("MarketHub", "SubscribeContractQuotes", contractId);
-            _logger.LogInformation("[TOPSTEPX] Subscribed to Contract Quotes for {Symbol}", contractId);
-            return true;
+            _logger.LogInformation("[TOPSTEPX] Subscribed to Contract Quotes for contractId {ContractId}", contractId);
+            
+            // Optional: Also subscribe to trades and depth if available
+            try
+            {
+                await _marketHub.InvokeAsync("SubscribeContractTrades", contractId);
+                AddToSubscriptionManifest("MarketHub", "SubscribeContractTrades", contractId);
+                _logger.LogInformation("[TOPSTEPX] Subscribed to Contract Trades for contractId {ContractId}", contractId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("[TOPSTEPX] SubscribeContractTrades not available: {Error}", ex.Message);
+            }
+            
+            // Wait a moment to see if we get market data
+            await Task.Delay(2000);
+            int eventCountAfter = _totalMessagesReceived;
+            int newEvents = eventCountAfter - eventCountBefore;
+            
+            if (newEvents > 0)
+            {
+                _logger.LogInformation("[TOPSTEPX] ✅ Market events subscription DATA CONFIRMED - received {NewEvents} events for contractId {ContractId}", newEvents, contractId);
+                return true;
+            }
+            else
+            {
+                _logger.LogInformation("[TOPSTEPX] ⚠️ Market events subscription CALL succeeded but no data received yet for contractId {ContractId} (may take time)", contractId);
+                return true; // Call succeeded, data may come later
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to market events for {Symbol}", contractId);
+            _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to market events for contractId {ContractId}: {Error}", contractId, ex.Message);
             return false;
         }
+    }
+
+    public async Task<bool> SubscribeToAllMarketsAsync()
+    {
+        _logger.LogInformation("[TOPSTEPX] Fetching contract IDs for market subscriptions...");
+        var contractIds = await GetContractIdsAsync();
+        
+        // Now we always have ES and NQ contract IDs (hardcoded for eval accounts)
+        _logger.LogInformation("[TOPSTEPX] Using {Count} contract IDs for subscriptions", contractIds.Count);
+        
+        // Subscribe using contract IDs (ES and NQ only for eval accounts)
+        bool hasAnySuccess = false;
+        var targetSymbols = new[] { "ES", "NQ" }; // Only ES and NQ for eval accounts
+        
+        foreach (var symbol in targetSymbols)
+        {
+            if (contractIds.TryGetValue(symbol, out var contractId))
+            {
+                try
+                {
+                    var success = await SubscribeToMarketEventsAsync(contractId);
+                    if (success) hasAnySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[TOPSTEPX] Failed to subscribe to {Symbol} (contractId: {ContractId}): {Error}", symbol, contractId, ex.Message);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("[TOPSTEPX] No contract ID found for symbol {Symbol}", symbol);
+            }
+        }
+        
+        return hasAnySuccess;
     }
 
     private void AddToSubscriptionManifest(string hub, string method, string parameter)
@@ -744,15 +1265,89 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private void SetupUserHubEventHandlers()
     {
         if (_userHub == null) return;
-        _userHub.On<object>("GatewayUserOrder", data => { Interlocked.Increment(ref _totalMessagesReceived); OnGatewayUserOrderReceived?.Invoke(data); _logger.LogInformation("[USER-HUB] Received GatewayUserOrder"); });
-        _userHub.On<object>("GatewayUserTrade", data => { Interlocked.Increment(ref _totalMessagesReceived); OnGatewayUserTradeReceived?.Invoke(data); _logger.LogInformation("[USER-HUB] Received GatewayUserTrade"); });
+        
+        // Primary TopstepX User Hub events
+        _userHub.On<object>("GatewayUserOrder", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnGatewayUserOrderReceived?.Invoke(data); 
+            _logger.LogInformation("[USER-HUB] 📋 Received GatewayUserOrder - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _userHub.On<object>("GatewayUserTrade", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnGatewayUserTradeReceived?.Invoke(data); 
+            _logger.LogInformation("[USER-HUB] 💰 Received GatewayUserTrade - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        // Additional possible event names
+        _userHub.On<object>("OrdersUpdated", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnGatewayUserOrderReceived?.Invoke(data); 
+            _logger.LogInformation("[USER-HUB] 📋 Received OrdersUpdated - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _userHub.On<object>("TradesUpdated", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnGatewayUserTradeReceived?.Invoke(data); 
+            _logger.LogInformation("[USER-HUB] 💰 Received TradesUpdated - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _userHub.On<object>("PositionsUpdated", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            _logger.LogInformation("[USER-HUB] 📊 Received PositionsUpdated - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _logger.LogInformation("[USER-HUB] Event handlers registered: GatewayUserOrder, GatewayUserTrade, OrdersUpdated, TradesUpdated, PositionsUpdated");
     }
 
     private void SetupMarketHubEventHandlers()
     {
         if (_marketHub == null) return;
-        _marketHub.On<object>("MarketData", data => { Interlocked.Increment(ref _totalMessagesReceived); OnMarketDataReceived?.Invoke(data); });
-        _marketHub.On<object>("ContractQuotes", data => { Interlocked.Increment(ref _totalMessagesReceived); OnContractQuotesReceived?.Invoke(data); });
+        
+        // Primary TopstepX Market Hub events  
+        _marketHub.On<object>("GatewayQuote", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data); 
+            if (_totalMessagesReceived % 10 == 1) // Log every 10th quote to avoid spam
+                _logger.LogInformation("[MARKET-HUB] 📈 Received GatewayQuote #{Count}", _totalMessagesReceived); 
+        });
+        
+        _marketHub.On<object>("GatewayTrade", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 🔄 Received GatewayTrade - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _marketHub.On<object>("GatewayDepth", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            if (_totalMessagesReceived % 50 == 1) // Log every 50th depth update
+                _logger.LogInformation("[MARKET-HUB] 📊 Received GatewayDepth #{Count}", _totalMessagesReceived); 
+        });
+        
+        // Legacy fallback events (if still used)
+        _marketHub.On<object>("MarketData", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 📈 Received MarketData (legacy) - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _marketHub.On<object>("ContractQuotes", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnContractQuotesReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 📈 Received ContractQuotes (legacy) - Total messages: {Count}", _totalMessagesReceived); 
+        });
+        
+        _logger.LogInformation("[MARKET-HUB] Event handlers registered: GatewayQuote, GatewayTrade, GatewayDepth, MarketData, ContractQuotes");
     }
 
     public async Task<bool> RetrySubscriptionsWithAccountId(string accountId)

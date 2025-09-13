@@ -5,6 +5,10 @@ import sys
 import json
 import requests
 from urllib.parse import urljoin
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 def get_jwt_token(username, api_key, base_url):
     """Get JWT token using username and API key"""
