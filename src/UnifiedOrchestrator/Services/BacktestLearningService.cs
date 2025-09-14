@@ -45,10 +45,14 @@ namespace UnifiedOrchestrator.Services
 
             var runLearning = Environment.GetEnvironmentVariable("RUN_LEARNING");
             var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
+            var liveDataOnly = Environment.GetEnvironmentVariable("LIVE_DATA_ONLY");
+            var disableBackgroundLearning = Environment.GetEnvironmentVariable("DISABLE_BACKGROUND_LEARNING");
             
-            if (runLearning != "1" && backtestMode != "1")
+            // If any of these indicate we should not run background learning, skip it
+            if (runLearning == "0" || liveDataOnly == "1" || disableBackgroundLearning == "1")
             {
-                _logger.LogInformation("🤖 [BACKTEST_LEARNING] Not enabled (RUN_LEARNING={Learning}, BACKTEST_MODE={Backtest})", runLearning, backtestMode);
+                _logger.LogInformation("🚫 [BACKTEST_LEARNING] Background learning disabled by environment variables");
+                _logger.LogInformation($"🚫 [BACKTEST_LEARNING] RUN_LEARNING={runLearning}, LIVE_DATA_ONLY={liveDataOnly}, DISABLE_BACKGROUND_LEARNING={disableBackgroundLearning}");
                 return;
             }
 
