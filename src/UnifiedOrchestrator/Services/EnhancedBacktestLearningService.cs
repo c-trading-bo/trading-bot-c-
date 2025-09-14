@@ -34,7 +34,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     private readonly BotCore.Brain.UnifiedTradingBrain _unifiedBrain;
     
     // Historical replay state
-    private readonly ConcurrentDictionary<string, HistoricalReplayContext> _replayContexts = new();
+    private readonly ConcurrentDictionary<string, UnifiedHistoricalReplayContext> _replayContexts = new();
     private readonly List<BacktestResult> _recentBacktests = new();
 
     public EnhancedBacktestLearningService(
@@ -189,10 +189,10 @@ public class EnhancedBacktestLearningService : BackgroundService
                 backtestId, config.Strategy);
             
             // Initialize unified replay context
-            var replayContext = new HistoricalReplayContext
+            var replayContext = new UnifiedHistoricalReplayContext
             {
                 BacktestId = backtestId,
-                Config = new BacktestConfig
+                Config = new UnifiedBacktestConfig
                 {
                     Symbol = config.Symbol,
                     StartDate = config.StartDate,
@@ -358,13 +358,11 @@ public class EnhancedBacktestLearningService : BackgroundService
                         Action = brainDecision.RecommendedStrategy != "HOLD" ? 
                             (brainDecision.OptimalPositionMultiplier > 0 ? TradingBot.Abstractions.TradingAction.Buy : TradingBot.Abstractions.TradingAction.Sell) : 
                             TradingBot.Abstractions.TradingAction.Hold,
-                        Size = Math.Abs(brainDecision.OptimalPositionMultiplier),
-                        Strategy = brainDecision.RecommendedStrategy,
-                        Confidence = (double)brainDecision.StrategyConfidence,
+                        Quantity = Math.Abs((decimal)brainDecision.OptimalPositionMultiplier),
+                        Confidence = (decimal)brainDecision.StrategyConfidence,
                         Timestamp = brainDecision.DecisionTime,
                         Symbol = brainDecision.Symbol,
-                        ProcessingTimeMs = brainDecision.ProcessingTimeMs,
-                        Metadata = new Dictionary<string, object>
+                        Reasoning = new Dictionary<string, object>
                         {
                             ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
                             ["PriceProbability"] = brainDecision.PriceProbability,
@@ -482,7 +480,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                 
                 // Copy brain decision (should be identical to live trading logic)
                 Action = brainDecision?.RecommendedStrategy != "HOLD" ? 
-                    (brainDecision.OptimalPositionMultiplier > 0 ? "BUY" : "SELL") : "HOLD",
+                    (brainDecision?.OptimalPositionMultiplier > 0 ? "BUY" : "SELL") : "HOLD",
                 Size = Math.Abs(brainDecision?.OptimalPositionMultiplier ?? 0),
                 Confidence = brainDecision?.StrategyConfidence ?? 0,
                 Strategy = brainDecision?.RecommendedStrategy ?? "UNKNOWN",
@@ -493,7 +491,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                     ["UnifiedTradingBrain"] = "1.0",
                     ["MarketRegime"] = brainDecision?.MarketRegime.ToString() ?? "Unknown"
                 },
-                ProcessingTimeMs = brainDecision?.ProcessingTimeMs ?? 0,
+                ProcessingTimeMs = (decimal)(brainDecision?.ProcessingTimeMs ?? 0),
                 PassedRiskChecks = !string.IsNullOrEmpty(brainDecision?.RiskAssessment),
                 RiskWarnings = string.IsNullOrEmpty(brainDecision?.RiskAssessment) ? new List<string>() : new List<string> { brainDecision.RiskAssessment },
                 
@@ -1031,7 +1029,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// <summary>
     /// Feed backtest results to UnifiedTradingBrain for continuous learning
     /// </summary>
-    private async Task FeedResultsToUnifiedBrainAsync(BacktestResult[] results, CancellationToken cancellationToken)
+    private async Task FeedResultsToUnifiedBrainAsync(UnifiedBacktestResult[] results, CancellationToken cancellationToken)
     {
         await Task.Yield(); // Ensure async behavior
         

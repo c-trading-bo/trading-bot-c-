@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -290,9 +291,9 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Get data integration status
     /// </summary>
-    public DataIntegrationStatus GetIntegrationStatus()
+    public UnifiedDataIntegrationStatus GetIntegrationStatus()
     {
-        return new DataIntegrationStatus
+        return new UnifiedDataIntegrationStatus
         {
             IsHistoricalDataConnected = _isHistoricalDataConnected,
             IsLiveDataConnected = _isLiveDataConnected,
@@ -373,51 +374,69 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             return "❌ No integration - Both data sources disconnected";
         }
     }
-}
 
-/// <summary>
-/// Interface for unified data integration service
-/// </summary>
-public interface IUnifiedDataIntegrationService
-{
     /// <summary>
-    /// Validate that historical and live data pipelines are consistent
+    /// Check historical data availability
     /// </summary>
-    Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default);
+    public async Task<bool> CheckHistoricalDataAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield(); 
+        return _isHistoricalDataConnected;
+    }
     
     /// <summary>
-    /// Get data integration status
+    /// Check live data connectivity
     /// </summary>
-    DataIntegrationStatus GetIntegrationStatus();
+    public async Task<bool> CheckLiveDataAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return _isLiveDataConnected;
+    }
     
     /// <summary>
-    /// Get recent data flow events
+    /// Get data integration status report
     /// </summary>
-    List<DataFlowEvent> GetRecentDataFlowEvents(int maxCount = 50);
-}
-
-/// <summary>
-/// Data integration status
-/// </summary>
-public class DataIntegrationStatus
-{
-    public bool IsHistoricalDataConnected { get; set; }
-    public bool IsLiveDataConnected { get; set; }
-    public DateTime LastHistoricalDataSync { get; set; }
-    public DateTime LastLiveDataReceived { get; set; }
-    public int TotalDataFlowEvents { get; set; }
-    public bool IsFullyIntegrated { get; set; }
-    public string StatusMessage { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// Data flow event for tracking data integration
-/// </summary>
-public class DataFlowEvent
-{
-    public DateTime Timestamp { get; set; }
-    public string EventType { get; set; } = string.Empty;
-    public string Source { get; set; } = string.Empty;
-    public string Details { get; set; } = string.Empty;
-    public bool Success { get; set; }
+    public async Task<object> GetDataIntegrationStatusAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return new 
+        {
+            IsHistoricalDataConnected = _isHistoricalDataConnected,
+            IsLiveDataConnected = _isLiveDataConnected,
+            LastHistoricalDataSync = _lastHistoricalDataSync,
+            LastLiveDataReceived = _lastLiveDataReceived,
+            TotalDataFlowEvents = _dataFlowEvents.Count,
+            IsFullyIntegrated = _isHistoricalDataConnected && _isLiveDataConnected,
+            StatusMessage = GenerateStatusMessage()
+        };
+    }
+    
+    /// <summary>
+    /// Get historical data connection status
+    /// </summary>
+    public async Task<object> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return new 
+        {
+            IsConnected = _isHistoricalDataConnected,
+            LastSync = _lastHistoricalDataSync,
+            Status = _isHistoricalDataConnected ? "Connected" : "Disconnected"
+        };
+    }
+    
+    /// <summary>
+    /// Get live data connection status
+    /// </summary>
+    public async Task<object> GetLiveDataStatusAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.Yield();
+        return new 
+        {
+            IsConnected = _isLiveDataConnected,
+            LastReceived = _lastLiveDataReceived,
+            Status = _isLiveDataConnected ? "Connected" : "Disconnected"
+        };
+    }
+    
 }

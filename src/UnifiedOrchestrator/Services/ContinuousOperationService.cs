@@ -195,7 +195,7 @@ public class ContinuousOperationService : BackgroundService
                 ScheduleEnsembleTrainingAsync(cancellationToken)
             };
 
-            Task[] completedTasks = await Task.WhenAll(tasks.Take(intensity.ParallelJobs));
+            await Task.WhenAll(tasks.Take(intensity.ParallelJobs));
             
             await LogOperationAsync("TRAINING", 
                 $"Scheduled {intensity.ParallelJobs} intensive training jobs", cancellationToken);

@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Scheduling;
-using TradingDecision = TradingBot.Abstractions.TradingDecision;
+using TradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -152,15 +152,15 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
 
         // Test 1: Verify UnifiedTradingBrain is primary
         var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
-        result.IsPrimaryDecisionMaker = decision.Metadata.ContainsKey("Algorithm") && 
-                                       decision.Metadata["Algorithm"].ToString() == "UnifiedTradingBrain";
+        result.IsPrimaryDecisionMaker = decision.Reasoning.ContainsKey("Algorithm") && 
+                                       decision.Reasoning["Algorithm"].ToString() == "UnifiedTradingBrain";
 
         // Test 2: Verify shadow testing is active
-        result.IsShadowTestingActive = decision.Metadata.ContainsKey("ShadowBrainUsed") &&
-                                      decision.Metadata["ShadowBrainUsed"].ToString() == "InferenceBrain";
+        result.IsShadowTestingActive = decision.Reasoning.ContainsKey("ShadowBrainUsed") &&
+                                      decision.Reasoning["ShadowBrainUsed"].ToString() == "InferenceBrain";
 
         // Test 3: Test multiple decisions and track consistency
-        var decisions = new List<TradingDecision>();
+        var decisions = new List<TradingBot.Abstractions.TradingDecision>();
         for (int i = 0; i < 10; i++)
         {
             var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
@@ -168,8 +168,8 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
             await Task.Delay(100, cancellationToken); // Small delay between decisions
         }
 
-        result.ConsistencyRate = decisions.Count(d => d.Metadata.GetValueOrDefault("Algorithm")?.ToString() == "UnifiedTradingBrain") / (double)decisions.Count;
-        result.AverageDecisionTimeMs = decisions.Average(d => double.Parse(d.Metadata.GetValueOrDefault("ProcessingTimeMs", "0").ToString()!));
+        result.ConsistencyRate = decisions.Count(d => d.Reasoning.GetValueOrDefault("Algorithm")?.ToString() == "UnifiedTradingBrain") / (double)decisions.Count;
+        result.AverageDecisionTimeMs = decisions.Average(d => double.Parse(d.Reasoning.GetValueOrDefault("ProcessingTimeMs", "0").ToString()!));
 
         // Test 4: Verify adapter statistics
         var stats = _brainAdapter.GetStatistics();
