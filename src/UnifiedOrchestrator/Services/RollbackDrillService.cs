@@ -141,7 +141,7 @@ public class RollbackDrillService : IRollbackDrillService
             var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
             var decisionTime = (DateTime.UtcNow - decisionStart).TotalMilliseconds;
             
-            decisions.Add((DateTime.UtcNow, decision, decisionTime));
+            decisions.Add((DateTime.UtcNow, ConvertToAbstractionsDecision(decision), decisionTime));
             
             if (cancellationToken.IsCancellationRequested) break;
             await Task.Delay(50, cancellationToken); // 20 decisions per second
@@ -303,7 +303,7 @@ public class RollbackDrillService : IRollbackDrillService
             var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
             var decisionTime = (DateTime.UtcNow - decisionStart).TotalMilliseconds;
             
-            postRollbackDecisions.Add((DateTime.UtcNow, decision, decisionTime));
+            postRollbackDecisions.Add((DateTime.UtcNow, ConvertToAbstractionsDecision(decision), decisionTime));
             
             // Verify we're back on champion
             if (!decision.Reasoning.ContainsKey("AdapterMode") || 
@@ -432,6 +432,34 @@ public class RollbackDrillService : IRollbackDrillService
             MaxRollbackTimeMs = maxRollbackTime,
             LastDrillTime = _drillHistory.LastOrDefault()?.StartTime ?? DateTime.MinValue,
             Message = $"Executed {_drillHistory.Count} drills with {successfulDrills}/{_drillHistory.Count} success rate. Avg rollback time: {avgRollbackTime:F2}ms"
+        };
+    }
+    
+    /// <summary>
+    /// Convert UnifiedOrchestrator TradingDecision to Abstractions TradingDecision
+    /// </summary>
+    private AbstractionsTradingDecision ConvertToAbstractionsDecision(InterfacesTradingDecision unifiedDecision)
+    {
+        // Parse Action string to TradingAction enum
+        var tradingAction = unifiedDecision.Action.ToUpperInvariant() switch
+        {
+            "BUY" => TradingBot.Abstractions.TradingAction.Buy,
+            "SELL" => TradingBot.Abstractions.TradingAction.Sell,
+            "HOLD" => TradingBot.Abstractions.TradingAction.Hold,
+            _ => TradingBot.Abstractions.TradingAction.Hold
+        };
+
+        return new AbstractionsTradingDecision
+        {
+            DecisionId = Guid.NewGuid().ToString(),
+            Symbol = unifiedDecision.Symbol,
+            Action = tradingAction,
+            Quantity = unifiedDecision.Size,
+            Confidence = unifiedDecision.Confidence,
+            MLConfidence = unifiedDecision.Confidence,
+            MLStrategy = unifiedDecision.Strategy,
+            Timestamp = unifiedDecision.Timestamp,
+            Reasoning = new Dictionary<string, object>(unifiedDecision.DecisionMetadata)
         };
     }
 }

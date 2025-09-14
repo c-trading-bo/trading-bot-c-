@@ -164,7 +164,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         for (int i = 0; i < 10; i++)
         {
             var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
-            decisions.Add(testDecision);
+            decisions.Add(ConvertToAbstractionsDecision(testDecision));
             await Task.Delay(100, cancellationToken); // Small delay between decisions
         }
 
@@ -286,7 +286,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
             {
                 IsConnected = liveStatus.IsConnected,
                 LastUpdate = liveStatus.LastDataReceived,
-                RecordsCount = liveStatus.MessagesPerSecond,
+                RecordsCount = (long)liveStatus.MessagesPerSecond,
                 ConnectionString = "TopStep Live Data Stream",
                 DataLatencyMs = (DateTime.UtcNow - liveStatus.LastDataReceived).TotalMilliseconds
             };
@@ -420,6 +420,35 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     }
 
     // Helper methods
+    
+    /// <summary>
+    /// Convert UnifiedOrchestrator TradingDecision to Abstractions TradingDecision
+    /// </summary>
+    private TradingBot.Abstractions.TradingDecision ConvertToAbstractionsDecision(TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision unifiedDecision)
+    {
+        // Parse Action string to TradingAction enum
+        var tradingAction = unifiedDecision.Action.ToUpperInvariant() switch
+        {
+            "BUY" => TradingBot.Abstractions.TradingAction.Buy,
+            "SELL" => TradingBot.Abstractions.TradingAction.Sell,
+            "HOLD" => TradingBot.Abstractions.TradingAction.Hold,
+            _ => TradingBot.Abstractions.TradingAction.Hold
+        };
+
+        return new TradingBot.Abstractions.TradingDecision
+        {
+            DecisionId = Guid.NewGuid().ToString(),
+            Symbol = unifiedDecision.Symbol,
+            Action = tradingAction,
+            Quantity = unifiedDecision.Size,
+            Confidence = unifiedDecision.Confidence,
+            MLConfidence = unifiedDecision.Confidence,
+            MLStrategy = unifiedDecision.Strategy,
+            Timestamp = unifiedDecision.Timestamp,
+            Reasoning = new Dictionary<string, object>(unifiedDecision.DecisionMetadata)
+        };
+    }
+    
     private async Task<bool> IsSafePromotionWindowAsync(DateTime time)
     {
         await Task.CompletedTask; // Add await for async compliance
