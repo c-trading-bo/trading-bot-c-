@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <!-- TreatWarningsAsErrors rollout completed: All phases 1-4 implemented -->
     <!-- Phase 1: ✅ Fixed async method warnings  -->
     <!-- Phase 2: ✅ Fixed nullable reference warnings -->

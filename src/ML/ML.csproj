@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <AssemblyName>TradingBot.ML</AssemblyName>
     <RootNamespace>TradingBot.ML</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
