@@ -472,24 +472,3 @@ public class ProductionValidationService : IValidationService
         return _validationHistory.TakeLast(maxCount).ToList();
     }
 }
-
-/// <summary>
-/// Validation result with outcome tracking
-/// </summary>
-public class ValidationResult
-{
-    public ValidationReport Report { get; set; } = null!;
-    public DateTime Timestamp { get; set; }
-    public ValidationOutcome Outcome { get; set; }
-}
-
-/// <summary>
-/// Validation outcome enumeration
-/// </summary>
-public enum ValidationOutcome
-{
-    Passed,
-    Failed,
-    InsufficientData,
-    Error
-}

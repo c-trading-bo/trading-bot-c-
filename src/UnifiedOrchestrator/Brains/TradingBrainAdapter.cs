@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions; // For TradingAction
 using BotCore.Brain;
 using BotCore.Models;
 using BotCore.Market;
@@ -58,11 +59,11 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Make trading decision using champion brain with challenger shadow testing
     /// </summary>
-    public async Task<TradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default)
+    public async Task<TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        TradingDecision championDecision;
-        TradingDecision challengerDecision;
+        TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision championDecision;
+        TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision challengerDecision;
         
         try
         {
@@ -156,11 +157,11 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Convert BrainDecision to TradingDecision
     /// </summary>
-    private TradingDecision ConvertBrainDecisionToTradingDecision(BrainDecision brainDecision, TradingContext context, string algorithmName)
+    private TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision ConvertBrainDecisionToTradingDecision(BrainDecision brainDecision, TradingContext context, string algorithmName)
     {
-        var tradingDecision = new TradingDecision
+        var tradingDecision = new TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision
         {
-            Action = ConvertToTradingAction(brainDecision.SignalAction),
+            Action = ConvertPriceDirectionToTradingAction(brainDecision.PriceDirection, brainDecision.OptimalPositionMultiplier),
             Confidence = (double)brainDecision.Confidence,
             RiskLevel = brainDecision.RiskLevel.ToString(),
             Reasoning = brainDecision.Reasoning,
@@ -181,17 +182,17 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     }
 
     /// <summary>
-    /// Convert BrainDecision.SignalAction to TradingAction
+    /// Convert PriceDirection and position multiplier to TradingAction
     /// </summary>
-    private TradingAction ConvertToTradingAction(SignalAction signalAction)
+    private TradingAction ConvertPriceDirectionToTradingAction(PriceDirection priceDirection, decimal positionMultiplier)
     {
-        return signalAction switch
+        return priceDirection switch
         {
-            SignalAction.Buy => TradingAction.Buy,
-            SignalAction.Sell => TradingAction.Sell,
-            SignalAction.Hold => TradingAction.Hold,
-            SignalAction.StopLoss => TradingAction.Sell,
-            SignalAction.TakeProfit => TradingAction.Sell,
+            PriceDirection.Up when positionMultiplier > 0.5m => TradingAction.Buy,
+            PriceDirection.Up when positionMultiplier > 0.1m => TradingAction.BuySmall,
+            PriceDirection.Down when positionMultiplier > 0.5m => TradingAction.Sell,
+            PriceDirection.Down when positionMultiplier > 0.1m => TradingAction.SellSmall,
+            PriceDirection.Flat => TradingAction.Hold,
             _ => TradingAction.Hold
         };
     }
@@ -199,7 +200,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Track comparison between champion and challenger decisions for statistical analysis
     /// </summary>
-    private async Task TrackDecisionComparisonAsync(TradingDecision championDecision, TradingDecision challengerDecision, TradingContext context)
+    private async Task TrackDecisionComparisonAsync(TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision championDecision, TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision challengerDecision, TradingContext context)
     {
         var comparison = new DecisionComparison
         {
@@ -236,7 +237,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Check if two decisions are equivalent (same action with similar confidence)
     /// </summary>
-    private bool AreDecisionsEquivalent(TradingDecision decision1, TradingDecision decision2)
+    private bool AreDecisionsEquivalent(TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision decision1, TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision decision2)
     {
         const double confidenceThreshold = 0.1; // 10% confidence tolerance
         
@@ -346,30 +347,4 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             };
         }
     }
-}
-
-/// <summary>
-/// Statistics for the adapter performance
-/// </summary>
-public class AdapterStatistics
-{
-    public int TotalDecisions { get; set; }
-    public int AgreementCount { get; set; }
-    public int DisagreementCount { get; set; }
-    public double AgreementRate { get; set; }
-    public string CurrentPrimary { get; set; } = string.Empty;
-    public DateTime LastDecisionTime { get; set; }
-}
-
-/// <summary>
-/// Comparison between champion and challenger decisions
-/// </summary>
-public class DecisionComparison
-{
-    public DateTime Timestamp { get; set; }
-    public TradingContext Context { get; set; } = null!;
-    public TradingDecision ChampionDecision { get; set; } = null!;
-    public TradingDecision ChallengerDecision { get; set; } = null!;
-    public bool Agreement { get; set; }
-    public double ConfidenceDelta { get; set; }
 }
