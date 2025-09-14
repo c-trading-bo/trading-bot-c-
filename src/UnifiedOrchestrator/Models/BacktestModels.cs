@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Models;
 
@@ -160,8 +161,8 @@ public class DecisionComparison
 {
     public DateTime Timestamp { get; set; }
     public TradingContext Context { get; set; } = null!;
-    public TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision ChampionDecision { get; set; } = null!;
-    public TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision ChallengerDecision { get; set; } = null!;
+    public AbstractionsTradingDecision ChampionDecision { get; set; } = null!;
+    public AbstractionsTradingDecision ChallengerDecision { get; set; } = null!;
     public bool Agreement { get; set; }
     public double ConfidenceDelta { get; set; }
 }
