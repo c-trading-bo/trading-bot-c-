@@ -29,4 +29,9 @@ public interface IValidationService
     /// Get validation history
     /// </summary>
     List<ValidationResult> GetValidationHistory(int maxCount = 50);
+    
+    /// <summary>
+    /// Validate challenger model against champion (required per production specification)
+    /// </summary>
+    Task<ValidationResult> ValidateChallengerAsync(string challengerVersionId, CancellationToken cancellationToken = default);
 }

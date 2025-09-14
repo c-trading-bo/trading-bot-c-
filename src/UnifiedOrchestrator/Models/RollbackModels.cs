@@ -13,6 +13,9 @@ public class RollbackDrillConfig
     public int DecisionsPerSecond { get; set; } = 20;
     public bool EnableMetrics { get; set; } = true;
     public bool EnableContextPreservation { get; set; } = true;
+    
+    // Required properties per production specification
+    public long ExpectedRollbackTimeMs { get; set; } = 5000; // 5 seconds default
 }
 
 /// <summary>
@@ -40,6 +43,11 @@ public class RollbackDrillResult
     public RollbackDrillConfig Config { get; set; } = null!;
     public List<RollbackEvent> Events { get; set; } = new();
     public RollbackMetrics Metrics { get; set; } = null!;
+    
+    // Required properties per production specification
+    public long RollbackTimeMs { get; set; }
+    public int HealthAlertsGenerated { get; set; }
+    public long HealthAlertResponseTimeMs { get; set; }
 }
 
 /// <summary>

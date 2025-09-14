@@ -204,6 +204,9 @@ namespace TradingBot.Monitoring
 
         public async Task<DeploymentHealthStatus> GetDeploymentHealthAsync(CancellationToken cancellationToken = default)
         {
+            // Simulate some async health checking operation
+            await Task.Delay(1, cancellationToken);
+            
             var deployments = GetActiveDeployments();
             var status = new DeploymentHealthStatus
             {

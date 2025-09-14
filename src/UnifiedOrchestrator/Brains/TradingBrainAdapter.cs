@@ -252,6 +252,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task TrackDecisionComparisonAsync(AbstractionsTradingDecision championDecision, AbstractionsTradingDecision challengerDecision, TradingContext context)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var comparison = new DecisionComparison
         {
             Timestamp = DateTime.UtcNow,
@@ -298,6 +300,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task CheckPromotionOpportunityAsync()
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             if (_recentComparisons.Count < 100) // Need minimum sample size
@@ -335,6 +339,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> PromoteToChallengerAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             _logger.LogWarning("[ADAPTER] Manual promotion to InferenceBrain requested");
@@ -357,6 +363,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> RollbackToChampionAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             _logger.LogWarning("[ADAPTER] Rollback to UnifiedTradingBrain requested");

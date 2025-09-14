@@ -19,6 +19,7 @@
     <ProjectReference Include="../../BotCore/BotCore.csproj" />
     <ProjectReference Include="../../RLAgent/RLAgent.csproj" />
     <ProjectReference Include="../../IntelligenceStack/IntelligenceStack.csproj" />
+    <ProjectReference Include="../ML.csproj" />
   </ItemGroup>
 
 </Project>

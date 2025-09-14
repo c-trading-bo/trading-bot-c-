@@ -67,6 +67,8 @@ public class ValidationReportRegressionService
 
     private async Task TestPromotionTestReportCreationAsync(RegressionTestReport report, CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var testCase = new RegressionTestCase
         {
             TestName = "PromotionTestReport Creation",
@@ -116,6 +118,8 @@ public class ValidationReportRegressionService
 
     private async Task TestDownstreamAnalyticsAsync(RegressionTestReport report, CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var testCase = new RegressionTestCase
         {
             TestName = "Downstream Analytics",
@@ -165,6 +169,8 @@ public class ValidationReportRegressionService
 
     private async Task TestReportingPipelineAsync(RegressionTestReport report, CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var testCase = new RegressionTestCase
         {
             TestName = "Reporting Pipeline",
@@ -204,6 +210,8 @@ public class ValidationReportRegressionService
 
     private async Task TestBackwardCompatibilityAsync(RegressionTestReport report, CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var testCase = new RegressionTestCase
         {
             TestName = "Backward Compatibility",

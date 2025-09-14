@@ -81,6 +81,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ConnectHistoricalDataAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             _logger.LogInformation("[DATA-INTEGRATION] Connecting to historical data sources");
@@ -177,6 +179,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task VerifyUnifiedPipelineAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _logger.LogInformation("[DATA-INTEGRATION] Verifying unified data pipeline");
         
         if (_isHistoricalDataConnected && _isLiveDataConnected)
@@ -231,6 +235,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ProcessHistoricalDataForTrainingAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         // Simulate processing historical data
         _lastHistoricalDataSync = DateTime.UtcNow;
         
@@ -249,6 +255,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ProcessLiveDataForInferenceAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         // Simulate processing live data
         _lastLiveDataReceived = DateTime.UtcNow;
         
@@ -267,6 +275,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task EnsureDataFlowToBrainsAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _dataFlowEvents.Add(new DataFlowEvent
         {
             Timestamp = DateTime.UtcNow,
@@ -307,6 +317,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _logger.LogInformation("[UNIFIED-DATA] Validating data consistency between historical and live pipelines");
         
         try

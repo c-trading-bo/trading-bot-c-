@@ -59,7 +59,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
             // Keep service running to show ongoing status
             while (!stoppingToken.IsCancellationRequested)
             {
-                await ShowOngoingStatusAsync(stoppingToken);
+                ShowOngoingStatus(stoppingToken);
                 await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }
@@ -276,6 +276,8 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// </summary>
     private async Task DemonstrateBrainAdapterAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _logger.LogWarning("🧠 [BRAIN-ADAPTER-DEMO] Demonstrating UnifiedTradingBrain parity via adapter");
         
         try
@@ -311,7 +313,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// <summary>
     /// Show ongoing status of all systems
     /// </summary>
-    private async Task ShowOngoingStatusAsync(CancellationToken stoppingToken)
+    private void ShowOngoingStatus(CancellationToken stoppingToken)
     {
         try
         {

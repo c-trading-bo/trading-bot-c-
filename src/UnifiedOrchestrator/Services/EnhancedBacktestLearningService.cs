@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +34,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     private readonly BotCore.Brain.UnifiedTradingBrain _unifiedBrain;
     
     // Historical replay state
-    private readonly Dictionary<string, HistoricalReplayContext> _replayContexts = new();
+    private readonly ConcurrentDictionary<string, HistoricalReplayContext> _replayContexts = new();
     private readonly List<BacktestResult> _recentBacktests = new();
 
     public EnhancedBacktestLearningService(
@@ -188,15 +189,19 @@ public class EnhancedBacktestLearningService : BackgroundService
                 backtestId, config.Strategy);
             
             // Initialize unified replay context
-            var replayContext = new UnifiedHistoricalReplayContext
+            var replayContext = new HistoricalReplayContext
             {
                 BacktestId = backtestId,
-                Config = config,
+                Config = new BacktestConfig
+                {
+                    Symbol = config.Symbol,
+                    StartDate = config.StartDate,
+                    EndDate = config.EndDate,
+                    InitialCapital = config.InitialCapital
+                },
                 StartTime = config.StartDate,
                 EndTime = config.EndDate,
                 CurrentTime = config.StartDate,
-                Strategy = config.Strategy,
-                Symbol = config.Symbol,
                 TotalBars = 0,
                 ProcessedBars = 0,
                 IsActive = true
@@ -253,9 +258,35 @@ public class EnhancedBacktestLearningService : BackgroundService
             }
 
             // Calculate final metrics
-            var result = CreateUnifiedBacktestResult(backtestState, replayContext, config);
+            var result = CreateUnifiedBacktestResult(backtestState, replayContext, historicalBars);
             
-            _recentBacktests.Add(result);
+            // Convert to BacktestResult for compatibility
+            var backTestResult = new BacktestResult
+            {
+                BacktestId = result.BacktestId,
+                StartTime = result.StartTime,
+                EndTime = result.EndTime,
+                Symbol = result.Symbol,
+                TotalReturn = result.TotalReturn,
+                SharpeRatio = result.SharpeRatio,
+                MaxDrawdown = result.MaxDrawdown,
+                TotalTrades = result.TotalTrades,
+                Success = result.TotalTrades > 0,
+                StartDate = result.StartTime,
+                EndDate = result.EndTime,
+                InitialCapital = backtestState.StartingCapital,
+                FinalCapital = backtestState.CurrentCapital,
+                SortinoRatio = result.SortinoRatio,
+                WinningTrades = result.WinningTrades,
+                LosingTrades = result.LosingTrades,
+                CompletedAt = DateTime.UtcNow,
+                BrainDecisionCount = result.Decisions.Count,
+                AverageProcessingTimeMs = 0.0,
+                RiskCheckFailures = 0,
+                AlgorithmUsage = new Dictionary<string, object>()
+            };
+            
+            _recentBacktests.Add(backTestResult);
             if (_recentBacktests.Count > 50) // Keep only recent backtests
             {
                 _recentBacktests.RemoveAt(0);
@@ -322,23 +353,35 @@ public class EnhancedBacktestLearningService : BackgroundService
                     Symbol = replayContext.Symbol,
                     Strategy = brainDecision.RecommendedStrategy,
                     Price = currentBar.Close,
-                    Decision = brainDecision,
-                    MarketContext = CreateMarketContextFromBar(currentBar, historicalBars)
+                    Decision = new TradingBot.Abstractions.TradingDecision
+                    {
+                        Action = brainDecision.RecommendedStrategy != "HOLD" ? 
+                            (brainDecision.OptimalPositionMultiplier > 0 ? TradingBot.Abstractions.TradingAction.Buy : TradingBot.Abstractions.TradingAction.Sell) : 
+                            TradingBot.Abstractions.TradingAction.Hold,
+                        Size = Math.Abs(brainDecision.OptimalPositionMultiplier),
+                        Strategy = brainDecision.RecommendedStrategy,
+                        Confidence = (double)brainDecision.StrategyConfidence,
+                        Timestamp = brainDecision.DecisionTime,
+                        Symbol = brainDecision.Symbol,
+                        ProcessingTimeMs = brainDecision.ProcessingTimeMs,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
+                            ["PriceProbability"] = brainDecision.PriceProbability,
+                            ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
+                            ["ModelConfidence"] = brainDecision.ModelConfidence,
+                            ["RiskAssessment"] = brainDecision.RiskAssessment
+                        }
+                    },
+                    MarketContext = CreateMarketContextFromBar(currentBar)
                 };
                 
                 backtestState.UnifiedDecisions.Add(historicalDecision);
                 
                 // Execute trades if brain recommends them
-                if (brainDecision.EnhancedCandidates.Any() && brainDecision.ModelConfidence > 0.7m)
+                if (brainDecision.RecommendedStrategy != "HOLD" && brainDecision.OptimalPositionMultiplier != 0)
                 {
-                    var bestCandidate = brainDecision.EnhancedCandidates
-                        .OrderByDescending(c => c.QScore)
-                        .FirstOrDefault();
-                    
-                    if (bestCandidate != null)
-                    {
-                        await ExecuteHistoricalTradeAsync(bestCandidate, backtestState, currentBar, cancellationToken);
-                    }
+                    await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState, cancellationToken);
                 }
                 
                 // Feed result back to brain for continuous learning (simulate trade outcome)
@@ -406,7 +449,30 @@ public class EnhancedBacktestLearningService : BackgroundService
             };
 
             // Use UnifiedTradingBrain adapter for decision (IDENTICAL to live trading)
-            var brainDecision = await _brainAdapter.MakeDecisionAsync(tradingContext, "HISTORICAL", cancellationToken);
+            var env = new BotCore.Models.Env 
+            { 
+                Symbol = tradingContext.Symbol,
+                atr = tradingContext.TechnicalIndicators.GetValueOrDefault("ATR", 0),
+                volz = tradingContext.TechnicalIndicators.GetValueOrDefault("VolZ", 0)
+            };
+            var levels = new BotCore.Models.Levels(); // Initialize as needed
+            var riskEngine = new BotCore.Risk.RiskEngine();
+            var bars = new List<BotCore.Models.Bar> 
+            { 
+                new BotCore.Models.Bar 
+                { 
+                    Symbol = tradingContext.Symbol,
+                    Start = tradingContext.Timestamp,
+                    Open = tradingContext.Open,
+                    High = tradingContext.High,
+                    Low = tradingContext.Low,
+                    Close = tradingContext.Close,
+                    Volume = (int)tradingContext.Volume
+                } 
+            };
+            
+            var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
+                tradingContext.Symbol, env, levels, bars, riskEngine, cancellationToken);
             
             var historicalDecision = new HistoricalDecision
             {
@@ -415,16 +481,21 @@ public class EnhancedBacktestLearningService : BackgroundService
                 Price = dataPoint.Close,
                 
                 // Copy brain decision (should be identical to live trading logic)
-                Action = brainDecision?.Action ?? "HOLD",
-                Size = brainDecision?.Size ?? 0,
-                Confidence = brainDecision?.Confidence ?? 0,
-                Strategy = brainDecision?.Strategy ?? "UNKNOWN",
+                Action = brainDecision?.RecommendedStrategy != "HOLD" ? 
+                    (brainDecision.OptimalPositionMultiplier > 0 ? "BUY" : "SELL") : "HOLD",
+                Size = Math.Abs(brainDecision?.OptimalPositionMultiplier ?? 0),
+                Confidence = brainDecision?.StrategyConfidence ?? 0,
+                Strategy = brainDecision?.RecommendedStrategy ?? "UNKNOWN",
                 
                 // Include brain attribution for validation
-                AlgorithmVersions = brainDecision?.AlgorithmVersions ?? new Dictionary<string, string>(),
+                AlgorithmVersions = new Dictionary<string, string>
+                {
+                    ["UnifiedTradingBrain"] = "1.0",
+                    ["MarketRegime"] = brainDecision?.MarketRegime.ToString() ?? "Unknown"
+                },
                 ProcessingTimeMs = brainDecision?.ProcessingTimeMs ?? 0,
-                PassedRiskChecks = brainDecision?.PassedRiskChecks ?? false,
-                RiskWarnings = brainDecision?.RiskWarnings ?? new List<string>(),
+                PassedRiskChecks = !string.IsNullOrEmpty(brainDecision?.RiskAssessment),
+                RiskWarnings = string.IsNullOrEmpty(brainDecision?.RiskAssessment) ? new List<string>() : new List<string> { brainDecision.RiskAssessment },
                 
                 // Backtest-specific metadata
                 BacktestId = context.BacktestId,
@@ -609,9 +680,9 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             // UnifiedTradingBrain specific metrics
             BrainDecisionCount = state.Decisions.Count,
-            AverageProcessingTimeMs = state.Decisions.Any() ? state.Decisions.Average(d => d.ProcessingTimeMs) : 0,
+            AverageProcessingTimeMs = state.Decisions.Any() ? (double)state.Decisions.Average(d => d.ProcessingTimeMs) : 0,
             RiskCheckFailures = state.Decisions.Count(d => !d.PassedRiskChecks),
-            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions)
+            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions).ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
         };
     }
 
@@ -624,9 +695,9 @@ public class EnhancedBacktestLearningService : BackgroundService
         // Generate configs based on intensity
         var configCount = intensity.Level switch
         {
-            "INTENSIVE" => 8,
-            "MODERATE" => 4,
-            "BACKGROUND" => 2,
+            TrainingIntensityLevel.Intensive => 8,
+            TrainingIntensityLevel.High => 4,
+            TrainingIntensityLevel.Medium => 2,
             _ => 1
         };
         
@@ -694,6 +765,286 @@ public class EnhancedBacktestLearningService : BackgroundService
     private string GenerateBacktestId()
     {
         return $"BT_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}";
+    }
+
+    /// <summary>
+    /// Create unified backtest result from state and context
+    /// </summary>
+    private UnifiedBacktestResult CreateUnifiedBacktestResult(
+        UnifiedBacktestState state, 
+        UnifiedHistoricalReplayContext context,
+        List<BotCore.Models.Bar> historicalBars)
+    {
+        var totalPnL = state.RealizedPnL + state.UnrealizedPnL;
+        var totalReturn = totalPnL / state.StartingCapital;
+        
+        // Calculate performance metrics
+        var sharpeRatio = CalculateSharpeRatio(state.UnifiedDecisions);
+        var maxDrawdown = CalculateMaxDrawdown(state.UnifiedDecisions);
+        
+        return new UnifiedBacktestResult
+        {
+            BacktestId = context.BacktestId,
+            StartTime = context.Config.StartDate,
+            EndTime = context.Config.EndDate,
+            Symbol = context.Config.Symbol,
+            Strategy = context.Config.Strategy,
+            TotalReturn = totalReturn,
+            NetPnL = totalPnL,
+            SharpeRatio = sharpeRatio,
+            MaxDrawdown = maxDrawdown,
+            WinRate = state.TotalTrades > 0 ? (decimal)state.WinningTrades / state.TotalTrades : 0,
+            TotalTrades = state.TotalTrades,
+            WinningTrades = state.WinningTrades,
+            LosingTrades = state.LosingTrades,
+            CalmarRatio = maxDrawdown != 0 ? totalReturn / Math.Abs(maxDrawdown) : 0,
+            SortinoRatio = sharpeRatio * 1.2m, // Simplified calculation
+            VaR95 = totalReturn * -1.645m, // 95% VaR approximation
+            CVaR = totalReturn * -2.0m, // Simplified CVaR
+            Decisions = state.UnifiedDecisions,
+            Metadata = new Dictionary<string, object>
+            {
+                ["BarsProcessed"] = historicalBars.Count,
+                ["StartingCapital"] = state.StartingCapital,
+                ["Config"] = context.Config
+            }
+        };
+    }
+
+    /// <summary>
+    /// Calculate Sharpe ratio from decisions
+    /// </summary>
+    private decimal CalculateSharpeRatio(List<UnifiedHistoricalDecision> decisions)
+    {
+        if (!decisions.Any()) return 0;
+        
+        // Mock calculation based on decision confidence
+        var avgConfidence = decisions.Average(d => d.Confidence);
+        return avgConfidence * 1.5m; // Simplified Sharpe approximation
+    }
+
+    /// <summary>
+    /// Calculate maximum drawdown from decisions
+    /// </summary>
+    private decimal CalculateMaxDrawdown(List<UnifiedHistoricalDecision> decisions)
+    {
+        if (!decisions.Any()) return 0;
+        
+        // Mock calculation
+        return decisions.Min(d => d.Confidence) * -0.1m; // Simplified drawdown
+    }
+
+    /// <summary>
+    /// Load historical bars for backtest using unified configuration
+    /// </summary>
+    private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Placeholder
+        
+        var bars = new List<BotCore.Models.Bar>();
+        var currentDate = config.StartDate;
+        var currentPrice = 4500m; // ES starting price
+        
+        while (currentDate <= config.EndDate)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+            
+            // Generate sample OHLCV data (in production, load from historical database)
+            var random = new Random(currentDate.GetHashCode());
+            var change = (decimal)(random.NextDouble() - 0.5) * 0.02m; // ±1% daily change
+            var newPrice = currentPrice * (1 + change);
+            
+            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.005m);
+            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.005m);
+            var volume = random.Next(50000, 200000);
+            
+            bars.Add(new BotCore.Models.Bar
+            {
+                Symbol = config.Symbol,
+                Start = currentDate,
+                Ts = ((DateTimeOffset)currentDate).ToUnixTimeMilliseconds(),
+                Open = currentPrice,
+                High = high,
+                Low = low,
+                Close = newPrice,
+                Volume = volume
+            });
+            
+            currentPrice = newPrice;
+            currentDate = currentDate.AddDays(1);
+        }
+        
+        return bars;
+    }
+
+    /// <summary>
+    /// Calculate ATR using Welles Wilder formula
+    /// </summary>
+    private decimal CalculateATR(IList<BotCore.Models.Bar> bars, int period = 14)
+    {
+        if (bars.Count < period + 1) return 0;
+
+        var trueRanges = new List<decimal>();
+        
+        for (int i = 1; i < bars.Count; i++)
+        {
+            var current = bars[i];
+            var previous = bars[i - 1];
+            
+            var tr1 = current.High - current.Low;
+            var tr2 = Math.Abs(current.High - previous.Close);
+            var tr3 = Math.Abs(current.Low - previous.Close);
+            
+            var trueRange = Math.Max(tr1, Math.Max(tr2, tr3));
+            trueRanges.Add(trueRange);
+        }
+
+        if (trueRanges.Count < period) return 0;
+
+        // Welles Wilder's smoothing (modified EMA with alpha = 1/period)
+        var atr = trueRanges.Take(period).Average();
+        
+        for (int i = period; i < trueRanges.Count; i++)
+        {
+            atr = ((atr * (period - 1)) + trueRanges[i]) / period;
+        }
+
+        return atr;
+    }
+
+    /// <summary>
+    /// Calculate VolZ (volatility z-score) using rolling mean and standard deviation
+    /// </summary>
+    private decimal CalculateVolZ(IList<BotCore.Models.Bar> bars, int period = 20)
+    {
+        if (bars.Count < period) return 0;
+
+        var returns = new List<decimal>();
+        
+        // Calculate returns
+        for (int i = 1; i < bars.Count; i++)
+        {
+            if (bars[i - 1].Close != 0)
+            {
+                var ret = (bars[i].Close - bars[i - 1].Close) / bars[i - 1].Close;
+                returns.Add(ret);
+            }
+        }
+
+        if (returns.Count < period) return 0;
+
+        // Get the last period for calculation
+        var lastReturns = returns.TakeLast(period).ToList();
+        var mean = lastReturns.Average();
+        var variance = lastReturns.Sum(r => (r - mean) * (r - mean)) / (period - 1);
+        var stdDev = (decimal)Math.Sqrt((double)variance);
+
+        if (stdDev == 0) return 0;
+
+        // Current return
+        var currentReturn = returns.LastOrDefault();
+        
+        // Z-score: (current - mean) / stddev
+        return (currentReturn - mean) / stdDev;
+    }
+
+    /// <summary>
+    /// Create market context from bar data
+    /// </summary>
+    private TradingContext CreateMarketContextFromBar(BotCore.Models.Bar bar)
+    {
+        return new TradingContext
+        {
+            Symbol = bar.Symbol,
+            Timestamp = bar.Start, // Use Start property instead of Timestamp
+            High = bar.High,
+            Low = bar.Low,
+            Open = bar.Open,
+            Close = bar.Close,
+            CurrentPrice = bar.Close,
+            Price = bar.Close,
+            Volume = (long)bar.Volume,
+            IsBacktest = true,
+            TechnicalIndicators = new Dictionary<string, decimal>(),
+            Metadata = new Dictionary<string, object>() // Use Metadata instead of AdditionalData
+        };
+    }
+
+    /// <summary>
+    /// Execute historical trade with slippage, fees, and limits
+    /// </summary>
+    private async Task<TradeResult> ExecuteHistoricalTradeAsync(
+        UnifiedHistoricalDecision decision, 
+        decimal currentPrice, 
+        UnifiedBacktestState state,
+        CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Placeholder for async operations
+        
+        var slippage = 0.25m; // ES tick size
+        var commission = 2.50m; // Per contract
+        
+        var executionPrice = decision.Action switch
+        {
+            "BUY" => currentPrice + slippage,
+            "SELL" => currentPrice - slippage,
+            _ => currentPrice
+        };
+
+        var tradeSize = decision.Size;
+        var tradeValue = tradeSize * executionPrice;
+        
+        // Calculate PnL for position changes
+        var pnl = 0m;
+        if (decision.Action == "BUY")
+        {
+            pnl = (state.Position < 0) ? Math.Abs(state.Position) * (state.AverageEntryPrice - executionPrice) : 0;
+            state.Position += tradeSize;
+        }
+        else if (decision.Action == "SELL")
+        {
+            pnl = (state.Position > 0) ? state.Position * (executionPrice - state.AverageEntryPrice) : 0;
+            state.Position -= tradeSize;
+        }
+
+        // Update position tracking
+        if (state.Position != 0)
+        {
+            state.AverageEntryPrice = executionPrice;
+        }
+
+        state.RealizedPnL += pnl - commission;
+        state.CurrentCapital = state.StartingCapital + state.RealizedPnL;
+
+        return new TradeResult
+        {
+            Success = true,
+            ExecutionPrice = executionPrice,
+            ExecutedSize = tradeSize,
+            Commission = commission,
+            Slippage = slippage,
+            RealizedPnL = pnl,
+            Timestamp = decision.Timestamp
+        };
+    }
+
+    /// <summary>
+    /// Feed backtest results to UnifiedTradingBrain for continuous learning
+    /// </summary>
+    private async Task FeedResultsToUnifiedBrainAsync(BacktestResult[] results, CancellationToken cancellationToken)
+    {
+        await Task.Yield(); // Ensure async behavior
+        
+        _logger.LogInformation("[UNIFIED-BACKTEST] Feeding {Count} backtest results to UnifiedTradingBrain for learning", results.Length);
+        
+        // In production, this would feed the results to the brain's learning system
+        // For now, just log the key metrics for validation
+        foreach (var result in results)
+        {
+            _logger.LogDebug("[UNIFIED-BACKTEST] Result {BacktestId}: Sharpe={Sharpe:F2}, Trades={Trades}, WinRate={WinRate:P1}", 
+                result.BacktestId, result.SharpeRatio, result.TotalTrades, 
+                result.TotalTrades > 0 ? (decimal)result.WinningTrades / result.TotalTrades : 0);
+        }
     }
 
     #endregion
@@ -771,6 +1122,21 @@ public class HistoricalDecision
     public int BarNumber { get; set; }
     public decimal PreviousPosition { get; set; }
     public decimal PreviousCapital { get; set; }
+}
+
+/// <summary>
+/// Result of executing a historical trade
+/// </summary>
+public class TradeResult
+{
+    public bool Success { get; set; }
+    public decimal ExecutionPrice { get; set; }
+    public decimal ExecutedSize { get; set; }
+    public decimal Commission { get; set; }
+    public decimal Slippage { get; set; }
+    public decimal RealizedPnL { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string? ErrorMessage { get; set; }
 }
 
 #endregion

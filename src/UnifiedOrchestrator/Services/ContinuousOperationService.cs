@@ -35,7 +35,9 @@ public class ContinuousOperationService : BackgroundService
     // Configuration
     private readonly TimeSpan _operationCheckInterval = TimeSpan.FromMinutes(10);
     private readonly TimeSpan _dailyRetrainingWindow = TimeSpan.FromHours(2); // 2-hour daily retraining window
+#pragma warning disable CS0414 // Field is assigned but its value is never used - reserved for future capacity management
     private readonly int _maxConcurrentTrainingJobs = 3;
+#pragma warning restore CS0414
     private readonly int _rollingWindowDays = 30; // Use 30-day rolling window for retraining
 
     public ContinuousOperationService(
@@ -136,19 +138,19 @@ public class ContinuousOperationService : BackgroundService
             
             switch (intensity.Level)
             {
-                case "INTENSIVE":
+                case TrainingIntensityLevel.Intensive:
                     await ScheduleIntensiveTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "MODERATE":
+                case TrainingIntensityLevel.High:
                     await ScheduleModerateTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "BACKGROUND":
+                case TrainingIntensityLevel.Medium:
                     await ScheduleBackgroundTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "MINIMAL":
+                case TrainingIntensityLevel.Light:
                     // Market active - minimal training only
                     await CleanupNonCriticalJobsAsync(cancellationToken);
                     break;
@@ -193,7 +195,7 @@ public class ContinuousOperationService : BackgroundService
                 ScheduleEnsembleTrainingAsync(cancellationToken)
             };
 
-            var completedTasks = await Task.WhenAll(tasks.Take(intensity.ParallelJobs));
+            Task[] completedTasks = await Task.WhenAll(tasks.Take(intensity.ParallelJobs));
             
             await LogOperationAsync("TRAINING", 
                 $"Scheduled {intensity.ParallelJobs} intensive training jobs", cancellationToken);
@@ -351,6 +353,8 @@ public class ContinuousOperationService : BackgroundService
 
             _logger.LogInformation("[24/7-OPS] Started {Priority} retraining job {JobId} for {Algorithm}",
                 priority, jobId, algorithm);
+            
+            await Task.CompletedTask; // Fire and forget job scheduled
         }
         catch (Exception ex)
         {
@@ -375,7 +379,7 @@ public class ContinuousOperationService : BackgroundService
             }
 
             // Only perform during intensive or moderate training windows
-            if (_state.TrainingIntensity.Level != "INTENSIVE" && _state.TrainingIntensity.Level != "MODERATE")
+            if (_state.TrainingIntensity.Level != TrainingIntensityLevel.Intensive && _state.TrainingIntensity.Level != TrainingIntensityLevel.High)
             {
                 return;
             }

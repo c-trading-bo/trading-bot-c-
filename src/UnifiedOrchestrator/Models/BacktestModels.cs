@@ -17,6 +17,9 @@ public class UnifiedBacktestConfig
     public int MinTradesRequired { get; set; } = 10;
     public bool EnableUnifiedBrainLearning { get; set; } = true;
     public bool EnableContinuousLearning { get; set; } = true;
+    public bool UseUnifiedBrain { get; set; } = true;
+    public bool LearningMode { get; set; } = true;
+    public string ConfigId { get; set; } = Guid.NewGuid().ToString();
     public Dictionary<string, object> Parameters { get; set; } = new();
 }
 
@@ -32,6 +35,10 @@ public class BacktestConfig
     public string DataSource { get; set; } = "historical";
     public TrainingIntensity TrainingIntensity { get; set; } = TrainingIntensity.Medium;
     public Dictionary<string, object> Parameters { get; set; } = new();
+    
+    // Required properties per production specification
+    public decimal MaxDrawdown { get; set; } = 0.10m; // 10% max drawdown default
+    public decimal MaxPositionSize { get; set; } = 1000000m; // $1M default max position
 }
 
 /// <summary>
@@ -79,6 +86,20 @@ public class BacktestResult
     public int TotalTrades { get; set; }
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
+    
+    // Required properties per production specification
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public decimal InitialCapital { get; set; } = 100000m;
+    public decimal FinalCapital { get; set; }
+    public decimal SortinoRatio { get; set; }
+    public int WinningTrades { get; set; }
+    public int LosingTrades { get; set; }
+    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    public int BrainDecisionCount { get; set; }
+    public double AverageProcessingTimeMs { get; set; }
+    public int RiskCheckFailures { get; set; }
+    public Dictionary<string, object> AlgorithmUsage { get; set; } = new();
 }
 
 /// <summary>
@@ -106,6 +127,10 @@ public class UnifiedBacktestState
 public class UnifiedHistoricalReplayContext
 {
     public string ReplayId { get; set; } = string.Empty;
+    public string BacktestId { get; set; } = string.Empty;
+    public UnifiedBacktestConfig Config { get; set; } = new();
+    public DateTime CurrentTime { get; set; } = DateTime.UtcNow;
+    public string Strategy { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
@@ -121,19 +146,37 @@ public class UnifiedHistoricalReplayContext
 public class UnifiedHistoricalDecision
 {
     public DateTime Timestamp { get; set; }
+    public string Symbol { get; set; } = string.Empty;
     public string Strategy { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public decimal Size { get; set; }
     public decimal Price { get; set; }
     public decimal Confidence { get; set; }
     public string Reasoning { get; set; } = string.Empty;
+    public AbstractionsTradingDecision Decision { get; set; } = new();
+    public TradingBot.UnifiedOrchestrator.Models.TradingContext MarketContext { get; set; } = new();
     public Dictionary<string, object> Metadata { get; set; } = new();
 }
 
 /// <summary>
-/// Training intensity enumeration
+/// Training intensity configuration
 /// </summary>
-public enum TrainingIntensity
+public class TrainingIntensity
+{
+    public TrainingIntensityLevel Level { get; set; } = TrainingIntensityLevel.Medium;
+    public int ParallelJobs { get; set; } = 2;
+    
+    // Predefined intensity levels for compatibility
+    public static TrainingIntensity Light => new() { Level = TrainingIntensityLevel.Light, ParallelJobs = 1 };
+    public static TrainingIntensity Medium => new() { Level = TrainingIntensityLevel.Medium, ParallelJobs = 2 };
+    public static TrainingIntensity High => new() { Level = TrainingIntensityLevel.High, ParallelJobs = 4 };
+    public static TrainingIntensity Intensive => new() { Level = TrainingIntensityLevel.Intensive, ParallelJobs = 8 };
+}
+
+/// <summary>
+/// Training intensity level enumeration
+/// </summary>
+public enum TrainingIntensityLevel
 {
     Light,
     Medium, 
@@ -172,11 +215,18 @@ public class DecisionComparison
 /// </summary>
 public class ValidationResult
 {
+    public string ValidationId { get; set; } = string.Empty;
+    public string? ChallengerVersionId { get; set; }
+    public string? ChampionAlgorithm { get; set; }
+    public string? ChallengerAlgorithm { get; set; }
     public ValidationReport Report { get; set; } = null!;
     public DateTime Timestamp { get; set; }
     public ValidationOutcome Outcome { get; set; }
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
+    public double PerformanceScore { get; set; }
+    public double RiskScore { get; set; }
+    public double BehaviorScore { get; set; }
 }
 
 /// <summary>
@@ -188,4 +238,64 @@ public enum ValidationOutcome
     Failed,
     InsufficientData,
     Error
+}
+
+// ====================================================================
+// ADDITIONAL REQUIRED MODELS PER PRODUCTION SPECIFICATION
+// ====================================================================
+
+/// <summary>
+/// Enhanced backtest config with unified brain settings
+/// </summary>
+public class UnifiedBacktestConfigEnhanced
+{
+    public bool UseUnifiedBrain { get; set; } = true;
+    public LearningMode LearningMode { get; set; } = LearningMode.Active;
+    public string ConfigId { get; set; } = Guid.NewGuid().ToString();
+    public string Symbol { get; set; } = "ES";
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public decimal InitialCapital { get; set; } = 100000m;
+    public Dictionary<string, object> Parameters { get; set; } = new();
+}
+
+/// <summary>
+/// Learning mode enumeration
+/// </summary>
+public enum LearningMode
+{
+    Passive,
+    Active,
+    Aggressive
+}
+
+/// <summary>
+/// Enhanced historical replay context with unified brain support
+/// </summary>
+public class UnifiedHistoricalReplayContextEnhanced
+{
+    public string BacktestId { get; set; } = string.Empty;
+    public UnifiedBacktestConfigEnhanced Config { get; set; } = new();
+    public DateTime CurrentTime { get; set; } = DateTime.UtcNow;
+    public string Strategy { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public int TotalBars { get; set; }
+    public int ProcessedBars { get; set; }
+    public bool IsActive { get; set; }
+    public Dictionary<string, object> Context { get; set; } = new();
+}
+
+/// <summary>
+/// Enhanced historical decision with market context
+/// </summary>
+public class UnifiedHistoricalDecisionEnhanced
+{
+    public string Symbol { get; set; } = string.Empty;
+    public AbstractionsTradingDecision Decision { get; set; } = new();
+    public TradingBot.UnifiedOrchestrator.Models.TradingContext MarketContext { get; set; } = new();
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string Strategy { get; set; } = string.Empty;
+    public decimal Confidence { get; set; }
+    public string Reasoning { get; set; } = string.Empty;
+    public Dictionary<string, object> Metadata { get; set; } = new();
 }

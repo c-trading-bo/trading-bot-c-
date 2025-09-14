@@ -33,6 +33,11 @@ public interface IMarketHoursService
     /// Check if it's a trading day (not weekend/holiday)
     /// </summary>
     Task<bool> IsTradingDayAsync(DateTime date, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get recommended training intensity based on current market conditions
+    /// </summary>
+    Task<Models.TrainingIntensity> GetRecommendedTrainingIntensityAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

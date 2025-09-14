@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Scheduling;
+using TradingDecision = TradingBot.Abstractions.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -17,7 +18,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production readiness validation service that provides actual runtime proof
 /// of all champion/challenger architecture capabilities as requested
 /// </summary>
-public class ProductionReadinessValidationService
+public class ProductionReadinessValidationService : IProductionReadinessValidationService
 {
     private readonly ILogger<ProductionReadinessValidationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
@@ -88,7 +89,7 @@ public class ProductionReadinessValidationService
             var rollbackResult = await _rollbackDrillService.ExecuteRollbackDrillAsync(
                 new RollbackDrillConfig 
                 { 
-                    LoadLevel = "High", 
+                    LoadLevel = LoadLevel.High, 
                     TestDurationSeconds = 30,
                     ExpectedRollbackTimeMs = 100
                 }, cancellationToken);
@@ -319,6 +320,8 @@ public class ProductionReadinessValidationService
     /// </summary>
     private async Task<AcceptanceCriteriaResult> VerifyAcceptanceCriteriaAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var result = new AcceptanceCriteriaResult
         {
             TestTime = DateTime.UtcNow,
@@ -419,6 +422,8 @@ public class ProductionReadinessValidationService
     // Helper methods
     private async Task<bool> IsSafePromotionWindowAsync(DateTime time)
     {
+        await Task.CompletedTask; // Add await for async compliance
+        
         // Safe windows: market open, low volatility periods, when positions are flat
         var isMarketOpen = _marketHours.IsMarketOpen(time, "ES");
         var isLowVolatilityPeriod = time.Hour is >= 11 and <= 13; // Lunch period
