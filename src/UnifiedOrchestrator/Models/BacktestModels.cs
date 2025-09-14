@@ -17,6 +17,9 @@ public class UnifiedBacktestConfig
     public int MinTradesRequired { get; set; } = 10;
     public bool EnableUnifiedBrainLearning { get; set; } = true;
     public bool EnableContinuousLearning { get; set; } = true;
+    public bool UseUnifiedBrain { get; set; } = true;
+    public bool LearningMode { get; set; } = true;
+    public string ConfigId { get; set; } = Guid.NewGuid().ToString();
     public Dictionary<string, object> Parameters { get; set; } = new();
 }
 
@@ -124,6 +127,10 @@ public class UnifiedBacktestState
 public class UnifiedHistoricalReplayContext
 {
     public string ReplayId { get; set; } = string.Empty;
+    public string BacktestId { get; set; } = string.Empty;
+    public UnifiedBacktestConfig Config { get; set; } = new();
+    public DateTime CurrentTime { get; set; } = DateTime.UtcNow;
+    public string Strategy { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
@@ -139,12 +146,15 @@ public class UnifiedHistoricalReplayContext
 public class UnifiedHistoricalDecision
 {
     public DateTime Timestamp { get; set; }
+    public string Symbol { get; set; } = string.Empty;
     public string Strategy { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public decimal Size { get; set; }
     public decimal Price { get; set; }
     public decimal Confidence { get; set; }
     public string Reasoning { get; set; } = string.Empty;
+    public AbstractionsTradingDecision Decision { get; set; } = new();
+    public TradingBot.UnifiedOrchestrator.Models.TradingContext MarketContext { get; set; } = new();
     public Dictionary<string, object> Metadata { get; set; } = new();
 }
 

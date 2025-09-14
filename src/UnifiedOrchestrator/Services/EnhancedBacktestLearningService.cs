@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,7 +34,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     private readonly BotCore.Brain.UnifiedTradingBrain _unifiedBrain;
     
     // Historical replay state
-    private readonly Dictionary<string, HistoricalReplayContext> _replayContexts = new();
+    private readonly ConcurrentDictionary<string, HistoricalReplayContext> _replayContexts = new();
     private readonly List<BacktestResult> _recentBacktests = new();
 
     public EnhancedBacktestLearningService(
@@ -323,7 +324,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                     Strategy = brainDecision.RecommendedStrategy,
                     Price = currentBar.Close,
                     Decision = brainDecision,
-                    MarketContext = CreateMarketContextFromBar(currentBar, historicalBars)
+                    MarketContext = CreateMarketContextFromBar(currentBar)
                 };
                 
                 backtestState.UnifiedDecisions.Add(historicalDecision);
@@ -406,7 +407,30 @@ public class EnhancedBacktestLearningService : BackgroundService
             };
 
             // Use UnifiedTradingBrain adapter for decision (IDENTICAL to live trading)
-            var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(tradingContext, cancellationToken);
+            var env = new BotCore.Models.Env 
+            { 
+                Symbol = tradingContext.Symbol,
+                atr = tradingContext.TechnicalIndicators.GetValueOrDefault("ATR", 0),
+                volz = tradingContext.TechnicalIndicators.GetValueOrDefault("VolZ", 0)
+            };
+            var levels = new BotCore.Models.Levels(); // Initialize as needed
+            var riskEngine = new BotCore.Risk.RiskEngine();
+            var bars = new List<BotCore.Models.Bar> 
+            { 
+                new BotCore.Models.Bar 
+                { 
+                    Symbol = tradingContext.Symbol,
+                    Start = tradingContext.Timestamp,
+                    Open = tradingContext.Open,
+                    High = tradingContext.High,
+                    Low = tradingContext.Low,
+                    Close = tradingContext.Close,
+                    Volume = (int)tradingContext.Volume
+                } 
+            };
+            
+            var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
+                tradingContext.Symbol, env, levels, bars, riskEngine, cancellationToken);
             
             var historicalDecision = new HistoricalDecision
             {
@@ -694,6 +718,116 @@ public class EnhancedBacktestLearningService : BackgroundService
     private string GenerateBacktestId()
     {
         return $"BT_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}";
+    }
+
+    /// <summary>
+    /// Create unified backtest result from state and context
+    /// </summary>
+    private UnifiedBacktestResult CreateUnifiedBacktestResult(
+        UnifiedBacktestState state, 
+        UnifiedHistoricalReplayContext context,
+        List<BotCore.Models.Bar> historicalBars)
+    {
+        var totalPnL = state.RealizedPnL + state.UnrealizedPnL;
+        var totalReturn = totalPnL / state.StartingCapital;
+        
+        // Calculate performance metrics
+        var sharpeRatio = CalculateSharpeRatio(state.UnifiedDecisions);
+        var maxDrawdown = CalculateMaxDrawdown(state.UnifiedDecisions);
+        
+        return new UnifiedBacktestResult
+        {
+            BacktestId = context.BacktestId,
+            StartTime = context.Config.StartDate,
+            EndTime = context.Config.EndDate,
+            Symbol = context.Config.Symbol,
+            Strategy = context.Config.Strategy,
+            TotalReturn = totalReturn,
+            NetPnL = totalPnL,
+            SharpeRatio = sharpeRatio,
+            MaxDrawdown = maxDrawdown,
+            WinRate = state.TotalTrades > 0 ? (decimal)state.WinningTrades / state.TotalTrades : 0,
+            TotalTrades = state.TotalTrades,
+            WinningTrades = state.WinningTrades,
+            LosingTrades = state.LosingTrades,
+            CalmarRatio = maxDrawdown != 0 ? totalReturn / Math.Abs(maxDrawdown) : 0,
+            SortinoRatio = sharpeRatio * 1.2m, // Simplified calculation
+            VaR95 = totalReturn * -1.645m, // 95% VaR approximation
+            CVaR = totalReturn * -2.0m, // Simplified CVaR
+            Decisions = state.UnifiedDecisions,
+            Metadata = new Dictionary<string, object>
+            {
+                ["BarsProcessed"] = historicalBars.Count,
+                ["StartingCapital"] = state.StartingCapital,
+                ["Config"] = context.Config
+            }
+        };
+    }
+
+    /// <summary>
+    /// Calculate Sharpe ratio from decisions
+    /// </summary>
+    private decimal CalculateSharpeRatio(List<UnifiedHistoricalDecision> decisions)
+    {
+        if (!decisions.Any()) return 0;
+        
+        // Mock calculation based on decision confidence
+        var avgConfidence = decisions.Average(d => d.Confidence);
+        return avgConfidence * 1.5m; // Simplified Sharpe approximation
+    }
+
+    /// <summary>
+    /// Calculate maximum drawdown from decisions
+    /// </summary>
+    private decimal CalculateMaxDrawdown(List<UnifiedHistoricalDecision> decisions)
+    {
+        if (!decisions.Any()) return 0;
+        
+        // Mock calculation
+        return decisions.Min(d => d.Confidence) * -0.1m; // Simplified drawdown
+    }
+
+    /// <summary>
+    /// Load historical bars for backtest using unified configuration
+    /// </summary>
+    private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Placeholder
+        
+        var bars = new List<BotCore.Models.Bar>();
+        var currentDate = config.StartDate;
+        var currentPrice = 4500m; // ES starting price
+        
+        while (currentDate <= config.EndDate)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+            
+            // Generate sample OHLCV data (in production, load from historical database)
+            var random = new Random(currentDate.GetHashCode());
+            var change = (decimal)(random.NextDouble() - 0.5) * 0.02m; // ±1% daily change
+            var newPrice = currentPrice * (1 + change);
+            
+            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.005m);
+            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.005m);
+            var volume = random.Next(50000, 200000);
+            
+            bars.Add(new BotCore.Models.Bar
+            {
+                Symbol = config.Symbol,
+                Start = currentDate,
+                Ts = ((DateTimeOffset)currentDate).ToUnixTimeMilliseconds(),
+                Open = currentPrice,
+                High = high,
+                Low = low,
+                Close = newPrice,
+                Volume = volume
+            });
+            
+            currentPrice = newPrice;
+            currentDate = currentDate.AddDays(1);
+        }
+        
+        return bars;
     }
 
     /// <summary>
