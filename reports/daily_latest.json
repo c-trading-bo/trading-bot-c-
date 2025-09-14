@@ -1,6 +1,6 @@
 {
   "date": "2025-09-14",
-  "timestamp": "2025-09-14T12:17:51.239458",
+  "timestamp": "2025-09-14T16:24:15.266678",
   "data_quality": {
     "data/es_nq": {
       "file_count": 0,
@@ -43,9 +43,9 @@
     "uptime_score": 0.41666666666666663,
     "data_coverage": 0.3333333333333333,
     "model_coverage": 0.5,
-    "workflow_success_rate": 0.9161987424369359,
-    "data_freshness_score": 0.9261440450754781,
-    "model_accuracy_score": 0.7912754223039391,
+    "workflow_success_rate": 0.9420953298802266,
+    "data_freshness_score": 0.8221319325688099,
+    "model_accuracy_score": 0.8520088469606889,
     "system_reliability": 0.41666666666666663
   },
   "recommendations": [
