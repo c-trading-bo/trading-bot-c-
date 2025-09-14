@@ -137,9 +137,9 @@ public class PromotionDecision
 }
 
 /// <summary>
-/// Shadow testing validation report
+/// Promotion test report for basic shadow testing validation
 /// </summary>
-public class ValidationReport
+public class PromotionTestReport
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string ChallengerVersionId { get; set; } = string.Empty;

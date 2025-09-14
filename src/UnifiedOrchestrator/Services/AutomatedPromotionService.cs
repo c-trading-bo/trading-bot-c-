@@ -161,7 +161,7 @@ public class AutomatedPromotionService : BackgroundService
     private async Task SchedulePromotionAsync(
         string algorithm, 
         string challengerVersionId, 
-        ValidationReport validationReport, 
+        PromotionTestReport validationReport, 
         CancellationToken cancellationToken)
     {
         try

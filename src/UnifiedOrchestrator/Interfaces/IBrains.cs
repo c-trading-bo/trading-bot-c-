@@ -59,32 +59,6 @@ public interface ITrainingBrain
 }
 
 /// <summary>
-/// Trading context for decision making
-/// </summary>
-public class TradingContext
-{
-    public string Symbol { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public decimal Price { get; set; }
-    public decimal Volume { get; set; }
-    public decimal Volatility { get; set; }
-    public Dictionary<string, decimal> TechnicalIndicators { get; set; } = new();
-    public Dictionary<string, decimal> MarketData { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
-    
-    // Position context
-    public decimal CurrentPosition { get; set; }
-    public decimal UnrealizedPnL { get; set; }
-    public decimal DailyPnL { get; set; }
-    public decimal AccountBalance { get; set; }
-    
-    // Risk context
-    public decimal MaxDrawdown { get; set; }
-    public decimal DailyLossLimit { get; set; }
-    public bool IsEmergencyStop { get; set; }
-}
-
-/// <summary>
 /// Trading decision output from inference brain
 /// </summary>
 public class TradingDecision
