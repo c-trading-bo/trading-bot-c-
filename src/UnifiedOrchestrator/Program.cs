@@ -531,6 +531,10 @@ Stack Trace:
         // Register Production Demonstration Runner for PR review artifacts
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionDemonstrationRunner>();
         
+        // Register specialized validation services for PR review requirements
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.EnumMappingValidationService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ValidationReportRegressionService>();
+        
         // Register Validation Service for demonstration
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.ChampionChallengerValidationService>();
         
