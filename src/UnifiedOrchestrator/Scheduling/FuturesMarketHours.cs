@@ -8,7 +8,8 @@ namespace TradingBot.UnifiedOrchestrator.Scheduling;
 
 /// <summary>
 /// Futures market hours service with CME session behavior
-/// Implements safe promotion windows to avoid disrupting live trading
+/// Implements safe promotion windows and 24/7 operation scheduling to avoid disrupting live trading
+/// Supports intensive training during market downtime and light background training during trading hours
 /// </summary>
 public class FuturesMarketHours : IMarketHoursService
 {
@@ -27,6 +28,12 @@ public class FuturesMarketHours : IMarketHoursService
     private readonly TimeSpan LunchWindowEnd = new(13, 0, 0);           // 1:00 PM ET
     private readonly TimeSpan MaintenanceWindowStart = new(17, 0, 0);   // 5:00 PM ET (daily break)
     private readonly TimeSpan MaintenanceWindowEnd = new(18, 0, 0);     // 6:00 PM ET
+
+    // 24/7 Training schedule windows
+    private readonly TimeSpan IntensiveTrainingStart = new(21, 0, 0);   // 9:00 PM ET (Friday evening)
+    private readonly TimeSpan IntensiveTrainingEnd = new(17, 0, 0);     // 5:00 PM ET (Sunday)
+    private readonly TimeSpan BackgroundTrainingStart = new(1, 0, 0);   // 1:00 AM ET (overnight)
+    private readonly TimeSpan BackgroundTrainingEnd = new(5, 0, 0);     // 5:00 AM ET
 
     public FuturesMarketHours(ILogger<FuturesMarketHours> logger)
     {
@@ -80,6 +87,150 @@ public class FuturesMarketHours : IMarketHoursService
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Check if current time is suitable for intensive training (weekends, market downtime)
+    /// </summary>
+    public async Task<bool> IsInIntensiveTrainingWindowAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        
+        var etNow = GetEasternTime();
+        var dayOfWeek = etNow.DayOfWeek;
+        var timeOfDay = etNow.TimeOfDay;
+
+        // Weekend intensive training: Friday 9:00 PM to Sunday 5:00 PM ET
+        if (dayOfWeek == DayOfWeek.Saturday)
+        {
+            return true; // Full Saturday available
+        }
+        
+        if (dayOfWeek == DayOfWeek.Sunday && timeOfDay < MarketCloseTime)
+        {
+            return true; // Sunday until market opens
+        }
+        
+        if (dayOfWeek == DayOfWeek.Friday && timeOfDay >= IntensiveTrainingStart)
+        {
+            return true; // Friday evening after markets calm down
+        }
+
+        // Daily maintenance window for shorter intensive training sessions
+        if (timeOfDay >= MaintenanceWindowStart && timeOfDay <= MaintenanceWindowEnd)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Check if current time is suitable for background training (low-priority, resource-limited)
+    /// </summary>
+    public async Task<bool> IsInBackgroundTrainingWindowAsync(CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        
+        var etNow = GetEasternTime();
+        var dayOfWeek = etNow.DayOfWeek;
+        var timeOfDay = etNow.TimeOfDay;
+
+        // Don't run background training during weekends (use for intensive training instead)
+        if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+        {
+            return false;
+        }
+
+        // Overnight background training: 1:00-5:00 AM ET on weekdays
+        if (timeOfDay >= BackgroundTrainingStart && timeOfDay <= BackgroundTrainingEnd)
+        {
+            return true;
+        }
+
+        // Light training during low-volatility periods (but not promotion windows)
+        if (timeOfDay >= LunchWindowStart && timeOfDay <= LunchWindowEnd)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Get recommended training intensity based on current market conditions
+    /// </summary>
+    public async Task<TrainingIntensity> GetRecommendedTrainingIntensityAsync(CancellationToken cancellationToken = default)
+    {
+        var isIntensive = await IsInIntensiveTrainingWindowAsync(cancellationToken);
+        var isBackground = await IsInBackgroundTrainingWindowAsync(cancellationToken);
+        var isMarketOpen = await IsMarketOpenAsync(cancellationToken);
+
+        if (isIntensive)
+        {
+            return new TrainingIntensity
+            {
+                Level = "INTENSIVE",
+                MaxCpuUsage = 0.8m,
+                MaxMemoryUsage = 0.7m,
+                MaxGpuUsage = 0.9m,
+                ParallelJobs = 4,
+                Description = "Weekend/maintenance window - full resource utilization"
+            };
+        }
+        
+        if (isBackground)
+        {
+            return new TrainingIntensity
+            {
+                Level = "BACKGROUND",
+                MaxCpuUsage = 0.3m,
+                MaxMemoryUsage = 0.2m,
+                MaxGpuUsage = 0.4m,
+                ParallelJobs = 1,
+                Description = "Overnight/low-volatility - limited resource usage"
+            };
+        }
+        
+        if (!isMarketOpen)
+        {
+            return new TrainingIntensity
+            {
+                Level = "MODERATE",
+                MaxCpuUsage = 0.5m,
+                MaxMemoryUsage = 0.4m,
+                MaxGpuUsage = 0.6m,
+                ParallelJobs = 2,
+                Description = "Market closed - moderate resource usage"
+            };
+        }
+
+        return new TrainingIntensity
+        {
+            Level = "MINIMAL",
+            MaxCpuUsage = 0.1m,
+            MaxMemoryUsage = 0.1m,
+            MaxGpuUsage = 0.2m,
+            ParallelJobs = 0,
+            Description = "Market active - minimal/no training to preserve live trading performance"
+        };
+    }
+
+    /// <summary>
+    /// Get the next scheduled training window
+    /// </summary>
+    public async Task<DateTime?> GetNextTrainingWindowAsync(string trainingType = "INTENSIVE", CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        
+        var etNow = GetEasternTime();
+        
+        return trainingType.ToUpperInvariant() switch
+        {
+            "INTENSIVE" => await GetNextIntensiveTrainingWindowAsync(etNow, cancellationToken),
+            "BACKGROUND" => await GetNextBackgroundTrainingWindowAsync(etNow, cancellationToken),
+            _ => await GetNextSafeWindowAsync(cancellationToken)
+        };
     }
 
     /// <summary>
@@ -258,5 +409,78 @@ public class FuturesMarketHours : IMarketHoursService
         return currentEt.Date.AddDays(daysUntilSaturday);
     }
 
+    private async Task<DateTime?> GetNextIntensiveTrainingWindowAsync(DateTime etNow, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        
+        var currentDate = etNow.Date;
+        var timeOfDay = etNow.TimeOfDay;
+
+        // If currently Friday evening, next window is now
+        if (etNow.DayOfWeek == DayOfWeek.Friday && timeOfDay >= IntensiveTrainingStart)
+        {
+            return ConvertFromEasternTime(etNow);
+        }
+
+        // If weekend, next window is now
+        if (etNow.DayOfWeek == DayOfWeek.Saturday || 
+            (etNow.DayOfWeek == DayOfWeek.Sunday && timeOfDay < MarketCloseTime))
+        {
+            return ConvertFromEasternTime(etNow);
+        }
+
+        // Otherwise, next Friday evening
+        var daysUntilFriday = ((int)DayOfWeek.Friday - (int)etNow.DayOfWeek + 7) % 7;
+        if (daysUntilFriday == 0) daysUntilFriday = 7; // Next Friday, not today
+
+        var nextFriday = currentDate.AddDays(daysUntilFriday).Add(IntensiveTrainingStart);
+        return ConvertFromEasternTime(nextFriday);
+    }
+
+    private async Task<DateTime?> GetNextBackgroundTrainingWindowAsync(DateTime etNow, CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        
+        var currentDate = etNow.Date;
+        var timeOfDay = etNow.TimeOfDay;
+
+        // If currently in background window, return now
+        if (await IsInBackgroundTrainingWindowAsync(cancellationToken))
+        {
+            return ConvertFromEasternTime(etNow);
+        }
+
+        // Check if background window is later today
+        if (timeOfDay < BackgroundTrainingStart)
+        {
+            var todayBackgroundStart = currentDate.Add(BackgroundTrainingStart);
+            return ConvertFromEasternTime(todayBackgroundStart);
+        }
+
+        // Check if lunch window is later today
+        if (timeOfDay < LunchWindowStart)
+        {
+            var todayLunchStart = currentDate.Add(LunchWindowStart);
+            return ConvertFromEasternTime(todayLunchStart);
+        }
+
+        // Otherwise, tomorrow's background window
+        var tomorrowBackgroundStart = currentDate.AddDays(1).Add(BackgroundTrainingStart);
+        return ConvertFromEasternTime(tomorrowBackgroundStart);
+    }
+
     #endregion
+}
+
+/// <summary>
+/// Training intensity configuration based on market conditions
+/// </summary>
+public class TrainingIntensity
+{
+    public string Level { get; set; } = string.Empty;
+    public decimal MaxCpuUsage { get; set; }
+    public decimal MaxMemoryUsage { get; set; }
+    public decimal MaxGpuUsage { get; set; }
+    public int ParallelJobs { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

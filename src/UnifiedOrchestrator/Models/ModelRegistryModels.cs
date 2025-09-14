@@ -31,6 +31,38 @@ public class ModelVersion
     public decimal WinRate { get; set; }
     public int TotalTrades { get; set; }
     
+    /// <summary>
+    /// Additional performance metrics for production-grade tracking
+    /// </summary>
+    public decimal CalmarRatio { get; set; }
+    public decimal UlcerIndex { get; set; }
+    public decimal VAR95 { get; set; }
+    public decimal StdDeviation { get; set; }
+    public decimal SkewnessRatio { get; set; }
+    public decimal KurtosisRatio { get; set; }
+    public int ConsecutiveLosses { get; set; }
+    public int ConsecutiveWins { get; set; }
+    public decimal MaxSingleLoss { get; set; }
+    public decimal MaxSingleWin { get; set; }
+    
+    /// <summary>
+    /// Training dataset information for reproducibility
+    /// </summary>
+    public string? DatasetHash { get; set; }
+    public long DatasetSizeBytes { get; set; }
+    public int DatasetRecordCount { get; set; }
+    public string DatasetSource { get; set; } = string.Empty;
+    public DateTime DatasetStartTime { get; set; }
+    public DateTime DatasetEndTime { get; set; }
+    
+    /// <summary>
+    /// Market conditions during training for context
+    /// </summary>
+    public string MarketRegime { get; set; } = string.Empty;
+    public decimal MarketVolatility { get; set; }
+    public decimal MarketTrend { get; set; }
+    public string EconomicConditions { get; set; } = string.Empty;
+    
     // Model schema information
     public string SchemaVersion { get; set; } = string.Empty;
     public string ModelType { get; set; } = string.Empty; // ONNX, Pickle, Custom
