@@ -8,10 +8,10 @@
     "historical_regime_data": [],
     "trading_adjustments": []
   },
-  "timestamp": "2025-09-13T19:11:00.508307+00:00",
+  "timestamp": "2025-09-14T07:13:07.565063+00:00",
   "metadata": {
     "workflow_type": "ultimate_regime_detection_pipeline",
-    "processed_at": "2025-09-13T19:11:00.508317+00:00",
+    "processed_at": "2025-09-14T07:13:07.565074+00:00",
     "format_version": "1.0.0",
     "integration_version": "enterprise-24-7-v1.0"
   }
