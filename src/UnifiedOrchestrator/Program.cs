@@ -15,6 +15,7 @@ using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
+using BotCore.Services;
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -338,6 +339,56 @@ Stack Trace:
             var httpClient = httpClientFactory.CreateClient(nameof(TradingBot.Infrastructure.TopstepX.OrderService));
             
             return new TradingBot.Infrastructure.TopstepX.OrderService(logger, appOptions, httpClient);
+        });
+
+        // ========================================================================
+        // TOPSTEPX CLIENT - CONFIG-DRIVEN MOCK/REAL SELECTION
+        // ========================================================================
+        
+        // Configure TopstepX client configuration
+        services.Configure<TopstepXClientConfiguration>(configuration.GetSection("TopstepXClient"));
+        
+        // Register TopstepXHttpClient for real client
+        services.AddHttpClient("TopstepX", client =>
+        {
+            client.BaseAddress = new Uri(TopstepXApiBaseUrl);
+            client.DefaultRequestHeaders.Add("User-Agent", TopstepXUserAgent);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        
+        // Register TopstepXService for real client
+        services.AddSingleton<ITopstepXService, BotCore.Services.TopstepXService>();
+        
+        // Register the appropriate TopstepX client based on configuration
+        services.AddSingleton<ITopstepXClient>(provider =>
+        {
+            var clientConfig = provider.GetRequiredService<IOptions<TopstepXClientConfiguration>>().Value;
+            var logger = provider.GetRequiredService<ILogger<ITopstepXClient>>();
+            
+            logger.LogInformation("[TOPSTEPX-CLIENT] Initializing client type: {ClientType}, scenario: {Scenario}", 
+                clientConfig.ClientType, clientConfig.MockScenario);
+            
+            if (clientConfig.ClientType.Equals("Mock", StringComparison.OrdinalIgnoreCase))
+            {
+                var mockLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.MockTopstepXClient>>();
+                var mockConfig = provider.GetRequiredService<IOptions<TopstepXClientConfiguration>>();
+                
+                logger.LogInformation("[TOPSTEPX-CLIENT] Using MockTopstepXClient with scenario: {Scenario}", clientConfig.MockScenario);
+                return new TradingBot.Infrastructure.TopstepX.MockTopstepXClient(mockLogger, mockConfig);
+            }
+            else
+            {
+                var realLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
+                var topstepXService = provider.GetRequiredService<ITopstepXService>();
+                var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
+                var accountService = provider.GetRequiredService<IAccountService>();
+                var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpClientFactory.CreateClient("TopstepX");
+                
+                logger.LogInformation("[TOPSTEPX-CLIENT] Using RealTopstepXClient");
+                return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
+                    realLogger, topstepXService, orderService, accountService, httpClient);
+            }
         });
 
         // Configure AppOptions for Safety components

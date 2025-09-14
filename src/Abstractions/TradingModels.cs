@@ -553,3 +553,50 @@ public class HealthStatus
     public Dictionary<string, object> Metrics { get; set; } = new();
     public List<string> Issues { get; set; } = new();
 }
+
+// TopstepX SignalR message models
+public class GatewayUserOrder
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string OrderId { get; set; } = string.Empty;
+    public string CustomTag { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty; // "New", "Open", "Filled", "Cancelled", "Rejected"
+    public string Reason { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class GatewayUserTrade
+{
+    public string AccountId { get; set; } = string.Empty;
+    public string OrderId { get; set; } = string.Empty;
+    public string CustomTag { get; set; } = string.Empty;
+    public decimal FillPrice { get; set; }
+    public int Quantity { get; set; }
+    public DateTime Time { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+}
+
+public class OrderBookData
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal BidPrice { get; set; }
+    public int BidSize { get; set; }
+    public decimal AskPrice { get; set; }
+    public int AskSize { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class TradeConfirmation
+{
+    public string OrderId { get; set; } = string.Empty;
+    public string Symbol { get; set; } = string.Empty;
+    public string Side { get; set; } = string.Empty;
+    public int Quantity { get; set; }
+    public decimal Price { get; set; }
+    public DateTime Timestamp { get; set; }
+}
