@@ -828,7 +828,11 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         var mean = values.Average();
         var sumOfSquares = values.Sum(v => (v - mean) * (v - mean));
-        return (decimal)Math.Sqrt((double)(sumOfSquares / values.Count));
+        var variance = sumOfSquares / values.Count;
+        
+        // Safe conversion to double for Math.Sqrt, then back to decimal
+        var result = Math.Sqrt(decimal.ToDouble(variance));
+        return (decimal)result;
     }
 
     private string GenerateBacktestId()
@@ -1006,7 +1010,10 @@ public class EnhancedBacktestLearningService : BackgroundService
         var lastReturns = returns.TakeLast(period).ToList();
         var mean = lastReturns.Average();
         var variance = lastReturns.Sum(r => (r - mean) * (r - mean)) / (period - 1);
-        var stdDev = (decimal)Math.Sqrt((double)variance);
+        
+        // Safe conversion to double for Math.Sqrt, then back to decimal
+        var stdDevDouble = Math.Sqrt(decimal.ToDouble(variance));
+        var stdDev = (decimal)stdDevDouble;
 
         if (stdDev == 0) return 0;
 

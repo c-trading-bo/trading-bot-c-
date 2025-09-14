@@ -434,9 +434,17 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     {
         await Task.Yield();
         var liveEvents = _dataFlowEvents.Where(e => e.Source.Contains("Live") || e.Source.Contains("TopStep")).ToList();
-        var messagesPerSecond = liveEvents.Count > 0 
-            ? liveEvents.Count / Math.Max(1, (DateTime.UtcNow - liveEvents.First().Timestamp).TotalSeconds)
-            : 0.0;
+        var messagesPerSecond = 0.0;
+        
+        if (liveEvents.Count > 0)
+        {
+            var firstEvent = liveEvents.FirstOrDefault();
+            if (firstEvent != null)
+            {
+                var timeSpan = DateTime.UtcNow - firstEvent.Timestamp;
+                messagesPerSecond = liveEvents.Count / Math.Max(1, timeSpan.TotalSeconds);
+            }
+        }
             
         return new LiveDataStatus
         {

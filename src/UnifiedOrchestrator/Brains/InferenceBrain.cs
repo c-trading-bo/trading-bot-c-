@@ -359,7 +359,19 @@ public class InferenceBrain : IInferenceBrain
         }
         
         // Simple ensemble: use highest confidence decision
-        var bestDecision = decisions.Values.OrderByDescending(d => d.Confidence).First();
+        var bestDecision = decisions.Values.OrderByDescending(d => d.Confidence).FirstOrDefault();
+        if (bestDecision == null)
+        {
+            // Return a safe default decision if no decisions available
+            return new EnsembleDecision
+            {
+                Action = "HOLD",
+                Size = 0,
+                Confidence = 0,
+                Strategy = "FALLBACK",
+                EnsembleMethod = "NO_DECISIONS_AVAILABLE"
+            };
+        }
         
         return new EnsembleDecision
         {
