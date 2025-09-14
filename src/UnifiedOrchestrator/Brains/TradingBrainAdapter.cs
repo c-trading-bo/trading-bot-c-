@@ -250,45 +250,52 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private UnifiedTradingDecision ConvertBrainDecisionToUnifiedDecision(BrainDecision brainDecision, TradingContext context, string algorithmName)
     {
-        // Convert BrainAction to Action string
-        string actionString = brainDecision.Action switch
+        // Determine action based on PriceDirection and OptimalPositionMultiplier
+        string actionString = "HOLD";
+        decimal size = 0;
+        
+        if (brainDecision.OptimalPositionMultiplier > 0)
         {
-            BrainAction.Buy => "BUY",
-            BrainAction.Sell => "SELL",
-            BrainAction.Hold => "HOLD",
-            _ => "HOLD"
-        };
+            actionString = brainDecision.PriceDirection == PriceDirection.Up ? "BUY" : "SELL";
+            size = Math.Abs(brainDecision.OptimalPositionMultiplier);
+        }
 
         return new UnifiedTradingDecision
         {
-            Symbol = context.Symbol ?? "ES",
-            Timestamp = DateTime.UtcNow,
+            Symbol = brainDecision.Symbol ?? context.Symbol ?? "ES",
+            Timestamp = brainDecision.DecisionTime != default ? brainDecision.DecisionTime : DateTime.UtcNow,
             Action = actionString,
-            Size = brainDecision.Size,
-            Confidence = (decimal)brainDecision.Confidence,
-            Strategy = algorithmName,
-            ProcessingTimeMs = (decimal)(brainDecision.ProcessingTimeMs ?? 0),
-            PPOVersionId = brainDecision.PPOVersionId ?? "unknown",
-            UCBVersionId = brainDecision.UCBVersionId ?? "unknown", 
-            LSTMVersionId = brainDecision.LSTMVersionId ?? "unknown",
+            Size = size,
+            Confidence = brainDecision.StrategyConfidence,
+            Strategy = brainDecision.RecommendedStrategy ?? algorithmName,
+            ProcessingTimeMs = (decimal)brainDecision.ProcessingTimeMs,
+            PPOVersionId = "brain-unified",
+            UCBVersionId = "brain-unified", 
+            LSTMVersionId = "brain-unified",
             AlgorithmVersions = new Dictionary<string, string>
             {
-                ["PPO"] = brainDecision.PPOVersionId ?? "unknown",
-                ["UCB"] = brainDecision.UCBVersionId ?? "unknown",
-                ["LSTM"] = brainDecision.LSTMVersionId ?? "unknown"
+                ["UnifiedBrain"] = "1.0",
+                ["RecommendedStrategy"] = brainDecision.RecommendedStrategy ?? "unknown"
             },
             AlgorithmConfidences = new Dictionary<string, decimal>
             {
-                ["Overall"] = (decimal)brainDecision.Confidence
+                ["Strategy"] = brainDecision.StrategyConfidence,
+                ["Model"] = brainDecision.ModelConfidence,
+                ["Price"] = brainDecision.PriceProbability
             },
             DecisionMetadata = new Dictionary<string, object>
             {
                 ["Algorithm"] = algorithmName,
-                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs?.ToString("F2") ?? "0",
-                ["OriginalAction"] = brainDecision.Action.ToString()
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
+                ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
+                ["RiskAssessment"] = brainDecision.RiskAssessment,
+                ["CandidateCount"] = brainDecision.EnhancedCandidates.Count
             },
-            PassedRiskChecks = true, // BrainDecision is assumed to have passed risk checks
-            RiskWarnings = new List<string>()
+            PassedRiskChecks = !brainDecision.RiskAssessment.Contains("HIGH", StringComparison.OrdinalIgnoreCase),
+            RiskWarnings = brainDecision.RiskAssessment.Contains("HIGH", StringComparison.OrdinalIgnoreCase) 
+                          ? new List<string> { brainDecision.RiskAssessment }
+                          : new List<string>()
         };
     }
 

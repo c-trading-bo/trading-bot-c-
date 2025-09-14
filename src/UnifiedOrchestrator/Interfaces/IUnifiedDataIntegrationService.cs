@@ -33,12 +33,12 @@ public interface IUnifiedDataIntegrationService
     /// <summary>
     /// Get historical data connection status
     /// </summary>
-    Task<object> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default);
+    Task<HistoricalDataStatus> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Get live data connection status
     /// </summary>
-    Task<object> GetLiveDataStatusAsync(CancellationToken cancellationToken = default);
+    Task<LiveDataStatus> GetLiveDataStatusAsync(CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Get data integration status (synchronous)
@@ -75,4 +75,28 @@ public class DataFlowEvent
     public string Source { get; set; } = string.Empty;
     public string Details { get; set; } = string.Empty;
     public bool Success { get; set; }
+}
+
+/// <summary>
+/// Historical data connection status
+/// </summary>
+public class HistoricalDataStatus
+{
+    public bool IsConnected { get; set; }
+    public DateTime LastDataReceived { get; set; }
+    public int TotalRecords { get; set; }
+    public string[] DataSources { get; set; } = Array.Empty<string>();
+    public string StatusMessage { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Live data connection status
+/// </summary>
+public class LiveDataStatus
+{
+    public bool IsConnected { get; set; }
+    public DateTime LastDataReceived { get; set; }
+    public double MessagesPerSecond { get; set; }
+    public string[] DataSources { get; set; } = Array.Empty<string>();
+    public string StatusMessage { get; set; } = string.Empty;
 }

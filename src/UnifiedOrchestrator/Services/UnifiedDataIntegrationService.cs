@@ -414,28 +414,37 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// <summary>
     /// Get historical data connection status
     /// </summary>
-    public async Task<object> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default)
+    public async Task<HistoricalDataStatus> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return new 
+        return new HistoricalDataStatus
         {
             IsConnected = _isHistoricalDataConnected,
-            LastSync = _lastHistoricalDataSync,
-            Status = _isHistoricalDataConnected ? "Connected" : "Disconnected"
+            LastDataReceived = _lastHistoricalDataSync,
+            TotalRecords = _dataFlowEvents.Count(e => e.Source.Contains("Historical")),
+            DataSources = new[] { "Historical CSV files", "Training datasets", "Backtest data" },
+            StatusMessage = _isHistoricalDataConnected ? "Connected" : "Disconnected"
         };
     }
     
     /// <summary>
     /// Get live data connection status
     /// </summary>
-    public async Task<object> GetLiveDataStatusAsync(CancellationToken cancellationToken = default)
+    public async Task<LiveDataStatus> GetLiveDataStatusAsync(CancellationToken cancellationToken = default)
     {
         await Task.Yield();
-        return new 
+        var liveEvents = _dataFlowEvents.Where(e => e.Source.Contains("Live") || e.Source.Contains("TopStep")).ToList();
+        var messagesPerSecond = liveEvents.Count > 0 
+            ? liveEvents.Count / Math.Max(1, (DateTime.UtcNow - liveEvents.First().Timestamp).TotalSeconds)
+            : 0.0;
+            
+        return new LiveDataStatus
         {
             IsConnected = _isLiveDataConnected,
-            LastReceived = _lastLiveDataReceived,
-            Status = _isLiveDataConnected ? "Connected" : "Disconnected"
+            LastDataReceived = _lastLiveDataReceived,
+            MessagesPerSecond = messagesPerSecond,
+            DataSources = new[] { "TopStep Market Data", "SignalR Real-time feeds", "Account status" },
+            StatusMessage = _isLiveDataConnected ? "Connected" : "Disconnected"
         };
     }
     

@@ -85,6 +85,9 @@ public class TradingDecision
     // Compatibility alias
     public Dictionary<string, object> Metadata => DecisionMetadata;
     
+    // Compatibility alias for legacy code
+    public Dictionary<string, object> Reasoning => DecisionMetadata;
+    
     // Risk assessment
     public bool PassedRiskChecks { get; set; }
     public List<string> RiskWarnings { get; set; } = new();
