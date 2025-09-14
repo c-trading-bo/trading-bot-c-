@@ -945,6 +945,12 @@ Stack Trace:
         // Register BacktestLearningService for historical learning when markets are closed
         services.AddHostedService<BacktestLearningService>();
         
+        // Register AutomaticDataSchedulerService for automatic scheduling of data processing
+        services.AddHostedService<AutomaticDataSchedulerService>();
+        
+        // Register DataFlowMonitoringService for comprehensive data flow tracking and issue detection
+        services.AddHostedService<DataFlowMonitoringService>();
+        
         // Register UCB Manager - Auto-detect if UCB service is available
         var enableUcb = Environment.GetEnvironmentVariable("ENABLE_UCB") != "0"; // Default to enabled
         
