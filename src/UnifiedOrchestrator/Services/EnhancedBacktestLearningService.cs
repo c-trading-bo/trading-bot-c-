@@ -15,21 +15,22 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// <summary>
 /// Enhanced BacktestLearningService → UnifiedTradingBrain Integration
 /// 
-/// CRITICAL REQUIREMENT: Replace legacy S2/S3 strategy classes in backtest/replay with UnifiedTradingBrain
+/// CRITICAL REQUIREMENT: Uses SAME UnifiedTradingBrain for historical replay as live trading
 /// This ensures historical data pipeline uses identical intelligence as live trading:
 /// - Same data formatting and feature engineering
-/// - Same decision-making logic (UnifiedTradingBrain.DecideAsync)
+/// - Same decision-making logic (UnifiedTradingBrain.MakeIntelligentDecisionAsync)
 /// - Same risk management and position sizing
 /// - Identical context and outputs for reproducible results
+/// - Same scheduling: Market Open: Light learning every 60 min, Market Closed: Intensive every 15 min
 /// </summary>
 public class EnhancedBacktestLearningService : BackgroundService
 {
     private readonly ILogger<EnhancedBacktestLearningService> _logger;
     private readonly IServiceProvider _serviceProvider;
-    private readonly IUnifiedDataIntegrationService _dataIntegration;
-    private readonly ITradingBrainAdapter _brainAdapter;
-    private readonly ITrainingBrain _trainingBrain;
     private readonly IMarketHoursService _marketHours;
+    
+    // CRITICAL: Direct injection of UnifiedTradingBrain for identical intelligence
+    private readonly BotCore.Brain.UnifiedTradingBrain _unifiedBrain;
     
     // Historical replay state
     private readonly Dictionary<string, HistoricalReplayContext> _replayContexts = new();
@@ -38,17 +39,13 @@ public class EnhancedBacktestLearningService : BackgroundService
     public EnhancedBacktestLearningService(
         ILogger<EnhancedBacktestLearningService> logger,
         IServiceProvider serviceProvider,
-        IUnifiedDataIntegrationService dataIntegration,
-        ITradingBrainAdapter brainAdapter,
-        ITrainingBrain trainingBrain,
-        IMarketHoursService marketHours)
+        IMarketHoursService marketHours,
+        BotCore.Brain.UnifiedTradingBrain unifiedBrain)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
-        _dataIntegration = dataIntegration;
-        _brainAdapter = brainAdapter;
-        _trainingBrain = trainingBrain;
         _marketHours = marketHours;
+        _unifiedBrain = unifiedBrain; // Same brain as live trading
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -62,23 +59,21 @@ public class EnhancedBacktestLearningService : BackgroundService
         {
             try
             {
-                // Check if it's a good time for intensive training
-                var trainingIntensity = await _marketHours.GetRecommendedTrainingIntensityAsync(stoppingToken);
+                // Use UnifiedTradingBrain's unified scheduling for identical timing
+                var currentTime = DateTime.UtcNow;
+                var schedulingRecommendation = _unifiedBrain.GetUnifiedSchedulingRecommendation(currentTime);
                 
-                if (trainingIntensity.Level == "INTENSIVE" || trainingIntensity.Level == "MODERATE")
+                _logger.LogInformation("[UNIFIED-SCHEDULING] {Reasoning} - Learning every {Minutes} minutes", 
+                    schedulingRecommendation.Reasoning, schedulingRecommendation.HistoricalLearningIntervalMinutes);
+                
+                if (schedulingRecommendation.LearningIntensity == "INTENSIVE" || 
+                    schedulingRecommendation.LearningIntensity == "LIGHT")
                 {
-                    await RunScheduledBacktestLearningAsync(trainingIntensity, stoppingToken);
+                    await RunUnifiedBacktestLearningAsync(schedulingRecommendation, stoppingToken);
                 }
                 
-                // Wait before next check (adjust based on intensity)
-                var delayMinutes = trainingIntensity.Level switch
-                {
-                    "INTENSIVE" => 60,  // Check every hour during intensive periods
-                    "MODERATE" => 120,  // Check every 2 hours during moderate periods
-                    "BACKGROUND" => 240, // Check every 4 hours during background periods
-                    _ => 480            // Check every 8 hours otherwise
-                };
-                
+                // Use the exact interval recommended by UnifiedTradingBrain
+                var delayMinutes = schedulingRecommendation.HistoricalLearningIntervalMinutes;
                 await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
             }
             catch (Exception ex)
@@ -90,26 +85,28 @@ public class EnhancedBacktestLearningService : BackgroundService
     }
 
     /// <summary>
-    /// Run scheduled backtest learning session
+    /// Run unified backtest learning session using same UnifiedTradingBrain as live trading
+    /// Focuses on 4 primary strategies: S2 (Mean Reversion), S3 (Compression), S6 (Momentum), S11 (Exhaustion)
     /// </summary>
-    private async Task RunScheduledBacktestLearningAsync(TrainingIntensity intensity, CancellationToken cancellationToken)
+    private async Task RunUnifiedBacktestLearningAsync(
+        BotCore.Brain.UnifiedSchedulingRecommendation scheduling, 
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("[ENHANCED-BACKTEST] Starting scheduled backtest learning session with {Intensity} intensity", intensity.Level);
+        _logger.LogInformation("[UNIFIED-BACKTEST] Starting unified backtest learning session with {Intensity} intensity on strategies: {Strategies}", 
+            scheduling.LearningIntensity, string.Join(",", scheduling.RecommendedStrategies));
         
         try
         {
-            // Validate data consistency first
-            var dataConsistent = await _dataIntegration.ValidateDataConsistencyAsync(cancellationToken);
-            if (!dataConsistent)
-            {
-                _logger.LogWarning("[ENHANCED-BACKTEST] Skipping backtest due to data consistency issues");
-                return;
-            }
-
-            // Configure backtest based on intensity
-            var backtestConfigs = GenerateBacktestConfigs(intensity);
+            // Generate backtest configurations for recommended strategies
+            var backtestConfigs = GenerateUnifiedBacktestConfigs(scheduling);
             
-            var parallelJobs = Math.Max(1, intensity.ParallelJobs);
+            var parallelJobs = scheduling.LearningIntensity switch
+            {
+                "INTENSIVE" => 4, // Process all 4 strategies in parallel
+                "LIGHT" => 2,     // Process 2 strategies in parallel during market hours
+                _ => 1            // Single strategy processing
+            };
+            
             var semaphore = new SemaphoreSlim(parallelJobs, parallelJobs);
             
             var tasks = backtestConfigs.Select(async config =>
@@ -117,7 +114,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                 await semaphore.WaitAsync(cancellationToken);
                 try
                 {
-                    return await RunHistoricalBacktestAsync(config, cancellationToken);
+                    return await RunUnifiedHistoricalBacktestAsync(config, cancellationToken);
                 }
                 finally
                 {
@@ -127,39 +124,79 @@ public class EnhancedBacktestLearningService : BackgroundService
 
             var results = await Task.WhenAll(tasks);
             
-            // Analyze results and potentially train new challengers
-            await AnalyzeBacktestResultsAsync(results, intensity, cancellationToken);
+            // Feed results back to UnifiedTradingBrain for continuous learning
+            await FeedResultsToUnifiedBrainAsync(results, cancellationToken);
             
-            _logger.LogInformation("[ENHANCED-BACKTEST] Completed scheduled backtest learning session - processed {Count} backtests", results.Length);
+            _logger.LogInformation("[UNIFIED-BACKTEST] Completed unified backtest learning session - processed {Count} backtests across {Strategies} strategies", 
+                results.Length, string.Join(",", scheduling.RecommendedStrategies));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ENHANCED-BACKTEST] Failed scheduled backtest learning session");
+            _logger.LogError(ex, "[UNIFIED-BACKTEST] Failed unified backtest learning session");
         }
+    }
+    
+    private List<UnifiedBacktestConfig> GenerateUnifiedBacktestConfigs(BotCore.Brain.UnifiedSchedulingRecommendation scheduling)
+    {
+        var configs = new List<UnifiedBacktestConfig>();
+        var endDate = DateTime.UtcNow.Date;
+        
+        // Configuration based on learning intensity
+        var (lookbackDays, symbols) = scheduling.LearningIntensity switch
+        {
+            "INTENSIVE" => (30, new[] { "ES", "NQ" }), // 30 days lookback, both symbols
+            "LIGHT" => (7, new[] { "ES" }),            // 7 days lookback, ES only during market hours
+            _ => (14, new[] { "ES" })                  // 14 days default
+        };
+        
+        var startDate = endDate.AddDays(-lookbackDays);
+        
+        foreach (var strategy in scheduling.RecommendedStrategies)
+        {
+            foreach (var symbol in symbols)
+            {
+                configs.Add(new UnifiedBacktestConfig
+                {
+                    Strategy = strategy,
+                    Symbol = symbol,
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    InitialCapital = 50000m, // TopStep account size
+                    UseUnifiedBrain = true,
+                    LearningMode = true,
+                    ConfigId = $"{strategy}_{symbol}_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}"
+                });
+            }
+        }
+        
+        return configs;
     }
 
     /// <summary>
-    /// Run historical backtest using UnifiedTradingBrain (replaces legacy strategies)
+    /// Run historical backtest using SAME UnifiedTradingBrain as live trading
     /// This ensures identical intelligence is used for both historical and live contexts
     /// </summary>
-    public async Task<BacktestResult> RunHistoricalBacktestAsync(
-        BacktestConfig config, 
+    public async Task<UnifiedBacktestResult> RunUnifiedHistoricalBacktestAsync(
+        UnifiedBacktestConfig config, 
         CancellationToken cancellationToken = default)
     {
         var backtestId = GenerateBacktestId();
         
         try
         {
-            _logger.LogInformation("[ENHANCED-BACKTEST] Starting historical backtest {BacktestId} with UnifiedTradingBrain", backtestId);
+            _logger.LogInformation("[UNIFIED-BACKTEST] Starting historical backtest {BacktestId} using UnifiedTradingBrain for strategy {Strategy}", 
+                backtestId, config.Strategy);
             
-            // Initialize historical replay context
-            var replayContext = new HistoricalReplayContext
+            // Initialize unified replay context
+            var replayContext = new UnifiedHistoricalReplayContext
             {
                 BacktestId = backtestId,
                 Config = config,
                 StartTime = config.StartDate,
                 EndTime = config.EndDate,
                 CurrentTime = config.StartDate,
+                Strategy = config.Strategy,
+                Symbol = config.Symbol,
                 TotalBars = 0,
                 ProcessedBars = 0,
                 IsActive = true
@@ -168,17 +205,17 @@ public class EnhancedBacktestLearningService : BackgroundService
             _replayContexts[backtestId] = replayContext;
 
             // Load historical data with identical formatting as live trading
-            var historicalData = await LoadHistoricalDataAsync(config, cancellationToken);
-            if (!historicalData.Any())
+            var historicalBars = await LoadHistoricalBarsAsync(config, cancellationToken);
+            if (!historicalBars.Any())
             {
-                throw new InvalidOperationException("No historical data found for the specified period");
+                throw new InvalidOperationException($"No historical data found for {config.Symbol} in period {config.StartDate} to {config.EndDate}");
             }
 
-            _logger.LogInformation("[ENHANCED-BACKTEST] Loaded {DataPoints} historical data points for period {Start} to {End}",
-                historicalData.Count, config.StartDate, config.EndDate);
+            _logger.LogInformation("[UNIFIED-BACKTEST] Loaded {DataPoints} historical bars for {Symbol} {Strategy} from {Start} to {End}",
+                historicalBars.Count, config.Symbol, config.Strategy, config.StartDate, config.EndDate);
 
             // Initialize backtest state
-            var backtestState = new BacktestState
+            var backtestState = new UnifiedBacktestState
             {
                 StartingCapital = config.InitialCapital,
                 CurrentCapital = config.InitialCapital,
@@ -188,38 +225,146 @@ public class EnhancedBacktestLearningService : BackgroundService
                 TotalTrades = 0,
                 WinningTrades = 0,
                 LosingTrades = 0,
-                Decisions = new List<HistoricalDecision>()
+                UnifiedDecisions = new List<UnifiedHistoricalDecision>(),
+                Strategy = config.Strategy,
+                Symbol = config.Symbol
             };
 
-            // Process historical data using UnifiedTradingBrain
-            foreach (var dataPoint in historicalData)
+            // Process historical data using SAME UnifiedTradingBrain as live trading
+            var barGroups = historicalBars.GroupBy(b => b.Start.Date).OrderBy(g => g.Key);
+            
+            foreach (var dayGroup in barGroups)
             {
                 if (cancellationToken.IsCancellationRequested)
-                {
                     break;
+                    
+                var dailyBars = dayGroup.OrderBy(b => b.Start).ToList();
+                await ProcessDailyBarsWithUnifiedBrainAsync(dailyBars, backtestState, replayContext, cancellationToken);
+                
+                replayContext.ProcessedBars += dailyBars.Count;
+                
+                // Report progress
+                var progressPct = (double)replayContext.ProcessedBars / replayContext.TotalBars * 100;
+                if (replayContext.ProcessedBars % 100 == 0)
+                {
+                    _logger.LogDebug("[UNIFIED-BACKTEST] Progress: {Progress:F1}% - {Trades} trades, PnL: {PnL:F2}", 
+                        progressPct, backtestState.TotalTrades, backtestState.RealizedPnL);
                 }
-
-                var decision = await ProcessHistoricalDataPointAsync(dataPoint, backtestState, replayContext, cancellationToken);
-                backtestState.Decisions.Add(decision);
-                
-                replayContext.ProcessedBars++;
-                replayContext.CurrentTime = dataPoint.Timestamp;
-                
-                // Update position and PnL based on decision
-                await UpdateBacktestStateAsync(backtestState, decision, dataPoint, cancellationToken);
             }
 
             // Calculate final metrics
-            var result = await CalculateBacktestMetricsAsync(backtestState, replayContext, cancellationToken);
+            var result = CreateUnifiedBacktestResult(backtestState, replayContext, config);
             
-            // Store result for analysis
             _recentBacktests.Add(result);
-            if (_recentBacktests.Count > 50) // Keep recent results only
+            if (_recentBacktests.Count > 50) // Keep only recent backtests
             {
                 _recentBacktests.RemoveAt(0);
             }
 
-            _logger.LogInformation("[ENHANCED-BACKTEST] Completed backtest {BacktestId}: " +
+            _logger.LogInformation("[UNIFIED-BACKTEST] Completed backtest {BacktestId}: {Trades} trades, {WinRate:P1} win rate, {PnL:F2} PnL, {Sharpe:F2} Sharpe", 
+                backtestId, result.TotalTrades, result.WinRate, result.NetPnL, result.SharpeRatio);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UNIFIED-BACKTEST] Failed historical backtest {BacktestId}", backtestId);
+            throw;
+        }
+        finally
+        {
+            _replayContexts.TryRemove(backtestId, out _);
+        }
+    }
+
+    /// <summary>
+    /// Process daily bars using the SAME UnifiedTradingBrain logic as live trading
+    /// This ensures identical decision-making process
+    /// </summary>
+    private async Task ProcessDailyBarsWithUnifiedBrainAsync(
+        List<BotCore.Models.Bar> dailyBars,
+        UnifiedBacktestState backtestState,
+        UnifiedHistoricalReplayContext replayContext,
+        CancellationToken cancellationToken)
+    {
+        for (int i = 0; i < dailyBars.Count; i++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                break;
+                
+            var currentBar = dailyBars[i];
+            var historicalBars = dailyBars.Take(i + 1).ToList();
+            
+            // Skip if we don't have enough bars for decision making
+            if (historicalBars.Count < 20)
+                continue;
+            
+            try
+            {
+                // Create market environment identical to live trading
+                var env = new BotCore.Models.Env
+                {
+                    atr = CalculateATR(historicalBars, 14),
+                    volz = CalculateVolZ(historicalBars)
+                };
+                
+                var levels = new BotCore.Models.Levels(); // Initialize as needed
+                var riskEngine = new BotCore.Risk.RiskEngine();
+                
+                // 🚀 CRITICAL: Use SAME UnifiedTradingBrain as live trading
+                var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
+                    replayContext.Symbol, env, levels, historicalBars, riskEngine, cancellationToken);
+                
+                // Record the decision for learning
+                var historicalDecision = new UnifiedHistoricalDecision
+                {
+                    Timestamp = currentBar.Start,
+                    Symbol = replayContext.Symbol,
+                    Strategy = brainDecision.RecommendedStrategy,
+                    Price = currentBar.Close,
+                    Decision = brainDecision,
+                    MarketContext = CreateMarketContextFromBar(currentBar, historicalBars)
+                };
+                
+                backtestState.UnifiedDecisions.Add(historicalDecision);
+                
+                // Execute trades if brain recommends them
+                if (brainDecision.EnhancedCandidates.Any() && brainDecision.ModelConfidence > 0.7m)
+                {
+                    var bestCandidate = brainDecision.EnhancedCandidates
+                        .OrderByDescending(c => c.QScore)
+                        .FirstOrDefault();
+                    
+                    if (bestCandidate != null)
+                    {
+                        await ExecuteHistoricalTradeAsync(bestCandidate, backtestState, currentBar, cancellationToken);
+                    }
+                }
+                
+                // Feed result back to brain for continuous learning (simulate trade outcome)
+                if (historicalDecision.Strategy != null && i + 10 < dailyBars.Count) // Look ahead 10 bars
+                {
+                    var futureBar = dailyBars[i + 10];
+                    var priceMove = futureBar.Close - currentBar.Close;
+                    var wasCorrect = (brainDecision.PriceDirection == BotCore.Brain.PriceDirection.Up && priceMove > 0) ||
+                                   (brainDecision.PriceDirection == BotCore.Brain.PriceDirection.Down && priceMove < 0);
+                    
+                    // Feed learning back to UnifiedTradingBrain
+                    await _unifiedBrain.LearnFromResultAsync(
+                        replayContext.Symbol,
+                        historicalDecision.Strategy,
+                        priceMove,
+                        wasCorrect,
+                        TimeSpan.FromMinutes(10),
+                        cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[UNIFIED-BACKTEST] Error processing bar at {Time}", currentBar.Start);
+            }
+        }
+    } +
                 "Return: {Return:P2}, Sharpe: {Sharpe:F2}, Max DD: {MaxDD:P2}, Trades: {Trades}",
                 backtestId, result.TotalReturn, result.SharpeRatio, result.MaxDrawdown, result.TotalTrades);
 

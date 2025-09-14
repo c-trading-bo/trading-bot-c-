@@ -28,20 +28,28 @@ namespace BotCore.Brain
     }
     /// <summary>
     /// UNIFIED TRADING BRAIN - The ONE intelligence that controls all trading decisions
+    /// Enhanced to handle all 4 primary strategies (S2, S3, S6, S11) with unified scheduling
     /// 
     /// This is the central AI brain that:
-    /// 1. Receives market data from your TradingOrchestratorService
-    /// 2. Uses Neural UCB to select optimal strategy (S1-S14)
+    /// 1. Handles S2 (VWAP Mean Reversion), S3 (Bollinger Compression), S6 (Momentum), S11 (Specialized)
+    /// 2. Uses Neural UCB to select optimal strategy for each market condition
     /// 3. Uses LSTM to predict price movements and timing
-    /// 4. Uses RL to optimize position sizes
-    /// 5. Sends intelligent signals to AllStrategies.cs
-    /// 6. Feeds back results to learn and improve
+    /// 4. Uses CVaR-PPO to optimize position sizes for all strategies
+    /// 5. Maintains identical intelligence for historical and live trading
+    /// 6. Continuously learns from all trade outcomes to improve strategy selection
+    /// 
+    /// KEY ENHANCEMENTS:
+    /// - Multi-strategy learning: Every trade outcome teaches all strategies
+    /// - Unified scheduling: Same timing for historical and live systems
+    /// - Continuous improvement: Historical patterns improve live strategy selection
+    /// - Same AI brain gets smarter at picking S2 vs S3 vs S6 vs S11
+    /// - Position sizing and risk management learns from all strategy results
     /// 
     /// INTEGRATION POINTS:
-    /// - TradingOrchestratorService.ExecuteESNQTradingAsync() calls this brain
+    /// - TradingOrchestratorService calls this brain for live trading
+    /// - EnhancedBacktestLearningService uses same brain for historical replay
     /// - AllStrategies.generate_candidates() enhanced with brain decisions
-    /// - RiskEngine.ComputeSize() gets brain position size recommendations
-    /// - SimpleOrderRouter.RouteAsync() receives brain-optimized signals
+    /// - Identical scheduling for Market Open: Light learning every 60 min, Market Closed: Intensive every 15 min
     /// </summary>
     public class UnifiedTradingBrain : IDisposable
     {
@@ -68,6 +76,47 @@ namespace BotCore.Brain
         // Performance tracking for learning
         private readonly List<TradingDecision> _decisionHistory = new();
         private DateTime _lastModelUpdate = DateTime.MinValue;
+        
+        // Multi-strategy learning state
+        private readonly Dictionary<string, StrategyPerformance> _strategyPerformance = new();
+        private readonly Dictionary<string, List<MarketCondition>> _strategyOptimalConditions = new();
+        private DateTime _lastUnifiedLearningUpdate = DateTime.MinValue;
+        
+        // Primary strategies for focused learning
+        private readonly string[] PrimaryStrategies = { "S2", "S3", "S6", "S11" };
+        
+        // Strategy specializations
+        private readonly Dictionary<string, StrategySpecialization> _strategySpecializations = new()
+        {
+            ["S2"] = new StrategySpecialization 
+            { 
+                Name = "VWAP Mean Reversion", 
+                OptimalConditions = new[] { "ranging", "low_volatility", "high_volume" },
+                LearningFocus = "entry_exit_timing",
+                TimeWindows = new[] { "overnight", "lunch", "premarket" }
+            },
+            ["S3"] = new StrategySpecialization 
+            { 
+                Name = "Bollinger Compression", 
+                OptimalConditions = new[] { "low_volatility", "compression", "breakout_setup" },
+                LearningFocus = "volatility_breakout_patterns",
+                TimeWindows = new[] { "european_open", "us_premarket", "morning_trend" }
+            },
+            ["S6"] = new StrategySpecialization 
+            { 
+                Name = "Momentum Strategy", 
+                OptimalConditions = new[] { "trending", "high_volume", "opening_drive" },
+                LearningFocus = "momentum_strategies",
+                TimeWindows = new[] { "opening_drive", "afternoon_trend" }
+            },
+            ["S11"] = new StrategySpecialization 
+            { 
+                Name = "ADR Exhaustion Fade", 
+                OptimalConditions = new[] { "exhaustion", "range_bound", "mean_reversion" },
+                LearningFocus = "exhaustion_patterns",
+                TimeWindows = new[] { "afternoon_fade", "end_of_day" }
+            }
+        };
         
         public bool IsInitialized { get; private set; }
         public DateTime LastDecision { get; private set; }
@@ -216,7 +265,8 @@ namespace BotCore.Brain
         }
 
         /// <summary>
-        /// Learn from trading results to improve future decisions
+        /// Enhanced learning from trading results that improves ALL strategies
+        /// Every trade outcome teaches all strategies and improves future decision-making
         /// Called after order execution and P&L is known
         /// </summary>
         public async Task LearnFromResultAsync(
@@ -237,9 +287,12 @@ namespace BotCore.Brain
                     var contextVector = CreateContextVector(context);
                     
                     await _strategySelector.UpdateArmAsync(strategy, contextVector, reward, cancellationToken);
+                    
+                    // 🚀 MULTI-STRATEGY LEARNING: Update ALL strategies with this market condition
+                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, pnl, cancellationToken);
                 }
 
-                // Update performance tracking
+                // Update performance tracking for the specific strategy
                 if (!_performance.ContainsKey(symbol))
                 {
                     _performance[symbol] = new TradingPerformance();
@@ -250,6 +303,9 @@ namespace BotCore.Brain
                 perf.TotalPnL += pnl;
                 if (wasCorrect) perf.WinningTrades++;
                 
+                // Update strategy-specific performance tracking
+                UpdateStrategyPerformance(strategy, context, wasCorrect, pnl, holdTime);
+                
                 // Calculate today's win rate
                 var todayDecisions = _decisionHistory.Where(d => d.Timestamp.Date == DateTime.Today).ToList();
                 if (todayDecisions.Count > 0)
@@ -258,21 +314,133 @@ namespace BotCore.Brain
                     WinRateToday = (decimal)todayDecisions.Count(d => d.WasCorrect) / todayDecisions.Count;
                 }
 
-                // Retrain models periodically
-                if (DateTime.UtcNow - _lastModelUpdate > TimeSpan.FromHours(4) && _decisionHistory.Count > 100)
+                // Enhanced model retraining with multi-strategy learning
+                if (DateTime.UtcNow - _lastUnifiedLearningUpdate > TimeSpan.FromHours(2) && _decisionHistory.Count > 50)
+                {
+                    _ = Task.Run(() => UpdateUnifiedLearningAsync(cancellationToken), cancellationToken);
+                    _lastUnifiedLearningUpdate = DateTime.UtcNow;
+                }
+
+                // Periodic full model retraining
+                if (DateTime.UtcNow - _lastModelUpdate > TimeSpan.FromHours(8) && _decisionHistory.Count > 200)
                 {
                     _ = Task.Run(() => RetrainModelsAsync(cancellationToken), cancellationToken);
                     _lastModelUpdate = DateTime.UtcNow;
                 }
 
-                _logger.LogInformation("📚 [BRAIN-LEARNING] {Symbol} {Strategy}: PnL={PnL:F2}, Correct={Correct}, " +
-                    "WinRate={WinRate:P1}, TotalTrades={Total}",
+                _logger.LogInformation("📚 [UNIFIED-LEARNING] {Symbol} {Strategy}: PnL={PnL:F2}, Correct={Correct}, " +
+                    "WinRate={WinRate:P1}, TotalTrades={Total}, AllStrategiesUpdated=True",
                     symbol, strategy, pnl, wasCorrect, WinRateToday, perf.TotalTrades);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ [BRAIN-LEARNING] Error learning from result");
+                _logger.LogError(ex, "❌ [UNIFIED-LEARNING] Error learning from result");
             }
+        }
+        
+        /// <summary>
+        /// Update ALL strategies based on a single trade outcome
+        /// This creates cross-strategy learning where each outcome improves the entire system
+        /// </summary>
+        private async Task UpdateAllStrategiesFromOutcomeAsync(
+            MarketContext context, 
+            string executedStrategy, 
+            decimal reward, 
+            bool wasCorrect, 
+            decimal pnl,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var contextVector = CreateContextVector(context);
+                
+                foreach (var strategy in PrimaryStrategies)
+                {
+                    if (strategy == executedStrategy)
+                        continue; // Already updated above
+                    
+                    // Calculate learning reward for non-executed strategies based on market conditions
+                    var crossLearningReward = CalculateCrossLearningReward(
+                        strategy, executedStrategy, context, reward, wasCorrect);
+                    
+                    // Update strategy knowledge even if it wasn't executed
+                    await _strategySelector.UpdateArmAsync(strategy, contextVector, crossLearningReward, cancellationToken);
+                    
+                    // Update strategy-specific learning patterns
+                    UpdateStrategyOptimalConditions(strategy, context, crossLearningReward > 0.5m);
+                }
+                
+                _logger.LogDebug("🧠 [CROSS-LEARNING] Updated all strategies from {ExecutedStrategy} outcome: {Reward:F3}", 
+                    executedStrategy, reward);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [CROSS-LEARNING] Error updating all strategies");
+            }
+        }
+        
+        /// <summary>
+        /// Calculate learning reward for strategies that weren't executed
+        /// This allows all strategies to learn from market conditions and outcomes
+        /// </summary>
+        private decimal CalculateCrossLearningReward(
+            string learningStrategy, 
+            string executedStrategy, 
+            MarketContext context, 
+            decimal executedReward, 
+            bool wasCorrect)
+        {
+            // Get strategy specializations
+            var learningSpec = _strategySpecializations.GetValueOrDefault(learningStrategy);
+            var executedSpec = _strategySpecializations.GetValueOrDefault(executedStrategy);
+            
+            if (learningSpec == null || executedSpec == null)
+                return executedReward * 0.1m; // Minimal learning if no specialization
+            
+            // Calculate similarity in optimal conditions
+            var conditionSimilarity = learningSpec.OptimalConditions
+                .Intersect(executedSpec.OptimalConditions)
+                .Count() / (float)Math.Max(learningSpec.OptimalConditions.Length, 1);
+            
+            // Time window overlap
+            var timeOverlap = learningSpec.TimeWindows
+                .Intersect(executedSpec.TimeWindows)
+                .Count() / (float)Math.Max(learningSpec.TimeWindows.Length, 1);
+            
+            // Market condition alignment
+            var currentConditions = GetCurrentMarketConditions(context);
+            var conditionAlignment = learningSpec.OptimalConditions
+                .Intersect(currentConditions)
+                .Count() / (float)Math.Max(learningSpec.OptimalConditions.Length, 1);
+            
+            // Calculate cross-learning strength
+            var learningStrength = (conditionSimilarity * 0.4f + timeOverlap * 0.3f + conditionAlignment * 0.3f);
+            
+            // Positive outcome strengthens similar strategies, negative outcome weakens them
+            var baseReward = wasCorrect ? executedReward : (1 - executedReward);
+            return Math.Clamp(baseReward * (decimal)learningStrength, 0m, 1m);
+        }
+        
+        private string[] GetCurrentMarketConditions(MarketContext context)
+        {
+            var conditions = new List<string>();
+            
+            if (context.Volatility < 0.15m) conditions.Add("low_volatility");
+            else if (context.Volatility > 0.4m) conditions.Add("high_volatility");
+            
+            if (context.VolumeRatio > 1.5m) conditions.Add("high_volume");
+            if (context.TrendStrength > 0.7m) conditions.Add("trending");
+            else if (context.TrendStrength < 0.3m) conditions.Add("ranging");
+            
+            if (context.RSI > 70) conditions.Add("overbought");
+            else if (context.RSI < 30) conditions.Add("oversold");
+            
+            var hour = context.TimeOfDay.Hours;
+            if (hour >= 9 && hour <= 10) conditions.Add("opening_drive");
+            else if (hour >= 11 && hour <= 13) conditions.Add("lunch");
+            else if (hour >= 13 && hour <= 16) conditions.Add("afternoon_fade");
+            
+            return conditions.ToArray();
         }
 
         #region ML Model Predictions
@@ -774,27 +942,48 @@ namespace BotCore.Brain
 
         private List<string> GetAvailableStrategies(TimeSpan timeOfDay, MarketRegime regime)
         {
-            // Use your ACTUAL time-based strategy filtering from ES_NQ_TradingSchedule
+            // Enhanced strategy selection logic for primary strategies (S2, S3, S6, S11)
             var hour = timeOfDay.Hours;
             
-            if (hour >= 18 || hour <= 2) // Asian Session
-                return new[] { "S2", "S11", "S3" }.ToList(); // Your Asian strategies
-            else if (hour >= 2 && hour <= 5) // European Open
-                return new[] { "S3", "S6", "S2" }.ToList(); // European breakouts
-            else if (hour >= 5 && hour <= 8) // London Morning
-                return new[] { "S2", "S3", "S11" }.ToList(); // Good liquidity
-            else if (hour >= 8 && hour <= 9) // US PreMarket
-                return new[] { "S3", "S2" }.ToList(); // Compression setups
-            else if (hour >= 9 && hour <= 10) // Opening Drive - CRITICAL
-                return new[] { "S6" }.ToList(); // ONLY S6 for opening drive
-            else if (hour >= 10 && hour <= 11) // Morning Trend
-                return new[] { "S3", "S2", "S11" }.ToList(); // Best trends
-            else if (hour >= 11 && hour <= 13) // Lunch Chop
-                return new[] { "S2" }.ToList(); // ONLY mean reversion
-            else if (hour >= 13 && hour <= 15) // Afternoon Trend
-                return new[] { "S3", "S2" }.ToList(); // ADR exhaustion setups
-            else
-                return new[] { "S2", "S3" }.ToList(); // Default safe strategies
+            // Time-based primary strategy allocation with specialization
+            var timeBasedStrategies = hour switch
+            {
+                >= 18 or <= 2 => new[] { "S2", "S11" }, // Asian Session: Mean reversion works well
+                >= 2 and <= 5 => new[] { "S3", "S2" }, // European Open: Breakouts and compression
+                >= 5 and <= 8 => new[] { "S2", "S3", "S11" }, // London Morning: Good liquidity
+                >= 8 and <= 9 => new[] { "S3", "S2" }, // US PreMarket: Compression setups
+                >= 9 and <= 10 => new[] { "S6" }, // Opening Drive: ONLY S6 momentum
+                >= 10 and <= 11 => new[] { "S3", "S2", "S11" }, // Morning Trend: Best trends
+                >= 11 and <= 13 => new[] { "S2" }, // Lunch: ONLY mean reversion
+                >= 13 and <= 16 => new[] { "S11", "S3" }, // Afternoon: S11 exhaustion + compression
+                _ => new[] { "S2", "S3" } // Default safe strategies
+            };
+            
+            // Filter by market regime for additional intelligence
+            var regimeOptimalStrategies = regime switch
+            {
+                MarketRegime.Trending => new[] { "S6", "S3" }, // Momentum and breakouts
+                MarketRegime.Ranging => new[] { "S2", "S11" }, // Mean reversion and fades
+                MarketRegime.HighVolatility => new[] { "S3", "S6" }, // Breakouts and momentum
+                MarketRegime.LowVolatility => new[] { "S2" }, // Mean reversion only
+                _ => PrimaryStrategies // All primary strategies
+            };
+            
+            // Intersect time-based and regime-based strategies for optimal selection
+            var availableStrategies = timeBasedStrategies
+                .Intersect(regimeOptimalStrategies)
+                .ToList();
+                
+            // Fallback to time-based if no intersection
+            if (!availableStrategies.Any())
+            {
+                availableStrategies = timeBasedStrategies.ToList();
+            }
+            
+            _logger.LogDebug("🧠 [STRATEGY-SELECTION] Hour={Hour}, Regime={Regime}, Available={Strategies}", 
+                hour, regime, string.Join(",", availableStrategies));
+            
+            return availableStrategies;
         }
 
         private Func<string, Env, Levels, IList<Bar>, RiskEngine, List<Candidate>> GetStrategyFunction(string strategy)
@@ -920,33 +1109,366 @@ namespace BotCore.Brain
             return (recent.Last().Close - recent.First().Close) / recent.First().Close;
         }
 
-        private async Task RetrainModelsAsync(CancellationToken cancellationToken)
+        private async Task UpdateUnifiedLearningAsync(CancellationToken cancellationToken)
         {
             try
             {
-                _logger.LogInformation("🔄 [BRAIN-RETRAIN] Starting model retraining...");
+                _logger.LogInformation("🔄 [UNIFIED-LEARNING] Starting unified learning update across all strategies...");
                 
-                // Export decision history for Python training scripts
-                var trainingData = _decisionHistory.TakeLast(1000).Select(d => new
+                // Analyze performance patterns across all strategies
+                var performanceAnalysis = AnalyzeStrategyPerformance();
+                
+                // Update strategy optimal conditions based on recent performance
+                UpdateOptimalConditionsFromPerformance(performanceAnalysis);
+                
+                // Cross-pollinate successful patterns between strategies
+                await CrossPollinateStrategyPatternsAsync(cancellationToken);
+                
+                _logger.LogInformation("✅ [UNIFIED-LEARNING] Completed unified learning update");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ [UNIFIED-LEARNING] Failed to update unified learning");
+            }
+        }
+        
+        private Dictionary<string, PerformanceMetrics> AnalyzeStrategyPerformance()
+        {
+            var analysis = new Dictionary<string, PerformanceMetrics>();
+            
+            foreach (var strategy in PrimaryStrategies)
+            {
+                if (!_strategyPerformance.TryGetValue(strategy, out var perf))
+                    continue;
+                    
+                var metrics = new PerformanceMetrics
+                {
+                    WinRate = perf.TotalTrades > 0 ? (decimal)perf.WinningTrades / perf.TotalTrades : 0,
+                    AveragePnL = perf.TotalTrades > 0 ? perf.TotalPnL / perf.TotalTrades : 0,
+                    AverageHoldTime = perf.TotalTrades > 0 ? 
+                        TimeSpan.FromTicks(perf.HoldTimes.Sum() / perf.TotalTrades) : TimeSpan.Zero,
+                    BestConditions = GetBestConditionsForStrategy(strategy),
+                    RecentPerformanceTrend = GetRecentPerformanceTrend(strategy)
+                };
+                
+                analysis[strategy] = metrics;
+            }
+            
+            return analysis;
+        }
+        
+        private void UpdateOptimalConditionsFromPerformance(Dictionary<string, PerformanceMetrics> analysis)
+        {
+            foreach (var (strategy, metrics) in analysis)
+            {
+                if (metrics.WinRate < 0.4m) // Poor performing strategy
+                {
+                    // Reduce confidence in current optimal conditions
+                    if (_strategyOptimalConditions.TryGetValue(strategy, out var conditions))
+                    {
+                        // Remove conditions that have been consistently unsuccessful
+                        var unsuccessfulConditions = conditions
+                            .Where(c => c.SuccessRate < 0.3m)
+                            .ToList();
+                        
+                        foreach (var condition in unsuccessfulConditions)
+                        {
+                            conditions.Remove(condition);
+                        }
+                        
+                        _logger.LogDebug("🔄 [CONDITION-UPDATE] Removed {Count} unsuccessful conditions from {Strategy}", 
+                            unsuccessfulConditions.Count, strategy);
+                    }
+                }
+                else if (metrics.WinRate > 0.7m) // High performing strategy
+                {
+                    // Strengthen successful conditions
+                    foreach (var condition in metrics.BestConditions)
+                    {
+                        UpdateConditionSuccess(strategy, condition, true);
+                    }
+                }
+            }
+        }
+        
+        private async Task CrossPollinateStrategyPatternsAsync(CancellationToken cancellationToken)
+        {
+            // Find the best performing strategy
+            var bestStrategy = PrimaryStrategies
+                .Where(s => _strategyPerformance.ContainsKey(s))
+                .OrderByDescending(s => _strategyPerformance[s].WinRate)
+                .FirstOrDefault();
+                
+            if (bestStrategy == null)
+                return;
+                
+            var bestPerformance = _strategyPerformance[bestStrategy];
+            if (bestPerformance.WinRate < 0.6m)
+                return; // Not good enough to share patterns
+            
+            // Share successful patterns with other strategies
+            var successfulConditions = _strategyOptimalConditions
+                .GetValueOrDefault(bestStrategy, new List<MarketCondition>())
+                .Where(c => c.SuccessRate > 0.7m)
+                .ToList();
+            
+            foreach (var strategy in PrimaryStrategies.Where(s => s != bestStrategy))
+            {
+                foreach (var condition in successfulConditions)
+                {
+                    // Add successful condition from best strategy to other strategies
+                    UpdateConditionSuccess(strategy, condition.ConditionName, true, 0.1m); // Lower weight for cross-pollination
+                }
+            }
+            
+            _logger.LogInformation("🌱 [CROSS-POLLINATION] Shared {Count} successful patterns from {BestStrategy} to other strategies", 
+                successfulConditions.Count, bestStrategy);
+        }
+        
+        private void UpdateStrategyPerformance(string strategy, MarketContext context, bool wasCorrect, decimal pnl, TimeSpan holdTime)
+        {
+            if (!_strategyPerformance.TryGetValue(strategy, out var perf))
+            {
+                perf = new StrategyPerformance();
+                _strategyPerformance[strategy] = perf;
+            }
+            
+            perf.TotalTrades++;
+            perf.TotalPnL += pnl;
+            perf.HoldTimes.Add(holdTime.Ticks);
+            
+            if (wasCorrect)
+            {
+                perf.WinningTrades++;
+                perf.WinRate = (decimal)perf.WinningTrades / perf.TotalTrades;
+            }
+            
+            // Update strategy optimal conditions
+            var currentConditions = GetCurrentMarketConditions(context);
+            foreach (var condition in currentConditions)
+            {
+                UpdateConditionSuccess(strategy, condition, wasCorrect);
+            }
+        }
+        
+        private void UpdateStrategyOptimalConditions(string strategy, MarketContext context, bool wasSuccessful)
+        {
+            if (!_strategyOptimalConditions.TryGetValue(strategy, out var conditions))
+            {
+                conditions = new List<MarketCondition>();
+                _strategyOptimalConditions[strategy] = conditions;
+            }
+            
+            var currentConditions = GetCurrentMarketConditions(context);
+            foreach (var conditionName in currentConditions)
+            {
+                UpdateConditionSuccess(strategy, conditionName, wasSuccessful);
+            }
+        }
+        
+        private void UpdateConditionSuccess(string strategy, string conditionName, bool wasSuccessful, decimal weight = 1.0m)
+        {
+            if (!_strategyOptimalConditions.TryGetValue(strategy, out var conditions))
+            {
+                conditions = new List<MarketCondition>();
+                _strategyOptimalConditions[strategy] = conditions;
+            }
+            
+            var condition = conditions.FirstOrDefault(c => c.ConditionName == conditionName);
+            if (condition == null)
+            {
+                condition = new MarketCondition 
+                { 
+                    ConditionName = conditionName, 
+                    SuccessCount = 0, 
+                    TotalCount = 0 
+                };
+                conditions.Add(condition);
+            }
+            
+            condition.TotalCount += weight;
+            if (wasSuccessful)
+            {
+                condition.SuccessCount += weight;
+            }
+            
+            condition.SuccessRate = condition.TotalCount > 0 ? condition.SuccessCount / condition.TotalCount : 0;
+        }
+        
+        private string[] GetBestConditionsForStrategy(string strategy)
+        {
+            return _strategyOptimalConditions
+                .GetValueOrDefault(strategy, new List<MarketCondition>())
+                .Where(c => c.SuccessRate > 0.6m && c.TotalCount >= 3)
+                .OrderByDescending(c => c.SuccessRate)
+                .Take(5)
+                .Select(c => c.ConditionName)
+                .ToArray();
+        }
+        
+        private decimal GetRecentPerformanceTrend(string strategy)
+        {
+            var recentDecisions = _decisionHistory
+                .Where(d => d.Strategy == strategy && d.Timestamp > DateTime.UtcNow.AddHours(-24))
+                .OrderBy(d => d.Timestamp)
+                .ToList();
+                
+            if (recentDecisions.Count < 5)
+                return 0;
+                
+            var recentHalf = recentDecisions.Skip(recentDecisions.Count / 2).ToList();
+            var earlierHalf = recentDecisions.Take(recentDecisions.Count / 2).ToList();
+            
+            var recentWinRate = recentHalf.Count > 0 ? (decimal)recentHalf.Count(d => d.WasCorrect) / recentHalf.Count : 0;
+            var earlierWinRate = earlierHalf.Count > 0 ? (decimal)earlierHalf.Count(d => d.WasCorrect) / earlierHalf.Count : 0;
+            
+            return recentWinRate - earlierWinRate; // Positive = improving, negative = declining
+        }
+
+        /// <summary>
+        /// Get unified scheduling recommendations for both historical and live trading
+        /// Ensures identical timing for Market Open: Light learning every 60 min, Market Closed: Intensive every 15 min
+        /// </summary>
+        public UnifiedSchedulingRecommendation GetUnifiedSchedulingRecommendation(DateTime currentTime)
+        {
+            var estTime = TimeZoneInfo.ConvertTimeFromUtc(currentTime.ToUniversalTime(), 
+                TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time"));
+            var timeOfDay = estTime.TimeOfDay;
+            var dayOfWeek = estTime.DayOfWeek;
+            
+            // CME ES/NQ Futures Schedule: Sunday 6PM - Friday 5PM EST with daily maintenance 5-6PM
+            bool isMarketOpen = IsMarketOpen(dayOfWeek, timeOfDay);
+            bool isMaintenanceWindow = IsMaintenanceWindow(dayOfWeek, timeOfDay);
+            
+            if (isMaintenanceWindow)
+            {
+                return new UnifiedSchedulingRecommendation
+                {
+                    IsMarketOpen = false,
+                    LearningIntensity = "INTENSIVE",
+                    HistoricalLearningIntervalMinutes = 10, // Very frequent during maintenance
+                    LiveTradingActive = false,
+                    RecommendedStrategies = new[] { "S2", "S3", "S6", "S11" }, // All strategies can be analyzed
+                    Reasoning = "Maintenance window - intensive learning opportunity"
+                };
+            }
+            
+            if (!isMarketOpen)
+            {
+                // Weekend or market closed - intensive historical learning
+                return new UnifiedSchedulingRecommendation
+                {
+                    IsMarketOpen = false,
+                    LearningIntensity = "INTENSIVE",
+                    HistoricalLearningIntervalMinutes = 15, // Every 15 minutes as requested
+                    LiveTradingActive = false,
+                    RecommendedStrategies = new[] { "S2", "S3", "S6", "S11" },
+                    Reasoning = "Market closed - intensive historical learning across all strategies"
+                };
+            }
+            
+            // Market is open - light learning alongside live trading
+            var availableStrategies = GetAvailableStrategies(timeOfDay, MarketRegime.Normal);
+            return new UnifiedSchedulingRecommendation
+            {
+                IsMarketOpen = true,
+                LearningIntensity = "LIGHT",
+                HistoricalLearningIntervalMinutes = 60, // Every 60 minutes as requested
+                LiveTradingActive = true,
+                RecommendedStrategies = availableStrategies.ToArray(),
+                Reasoning = $"Market open - light historical learning every 60min, active live trading with {string.Join(",", availableStrategies)}"
+            };
+        }
+        
+        private bool IsMarketOpen(DayOfWeek dayOfWeek, TimeSpan timeOfDay)
+        {
+            // CME ES/NQ: Sunday 6PM - Friday 5PM EST
+            var marketOpenTime = new TimeSpan(18, 0, 0);  // 6:00 PM EST
+            var marketCloseTime = new TimeSpan(17, 0, 0); // 5:00 PM EST
+            
+            // Weekend check
+            if (dayOfWeek == DayOfWeek.Saturday)
+                return false;
+                
+            if (dayOfWeek == DayOfWeek.Sunday && timeOfDay < marketOpenTime)
+                return false;
+                
+            if (dayOfWeek == DayOfWeek.Friday && timeOfDay >= marketCloseTime)
+                return false;
+            
+            // Daily maintenance break: 5:00-6:00 PM EST Monday-Thursday
+            if (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday)
+            {
+                if (timeOfDay >= marketCloseTime && timeOfDay < marketOpenTime)
+                    return false; // Maintenance break
+            }
+            
+            return true;
+        }
+        
+        private bool IsMaintenanceWindow(DayOfWeek dayOfWeek, TimeSpan timeOfDay)
+        {
+            // Daily maintenance: 5:00-6:00 PM EST Monday-Thursday
+            if (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday)
+            {
+                var maintenanceStart = new TimeSpan(17, 0, 0); // 5:00 PM EST
+                var maintenanceEnd = new TimeSpan(18, 0, 0);   // 6:00 PM EST
+                
+                return timeOfDay >= maintenanceStart && timeOfDay <= maintenanceEnd;
+            }
+            
+            return false;
+        }
+        {
+            try
+            {
+                _logger.LogInformation("🔄 [UNIFIED-RETRAIN] Starting unified model retraining across all strategies...");
+                
+                // Export comprehensive training data including all strategies
+                var unifiedTrainingData = _decisionHistory.TakeLast(2000).Select(d => new
                 {
                     features = CreateContextVector(d.Context).Features,
                     strategy = d.Strategy,
                     reward = d.WasCorrect ? 1.0 : 0.0,
-                    timestamp = d.Timestamp
+                    pnl = (double)d.PnL,
+                    market_conditions = GetCurrentMarketConditions(d.Context),
+                    timestamp = d.Timestamp,
+                    strategy_specialization = _strategySpecializations.GetValueOrDefault(d.Strategy)?.Name ?? "unknown"
                 });
                 
-                var dataPath = Path.Combine("data", "brain_training_data.json");
+                // Export strategy performance data
+                var strategyPerformanceData = _strategyPerformance.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => new
+                    {
+                        win_rate = kvp.Value.WinRate,
+                        total_trades = kvp.Value.TotalTrades,
+                        total_pnl = (double)kvp.Value.TotalPnL,
+                        avg_hold_time = kvp.Value.HoldTimes.Count > 0 ? 
+                            TimeSpan.FromTicks((long)kvp.Value.HoldTimes.Average()).TotalMinutes : 0,
+                        optimal_conditions = GetBestConditionsForStrategy(kvp.Key)
+                    });
+                
+                // Export data for training
+                var dataPath = Path.Combine("data", "unified_brain_training_data.json");
+                var perfPath = Path.Combine("data", "strategy_performance_data.json");
+                
                 Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
-                await File.WriteAllTextAsync(dataPath, JsonSerializer.Serialize(trainingData), cancellationToken);
                 
-                _logger.LogInformation("✅ [BRAIN-RETRAIN] Training data exported: {Count} samples", trainingData.Count());
+                await File.WriteAllTextAsync(dataPath, JsonSerializer.Serialize(unifiedTrainingData, 
+                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+                await File.WriteAllTextAsync(perfPath, JsonSerializer.Serialize(strategyPerformanceData, 
+                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
                 
-                // Here you could trigger Python training scripts
-                // await RunPythonTrainingAsync(dataPath, cancellationToken);
+                _logger.LogInformation("✅ [UNIFIED-RETRAIN] Training data exported: {Count} decisions, {StrategyCount} strategies", 
+                    unifiedTrainingData.Count(), _strategyPerformance.Count);
+                
+                // Here you could trigger enhanced Python training scripts that understand multi-strategy learning
+                // await RunUnifiedPythonTrainingAsync(dataPath, perfPath, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ [BRAIN-RETRAIN] Model retraining failed");
+                _logger.LogError(ex, "❌ [UNIFIED-RETRAIN] Unified model retraining failed");
             }
         }
 
@@ -1089,6 +1611,50 @@ namespace BotCore.Brain
     }
 
     #region Supporting Models
+
+    public class StrategySpecialization
+    {
+        public string Name { get; set; } = string.Empty;
+        public string[] OptimalConditions { get; set; } = Array.Empty<string>();
+        public string LearningFocus { get; set; } = string.Empty;
+        public string[] TimeWindows { get; set; } = Array.Empty<string>();
+    }
+
+    public class StrategyPerformance
+    {
+        public int TotalTrades { get; set; }
+        public int WinningTrades { get; set; }
+        public decimal TotalPnL { get; set; }
+        public decimal WinRate { get; set; }
+        public List<long> HoldTimes { get; set; } = new();
+    }
+
+    public class MarketCondition
+    {
+        public string ConditionName { get; set; } = string.Empty;
+        public decimal SuccessCount { get; set; }
+        public decimal TotalCount { get; set; }
+        public decimal SuccessRate { get; set; }
+    }
+
+    public class PerformanceMetrics
+    {
+        public decimal WinRate { get; set; }
+        public decimal AveragePnL { get; set; }
+        public TimeSpan AverageHoldTime { get; set; }
+        public string[] BestConditions { get; set; } = Array.Empty<string>();
+        public decimal RecentPerformanceTrend { get; set; }
+    }
+
+    public class UnifiedSchedulingRecommendation
+    {
+        public bool IsMarketOpen { get; set; }
+        public string LearningIntensity { get; set; } = string.Empty; // INTENSIVE, LIGHT, BACKGROUND
+        public int HistoricalLearningIntervalMinutes { get; set; }
+        public bool LiveTradingActive { get; set; }
+        public string[] RecommendedStrategies { get; set; } = Array.Empty<string>();
+        public string Reasoning { get; set; } = string.Empty;
+    }
 
     public class BrainDecision
     {
