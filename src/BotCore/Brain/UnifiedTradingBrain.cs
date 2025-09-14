@@ -304,7 +304,10 @@ namespace BotCore.Brain
                 if (wasCorrect) perf.WinningTrades++;
                 
                 // Update strategy-specific performance tracking
-                UpdateStrategyPerformance(strategy, context, wasCorrect, pnl, holdTime);
+                if (context != null)
+                {
+                    UpdateStrategyPerformance(strategy, context, wasCorrect, pnl, holdTime);
+                }
                 
                 // Calculate today's win rate
                 var todayDecisions = _decisionHistory.Where(d => d.Timestamp.Date == DateTime.Today).ToList();
@@ -1193,6 +1196,8 @@ namespace BotCore.Brain
         
         private async Task CrossPollinateStrategyPatternsAsync(CancellationToken cancellationToken)
         {
+            await Task.CompletedTask;
+            
             // Find the best performing strategy
             var bestStrategy = PrimaryStrategies
                 .Where(s => _strategyPerformance.ContainsKey(s))
@@ -1419,6 +1424,8 @@ namespace BotCore.Brain
             
             return false;
         }
+
+        private async Task RetrainModelsAsync(CancellationToken cancellationToken)
         {
             try
             {
