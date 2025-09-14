@@ -171,6 +171,12 @@ public class TradingContext
     public decimal Spread { get; set; }
     public bool IsMarketOpen { get; set; }
     
+    // Required OHLC properties per production specification
+    public decimal High { get; set; }
+    public decimal Low { get; set; }
+    public decimal Open { get; set; }
+    public decimal Close { get; set; }
+    
     // Technical indicators and market data (from comprehensive version)
     public decimal Volatility { get; set; }
     public Dictionary<string, decimal> TechnicalIndicators { get; set; } = new();
@@ -182,6 +188,11 @@ public class TradingContext
     public decimal UnrealizedPnL { get; set; }
     public decimal DailyPnL { get; set; }
     public decimal AccountBalance { get; set; }
+    
+    // Required properties per production specification
+    public decimal RealizedPnL { get; set; }
+    public decimal MaxPositionSize { get; set; } = 1000000m;
+    public bool IsBacktest { get; set; } = false;
     
     // Risk context (from both versions)
     public decimal MaxDrawdown { get; set; }

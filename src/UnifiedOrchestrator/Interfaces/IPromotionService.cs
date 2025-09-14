@@ -117,4 +117,11 @@ public class PromotionSchedule
     public TimeSpan MaxDelay { get; set; } = TimeSpan.FromHours(24);
     public string ApprovedBy { get; set; } = string.Empty;
     public Dictionary<string, object> Conditions { get; set; } = new();
+    
+    // Required properties per production specification  
+    public string Algorithm { get; set; } = string.Empty;
+    public string ChallengerVersionId { get; set; } = string.Empty;
+    public Models.ValidationReport ValidationReport { get; set; } = new(); // Use the detailed ValidationReport from Models
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string Status { get; set; } = "Pending"; // Use string instead of enum to avoid conflicts
 }
