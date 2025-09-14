@@ -23,4 +23,9 @@
     <ProjectReference Include="../BotCore/BotCore.csproj" />
   </ItemGroup>
 
+  <!-- Exclude HistoricalTrainer folder from compilation as it's a separate project -->
+  <ItemGroup>
+    <Compile Remove="HistoricalTrainer/**" />
+  </ItemGroup>
+
 </Project>
