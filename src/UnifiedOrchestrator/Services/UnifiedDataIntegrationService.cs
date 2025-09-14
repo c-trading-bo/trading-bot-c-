@@ -332,6 +332,11 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
 public interface IUnifiedDataIntegrationService
 {
     /// <summary>
+    /// Validate that historical and live data pipelines are consistent
+    /// </summary>
+    Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Get data integration status
     /// </summary>
     DataIntegrationStatus GetIntegrationStatus();
