@@ -30,4 +30,7 @@ public class ModelMetrics
     public double Beta { get; set; }
     public double VolatilityAnnualized { get; set; }
     public double ReturnAnnualized { get; set; }
+    public double PrAt10 { get; set; } // Precision at 10
+    public double RecallAt10 { get; set; } // Recall at 10
+    public double F1At10 { get; set; } // F1 at 10
 }
