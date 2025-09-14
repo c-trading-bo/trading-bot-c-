@@ -88,7 +88,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
             var rollbackResult = await _rollbackDrillService.ExecuteRollbackDrillAsync(
                 new RollbackDrillConfig 
                 { 
-                    LoadLevel = "High", 
+                    LoadLevel = LoadLevel.High, 
                     TestDurationSeconds = 30,
                     ExpectedRollbackTimeMs = 100
                 }, cancellationToken);

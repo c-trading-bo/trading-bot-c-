@@ -138,19 +138,19 @@ public class ContinuousOperationService : BackgroundService
             
             switch (intensity.Level)
             {
-                case "INTENSIVE":
+                case TrainingIntensityLevel.Intensive:
                     await ScheduleIntensiveTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "MODERATE":
+                case TrainingIntensityLevel.High:
                     await ScheduleModerateTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "BACKGROUND":
+                case TrainingIntensityLevel.Medium:
                     await ScheduleBackgroundTrainingAsync(intensity, cancellationToken);
                     break;
                 
-                case "MINIMAL":
+                case TrainingIntensityLevel.Light:
                     // Market active - minimal training only
                     await CleanupNonCriticalJobsAsync(cancellationToken);
                     break;

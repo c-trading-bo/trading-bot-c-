@@ -82,6 +82,9 @@ public class TradingDecision
     public Dictionary<string, decimal> AlgorithmConfidences { get; set; } = new();
     public Dictionary<string, object> DecisionMetadata { get; set; } = new();
     
+    // Compatibility alias
+    public Dictionary<string, object> Metadata => DecisionMetadata;
+    
     // Risk assessment
     public bool PassedRiskChecks { get; set; }
     public List<string> RiskWarnings { get; set; } = new();

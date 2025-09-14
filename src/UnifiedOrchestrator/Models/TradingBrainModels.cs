@@ -76,6 +76,11 @@ public class ValidationReport
     public double ValidationDurationMs { get; set; }
     public bool Passed { get; set; }
     public string? ErrorMessage { get; set; }
+    
+    // Additional properties for compatibility
+    public double ChallengerSharpe => PerformanceMetrics?.SharpeChallenger ?? 0;
+    public double ChampionSharpe => PerformanceMetrics?.SharpeChampion ?? 0;
+    public double PValue => StatisticalSignificance?.PValue ?? 1.0;
 }
 
 /// <summary>

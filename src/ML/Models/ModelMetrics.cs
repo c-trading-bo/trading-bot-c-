@@ -33,4 +33,7 @@ public class ModelMetrics
     public double PrAt10 { get; set; } // Precision at 10
     public double RecallAt10 { get; set; } // Recall at 10
     public double F1At10 { get; set; } // F1 at 10
+    public double ECE { get; set; } // Expected Calibration Error
+    public double EdgeBps { get; set; } // Edge in basis points
+    public DateTime ComputedAt { get; set; } = DateTime.UtcNow;
 }
