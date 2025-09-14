@@ -303,6 +303,43 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     }
 
     /// <summary>
+    /// Validate that historical and live data pipelines are consistent
+    /// </summary>
+    public async Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[UNIFIED-DATA] Validating data consistency between historical and live pipelines");
+        
+        try
+        {
+            // Check if both data sources are connected
+            if (!_isHistoricalDataConnected || !_isLiveDataConnected)
+            {
+                _logger.LogWarning("[UNIFIED-DATA] Data consistency validation failed - not all data sources connected (Historical: {Historical}, Live: {Live})", 
+                    _isHistoricalDataConnected, _isLiveDataConnected);
+                return false;
+            }
+
+            // Check if data sync is recent (within last hour)
+            var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+            if (_lastHistoricalDataSync < oneHourAgo || _lastLiveDataReceived < oneHourAgo)
+            {
+                _logger.LogWarning("[UNIFIED-DATA] Data consistency validation failed - stale data detected (Last Historical: {LastHistorical}, Last Live: {LastLive})", 
+                    _lastHistoricalDataSync, _lastLiveDataReceived);
+                return false;
+            }
+
+            // Log success
+            _logger.LogInformation("[UNIFIED-DATA] Data consistency validation passed - both pipelines are active and synchronized");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UNIFIED-DATA] Data consistency validation failed with exception");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Generate status message based on current state
     /// </summary>
     private string GenerateStatusMessage()

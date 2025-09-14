@@ -14,7 +14,7 @@ public interface IShadowTester
     /// <summary>
     /// Run shadow A/B test between challenger and champion
     /// </summary>
-    Task<ValidationReport> RunShadowTestAsync(string algorithm, string challengerVersionId, ShadowTestConfig config, CancellationToken cancellationToken = default);
+    Task<PromotionTestReport> RunShadowTestAsync(string algorithm, string challengerVersionId, ShadowTestConfig config, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Get ongoing shadow test status

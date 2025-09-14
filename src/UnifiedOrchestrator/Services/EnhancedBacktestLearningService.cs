@@ -364,22 +364,6 @@ public class EnhancedBacktestLearningService : BackgroundService
                 _logger.LogWarning(ex, "[UNIFIED-BACKTEST] Error processing bar at {Time}", currentBar.Start);
             }
         }
-    } +
-                "Return: {Return:P2}, Sharpe: {Sharpe:F2}, Max DD: {MaxDD:P2}, Trades: {Trades}",
-                backtestId, result.TotalReturn, result.SharpeRatio, result.MaxDrawdown, result.TotalTrades);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[ENHANCED-BACKTEST] Failed to run historical backtest {BacktestId}", backtestId);
-            throw;
-        }
-        finally
-        {
-            // Clean up replay context
-            _replayContexts.Remove(backtestId);
-        }
     }
 
     /// <summary>

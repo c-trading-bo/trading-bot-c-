@@ -34,7 +34,7 @@ public class ShadowTester : IShadowTester
     /// <summary>
     /// Run shadow A/B test between challenger and champion
     /// </summary>
-    public async Task<ValidationReport> RunShadowTestAsync(string algorithm, string challengerVersionId, ShadowTestConfig config, CancellationToken cancellationToken = default)
+    public async Task<PromotionTestReport> RunShadowTestAsync(string algorithm, string challengerVersionId, ShadowTestConfig config, CancellationToken cancellationToken = default)
     {
         var testId = GenerateTestId(algorithm, challengerVersionId);
         
@@ -150,14 +150,14 @@ public class ShadowTester : IShadowTester
 
     #region Private Methods
 
-    private async Task<ValidationReport> ExecuteShadowTestAsync(ShadowTest shadowTest, ModelVersion champion, ModelVersion challenger, CancellationToken cancellationToken)
+    private async Task<PromotionTestReport> ExecuteShadowTestAsync(ShadowTest shadowTest, ModelVersion champion, ModelVersion challenger, CancellationToken cancellationToken)
     {
         // Load both models for parallel inference
         var championModel = await LoadModelAsync(champion, cancellationToken);
         var challengerModel = await LoadModelAsync(challenger, cancellationToken);
 
         // Create validation report
-        var report = new ValidationReport
+        var report = new PromotionTestReport
         {
             ChallengerVersionId = challenger.VersionId,
             ChampionVersionId = champion.VersionId,
@@ -267,7 +267,7 @@ public class ShadowTester : IShadowTester
         };
     }
 
-    private void CalculatePerformanceMetrics(ShadowTest shadowTest, ValidationReport report)
+    private void CalculatePerformanceMetrics(ShadowTest shadowTest, PromotionTestReport report)
     {
         // Calculate mock performance metrics
         var championDecisions = shadowTest.ChampionDecisions;
@@ -294,7 +294,7 @@ public class ShadowTester : IShadowTester
         report.LatencyP99 = report.LatencyP95 * 1.5m;
     }
 
-    private void RunStatisticalTests(ShadowTest shadowTest, ValidationReport report)
+    private void RunStatisticalTests(ShadowTest shadowTest, PromotionTestReport report)
     {
         // Mock statistical significance test
         var sampleSize = shadowTest.ChampionDecisions.Count;
@@ -310,7 +310,7 @@ public class ShadowTester : IShadowTester
         report.StatisticallySignificant = report.PValue < shadowTest.Config.SignificanceLevel;
     }
 
-    private void CheckBehaviorAlignment(ShadowTest shadowTest, ValidationReport report)
+    private void CheckBehaviorAlignment(ShadowTest shadowTest, PromotionTestReport report)
     {
         var championDecisions = shadowTest.ChampionDecisions;
         var challengerDecisions = shadowTest.ChallengerDecisions;
@@ -338,7 +338,7 @@ public class ShadowTester : IShadowTester
         report.SizeAlignment = 0.80m + (decimal)(Random.Shared.NextDouble() * 0.15);
     }
 
-    private void ValidatePerformanceConstraints(ShadowTest shadowTest, ValidationReport report)
+    private void ValidatePerformanceConstraints(ShadowTest shadowTest, PromotionTestReport report)
     {
         // Check latency constraints
         var latencyOk = report.LatencyP95 < 50 && report.LatencyP99 < 100;
@@ -367,7 +367,7 @@ public class ShadowTester : IShadowTester
         }
     }
 
-    private void AssessValidationResults(ValidationReport report)
+    private void AssessValidationResults(PromotionTestReport report)
     {
         var passedPerformance = report.ChallengerSharpe > report.ChampionSharpe && 
                                report.ChallengerSortino > report.ChampionSortino;

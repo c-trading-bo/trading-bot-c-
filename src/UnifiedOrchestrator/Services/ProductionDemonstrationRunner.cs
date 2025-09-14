@@ -21,6 +21,8 @@ public class ProductionDemonstrationRunner
     private readonly IValidationService _statisticalValidation;
     private readonly IRollbackDrillService _rollbackService;
     private readonly IUnifiedDataIntegrationService _dataIntegration;
+    private readonly EnumMappingValidationService _enumValidation;
+    private readonly ValidationReportRegressionService _regressionService;
     
     private readonly string _outputDirectory = Path.Combine("artifacts", "production-demo");
 
@@ -30,7 +32,9 @@ public class ProductionDemonstrationRunner
         ITradingBrainAdapter brainAdapter,
         IValidationService statisticalValidation,
         IRollbackDrillService rollbackService,
-        IUnifiedDataIntegrationService dataIntegration)
+        IUnifiedDataIntegrationService dataIntegration,
+        EnumMappingValidationService enumValidation,
+        ValidationReportRegressionService regressionService)
     {
         _logger = logger;
         _validationService = validationService;
@@ -38,6 +42,8 @@ public class ProductionDemonstrationRunner
         _statisticalValidation = statisticalValidation;
         _rollbackService = rollbackService;
         _dataIntegration = dataIntegration;
+        _enumValidation = enumValidation;
+        _regressionService = regressionService;
         
         Directory.CreateDirectory(_outputDirectory);
     }
@@ -81,8 +87,18 @@ public class ProductionDemonstrationRunner
             _logger.LogWarning("✅ [DEMO-STEP-5] Validating data integration...");
             await DemonstrateDataIntegrationAsync(demoId, cancellationToken);
 
-            // 6. Complete Production Readiness Report
-            _logger.LogWarning("✅ [DEMO-STEP-6] Generating comprehensive production readiness report...");
+            // 6. Enum Mapping Coverage Validation (REQUESTED IN PR REVIEW)
+            _logger.LogWarning("✅ [DEMO-STEP-6] Testing ConvertPriceDirectionToTradingAction() enum mapping coverage...");
+            var enumValidationReport = await _enumValidation.ValidateEnumMappingCoverageAsync(cancellationToken);
+            await SaveArtifactAsync($"{demoId}-enum-mapping-coverage.json", enumValidationReport);
+
+            // 7. ValidationReport → PromotionTestReport Regression Tests (REQUESTED IN PR REVIEW)
+            _logger.LogWarning("✅ [DEMO-STEP-7] Running ValidationReport → PromotionTestReport regression tests...");
+            var regressionReport = await _regressionService.RunRegressionTestsAsync(cancellationToken);
+            await SaveArtifactAsync($"{demoId}-regression-test-report.json", regressionReport);
+
+            // 8. Complete Production Readiness Report
+            _logger.LogWarning("✅ [DEMO-STEP-8] Generating comprehensive production readiness report...");
             var productionReport = await _validationService.RunCompleteValidationAsync(cancellationToken);
             await SaveArtifactAsync($"{demoId}-complete-production-report.json", productionReport);
 
@@ -136,10 +152,10 @@ public class ProductionDemonstrationRunner
                 Timestamp = decision.Timestamp,
                 Action = decision.Action.ToString(),
                 Confidence = decision.Confidence,
-                PrimaryAlgorithm = decision.Metadata.GetValueOrDefault("Algorithm", "Unknown"),
-                ShadowAlgorithm = decision.Metadata.GetValueOrDefault("ShadowBrainUsed", "None"),
-                ProcessingTimeMs = decision.Metadata.GetValueOrDefault("ProcessingTimeMs", "0"),
-                AgreementRate = decision.Metadata.GetValueOrDefault("AgreementRate", "0")
+                PrimaryAlgorithm = decision.Reasoning.GetValueOrDefault("Algorithm", "Unknown"),
+                ShadowAlgorithm = decision.Reasoning.GetValueOrDefault("ShadowBrainUsed", "None"),
+                ProcessingTimeMs = decision.Reasoning.GetValueOrDefault("ProcessingTimeMs", "0"),
+                AgreementRate = decision.Reasoning.GetValueOrDefault("AgreementRate", "0")
             });
 
             await Task.Delay(200, cancellationToken);

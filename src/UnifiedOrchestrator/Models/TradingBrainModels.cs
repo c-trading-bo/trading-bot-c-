@@ -157,16 +157,35 @@ public class ShadowTestResult
 }
 
 /// <summary>
-/// Trading context for decision making
+/// Trading context for decision making - unified definition
 /// </summary>
 public class TradingContext
 {
     public string Symbol { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    
+    // Market data (from simple version)
     public decimal CurrentPrice { get; set; }
-    public DateTime Timestamp { get; set; }
+    public decimal Price { get; set; } // Alias for CurrentPrice for compatibility
     public long Volume { get; set; }
     public decimal Spread { get; set; }
     public bool IsMarketOpen { get; set; }
+    
+    // Technical indicators and market data (from comprehensive version)
+    public decimal Volatility { get; set; }
+    public Dictionary<string, decimal> TechnicalIndicators { get; set; } = new();
+    public Dictionary<string, decimal> MarketData { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; set; } = new();
+    
+    // Position context (from comprehensive version)
+    public decimal CurrentPosition { get; set; }
+    public decimal UnrealizedPnL { get; set; }
+    public decimal DailyPnL { get; set; }
+    public decimal AccountBalance { get; set; }
+    
+    // Risk context (from both versions)
+    public decimal MaxDrawdown { get; set; }
+    public decimal DailyLossLimit { get; set; }
     public bool IsEmergencyStop { get; set; }
     public Dictionary<string, object> RiskParameters { get; set; } = new();
 }
