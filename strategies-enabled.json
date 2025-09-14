@@ -1,0 +1,59 @@
+{
+  "strategies": {
+    "S2": {
+      "enabled": true,
+      "name": "VWAP Mean-Reversion",
+      "description": "VWAP-based mean reversion strategy with volatility filters",
+      "mode": "live",
+      "auto_learning": true,
+      "auto_promotion": true,
+      "priority": 2
+    },
+    "S3": {
+      "enabled": true,
+      "name": "Bollinger Squeeze Breakout", 
+      "description": "Squeeze breakout strategy with ADR exhaustion fade",
+      "mode": "live",
+      "auto_learning": true,
+      "auto_promotion": true,
+      "priority": 1
+    },
+    "S6": {
+      "enabled": true,
+      "name": "MaxPerf FullStack Bridge",
+      "description": "Bridge strategy connecting S6 and S11 methodologies",
+      "mode": "live", 
+      "auto_learning": true,
+      "auto_promotion": true,
+      "priority": 3
+    },
+    "S11": {
+      "enabled": true,
+      "name": "ADR/IB Exhaustion Fade",
+      "description": "ADR/IB exhaustion fade for ES & NQ with momentum divergence",
+      "mode": "live",
+      "auto_learning": true,
+      "auto_promotion": true,
+      "priority": 4
+    }
+  },
+  "global_settings": {
+    "auto_promotion_enabled": true,
+    "min_shadow_test_trades": 50,
+    "min_shadow_test_sessions": 5,
+    "promotion_confidence_threshold": 0.65,
+    "require_manual_approval": false,
+    "enable_concurrent_learning": true,
+    "max_concurrent_strategies": 4,
+    "rollback_on_decline": true
+  },
+  "learning_configuration": {
+    "historical_learning_enabled": true,
+    "live_learning_enabled": true,
+    "cloud_learning_enabled": true,
+    "rl_enabled": true,
+    "concurrent_learning_interval_minutes": 60,
+    "offline_learning_interval_minutes": 15,
+    "learning_memory_limit_mb": 2048
+  }
+}

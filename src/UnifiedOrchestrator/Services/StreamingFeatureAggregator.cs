@@ -220,14 +220,18 @@ namespace UnifiedOrchestrator.Services
             // Mid price change
             if (recentTicks.Count > 1)
             {
-                var firstTick = recentTicks.First();
-                var lastTick = recentTicks.Last();
-                var firstMid = (firstTick.Bid + firstTick.Ask) / 2.0;
-                var lastMid = (lastTick.Bid + lastTick.Ask) / 2.0;
+                var firstTick = recentTicks.FirstOrDefault();
+                var lastTick = recentTicks.LastOrDefault();
                 
-                if (firstMid > 0)
+                if (firstTick != null && lastTick != null)
                 {
-                    features.MidPriceChange = (lastMid - firstMid) / firstMid;
+                    var firstMid = (firstTick.Bid + firstTick.Ask) / 2.0;
+                    var lastMid = (lastTick.Bid + lastTick.Ask) / 2.0;
+                    
+                    if (firstMid > 0)
+                    {
+                        features.MidPriceChange = (lastMid - firstMid) / firstMid;
+                    }
                 }
             }
 
@@ -277,10 +281,11 @@ namespace UnifiedOrchestrator.Services
             if (windowTicks.Count > 0)
             {
                 var avgVolume = windowTicks.Average(t => t.Volume);
-                var currentVolume = windowTicks.Last().Volume;
+                var lastTick = windowTicks.LastOrDefault();
                 
-                if (avgVolume > 0)
+                if (lastTick != null && avgVolume > 0)
                 {
+                    var currentVolume = lastTick.Volume;
                     features.VolumeProfile = currentVolume / avgVolume;
                 }
             }
