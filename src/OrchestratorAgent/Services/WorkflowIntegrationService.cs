@@ -25,7 +25,7 @@ namespace OrchestratorAgent.Services
         public WorkflowIntegrationService(
             HttpClient httpClient,
             ILogger<WorkflowIntegrationService> logger,
-            string intelligenceDataPath = "Intelligence/data/integrated",
+            string intelligenceDataPath = "data/integrated",
             string? githubToken = null)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));

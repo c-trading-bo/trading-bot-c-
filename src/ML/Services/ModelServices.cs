@@ -24,7 +24,7 @@ public class FileModelRegistry : IModelRegistry
         Directory.CreateDirectory(_modelsPath);
     }
 
-    public async Task<bool> RegisterModelAsync(string modelName, string version, string modelPath, ModelMetrics metrics, CancellationToken cancellationToken = default)
+    public bool RegisterModel(string modelName, string version, string modelPath, ModelMetrics metrics)
     {
         try
         {
@@ -43,14 +43,14 @@ public class FileModelRegistry : IModelRegistry
         }
     }
 
-    public async Task<string?> GetModelPathAsync(string modelName, string? version = null, CancellationToken cancellationToken = default)
+    public string? GetModelPath(string modelName, string? version = null)
     {
         var pattern = version != null ? $"{modelName}_{version}.onnx" : $"{modelName}_*.onnx";
         var files = Directory.GetFiles(_modelsPath, pattern);
         return files.Length > 0 ? files[0] : null;
     }
 
-    public async Task<ModelMetrics?> GetModelMetricsAsync(string modelName, string? version = null, CancellationToken cancellationToken = default)
+    public ModelMetrics? GetModelMetrics(string modelName, string? version = null)
     {
         // Return basic metrics
         return new ModelMetrics
@@ -64,7 +64,7 @@ public class FileModelRegistry : IModelRegistry
         };
     }
 
-    public async Task<List<string>> GetAvailableModelsAsync(CancellationToken cancellationToken = default)
+    public List<string> GetAvailableModels()
     {
         var models = new List<string>();
         var files = Directory.GetFiles(_modelsPath, "*.onnx");
@@ -78,7 +78,7 @@ public class FileModelRegistry : IModelRegistry
         return models;
     }
 
-    public async Task<List<string>> GetModelVersionsAsync(string modelName, CancellationToken cancellationToken = default)
+    public List<string> GetModelVersions(string modelName)
     {
         var versions = new List<string>();
         var files = Directory.GetFiles(_modelsPath, $"{modelName}_*.onnx");
@@ -92,7 +92,7 @@ public class FileModelRegistry : IModelRegistry
         return versions;
     }
 
-    public async Task<bool> DeleteModelAsync(string modelName, string? version = null, CancellationToken cancellationToken = default)
+    public bool DeleteModel(string modelName, string? version = null)
     {
         try
         {
@@ -125,9 +125,8 @@ public class InMemoryFeatureStore : IFeatureStore
         _logger = logger;
     }
 
-    public async Task<Dictionary<string, double[]>> GetFeaturesAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken = default)
+    public Dictionary<string, double[]> GetFeatures(DateTime startDate, DateTime endDate)
     {
-        await Task.Delay(1, cancellationToken); // Make it properly async
         var result = new Dictionary<string, double[]>();
         
         foreach (var (featureName, data) in _features)
@@ -142,7 +141,7 @@ public class InMemoryFeatureStore : IFeatureStore
         return result;
     }
 
-    public async Task<bool> StoreFeaturesAsync(string featureName, DateTime timestamp, double[] values, CancellationToken cancellationToken = default)
+    public bool StoreFeatures(string featureName, DateTime timestamp, double[] values)
     {
         if (!_features.ContainsKey(featureName))
             _features[featureName] = new List<(DateTime, double[])>();
@@ -151,12 +150,12 @@ public class InMemoryFeatureStore : IFeatureStore
         return true;
     }
 
-    public async Task<string[]> GetAvailableFeaturesAsync(CancellationToken cancellationToken = default)
+    public string[] GetAvailableFeatures()
     {
         return _features.Keys.ToArray();
     }
 
-    public async Task<Dictionary<string, double[]>> GetLatestFeaturesAsync(int count = 100, CancellationToken cancellationToken = default)
+    public Dictionary<string, double[]> GetLatestFeatures(int count = 100)
     {
         var result = new Dictionary<string, double[]>();
         

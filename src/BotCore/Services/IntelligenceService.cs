@@ -36,7 +36,7 @@ public class IntelligenceService : IIntelligenceService
     public IntelligenceService(ILogger<IntelligenceService> logger, string? signalsPath = null)
     {
         _logger = logger;
-        _signalsPath = signalsPath ?? "../Intelligence/data/signals/latest.json";
+        _signalsPath = signalsPath ?? "data/signals/latest.json";
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -124,7 +124,7 @@ public class IntelligenceService : IIntelligenceService
         try
         {
             var resultsFolderPath = Path.GetDirectoryName(_signalsPath)?.Replace("signals", "trades")
-                                   ?? "../Intelligence/data/trades/";
+                                   ?? "data/trades/";
 
             Directory.CreateDirectory(resultsFolderPath);
 

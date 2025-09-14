@@ -16,7 +16,7 @@ public class PerformanceTracker
     public PerformanceTracker(ILogger<PerformanceTracker> logger, string? tradesPath = null)
     {
         _logger = logger;
-        _tradesPath = tradesPath ?? "../Intelligence/data/trades";
+        _tradesPath = tradesPath ?? "data/trades";
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,

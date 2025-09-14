@@ -17,7 +17,7 @@ public class ExecutionAnalyzer
     public ExecutionAnalyzer(ILogger<ExecutionAnalyzer> logger, string? feedbackPath = null)
     {
         _logger = logger;
-        _feedbackPath = feedbackPath ?? "../Intelligence/data/zones/feedback";
+        _feedbackPath = feedbackPath ?? "data/zones/feedback";
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
