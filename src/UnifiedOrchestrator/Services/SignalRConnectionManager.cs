@@ -1178,39 +1178,78 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         }
         
         int eventCountBefore = _totalMessagesReceived;
+        bool hasAnySuccess = false;
         
         try
         {
-            await _marketHub.InvokeAsync("SubscribeContractQuotes", contractId);
-            AddToSubscriptionManifest("MarketHub", "SubscribeContractQuotes", contractId);
-            _logger.LogInformation("[TOPSTEPX] Subscribed to Contract Quotes for contractId {ContractId}", contractId);
+            // Try multiple subscription methods to ensure live data reception
+            var subscriptionMethods = new[]
+            {
+                "SubscribeContractQuotes",
+                "SubscribeQuotes", 
+                "SubscribeMarketData",
+                "Subscribe"
+            };
             
-            // Optional: Also subscribe to trades and depth if available
+            foreach (var method in subscriptionMethods)
+            {
+                try
+                {
+                    await _marketHub.InvokeAsync(method, contractId);
+                    AddToSubscriptionManifest("MarketHub", method, contractId);
+                    _logger.LogInformation("[TOPSTEPX] ✅ Successfully subscribed to {Method} for contractId {ContractId}", method, contractId);
+                    hasAnySuccess = true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug("[TOPSTEPX] {Method} not available for contractId {ContractId}: {Error}", method, contractId, ex.Message);
+                }
+            }
+            
+            // Also try to subscribe to trades and depth
             try
             {
                 await _marketHub.InvokeAsync("SubscribeContractTrades", contractId);
                 AddToSubscriptionManifest("MarketHub", "SubscribeContractTrades", contractId);
-                _logger.LogInformation("[TOPSTEPX] Subscribed to Contract Trades for contractId {ContractId}", contractId);
+                _logger.LogInformation("[TOPSTEPX] ✅ Subscribed to Contract Trades for contractId {ContractId}", contractId);
+                hasAnySuccess = true;
             }
             catch (Exception ex)
             {
                 _logger.LogDebug("[TOPSTEPX] SubscribeContractTrades not available: {Error}", ex.Message);
             }
             
-            // Wait a moment to see if we get market data
-            await Task.Delay(2000);
+            try
+            {
+                await _marketHub.InvokeAsync("SubscribeContractDepth", contractId);
+                AddToSubscriptionManifest("MarketHub", "SubscribeContractDepth", contractId);
+                _logger.LogInformation("[TOPSTEPX] ✅ Subscribed to Contract Depth for contractId {ContractId}", contractId);
+                hasAnySuccess = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug("[TOPSTEPX] SubscribeContractDepth not available: {Error}", ex.Message);
+            }
+            
+            // Wait longer to see if we get market data
+            await Task.Delay(5000);
             int eventCountAfter = _totalMessagesReceived;
             int newEvents = eventCountAfter - eventCountBefore;
             
             if (newEvents > 0)
             {
-                _logger.LogInformation("[TOPSTEPX] ✅ Market events subscription DATA CONFIRMED - received {NewEvents} events for contractId {ContractId}", newEvents, contractId);
+                _logger.LogInformation("[TOPSTEPX] ✅ LIVE DATA CONFIRMED - received {NewEvents} market events for contractId {ContractId}", newEvents, contractId);
                 return true;
+            }
+            else if (hasAnySuccess)
+            {
+                _logger.LogInformation("[TOPSTEPX] ⚠️ Market subscriptions succeeded but no live data received yet for contractId {ContractId} - this is normal during market closure or low activity", contractId);
+                return true; // Subscriptions succeeded, data may come during market hours
             }
             else
             {
-                _logger.LogInformation("[TOPSTEPX] ⚠️ Market events subscription CALL succeeded but no data received yet for contractId {ContractId} (may take time)", contractId);
-                return true; // Call succeeded, data may come later
+                _logger.LogWarning("[TOPSTEPX] ❌ No subscription methods worked for contractId {ContractId}", contractId);
+                return false;
             }
         }
         catch (Exception ex)
@@ -1309,45 +1348,66 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_marketHub == null) return;
         
-        // Primary TopstepX Market Hub events  
+        // Enhanced market data event handlers with better coverage
         _marketHub.On<object>("GatewayQuote", data => 
         { 
             Interlocked.Increment(ref _totalMessagesReceived); 
             OnMarketDataReceived?.Invoke(data); 
             if (_totalMessagesReceived % 10 == 1) // Log every 10th quote to avoid spam
-                _logger.LogInformation("[MARKET-HUB] 📈 Received GatewayQuote #{Count}", _totalMessagesReceived); 
+                _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: GatewayQuote #{Count}", _totalMessagesReceived); 
         });
         
         _marketHub.On<object>("GatewayTrade", data => 
         { 
             Interlocked.Increment(ref _totalMessagesReceived); 
             OnMarketDataReceived?.Invoke(data); 
-            _logger.LogInformation("[MARKET-HUB] 🔄 Received GatewayTrade - Total messages: {Count}", _totalMessagesReceived); 
+            _logger.LogInformation("[MARKET-HUB] 🔄 LIVE DATA: GatewayTrade #{Count}", _totalMessagesReceived); 
         });
         
         _marketHub.On<object>("GatewayDepth", data => 
         { 
             Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data);
             if (_totalMessagesReceived % 50 == 1) // Log every 50th depth update
-                _logger.LogInformation("[MARKET-HUB] 📊 Received GatewayDepth #{Count}", _totalMessagesReceived); 
+                _logger.LogInformation("[MARKET-HUB] 📊 LIVE DATA: GatewayDepth #{Count}", _totalMessagesReceived); 
         });
         
-        // Legacy fallback events (if still used)
+        // Additional event types that might be used by TopstepX
+        _marketHub.On<object>("Quote", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: Quote #{Count}", _totalMessagesReceived); 
+        });
+        
+        _marketHub.On<object>("Trade", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived); 
+            OnMarketDataReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 💹 LIVE DATA: Trade #{Count}", _totalMessagesReceived); 
+        });
+        
         _marketHub.On<object>("MarketData", data => 
         { 
             Interlocked.Increment(ref _totalMessagesReceived); 
             OnMarketDataReceived?.Invoke(data); 
-            _logger.LogInformation("[MARKET-HUB] 📈 Received MarketData (legacy) - Total messages: {Count}", _totalMessagesReceived); 
+            _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: MarketData #{Count}", _totalMessagesReceived); 
         });
         
         _marketHub.On<object>("ContractQuotes", data => 
         { 
             Interlocked.Increment(ref _totalMessagesReceived); 
             OnContractQuotesReceived?.Invoke(data); 
-            _logger.LogInformation("[MARKET-HUB] 📈 Received ContractQuotes (legacy) - Total messages: {Count}", _totalMessagesReceived); 
+            _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: ContractQuotes #{Count}", _totalMessagesReceived); 
         });
         
-        _logger.LogInformation("[MARKET-HUB] Event handlers registered: GatewayQuote, GatewayTrade, GatewayDepth, MarketData, ContractQuotes");
+        // Catch-all event handler for debugging unrecognized events
+        _marketHub.On<object>("*", data => 
+        { 
+            _logger.LogDebug("[MARKET-HUB] 🔍 Unknown event received with data: {Data}", data?.ToString() ?? "null"); 
+        });
+        
+        _logger.LogInformation("[MARKET-HUB] ✅ Enhanced event handlers registered for live data reception: GatewayQuote, GatewayTrade, GatewayDepth, Quote, Trade, MarketData, ContractQuotes");
     }
 
     public async Task<bool> RetrySubscriptionsWithAccountId(string accountId)

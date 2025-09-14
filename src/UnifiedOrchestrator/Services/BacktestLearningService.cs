@@ -47,6 +47,7 @@ namespace UnifiedOrchestrator.Services
             var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
             var liveDataOnly = Environment.GetEnvironmentVariable("LIVE_DATA_ONLY");
             var disableBackgroundLearning = Environment.GetEnvironmentVariable("DISABLE_BACKGROUND_LEARNING");
+            var enableConcurrentProcessing = Environment.GetEnvironmentVariable("ENABLE_CONCURRENT_HISTORICAL_LIVE") != "false";
             
             // If any of these indicate we should not run background learning, skip it
             if (runLearning == "0" || liveDataOnly == "1" || disableBackgroundLearning == "1")
@@ -56,15 +57,47 @@ namespace UnifiedOrchestrator.Services
                 return;
             }
 
-            _logger.LogInformation("🚀 [BACKTEST_LEARNING] Starting historical data learning session...");
-
-            try
+            if (enableConcurrentProcessing)
             {
-                await RunBacktestingSession(stoppingToken);
+                _logger.LogInformation("🚀 [BACKTEST_LEARNING] Starting continuous historical data processing alongside live trading");
+                
+                // Run continuously in background, allowing concurrent processing with live data
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await RunBacktestingSession(stoppingToken);
+                        
+                        // Wait before next learning session (2 hours by default)
+                        var learningInterval = TimeSpan.FromMinutes(
+                            int.Parse(Environment.GetEnvironmentVariable("HISTORICAL_LEARNING_INTERVAL_MINUTES") ?? "120"));
+                        
+                        _logger.LogInformation("⏱️ [BACKTEST_LEARNING] Waiting {Interval} before next learning session", learningInterval);
+                        await Task.Delay(learningInterval, stoppingToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ [BACKTEST_LEARNING] Error in continuous learning loop");
+                        await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken); // Wait before retry
+                    }
+                }
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "❌ [BACKTEST_LEARNING] Backtesting session failed");
+                _logger.LogInformation("🚀 [BACKTEST_LEARNING] Starting one-time historical data learning session...");
+                
+                try
+                {
+                    await RunBacktestingSession(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [BACKTEST_LEARNING] Backtesting session failed");
+                }
             }
         }
 
