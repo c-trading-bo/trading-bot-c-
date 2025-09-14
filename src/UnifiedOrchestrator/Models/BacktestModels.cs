@@ -205,11 +205,18 @@ public class DecisionComparison
 /// </summary>
 public class ValidationResult
 {
+    public string ValidationId { get; set; } = string.Empty;
+    public string? ChallengerVersionId { get; set; }
+    public string? ChampionAlgorithm { get; set; }
+    public string? ChallengerAlgorithm { get; set; }
     public ValidationReport Report { get; set; } = null!;
     public DateTime Timestamp { get; set; }
     public ValidationOutcome Outcome { get; set; }
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
+    public double PerformanceScore { get; set; }
+    public double RiskScore { get; set; }
+    public double BehaviorScore { get; set; }
 }
 
 /// <summary>

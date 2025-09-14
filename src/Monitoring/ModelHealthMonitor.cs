@@ -122,6 +122,8 @@ namespace TradingBot.Monitoring
 
         public async Task<bool> CheckFeatureParityAsync(Dictionary<string, double> expectedFeatures, CancellationToken cancellationToken = default)
         {
+            List<string> failedFeatures;
+            
             lock (_lockObject)
             {
                 if (!_featureValues.Any())
@@ -130,7 +132,7 @@ namespace TradingBot.Monitoring
                     return false;
                 }
 
-                var failedFeatures = new List<string>();
+                failedFeatures = new List<string>();
                 
                 foreach (var (featureName, expectedValue) in expectedFeatures)
                 {
@@ -155,20 +157,20 @@ namespace TradingBot.Monitoring
                         failedFeatures.Add($"{featureName} (deviation: {deviation:P1})");
                     }
                 }
-
-                if (failedFeatures.Any())
-                {
-                    var details = string.Join(", ", failedFeatures);
-                    _ = Task.Run(async () => await _alertService.SendModelHealthAlertAsync(
-                        "Feature Parity Check", 
-                        $"Feature parity check failed: {details}",
-                        new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow }));
-                    
-                    return false;
-                }
-
-                return true;
             }
+
+            if (failedFeatures.Any())
+            {
+                var details = string.Join(", ", failedFeatures);
+                await _alertService.SendModelHealthAlertAsync(
+                    "Feature Parity Check", 
+                    $"Feature parity check failed: {details}",
+                    new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow });
+                
+                return false;
+            }
+
+            return true;
         }
 
         private async void CheckModelHealth(object? state)

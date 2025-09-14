@@ -472,4 +472,60 @@ public class ProductionValidationService : IValidationService
     {
         return _validationHistory.TakeLast(maxCount).ToList();
     }
+
+    /// <summary>
+    /// Validate challenger model against champion (required per production specification)
+    /// </summary>
+    public async Task<ValidationResult> ValidateChallengerAsync(string challengerVersionId, CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("[VALIDATION] Validating challenger version: {VersionId}", challengerVersionId);
+        
+        try
+        {
+            // Run validation against current champion
+            var currentChampion = "UnifiedTradingBrain"; // Default champion
+            var challengerAlgorithm = $"Challenger-{challengerVersionId}";
+            
+            var report = await RunValidationAsync(
+                currentChampion, 
+                challengerAlgorithm, 
+                TimeSpan.FromDays(1), // 1 day validation period
+                cancellationToken);
+            
+            var result = new ValidationResult
+            {
+                ValidationId = report.ValidationId,
+                ChallengerVersionId = challengerVersionId,
+                ChampionAlgorithm = currentChampion,
+                ChallengerAlgorithm = challengerAlgorithm,
+                Timestamp = DateTime.UtcNow,
+                Outcome = report.Passed ? ValidationOutcome.Passed : ValidationOutcome.Failed,
+                Report = report,
+                PerformanceScore = report.PerformanceMetrics?.SharpeImprovement ?? 0,
+                RiskScore = report.RiskMetrics?.CVaRImprovement ?? 0,
+                BehaviorScore = report.BehaviorAlignment?.AlignmentPercentage ?? 0
+            };
+            
+            _validationHistory.Add(result);
+            
+            _logger.LogInformation(
+                "[VALIDATION] Challenger validation completed - Outcome: {Outcome}, Performance: {Performance:F4}, Risk: {Risk:F4}",
+                result.Outcome, result.PerformanceScore, result.RiskScore);
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[VALIDATION] Error validating challenger {VersionId}", challengerVersionId);
+            
+            return new ValidationResult
+            {
+                ValidationId = Guid.NewGuid().ToString(),
+                ChallengerVersionId = challengerVersionId,
+                Timestamp = DateTime.UtcNow,
+                Outcome = ValidationOutcome.Failed,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
 }

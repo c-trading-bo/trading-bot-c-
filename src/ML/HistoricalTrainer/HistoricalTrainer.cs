@@ -2,6 +2,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.ML;
 using TradingBot.Abstractions;
 using BotCore.Models;
+using MLModelRegistry = TradingBot.ML.Interfaces.IModelRegistry;
+using MLFeatureStore = TradingBot.ML.Interfaces.IFeatureStore;
+using MLModelMetrics = TradingBot.ML.Models.ModelMetrics;
+using TradingBot.ML.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -19,8 +23,8 @@ namespace TradingBot.ML.HistoricalTrainer;
 public class HistoricalTrainer
 {
     private readonly ILogger<HistoricalTrainer> _logger;
-    private readonly IModelRegistry _modelRegistry;
-    private readonly IFeatureStore _featureStore;
+    private readonly MLModelRegistry _modelRegistry;
+    private readonly MLFeatureStore _featureStore;
     private readonly DatasetBuilder _datasetBuilder;
     private readonly WalkForwardTrainer _walkForwardTrainer;
     private readonly RegistryWriter _registryWriter;
@@ -29,8 +33,8 @@ public class HistoricalTrainer
 
     public HistoricalTrainer(
         ILogger<HistoricalTrainer> logger,
-        IModelRegistry modelRegistry,
-        IFeatureStore featureStore,
+        MLModelRegistry modelRegistry,
+        MLFeatureStore featureStore,
         string historicalDataPath = "data/historical",
         string modelsOutputPath = "models")
     {
@@ -188,9 +192,9 @@ public class HistoricalTrainer
 public class DatasetBuilder
 {
     private readonly ILogger _logger;
-    private readonly IFeatureStore _featureStore;
+    private readonly MLFeatureStore _featureStore;
 
-    public DatasetBuilder(ILogger logger, IFeatureStore featureStore)
+    public DatasetBuilder(ILogger logger, MLFeatureStore featureStore)
     {
         _logger = logger;
         _featureStore = featureStore;
@@ -461,7 +465,7 @@ public class WalkForwardTrainer
             {
                 ModelData = await File.ReadAllBytesAsync(tempModelPath, cancellationToken),
                 ModelPath = tempModelPath,
-                Metrics = new ModelMetrics
+                Metrics = new MLModelMetrics
                 {
                     AUC = metrics.AreaUnderRocCurve,
                     PrAt10 = CalculatePrecisionAtRecall(metrics, 0.10),
@@ -609,7 +613,7 @@ public class HistoricalTrainingResult
     public bool Success { get; set; }
     public string? ModelId { get; set; }
     public string? ModelPath { get; set; }
-    public ModelMetrics? TrainingMetrics { get; set; }
+    public MLModelMetrics? TrainingMetrics { get; set; }
     public WalkForwardResults? WalkForwardResults { get; set; }
     public DatasetInfo? DatasetInfo { get; set; }
     public string? ErrorMessage { get; set; }
@@ -654,7 +658,7 @@ public class TrainedModelResult
 {
     public byte[] ModelData { get; set; } = Array.Empty<byte>();
     public string ModelPath { get; set; } = string.Empty;
-    public ModelMetrics Metrics { get; set; } = new();
+    public MLModelMetrics Metrics { get; set; } = new();
     public int TrainingSampleCount { get; set; }
     public int TestSampleCount { get; set; }
     public int FoldNumber { get; set; }
@@ -666,7 +670,7 @@ public class DeployedModel
     public string ModelId { get; set; } = string.Empty;
     public string ModelPath { get; set; } = string.Empty;
     public string MetadataPath { get; set; } = string.Empty;
-    public ModelMetrics Metrics { get; set; } = new();
+    public MLModelMetrics Metrics { get; set; } = new();
     public DateTime DeployedAt { get; set; }
 }
 
@@ -675,7 +679,7 @@ public class ModelMetadata
     public string ModelId { get; set; } = string.Empty;
     public string ModelPath { get; set; } = string.Empty;
     public HistoricalTrainingConfig TrainingConfig { get; set; } = new();
-    public ModelMetrics Metrics { get; set; } = new();
+    public MLModelMetrics Metrics { get; set; } = new();
     public int TrainingSampleCount { get; set; }
     public int TestSampleCount { get; set; }
     public int FoldNumber { get; set; }

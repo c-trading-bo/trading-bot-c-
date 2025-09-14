@@ -139,12 +139,12 @@ public class AutomatedPromotionService : BackgroundService
                 if (cancellationToken.IsCancellationRequested) break;
                 
                 // Validate challenger against champion
-                var validationReport = await _validationService.ValidateChallengerAsync(
-                    challenger.VersionId, champion?.VersionId, cancellationToken);
+                var validationResult = await _validationService.ValidateChallengerAsync(
+                    challenger.VersionId, cancellationToken);
                 
-                if (validationReport.PassedAllGates && validationReport.StatisticallySignificant)
+                if (validationResult.Outcome == ValidationOutcome.Passed)
                 {
-                    await SchedulePromotionAsync(algorithm, challenger.VersionId, validationReport, cancellationToken);
+                    await SchedulePromotionAsync(algorithm, challenger.VersionId, validationResult.Report, cancellationToken);
                     break; // Only schedule one promotion per algorithm at a time
                 }
             }
@@ -161,7 +161,7 @@ public class AutomatedPromotionService : BackgroundService
     private async Task SchedulePromotionAsync(
         string algorithm, 
         string challengerVersionId, 
-        PromotionTestReport validationReport, 
+        ValidationReport validationReport, 
         CancellationToken cancellationToken)
     {
         try
