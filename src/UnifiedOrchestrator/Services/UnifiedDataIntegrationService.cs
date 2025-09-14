@@ -585,6 +585,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task FeedHistoricalDataToBrain(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             // Placeholder for feeding historical data to brain
@@ -630,6 +632,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task FeedLiveDataToBrain(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             // Placeholder for feeding live data to brain
