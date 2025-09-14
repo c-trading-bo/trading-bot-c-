@@ -16,6 +16,7 @@ using TradingBot.IntelligenceStack;
 using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
 using BotCore.Services;
+using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
 using DotNetEnv;
 using static DotNetEnv.Env;
 
@@ -940,6 +941,9 @@ Stack Trace:
 
         // Register Python UCB Service Launcher - Auto-start Python UCB FastAPI service
         services.AddHostedService<PythonUcbLauncher>();
+        
+        // Register BacktestLearningService for historical learning when markets are closed
+        services.AddHostedService<BacktestLearningService>();
         
         // Register UCB Manager - Auto-detect if UCB service is available
         var enableUcb = Environment.GetEnvironmentVariable("ENABLE_UCB") != "0"; // Default to enabled

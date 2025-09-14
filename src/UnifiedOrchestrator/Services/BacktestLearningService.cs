@@ -27,6 +27,13 @@ namespace UnifiedOrchestrator.Services
             _logger = logger;
             _serviceProvider = serviceProvider;
             _httpClient = httpClient;
+            
+            // Configure HttpClient for TopstepX API calls
+            if (_httpClient.BaseAddress == null)
+            {
+                _httpClient.BaseAddress = new Uri("https://api.topstepx.com");
+                _logger.LogDebug("🔧 [BACKTEST_LEARNING] HttpClient BaseAddress set to https://api.topstepx.com");
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -95,7 +102,21 @@ namespace UnifiedOrchestrator.Services
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S3 strategy backtesting...");
                 await TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken);
 
-                _logger.LogInformation("✅ [BACKTEST_LEARNING] Backtesting session completed successfully");
+                // Wait a bit between runs
+                await Task.Delay(2000, cancellationToken);
+
+                // Run S6 strategy backtesting
+                _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S6 strategy backtesting...");
+                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken);
+
+                // Wait a bit between runs
+                await Task.Delay(2000, cancellationToken);
+
+                // Run S11 strategy backtesting
+                _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S11 strategy backtesting...");
+                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken);
+
+                _logger.LogInformation("✅ [BACKTEST_LEARNING] Backtesting session completed successfully - All 4 ML strategies tested");
 
                 // Trigger adaptive learning
                 _logger.LogInformation("🧠 [BACKTEST_LEARNING] Triggering adaptive learning from backtest results...");
