@@ -275,6 +275,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task EnsureDataFlowToBrainsAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _dataFlowEvents.Add(new DataFlowEvent
         {
             Timestamp = DateTime.UtcNow,
@@ -315,6 +317,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _logger.LogInformation("[UNIFIED-DATA] Validating data consistency between historical and live pipelines");
         
         try

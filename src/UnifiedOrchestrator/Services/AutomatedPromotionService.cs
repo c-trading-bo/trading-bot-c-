@@ -364,6 +364,8 @@ public class AutomatedPromotionService : BackgroundService
     /// </summary>
     private async Task ProgressRolloutToNextStepAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         try
         {
             rollout.StepNumber++;

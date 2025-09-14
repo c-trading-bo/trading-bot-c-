@@ -276,6 +276,8 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// </summary>
     private async Task DemonstrateBrainAdapterAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         _logger.LogWarning("🧠 [BRAIN-ADAPTER-DEMO] Demonstrating UnifiedTradingBrain parity via adapter");
         
         try

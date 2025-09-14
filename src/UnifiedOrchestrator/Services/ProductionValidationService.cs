@@ -47,6 +47,8 @@ public class ProductionValidationService : IValidationService
         TimeSpan testPeriod, 
         CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         _logger.LogInformation(
             "[VALIDATION] Starting production validation - Champion: {Champion}, Challenger: {Challenger}, Period: {Period}",

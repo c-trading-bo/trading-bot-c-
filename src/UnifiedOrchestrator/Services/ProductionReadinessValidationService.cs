@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Scheduling;
+using TradingDecision = TradingBot.Abstractions.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -319,6 +320,8 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     /// </summary>
     private async Task<AcceptanceCriteriaResult> VerifyAcceptanceCriteriaAsync(CancellationToken cancellationToken)
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var result = new AcceptanceCriteriaResult
         {
             TestTime = DateTime.UtcNow,

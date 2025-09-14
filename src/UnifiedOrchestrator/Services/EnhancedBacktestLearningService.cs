@@ -189,15 +189,19 @@ public class EnhancedBacktestLearningService : BackgroundService
                 backtestId, config.Strategy);
             
             // Initialize unified replay context
-            var replayContext = new UnifiedHistoricalReplayContext
+            var replayContext = new HistoricalReplayContext
             {
                 BacktestId = backtestId,
-                Config = config,
+                Config = new BacktestConfig
+                {
+                    Symbol = config.Symbol,
+                    StartDate = config.StartDate,
+                    EndDate = config.EndDate,
+                    InitialCapital = config.InitialCapital
+                },
                 StartTime = config.StartDate,
                 EndTime = config.EndDate,
                 CurrentTime = config.StartDate,
-                Strategy = config.Strategy,
-                Symbol = config.Symbol,
                 TotalBars = 0,
                 ProcessedBars = 0,
                 IsActive = true
@@ -254,9 +258,35 @@ public class EnhancedBacktestLearningService : BackgroundService
             }
 
             // Calculate final metrics
-            var result = CreateUnifiedBacktestResult(backtestState, replayContext, config);
+            var result = CreateUnifiedBacktestResult(backtestState, replayContext, historicalBars);
             
-            _recentBacktests.Add(result);
+            // Convert to BacktestResult for compatibility
+            var backTestResult = new BacktestResult
+            {
+                BacktestId = result.BacktestId,
+                StartTime = result.StartTime,
+                EndTime = result.EndTime,
+                Symbol = result.Symbol,
+                TotalReturn = result.TotalReturn,
+                SharpeRatio = result.SharpeRatio,
+                MaxDrawdown = result.MaxDrawdown,
+                TotalTrades = result.TotalTrades,
+                Success = result.TotalTrades > 0,
+                StartDate = result.StartTime,
+                EndDate = result.EndTime,
+                InitialCapital = backtestState.StartingCapital,
+                FinalCapital = backtestState.CurrentCapital,
+                SortinoRatio = result.SortinoRatio,
+                WinningTrades = result.WinningTrades,
+                LosingTrades = result.LosingTrades,
+                CompletedAt = DateTime.UtcNow,
+                BrainDecisionCount = result.Decisions.Count,
+                AverageProcessingTimeMs = 0.0,
+                RiskCheckFailures = 0,
+                AlgorithmUsage = new Dictionary<string, object>()
+            };
+            
+            _recentBacktests.Add(backTestResult);
             if (_recentBacktests.Count > 50) // Keep only recent backtests
             {
                 _recentBacktests.RemoveAt(0);
@@ -323,23 +353,35 @@ public class EnhancedBacktestLearningService : BackgroundService
                     Symbol = replayContext.Symbol,
                     Strategy = brainDecision.RecommendedStrategy,
                     Price = currentBar.Close,
-                    Decision = brainDecision,
+                    Decision = new TradingBot.Abstractions.TradingDecision
+                    {
+                        Action = brainDecision.RecommendedStrategy != "HOLD" ? 
+                            (brainDecision.OptimalPositionMultiplier > 0 ? TradingBot.Abstractions.TradingAction.Buy : TradingBot.Abstractions.TradingAction.Sell) : 
+                            TradingBot.Abstractions.TradingAction.Hold,
+                        Size = Math.Abs(brainDecision.OptimalPositionMultiplier),
+                        Strategy = brainDecision.RecommendedStrategy,
+                        Confidence = (double)brainDecision.StrategyConfidence,
+                        Timestamp = brainDecision.DecisionTime,
+                        Symbol = brainDecision.Symbol,
+                        ProcessingTimeMs = brainDecision.ProcessingTimeMs,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
+                            ["PriceProbability"] = brainDecision.PriceProbability,
+                            ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
+                            ["ModelConfidence"] = brainDecision.ModelConfidence,
+                            ["RiskAssessment"] = brainDecision.RiskAssessment
+                        }
+                    },
                     MarketContext = CreateMarketContextFromBar(currentBar)
                 };
                 
                 backtestState.UnifiedDecisions.Add(historicalDecision);
                 
                 // Execute trades if brain recommends them
-                if (brainDecision.EnhancedCandidates.Any() && brainDecision.ModelConfidence > 0.7m)
+                if (brainDecision.RecommendedStrategy != "HOLD" && brainDecision.OptimalPositionMultiplier != 0)
                 {
-                    var bestCandidate = brainDecision.EnhancedCandidates
-                        .OrderByDescending(c => c.QScore)
-                        .FirstOrDefault();
-                    
-                    if (bestCandidate != null)
-                    {
-                        await ExecuteHistoricalTradeAsync(bestCandidate, backtestState, currentBar, cancellationToken);
-                    }
+                    await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState, cancellationToken);
                 }
                 
                 // Feed result back to brain for continuous learning (simulate trade outcome)
@@ -439,16 +481,21 @@ public class EnhancedBacktestLearningService : BackgroundService
                 Price = dataPoint.Close,
                 
                 // Copy brain decision (should be identical to live trading logic)
-                Action = brainDecision?.Action ?? "HOLD",
-                Size = brainDecision?.Size ?? 0,
-                Confidence = brainDecision?.Confidence ?? 0,
-                Strategy = brainDecision?.Strategy ?? "UNKNOWN",
+                Action = brainDecision?.RecommendedStrategy != "HOLD" ? 
+                    (brainDecision.OptimalPositionMultiplier > 0 ? "BUY" : "SELL") : "HOLD",
+                Size = Math.Abs(brainDecision?.OptimalPositionMultiplier ?? 0),
+                Confidence = brainDecision?.StrategyConfidence ?? 0,
+                Strategy = brainDecision?.RecommendedStrategy ?? "UNKNOWN",
                 
                 // Include brain attribution for validation
-                AlgorithmVersions = brainDecision?.AlgorithmVersions ?? new Dictionary<string, string>(),
+                AlgorithmVersions = new Dictionary<string, string>
+                {
+                    ["UnifiedTradingBrain"] = "1.0",
+                    ["MarketRegime"] = brainDecision?.MarketRegime.ToString() ?? "Unknown"
+                },
                 ProcessingTimeMs = brainDecision?.ProcessingTimeMs ?? 0,
-                PassedRiskChecks = brainDecision?.PassedRiskChecks ?? false,
-                RiskWarnings = brainDecision?.RiskWarnings ?? new List<string>(),
+                PassedRiskChecks = !string.IsNullOrEmpty(brainDecision?.RiskAssessment),
+                RiskWarnings = string.IsNullOrEmpty(brainDecision?.RiskAssessment) ? new List<string>() : new List<string> { brainDecision.RiskAssessment },
                 
                 // Backtest-specific metadata
                 BacktestId = context.BacktestId,
@@ -979,6 +1026,25 @@ public class EnhancedBacktestLearningService : BackgroundService
             RealizedPnL = pnl,
             Timestamp = decision.Timestamp
         };
+    }
+
+    /// <summary>
+    /// Feed backtest results to UnifiedTradingBrain for continuous learning
+    /// </summary>
+    private async Task FeedResultsToUnifiedBrainAsync(BacktestResult[] results, CancellationToken cancellationToken)
+    {
+        await Task.Yield(); // Ensure async behavior
+        
+        _logger.LogInformation("[UNIFIED-BACKTEST] Feeding {Count} backtest results to UnifiedTradingBrain for learning", results.Length);
+        
+        // In production, this would feed the results to the brain's learning system
+        // For now, just log the key metrics for validation
+        foreach (var result in results)
+        {
+            _logger.LogDebug("[UNIFIED-BACKTEST] Result {BacktestId}: Sharpe={Sharpe:F2}, Trades={Trades}, WinRate={WinRate:P1}", 
+                result.BacktestId, result.SharpeRatio, result.TotalTrades, 
+                result.TotalTrades > 0 ? (decimal)result.WinningTrades / result.TotalTrades : 0);
+        }
     }
 
     #endregion
