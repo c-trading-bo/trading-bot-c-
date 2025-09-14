@@ -5,7 +5,7 @@ using BotCore.Models;
 using MLModelRegistry = TradingBot.ML.Interfaces.IModelRegistry;
 using MLFeatureStore = TradingBot.ML.Interfaces.IFeatureStore;
 using MLModelMetrics = TradingBot.ML.Models.ModelMetrics;
-using TradingBot.ML.Services;
+using TradingBot.ML.HistoricalTrainer.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -25,9 +25,9 @@ public class HistoricalTrainer
     private readonly ILogger<HistoricalTrainer> _logger;
     private readonly MLModelRegistry _modelRegistry;
     private readonly MLFeatureStore _featureStore;
-    private readonly DatasetBuilder _datasetBuilder;
-    private readonly WalkForwardTrainer _walkForwardTrainer;
-    private readonly RegistryWriter _registryWriter;
+    private readonly HistoricalDatasetBuilder _datasetBuilder;
+    private readonly HistoricalWalkForwardTrainer _walkForwardTrainer;
+    private readonly HistoricalRegistryWriter _registryWriter;
     private readonly string _historicalDataPath = null!;
     private readonly string _modelsOutputPath = null!;
 
@@ -44,9 +44,9 @@ public class HistoricalTrainer
         _historicalDataPath = historicalDataPath;
         _modelsOutputPath = modelsOutputPath;
         
-        _datasetBuilder = new DatasetBuilder(logger, featureStore);
-        _walkForwardTrainer = new WalkForwardTrainer(logger);
-        _registryWriter = new RegistryWriter(logger, modelsOutputPath);
+        _datasetBuilder = new HistoricalDatasetBuilder(logger, featureStore);
+        _walkForwardTrainer = new HistoricalWalkForwardTrainer(logger);
+        _registryWriter = new HistoricalRegistryWriter(logger, modelsOutputPath);
         
         Directory.CreateDirectory(_modelsOutputPath);
     }
@@ -189,12 +189,12 @@ public class HistoricalTrainer
 /// <summary>
 /// Builds training datasets from historical bar data
 /// </summary>
-public class DatasetBuilder
+public class HistoricalDatasetBuilder
 {
     private readonly ILogger _logger;
     private readonly MLFeatureStore _featureStore;
 
-    public DatasetBuilder(ILogger logger, MLFeatureStore featureStore)
+    public HistoricalDatasetBuilder(ILogger logger, MLFeatureStore featureStore)
     {
         _logger = logger;
         _featureStore = featureStore;
@@ -364,12 +364,12 @@ public class DatasetBuilder
 /// <summary>
 /// Walk-forward training implementation with cross-validation
 /// </summary>
-public class WalkForwardTrainer
+public class HistoricalWalkForwardTrainer
 {
     private readonly ILogger _logger;
     private readonly MLContext _mlContext;
 
-    public WalkForwardTrainer(ILogger logger)
+    public HistoricalWalkForwardTrainer(ILogger logger)
     {
         _logger = logger;
         _mlContext = new MLContext(seed: 42);
@@ -515,12 +515,12 @@ public class WalkForwardTrainer
 /// <summary>
 /// Writes trained models to the registry and deployment locations
 /// </summary>
-public class RegistryWriter
+public class HistoricalRegistryWriter
 {
     private readonly ILogger _logger;
     private readonly string _modelsOutputPath = null!;
 
-    public RegistryWriter(ILogger logger, string modelsOutputPath)
+    public HistoricalRegistryWriter(ILogger logger, string modelsOutputPath)
     {
         _logger = logger;
         _modelsOutputPath = modelsOutputPath;
@@ -585,107 +585,3 @@ public class RegistryWriter
         }
     }
 }
-
-#region Data Transfer Objects
-
-public class HistoricalTrainingConfig
-{
-    public List<string> Symbols { get; set; } = new() { "ES", "NQ" };
-    public DateTime StartDate { get; set; } = DateTime.UtcNow.AddYears(-2);
-    public DateTime EndDate { get; set; } = DateTime.UtcNow.AddDays(-1);
-    public int LookbackPeriod { get; set; } = 50;
-    public int ForwardLookPeriod { get; set; } = 10;
-    public int SampleStride { get; set; } = 5;
-    public int MinimumBarsPerSymbol { get; set; } = 1000;
-    public double MinimumReturnThreshold { get; set; } = 0.002; // 0.2% minimum return
-    public int WalkForwardFolds { get; set; } = 10;
-    public int MinimumTrainingSamples { get; set; } = 5000;
-    public Dictionary<string, int> ModelParams { get; set; } = new()
-    {
-        ["NumberOfLeaves"] = 20,
-        ["MinExampleCountPerLeaf"] = 10,
-        ["NumberOfTrees"] = 100
-    };
-}
-
-public class HistoricalTrainingResult
-{
-    public bool Success { get; set; }
-    public string? ModelId { get; set; }
-    public string? ModelPath { get; set; }
-    public MLModelMetrics? TrainingMetrics { get; set; }
-    public WalkForwardResults? WalkForwardResults { get; set; }
-    public DatasetInfo? DatasetInfo { get; set; }
-    public string? ErrorMessage { get; set; }
-    public DateTime CompletedAt { get; set; }
-}
-
-public class DatasetInfo
-{
-    public int SampleCount { get; set; }
-    public int FeatureCount { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
-    public List<string> Symbols { get; set; } = new();
-}
-
-public class TrainingDataset
-{
-    public List<TrainingSample> Samples { get; set; } = new();
-    public List<string> FeatureNames { get; set; } = new();
-    public int FeatureCount { get; set; }
-    public DateTime CreatedAt { get; set; }
-}
-
-public class TrainingSample
-{
-    public Dictionary<string, double> Features { get; set; } = new();
-    public double Label { get; set; }
-    public string Symbol { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
-}
-
-public class WalkForwardResults
-{
-    public List<TrainedModelResult> FoldResults { get; set; } = new();
-    public double AverageAuc { get; set; }
-    public int CompletedFolds { get; set; }
-    public int TotalFolds { get; set; }
-}
-
-public class TrainedModelResult
-{
-    public byte[] ModelData { get; set; } = Array.Empty<byte>();
-    public string ModelPath { get; set; } = string.Empty;
-    public MLModelMetrics Metrics { get; set; } = new();
-    public int TrainingSampleCount { get; set; }
-    public int TestSampleCount { get; set; }
-    public int FoldNumber { get; set; }
-    public DateTime TrainedAt { get; set; }
-}
-
-public class DeployedModel
-{
-    public string ModelId { get; set; } = string.Empty;
-    public string ModelPath { get; set; } = string.Empty;
-    public string MetadataPath { get; set; } = string.Empty;
-    public MLModelMetrics Metrics { get; set; } = new();
-    public DateTime DeployedAt { get; set; }
-}
-
-public class ModelMetadata
-{
-    public string ModelId { get; set; } = string.Empty;
-    public string ModelPath { get; set; } = string.Empty;
-    public HistoricalTrainingConfig TrainingConfig { get; set; } = new();
-    public MLModelMetrics Metrics { get; set; } = new();
-    public int TrainingSampleCount { get; set; }
-    public int TestSampleCount { get; set; }
-    public int FoldNumber { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string ModelType { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
-}
-
-#endregion

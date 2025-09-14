@@ -1,7 +1,0 @@
-# Market Indices Data
-
-Daily market data for SPX, VIX, and other indices collected after market close.
-
-Files generated:
-- `market_data_YYYYMMDD_HHMMSS.json` - Daily market data
-- `latest_market_data.json` - Latest data for consumption

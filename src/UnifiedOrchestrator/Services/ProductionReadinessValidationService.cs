@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using TradingBot.UnifiedOrchestrator.Scheduling;
-using TradingDecision = TradingBot.Abstractions.TradingDecision;
+using TradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -152,24 +152,24 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
 
         // Test 1: Verify UnifiedTradingBrain is primary
         var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
-        result.IsPrimaryDecisionMaker = decision.Metadata.ContainsKey("Algorithm") && 
-                                       decision.Metadata["Algorithm"].ToString() == "UnifiedTradingBrain";
+        result.IsPrimaryDecisionMaker = decision.Reasoning.ContainsKey("Algorithm") && 
+                                       decision.Reasoning["Algorithm"].ToString() == "UnifiedTradingBrain";
 
         // Test 2: Verify shadow testing is active
-        result.IsShadowTestingActive = decision.Metadata.ContainsKey("ShadowBrainUsed") &&
-                                      decision.Metadata["ShadowBrainUsed"].ToString() == "InferenceBrain";
+        result.IsShadowTestingActive = decision.Reasoning.ContainsKey("ShadowBrainUsed") &&
+                                      decision.Reasoning["ShadowBrainUsed"].ToString() == "InferenceBrain";
 
         // Test 3: Test multiple decisions and track consistency
-        var decisions = new List<TradingDecision>();
+        var decisions = new List<TradingBot.Abstractions.TradingDecision>();
         for (int i = 0; i < 10; i++)
         {
             var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
-            decisions.Add(testDecision);
+            decisions.Add(ConvertToAbstractionsDecision(testDecision));
             await Task.Delay(100, cancellationToken); // Small delay between decisions
         }
 
-        result.ConsistencyRate = decisions.Count(d => d.Metadata.GetValueOrDefault("Algorithm")?.ToString() == "UnifiedTradingBrain") / (double)decisions.Count;
-        result.AverageDecisionTimeMs = decisions.Average(d => double.Parse(d.Metadata.GetValueOrDefault("ProcessingTimeMs", "0").ToString()!));
+        result.ConsistencyRate = decisions.Count(d => d.Reasoning.GetValueOrDefault("Algorithm")?.ToString() == "UnifiedTradingBrain") / (double)decisions.Count;
+        result.AverageDecisionTimeMs = decisions.Average(d => double.Parse(d.Reasoning.GetValueOrDefault("ProcessingTimeMs", "0").ToString()!));
 
         // Test 4: Verify adapter statistics
         var stats = _brainAdapter.GetStatistics();
@@ -286,7 +286,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
             {
                 IsConnected = liveStatus.IsConnected,
                 LastUpdate = liveStatus.LastDataReceived,
-                RecordsCount = liveStatus.MessagesPerSecond,
+                RecordsCount = (long)liveStatus.MessagesPerSecond,
                 ConnectionString = "TopStep Live Data Stream",
                 DataLatencyMs = (DateTime.UtcNow - liveStatus.LastDataReceived).TotalMilliseconds
             };
@@ -420,6 +420,35 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     }
 
     // Helper methods
+    
+    /// <summary>
+    /// Convert UnifiedOrchestrator TradingDecision to Abstractions TradingDecision
+    /// </summary>
+    private TradingBot.Abstractions.TradingDecision ConvertToAbstractionsDecision(TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision unifiedDecision)
+    {
+        // Parse Action string to TradingAction enum
+        var tradingAction = unifiedDecision.Action.ToUpperInvariant() switch
+        {
+            "BUY" => TradingBot.Abstractions.TradingAction.Buy,
+            "SELL" => TradingBot.Abstractions.TradingAction.Sell,
+            "HOLD" => TradingBot.Abstractions.TradingAction.Hold,
+            _ => TradingBot.Abstractions.TradingAction.Hold
+        };
+
+        return new TradingBot.Abstractions.TradingDecision
+        {
+            DecisionId = Guid.NewGuid().ToString(),
+            Symbol = unifiedDecision.Symbol,
+            Action = tradingAction,
+            Quantity = unifiedDecision.Size,
+            Confidence = unifiedDecision.Confidence,
+            MLConfidence = unifiedDecision.Confidence,
+            MLStrategy = unifiedDecision.Strategy,
+            Timestamp = unifiedDecision.Timestamp,
+            Reasoning = new Dictionary<string, object>(unifiedDecision.DecisionMetadata)
+        };
+    }
+    
     private async Task<bool> IsSafePromotionWindowAsync(DateTime time)
     {
         await Task.CompletedTask; // Add await for async compliance

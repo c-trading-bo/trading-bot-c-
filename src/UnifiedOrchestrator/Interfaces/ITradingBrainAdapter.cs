@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.UnifiedOrchestrator.Models;
-using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision;
+using UnifiedTradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Interfaces;
 
@@ -13,7 +13,7 @@ public interface ITradingBrainAdapter
     /// <summary>
     /// Make trading decision using champion brain with challenger shadow testing
     /// </summary>
-    Task<AbstractionsTradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default);
+    Task<UnifiedTradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Manually promote challenger to primary (for testing/demonstration)

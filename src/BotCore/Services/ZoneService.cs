@@ -136,7 +136,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     public ZoneService(ILogger<ZoneService> logger, string? zonesPath = null)
     {
         _logger = logger;
-        _zonesPath = zonesPath ?? "Intelligence/data/zones/active_zones.json";
+        _zonesPath = zonesPath ?? "data/zones/active_zones.json";
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -954,7 +954,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var outputDir = "Intelligence/data/zones/learning";
+            var outputDir = "data/zones/learning";
             Directory.CreateDirectory(outputDir);
 
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");

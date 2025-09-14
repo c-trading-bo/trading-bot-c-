@@ -8,6 +8,7 @@
     <RootNamespace>TradingBot.ML</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,11 @@
     <ProjectReference Include="../Infrastructure/Alerts/Alerts.csproj" />
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../BotCore/BotCore.csproj" />
+  </ItemGroup>
+
+  <!-- Exclude HistoricalTrainer folder from compilation as it's a separate project -->
+  <ItemGroup>
+    <Compile Remove="HistoricalTrainer/**" />
   </ItemGroup>
 
 </Project>

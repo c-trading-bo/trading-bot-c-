@@ -225,7 +225,7 @@ public class ProductionDemonstrationRunner
     {
         var rollbackConfig = new RollbackDrillConfig
         {
-            LoadLevel = "High",
+            LoadLevel = TradingBot.UnifiedOrchestrator.Models.LoadLevel.High,
             TestDurationSeconds = 30,
             ExpectedRollbackTimeMs = 100
         };
@@ -249,7 +249,7 @@ public class ProductionDemonstrationRunner
             HealthAlerts = new
             {
                 AlertsGenerated = rollbackResult.HealthAlertsGenerated,
-                AlertResponseTimeMs = rollbackResult.HealthAlertResponseTimeMs ?? 50
+                AlertResponseTimeMs = rollbackResult.HealthAlertResponseTimeMs
             },
             Conclusion = rollbackResult.RollbackTimeMs < 100 ? 
                 "✅ Rollback completed in <100ms with health alerts firing correctly" : 

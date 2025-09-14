@@ -13,6 +13,7 @@ using BotCore.Risk;
 using BotCore.Strategy;
 using MarketBar = BotCore.Market.Bar; // Alias to resolve ambiguity
 using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision; // Alias for clarity
+using UnifiedTradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision; // Alias for UnifiedOrchestrator type
 
 namespace TradingBot.UnifiedOrchestrator.Brains;
 
@@ -60,24 +61,21 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// <summary>
     /// Make trading decision using champion brain with challenger shadow testing
     /// </summary>
-    public async Task<AbstractionsTradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default)
+    public async Task<UnifiedTradingDecision> DecideAsync(TradingContext context, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
-        AbstractionsTradingDecision championDecision;
-        AbstractionsTradingDecision challengerDecision;
         
         try
         {
-            // Convert TradingContext to inputs for UnifiedTradingBrain
+            // Get challenger decision from InferenceBrain (using unified type)
+            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken);
+            
+            // Convert UnifiedTradingBrain to unified decision format
             var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
-            championDecision = ConvertBrainDecisionToTradingDecision(brainDecision, context, "UnifiedTradingBrain");
-
-            // Get challenger decision in parallel (shadow testing)
-            var challengerInterfaceDecision = await _inferenceBrain.DecideAsync(context, cancellationToken);
-            challengerDecision = ConvertInterfaceDecisionToAbstractionsDecision(challengerInterfaceDecision);
+            var championDecision = ConvertBrainDecisionToUnifiedDecision(brainDecision, context, "UnifiedTradingBrain");
             
             // Track decision comparison for statistical analysis
-            await TrackDecisionComparisonAsync(championDecision, challengerDecision, context);
+            await TrackUnifiedDecisionComparisonAsync(championDecision, challengerDecision, context);
             
             // Use primary brain's decision (UnifiedTradingBrain by default, InferenceBrain if promoted)
             var primaryDecision = _useInferenceBrainPrimary ? challengerDecision : championDecision;
@@ -111,7 +109,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             
             // Fallback to UnifiedTradingBrain on any error
             var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
-            return ConvertBrainDecisionToTradingDecision(fallbackDecision, context, "UnifiedTradingBrain-Fallback");
+            return ConvertBrainDecisionToUnifiedDecision(fallbackDecision, context, "UnifiedTradingBrain-Fallback");
         }
     }
 
@@ -245,6 +243,100 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 ["DecisionMetadata"] = interfaceDecision.DecisionMetadata
             }
         };
+    }
+
+    /// <summary>
+    /// Convert BrainDecision to UnifiedOrchestrator TradingDecision
+    /// </summary>
+    private UnifiedTradingDecision ConvertBrainDecisionToUnifiedDecision(BrainDecision brainDecision, TradingContext context, string algorithmName)
+    {
+        // Determine action based on PriceDirection and OptimalPositionMultiplier
+        string actionString = "HOLD";
+        decimal size = 0;
+        
+        if (brainDecision.OptimalPositionMultiplier > 0)
+        {
+            actionString = brainDecision.PriceDirection == PriceDirection.Up ? "BUY" : "SELL";
+            size = Math.Abs(brainDecision.OptimalPositionMultiplier);
+        }
+
+        return new UnifiedTradingDecision
+        {
+            Symbol = brainDecision.Symbol ?? context.Symbol ?? "ES",
+            Timestamp = brainDecision.DecisionTime != default ? brainDecision.DecisionTime : DateTime.UtcNow,
+            Action = actionString,
+            Size = size,
+            Confidence = brainDecision.StrategyConfidence,
+            Strategy = brainDecision.RecommendedStrategy ?? algorithmName,
+            ProcessingTimeMs = (decimal)brainDecision.ProcessingTimeMs,
+            PPOVersionId = "brain-unified",
+            UCBVersionId = "brain-unified", 
+            LSTMVersionId = "brain-unified",
+            AlgorithmVersions = new Dictionary<string, string>
+            {
+                ["UnifiedBrain"] = "1.0",
+                ["RecommendedStrategy"] = brainDecision.RecommendedStrategy ?? "unknown"
+            },
+            AlgorithmConfidences = new Dictionary<string, decimal>
+            {
+                ["Strategy"] = brainDecision.StrategyConfidence,
+                ["Model"] = brainDecision.ModelConfidence,
+                ["Price"] = brainDecision.PriceProbability
+            },
+            DecisionMetadata = new Dictionary<string, object>
+            {
+                ["Algorithm"] = algorithmName,
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
+                ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
+                ["RiskAssessment"] = brainDecision.RiskAssessment,
+                ["CandidateCount"] = brainDecision.EnhancedCandidates.Count
+            },
+            PassedRiskChecks = !brainDecision.RiskAssessment.Contains("HIGH", StringComparison.OrdinalIgnoreCase),
+            RiskWarnings = brainDecision.RiskAssessment.Contains("HIGH", StringComparison.OrdinalIgnoreCase) 
+                          ? new List<string> { brainDecision.RiskAssessment }
+                          : new List<string>()
+        };
+    }
+
+    /// <summary>
+    /// Track comparison between champion and challenger decisions for statistical analysis (unified types)
+    /// </summary>
+    private async Task TrackUnifiedDecisionComparisonAsync(UnifiedTradingDecision championDecision, UnifiedTradingDecision challengerDecision, TradingContext context)
+    {
+        await Task.Yield(); // Ensure async behavior
+        
+        var comparison = new UnifiedDecisionComparison
+        {
+            Timestamp = DateTime.UtcNow,
+            Context = context,
+            ChampionDecision = championDecision,
+            ChallengerDecision = challengerDecision,
+            Agreement = AreUnifiedDecisionsEquivalent(championDecision, challengerDecision),
+            ConfidenceDelta = Math.Abs((double)(championDecision.Confidence - challengerDecision.Confidence))
+        };
+
+        lock (_comparisonLock)
+        {
+            // Replace old comparison method with unified version for now
+            _recentComparisons.Clear(); // Clear old format comparisons
+            _totalDecisions++;
+            if (comparison.Agreement) _agreementCount++;
+        }
+
+        // Log detailed comparison
+        _logger.LogDebug("[ADAPTER] Decision comparison: Champion={ChampionAction} vs Challenger={ChallengerAction}, Agreement={Agreement}, ConfidenceDelta={ConfidenceDelta:F3}",
+            championDecision.Action, challengerDecision.Action, comparison.Agreement, comparison.ConfidenceDelta);
+    }
+
+    /// <summary>
+    /// Check if two unified decisions are equivalent
+    /// </summary>
+    private bool AreUnifiedDecisionsEquivalent(UnifiedTradingDecision decision1, UnifiedTradingDecision decision2)
+    {
+        return decision1.Action == decision2.Action && 
+               Math.Abs(decision1.Size - decision2.Size) < 0.01m &&
+               Math.Abs(decision1.Confidence - decision2.Confidence) < 0.1m;
     }
 
     /// <summary>
@@ -400,4 +492,17 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             };
         }
     }
+}
+
+/// <summary>
+/// Comparison between champion and challenger decisions (unified types)
+/// </summary>
+public class UnifiedDecisionComparison
+{
+    public DateTime Timestamp { get; set; }
+    public TradingContext Context { get; set; } = new();
+    public UnifiedTradingDecision ChampionDecision { get; set; } = new();
+    public UnifiedTradingDecision ChallengerDecision { get; set; } = new();
+    public bool Agreement { get; set; }
+    public double ConfidenceDelta { get; set; }
 }

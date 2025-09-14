@@ -1,9 +1,0 @@
-# ML Features
-
-Feature matrices generated nightly from raw data.
-
-Files generated:
-- `features_YYYYMMDD_HHMMSS.csv` - Feature matrix
-- `metadata_YYYYMMDD_HHMMSS.json` - Feature metadata
-- `latest_features.csv` - Latest features for model training
-- `latest_metadata.json` - Latest metadata

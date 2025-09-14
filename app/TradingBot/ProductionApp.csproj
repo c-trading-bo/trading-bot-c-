@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../Core/Intelligence/Intelligence.csproj" />
     <ProjectReference Include="../../TradingBot.Orchestrators/TradingBot.Orchestrators.csproj" />
     <ProjectReference Include="../../src/BotCore/BotCore.csproj" />
   </ItemGroup>
