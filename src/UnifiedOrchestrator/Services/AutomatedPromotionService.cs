@@ -74,7 +74,7 @@ public class AutomatedPromotionService : BackgroundService
                 await MonitorActiveRolloutsAsync(stoppingToken);
                 
                 // Perform health checks
-                await PerformHealthChecksAsync(stoppingToken);
+                PerformHealthChecks(stoppingToken);
                 
                 // Wait before next cycle
                 await Task.Delay(_promotionCheckInterval, stoppingToken);
@@ -582,7 +582,7 @@ public class AutomatedPromotionService : BackgroundService
     /// <summary>
     /// Perform periodic health checks on all active rollouts
     /// </summary>
-    private async Task PerformHealthChecksAsync(CancellationToken cancellationToken)
+    private void PerformHealthChecks(CancellationToken cancellationToken)
     {
         try
         {

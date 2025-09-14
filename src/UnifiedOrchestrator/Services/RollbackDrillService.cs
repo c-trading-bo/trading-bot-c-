@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision;
+using InterfacesTradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -126,7 +128,7 @@ public class RollbackDrillService : IRollbackDrillService
     private async Task EstablishBaseline(RollbackDrillResult result, CancellationToken cancellationToken)
     {
         var baselineStart = DateTime.UtcNow;
-        var decisions = new List<(DateTime, TradingDecision, double)>();
+        var decisions = new List<(DateTime, AbstractionsTradingDecision, double)>();
 
         // Ensure we're on champion
         await _brainAdapter.RollbackToChampionAsync(cancellationToken);
@@ -291,7 +293,7 @@ public class RollbackDrillService : IRollbackDrillService
     private async Task VerifyRollbackSuccess(RollbackDrillResult result, CancellationToken cancellationToken)
     {
         var verificationStart = DateTime.UtcNow;
-        var postRollbackDecisions = new List<(DateTime, TradingDecision, double)>();
+        var postRollbackDecisions = new List<(DateTime, AbstractionsTradingDecision, double)>();
 
         // Generate post-rollback decisions to verify stability
         for (int i = 0; i < 10; i++)
@@ -304,8 +306,8 @@ public class RollbackDrillService : IRollbackDrillService
             postRollbackDecisions.Add((DateTime.UtcNow, decision, decisionTime));
             
             // Verify we're back on champion
-            if (!decision.Metadata.ContainsKey("AdapterMode") || 
-                !decision.Metadata["AdapterMode"].ToString()!.Contains("UnifiedTradingBrain-Primary"))
+            if (!decision.Reasoning.ContainsKey("AdapterMode") || 
+                !decision.Reasoning["AdapterMode"].ToString()!.Contains("UnifiedTradingBrain-Primary"))
             {
                 throw new InvalidOperationException("Rollback verification failed - not on champion");
             }

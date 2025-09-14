@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.Abstractions;
 using BotCore.Brain;
+using AbstractionsMarketRegime = TradingBot.Abstractions.MarketRegime;
+using BotCoreMarketRegime = BotCore.Brain.MarketRegime;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -135,7 +137,7 @@ public class EnumMappingValidationService
             DecisionTime = DateTime.UtcNow,
             ProcessingTimeMs = 50.0,
             RiskAssessment = "Low",
-            MarketRegime = MarketRegime.Normal
+            MarketRegime = BotCoreMarketRegime.Normal
         };
     }
 

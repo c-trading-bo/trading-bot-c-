@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
+using TradingBot.UnifiedOrchestrator.Models;
 
 namespace TradingBot.UnifiedOrchestrator.Scheduling;
 
@@ -170,12 +171,8 @@ public class FuturesMarketHours : IMarketHoursService
         {
             return new TrainingIntensity
             {
-                Level = "INTENSIVE",
-                MaxCpuUsage = 0.8m,
-                MaxMemoryUsage = 0.7m,
-                MaxGpuUsage = 0.9m,
-                ParallelJobs = 4,
-                Description = "Weekend/maintenance window - full resource utilization"
+                Level = TrainingIntensityLevel.Intensive,
+                ParallelJobs = 4
             };
         }
         
@@ -183,12 +180,8 @@ public class FuturesMarketHours : IMarketHoursService
         {
             return new TrainingIntensity
             {
-                Level = "BACKGROUND",
-                MaxCpuUsage = 0.3m,
-                MaxMemoryUsage = 0.2m,
-                MaxGpuUsage = 0.4m,
-                ParallelJobs = 1,
-                Description = "Overnight/low-volatility - limited resource usage"
+                Level = TrainingIntensityLevel.Light,
+                ParallelJobs = 1
             };
         }
         
@@ -196,23 +189,15 @@ public class FuturesMarketHours : IMarketHoursService
         {
             return new TrainingIntensity
             {
-                Level = "MODERATE",
-                MaxCpuUsage = 0.5m,
-                MaxMemoryUsage = 0.4m,
-                MaxGpuUsage = 0.6m,
-                ParallelJobs = 2,
-                Description = "Market closed - moderate resource usage"
+                Level = TrainingIntensityLevel.High,
+                ParallelJobs = 2
             };
         }
 
         return new TrainingIntensity
         {
-            Level = "MINIMAL",
-            MaxCpuUsage = 0.1m,
-            MaxMemoryUsage = 0.1m,
-            MaxGpuUsage = 0.2m,
-            ParallelJobs = 0,
-            Description = "Market active - minimal/no training to preserve live trading performance"
+            Level = TrainingIntensityLevel.Light,
+            ParallelJobs = 0
         };
     }
 
@@ -286,6 +271,27 @@ public class FuturesMarketHours : IMarketHoursService
         // If all else fails, return next Saturday (weekend)
         var nextSaturday = GetNextWeekend(etNow);
         return ConvertFromEasternTime(nextSaturday);
+    }
+
+    /// <summary>
+    /// Check if market is currently open for trading (synchronous version)
+    /// </summary>
+    public bool IsMarketOpen()
+    {
+        var etNow = GetEasternTime();
+        var dayOfWeek = etNow.DayOfWeek;
+        var timeOfDay = etNow.TimeOfDay;
+
+        // Market closed on weekends
+        if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
+        {
+            return false;
+        }
+
+        // CME futures trade nearly 24/5, with a brief closure from 5:00-6:00 PM ET
+        var isInDailyCloseWindow = timeOfDay >= MarketCloseTime && timeOfDay < MarketOpenTime;
+        
+        return !isInDailyCloseWindow;
     }
 
     /// <summary>
@@ -470,17 +476,4 @@ public class FuturesMarketHours : IMarketHoursService
     }
 
     #endregion
-}
-
-/// <summary>
-/// Training intensity configuration based on market conditions
-/// </summary>
-public class TrainingIntensity
-{
-    public string Level { get; set; } = string.Empty;
-    public decimal MaxCpuUsage { get; set; }
-    public decimal MaxMemoryUsage { get; set; }
-    public decimal MaxGpuUsage { get; set; }
-    public int ParallelJobs { get; set; }
-    public string Description { get; set; } = string.Empty;
 }

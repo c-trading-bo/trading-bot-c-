@@ -406,7 +406,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             };
 
             // Use UnifiedTradingBrain adapter for decision (IDENTICAL to live trading)
-            var brainDecision = await _brainAdapter.MakeDecisionAsync(tradingContext, "HISTORICAL", cancellationToken);
+            var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(tradingContext, cancellationToken);
             
             var historicalDecision = new HistoricalDecision
             {
@@ -609,9 +609,9 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             // UnifiedTradingBrain specific metrics
             BrainDecisionCount = state.Decisions.Count,
-            AverageProcessingTimeMs = state.Decisions.Any() ? state.Decisions.Average(d => d.ProcessingTimeMs) : 0,
+            AverageProcessingTimeMs = state.Decisions.Any() ? (double)state.Decisions.Average(d => d.ProcessingTimeMs) : 0,
             RiskCheckFailures = state.Decisions.Count(d => !d.PassedRiskChecks),
-            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions)
+            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions).ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
         };
     }
 
@@ -624,9 +624,9 @@ public class EnhancedBacktestLearningService : BackgroundService
         // Generate configs based on intensity
         var configCount = intensity.Level switch
         {
-            "INTENSIVE" => 8,
-            "MODERATE" => 4,
-            "BACKGROUND" => 2,
+            TrainingIntensityLevel.Intensive => 8,
+            TrainingIntensityLevel.High => 4,
+            TrainingIntensityLevel.Medium => 2,
             _ => 1
         };
         
@@ -694,6 +694,157 @@ public class EnhancedBacktestLearningService : BackgroundService
     private string GenerateBacktestId()
     {
         return $"BT_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}";
+    }
+
+    /// <summary>
+    /// Calculate ATR using Welles Wilder formula
+    /// </summary>
+    private decimal CalculateATR(IList<BotCore.Models.Bar> bars, int period = 14)
+    {
+        if (bars.Count < period + 1) return 0;
+
+        var trueRanges = new List<decimal>();
+        
+        for (int i = 1; i < bars.Count; i++)
+        {
+            var current = bars[i];
+            var previous = bars[i - 1];
+            
+            var tr1 = current.High - current.Low;
+            var tr2 = Math.Abs(current.High - previous.Close);
+            var tr3 = Math.Abs(current.Low - previous.Close);
+            
+            var trueRange = Math.Max(tr1, Math.Max(tr2, tr3));
+            trueRanges.Add(trueRange);
+        }
+
+        if (trueRanges.Count < period) return 0;
+
+        // Welles Wilder's smoothing (modified EMA with alpha = 1/period)
+        var atr = trueRanges.Take(period).Average();
+        
+        for (int i = period; i < trueRanges.Count; i++)
+        {
+            atr = ((atr * (period - 1)) + trueRanges[i]) / period;
+        }
+
+        return atr;
+    }
+
+    /// <summary>
+    /// Calculate VolZ (volatility z-score) using rolling mean and standard deviation
+    /// </summary>
+    private decimal CalculateVolZ(IList<BotCore.Models.Bar> bars, int period = 20)
+    {
+        if (bars.Count < period) return 0;
+
+        var returns = new List<decimal>();
+        
+        // Calculate returns
+        for (int i = 1; i < bars.Count; i++)
+        {
+            if (bars[i - 1].Close != 0)
+            {
+                var ret = (bars[i].Close - bars[i - 1].Close) / bars[i - 1].Close;
+                returns.Add(ret);
+            }
+        }
+
+        if (returns.Count < period) return 0;
+
+        // Get the last period for calculation
+        var lastReturns = returns.TakeLast(period).ToList();
+        var mean = lastReturns.Average();
+        var variance = lastReturns.Sum(r => (r - mean) * (r - mean)) / (period - 1);
+        var stdDev = (decimal)Math.Sqrt((double)variance);
+
+        if (stdDev == 0) return 0;
+
+        // Current return
+        var currentReturn = returns.LastOrDefault();
+        
+        // Z-score: (current - mean) / stddev
+        return (currentReturn - mean) / stdDev;
+    }
+
+    /// <summary>
+    /// Create market context from bar data
+    /// </summary>
+    private TradingContext CreateMarketContextFromBar(BotCore.Models.Bar bar)
+    {
+        return new TradingContext
+        {
+            Symbol = "ES", // Default to ES for futures
+            Timestamp = bar.Timestamp,
+            High = bar.High,
+            Low = bar.Low,
+            Open = bar.Open,
+            Close = bar.Close,
+            CurrentPrice = bar.Close,
+            Price = bar.Close,
+            Volume = (long)bar.Volume,
+            IsBacktest = true,
+            TechnicalIndicators = new Dictionary<string, decimal>(),
+            AdditionalData = new Dictionary<string, object>()
+        };
+    }
+
+    /// <summary>
+    /// Execute historical trade with slippage, fees, and limits
+    /// </summary>
+    private async Task<TradeResult> ExecuteHistoricalTradeAsync(
+        UnifiedHistoricalDecision decision, 
+        decimal currentPrice, 
+        UnifiedBacktestState state,
+        CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask; // Placeholder for async operations
+        
+        var slippage = 0.25m; // ES tick size
+        var commission = 2.50m; // Per contract
+        
+        var executionPrice = decision.Action switch
+        {
+            "BUY" => currentPrice + slippage,
+            "SELL" => currentPrice - slippage,
+            _ => currentPrice
+        };
+
+        var tradeSize = decision.Size;
+        var tradeValue = tradeSize * executionPrice;
+        
+        // Calculate PnL for position changes
+        var pnl = 0m;
+        if (decision.Action == "BUY")
+        {
+            pnl = (state.Position < 0) ? Math.Abs(state.Position) * (state.AverageEntryPrice - executionPrice) : 0;
+            state.Position += tradeSize;
+        }
+        else if (decision.Action == "SELL")
+        {
+            pnl = (state.Position > 0) ? state.Position * (executionPrice - state.AverageEntryPrice) : 0;
+            state.Position -= tradeSize;
+        }
+
+        // Update position tracking
+        if (state.Position != 0)
+        {
+            state.AverageEntryPrice = executionPrice;
+        }
+
+        state.RealizedPnL += pnl - commission;
+        state.CurrentCapital = state.StartingCapital + state.RealizedPnL;
+
+        return new TradeResult
+        {
+            Success = true,
+            ExecutionPrice = executionPrice,
+            ExecutedSize = tradeSize,
+            Commission = commission,
+            Slippage = slippage,
+            RealizedPnL = pnl,
+            Timestamp = decision.Timestamp
+        };
     }
 
     #endregion
@@ -771,6 +922,21 @@ public class HistoricalDecision
     public int BarNumber { get; set; }
     public decimal PreviousPosition { get; set; }
     public decimal PreviousCapital { get; set; }
+}
+
+/// <summary>
+/// Result of executing a historical trade
+/// </summary>
+public class TradeResult
+{
+    public bool Success { get; set; }
+    public decimal ExecutionPrice { get; set; }
+    public decimal ExecutedSize { get; set; }
+    public decimal Commission { get; set; }
+    public decimal Slippage { get; set; }
+    public decimal RealizedPnL { get; set; }
+    public DateTime Timestamp { get; set; }
+    public string? ErrorMessage { get; set; }
 }
 
 #endregion
