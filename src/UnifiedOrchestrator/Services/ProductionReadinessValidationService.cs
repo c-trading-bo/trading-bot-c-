@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 /// Production readiness validation service that provides actual runtime proof
 /// of all champion/challenger architecture capabilities as requested
 /// </summary>
-public class ProductionReadinessValidationService
+public class ProductionReadinessValidationService : IProductionReadinessValidationService
 {
     private readonly ILogger<ProductionReadinessValidationService> _logger;
     private readonly ITradingBrainAdapter _brainAdapter;
@@ -419,6 +419,8 @@ public class ProductionReadinessValidationService
     // Helper methods
     private async Task<bool> IsSafePromotionWindowAsync(DateTime time)
     {
+        await Task.CompletedTask; // Add await for async compliance
+        
         // Safe windows: market open, low volatility periods, when positions are flat
         var isMarketOpen = _marketHours.IsMarketOpen(time, "ES");
         var isLowVolatilityPeriod = time.Hour is >= 11 and <= 13; // Lunch period

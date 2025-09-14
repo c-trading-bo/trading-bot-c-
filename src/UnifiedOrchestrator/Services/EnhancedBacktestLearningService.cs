@@ -774,8 +774,8 @@ public class EnhancedBacktestLearningService : BackgroundService
     {
         return new TradingContext
         {
-            Symbol = "ES", // Default to ES for futures
-            Timestamp = bar.Timestamp,
+            Symbol = bar.Symbol,
+            Timestamp = bar.Start, // Use Start property instead of Timestamp
             High = bar.High,
             Low = bar.Low,
             Open = bar.Open,
@@ -785,7 +785,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             Volume = (long)bar.Volume,
             IsBacktest = true,
             TechnicalIndicators = new Dictionary<string, decimal>(),
-            AdditionalData = new Dictionary<string, object>()
+            Metadata = new Dictionary<string, object>() // Use Metadata instead of AdditionalData
         };
     }
 

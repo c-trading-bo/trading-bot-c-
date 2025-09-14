@@ -276,11 +276,12 @@ public class FuturesMarketHours : IMarketHoursService
     /// <summary>
     /// Check if market is currently open for trading (synchronous version)
     /// </summary>
-    public bool IsMarketOpen()
+    public bool IsMarketOpen(DateTime? time = null, string symbol = "ES")
     {
-        var etNow = GetEasternTime();
-        var dayOfWeek = etNow.DayOfWeek;
-        var timeOfDay = etNow.TimeOfDay;
+        var checkTime = time ?? DateTime.UtcNow;
+        var etTime = GetEasternTimeFromUtc(checkTime);
+        var dayOfWeek = etTime.DayOfWeek;
+        var timeOfDay = etTime.TimeOfDay;
 
         // Market closed on weekends
         if (dayOfWeek == DayOfWeek.Saturday || dayOfWeek == DayOfWeek.Sunday)
@@ -292,6 +293,20 @@ public class FuturesMarketHours : IMarketHoursService
         var isInDailyCloseWindow = timeOfDay >= MarketCloseTime && timeOfDay < MarketOpenTime;
         
         return !isInDailyCloseWindow;
+    }
+
+    private DateTime GetEasternTimeFromUtc(DateTime utcTime)
+    {
+        try
+        {
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+            return TimeZoneInfo.ConvertTimeFromUtc(utcTime, easternZone);
+        }
+        catch
+        {
+            // Fallback to UTC-5 (EST) if timezone not found
+            return utcTime.AddHours(-5);
+        }
     }
 
     /// <summary>

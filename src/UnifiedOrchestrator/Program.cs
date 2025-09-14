@@ -521,12 +521,16 @@ Stack Trace:
         // Register Trading Brain Adapter for UnifiedTradingBrain parity
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITradingBrainAdapter, TradingBot.UnifiedOrchestrator.Brains.TradingBrainAdapter>();
         
-        // Register Unified Data Integration Service for historical + live data
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IUnifiedDataIntegrationService, TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
+        // Register Unified Data Integration Service for historical + live data (temporarily as concrete class)
+        // TODO: Fix interface implementation
+        // services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IUnifiedDataIntegrationService, TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         
-        // Register Production Readiness Validation Service for complete runtime proof
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IProductionReadinessValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
+        // Register Production Readiness Validation Service for complete runtime proof (temporarily as concrete class) 
+        // TODO: Fix interface implementation
+        // services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IProductionReadinessValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
         
         // Register Production Demonstration Runner for PR review artifacts
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionDemonstrationRunner>();
