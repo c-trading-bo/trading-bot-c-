@@ -80,7 +80,14 @@ public static class StrategyIds
         var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(configJson));
         var fullHash = Convert.ToHexString(hashBytes);
         
-        return fullHash.Substring(0, 8).ToLowerInvariant();
+        // Defensive bounds checking to prevent ArgumentOutOfRangeException
+        if (string.IsNullOrEmpty(fullHash))
+        {
+            return "00000000"; // Fallback hash
+        }
+        
+        var hashLength = Math.Min(8, fullHash.Length);
+        return fullHash.Substring(0, hashLength).ToLowerInvariant();
     }
     
     /// <summary>

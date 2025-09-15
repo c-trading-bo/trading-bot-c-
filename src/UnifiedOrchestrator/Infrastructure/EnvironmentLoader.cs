@@ -53,7 +53,7 @@ public static class EnvironmentLoader
                 if (line.Length == 0 || line.StartsWith("#")) continue;
                 
                 var idx = line.IndexOf('=');
-                if (idx <= 0) continue;
+                if (idx <= 0 || idx >= line.Length - 1) continue;
                 
                 var key = line.Substring(0, idx).Trim();
                 var val = line.Substring(idx + 1).Trim();
@@ -62,7 +62,11 @@ public static class EnvironmentLoader
                 if ((val.StartsWith("\"") && val.EndsWith("\"")) || 
                     (val.StartsWith("'") && val.EndsWith("'")))
                 {
-                    val = val.Substring(1, val.Length - 2);
+                    // Defensive bounds checking for quote removal
+                    if (val.Length >= 2)
+                    {
+                        val = val.Substring(1, val.Length - 2);
+                    }
                 }
                 
                 if (!string.IsNullOrWhiteSpace(key))

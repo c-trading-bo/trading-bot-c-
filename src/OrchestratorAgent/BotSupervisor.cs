@@ -961,13 +961,18 @@ namespace OrchestratorAgent
 
                 // Try to extract strategy ID before the first dash
                 var dashIndex = customTag.IndexOf('-');
-                if (dashIndex > 0)
+                if (dashIndex > 0 && dashIndex < customTag.Length)
                 {
                     return customTag.Substring(0, dashIndex);
                 }
 
                 // If no dash, use the whole tag up to a reasonable limit
-                return customTag.Length > 10 ? customTag.Substring(0, 10) : customTag;
+                if (customTag.Length > 10)
+                {
+                    return customTag.Substring(0, 10);
+                }
+                
+                return customTag;
             }
             catch
             {
