@@ -548,7 +548,32 @@ Stack Trace:
         // ================================================================================
         
         // ================================================================================
-        // CRITICAL SAFETY SYSTEMS - PRODUCTION TRADING SAFETY
+        // 🎯 MASTER DECISION ORCHESTRATOR - ALWAYS-LEARNING SYSTEM 🎯
+        // ================================================================================
+        
+        // Register the unified decision routing system - NEVER returns HOLD
+        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        
+        // Register decision service router for Python integration
+        services.AddSingleton<DecisionServiceRouter>();
+        
+        // Register unified model path resolver for cross-platform ONNX loading
+        services.AddSingleton<BotCore.Services.UnifiedModelPathResolver>();
+        
+        // Register unified data integration service for historical + live data bridge
+        services.AddSingleton<BotCore.Services.UnifiedDataIntegrationService>();
+        services.AddHostedService<BotCore.Services.UnifiedDataIntegrationService>(provider => 
+            provider.GetRequiredService<BotCore.Services.UnifiedDataIntegrationService>());
+        
+        // Register the MASTER DECISION ORCHESTRATOR - The ONE always-learning brain
+        services.AddSingleton<BotCore.Services.MasterDecisionOrchestrator>();
+        services.AddHostedService<BotCore.Services.MasterDecisionOrchestrator>(provider => 
+            provider.GetRequiredService<BotCore.Services.MasterDecisionOrchestrator>());
+        
+        Console.WriteLine("🎯 Master Decision Orchestrator registered - Always-learning system that NEVER returns HOLD!");
+        Console.WriteLine("🔄 Unified data integration registered - Fixes contract mismatch and bar seeding issues!");
+        Console.WriteLine("🔍 Cross-platform model path resolver registered - Fixes ONNX loading issues!");
+        
         // ================================================================================
         
         // Register EmergencyStopSystem (209 lines) from Safety project
