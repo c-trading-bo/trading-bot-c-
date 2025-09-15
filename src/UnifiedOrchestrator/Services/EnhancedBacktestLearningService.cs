@@ -909,6 +909,7 @@ public class EnhancedBacktestLearningService : BackgroundService
 
     /// <summary>
     /// Load historical bars for backtest using unified configuration
+    /// Now generates 1-minute bars with full 24-hour coverage including overnight sessions
     /// </summary>
     private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
@@ -924,12 +925,12 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             // Generate sample OHLCV data (in production, load from historical database)
             var random = new Random(currentDate.GetHashCode());
-            var change = (decimal)(random.NextDouble() - 0.5) * 0.02m; // ±1% daily change
+            var change = (decimal)(random.NextDouble() - 0.5) * 0.0005m; // ±0.025% per minute change (reduced from daily)
             var newPrice = currentPrice * (1 + change);
             
-            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.005m);
-            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.005m);
-            var volume = random.Next(50000, 200000);
+            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.0002m);
+            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.0002m);
+            var volume = random.Next(500, 2000); // Reduced volume per minute
             
             bars.Add(new BotCore.Models.Bar
             {
@@ -944,7 +945,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             });
             
             currentPrice = newPrice;
-            currentDate = currentDate.AddDays(1);
+            currentDate = currentDate.AddMinutes(1); // Changed from daily to 1-minute bars for better resolution
         }
         
         return bars;
