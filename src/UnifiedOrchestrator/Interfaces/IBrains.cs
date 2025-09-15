@@ -186,3 +186,31 @@ public class TrainingStatus
     public List<string> Logs { get; set; } = new();
     public string? ErrorMessage { get; set; }
 }
+
+/// <summary>
+/// Interface for model training services
+/// </summary>
+public interface IModelTrainingService
+{
+    /// <summary>
+    /// Train a challenger model based on promising backtest results
+    /// </summary>
+    Task<string> TrainChallengerAsync(ChallengerTrainingRequest request, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get training status
+    /// </summary>
+    Task<TrainingStatus> GetTrainingStatusAsync(string trainingId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Request for challenger model training
+/// </summary>
+public class ChallengerTrainingRequest
+{
+    public string BaseModelVersion { get; set; } = string.Empty;
+    public double TargetSharpe { get; set; }
+    public Dictionary<string, object> SuccessfulPatterns { get; set; } = new();
+    public TimeSpan TrainingDataPeriod { get; set; }
+    public DateTime Timestamp { get; set; }
+}

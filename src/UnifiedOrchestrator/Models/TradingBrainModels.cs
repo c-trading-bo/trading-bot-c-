@@ -153,8 +153,17 @@ public class BehaviorAlignment
 /// </summary>
 public class ShadowTestResult
 {
+    public string TestId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string Algorithm { get; set; } = string.Empty;
+    public string ChampionVersionId { get; set; } = string.Empty;
+    public string ChallengerVersionId { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTime StartTime { get; set; }
+    public DateTime? EndTime { get; set; }
+    public int DecisionCount { get; set; }
+    public double AgreementRate { get; set; }
+    public double PerformanceScore { get; set; }
     public TradingAction Decision { get; set; }
     public double Confidence { get; set; }
     public double Return { get; set; }
@@ -204,4 +213,7 @@ public class TradingContext
     public decimal DailyLossLimit { get; set; }
     public bool IsEmergencyStop { get; set; }
     public Dictionary<string, object> RiskParameters { get; set; } = new();
+    
+    // Shadow testing source identifier
+    public string Source { get; set; } = string.Empty;
 }

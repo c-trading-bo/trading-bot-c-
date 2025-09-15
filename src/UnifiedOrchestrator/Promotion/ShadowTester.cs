@@ -423,6 +423,122 @@ public class ShadowTester : IShadowTester
     }
 
     #endregion
+
+    /// <summary>
+    /// Record a decision for shadow testing comparison
+    /// </summary>
+    public async Task RecordDecisionAsync(string algorithm, TradingContext context, TradingBot.Abstractions.TradingDecision decision, CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        
+        // Find active test for this algorithm
+        var activeTest = _activeTests.Values.FirstOrDefault(t => t.Algorithm == algorithm && t.Status == "RUNNING");
+        if (activeTest == null)
+        {
+            _logger.LogDebug("No active shadow test for algorithm {Algorithm}, skipping decision recording", algorithm);
+            return;
+        }
+
+        // Record the decision for comparison
+        var shadowDecision = new ShadowDecision
+        {
+            Action = decision.Action.ToString(),
+            Size = decision.MaxPositionSize,
+            Confidence = decision.Confidence,
+            Timestamp = decision.Timestamp,
+            InferenceTimeMs = 0 // Would be calculated in real implementation
+        };
+
+        // Add to appropriate collection based on source
+        if (context.Source == "Champion")
+        {
+            activeTest.ChampionDecisions.Add(shadowDecision);
+        }
+        else
+        {
+            activeTest.ChallengerDecisions.Add(shadowDecision);
+        }
+
+        _logger.LogDebug("Recorded shadow decision for {Algorithm}: {Action} (confidence: {Confidence:F2})", 
+            algorithm, decision.Action, decision.Confidence);
+    }
+
+    /// <summary>
+    /// Get recent shadow test results for analysis
+    /// </summary>
+    public async Task<IReadOnlyList<ShadowTestResult>> GetRecentResultsAsync(string algorithm, TimeSpan timeWindow, CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        
+        var cutoffTime = DateTime.UtcNow - timeWindow;
+        var results = new List<ShadowTestResult>();
+
+        // Find relevant tests within the time window
+        var relevantTests = _activeTests.Values
+            .Where(t => t.Algorithm == algorithm && t.StartTime >= cutoffTime)
+            .ToList();
+
+        foreach (var test in relevantTests)
+        {
+            // Create result for each test
+            var result = new ShadowTestResult
+            {
+                TestId = test.TestId,
+                Algorithm = test.Algorithm,
+                ChampionVersionId = test.ChampionVersionId,
+                ChallengerVersionId = test.ChallengerVersionId,
+                Status = test.Status,
+                StartTime = test.StartTime,
+                EndTime = test.EndTime,
+                DecisionCount = test.ChampionDecisions.Count + test.ChallengerDecisions.Count,
+                AgreementRate = CalculateAgreementRate(test),
+                PerformanceScore = CalculatePerformanceScore(test)
+            };
+
+            results.Add(result);
+        }
+
+        _logger.LogDebug("Retrieved {Count} shadow test results for {Algorithm} within {TimeWindow}", 
+            results.Count, algorithm, timeWindow);
+
+        return results;
+    }
+
+    private double CalculateAgreementRate(ShadowTest test)
+    {
+        if (test.ChampionDecisions.Count == 0 || test.ChallengerDecisions.Count == 0)
+            return 0.0;
+
+        // Calculate agreement based on similar decisions at similar times
+        var agreements = 0;
+        var total = Math.Min(test.ChampionDecisions.Count, test.ChallengerDecisions.Count);
+
+        for (int i = 0; i < total; i++)
+        {
+            var champDecision = test.ChampionDecisions[i];
+            var challDecision = test.ChallengerDecisions[i];
+
+            if (champDecision.Action == challDecision.Action)
+            {
+                agreements++;
+            }
+        }
+
+        return total > 0 ? (double)agreements / total : 0.0;
+    }
+
+    private double CalculatePerformanceScore(ShadowTest test)
+    {
+        // Simplified performance score based on confidence and latency
+        if (test.ChallengerDecisions.Count == 0)
+            return 0.0;
+
+        var avgConfidence = test.ChallengerDecisions.Average(d => (double)d.Confidence);
+        var avgLatency = test.ChallengerDecisions.Average(d => (double)d.InferenceTimeMs);
+
+        // Higher confidence and lower latency = better score
+        return (avgConfidence * 100) - (avgLatency / 10);
+    }
 }
 
 /// <summary>
