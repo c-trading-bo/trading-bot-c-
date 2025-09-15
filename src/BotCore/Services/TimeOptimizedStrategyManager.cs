@@ -474,9 +474,7 @@ namespace BotCore.Services
             return instrument switch
             {
                 "ES" => 1.0,   // Baseline
-                "MES" => 1.05, // Slightly higher performance on micro contracts
                 "NQ" => 0.98,  // Slightly lower due to higher volatility
-                "MNQ" => 1.03, // Good performance on micro NASDAQ
                 _ => 1.0
             };
         }
@@ -913,8 +911,6 @@ namespace BotCore.Services
                 {
                     "ES" => 1.0,           // ES is baseline
                     "NQ" => 1.02,          // NQ typically more volatile/profitable
-                    "MES" => 0.98,         // Micro contracts, slightly different dynamics
-                    "MNQ" => 0.99,         // Micro NQ
                     _ => 1.0
                 };
                 
@@ -943,11 +939,9 @@ namespace BotCore.Services
             switch (symbol.ToUpper())
             {
                 case "ES":
-                case "MES":
                     _esBars = bars;
                     break;
                 case "NQ":
-                case "MNQ":
                     _nqBars = bars;
                     break;
                 default:

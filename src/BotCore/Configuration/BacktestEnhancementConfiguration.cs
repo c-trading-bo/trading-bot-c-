@@ -65,17 +65,7 @@ namespace BotCore.Configuration
         [Range(0.0, 2.0)]
         public double NQSlippageBps { get; set; } = 0.5;
 
-        /// <summary>
-        /// MES-specific slippage in basis points
-        /// </summary>
-        [Range(0.0, 2.0)]
-        public double MESSlippageBps { get; set; } = 0.5;
 
-        /// <summary>
-        /// MNQ-specific slippage in basis points
-        /// </summary>
-        [Range(0.0, 2.0)]
-        public double MNQSlippageBps { get; set; } = 0.75;
 
         /// <summary>
         /// Calculate slippage for a given symbol and market conditions
@@ -86,8 +76,6 @@ namespace BotCore.Configuration
             {
                 "ES" => ESSlippageBps,
                 "NQ" => NQSlippageBps,
-                "MES" => MESSlippageBps,
-                "MNQ" => MNQSlippageBps,
                 _ => BaseSlippageBps
             };
 
@@ -153,17 +141,7 @@ namespace BotCore.Configuration
         [Range(0.0, 5.0)]
         public decimal NQCommission { get; set; } = 0.62m;
 
-        /// <summary>
-        /// MES commission per contract
-        /// </summary>
-        [Range(0.0, 5.0)]
-        public decimal MESCommission { get; set; } = 0.31m;
 
-        /// <summary>
-        /// MNQ commission per contract
-        /// </summary>
-        [Range(0.0, 5.0)]
-        public decimal MNQCommission { get; set; } = 0.31m;
 
         /// <summary>
         /// Whether to charge round-turn commission (entry + exit)
@@ -179,9 +157,7 @@ namespace BotCore.Configuration
             {
                 "ES" => ESCommission,
                 "NQ" => NQCommission,
-                "MES" => MESCommission,
-                "MNQ" => MNQCommission,
-                _ => 0.62m // Default commission
+                _ => 0.62m // Default commission for standard futures
             };
 
             var multiplier = RoundTurnCommission ? 2 : (isEntry ? 1 : 1);
