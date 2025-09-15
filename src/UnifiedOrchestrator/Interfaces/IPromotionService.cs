@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.UnifiedOrchestrator.Models;
+using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Interfaces;
 
@@ -25,6 +26,16 @@ public interface IShadowTester
     /// Cancel an ongoing shadow test
     /// </summary>
     Task<bool> CancelTestAsync(string testId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Record a decision for shadow testing comparison
+    /// </summary>
+    Task RecordDecisionAsync(string algorithm, TradingContext context, TradingBot.Abstractions.TradingDecision decision, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Get recent shadow test results for analysis
+    /// </summary>
+    Task<IReadOnlyList<ShadowTestResult>> GetRecentResultsAsync(string algorithm, TimeSpan timeWindow, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

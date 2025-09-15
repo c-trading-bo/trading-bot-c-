@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
+using BotCore.Models; // For TradeSetup class
 
-// Use explicit alias to resolve MarketContext ambiguity - we want the Intelligence one
-using IntelligenceMarketContext = BotCore.Models.MarketContext;
+// Use the canonical MarketContext from Abstractions
+using IntelligenceMarketContext = TradingBot.Abstractions.MarketContext;
 
 namespace BotCore.Services;
 
@@ -178,9 +180,9 @@ public class IntelligenceService : IIntelligenceService
         decimal multiplier = 1.0m;
 
         // Adjust based on confidence (single check)
-        if (intelligence.ModelConfidence >= 0.8m)
+        if ((decimal)intelligence.ModelConfidence >= 0.8m)
             multiplier *= 1.5m; // High confidence
-        else if (intelligence.ModelConfidence <= 0.4m)
+        else if ((decimal)intelligence.ModelConfidence <= 0.4m)
             multiplier *= 0.6m; // Low confidence
 
         // Adjust based on volatility events (single check)
@@ -188,9 +190,9 @@ public class IntelligenceService : IIntelligenceService
             multiplier *= 0.5m; // Reduce size on major events
 
         // Adjust based on news intensity
-        if (intelligence.NewsIntensity >= 70m)
+        if ((decimal)intelligence.NewsIntensity >= 70m)
             multiplier *= 0.7m; // High news intensity = reduce size
-        else if (intelligence.NewsIntensity <= 20m)
+        else if ((decimal)intelligence.NewsIntensity <= 20m)
             multiplier *= 1.2m; // Low news intensity = increase size
         
         // Market regime adjustments
@@ -235,7 +237,7 @@ public class IntelligenceService : IIntelligenceService
             multiplier *= 1.5m;
 
         // High news intensity requires wider stops
-        if (intelligence.NewsIntensity >= 80m)
+        if ((decimal)intelligence.NewsIntensity >= 80m)
             multiplier *= 1.3m;
 
         return Math.Max(1.0m, Math.Min(multiplier, 3.0m));
@@ -259,7 +261,7 @@ public class IntelligenceService : IIntelligenceService
 
         // Extended targets in trending markets with high confidence
         if (intelligence.Regime.Equals("Trending", StringComparison.OrdinalIgnoreCase) &&
-            intelligence.ModelConfidence >= 0.7m)
+            (decimal)intelligence.ModelConfidence >= 0.7m)
             multiplier *= 2.0m;
 
         // Volatile regimes get extended targets
@@ -296,7 +298,7 @@ public class IntelligenceService : IIntelligenceService
 
         return intelligence.IsFomcDay ||
                intelligence.IsCpiDay ||
-               intelligence.NewsIntensity >= 80m ||
+               (decimal)intelligence.NewsIntensity >= 80m ||
                intelligence.Regime.Equals("Volatile", StringComparison.OrdinalIgnoreCase);
     }
 }

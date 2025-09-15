@@ -43,5 +43,10 @@ namespace BotCore.Services
         /// Reset all counters (for testing or restart scenarios)
         /// </summary>
         void Reset();
+        
+        /// <summary>
+        /// Mark the system as ready for trading with proper logging
+        /// </summary>
+        void SetSystemReady();
     }
 }

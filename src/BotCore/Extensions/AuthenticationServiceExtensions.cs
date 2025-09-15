@@ -36,29 +36,38 @@ public static class AuthenticationServiceExtensions
         // Register auth service factory function
         services.AddSingleton<Func<CancellationToken, Task<string>>>(serviceProvider =>
         {
-            return (cancellationToken) =>
+            return async (cancellationToken) =>
             {
-                // This would typically call the actual TopstepAuthAgent
-                // For now, fallback to environment variable
+                // First try environment variable for pre-existing JWT
                 var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
                 if (!string.IsNullOrEmpty(jwt))
                 {
-                    return Task.FromResult(jwt);
+                    return jwt;
                 }
                 
-                // In production, this would authenticate with username/password
+                // Use TopstepAuthAgent for username/apiKey authentication
                 var username = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
                 var apiKey = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
                 
                 if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(apiKey))
                 {
-                    // Would call actual authentication endpoint
-                    var logger = serviceProvider.GetRequiredService<ILogger<CachedTopstepAuth>>();
-                    logger.LogWarning("Auth function placeholder - implement actual authentication logic");
-                    throw new NotImplementedException("Implement actual TopstepX authentication");
+                    var httpClientFactory = serviceProvider.GetRequiredService<IHttpClientFactory>();
+                    var httpClient = httpClientFactory.CreateClient("Topstep");
+                    var authAgent = new TopstepAuthAgent(httpClient);
+                    
+                    try
+                    {
+                        return await authAgent.GetJwtAsync(username, apiKey, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        var logger = serviceProvider.GetRequiredService<ILogger<CachedTopstepAuth>>();
+                        logger.LogError(ex, "Failed to authenticate with TopstepX API");
+                        throw;
+                    }
                 }
                 
-                throw new InvalidOperationException("No authentication credentials available");
+                throw new InvalidOperationException("No authentication credentials available (TOPSTEPX_JWT or TOPSTEPX_USERNAME/TOPSTEPX_API_KEY)");
             };
         });
 

@@ -88,6 +88,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("TEST_INT", "42");
+        EnvConfig.Reload(); // Force reload to pick up new environment variable
 
         // Act
         var result = EnvConfig.GetInt("TEST_INT");
@@ -97,6 +98,7 @@ public class EnvConfigTests : IDisposable
 
         // Clean up
         Environment.SetEnvironmentVariable("TEST_INT", null);
+        EnvConfig.Reload();
     }
 
     [Fact]
@@ -120,6 +122,7 @@ public class EnvConfigTests : IDisposable
     {
         // Arrange
         Environment.SetEnvironmentVariable("TEST_DECIMAL", "123.45");
+        EnvConfig.Reload(); // Force reload to pick up new environment variable
 
         // Act
         var result = EnvConfig.GetDecimal("TEST_DECIMAL");
@@ -129,6 +132,7 @@ public class EnvConfigTests : IDisposable
 
         // Clean up
         Environment.SetEnvironmentVariable("TEST_DECIMAL", null);
+        EnvConfig.Reload();
     }
 
     [Fact]
@@ -260,7 +264,15 @@ public class EnvConfigTests : IDisposable
     public void GetExecutionMode_AllConditionsMet_ShouldReturnAutoExecute()
     {
         // Arrange
+        // Clean up any existing kill.txt file first
+        if (File.Exists("kill.txt"))
+        {
+            File.Delete("kill.txt");
+        }
+        
         Environment.SetEnvironmentVariable("EXECUTE", "true");
+        EnvConfig.Reload(); // Force reload to pick up new environment variable
+        
         var context = new BotCore.Config.ExecutionContext
         {
             BarsSeen = 15,
@@ -280,6 +292,7 @@ public class EnvConfigTests : IDisposable
         finally
         {
             Environment.SetEnvironmentVariable("EXECUTE", null);
+            EnvConfig.Reload();
         }
     }
 
@@ -331,6 +344,7 @@ public class EnvConfigTests : IDisposable
         // Arrange
         Environment.SetEnvironmentVariable("TEST_TOKEN", "secret123");
         Environment.SetEnvironmentVariable("TEST_NORMAL", "normal_value");
+        EnvConfig.Reload(); // Force reload to pick up new environment variables
 
         try
         {
@@ -347,6 +361,7 @@ public class EnvConfigTests : IDisposable
         {
             Environment.SetEnvironmentVariable("TEST_TOKEN", null);
             Environment.SetEnvironmentVariable("TEST_NORMAL", null);
+            EnvConfig.Reload();
         }
     }
 }

@@ -371,9 +371,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 _recentComparisons.RemoveAt(0);
         }
 
-        // TODO: Implement proper shadow testing integration
-        // The current IShadowTester interface doesn't have RecordDecisionAsync method
-        // await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision);
+        // Record decision for shadow testing comparison
+        await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision);
     }
 
     /// <summary>
@@ -399,11 +398,11 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             if (_recentComparisons.Count < 100) // Need minimum sample size
                 return;
 
-            // TODO: Implement proper shadow test integration when interface is defined
-            // var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24));
-            // 
-            // if (shadowResults.Count < 50) // Need sufficient shadow test data
-            //     return;
+            // Get shadow test results for promotion evaluation
+            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24));
+            
+            if (shadowResults.Count < 50) // Need sufficient shadow test data
+                return;
 
             // Check if promotion criteria are met based on recent comparisons
             var recentAgreements = _recentComparisons.TakeLast(100).Count(c => c.Agreement);
