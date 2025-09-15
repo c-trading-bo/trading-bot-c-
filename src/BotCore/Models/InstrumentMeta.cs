@@ -40,8 +40,8 @@ namespace BotCore.Models
         {
             if (string.IsNullOrWhiteSpace(name)) return string.Empty;
             var n = name.ToUpperInvariant();
-            if (n.Contains(".ENQ.") || n.StartsWith("NQ") || n.Contains("MNQ")) return "NQ";
-            if (n.Contains(".EP.") || n.StartsWith("ES") || n.Contains("MES")) return "ES";
+            if (n.Contains(".ENQ.") || n.StartsWith("NQ")) return "NQ";
+            if (n.Contains(".EP.") || n.StartsWith("ES")) return "ES";
             // default fallback: if already short root, return as-is
             if (n == "ES" || n == "NQ") return n;
             return n;

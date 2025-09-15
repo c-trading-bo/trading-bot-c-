@@ -163,10 +163,10 @@ namespace BotCore.Utilities
         {
             return symbol?.ToUpperInvariant() switch
             {
-                "ES" or "MES" => "ES",
-                "NQ" or "MNQ" => "NQ", 
-                "YM" or "MYM" => "YM",
-                "RTY" or "M2K" => "RT",
+                "ES" => "ES",
+                "NQ" => "NQ", 
+                "YM" => "YM",
+                "RTY" => "RT",
                 _ => symbol?.ToUpperInvariant()[..Math.Min(2, symbol.Length)] ?? "XX"
             };
         }
