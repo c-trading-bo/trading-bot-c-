@@ -854,7 +854,7 @@ Stack Trace:
         // ================================================================================
         
         // Register advanced ML/AI system components using extension methods
-        services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
+        // Note: IMLMemoryManager already registered earlier in the service registration
         services.AddSingleton<BotCore.Market.RedundantDataFeedManager>();
         services.AddSingleton<BotCore.Market.IEconomicEventManager, BotCore.Market.EconomicEventManager>();
         
@@ -962,8 +962,28 @@ Stack Trace:
         // �🚀 ENHANCED ML/RL/CLOUD INTEGRATION SERVICES - PRODUCTION AUTOMATION 🚀
         // ================================================================================
         
+        // Register HttpClient for Cloud Model Synchronization Service - GitHub API access
+        services.AddHttpClient<BotCore.Services.CloudModelSynchronizationService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com/");
+            client.DefaultRequestHeaders.Add("User-Agent", "TradingBot-CloudSync/1.0");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+        
         // Register Cloud Model Synchronization Service - Automated GitHub model downloads
-        services.AddSingleton<BotCore.Services.CloudModelSynchronizationService>();
+        services.AddSingleton<BotCore.Services.CloudModelSynchronizationService>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<BotCore.Services.CloudModelSynchronizationService>>();
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(BotCore.Services.CloudModelSynchronizationService));
+            var memoryManager = provider.GetRequiredService<BotCore.ML.IMLMemoryManager>();
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var resilienceService = provider.GetService<BotCore.Services.ProductionResilienceService>();
+            var monitoringService = provider.GetService<BotCore.Services.ProductionMonitoringService>();
+            
+            return new BotCore.Services.CloudModelSynchronizationService(
+                logger, httpClient, memoryManager, configuration, resilienceService, monitoringService);
+        });
         services.AddHostedService<BotCore.Services.CloudModelSynchronizationService>(provider => 
             provider.GetRequiredService<BotCore.Services.CloudModelSynchronizationService>());
         
