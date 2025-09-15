@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.SignalR.Client;
 using TradingBot.Abstractions;
 using BotCore.Market;
 using System.Net.Http;

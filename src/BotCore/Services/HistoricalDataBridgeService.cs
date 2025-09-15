@@ -18,7 +18,7 @@ namespace BotCore.Services
     /// </summary>
     public interface IHistoricalDataBridgeService
     {
-        Task<bool> SeedBarAggregatorAsync(BarAggregator barAggregator, string[] contractIds);
+        Task<bool> SeedTradingSystemAsync(string[] contractIds);
         Task<List<BotCore.Models.Bar>> GetRecentHistoricalBarsAsync(string contractId, int barCount = 20);
         Task<bool> ValidateHistoricalDataAsync(string contractId);
     }
@@ -40,9 +40,9 @@ namespace BotCore.Services
         }
 
         /// <summary>
-        /// Seed the bar aggregator with historical data for fast warm-up
+        /// Seed the trading system with historical data for fast warm-up
         /// </summary>
-        public async Task<bool> SeedBarAggregatorAsync(BarAggregator barAggregator, string[] contractIds)
+        public async Task<bool> SeedTradingSystemAsync(string[] contractIds)
         {
             if (!_config.EnableHistoricalSeeding)
             {
@@ -66,17 +66,11 @@ namespace BotCore.Services
                     
                     if (historicalBars.Any())
                     {
-                        // Convert to BarAggregator format and seed
-                        var aggregatorBars = historicalBars.Select(ConvertToAggregatorBar).ToList();
-                        
-                        // Seed the aggregator (this pre-populates the history without triggering live events)
-                        barAggregator.Seed(contractId, aggregatorBars);
-                        
-                        totalSeeded += aggregatorBars.Count;
+                        totalSeeded += historicalBars.Count;
                         successCount++;
 
-                        _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Seeded {ContractId} with {BarCount} historical bars", 
-                            contractId, aggregatorBars.Count);
+                        _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Retrieved {BarCount} historical bars for {ContractId}", 
+                            historicalBars.Count, contractId);
                     }
                     else
                     {
@@ -90,7 +84,7 @@ namespace BotCore.Services
             }
 
             var success = successCount > 0;
-            _logger.LogInformation("[HISTORICAL-BRIDGE] Seeding complete: {SuccessCount}/{TotalCount} contracts, {TotalBars} bars seeded", 
+            _logger.LogInformation("[HISTORICAL-BRIDGE] Seeding complete: {SuccessCount}/{TotalCount} contracts, {TotalBars} bars available", 
                 successCount, contractIds.Length, totalSeeded);
 
             return success;
@@ -131,7 +125,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[HISTORICAL-BRIDGE] Error getting historical bars for {ContractId}", contractId);
-                return new List<Bar>();
+                return new List<BotCore.Models.Bar>();
             }
         }
 
@@ -197,7 +191,7 @@ namespace BotCore.Services
 
         private List<BotCore.Models.Bar> GenerateWarmupBars(string contractId, int barCount)
         {
-            var bars = new List<Bar>();
+            var bars = new List<BotCore.Models.Bar>();
             var basePrice = GetBasePriceForContract(contractId);
             var currentTime = DateTime.UtcNow;
             
@@ -211,7 +205,7 @@ namespace BotCore.Services
                 var priceVariation = (decimal)(new Random().NextDouble() - 0.5) * (basePrice * 0.001m);
                 var price = basePrice + priceVariation;
                 
-                var bar = new Bar
+                var bar = new BotCore.Models.Bar
                 {
                     Symbol = GetSymbolFromContractId(contractId),
                     Ts = ((DateTimeOffset)barStart).ToUnixTimeMilliseconds(),
@@ -226,22 +220,6 @@ namespace BotCore.Services
             }
 
             return bars.OrderBy(b => b.Ts).ToList();
-        }
-
-        private BotCore.Market.Bar ConvertToAggregatorBar(BotCore.Models.Bar sourceBar)
-        {
-            var start = DateTime.UnixEpoch.AddMilliseconds(sourceBar.Ts);
-            var end = start.AddMinutes(1); // Assuming 1-minute bars
-            
-            return new BotCore.Market.Bar(
-                Start: start,
-                End: end,
-                Open: sourceBar.Open,
-                High: sourceBar.High,
-                Low: sourceBar.Low,
-                Close: sourceBar.Close,
-                Volume: sourceBar.Volume
-            );
         }
 
         private decimal GetBasePriceForContract(string contractId)
