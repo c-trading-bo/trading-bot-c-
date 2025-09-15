@@ -16,6 +16,7 @@ using TradingBot.IntelligenceStack;
 using TradingBot.Infrastructure.TopstepX;
 using Infrastructure.TopstepX;
 using BotCore.Services;
+using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
 using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
 using DotNetEnv;
 using static DotNetEnv.Env;
@@ -573,6 +574,16 @@ Stack Trace:
         
         // Register PositionTrackingSystem (379 lines) from Safety project
         services.AddSingleton<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
+        
+        // ================================================================================
+        // PRODUCTION READINESS SERVICES - Phase 4: Bar System Integration Fix
+        // ================================================================================
+        
+        // Register production readiness services including IHistoricalDataBridgeService and IEnhancedMarketDataFlowService
+        services.AddProductionReadinessServices(configuration);
+        services.AddDefaultTradingReadinessConfiguration();
+        
+        Console.WriteLine("✅ [PHASE-4] Production readiness services registered - Historical data bridge and enhanced market data flow services ready");
         
         // Register TradingSystemIntegrationService (533 lines) from BotCore as HOSTED SERVICE for live TopstepX connection
         // Configure TradingSystemIntegrationService for live TopstepX connection

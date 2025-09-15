@@ -326,6 +326,12 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
+                // FIRST: Check micro contract filter - CRITICAL PRODUCTION SAFETY
+                if (!ValidateNoMicroContracts(request.Symbol))
+                {
+                    return OrderResult.Failed($"Micro contract {request.Symbol} blocked by contract filter");
+                }
+                
                 // Check emergency stop first
                 if (_emergencyStop.IsEmergencyStop)
                 {
@@ -479,8 +485,8 @@ namespace TopstepX.Bot.Core.Services
                 if (!await PerformTradingPrechecksAsync())
                     return;
 
-                // Get symbols to evaluate (ES, MES, NQ, MNQ)
-                var symbols = new[] { "ES", "MES", "NQ", "MNQ" };
+                // Get symbols to evaluate using initialized contracts (filters out micro contracts)
+                var symbols = _chosenContracts;
                 
                 foreach (var symbol in symbols)
                 {
@@ -817,14 +823,52 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
+        /// Log contract filtering status for transparency and monitoring
+        /// </summary>
+        private void LogContractFilteringStatus()
+        {
+            _logger.LogInformation("🔒 [CONTRACT_FILTER] Production contract filtering status:");
+            _logger.LogInformation("📋 [CONTRACT_FILTER] ALLOWED contracts: {Contracts}", string.Join(", ", _chosenContracts));
+            _logger.LogInformation("🚫 [CONTRACT_FILTER] BLOCKED contracts: MES, MNQ (micro futures excluded from trading pipeline)");
+            _logger.LogInformation("✅ [CONTRACT_FILTER] Contract filtering is ACTIVE and preventing micro contracts from entering trading system");
+        }
+
+        /// <summary>
+        /// Validate that no micro contracts (MES/MNQ) enter the trading pipeline - PRODUCTION SAFETY
+        /// </summary>
+        private bool ValidateNoMicroContracts(string symbol)
+        {
+            if (string.IsNullOrEmpty(symbol))
+                return false;
+                
+            // EXPLICIT MICRO CONTRACT FILTER - Critical for production trading
+            var isMicroContract = symbol.Contains("MES", StringComparison.OrdinalIgnoreCase) || 
+                                 symbol.Contains("MNQ", StringComparison.OrdinalIgnoreCase);
+            
+            if (isMicroContract)
+            {
+                _logger.LogWarning("🚫 [CONTRACT_FILTER] MICRO CONTRACT BLOCKED: {Symbol} - System configured for standard ES/NQ contracts only", symbol);
+                return false;
+            }
+            
+            return true;
+        }
+
+        /// <summary>
         /// Validate strategy candidate before order placement
         /// </summary>
         private bool ValidateCandidate(Candidate candidate)
         {
-            // Check if symbol is supported
-            if (string.IsNullOrEmpty(candidate.symbol))
+            // FIRST: Check micro contract filter - CRITICAL PRODUCTION SAFETY
+            if (!ValidateNoMicroContracts(candidate.symbol))
             {
-                _logger.LogDebug("[VALIDATION] Invalid symbol for candidate {StrategyId}", candidate.strategy_id);
+                return false;
+            }
+            
+            // Check if symbol is supported in chosen contracts
+            if (string.IsNullOrEmpty(candidate.symbol) || !_chosenContracts.Contains(candidate.symbol))
+            {
+                _logger.LogDebug("[VALIDATION] Symbol {Symbol} not in chosen contracts for candidate {StrategyId}", candidate.symbol, candidate.strategy_id);
                 return false;
             }
 
@@ -918,6 +962,12 @@ namespace TopstepX.Bot.Core.Services
         /// </summary>
         private bool ValidateOrderRequest(PlaceOrderRequest orderRequest)
         {
+            // FIRST: Check micro contract filter - CRITICAL PRODUCTION SAFETY
+            if (!ValidateNoMicroContracts(orderRequest.Symbol))
+            {
+                return false;
+            }
+            
             // Basic validation
             if (string.IsNullOrEmpty(orderRequest.Symbol) || 
                 string.IsNullOrEmpty(orderRequest.Side) ||
@@ -969,28 +1019,30 @@ namespace TopstepX.Bot.Core.Services
         }
 
         /// <summary>
-        /// Initialize bar cache with empty collections for supported symbols
+        /// Initialize bar cache with empty collections for supported symbols (ES/NQ only - filtered)
         /// </summary>
         private void InitializeBarCache()
         {
-            var symbols = new[] { "ES", "MES", "NQ", "MNQ" };
-            foreach (var symbol in symbols)
+            // Use filtered contracts (ES/NQ only) - exclude micro contracts MES/MNQ
+            foreach (var symbol in _chosenContracts)
             {
                 _barCache.TryAdd(symbol, new List<Bar>());
                 _logger.LogDebug("[BAR_CACHE] Initialized bar cache for {Symbol}", symbol);
             }
+            
+            _logger.LogInformation("[CONTRACT_FILTER] Bar cache initialized for {ContractCount} contracts: {Contracts} (MES/MNQ excluded)", 
+                _chosenContracts.Length, string.Join(", ", _chosenContracts));
         }
 
         /// <summary>
-        /// Initialize ML/RL components for production-ready trading
+        /// Initialize ML/RL components for production-ready trading (ES/NQ only - filtered)
         /// </summary>
         private void InitializeMlRlComponents()
         {
             try
             {
-                // Initialize feature update tracking for each symbol
-                var symbols = new[] { "ES", "MES", "NQ", "MNQ" };
-                foreach (var symbol in symbols)
+                // Initialize feature update tracking for filtered contracts only (ES/NQ)
+                foreach (var symbol in _chosenContracts)
                 {
                     _lastFeatureUpdate.TryAdd(symbol, DateTime.MinValue);
                 }
@@ -998,7 +1050,8 @@ namespace TopstepX.Bot.Core.Services
                 // Mark ML/RL system as ready
                 _mlRlSystemReady = true;
                 
-                _logger.LogInformation("🤖 [ML/RL] Components initialized - TimeOptimizedStrategyManager, StrategyAgent, FeatureEngineering, StrategyMlModelManager ready");
+                _logger.LogInformation("🤖 [ML/RL] Components initialized for {ContractCount} contracts: {Contracts} - TimeOptimizedStrategyManager, StrategyAgent, FeatureEngineering, StrategyMlModelManager ready (MES/MNQ excluded)", 
+                    _chosenContracts.Length, string.Join(", ", _chosenContracts));
             }
             catch (Exception ex)
             {
@@ -1561,6 +1614,9 @@ namespace TopstepX.Bot.Core.Services
             
             // Initialize contracts for trading ES and NQ based on conditions
             InitializeAvailableContracts();
+            
+            // Log contract filtering status for transparency
+            LogContractFilteringStatus();
             
             _logger.LogInformation("✅ Trading system components initialized");
             return Task.CompletedTask;

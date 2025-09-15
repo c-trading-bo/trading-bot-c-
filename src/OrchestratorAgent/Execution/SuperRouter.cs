@@ -414,6 +414,14 @@ namespace OrchestratorAgent.Execution
 
         static double GetSignalQuality(string strategy, string symbol, double price)
         {
+            // Production Safety: Block micro contracts from quality assessment
+            if (symbol?.Contains("MES", StringComparison.OrdinalIgnoreCase) == true || 
+                symbol?.Contains("MNQ", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                // Return 0 quality for micro contracts to prevent trading
+                return 0.0;
+            }
+            
             // Advanced signal quality calculation using multiple factors
             double quality = 1.0;
             
@@ -427,14 +435,12 @@ namespace OrchestratorAgent.Execution
                 _ => 0.9
             };
             
-            // Symbol-specific adjustments based on liquidity
+            // Symbol-specific adjustments based on liquidity (ES/NQ only now)
             quality *= symbol switch
             {
                 "ES" => 1.0,   // Highest liquidity
-                "MES" => 0.98, // High liquidity
                 "NQ" => 0.96,  // Good liquidity  
-                "MNQ" => 0.94, // Moderate liquidity
-                _ => 0.85      // Lower liquidity symbols
+                _ => 0.85      // Lower liquidity symbols (fallback)
             };
             
             // Price level adjustments (avoid extreme prices)
