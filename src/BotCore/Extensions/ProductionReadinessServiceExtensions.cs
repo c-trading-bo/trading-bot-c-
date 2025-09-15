@@ -25,6 +25,9 @@ namespace BotCore.Extensions
             // Register historical data bridge service
             services.AddScoped<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
 
+            // Register bar consumer for historical data integration
+            services.AddScoped<IHistoricalBarConsumer, TradingSystemBarConsumer>();
+
             // Register enhanced market data flow service
             services.AddScoped<IEnhancedMarketDataFlowService, EnhancedMarketDataFlowService>();
 
@@ -47,7 +50,7 @@ namespace BotCore.Extensions
                 config.MarketDataTimeoutSeconds = 300;
                 config.EnableHistoricalSeeding = true;
                 config.EnableProgressiveReadiness = true;
-                config.SeedingContracts = new[] { "CON.F.US.EP.U25", "CON.F.US.ENQ.U25" };
+                config.SeedingContracts = new[] { "CON.F.US.EP.Z25", "CON.F.US.ENQ.Z25" };
 
                 // Environment-specific settings
                 config.Environment = new EnvironmentSettings

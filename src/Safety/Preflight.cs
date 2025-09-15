@@ -46,7 +46,7 @@ namespace OrchestratorAgent.Health
             if (string.IsNullOrWhiteSpace(m)) return (false, "MarketHub disconnected");
             if (string.IsNullOrWhiteSpace(u)) return (false, "UserHub disconnected");
 
-            // 2.5) Resolve active contractId for the root (e.g., "ES" -> "CON.F.US.EP.U25")
+            // 2.5) Resolve active contractId for the root (e.g., "ES" -> "CON.F.US.EP.Z25")
             string contractId;
             try
             {
