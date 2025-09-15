@@ -185,10 +185,10 @@ public class TopStepComplianceManager
             
             _logger.LogDebug("📊 [TOPSTEP-COMPLIANCE] Trade recorded: {Symbol} ${PnL:F2}, Daily: ${Daily:F2}, Drawdown: ${Drawdown:F2}",
                 symbol, pnl, _todayPnL, _currentDrawdown);
-            
-            // Check for compliance violations
-            await CheckComplianceViolationsAsync(cancellationToken);
         }
+        
+        // Check for compliance violations outside the lock
+        await CheckComplianceViolationsAsync(cancellationToken);
     }
     
     /// <summary>

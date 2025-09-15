@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using BotCore.Models;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -46,7 +47,7 @@ public class MarketConditionAnalyzer
     private const int MaxDataPoints = 500;
     
     // Current market state
-    private MarketRegime _currentRegime = MarketRegime.Unknown;
+    private TradingMarketRegime _currentRegime = TradingMarketRegime.Unknown;
     private MarketVolatility _currentVolatility = MarketVolatility.Normal;
     private decimal _currentTrend = 0m;
     private decimal _currentVolatilityValue = 0m;
@@ -104,7 +105,7 @@ public class MarketConditionAnalyzer
     /// <summary>
     /// Determine current market regime
     /// </summary>
-    public async Task<MarketRegime> DetermineMarketRegimeAsync(CancellationToken cancellationToken = default)
+    public async Task<TradingMarketRegime> DetermineMarketRegimeAsync(CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
         
@@ -112,7 +113,7 @@ public class MarketConditionAnalyzer
         {
             if (_recentData.Count < LongTermPeriod)
             {
-                return MarketRegime.Unknown;
+                return TradingMarketRegime.Unknown;
             }
             
             var prices = _recentData.TakeLast(LongTermPeriod).Select(d => d.Price).ToArray();
@@ -134,23 +135,23 @@ public class MarketConditionAnalyzer
             // Determine regime based on multiple factors
             if (trendStrength > 0.02m && IsUptrend(shortMA, mediumMA, longMA))
             {
-                _currentRegime = MarketRegime.Trending;
+                _currentRegime = TradingMarketRegime.Trending;
             }
             else if (trendStrength > 0.02m && IsDowntrend(shortMA, mediumMA, longMA))
             {
-                _currentRegime = MarketRegime.Trending;
+                _currentRegime = TradingMarketRegime.Trending;
             }
             else if (rangePercent > 0.015m && _currentVolatilityValue > GetVolatilityThreshold(MarketVolatility.High))
             {
-                _currentRegime = MarketRegime.Volatile;
+                _currentRegime = TradingMarketRegime.Volatile;
             }
             else if (rangePercent < 0.005m && _currentVolatilityValue < GetVolatilityThreshold(MarketVolatility.Low))
             {
-                _currentRegime = MarketRegime.LowVolatility;
+                _currentRegime = TradingMarketRegime.LowVolatility;
             }
             else
             {
-                _currentRegime = MarketRegime.Ranging;
+                _currentRegime = TradingMarketRegime.Ranging;
             }
             
             return _currentRegime;
@@ -429,15 +430,15 @@ public class MarketConditionAnalyzer
         };
     }
     
-    private decimal GetRegimeScore(MarketRegime regime)
+    private decimal GetRegimeScore(TradingMarketRegime regime)
     {
         return regime switch
         {
-            MarketRegime.Trending => 0.9m,        // Best for trend-following strategies
-            MarketRegime.Ranging => 0.7m,         // Good for mean reversion
-            MarketRegime.Volatile => 0.5m,        // Challenging but tradeable
-            MarketRegime.LowVolatility => 0.6m,   // Limited opportunities
-            MarketRegime.Unknown => 0.3m,         // Avoid trading
+            TradingMarketRegime.Trending => 0.9m,        // Best for trend-following strategies
+            TradingMarketRegime.Ranging => 0.7m,         // Good for mean reversion
+            TradingMarketRegime.Volatile => 0.5m,        // Challenging but tradeable
+            TradingMarketRegime.LowVolatility => 0.6m,   // Limited opportunities
+            TradingMarketRegime.Unknown => 0.3m,         // Avoid trading
             _ => 0.5m
         };
     }

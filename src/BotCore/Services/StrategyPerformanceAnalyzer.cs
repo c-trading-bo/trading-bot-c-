@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -47,7 +48,7 @@ public class StrategyPerformanceAnalyzer
     private const int RecentTradesWindow = 50;
     
     // Strategy definitions and characteristics
-    private readonly Dictionary<string, StrategyCharacteristics> _strategyCharacteristics;
+    private Dictionary<string, StrategyCharacteristics> _strategyCharacteristics = new();
     
     public StrategyPerformanceAnalyzer(ILogger<StrategyPerformanceAnalyzer> logger)
     {
@@ -64,8 +65,6 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task AnalyzeStrategyPerformanceAsync(string strategy, AnalyzerTradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        
         lock (_analysisLock)
         {
             if (!_strategyAnalysis.ContainsKey(strategy))
@@ -110,12 +109,12 @@ public class StrategyPerformanceAnalyzer
             // Record performance snapshot
             RecordPerformanceSnapshot(strategy, currentRegime);
             
-            // Generate insights
-            await GenerateStrategyInsightsAsync(strategy, cancellationToken);
-            
             _logger.LogDebug("🎯 [STRATEGY-ANALYZER] Updated analysis for {Strategy}: {Trades} trades, Score: {Score:F3}",
                 strategy, analysis.AllTrades.Count, analysis.OverallScore);
         }
+        
+        // Generate insights outside the lock
+        await GenerateStrategyInsightsAsync(strategy, cancellationToken);
     }
     
     /// <summary>
@@ -973,7 +972,11 @@ public class AnalyzerTradeOutcome
     public int Size { get; set; }
     public decimal Confidence { get; set; }
     public AnalyzerMarketRegime MarketRegime { get; set; }
+    public AnalyzerMarketRegime AnalyzerMarketRegime { get; set; }
     public decimal PnL { get; set; }
     public DateTime? ExitTime { get; set; }
     public decimal? ExitPrice { get; set; }
+    public bool IsWin => PnL > 0;
+    public decimal RMultiple { get; set; }
+    public TimeSpan Duration => ExitTime.HasValue ? ExitTime.Value - EntryTime : TimeSpan.Zero;
 }

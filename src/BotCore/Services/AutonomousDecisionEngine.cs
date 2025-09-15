@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using BotCore.Models;
 using BotCore.Brain;
 using BotCore.Services;
@@ -99,9 +100,12 @@ public class AutonomousDecisionEngine : BackgroundService
         _config = config.Value;
         
         _complianceManager = new TopStepComplianceManager(logger, config);
-        _performanceTracker = new AutonomousPerformanceTracker(logger);
-        _marketAnalyzer = new MarketConditionAnalyzer(logger);
-        _strategyAnalyzer = new StrategyPerformanceAnalyzer(logger);
+        _performanceTracker = new AutonomousPerformanceTracker(
+            _serviceProvider.GetRequiredService<ILogger<AutonomousPerformanceTracker>>());
+        _marketAnalyzer = new MarketConditionAnalyzer(
+            _serviceProvider.GetRequiredService<ILogger<MarketConditionAnalyzer>>());
+        _strategyAnalyzer = new StrategyPerformanceAnalyzer(
+            _serviceProvider.GetRequiredService<ILogger<StrategyPerformanceAnalyzer>>());
         
         InitializeAutonomousStrategyMetrics();
         
@@ -254,7 +258,8 @@ public class AutonomousDecisionEngine : BackgroundService
     private async Task AnalyzeMarketConditionsAsync(CancellationToken cancellationToken)
     {
         var previousRegime = _currentAutonomousMarketRegime;
-        _currentAutonomousMarketRegime = await _marketAnalyzer.DetermineMarketRegimeAsync(cancellationToken);
+        var tradingRegime = await _marketAnalyzer.DetermineMarketRegimeAsync(cancellationToken);
+        _currentAutonomousMarketRegime = MapTradingRegimeToAutonomous(tradingRegime);
         
         if (_currentAutonomousMarketRegime != previousRegime)
         {
@@ -780,9 +785,13 @@ public class AutonomousTradeOutcome
     public int Size { get; set; }
     public decimal Confidence { get; set; }
     public AutonomousMarketRegime AutonomousMarketRegime { get; set; }
+    public TradingMarketRegime MarketRegime { get; set; } = TradingMarketRegime.Unknown;
     public decimal PnL { get; set; }
     public DateTime? ExitTime { get; set; }
     public decimal? ExitPrice { get; set; }
+    public bool IsWin => PnL > 0;
+    public decimal RMultiple { get; set; }
+    public TimeSpan Duration => ExitTime.HasValue ? ExitTime.Value - EntryTime : TimeSpan.Zero;
 }
 
 /// <summary>
@@ -797,6 +806,41 @@ public class AutonomousStrategyMetrics
     public decimal TotalProfit { get; set; }
     public decimal TotalLoss { get; set; }
     public List<AutonomousTradeOutcome> RecentTrades { get; set; } = new();
+}
+
+    
+    /// <summary>
+    /// Map TradingMarketRegime to AutonomousMarketRegime
+    /// </summary>
+    private AutonomousMarketRegime MapTradingRegimeToAutonomous(TradingMarketRegime tradingRegime)
+    {
+        return tradingRegime switch
+        {
+            TradingMarketRegime.Unknown => AutonomousMarketRegime.Unknown,
+            TradingMarketRegime.Trending => AutonomousMarketRegime.Trending,
+            TradingMarketRegime.Ranging => AutonomousMarketRegime.Ranging,
+            TradingMarketRegime.Volatile => AutonomousMarketRegime.Volatile,
+            TradingMarketRegime.LowVolatility => AutonomousMarketRegime.LowVolatility,
+            TradingMarketRegime.Crisis => AutonomousMarketRegime.Volatile, // Map crisis to volatile
+            TradingMarketRegime.Recovery => AutonomousMarketRegime.Trending, // Map recovery to trending
+            _ => AutonomousMarketRegime.Unknown
+        };
+    }
+}
+
+/// <summary>
+/// Autonomous decision configuration
+/// </summary>
+public class AutonomousConfig
+{
+    public bool IsEnabled { get; set; } = false;
+    public bool AutoStrategySelection { get; set; } = true;
+    public bool AutoPositionSizing { get; set; } = true;
+    public decimal DailyProfitTarget { get; set; } = 300m;
+    public decimal MaxDailyLoss { get; set; } = -1000m;
+    public bool TradeDuringLunch { get; set; } = false;
+    public decimal MinRiskPerTrade { get; set; } = 0.005m;
+    public decimal MaxRiskPerTrade { get; set; } = 0.015m;
 }
 
 /// <summary>

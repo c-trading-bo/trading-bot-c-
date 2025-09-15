@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -78,8 +79,6 @@ public class AutonomousPerformanceTracker
     /// </summary>
     public async Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        
         lock (_trackingLock)
         {
             // Add to collections
@@ -110,12 +109,12 @@ public class AutonomousPerformanceTracker
             // Update performance metrics
             UpdatePerformanceMetrics();
             
-            // Record learning insights
-            await RecordLearningInsightAsync(trade, cancellationToken);
-            
             _logger.LogDebug("📊 [PERFORMANCE-TRACKER] Trade recorded: {Strategy} {Symbol} ${PnL:F2} (Total: {Trades} trades, ${TotalPnL:F2})",
                 trade.Strategy, trade.Symbol, trade.PnL, _totalTrades, _totalPnL);
         }
+        
+        // Record learning insights outside the lock
+        await RecordLearningInsightAsync(trade, cancellationToken);
     }
     
     /// <summary>
@@ -242,13 +241,20 @@ public class AutonomousPerformanceTracker
     /// </summary>
     public async Task<DailyPerformanceReport> GenerateDailyReportAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        AutonomousTradeOutcome[] todayTrades;
+        DateTime today;
         
         lock (_trackingLock)
         {
-            var today = DateTime.Today;
-            var todayTrades = _allTrades.Where(t => t.EntryTime.Date == today).ToArray();
-            
+            today = DateTime.Today;
+            todayTrades = _allTrades.Where(t => t.EntryTime.Date == today).ToArray();
+        }
+        
+        // Generate insights outside the lock
+        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken);
+        
+        lock (_trackingLock)
+        {
             var report = new DailyPerformanceReport
             {
                 Date = today,
@@ -261,7 +267,7 @@ public class AutonomousPerformanceTracker
                 LargestLoss = todayTrades.Length > 0 ? todayTrades.Where(t => t.PnL < 0).DefaultIfEmpty().Min(t => t?.PnL ?? 0m) : 0m,
                 BestStrategy = GetBestPerformingStrategyForDay(today),
                 WorstStrategy = GetWorstPerformingStrategyForDay(today),
-                TradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken),
+                TradingInsights = tradingInsights,
                 OptimizationRecommendations = GenerateOptimizationRecommendations()
             };
             
