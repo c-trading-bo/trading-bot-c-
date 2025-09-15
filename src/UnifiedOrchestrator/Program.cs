@@ -292,6 +292,40 @@ Stack Trace:
         // Register system health monitoring service
         services.AddHostedService<SystemHealthMonitoringService>();
 
+        // ================================================================================
+        // 🚀 AUTONOMOUS TRADING ENGINE - PROFIT-MAXIMIZING SYSTEM 🚀
+        // ================================================================================
+        
+        // Configure autonomous trading options
+        services.Configure<AutonomousConfig>(options =>
+        {
+            options.Enabled = Environment.GetEnvironmentVariable("AUTONOMOUS_MODE") == "true";
+            options.TradeDuringLunch = Environment.GetEnvironmentVariable("TRADE_DURING_LUNCH") == "true";
+            options.TradeOvernight = Environment.GetEnvironmentVariable("TRADE_OVERNIGHT") == "true";
+            options.TradePreMarket = Environment.GetEnvironmentVariable("TRADE_PREMARKET") == "true";
+            options.MaxContractsPerTrade = int.Parse(Environment.GetEnvironmentVariable("MAX_CONTRACTS_PER_TRADE") ?? "5");
+            options.DailyProfitTarget = decimal.Parse(Environment.GetEnvironmentVariable("DAILY_PROFIT_TARGET") ?? "300");
+            options.MaxDailyLoss = decimal.Parse(Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? "-1000");
+            options.MaxDrawdown = decimal.Parse(Environment.GetEnvironmentVariable("MAX_DRAWDOWN") ?? "-2000");
+        });
+        
+        // Register autonomous decision engine components
+        services.AddSingleton<TopStepComplianceManager>();
+        services.AddSingleton<MarketConditionAnalyzer>();
+        services.AddSingleton<AutonomousPerformanceTracker>();
+        services.AddSingleton<StrategyPerformanceAnalyzer>();
+        services.AddSingleton<IMarketHours, BasicMarketHours>();
+        
+        // Register the main autonomous decision engine as hosted service
+        services.AddSingleton<AutonomousDecisionEngine>();
+        services.AddHostedService<AutonomousDecisionEngine>(provider => 
+            provider.GetRequiredService<AutonomousDecisionEngine>());
+        
+        Console.WriteLine("🚀 [AUTONOMOUS-ENGINE] Registered autonomous trading engine - Profit-maximizing TopStep bot ready!");
+        Console.WriteLine("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
+        
+        // ================================================================================
+
         // Register trading activity logger for comprehensive trading event logging
         services.AddSingleton<TradingActivityLogger>();
 
