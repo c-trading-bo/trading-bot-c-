@@ -137,28 +137,6 @@ namespace OrchestratorAgent.Execution
                     OptimalRMultiple = 1.8m,
                     PreferredStrategies = new[] { "S2a", "S3a" }
                 },
-                "MES" => new SymbolParameters
-                {
-                    Symbol = "MES",
-                    TickSize = 0.25m,
-                    TypicalSpread = 0.25m,
-                    VolatilityMultiplier = 1.2, // Can be more aggressive with micro
-                    LiquidityMultiplier = 0.8,
-                    MaxPositionSize = 10,
-                    OptimalRMultiple = 1.3m,
-                    PreferredStrategies = new[] { "S2a", "S2b", "S3a", "S3b" }
-                },
-                "MNQ" => new SymbolParameters
-                {
-                    Symbol = "MNQ",
-                    TickSize = 0.25m,
-                    TypicalSpread = 0.50m,
-                    VolatilityMultiplier = 1.0,
-                    LiquidityMultiplier = 0.7,
-                    MaxPositionSize = 8,
-                    OptimalRMultiple = 1.6m,
-                    PreferredStrategies = new[] { "S2a", "S3a" }
-                },
                 _ => new SymbolParameters { Symbol = symbol }
             };
         }

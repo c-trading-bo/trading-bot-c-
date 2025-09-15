@@ -115,9 +115,7 @@ namespace BotCore.Configuration
         public Dictionary<string, string> FrontMonthMapping { get; set; } = new()
         {
             {"ES", "ESZ25"},
-            {"NQ", "NQZ25"},
-            {"MES", "MESZ25"},
-            {"MNQ", "MNQZ25"}
+            {"NQ", "NQZ25"}
         };
 
         /// <summary>

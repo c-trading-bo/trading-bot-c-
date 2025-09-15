@@ -86,7 +86,7 @@ namespace TopstepX.Bot.Core.Services
 
         public bool IsSystemReady => _isSystemReady && _mlRlSystemReady;
         public bool IsTradingEnabled => _isTradingEnabled && !_emergencyStop.IsEmergencyStop && _mlRlSystemReady;
-        public int BarsSeen => _barsSeen;
+        public int BarsSeen => _barsSeen + _seededBars;
         public bool IsMlRlSystemReady => _mlRlSystemReady;
 
         public class TradingSystemConfiguration
@@ -348,10 +348,11 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // Validate system readiness
-                if (!_isSystemReady || _barsSeen < 10)
+                var totalBarsSeen = _barsSeen + _seededBars;
+                if (!_isSystemReady || totalBarsSeen < 10)
                 {
-                    _logger.LogWarning("[ORDER] Order rejected - system not ready. BarsSeen: {BarsSeen}, Required: 10", _barsSeen);
-                    return OrderResult.Failed($"System not ready. BarsSeen: {_barsSeen}/10");
+                    _logger.LogWarning("[ORDER] Order rejected - system not ready. BarsSeen: {BarsSeen}, Required: 10", totalBarsSeen);
+                    return OrderResult.Failed($"System not ready. BarsSeen: {totalBarsSeen}/10");
                 }
 
                 // Round prices to ES/MES tick size (0.25)
@@ -1723,8 +1724,8 @@ namespace TopstepX.Bot.Core.Services
             var userHubReady = _signalRConnectionManager.IsUserHubConnected;
             var marketHubReady = _signalRConnectionManager.IsMarketHubConnected;
             
-            _logger.LogInformation("📊 System Status - UserHub: {UserHub}, MarketHub: {MarketHub}, BarsSeen: {BarsSeen}",
-                userHubReady, marketHubReady, _barsSeen);
+            _logger.LogInformation("📊 System Status - UserHub: {UserHub}, MarketHub: {MarketHub}, BarsSeen: {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})",
+                userHubReady, marketHubReady, _barsSeen + _seededBars, _barsSeen, _seededBars);
                 
             return Task.CompletedTask;
         }
@@ -1863,13 +1864,15 @@ namespace TopstepX.Bot.Core.Services
                 if (_liveTicks % 60 == 0) // Every 60 ticks simulate a bar
                 {
                     Interlocked.Increment(ref _barsSeen);
-                    _logger.LogDebug("[PROD-READY] Simulated bar received: Total bars {BarsSeen}", _barsSeen);
+                    var totalBarsSeen = _barsSeen + _seededBars;
+                    _logger.LogDebug("[PROD-READY] Simulated bar received: Total bars {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})", 
+                        totalBarsSeen, _barsSeen, _seededBars);
                     
-                    if (_barsSeen >= _readinessConfig.MinBarsSeen)
+                    if (totalBarsSeen >= _readinessConfig.MinBarsSeen)
                     {
                         _currentReadinessState = TradingReadinessState.FullyReady;
                         _logger.LogInformation("[PROD-READY] 🎯 FULLY READY FOR TRADING - BarsSeen: {BarsSeen}, State: {State}", 
-                            _barsSeen, _currentReadinessState);
+                            totalBarsSeen, _currentReadinessState);
                     }
                 }
             };
