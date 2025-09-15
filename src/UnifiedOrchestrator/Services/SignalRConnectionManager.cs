@@ -647,26 +647,36 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         
         _logger.LogInformation("[TOPSTEPX] Starting contract ID discovery for symbols: {Symbols}", string.Join(", ", targetSymbols));
         
-        // Primary: Try REST discovery for each symbol
-        foreach (var symbol in targetSymbols)
+        // Check if REST discovery should be skipped
+        var skipRestDiscovery = Environment.GetEnvironmentVariable("TOPSTEPX_SKIP_REST_DISCOVERY") == "true";
+        
+        if (!skipRestDiscovery)
         {
-            try
+            // Primary: Try REST discovery for each symbol
+            foreach (var symbol in targetSymbols)
             {
-                var contractId = await DiscoverContractIdFromRestAsync(symbol);
-                if (!string.IsNullOrEmpty(contractId))
+                try
                 {
-                    contractIds[symbol] = contractId;
-                    _logger.LogInformation("[TOPSTEPX] REST discovery: {Symbol} -> {ContractId}", symbol, contractId);
+                    var contractId = await DiscoverContractIdFromRestAsync(symbol);
+                    if (!string.IsNullOrEmpty(contractId))
+                    {
+                        contractIds[symbol] = contractId;
+                        _logger.LogInformation("[TOPSTEPX] REST discovery: {Symbol} -> {ContractId}", symbol, contractId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[TOPSTEPX] REST discovery failed for {Symbol}", symbol);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("[TOPSTEPX] REST discovery failed for {Symbol}", symbol);
+                    _logger.LogDebug(ex, "[TOPSTEPX] REST discovery error for {Symbol}: {Message}", symbol, ex.Message);
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[TOPSTEPX] REST discovery error for {Symbol}: {Message}", symbol, ex.Message);
-            }
+        }
+        else
+        {
+            _logger.LogInformation("[TOPSTEPX] REST discovery skipped - using config fallback only");
         }
         
         // Secondary: Config fallback for any missing symbols

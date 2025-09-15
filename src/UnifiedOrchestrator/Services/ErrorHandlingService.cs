@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +24,8 @@ public class ErrorHandlingService : IHostedService
     private readonly Timer _circuitBreakerTimer;
     private volatile bool _fileSystemAvailable = true;
     private volatile bool _eventLogAvailable = false;
+    private volatile bool _fileLoggingFallbackAvailable = false;
+    private string? _fallbackLogPath;
     private int _consecutiveFileErrors = 0;
     private readonly object _lockObject = new();
 
@@ -47,10 +50,21 @@ public class ErrorHandlingService : IHostedService
                 _eventLog = new EventLog("Application") { Source = "TradingBot" };
                 _eventLogAvailable = true;
             }
+            catch (SecurityException ex)
+            {
+                _logger.LogWarning(ex, "Failed to initialize Windows Event Log due to permissions - setting up file logging fallback");
+                SetupFileLoggingFallback();
+            }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to initialize Windows Event Log - fallback logging unavailable");
+                _logger.LogWarning(ex, "Failed to initialize Windows Event Log - setting up file logging fallback");
+                SetupFileLoggingFallback();
             }
+        }
+        else
+        {
+            // On non-Windows platforms, always use file logging
+            SetupFileLoggingFallback();
         }
 
         // Circuit breaker timer - check every 60 seconds
@@ -144,17 +158,24 @@ public class ErrorHandlingService : IHostedService
             }
         }
 
+        // Try file logging fallback first
+        if (_fileLoggingFallbackAvailable)
+        {
+            var fallbackMessage = $"CRITICAL ERROR [{component}]: {message} | Logging Error: {loggingException.Message}";
+            WriteToFileLoggingFallback("CRITICAL", fallbackMessage, originalException);
+        }
+        
         // Fallback to console logging
-        var fallbackMessage = $"CRITICAL ERROR [{component}]: {message}";
+        var consoleMessage = $"CRITICAL ERROR [{component}]: {message}";
         if (originalException != null)
         {
-            fallbackMessage += $" | Exception: {originalException.Message}";
+            consoleMessage += $" | Exception: {originalException.Message}";
         }
-        fallbackMessage += $" | Logging Error: {loggingException.Message}";
+        consoleMessage += $" | Logging Error: {loggingException.Message}";
         
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] 🔴 ERROR FALLBACK: {fallbackMessage}");
+        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] 🔴 ERROR FALLBACK: {consoleMessage}");
 
-        // Try to create emergency log file
+        // Try to create emergency log file as last resort
         TryCreateEmergencyLog(component, message, originalException, loggingException);
     }
 
@@ -219,6 +240,63 @@ public class ErrorHandlingService : IHostedService
     }
 
     /// <summary>
+    /// Setup file logging fallback when Event Log is not available
+    /// </summary>
+    private void SetupFileLoggingFallback()
+    {
+        try
+        {
+            var logDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TradingBot", "Logs");
+            Directory.CreateDirectory(logDirectory);
+            
+            _fallbackLogPath = Path.Combine(logDirectory, $"trading-errors-{DateTime.UtcNow:yyyyMMdd}.log");
+            
+            // Test write to ensure the path is accessible
+            var testMessage = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] File logging fallback initialized{Environment.NewLine}";
+            File.AppendAllText(_fallbackLogPath, testMessage);
+            
+            _fileLoggingFallbackAvailable = true;
+            _logger.LogInformation("File logging fallback initialized at: {FallbackLogPath}", _fallbackLogPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to setup file logging fallback - error handling will be limited");
+            _fileLoggingFallbackAvailable = false;
+        }
+    }
+
+    /// <summary>
+    /// Write critical error to file fallback
+    /// </summary>
+    private void WriteToFileLoggingFallback(string level, string message, Exception? exception = null)
+    {
+        if (!_fileLoggingFallbackAvailable || string.IsNullOrEmpty(_fallbackLogPath))
+            return;
+
+        try
+        {
+            var logEntry = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] [{level}] {message}";
+            if (exception != null)
+            {
+                logEntry += $" Exception: {exception.GetType().Name}: {exception.Message}";
+                if (exception.StackTrace != null)
+                {
+                    logEntry += Environment.NewLine + exception.StackTrace;
+                }
+            }
+            logEntry += Environment.NewLine;
+
+            File.AppendAllText(_fallbackLogPath, logEntry);
+        }
+        catch (Exception ex)
+        {
+            // If file logging also fails, we can only log to the regular logger
+            _logger.LogError(ex, "File logging fallback failed for message: {Message}", message);
+            _fileLoggingFallbackAvailable = false;
+        }
+    }
+
+    /// <summary>
     /// Get current error handling status for monitoring
     /// </summary>
     public object GetStatus()
@@ -227,6 +305,8 @@ public class ErrorHandlingService : IHostedService
         {
             fileSystemAvailable = _fileSystemAvailable,
             eventLogAvailable = _eventLogAvailable,
+            fileLoggingFallbackAvailable = _fileLoggingFallbackAvailable,
+            fallbackLogPath = _fallbackLogPath,
             consecutiveFileErrors = _consecutiveFileErrors,
             circuitBreakerActive = !_fileSystemAvailable
         };

@@ -204,14 +204,18 @@ public class DecisionServiceClient
             }
 
             // Ensure the working directory is an absolute path
-            var workingDirectory = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, _pythonOptions.WorkingDirectory));
+            var contentRoot = Environment.GetEnvironmentVariable("ASPNETCORE_CONTENTROOT") 
+                             ?? Environment.GetEnvironmentVariable("DOTNET_CONTENTROOT") 
+                             ?? AppContext.BaseDirectory;
+            
+            var workingDirectory = Path.GetFullPath(Path.Combine(contentRoot, _pythonOptions.WorkingDirectory));
             if (!Directory.Exists(workingDirectory))
             {
                 _logger?.LogError("[PYTHON] Python working directory not found at: {WorkingDirectory}", workingDirectory);
                 return null;
             }
             
-            var fullScriptPath = Path.Combine(workingDirectory, scriptPath);
+            var fullScriptPath = Path.GetFullPath(Path.Combine(contentRoot, scriptPath));
             if (!File.Exists(fullScriptPath))
             {
                  _logger?.LogError("[PYTHON] Python script not found at: {FullScriptPath}", fullScriptPath);

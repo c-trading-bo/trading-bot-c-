@@ -15,13 +15,16 @@ namespace BotCore.Services
     {
         private readonly ILogger<TradingSystemBarConsumer> _logger;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ITradingReadinessTracker? _readinessTracker;
 
         public TradingSystemBarConsumer(
             ILogger<TradingSystemBarConsumer> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            ITradingReadinessTracker? readinessTracker = null)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _readinessTracker = readinessTracker;
         }
 
         /// <summary>
@@ -41,6 +44,19 @@ namespace BotCore.Services
 
             try
             {
+                // CRITICAL FIX: Update readiness tracker with seeded bars
+                if (_readinessTracker != null)
+                {
+                    _readinessTracker.IncrementSeededBars(barList.Count);
+                    _readinessTracker.IncrementBarsSeen(barList.Count);
+                    _logger.LogInformation("[BAR-CONSUMER] ✅ Updated readiness tracker: +{BarCount} seeded bars, +{BarCount} bars seen", 
+                        barList.Count, barList.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("[BAR-CONSUMER] ⚠️ No readiness tracker available - bars processed but not counted for readiness");
+                }
+
                 // Try to feed bars into any available BarAggregator instances
                 FeedToBarAggregators(contractId, barList);
 
