@@ -227,8 +227,8 @@ namespace BotCore.Services
             // Get reasonable base prices for major contracts
             return contractId switch
             {
-                "CON.F.US.EP.U25" => 5800m, // ES futures
-                "CON.F.US.ENQ.U25" => 20000m, // NQ futures
+                "CON.F.US.EP.Z25" => 5800m, // ES futures
+                "CON.F.US.ENQ.Z25" => 20000m, // NQ futures
                 _ when contractId.Contains("EP") => 5800m, // ES variants
                 _ when contractId.Contains("ENQ") => 20000m, // NQ variants
                 _ => 100m // Generic fallback
@@ -239,8 +239,8 @@ namespace BotCore.Services
         {
             return contractId switch
             {
-                "CON.F.US.EP.U25" => "ES",
-                "CON.F.US.ENQ.U25" => "NQ",
+                "CON.F.US.EP.Z25" => "ES",
+                "CON.F.US.ENQ.Z25" => "NQ",
                 _ when contractId.Contains("EP") => "ES",
                 _ when contractId.Contains("ENQ") => "NQ",
                 _ => "UNKNOWN"

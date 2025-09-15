@@ -42,6 +42,7 @@ namespace BotCore.Services
         private readonly ConcurrentDictionary<string, int> _dataReceivedCount = new();
         private readonly ConcurrentDictionary<string, DataFlowMetrics> _flowMetrics = new();
         private readonly Timer _healthCheckTimer;
+        private readonly Timer _heartbeatTimer;
         private volatile bool _isHealthy = false;
         private volatile bool _isMonitoring = false;
         private readonly object _recoveryLock = new object();
@@ -67,6 +68,13 @@ namespace BotCore.Services
                 null,
                 Timeout.Infinite,
                 (int)TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds).TotalMilliseconds);
+
+            // Initialize heartbeat timer for 15-second recovery checks
+            _heartbeatTimer = new Timer(
+                PerformHeartbeatCheckCallback,
+                null,
+                Timeout.Infinite,
+                (int)TimeSpan.FromSeconds(_config.HealthMonitoring.HeartbeatTimeoutSeconds).TotalMilliseconds);
         }
 
         /// <summary>
@@ -98,6 +106,13 @@ namespace BotCore.Services
                     _healthCheckTimer.Change(
                         TimeSpan.FromSeconds(10), // Initial delay
                         TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds));
+                    
+                    // Start heartbeat monitoring for immediate recovery
+                    _heartbeatTimer.Change(
+                        TimeSpan.FromSeconds(_config.HealthMonitoring.HeartbeatTimeoutSeconds), // Initial delay
+                        TimeSpan.FromSeconds(_config.HealthMonitoring.HeartbeatTimeoutSeconds));
+                    
+                    _logger.LogInformation("[HEARTBEAT] ✅ 15-second heartbeat recovery monitoring enabled");
                 }
 
                 _isHealthy = true;
@@ -366,6 +381,76 @@ namespace BotCore.Services
         }
 
         /// <summary>
+        /// Timer callback for heartbeat checks (15-second immediate recovery)
+        /// </summary>
+        private void PerformHeartbeatCheckCallback(object? state)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await PerformHeartbeatCheckAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[HEARTBEAT] Error in heartbeat check callback");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Perform immediate heartbeat check for 15-second staleness detection
+        /// </summary>
+        private async Task PerformHeartbeatCheckAsync()
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                var staleSymbols = new List<string>();
+
+                foreach (var kvp in _flowMetrics)
+                {
+                    var symbol = kvp.Key;
+                    var metrics = kvp.Value;
+                    
+                    if (metrics.LastDataReceived != DateTime.MinValue)
+                    {
+                        var timeSinceLastData = currentTime - metrics.LastDataReceived;
+                        
+                        // Check for heartbeat timeout (15 seconds)
+                        if (timeSinceLastData.TotalSeconds > _config.HealthMonitoring.HeartbeatTimeoutSeconds)
+                        {
+                            staleSymbols.Add(symbol);
+                        }
+                    }
+                }
+
+                if (staleSymbols.Any())
+                {
+                    _logger.LogWarning("[HEARTBEAT] ⚠️ Market data stale for {Count} symbols after {Timeout}s: {Symbols}", 
+                        staleSymbols.Count, _config.HealthMonitoring.HeartbeatTimeoutSeconds, string.Join(", ", staleSymbols));
+
+                    // Immediate snapshot request for stale symbols
+                    if (_config.HealthMonitoring.AutoRecoveryEnabled)
+                    {
+                        await RequestSnapshotDataAsync(staleSymbols);
+                        
+                        _logger.LogInformation("[HEARTBEAT] 🔄 Initiated snapshot recovery for {Count} stale symbols", staleSymbols.Count);
+                    }
+                }
+                else
+                {
+                    _logger.LogTrace("[HEARTBEAT] ✅ All symbols have fresh data within {Timeout}s threshold", 
+                        _config.HealthMonitoring.HeartbeatTimeoutSeconds);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[HEARTBEAT] Error performing heartbeat check");
+            }
+        }
+
+        /// <summary>
         /// Perform comprehensive health check
         /// </summary>
         private async Task PerformHealthCheckAsync()
@@ -512,6 +597,7 @@ namespace BotCore.Services
             if (!_disposed)
             {
                 _healthCheckTimer?.Dispose();
+                _heartbeatTimer?.Dispose();
                 _isMonitoring = false;
                 _disposed = true;
             }

@@ -20,7 +20,7 @@ namespace BotCore.Services
         /// Minimum seeded bars from historical data
         /// </summary>
         [Range(0, 50)]
-        public int MinSeededBars { get; set; } = 8;
+        public int MinSeededBars { get; set; } = 12;
 
         /// <summary>
         /// Minimum live ticks required after seeding
@@ -55,7 +55,7 @@ namespace BotCore.Services
         /// <summary>
         /// Contracts to seed with historical data
         /// </summary>
-        public string[] SeedingContracts { get; set; } = { "CON.F.US.EP.U25", "CON.F.US.ENQ.U25" };
+        public string[] SeedingContracts { get; set; } = { "CON.F.US.EP.Z25", "CON.F.US.ENQ.Z25" };
 
         /// <summary>
         /// Environment-specific settings
@@ -95,7 +95,7 @@ namespace BotCore.Services
     public class ProductionEnvironmentSettings
     {
         public int MinBarsSeen { get; set; } = 10;
-        public int MinSeededBars { get; set; } = 8;
+        public int MinSeededBars { get; set; } = 12;
         public int MinLiveTicks { get; set; } = 2;
         public bool AllowMockData { get; set; } = false;
     }
