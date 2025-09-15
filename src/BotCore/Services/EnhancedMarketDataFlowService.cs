@@ -24,6 +24,7 @@ namespace BotCore.Services
         Task RequestSnapshotDataAsync(IEnumerable<string> symbols);
         Task<bool> VerifyDataFlowAsync(string symbol, TimeSpan timeout);
         Task StartHealthMonitoringAsync(CancellationToken cancellationToken);
+        Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken);
         event Action<string, object> OnMarketDataReceived;
         event Action<string> OnDataFlowRestored;
         event Action<string> OnDataFlowInterrupted;
@@ -583,6 +584,31 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[SYMBOL-SNAPSHOT] Error requesting snapshot for {Symbol}", symbol);
+            }
+        }
+
+        /// <summary>
+        /// Process market data through the data flow pipeline
+        /// </summary>
+        public async Task ProcessMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Update internal metrics
+                SimulateMarketDataReceived(marketData.Symbol, marketData);
+                
+                // Trigger the market data received event
+                OnMarketDataReceived?.Invoke(marketData.Symbol, marketData);
+                
+                _logger.LogTrace("[MARKET-DATA-FLOW] Processed market data for {Symbol} at {Price}", 
+                    marketData.Symbol, marketData.Close);
+                    
+                await Task.CompletedTask; // Make it properly async
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MARKET-DATA-FLOW] Failed to process market data for {Symbol}", marketData.Symbol);
+                throw;
             }
         }
 

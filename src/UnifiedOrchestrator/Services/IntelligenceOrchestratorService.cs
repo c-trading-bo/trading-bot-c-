@@ -244,7 +244,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         return true;
     }
 
-    public async Task<TradingDecision> MakeDecisionAsync(MarketContext context, CancellationToken cancellationToken = default)
+    public async Task<TradingDecision> MakeDecisionAsync(TradingBot.Abstractions.MarketContext context, CancellationToken cancellationToken = default)
     {
         return await GenerateDecisionAsync(context, cancellationToken);
     }

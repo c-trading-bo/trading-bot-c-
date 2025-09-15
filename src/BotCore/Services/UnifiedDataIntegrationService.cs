@@ -289,7 +289,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             }
             
             _logger.LogTrace("📊 [UNIFIED-PIPELINE] Processed {Type} bar: {Symbol} {Close}", 
-                isHistorical ? "historical" : "live", bar.Symbol, bar.Close);
+                isHistorical ? "historical" : "live", "ES", bar.Close);
         }
         catch (Exception ex)
         {
@@ -341,7 +341,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Process live market data through unified pipeline
     /// </summary>
-    public async Task ProcessLiveMarketDataAsync(MarketData marketData, CancellationToken cancellationToken = default)
+    public async Task ProcessLiveMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -567,9 +567,9 @@ public class UnifiedDataIntegrationService : BackgroundService
         return bars;
     }
     
-    private MarketData ConvertBarToMarketData(MarketBar bar)
+    private TradingBot.Abstractions.MarketData ConvertBarToMarketData(MarketBar bar)
     {
-        return new MarketData
+        return new TradingBot.Abstractions.MarketData
         {
             Symbol = "ES", // Default symbol since MarketBar doesn't store symbol
             Open = (double)bar.Open,
@@ -581,7 +581,7 @@ public class UnifiedDataIntegrationService : BackgroundService
         };
     }
     
-    private MarketBar ConvertMarketDataToBar(MarketData data)
+    private MarketBar ConvertMarketDataToBar(TradingBot.Abstractions.MarketData data)
     {
         return new MarketBar(
             data.Timestamp,
@@ -621,17 +621,18 @@ public class ContractManager
         _logger = logger;
     }
     
-    public async Task<Dictionary<string, string>> GetCurrentContractsAsync(CancellationToken cancellationToken)
+    public Task<Dictionary<string, string>> GetCurrentContractsAsync(CancellationToken cancellationToken)
     {
         // In production, this would query TopstepX API for current front month contracts
-        return new Dictionary<string, string>
+        var contracts = new Dictionary<string, string>
         {
             ["ES"] = "CON.F.US.EP.Z25", // December 2025
             ["NQ"] = "CON.F.US.NQ.Z25"  // December 2025
         };
+        return Task.FromResult(contracts);
     }
     
-    public async Task<RolloverCheck> CheckRolloverNeededAsync(string currentES, string currentNQ, CancellationToken cancellationToken)
+    public Task<RolloverCheck> CheckRolloverNeededAsync(string currentES, string currentNQ, CancellationToken cancellationToken)
     {
         // Check if current contracts are approaching expiry
         var now = DateTime.UtcNow;
@@ -639,13 +640,14 @@ public class ContractManager
         
         var needsRollover = now > decemberExpiry.AddDays(-30); // 30 days before expiry
         
-        return new RolloverCheck
+        var result = new RolloverCheck
         {
             ESNeedsRollover = needsRollover && currentES.Contains("Z25"),
             NQNeedsRollover = needsRollover && currentNQ.Contains("Z25"),
             NewESContract = needsRollover ? "CON.F.US.EP.H26" : null, // March 2026
             NewNQContract = needsRollover ? "CON.F.US.NQ.H26" : null  // March 2026
         };
+        return Task.FromResult(result);
     }
 }
 
