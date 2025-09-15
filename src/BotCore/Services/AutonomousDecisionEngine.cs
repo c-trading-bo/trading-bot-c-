@@ -209,12 +209,12 @@ public class AutonomousDecisionEngine : BackgroundService
         
         // Check if we're in an optimal trading period
         var currentSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken);
-        var isOptimalTime = await IsOptimalTradingTimeAsync(currentSession, cancellationToken);
+        var isOptimalTime = IsOptimalTradingTime(currentSession);
         
         return isOptimalTime;
     }
     
-    private async Task<bool> IsOptimalTradingTimeAsync(string session, CancellationToken cancellationToken)
+    private bool IsOptimalTradingTime(string session)
     {
         // Autonomous schedule management - focus on high-probability periods
         return session switch
@@ -477,20 +477,31 @@ public class AutonomousDecisionEngine : BackgroundService
         // Use the unified brain to identify trading opportunities
         try
         {
-            var decision = await _decisionRouter.RouteDecisionAsync("ES", _currentStrategy, cancellationToken);
+            var marketContext = new MarketContext
+            {
+                Symbol = "ES",
+                Price = 0, // TODO: Get current price
+                Volume = 0, // TODO: Get current volume
+                Timestamp = DateTime.UtcNow,
+                TechnicalIndicators = new Dictionary<string, double>()
+            };
             
-            if (decision?.Action != null && decision.Action != "HOLD")
+            var decision = await _decisionRouter.RouteDecisionAsync("ES", marketContext, cancellationToken);
+            
+            if (decision?.Action != null && decision.Action != TradingAction.Hold)
             {
                 return new TradingOpportunity
                 {
                     Symbol = "ES",
-                    Direction = decision.Action,
+                    Direction = decision.Action.ToString(),
                     Strategy = _currentStrategy,
-                    Confidence = decision.Confidence ?? 0.6m,
-                    EntryPrice = decision.EntryPrice,
-                    StopLoss = decision.StopPrice,
-                    TakeProfit = decision.TargetPrice,
-                    Reasoning = decision.Reasoning ?? $"Autonomous {_currentStrategy} signal"
+                    Confidence = decision.Confidence,
+                    EntryPrice = null, // Will be set during execution
+                    StopLoss = null,   // Will be calculated during execution
+                    TakeProfit = null, // Will be calculated during execution
+                    Reasoning = decision.Reasoning.ContainsKey("summary") ? 
+                        decision.Reasoning["summary"].ToString() : 
+                        $"Autonomous {_currentStrategy} signal"
                 };
             }
         }
@@ -565,7 +576,7 @@ public class AutonomousDecisionEngine : BackgroundService
     private async Task RecordTradeForLearningAsync(TradingOpportunity opportunity, TradeExecutionResult result, CancellationToken cancellationToken)
     {
         // Record trade outcome for continuous learning
-        var tradeOutcome = new TradeOutcome
+        var tradeOutcome = new AutonomousTradeOutcome
         {
             Strategy = opportunity.Strategy,
             Symbol = opportunity.Symbol,
@@ -664,7 +675,7 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
         {
-            _strategyMetrics[strategy] = new StrategyMetrics
+            _strategyMetrics[strategy] = new AutonomousStrategyMetrics
             {
                 StrategyName = strategy,
                 RecentTrades = new List<AutonomousTradeOutcome>()
@@ -726,22 +737,25 @@ public class AutonomousDecisionEngine : BackgroundService
         // TODO: Send to monitoring system or alerts
     }
     
+    /// <summary>
+    /// Map TradingMarketRegime to AutonomousMarketRegime
+    /// </summary>
+    private AutonomousMarketRegime MapTradingRegimeToAutonomous(TradingMarketRegime tradingRegime)
+    {
+        return tradingRegime switch
+        {
+            TradingMarketRegime.Unknown => AutonomousMarketRegime.Unknown,
+            TradingMarketRegime.Trending => AutonomousMarketRegime.Trending,
+            TradingMarketRegime.Ranging => AutonomousMarketRegime.Ranging,
+            TradingMarketRegime.Volatile => AutonomousMarketRegime.Volatile,
+            TradingMarketRegime.LowVolatility => AutonomousMarketRegime.LowVolatility,
+            TradingMarketRegime.Crisis => AutonomousMarketRegime.Volatile, // Map crisis to volatile
+            TradingMarketRegime.Recovery => AutonomousMarketRegime.Trending, // Map recovery to trending
+            _ => AutonomousMarketRegime.Unknown
+        };
+    }
+    
     private DateTime _lastPerformanceReport = DateTime.MinValue;
-}
-
-/// <summary>
-/// Configuration for autonomous trading engine
-/// </summary>
-public class AutonomousConfig
-{
-    public bool Enabled { get; set; } = true;
-    public bool TradeDuringLunch { get; set; } = false;
-    public bool TradeOvernight { get; set; } = false;
-    public bool TradePreMarket { get; set; } = false;
-    public int MaxContractsPerTrade { get; set; } = 5;
-    public decimal DailyProfitTarget { get; set; } = 300m;
-    public decimal MaxDailyLoss { get; set; } = -1000m;
-    public decimal MaxDrawdown { get; set; } = -2000m;
 }
 
 /// <summary>
@@ -808,28 +822,8 @@ public class AutonomousStrategyMetrics
     public List<AutonomousTradeOutcome> RecentTrades { get; set; } = new();
 }
 
-    
-    /// <summary>
-    /// Map TradingMarketRegime to AutonomousMarketRegime
-    /// </summary>
-    private AutonomousMarketRegime MapTradingRegimeToAutonomous(TradingMarketRegime tradingRegime)
-    {
-        return tradingRegime switch
-        {
-            TradingMarketRegime.Unknown => AutonomousMarketRegime.Unknown,
-            TradingMarketRegime.Trending => AutonomousMarketRegime.Trending,
-            TradingMarketRegime.Ranging => AutonomousMarketRegime.Ranging,
-            TradingMarketRegime.Volatile => AutonomousMarketRegime.Volatile,
-            TradingMarketRegime.LowVolatility => AutonomousMarketRegime.LowVolatility,
-            TradingMarketRegime.Crisis => AutonomousMarketRegime.Volatile, // Map crisis to volatile
-            TradingMarketRegime.Recovery => AutonomousMarketRegime.Trending, // Map recovery to trending
-            _ => AutonomousMarketRegime.Unknown
-        };
-    }
-}
-
 /// <summary>
-/// Autonomous decision configuration
+/// Configuration for autonomous trading engine
 /// </summary>
 public class AutonomousConfig
 {
@@ -839,6 +833,9 @@ public class AutonomousConfig
     public decimal DailyProfitTarget { get; set; } = 300m;
     public decimal MaxDailyLoss { get; set; } = -1000m;
     public bool TradeDuringLunch { get; set; } = false;
+    public bool TradeOvernight { get; set; } = false;
+    public bool TradePreMarket { get; set; } = false;
+    public int MaxContractsPerTrade { get; set; } = 5;
     public decimal MinRiskPerTrade { get; set; } = 0.005m;
     public decimal MaxRiskPerTrade { get; set; } = 0.015m;
 }
