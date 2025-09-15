@@ -437,8 +437,8 @@ namespace BotCore.Services
         {
             return symbol.ToUpper() switch
             {
-                "ES" => "CON.F.US.EP.U25", // E-mini S&P 500
-                "NQ" => "CON.F.US.ENQ.U25", // E-mini NASDAQ-100
+                "ES" => "CON.F.US.EP.Z25", // E-mini S&P 500
+                "NQ" => "CON.F.US.ENQ.Z25", // E-mini NASDAQ-100
                 _ => null
             };
         }

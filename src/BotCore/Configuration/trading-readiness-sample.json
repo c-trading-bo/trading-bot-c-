@@ -1,15 +1,15 @@
 {
   "TradingReadiness": {
     "MinBarsSeen": 10,
-    "MinSeededBars": 8,
+    "MinSeededBars": 12,
     "MinLiveTicks": 2,
     "MaxHistoricalDataAgeHours": 24,
     "MarketDataTimeoutSeconds": 300,
     "EnableHistoricalSeeding": true,
     "EnableProgressiveReadiness": true,
     "SeedingContracts": [
-      "CON.F.US.EP.U25",
-      "CON.F.US.ENQ.U25"
+      "CON.F.US.EP.Z25",
+      "CON.F.US.ENQ.Z25"
     ],
     "Environment": {
       "Name": "production",
@@ -21,7 +21,7 @@
       },
       "Production": {
         "MinBarsSeen": 10,
-        "MinSeededBars": 8,
+        "MinSeededBars": 12,
         "MinLiveTicks": 2,
         "AllowMockData": false
       }
