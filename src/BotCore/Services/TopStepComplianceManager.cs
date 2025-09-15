@@ -324,6 +324,8 @@ public class TopStepComplianceManager
             _logger.LogError("🔴 [TOPSTEP-COMPLIANCE] CRITICAL: Approaching drawdown limit: ${Drawdown}",
                 _currentDrawdown);
         }
+        
+        await Task.CompletedTask;
     }
     
     private int GetMinimumTradingDays()

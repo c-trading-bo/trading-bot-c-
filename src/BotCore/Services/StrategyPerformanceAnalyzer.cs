@@ -517,6 +517,8 @@ public class StrategyPerformanceAnalyzer
                     strategy, recentPnL, recentWinRate);
             }
         }
+        
+        await Task.CompletedTask;
     }
     
     private decimal GetRegimeSpecificScore(string strategy, AnalyzerMarketRegime regime)

@@ -294,7 +294,7 @@ public class AutonomousDecisionEngine : BackgroundService
         
         foreach (var strategy in new[] { "S2", "S3", "S6", "S11" })
         {
-            var score = await CalculateStrategyScoreAsync(strategy, cancellationToken);
+            var score = CalculateStrategyScore(strategy);
             strategyScores[strategy] = score;
         }
         
@@ -305,10 +305,11 @@ public class AutonomousDecisionEngine : BackgroundService
             string.Join(", ", strategyScores.Select(kvp => $"{kvp.Key}:{kvp.Value:F3}")),
             bestStrategy.Key);
         
+        await Task.CompletedTask;
         return bestStrategy.Key;
     }
     
-    private async Task<decimal> CalculateStrategyScoreAsync(string strategy, CancellationToken cancellationToken)
+    private decimal CalculateStrategyScore(string strategy)
     {
         if (!_strategyMetrics.ContainsKey(strategy))
         {
@@ -319,7 +320,7 @@ public class AutonomousDecisionEngine : BackgroundService
         
         // Multi-factor scoring algorithm
         var recentPerformanceScore = CalculateRecentPerformanceScore(metrics);
-        var marketFitScore = await CalculateMarketFitScoreAsync(strategy, cancellationToken);
+        var marketFitScore = CalculateMarketFitScore(strategy);
         var consistencyScore = CalculateConsistencyScore(metrics);
         var profitabilityScore = CalculateProfitabilityScore(metrics);
         
@@ -347,7 +348,7 @@ public class AutonomousDecisionEngine : BackgroundService
         return (winRateScore * 0.6m) + (pnlScore * 0.4m);
     }
     
-    private async Task<decimal> CalculateMarketFitScoreAsync(string strategy, CancellationToken cancellationToken)
+    private decimal CalculateMarketFitScore(string strategy)
     {
         // Different strategies perform better in different market regimes
         return (_currentAutonomousMarketRegime, strategy) switch
@@ -500,7 +501,7 @@ public class AutonomousDecisionEngine : BackgroundService
                     StopLoss = null,   // Will be calculated during execution
                     TakeProfit = null, // Will be calculated during execution
                     Reasoning = decision.Reasoning.ContainsKey("summary") ? 
-                        decision.Reasoning["summary"].ToString() : 
+                        decision.Reasoning["summary"]?.ToString() ?? $"Autonomous {_currentStrategy} signal" : 
                         $"Autonomous {_currentStrategy} signal"
                 };
             }
@@ -532,7 +533,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 _logger.LogInformation("✅ [AUTONOMOUS-ENGINE] Trade executed successfully: {OrderId}", tradeResult.OrderId);
                 
                 // Record trade for learning
-                await RecordTradeForLearningAsync(opportunity, tradeResult, cancellationToken);
+                RecordTradeForLearning(opportunity, tradeResult);
             }
             else
             {
@@ -563,6 +564,7 @@ public class AutonomousDecisionEngine : BackgroundService
         // Placeholder for actual trade execution - would integrate with TopStepX API
         // For now, simulate the execution
         
+        await Task.CompletedTask;
         return new TradeExecutionResult
         {
             Success = true,
@@ -573,7 +575,7 @@ public class AutonomousDecisionEngine : BackgroundService
         };
     }
     
-    private async Task RecordTradeForLearningAsync(TradingOpportunity opportunity, TradeExecutionResult result, CancellationToken cancellationToken)
+    private void RecordTradeForLearning(TradingOpportunity opportunity, TradeExecutionResult result)
     {
         // Record trade outcome for continuous learning
         var tradeOutcome = new AutonomousTradeOutcome
@@ -616,6 +618,8 @@ public class AutonomousDecisionEngine : BackgroundService
         // - Scale out of positions at profit targets
         // - Cut losses quickly on losing positions
         // - Scale into winning positions with additional contracts
+        
+        await Task.CompletedTask;
     }
     
     private async Task UpdatePerformanceAndLearningAsync(CancellationToken cancellationToken)
@@ -652,6 +656,8 @@ public class AutonomousDecisionEngine : BackgroundService
         
         _logger.LogDebug("⚖️ [AUTONOMOUS-ENGINE] Risk updated: {Risk:P} (PnL: ${PnL:F0}, WinRate: {WinRate:P})",
             _currentRiskPerTrade, recentPnL, recentWinRate);
+            
+        await Task.CompletedTask;
     }
     
     private async Task<TimeSpan> GetAdaptiveDelayAsync(CancellationToken cancellationToken)
@@ -690,6 +696,7 @@ public class AutonomousDecisionEngine : BackgroundService
         
         // TODO: Implement historical data loading
         // This would load past trade results to initialize strategy metrics
+        await Task.CompletedTask;
     }
     
     private async Task UpdateStrategyMetricsAsync(CancellationToken cancellationToken)
@@ -710,6 +717,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 metrics.RecentTrades = strategyTrades.TakeLast(20).ToList();
             }
         }
+        await Task.CompletedTask;
     }
     
     private async Task GeneratePerformanceReportIfNeededAsync(CancellationToken cancellationToken)
@@ -828,10 +836,12 @@ public class AutonomousStrategyMetrics
 public class AutonomousConfig
 {
     public bool IsEnabled { get; set; } = false;
+    public bool Enabled { get; set; } = false; // Legacy property for compatibility
     public bool AutoStrategySelection { get; set; } = true;
     public bool AutoPositionSizing { get; set; } = true;
     public decimal DailyProfitTarget { get; set; } = 300m;
     public decimal MaxDailyLoss { get; set; } = -1000m;
+    public decimal MaxDrawdown { get; set; } = -2000m; // Add back for compatibility
     public bool TradeDuringLunch { get; set; } = false;
     public bool TradeOvernight { get; set; } = false;
     public bool TradePreMarket { get; set; } = false;

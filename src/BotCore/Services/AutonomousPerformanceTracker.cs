@@ -493,6 +493,8 @@ public class AutonomousPerformanceTracker
                 _strategyLearning[trade.Strategy].Insights.RemoveAt(0);
             }
         }
+        
+        await Task.CompletedTask;
     }
     
     private decimal GetRecentStrategyPerformance(string strategy, TimeSpan period)
@@ -589,6 +591,7 @@ public class AutonomousPerformanceTracker
             }
         }
         
+        await Task.CompletedTask;
         return insights;
     }
     
