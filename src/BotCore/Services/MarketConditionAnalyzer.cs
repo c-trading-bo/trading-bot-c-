@@ -552,3 +552,15 @@ public enum LiquidityLevel
     High,
     VeryHigh
 }
+
+/// <summary>
+/// Market volatility levels (Market Condition Analyzer)
+/// </summary>
+public enum MarketVolatility
+{
+    VeryLow,
+    Low,
+    Normal,
+    High,
+    VeryHigh
+}

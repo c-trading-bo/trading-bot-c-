@@ -35,9 +35,9 @@ public class AutonomousPerformanceTracker
     private readonly ILogger<AutonomousPerformanceTracker> _logger;
     
     // Performance tracking collections
-    private readonly List<TradeOutcome> _allTrades = new();
-    private readonly Dictionary<string, List<TradeOutcome>> _tradesByStrategy = new();
-    private readonly Dictionary<string, List<TradeOutcome>> _tradesBySymbol = new();
+    private readonly List<AutonomousTradeOutcome> _allTrades = new();
+    private readonly Dictionary<string, List<AutonomousTradeOutcome>> _tradesByStrategy = new();
+    private readonly Dictionary<string, List<AutonomousTradeOutcome>> _tradesBySymbol = new();
     private readonly Dictionary<DateTime, decimal> _dailyPnL = new();
     private readonly Queue<PerformanceSnapshot> _performanceHistory = new();
     private readonly object _trackingLock = new();
@@ -76,7 +76,7 @@ public class AutonomousPerformanceTracker
     /// <summary>
     /// Record a new trade outcome for analysis
     /// </summary>
-    public async Task RecordTradeAsync(TradeOutcome trade, CancellationToken cancellationToken = default)
+    public async Task RecordTradeAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
         
@@ -88,14 +88,14 @@ public class AutonomousPerformanceTracker
             // Organize by strategy
             if (!_tradesByStrategy.ContainsKey(trade.Strategy))
             {
-                _tradesByStrategy[trade.Strategy] = new List<TradeOutcome>();
+                _tradesByStrategy[trade.Strategy] = new List<AutonomousTradeOutcome>();
             }
             _tradesByStrategy[trade.Strategy].Add(trade);
             
             // Organize by symbol
             if (!_tradesBySymbol.ContainsKey(trade.Symbol))
             {
-                _tradesBySymbol[trade.Symbol] = new List<TradeOutcome>();
+                _tradesBySymbol[trade.Symbol] = new List<AutonomousTradeOutcome>();
             }
             _tradesBySymbol[trade.Symbol].Add(trade);
             
@@ -121,7 +121,7 @@ public class AutonomousPerformanceTracker
     /// <summary>
     /// Update performance metrics from current trade data
     /// </summary>
-    public async Task UpdateMetricsAsync(TradeOutcome[] recentTrades, CancellationToken cancellationToken = default)
+    public async Task UpdateMetricsAsync(AutonomousTradeOutcome[] recentTrades, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
         
@@ -377,7 +377,7 @@ public class AutonomousPerformanceTracker
         }
     }
     
-    private decimal CalculateProfitFactor(TradeOutcome[] winningTrades, TradeOutcome[] losingTrades)
+    private decimal CalculateProfitFactor(AutonomousTradeOutcome[] winningTrades, AutonomousTradeOutcome[] losingTrades)
     {
         var totalWins = winningTrades.Sum(t => t.PnL);
         var totalLosses = Math.Abs(losingTrades.Sum(t => t.PnL));
@@ -458,14 +458,14 @@ public class AutonomousPerformanceTracker
         }
     }
     
-    private async Task RecordLearningInsightAsync(TradeOutcome trade, CancellationToken cancellationToken)
+    private async Task RecordLearningInsightAsync(AutonomousTradeOutcome trade, CancellationToken cancellationToken)
     {
         // Generate learning insights from trade outcome
         var insight = new LearningInsight
         {
             Timestamp = DateTime.UtcNow,
             Strategy = trade.Strategy,
-            TradeOutcome = trade,
+            AutonomousTradeOutcome = trade,
             InsightType = trade.PnL > 0 ? "SUCCESS_PATTERN" : "LOSS_PATTERN",
             Description = $"{trade.Strategy} {trade.Direction} {trade.Symbol} resulted in ${trade.PnL:F2}",
             Confidence = trade.Confidence,
@@ -527,7 +527,7 @@ public class AutonomousPerformanceTracker
         return strategyPnL.OrderBy(kvp => kvp.Value).First().Key;
     }
     
-    private async Task<List<string>> GenerateTradingInsightsAsync(TradeOutcome[] trades, CancellationToken cancellationToken)
+    private async Task<List<string>> GenerateTradingInsightsAsync(AutonomousTradeOutcome[] trades, CancellationToken cancellationToken)
     {
         var insights = new List<string>();
         
@@ -776,7 +776,7 @@ public class LearningInsight
 {
     public DateTime Timestamp { get; set; }
     public string Strategy { get; set; } = "";
-    public TradeOutcome TradeOutcome { get; set; } = new();
+    public AutonomousTradeOutcome AutonomousTradeOutcome { get; set; } = new();
     public string InsightType { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Confidence { get; set; }
@@ -817,7 +817,7 @@ public class OptimizationRecommendation
 }
 
 /// <summary>
-/// Optimization insight
+/// Optimization insight for autonomous performance tracking
 /// </summary>
 public class OptimizationInsight
 {

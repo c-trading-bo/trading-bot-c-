@@ -2,42 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.threading.Tasks;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-
-namespace BotCore.Services;
-
-/// <summary>
-/// Regime mapping utility for converting between different market regime enums
-/// </summary>
-public static class RegimeMapper
-{
-    public static AutonomousMarketRegime ToAutonomousRegime(AnalyzerMarketRegime regime)
-    {
-        return regime switch
-        {
-            AnalyzerMarketRegime.Unknown => AutonomousMarketRegime.Unknown,
-            AnalyzerMarketRegime.Trending => AutonomousMarketRegime.Trending,
-            AnalyzerMarketRegime.Ranging => AutonomousMarketRegime.Ranging,
-            AnalyzerMarketRegime.Volatile => AutonomousMarketRegime.Volatile,
-            AnalyzerMarketRegime.LowVolatility => AutonomousMarketRegime.LowVolatility,
-            _ => AutonomousMarketRegime.Unknown
-        };
-    }
-    
-    public static AnalyzerMarketRegime ToAnalyzerRegime(AutonomousMarketRegime regime)
-    {
-        return regime switch
-        {
-            AutonomousMarketRegime.Unknown => AnalyzerMarketRegime.Unknown,
-            AutonomousMarketRegime.Trending => AnalyzerMarketRegime.Trending,
-            AutonomousMarketRegime.Ranging => AnalyzerMarketRegime.Ranging,
-            AutonomousMarketRegime.Volatile => AnalyzerMarketRegime.Volatile,
-            AutonomousMarketRegime.LowVolatility => AnalyzerMarketRegime.LowVolatility,
-            _ => AnalyzerMarketRegime.Unknown
-        };
-    }
-}
 
 namespace BotCore.Services;
 
@@ -96,7 +62,7 @@ public class StrategyPerformanceAnalyzer
     /// <summary>
     /// Analyze strategy performance and update metrics
     /// </summary>
-    public async Task AnalyzeStrategyPerformanceAsync(string strategy, TradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
+    public async Task AnalyzeStrategyPerformanceAsync(string strategy, AnalyzerTradeOutcome[] trades, AnalyzerMarketRegime currentRegime, CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;
         
@@ -394,7 +360,7 @@ public class StrategyPerformanceAnalyzer
         _strategyAnalysis[strategy] = new StrategyAnalysis
         {
             StrategyName = strategy,
-            AllTrades = new List<TradeOutcome>(),
+            AllTrades = new List<AnalyzerTradeOutcome>(),
             OverallScore = 0.5m // Default neutral score
         };
         
@@ -472,7 +438,7 @@ public class StrategyPerformanceAnalyzer
         analysis.OverallScore = CalculateOverallScore(analysis);
     }
     
-    private decimal CalculateMaxDrawdown(List<TradeOutcome> trades)
+    private decimal CalculateMaxDrawdown(List<AnalyzerTradeOutcome> trades)
     {
         if (trades.Count == 0) return 0m;
         
@@ -872,7 +838,7 @@ public class StrategyPerformanceAnalyzer
 public class StrategyAnalysis
 {
     public string StrategyName { get; set; } = "";
-    public List<TradeOutcome> AllTrades { get; set; } = new();
+    public List<AnalyzerTradeOutcome> AllTrades { get; set; } = new();
     public decimal TotalPnL { get; set; }
     public decimal WinRate { get; set; }
     public decimal ProfitFactor { get; set; }
@@ -980,4 +946,34 @@ public enum PerformanceTrend
     Declining,
     Stable,
     Improving
+}
+
+/// <summary>
+/// Market regime classification for StrategyPerformanceAnalyzer
+/// </summary>
+public enum AnalyzerMarketRegime
+{
+    Unknown,
+    Trending,
+    Ranging,
+    Volatile,
+    LowVolatility
+}
+
+/// <summary>
+/// Trade outcome for strategy analysis
+/// </summary>
+public class AnalyzerTradeOutcome
+{
+    public string Strategy { get; set; } = "";
+    public string Symbol { get; set; } = "";
+    public string Direction { get; set; } = "";
+    public DateTime EntryTime { get; set; }
+    public decimal EntryPrice { get; set; }
+    public int Size { get; set; }
+    public decimal Confidence { get; set; }
+    public AnalyzerMarketRegime MarketRegime { get; set; }
+    public decimal PnL { get; set; }
+    public DateTime? ExitTime { get; set; }
+    public decimal? ExitPrice { get; set; }
 }

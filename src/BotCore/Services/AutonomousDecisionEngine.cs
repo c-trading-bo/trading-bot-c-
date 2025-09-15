@@ -60,8 +60,8 @@ public class AutonomousDecisionEngine : BackgroundService
     private readonly StrategyPerformanceAnalyzer _strategyAnalyzer;
     
     // Autonomous state management
-    private readonly Dictionary<string, AutonomousAutonomousStrategyMetrics> _strategyMetrics = new();
-    private readonly Queue<AutonomousAutonomousTradeOutcome> _recentTrades = new();
+    private readonly Dictionary<string, AutonomousStrategyMetrics> _strategyMetrics = new();
+    private readonly Queue<AutonomousTradeOutcome> _recentTrades = new();
     private readonly object _stateLock = new();
     
     // Current autonomous state
@@ -72,7 +72,7 @@ public class AutonomousDecisionEngine : BackgroundService
     private int _consecutiveLosses = 0;
     private decimal _todayPnL = 0m;
     private DateTime _lastTradeTime = DateTime.MinValue;
-    private AutonomousAutonomousMarketRegime _currentAutonomousMarketRegime = AutonomousAutonomousMarketRegime.Unknown;
+    private AutonomousMarketRegime _currentAutonomousMarketRegime = AutonomousMarketRegime.Unknown;
     
     // Autonomous configuration
     private const decimal MinRiskPerTrade = 0.005m; // 0.5%
@@ -779,7 +779,7 @@ public class AutonomousTradeOutcome
     public decimal EntryPrice { get; set; }
     public int Size { get; set; }
     public decimal Confidence { get; set; }
-    public AutonomousAutonomousMarketRegime AutonomousMarketRegime { get; set; }
+    public AutonomousMarketRegime AutonomousMarketRegime { get; set; }
     public decimal PnL { get; set; }
     public DateTime? ExitTime { get; set; }
     public decimal? ExitPrice { get; set; }
@@ -796,7 +796,7 @@ public class AutonomousStrategyMetrics
     public int LosingTrades { get; set; }
     public decimal TotalProfit { get; set; }
     public decimal TotalLoss { get; set; }
-    public List<AutonomousAutonomousTradeOutcome> RecentTrades { get; set; } = new();
+    public List<AutonomousTradeOutcome> RecentTrades { get; set; } = new();
 }
 
 /// <summary>
