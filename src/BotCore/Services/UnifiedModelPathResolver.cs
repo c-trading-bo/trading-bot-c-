@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using TradingBot.Abstractions;
 
 namespace BotCore.Services;
 
@@ -453,11 +454,11 @@ public class UnifiedModelPathResolver
         }
     }
     
-    private ModelInfo ExtractModelInfo(string modelIdentifier, ModelPathInfo pathInfo)
+    private TradingBot.Abstractions.ModelInfo ExtractModelInfo(string modelIdentifier, ModelPathInfo pathInfo)
     {
         var validation = ValidateModelName(Path.GetFileName(pathInfo.FullPath));
         
-        return new ModelInfo
+        return new TradingBot.Abstractions.ModelInfo
         {
             ModelIdentifier = modelIdentifier,
             FullPath = pathInfo.FullPath,
@@ -489,24 +490,13 @@ public class ModelResolutionResult
 {
     public bool Success { get; set; }
     public string? ModelPath { get; set; }
-    public ModelInfo? ModelInfo { get; set; }
+    public TradingBot.Abstractions.ModelInfo? ModelInfo { get; set; }
     public string? ErrorMessage { get; set; }
     public bool FallbackAvailable { get; set; }
     public string? FallbackReason { get; set; }
 }
 
-public class ModelInfo
-{
-    public string ModelIdentifier { get; set; } = string.Empty;
-    public string FullPath { get; set; } = string.Empty;
-    public string FileName { get; set; } = string.Empty;
-    public bool IsValidName { get; set; }
-    public string ModelName { get; set; } = string.Empty;
-    public string Algorithm { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
-    public long FileSize { get; set; }
-    public DateTime LastModified { get; set; }
-}
+
 
 public class AvailableModel
 {

@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using BotCore.Market;
-using BotCore.Models;
-using BotCore.Services;
 using TradingBot.Abstractions;
+
+// Explicit type alias to resolve Bar ambiguity
+using MarketBar = BotCore.Market.Bar;
 
 namespace BotCore.Services;
 
@@ -264,7 +264,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Process bar through unified pipeline (same for historical and live data)
     /// </summary>
-    private async Task ProcessBarThroughUnifiedPipelineAsync(Bar bar, bool isHistorical, CancellationToken cancellationToken)
+    private async Task ProcessBarThroughUnifiedPipelineAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         try
         {
@@ -543,9 +543,9 @@ public class UnifiedDataIntegrationService : BackgroundService
     
     #region Helper Methods
     
-    private List<Bar> GenerateHistoricalBars(string symbol, string contractId, int count)
+    private List<MarketBar> GenerateHistoricalBars(string symbol, string contractId, int count)
     {
-        var bars = new List<Bar>();
+        var bars = new List<MarketBar>();
         var basePrice = symbol == "ES" ? 4500m : 15000m;
         var now = DateTime.UtcNow;
         
@@ -554,23 +554,20 @@ public class UnifiedDataIntegrationService : BackgroundService
             var timestamp = now.AddMinutes(-i);
             var price = basePrice + (decimal)(Random.Shared.NextDouble() - 0.5) * 10;
             
-            bars.Add(new Bar
-            {
-                Symbol = symbol,
-                Start = timestamp,
-                Ts = ((DateTimeOffset)timestamp).ToUnixTimeMilliseconds(),
-                Open = price,
-                High = price + 2,
-                Low = price - 2,
-                Close = price + (decimal)(Random.Shared.NextDouble() - 0.5),
-                Volume = 100 + Random.Shared.Next(200)
-            });
+            bars.Add(new MarketBar(
+                timestamp, 
+                timestamp.AddMinutes(1), 
+                price, 
+                price + 2, 
+                price - 2, 
+                price + (decimal)(Random.Shared.NextDouble() - 0.5), 
+                100 + Random.Shared.Next(200)));
         }
         
         return bars;
     }
     
-    private MarketData ConvertBarToMarketData(Bar bar)
+    private MarketData ConvertBarToMarketData(MarketBar bar)
     {
         return new MarketData
         {
@@ -584,9 +581,9 @@ public class UnifiedDataIntegrationService : BackgroundService
         };
     }
     
-    private Bar ConvertMarketDataToBar(MarketData data)
+    private MarketBar ConvertMarketDataToBar(MarketData data)
     {
-        return new Bar
+        return new MarketBar
         {
             Symbol = data.Symbol,
             Start = data.Timestamp,
@@ -668,7 +665,7 @@ public class BarCountManager
         _readinessTracker = readinessTracker;
     }
     
-    public async Task ProcessBarAsync(Bar bar, bool isHistorical, CancellationToken cancellationToken)
+    public async Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         // Unified bar processing logic
         await Task.CompletedTask;

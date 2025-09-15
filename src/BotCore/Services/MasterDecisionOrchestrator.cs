@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using BotCore.Services;
-using TradingBot.UnifiedOrchestrator.Services;
 using TradingBot.Abstractions;
 using System.Text.Json;
 
@@ -38,7 +37,7 @@ public class MasterDecisionOrchestrator : BackgroundService
     
     // Core decision routing components
     private readonly UnifiedDecisionRouter _unifiedRouter;
-    private readonly DecisionServiceRouter _serviceRouter;
+    private readonly TradingBot.Abstractions.DecisionServiceStatus _serviceStatus;
     
     // Learning and feedback systems
     private readonly EnhancedTradingBrainIntegration? _enhancedBrain;
@@ -63,13 +62,12 @@ public class MasterDecisionOrchestrator : BackgroundService
         ILogger<MasterDecisionOrchestrator> logger,
         IServiceProvider serviceProvider,
         UnifiedDecisionRouter unifiedRouter,
-        DecisionServiceRouter serviceRouter,
         BotCore.Brain.UnifiedTradingBrain unifiedBrain)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _unifiedRouter = unifiedRouter;
-        _serviceRouter = serviceRouter;
+        _serviceStatus = new TradingBot.Abstractions.DecisionServiceStatus();
         _unifiedBrain = unifiedBrain;
         
         // Try to get optional enhanced services
@@ -233,8 +231,8 @@ public class MasterDecisionOrchestrator : BackgroundService
         {
             _logger.LogDebug("🎯 [MASTER-DECISION] Making unified decision for {Symbol}", symbol);
             
-            // Route through integrated decision system
-            var decision = await _serviceRouter.RouteIntegratedDecisionAsync(symbol, marketContext, cancellationToken);
+            // Route through unified decision system
+            var decision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
             
             // Ensure decision ID is set
             if (string.IsNullOrEmpty(decision.DecisionId))
@@ -276,9 +274,9 @@ public class MasterDecisionOrchestrator : BackgroundService
             _logger.LogInformation("📈 [MASTER-FEEDBACK] Recording outcome: {DecisionId} PnL={PnL:C2} Correct={Correct}",
                 decisionId, realizedPnL, wasCorrect);
             
-            // Submit to integrated systems
-            await _serviceRouter.SubmitIntegratedOutcomeAsync(
-                decisionId, realizedPnL, wasCorrect, holdTime, decisionSource, cancellationToken);
+            // Submit to unified learning system
+            await _unifiedRouter.SubmitTradingOutcomeAsync(
+                decisionId, realizedPnL, wasCorrect, holdTime, cancellationToken);
             
             // Create learning event
             var learningEvent = new LearningEvent
@@ -324,7 +322,7 @@ public class MasterDecisionOrchestrator : BackgroundService
                 TotalDecisionsToday = _performanceTracking.Values.Sum(p => p.TotalDecisions),
                 OverallWinRate = CalculateOverallWinRate(),
                 LearningQueueSize = _learningQueue.Count,
-                ServiceStatus = _serviceRouter.GetServiceStatus(),
+                ServiceStatus = _serviceStatus,
                 BrainPerformance = _performanceTracking.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
                 SystemHealthy = IsSystemHealthy(),
                 Timestamp = DateTime.UtcNow
@@ -682,7 +680,7 @@ public class MasterOrchestratorStatus
     public int TotalDecisionsToday { get; set; }
     public decimal OverallWinRate { get; set; }
     public int LearningQueueSize { get; set; }
-    public DecisionServiceStatus ServiceStatus { get; set; } = new();
+    public TradingBot.Abstractions.DecisionServiceStatus ServiceStatus { get; set; } = new();
     public Dictionary<string, DecisionPerformance> BrainPerformance { get; set; } = new();
     public bool SystemHealthy { get; set; }
     public DateTime Timestamp { get; set; }
