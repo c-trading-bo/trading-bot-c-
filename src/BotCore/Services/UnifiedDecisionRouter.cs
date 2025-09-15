@@ -32,9 +32,9 @@ public class UnifiedDecisionRouter
     private readonly IServiceProvider _serviceProvider;
     
     // AI Brain components in priority order
-    private readonly EnhancedTradingBrainIntegration? _enhancedBrain;
+    private EnhancedTradingBrainIntegration? _enhancedBrain;
     private readonly UnifiedTradingBrain _unifiedBrain;
-    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator;
+    private TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator;
     
     // Strategy routing configuration
     private readonly Dictionary<string, StrategyConfig> _strategyConfigs;
@@ -43,6 +43,7 @@ public class UnifiedDecisionRouter
     // Decision tracking for learning
     private readonly List<DecisionOutcome> _decisionHistory = new();
     private readonly object _historyLock = new();
+    private bool _optionalServicesInitialized = false;
     
     public UnifiedDecisionRouter(
         ILogger<UnifiedDecisionRouter> logger,
@@ -53,32 +54,42 @@ public class UnifiedDecisionRouter
         _serviceProvider = serviceProvider;
         _unifiedBrain = unifiedBrain;
         
-        // Try to get optional enhanced services - use try/catch to handle missing dependencies gracefully
-        try
-        {
-            _enhancedBrain = serviceProvider.GetService<EnhancedTradingBrainIntegration>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration not available: {Error}", ex.Message);
-            _enhancedBrain = null;
-        }
-        
-        try
-        {
-            _intelligenceOrchestrator = serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator not available: {Error}", ex.Message);
-            _intelligenceOrchestrator = null;
-        }
-        
         // Initialize strategy configurations
         _strategyConfigs = InitializeStrategyConfigs();
         
         _logger.LogInformation("🎯 [DECISION-ROUTER] Unified Decision Router initialized");
-        _logger.LogInformation("📊 [DECISION-ROUTER] Available brains: Enhanced={Enhanced}, Unified=True, Intelligence={Intelligence}",
+        _logger.LogInformation("📊 [DECISION-ROUTER] Main brain available: Unified=True, Optional services will be initialized on first use");
+    }
+    
+    /// <summary>
+    /// Lazy initialization of optional services to avoid dependency issues during startup
+    /// </summary>
+    private void InitializeOptionalServices()
+    {
+        if (_optionalServicesInitialized) return;
+        
+        try
+        {
+            _enhancedBrain = _serviceProvider.GetService<EnhancedTradingBrainIntegration>();
+            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration available: {Available}", _enhancedBrain != null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration not available: {Error}", ex.Message);
+        }
+        
+        try
+        {
+            _intelligenceOrchestrator = _serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
+            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator available: {Available}", _intelligenceOrchestrator != null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator not available: {Error}", ex.Message);
+        }
+        
+        _optionalServicesInitialized = true;
+        _logger.LogInformation("📊 [DECISION-ROUTER] Optional services initialized - Enhanced={Enhanced}, Intelligence={Intelligence}",
             _enhancedBrain != null, _intelligenceOrchestrator != null);
     }
     
@@ -90,6 +101,9 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
+        // Initialize optional services on first call to avoid startup dependency issues
+        InitializeOptionalServices();
+        
         var startTime = DateTime.UtcNow;
         var decisionId = GenerateDecisionId();
         

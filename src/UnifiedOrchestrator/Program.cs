@@ -316,6 +316,9 @@ Stack Trace:
         services.AddSingleton<StrategyPerformanceAnalyzer>();
         services.AddSingleton<IMarketHours, BasicMarketHours>();
         
+        // Register UnifiedDecisionRouter before AutonomousDecisionEngine (dependency order)
+        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        
         // Register the main autonomous decision engine as hosted service
         services.AddSingleton<AutonomousDecisionEngine>();
         services.AddHostedService<AutonomousDecisionEngine>(provider => 
@@ -587,7 +590,7 @@ Stack Trace:
         // ================================================================================
         
         // Register the unified decision routing system - NEVER returns HOLD
-        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        // (Already registered above with AutonomousDecisionEngine dependencies)
         
         // Register decision service router for Python integration
         services.AddSingleton<DecisionServiceRouter>();
