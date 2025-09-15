@@ -67,6 +67,8 @@ public class SoftActorCritic
     {
         try
         {
+            await Task.CompletedTask; // Ensure async pattern compliance
+            
             var action = _actor.SampleAction(state, isTraining);
             
             // Clip actions to valid range for trading
@@ -117,6 +119,7 @@ public class SoftActorCritic
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
+            await Task.CompletedTask; // Ensure async pattern compliance
             return new SACTrainingResult
             {
                 Success = false,
@@ -126,6 +129,8 @@ public class SoftActorCritic
 
         try
         {
+            await Task.CompletedTask; // Ensure async pattern compliance
+            
             var batchSize = Math.Min(_config.BatchSize, _replayBuffer.Count);
             var batch = _replayBuffer.SampleBatch(batchSize);
             
