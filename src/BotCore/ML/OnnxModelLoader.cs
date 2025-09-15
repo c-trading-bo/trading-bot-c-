@@ -1098,12 +1098,24 @@ public sealed class OnnxModelLoader : IDisposable
 
     private async Task CompressModelAsync(string modelPath, CancellationToken cancellationToken)
     {
-        // Simple compression placeholder - could be enhanced with actual compression algorithms
+        // Compress model file using GZip compression
         await Task.Run(() =>
         {
             var compressedPath = modelPath + ".gz";
-            // Implementation would use GZip or similar compression
-            _logger.LogDebug("[ONNX-Registry] Model compression placeholder for: {ModelPath}", modelPath);
+            
+            using (var originalFileStream = File.OpenRead(modelPath))
+            using (var compressedFileStream = File.Create(compressedPath))
+            using (var compressionStream = new System.IO.Compression.GZipStream(compressedFileStream, System.IO.Compression.CompressionMode.Compress))
+            {
+                originalFileStream.CopyTo(compressionStream);
+            }
+            
+            var originalSize = new FileInfo(modelPath).Length;
+            var compressedSize = new FileInfo(compressedPath).Length;
+            var compressionRatio = (double)compressedSize / originalSize;
+            
+            _logger.LogInformation("[ONNX-Registry] Model compressed: {ModelPath} (ratio: {Ratio:P1})", 
+                modelPath, compressionRatio);
         }, cancellationToken);
     }
 

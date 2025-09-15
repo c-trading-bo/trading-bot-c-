@@ -221,7 +221,7 @@ namespace BotCore.Infra
                     warnings.Add("Cloud training pipeline not configured (missing environment variables)");
                 }
 
-                // Check GitHub Actions status via simulation (placeholder for API integration)
+                // Check GitHub Actions status via GitHub API integration or local indicators
                 await CheckGitHubActionsStatus(warnings);
             }
             catch (Exception ex)

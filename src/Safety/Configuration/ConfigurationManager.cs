@@ -449,8 +449,11 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
 
             if (validateFirst)
             {
-                // TODO: Validate import before applying
+                // Validate import before applying - check for required keys, valid values, and security
                 _logger.LogInformation("[CONFIG_MANAGER] Validating configuration import [CorrelationId: {CorrelationId}]", correlationId);
+                
+                var configDictionary = import.Configurations.ToDictionary(c => c.Key, c => JsonSerializer.Deserialize<object>(c.Value) ?? c.Value);
+                await ValidateConfigurationImport(configDictionary, correlationId);
             }
 
             // Apply configurations
@@ -546,6 +549,68 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         var userPercentile = Math.Abs(userHash.GetHashCode()) % 100;
         
         return userPercentile < rollout.Percentage;
+    }
+
+    private async Task ValidateConfigurationImport(Dictionary<string, object> newConfig, string correlationId)
+    {
+        var validationErrors = new List<string>();
+
+        foreach (var kvp in newConfig)
+        {
+            // Check required keys
+            if (string.IsNullOrWhiteSpace(kvp.Key))
+            {
+                validationErrors.Add("Configuration key cannot be empty");
+                continue;
+            }
+
+            // Validate critical configuration values
+            await ValidateConfigurationValue(kvp.Key, kvp.Value, validationErrors);
+        }
+
+        if (validationErrors.Any())
+        {
+            var errorMessage = $"Configuration validation failed: {string.Join(", ", validationErrors)}";
+            _logger.LogError("[CONFIG_MANAGER] {ErrorMessage} [CorrelationId: {CorrelationId}]", errorMessage, correlationId);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        _logger.LogInformation("[CONFIG_MANAGER] Configuration validation passed [CorrelationId: {CorrelationId}]", correlationId);
+    }
+
+    private async Task ValidateConfigurationValue(string key, object value, List<string> validationErrors)
+    {
+        await Task.CompletedTask; // For async consistency
+
+        switch (key.ToUpperInvariant())
+        {
+            case "MAXDAILYLOSS":
+                if (value is decimal loss && loss <= 0)
+                    validationErrors.Add("MaxDailyLoss must be positive");
+                break;
+
+            case "MAXPOSITIONSIZE":
+                if (value is int size && size <= 0)
+                    validationErrors.Add("MaxPositionSize must be positive");
+                break;
+
+            case "RISKTOLERANCEPERCENT":
+                if (value is double risk && (risk <= 0 || risk > 100))
+                    validationErrors.Add("RiskTolerancePercent must be between 0 and 100");
+                break;
+
+            case "ORDERTIMEOUTSECONDS":
+                if (value is int timeout && timeout <= 0)
+                    validationErrors.Add("OrderTimeoutSeconds must be positive");
+                break;
+
+            case "TRADINGPWD":
+            case "APIKEY":
+            case "SECRET":
+                if (value is string secret && string.IsNullOrWhiteSpace(secret))
+                    validationErrors.Add($"{key} cannot be empty for security reasons");
+                break;
+        }
     }
 
     private string CalculateHash(string input)
