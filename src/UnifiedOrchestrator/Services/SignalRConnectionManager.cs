@@ -1074,7 +1074,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
             return true;
         }
         
-        // Check if it's a valid TopstepX contract format (e.g., CON.F.US.EP.U25)
+        // Check if it's a valid TopstepX contract format (e.g., CON.F.US.EP.Z25)
         if (contractId.StartsWith("CON.") && contractId.Length > 10)
         {
             return true;

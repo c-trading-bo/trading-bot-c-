@@ -23,20 +23,36 @@ namespace BotCore.Services
         Task<bool> ValidateHistoricalDataAsync(string contractId);
     }
 
+    /// <summary>
+    /// Interface for consuming historical bars in the trading system
+    /// Allows the bridge to properly feed historical data into the live system
+    /// </summary>
+    public interface IHistoricalBarConsumer
+    {
+        /// <summary>
+        /// Process historical bars as if they were live bars
+        /// This should increment the BarsSeen counter and feed aggregators
+        /// </summary>
+        void ConsumeHistoricalBars(string contractId, IEnumerable<BotCore.Models.Bar> bars);
+    }
+
     public class HistoricalDataBridgeService : IHistoricalDataBridgeService
     {
         private readonly ILogger<HistoricalDataBridgeService> _logger;
         private readonly TradingReadinessConfiguration _config;
         private readonly HttpClient _httpClient;
+        private readonly IHistoricalBarConsumer? _barConsumer;
 
         public HistoricalDataBridgeService(
             ILogger<HistoricalDataBridgeService> logger,
             IOptions<TradingReadinessConfiguration> config,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IHistoricalBarConsumer? barConsumer = null)
         {
             _logger = logger;
             _config = config.Value;
             _httpClient = httpClient;
+            _barConsumer = barConsumer;
         }
 
         /// <summary>
@@ -69,8 +85,17 @@ namespace BotCore.Services
                         totalSeeded += historicalBars.Count;
                         successCount++;
 
-                        _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Retrieved {BarCount} historical bars for {ContractId}", 
-                            historicalBars.Count, contractId);
+                        // CRITICAL FIX: Actually feed the bars into the trading system
+                        if (_barConsumer != null)
+                        {
+                            _barConsumer.ConsumeHistoricalBars(contractId, historicalBars);
+                            _logger.LogInformation("[HISTORICAL-BRIDGE] ✅ Seeded {BarCount} historical bars for {ContractId} into trading system", 
+                                historicalBars.Count, contractId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[HISTORICAL-BRIDGE] ⚠️ No bar consumer available - bars retrieved but not fed to trading system for {ContractId}", contractId);
+                        }
                     }
                     else
                     {
