@@ -16,7 +16,7 @@ namespace TradingBot.UnifiedOrchestrator.Services;
 public class EnsembleModelService
 {
     private readonly ILogger<EnsembleModelService> _logger;
-    private readonly Dictionary<string, ModelInfo> _models = new();
+    private readonly Dictionary<string, EnsembleModelInfo> _models = new();
     private readonly object _lock = new();
 
     public EnsembleModelService(ILogger<EnsembleModelService> logger)
@@ -24,7 +24,7 @@ public class EnsembleModelService
         _logger = logger;
     }
 
-    public void RegisterModel(string modelId, ModelInfo modelInfo)
+    public void RegisterModel(string modelId, EnsembleModelInfo modelInfo)
     {
         lock (_lock)
         {
@@ -129,7 +129,7 @@ public class EnsembleModelService
 
     private async Task<ModelPrediction> GetModelPredictionAsync(
         string modelId, 
-        ModelInfo modelInfo, 
+        EnsembleModelInfo modelInfo, 
         Dictionary<string, object> features, 
         CancellationToken cancellationToken)
     {
@@ -222,7 +222,7 @@ public class EnsembleModelService
 /// <summary>
 /// Information about a model in the ensemble
 /// </summary>
-public class ModelInfo
+public class EnsembleModelInfo
 {
     public string ModelId { get; set; } = string.Empty;
     public string ModelType { get; set; } = string.Empty;

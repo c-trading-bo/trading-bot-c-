@@ -1,0 +1,12 @@
+{
+  "IsPrimaryDecisionMaker": true,
+  "IsShadowTestingActive": true,
+  "ConsistencyRate": 1,
+  "AverageDecisionTimeMs": 0.18899999999999997,
+  "AdapterStatistics": {
+    "TotalDecisions": 666,
+    "AgreementRate": 1,
+    "CurrentPrimary": "UnifiedTradingBrain"
+  },
+  "IsValid": true
+}

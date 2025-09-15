@@ -1,0 +1,65 @@
+{
+  "TestTime": "2025-09-15T17:24:29.1293293Z",
+  "TestDescription": "UnifiedTradingBrain Integration Verification",
+  "DecisionsMade": [
+    {
+      "DecisionNumber": 1,
+      "Timestamp": "2025-09-15T17:24:28.0457111Z",
+      "Action": "HOLD",
+      "Confidence": 0,
+      "PrimaryAlgorithm": "UnifiedTradingBrain",
+      "ShadowAlgorithm": "InferenceBrain",
+      "ProcessingTimeMs": "93.60",
+      "AgreementRate": "1.0000"
+    },
+    {
+      "DecisionNumber": 2,
+      "Timestamp": "2025-09-15T17:24:28.3251461Z",
+      "Action": "HOLD",
+      "Confidence": 0,
+      "PrimaryAlgorithm": "UnifiedTradingBrain",
+      "ShadowAlgorithm": "InferenceBrain",
+      "ProcessingTimeMs": "1.02",
+      "AgreementRate": "1.0000"
+    },
+    {
+      "DecisionNumber": 3,
+      "Timestamp": "2025-09-15T17:24:28.5264826Z",
+      "Action": "HOLD",
+      "Confidence": 0,
+      "PrimaryAlgorithm": "UnifiedTradingBrain",
+      "ShadowAlgorithm": "InferenceBrain",
+      "ProcessingTimeMs": "0.64",
+      "AgreementRate": "1.0000"
+    },
+    {
+      "DecisionNumber": 4,
+      "Timestamp": "2025-09-15T17:24:28.7273718Z",
+      "Action": "HOLD",
+      "Confidence": 0,
+      "PrimaryAlgorithm": "UnifiedTradingBrain",
+      "ShadowAlgorithm": "InferenceBrain",
+      "ProcessingTimeMs": "0.48",
+      "AgreementRate": "1.0000"
+    },
+    {
+      "DecisionNumber": 5,
+      "Timestamp": "2025-09-15T17:24:28.928308Z",
+      "Action": "HOLD",
+      "Confidence": 0,
+      "PrimaryAlgorithm": "UnifiedTradingBrain",
+      "ShadowAlgorithm": "InferenceBrain",
+      "ProcessingTimeMs": "0.90",
+      "AgreementRate": "1.0000"
+    }
+  ],
+  "Statistics": {
+    "TotalDecisions": 5,
+    "AgreementCount": 5,
+    "DisagreementCount": 0,
+    "AgreementRate": 1,
+    "CurrentPrimary": "UnifiedTradingBrain",
+    "LastDecisionTime": "0001-01-01T00:00:00"
+  },
+  "Conclusion": "UnifiedTradingBrain confirmed as primary decision maker with InferenceBrain running as shadow challenger"
+}

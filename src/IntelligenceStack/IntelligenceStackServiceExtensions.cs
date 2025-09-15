@@ -32,6 +32,7 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton(intelligenceConfig.SLO);
         services.AddSingleton(intelligenceConfig.Observability);
         services.AddSingleton(intelligenceConfig.Promotions);
+        services.AddSingleton(intelligenceConfig.Orders.Idempotent);
 
         // Register core intelligence services
         services.AddSingleton<IRegimeDetector, RegimeDetectorWithHysteresis>();

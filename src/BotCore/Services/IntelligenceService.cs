@@ -1,6 +1,8 @@
 using System.Text.Json;
-using BotCore.Models;
 using Microsoft.Extensions.Logging;
+
+// Use explicit alias to resolve MarketContext ambiguity - we want the Intelligence one
+using IntelligenceMarketContext = BotCore.Models.MarketContext;
 
 namespace BotCore.Services;
 
@@ -9,18 +11,18 @@ namespace BotCore.Services;
 /// </summary>
 public interface IIntelligenceService
 {
-    Task<MarketContext?> GetLatestIntelligenceAsync();
+    Task<IntelligenceMarketContext?> GetLatestIntelligenceAsync();
     bool IsIntelligenceAvailable();
     TimeSpan? GetIntelligenceAge();
-    Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice, decimal pnl, MarketContext? intelligenceUsed = null);
+    Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice, decimal pnl, IntelligenceMarketContext? intelligenceUsed = null);
 
     // New methods for position sizing and risk management
-    bool ShouldTrade(MarketContext? intelligence = null);
-    decimal GetPositionSizeMultiplier(MarketContext? intelligence = null);
-    decimal GetStopLossMultiplier(MarketContext? intelligence = null);
-    decimal GetTakeProfitMultiplier(MarketContext? intelligence = null);
-    string GetPreferredStrategy(MarketContext? intelligence = null);
-    bool IsHighVolatilityEvent(MarketContext? intelligence = null);
+    bool ShouldTrade(IntelligenceMarketContext? intelligence = null);
+    decimal GetPositionSizeMultiplier(IntelligenceMarketContext? intelligence = null);
+    decimal GetStopLossMultiplier(IntelligenceMarketContext? intelligence = null);
+    decimal GetTakeProfitMultiplier(IntelligenceMarketContext? intelligence = null);
+    string GetPreferredStrategy(IntelligenceMarketContext? intelligence = null);
+    bool IsHighVolatilityEvent(IntelligenceMarketContext? intelligence = null);
 }
 
 /// <summary>
@@ -50,7 +52,7 @@ public class IntelligenceService : IIntelligenceService
     /// The bot should continue normally when this returns null.
     /// </summary>
     /// <returns>Market context if available, null otherwise</returns>
-    public async Task<MarketContext?> GetLatestIntelligenceAsync()
+    public async Task<IntelligenceMarketContext?> GetLatestIntelligenceAsync()
     {
         try
         {
@@ -67,7 +69,7 @@ public class IntelligenceService : IIntelligenceService
                 return null;
             }
 
-            var marketContext = JsonSerializer.Deserialize<MarketContext>(json, _jsonOptions);
+            var marketContext = JsonSerializer.Deserialize<IntelligenceMarketContext>(json, _jsonOptions);
             if (marketContext != null)
             {
                 _logger.LogInformation("[INTEL] Successfully loaded intelligence: Regime={Regime}, Confidence={Confidence:F2}, Bias={Bias}",
@@ -119,7 +121,7 @@ public class IntelligenceService : IIntelligenceService
     /// Logs a trade result for the Intelligence feedback loop
     /// </summary>
     public async Task LogTradeResultAsync(string symbol, decimal entryPrice, decimal exitPrice,
-        decimal pnl, MarketContext? intelligenceUsed = null)
+        decimal pnl, IntelligenceMarketContext? intelligenceUsed = null)
     {
         try
         {
@@ -159,7 +161,7 @@ public class IntelligenceService : IIntelligenceService
     /// Determines if trading should proceed based on intelligence data.
     /// Always returns true (aggressive trading philosophy).
     /// </summary>
-    public bool ShouldTrade(MarketContext? intelligence = null)
+    public bool ShouldTrade(IntelligenceMarketContext? intelligence = null)
     {
         // Aggressive trading philosophy: always trade, just adjust size and risk
         return true;
@@ -168,7 +170,7 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Gets position size multiplier based on market conditions
     /// </summary>
-    public decimal GetPositionSizeMultiplier(MarketContext? intelligence = null)
+    public decimal GetPositionSizeMultiplier(IntelligenceMarketContext? intelligence = null)
     {
         if (intelligence == null)
             return 1.0m; // Default size when no intelligence
@@ -215,7 +217,7 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Gets stop loss multiplier for wider stops during volatile periods
     /// </summary>
-    public decimal GetStopLossMultiplier(MarketContext? intelligence = null)
+    public decimal GetStopLossMultiplier(IntelligenceMarketContext? intelligence = null)
     {
         if (intelligence == null)
             return 1.0m;
@@ -242,7 +244,7 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Gets take profit multiplier for extended targets during favorable conditions
     /// </summary>
-    public decimal GetTakeProfitMultiplier(MarketContext? intelligence = null)
+    public decimal GetTakeProfitMultiplier(IntelligenceMarketContext? intelligence = null)
     {
         if (intelligence == null)
             return 1.0m;
@@ -270,7 +272,7 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Selects preferred strategy based on market regime
     /// </summary>
-    public string GetPreferredStrategy(MarketContext? intelligence = null)
+    public string GetPreferredStrategy(IntelligenceMarketContext? intelligence = null)
     {
         if (intelligence == null)
             return "S2"; // Default to mean reversion
@@ -287,7 +289,7 @@ public class IntelligenceService : IIntelligenceService
     /// <summary>
     /// Detects high volatility events based on intelligence data
     /// </summary>
-    public bool IsHighVolatilityEvent(MarketContext? intelligence = null)
+    public bool IsHighVolatilityEvent(IntelligenceMarketContext? intelligence = null)
     {
         if (intelligence == null)
             return false;

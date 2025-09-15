@@ -1,0 +1,59 @@
+{
+  "ValidationId": "fd4115d7-480b-48c0-b62d-71ce27b2e254",
+  "Timestamp": "2025-09-15T17:25:41.3017384Z",
+  "ChampionAlgorithm": "UnifiedTradingBrain",
+  "ChallengerAlgorithm": "InferenceBrain",
+  "TestPeriod": "01:00:00",
+  "SampleSize": 150,
+  "StatisticalSignificance": {
+    "PValue": 0.02,
+    "TStatistic": -13.639690893633256,
+    "KSStatistic": 0.2086258711361279,
+    "KSPValue": 0.01,
+    "WilcoxonPValue": 0.034116972581300545,
+    "IsSignificant": true,
+    "ConfidenceLevel": 0.95,
+    "EffectSize": 1.5967319954501638
+  },
+  "PerformanceMetrics": {
+    "SharpeChampion": 3.183671775400346,
+    "SharpeChallenger": 3.5893294396078823,
+    "SharpeImprovement": 0.40565766420753624,
+    "SortinoChampion": 0,
+    "SortinoChallenger": 0,
+    "SortinoImprovement": 0,
+    "TotalReturnChampion": 23.005844706532486,
+    "TotalReturnChallenger": 37.360321337590136,
+    "ReturnImprovement": 14.35447663105765,
+    "WinRateChampion": 1,
+    "WinRateChallenger": 1,
+    "WinRateImprovement": 0
+  },
+  "RiskMetrics": {
+    "CVaRChampion": 0.07304185534303828,
+    "CVaRChallenger": 0.13354019552101923,
+    "CVaRImprovement": -0.8282694886904611,
+    "MaxDrawdownChampion": 0,
+    "MaxDrawdownChallenger": 0,
+    "DrawdownImprovement": 0,
+    "VolatilityChampion": 0.048174657710832444,
+    "VolatilityChallenger": 0.06939145963277116,
+    "VolatilityChange": 0.021216801921938713,
+    "VaRChampion": 0.07509327426789945,
+    "VaRChallenger": 0.1384829629997178
+  },
+  "BehaviorAlignment": {
+    "AlignmentPercentage": 1,
+    "MajorDisagreementRate": 0,
+    "AverageConfidenceDelta": 0.09213536172459619,
+    "MaxConfidenceDelta": 0.27212092754064166,
+    "TotalDecisionsCompared": 150,
+    "BehaviorSimilarityScore": 0.8518960063886539
+  },
+  "ValidationDurationMs": 1.5547,
+  "Passed": false,
+  "ErrorMessage": null,
+  "ChallengerSharpe": 3.5893294396078823,
+  "ChampionSharpe": 3.183671775400346,
+  "PValue": 0.02
+}

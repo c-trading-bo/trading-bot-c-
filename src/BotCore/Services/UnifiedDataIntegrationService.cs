@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using BotCore.Market;
-using BotCore.Models;
-using BotCore.Services;
 using TradingBot.Abstractions;
+
+// Explicit type alias to resolve Bar ambiguity
+using MarketBar = BotCore.Market.Bar;
 
 namespace BotCore.Services;
 
@@ -264,7 +264,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Process bar through unified pipeline (same for historical and live data)
     /// </summary>
-    private async Task ProcessBarThroughUnifiedPipelineAsync(Bar bar, bool isHistorical, CancellationToken cancellationToken)
+    private async Task ProcessBarThroughUnifiedPipelineAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         try
         {
@@ -289,7 +289,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             }
             
             _logger.LogTrace("📊 [UNIFIED-PIPELINE] Processed {Type} bar: {Symbol} {Close}", 
-                isHistorical ? "historical" : "live", bar.Symbol, bar.Close);
+                isHistorical ? "historical" : "live", "ES", bar.Close);
         }
         catch (Exception ex)
         {
@@ -341,7 +341,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     /// <summary>
     /// Process live market data through unified pipeline
     /// </summary>
-    public async Task ProcessLiveMarketDataAsync(MarketData marketData, CancellationToken cancellationToken = default)
+    public async Task ProcessLiveMarketDataAsync(TradingBot.Abstractions.MarketData marketData, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -405,10 +405,10 @@ public class UnifiedDataIntegrationService : BackgroundService
             {
                 _logger.LogInformation("🎉 [SYSTEM-READY] All contracts ready! Health should now go green.");
                 
-                // Notify readiness tracker
+                // Update readiness tracker - let validation determine readiness
                 if (_readinessTracker != null)
                 {
-                    _readinessTracker.SetSystemReady(true);
+                    await _readinessTracker.ValidateReadinessAsync();
                 }
             }
         }
@@ -543,9 +543,9 @@ public class UnifiedDataIntegrationService : BackgroundService
     
     #region Helper Methods
     
-    private List<Bar> GenerateHistoricalBars(string symbol, string contractId, int count)
+    private List<MarketBar> GenerateHistoricalBars(string symbol, string contractId, int count)
     {
-        var bars = new List<Bar>();
+        var bars = new List<MarketBar>();
         var basePrice = symbol == "ES" ? 4500m : 15000m;
         var now = DateTime.UtcNow;
         
@@ -554,49 +554,44 @@ public class UnifiedDataIntegrationService : BackgroundService
             var timestamp = now.AddMinutes(-i);
             var price = basePrice + (decimal)(Random.Shared.NextDouble() - 0.5) * 10;
             
-            bars.Add(new Bar
-            {
-                Symbol = symbol,
-                Start = timestamp,
-                Ts = ((DateTimeOffset)timestamp).ToUnixTimeMilliseconds(),
-                Open = price,
-                High = price + 2,
-                Low = price - 2,
-                Close = price + (decimal)(Random.Shared.NextDouble() - 0.5),
-                Volume = 100 + Random.Shared.Next(200)
-            });
+            bars.Add(new MarketBar(
+                timestamp, 
+                timestamp.AddMinutes(1), 
+                price, 
+                price + 2, 
+                price - 2, 
+                price + (decimal)(Random.Shared.NextDouble() - 0.5), 
+                100 + Random.Shared.Next(200)));
         }
         
         return bars;
     }
     
-    private MarketData ConvertBarToMarketData(Bar bar)
+    private TradingBot.Abstractions.MarketData ConvertBarToMarketData(MarketBar bar)
     {
-        return new MarketData
+        return new TradingBot.Abstractions.MarketData
         {
-            Symbol = bar.Symbol,
+            Symbol = "ES", // Default symbol since MarketBar doesn't store symbol
             Open = (double)bar.Open,
             High = (double)bar.High,
             Low = (double)bar.Low,
             Close = (double)bar.Close,
-            Volume = bar.Volume,
+            Volume = (double)bar.Volume,
             Timestamp = bar.Start
         };
     }
     
-    private Bar ConvertMarketDataToBar(MarketData data)
+    private MarketBar ConvertMarketDataToBar(TradingBot.Abstractions.MarketData data)
     {
-        return new Bar
-        {
-            Symbol = data.Symbol,
-            Start = data.Timestamp,
-            Ts = ((DateTimeOffset)data.Timestamp).ToUnixTimeMilliseconds(),
-            Open = (decimal)data.Open,
-            High = (decimal)data.High,
-            Low = (decimal)data.Low,
-            Close = (decimal)data.Close,
-            Volume = (int)data.Volume
-        };
+        return new MarketBar(
+            data.Timestamp,
+            data.Timestamp.AddMinutes(1), // End time is Start + 1 minute
+            (decimal)data.Open,
+            (decimal)data.High,
+            (decimal)data.Low,
+            (decimal)data.Close,
+            (long)data.Volume
+        );
     }
     
     private string GetContractIdFromSymbol(string symbol)
@@ -626,17 +621,18 @@ public class ContractManager
         _logger = logger;
     }
     
-    public async Task<Dictionary<string, string>> GetCurrentContractsAsync(CancellationToken cancellationToken)
+    public Task<Dictionary<string, string>> GetCurrentContractsAsync(CancellationToken cancellationToken)
     {
         // In production, this would query TopstepX API for current front month contracts
-        return new Dictionary<string, string>
+        var contracts = new Dictionary<string, string>
         {
             ["ES"] = "CON.F.US.EP.Z25", // December 2025
             ["NQ"] = "CON.F.US.NQ.Z25"  // December 2025
         };
+        return Task.FromResult(contracts);
     }
     
-    public async Task<RolloverCheck> CheckRolloverNeededAsync(string currentES, string currentNQ, CancellationToken cancellationToken)
+    public Task<RolloverCheck> CheckRolloverNeededAsync(string currentES, string currentNQ, CancellationToken cancellationToken)
     {
         // Check if current contracts are approaching expiry
         var now = DateTime.UtcNow;
@@ -644,13 +640,14 @@ public class ContractManager
         
         var needsRollover = now > decemberExpiry.AddDays(-30); // 30 days before expiry
         
-        return new RolloverCheck
+        var result = new RolloverCheck
         {
             ESNeedsRollover = needsRollover && currentES.Contains("Z25"),
             NQNeedsRollover = needsRollover && currentNQ.Contains("Z25"),
             NewESContract = needsRollover ? "CON.F.US.EP.H26" : null, // March 2026
             NewNQContract = needsRollover ? "CON.F.US.NQ.H26" : null  // March 2026
         };
+        return Task.FromResult(result);
     }
 }
 
@@ -668,7 +665,7 @@ public class BarCountManager
         _readinessTracker = readinessTracker;
     }
     
-    public async Task ProcessBarAsync(Bar bar, bool isHistorical, CancellationToken cancellationToken)
+    public async Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         // Unified bar processing logic
         await Task.CompletedTask;

@@ -1,0 +1,9 @@
+{
+  "DemoId": "production-demo-20250915-172506",
+  "StartTime": "2025-09-15T17:25:06.9020717Z",
+  "EndTime": "2025-09-15T17:26:13.3810502Z",
+  "Duration": "00:01:06.4789785",
+  "Success": true,
+  "ArtifactsPath": "artifacts/production-demo",
+  "ErrorMessage": null
+}

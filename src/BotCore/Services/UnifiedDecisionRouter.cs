@@ -2,14 +2,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using BotCore.Brain;
 using BotCore.Services;
-using BotCore.Models;
 using BotCore.Risk;
-using BotCore.Market;
+using BotCore.Models;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
 using TradingBot.RLAgent;
 using System.Text.Json;
 using static BotCore.Brain.UnifiedTradingBrain;
+
+// Explicit type alias to resolve Bar ambiguity  
+using ModelBar = BotCore.Models.Bar;
 
 namespace BotCore.Services;
 
@@ -546,9 +548,9 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private IList<Bar> ConvertToBars(MarketContext context)
+    private IList<ModelBar> ConvertToBars(MarketContext context)
     {
-        var bars = new List<Bar>();
+        var bars = new List<ModelBar>();
         var price = (decimal)context.Price;
         var volume = (decimal)context.Volume;
         
@@ -556,7 +558,7 @@ public class UnifiedDecisionRouter
         for (int i = 0; i < 10; i++)
         {
             var variation = (decimal)(_random.NextDouble() - 0.5) * 2;
-            bars.Add(new Bar
+            bars.Add(new ModelBar
             {
                 Symbol = context.Symbol,
                 Start = context.Timestamp.AddMinutes(-i),
@@ -565,7 +567,7 @@ public class UnifiedDecisionRouter
                 High = price + variation + 1,
                 Low = price + variation - 1,
                 Close = price + variation,
-                Volume = (int)(volume * (0.8 + _random.NextDouble() * 0.4))
+                Volume = (int)(volume * (0.8m + (decimal)_random.NextDouble() * 0.4m))
             });
         }
         
@@ -661,7 +663,7 @@ public class UnifiedDecisionRouter
             Symbol = decision.Signal?.Symbol ?? "UNKNOWN",
             Action = decision.Action,
             Confidence = decision.Confidence,
-            Quantity = decision.MaxPositionSize ?? 1m,
+            Quantity = decision.MaxPositionSize > 0 ? decision.MaxPositionSize : 1m,
             Strategy = decision.MLStrategy ?? "INTELLIGENCE",
             Reasoning = decision.Reasoning ?? new Dictionary<string, object>(),
             Timestamp = decision.Timestamp
