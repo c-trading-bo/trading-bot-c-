@@ -140,6 +140,32 @@ namespace BotCore.Services
             }
         }
 
+        public void SetSystemReady()
+        {
+            lock (_lockObject)
+            {
+                _context.State = TradingReadinessState.FullyReady;
+                _context.CanTrade = true;
+                
+                _logger.LogInformation("[READINESS] System marked ready");
+                
+                var readyData = new
+                {
+                    timestamp = DateTime.UtcNow,
+                    component = "readiness_tracker",
+                    operation = "set_system_ready",
+                    bars_seen = _context.TotalBarsSeen,
+                    seeded_bars = _context.SeededBars,
+                    live_ticks = _context.LiveTicks,
+                    can_trade = _context.CanTrade,
+                    state = _context.State.ToString()
+                };
+
+                _logger.LogInformation("SYSTEM_READY: {ReadyData}", 
+                    System.Text.Json.JsonSerializer.Serialize(readyData));
+            }
+        }
+
         private void UpdateState()
         {
             var minBarsSeen = GetMinBarsSeen();

@@ -47,6 +47,10 @@ public class MarketContext
     public bool IsFomcDay { get; set; }
     public bool IsCpiDay { get; set; }
     public double NewsIntensity { get; set; }
+    
+    // Required properties mentioned in production readiness requirements
+    public double SignalStrength { get; set; }
+    public double ConfidenceLevel { get; set; }
 }
 
 public class MarketData
