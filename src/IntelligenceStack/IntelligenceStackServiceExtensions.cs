@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
 using System;
 
@@ -23,6 +24,11 @@ public static class IntelligenceStackServiceExtensions
         var intelligenceConfig = configuration.GetSection("IntelligenceStack").Get<IntelligenceStackConfig>() 
             ?? new IntelligenceStackConfig();
         
+        // Configure CloudFlowOptions
+        var cloudFlowOptions = configuration.GetSection("CloudFlow").Get<CloudFlowOptions>() 
+            ?? new CloudFlowOptions();
+        services.Configure<CloudFlowOptions>(configuration.GetSection("CloudFlow"));
+        
         services.AddSingleton(intelligenceConfig);
         services.AddSingleton(intelligenceConfig.ML);
         services.AddSingleton(intelligenceConfig.ML.Regime.Hysteresis);
@@ -44,7 +50,7 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<IDecisionLogger, DecisionLogger>();
         services.AddSingleton<IIdempotentOrderService, IdempotentOrderService>();
         services.AddSingleton<ILeaderElectionService, LeaderElectionService>();
-        services.AddSingleton<IStartupValidator, StartupValidator>();
+        services.AddSingleton<TradingBot.Abstractions.IStartupValidator, StartupValidator>();
 
         // Register advanced intelligence services
         services.AddSingleton<EnsembleMetaLearner>();
@@ -85,7 +91,7 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<IDecisionLogger, MockDecisionLogger>();
         services.AddSingleton<IIdempotentOrderService, MockIdempotentOrderService>();
         services.AddSingleton<ILeaderElectionService, MockLeaderElectionService>();
-        services.AddSingleton<IStartupValidator, MockStartupValidator>();
+        services.AddSingleton<TradingBot.Abstractions.IStartupValidator, MockStartupValidator>();
 
         return services;
     }
@@ -339,7 +345,7 @@ public class MockLeaderElectionService : ILeaderElectionService
     }
 }
 
-public class MockStartupValidator : IStartupValidator
+public class MockStartupValidator : TradingBot.Abstractions.IStartupValidator
 {
     public Task<StartupValidationResult> ValidateSystemAsync(CancellationToken cancellationToken = default)
     {

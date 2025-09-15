@@ -53,9 +53,26 @@ public class UnifiedDecisionRouter
         _serviceProvider = serviceProvider;
         _unifiedBrain = unifiedBrain;
         
-        // Try to get optional enhanced services
-        _enhancedBrain = serviceProvider.GetService<EnhancedTradingBrainIntegration>();
-        _intelligenceOrchestrator = serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
+        // Try to get optional enhanced services - use try/catch to handle missing dependencies gracefully
+        try
+        {
+            _enhancedBrain = serviceProvider.GetService<EnhancedTradingBrainIntegration>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration not available: {Error}", ex.Message);
+            _enhancedBrain = null;
+        }
+        
+        try
+        {
+            _intelligenceOrchestrator = serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator not available: {Error}", ex.Message);
+            _intelligenceOrchestrator = null;
+        }
         
         // Initialize strategy configurations
         _strategyConfigs = InitializeStrategyConfigs();
