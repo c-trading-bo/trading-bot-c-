@@ -1,0 +1,42 @@
+{
+  "TestTime": "2025-09-15T17:25:40.2432214Z",
+  "TotalTests": 4,
+  "PassedTests": 4,
+  "FailedTests": 0,
+  "RegressionDetected": false,
+  "TestResults": [
+    {
+      "TestName": "PromotionTestReport Creation",
+      "Description": "Verify PromotionTestReport can be created and populated with expected properties",
+      "TestPassed": true,
+      "ExpectedResult": "",
+      "ActualResult": "PromotionTestReport created successfully with 100 trades",
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "Downstream Analytics",
+      "Description": "Verify analytics systems can process PromotionTestReport data",
+      "TestPassed": true,
+      "ExpectedResult": "",
+      "ActualResult": "Analytics processed 2 reports, avg champion Sharpe: 1.05, challenger: 1.25",
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "Reporting Pipeline",
+      "Description": "Verify reporting systems can generate summaries from PromotionTestReport",
+      "TestPassed": true,
+      "ExpectedResult": "",
+      "ActualResult": "Generated summary: Promotion Test Summary: Champion-v1.0 vs Challenger-v1.0, Champion Sharpe: 0.75, Challenger Sharpe: ...",
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "Backward Compatibility",
+      "Description": "Verify no breaking changes in data structure access patterns",
+      "TestPassed": true,
+      "ExpectedResult": "",
+      "ActualResult": "Compatibility check passed, serialization works, Sharpe metrics preserved: 1.5 vs 1.6",
+      "ErrorMessage": null
+    }
+  ],
+  "ErrorMessage": null
+}

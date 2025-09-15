@@ -1,0 +1,71 @@
+{
+  "DrillId": "fb3e962a-741b-4b91-990e-5f297181f7bc",
+  "StartTime": "2025-09-15T17:25:41.3089395Z",
+  "EndTime": "2025-09-15T17:26:13.3217001Z",
+  "TotalDurationMs": 32012.7898,
+  "Success": true,
+  "ErrorMessage": null,
+  "Config": {
+    "LoadLevel": 2,
+    "TestDurationSeconds": 30,
+    "DecisionsPerSecond": 20,
+    "EnableMetrics": true,
+    "EnableContextPreservation": true,
+    "ExpectedRollbackTimeMs": 100
+  },
+  "Events": [
+    {
+      "Timestamp": "2025-09-15T17:25:41.308954Z",
+      "EventType": "Baseline Established",
+      "Details": "Champion baseline: 20 decisions, avg latency 0.17ms",
+      "Success": true,
+      "LatencyMs": 0
+    },
+    {
+      "Timestamp": "2025-09-15T17:25:42.317279Z",
+      "EventType": "Challenger Promotion",
+      "Details": "Promotion completed in 0.15ms, Success: True",
+      "Success": true,
+      "LatencyMs": 0.1543
+    },
+    {
+      "Timestamp": "2025-09-15T17:25:42.317447Z",
+      "EventType": "Load Generation Completed",
+      "Details": "Generated 600 decisions (600 successful) in 30001ms, avg latency 0.24ms",
+      "Success": true,
+      "LatencyMs": 0.23967216666666658
+    },
+    {
+      "Timestamp": "2025-09-15T17:26:12.3184548Z",
+      "EventType": "Rollback Under Load",
+      "Details": "Rollback completed in 0.28ms while processing 1 concurrent decisions",
+      "Success": true,
+      "LatencyMs": 0.2774
+    },
+    {
+      "Timestamp": "2025-09-15T17:26:12.3188401Z",
+      "EventType": "Rollback Verification",
+      "Details": "Post-rollback: 10 decisions, avg latency 0.19ms (degradation: 10.1%)",
+      "Success": true,
+      "LatencyMs": 0.19232
+    }
+  ],
+  "Metrics": {
+    "BaselineLatencyMs": 0.1746,
+    "BaselineDecisionsCount": 20,
+    "PromotionLatencyMs": 0.1543,
+    "LoadTestLatencyMs": 0.23967216666666658,
+    "LoadTestDecisionsCount": 600,
+    "LoadTestSuccessRate": 1,
+    "RollbackLatencyMs": 0.2774,
+    "RollbackSuccess": true,
+    "ConcurrentDecisionsDuringRollback": 1,
+    "PostRollbackLatencyMs": 0.19232,
+    "PostRollbackDecisionsCount": 10,
+    "LatencyDegradationPercent": 10.148911798396327,
+    "ContextPreserved": true
+  },
+  "RollbackTimeMs": 0,
+  "HealthAlertsGenerated": 0,
+  "HealthAlertResponseTimeMs": 0
+}

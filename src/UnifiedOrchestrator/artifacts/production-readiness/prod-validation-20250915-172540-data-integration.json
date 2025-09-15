@@ -1,0 +1,25 @@
+{
+  "TestTime": "2025-09-15T17:26:13.3579363Z",
+  "HistoricalDataStatus": {
+    "IsConnected": false,
+    "LastUpdate": "0001-01-01T00:00:00",
+    "RecordsCount": 0,
+    "ConnectionString": "Historical Data Pipeline",
+    "DataLatencyMs": 63893553973358.45,
+    "ErrorMessage": null
+  },
+  "LiveDataStatus": {
+    "IsConnected": false,
+    "LastUpdate": "0001-01-01T00:00:00",
+    "RecordsCount": 0,
+    "ConnectionString": "TopStep Live Data Stream",
+    "DataLatencyMs": 63893553973358.58,
+    "ErrorMessage": null
+  },
+  "DataSynchronizationStatus": {
+    "BothConnected": false,
+    "TimeSyncError": 0,
+    "UnifiedPipelineActive": false
+  },
+  "IsValid": false
+}

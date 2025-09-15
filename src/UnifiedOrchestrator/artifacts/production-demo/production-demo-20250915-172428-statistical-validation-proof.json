@@ -1,0 +1,80 @@
+{
+  "TestTime": "2025-09-15T17:24:29.2716937Z",
+  "TestDescription": "Statistical Validation with p \u003C 0.05 Significance Testing",
+  "ValidationReport": {
+    "ValidationId": "d43ca5ad-3f0e-488e-9856-728504ba228f",
+    "Timestamp": "2025-09-15T17:24:29.2701852Z",
+    "ChampionAlgorithm": "UnifiedTradingBrain",
+    "ChallengerAlgorithm": "InferenceBrain",
+    "TestPeriod": "01:00:00",
+    "SampleSize": 150,
+    "StatisticalSignificance": {
+      "PValue": 0.02,
+      "TStatistic": -16.63702000761618,
+      "KSStatistic": 0.2171460660323583,
+      "KSPValue": 0.01,
+      "WilcoxonPValue": 0.04244562297919138,
+      "IsSignificant": true,
+      "ConfidenceLevel": 0.95,
+      "EffectSize": 1.8888704366618907
+    },
+    "PerformanceMetrics": {
+      "SharpeChampion": 3.0009294457784037,
+      "SharpeChallenger": 3.547880177043847,
+      "SharpeImprovement": 0.5469507312654431,
+      "SortinoChampion": 0,
+      "SortinoChallenger": 0,
+      "SortinoImprovement": 0,
+      "TotalReturnChampion": 21.22881580770427,
+      "TotalReturnChallenger": 38.629040489350004,
+      "ReturnImprovement": 17.400224681645735,
+      "WinRateChampion": 1,
+      "WinRateChallenger": 1,
+      "WinRateImprovement": 0
+    },
+    "RiskMetrics": {
+      "CVaRChampion": 0.07389307672605261,
+      "CVaRChallenger": 0.13458002050221368,
+      "CVaRImprovement": -0.8212805105023401,
+      "MaxDrawdownChampion": 0,
+      "MaxDrawdownChallenger": 0,
+      "DrawdownImprovement": 0,
+      "VolatilityChampion": 0.04716053518589756,
+      "VolatilityChallenger": 0.07258614263862835,
+      "VolatilityChange": 0.025425607452730793,
+      "VaRChampion": 0.07692187860930426,
+      "VaRChallenger": 0.14438331723882972
+    },
+    "BehaviorAlignment": {
+      "AlignmentPercentage": 1,
+      "MajorDisagreementRate": 0,
+      "AverageConfidenceDelta": 0.10304679137703343,
+      "MaxConfidenceDelta": 0.2819239136678744,
+      "TotalDecisionsCompared": 150,
+      "BehaviorSimilarityScore": 0.8160855540475325
+    },
+    "ValidationDurationMs": 26.4951,
+    "Passed": false,
+    "ErrorMessage": null,
+    "ChallengerSharpe": 3.547880177043847,
+    "ChampionSharpe": 3.0009294457784037,
+    "PValue": 0.02
+  },
+  "StatisticalSignificance": {
+    "PValue": 0.02,
+    "IsSignificant": true,
+    "ConfidenceLevel": 0.95,
+    "SampleSize": 150
+  },
+  "PerformanceMetrics": {
+    "SharpeRatioImprovement": 0.5469507312654431,
+    "SortinoRatioImprovement": 0,
+    "WinRateImprovement": 0
+  },
+  "RiskMetrics": {
+    "CVaRImprovement": -0.8212805105023401,
+    "MaxDrawdownChallenger": 0,
+    "DrawdownImprovement": 0
+  },
+  "Conclusion": "Challenger shows statistically significant improvement with p \u003C 0.05 and meets all CVaR/DD limits"
+}

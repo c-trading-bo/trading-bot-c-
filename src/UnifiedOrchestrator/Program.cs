@@ -504,6 +504,7 @@ Stack Trace:
         
         // Register Market Hours Service for timing gates
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IMarketHoursService, TradingBot.UnifiedOrchestrator.Scheduling.FuturesMarketHours>();
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Scheduling.FuturesMarketHours>();
         
         // Register Shadow Tester for A/B validation
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IShadowTester, TradingBot.UnifiedOrchestrator.Promotion.ShadowTester>();

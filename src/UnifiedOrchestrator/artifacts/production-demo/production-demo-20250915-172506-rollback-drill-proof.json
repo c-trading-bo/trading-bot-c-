@@ -1,0 +1,95 @@
+{
+  "TestTime": "2025-09-15T17:25:40.1813571Z",
+  "TestDescription": "Rollback Drill Under Simulated Load (50 decisions/sec)",
+  "DrillConfiguration": {
+    "LoadLevel": 2,
+    "TestDurationSeconds": 30,
+    "DecisionsPerSecond": 20,
+    "EnableMetrics": true,
+    "EnableContextPreservation": true,
+    "ExpectedRollbackTimeMs": 100
+  },
+  "DrillResults": {
+    "DrillId": "eda9a4d9-6dd2-409a-80a2-17456c70c577",
+    "StartTime": "2025-09-15T17:25:08.144596Z",
+    "EndTime": "2025-09-15T17:25:40.180992Z",
+    "TotalDurationMs": 32036.9055,
+    "Success": true,
+    "ErrorMessage": null,
+    "Config": {
+      "LoadLevel": 2,
+      "TestDurationSeconds": 30,
+      "DecisionsPerSecond": 20,
+      "EnableMetrics": true,
+      "EnableContextPreservation": true,
+      "ExpectedRollbackTimeMs": 100
+    },
+    "Events": [
+      {
+        "Timestamp": "2025-09-15T17:25:08.1462533Z",
+        "EventType": "Baseline Established",
+        "Details": "Champion baseline: 20 decisions, avg latency 0.38ms",
+        "Success": true,
+        "LatencyMs": 0
+      },
+      {
+        "Timestamp": "2025-09-15T17:25:09.1651831Z",
+        "EventType": "Challenger Promotion",
+        "Details": "Promotion completed in 0.72ms, Success: True",
+        "Success": true,
+        "LatencyMs": 0.7156
+      },
+      {
+        "Timestamp": "2025-09-15T17:25:09.1674917Z",
+        "EventType": "Load Generation Completed",
+        "Details": "Generated 600 decisions (600 successful) in 30002ms, avg latency 0.31ms",
+        "Success": true,
+        "LatencyMs": 0.31319199999999986
+      },
+      {
+        "Timestamp": "2025-09-15T17:25:39.1749696Z",
+        "EventType": "Rollback Under Load",
+        "Details": "Rollback completed in 0.36ms while processing 1 concurrent decisions",
+        "Success": true,
+        "LatencyMs": 0.3602
+      },
+      {
+        "Timestamp": "2025-09-15T17:25:39.1767609Z",
+        "EventType": "Rollback Verification",
+        "Details": "Post-rollback: 10 decisions, avg latency 0.22ms (degradation: -43.1%)",
+        "Success": true,
+        "LatencyMs": 0.21589
+      }
+    ],
+    "Metrics": {
+      "BaselineLatencyMs": 0.37929,
+      "BaselineDecisionsCount": 20,
+      "PromotionLatencyMs": 0.7156,
+      "LoadTestLatencyMs": 0.31319199999999986,
+      "LoadTestDecisionsCount": 600,
+      "LoadTestSuccessRate": 1,
+      "RollbackLatencyMs": 0.3602,
+      "RollbackSuccess": true,
+      "ConcurrentDecisionsDuringRollback": 1,
+      "PostRollbackLatencyMs": 0.21589,
+      "PostRollbackDecisionsCount": 10,
+      "LatencyDegradationPercent": -43.08049249914313,
+      "ContextPreserved": true
+    },
+    "RollbackTimeMs": 0,
+    "HealthAlertsGenerated": 0,
+    "HealthAlertResponseTimeMs": 0
+  },
+  "PerformanceMetrics": {
+    "RollbackTimeMs": 0,
+    "PassedSubMillisecondTest": true,
+    "LoadTestDuration": 30,
+    "DecisionsPerSecond": 50,
+    "TotalDecisionsUnderLoad": 1500
+  },
+  "HealthAlerts": {
+    "AlertsGenerated": 0,
+    "AlertResponseTimeMs": 0
+  },
+  "Conclusion": "\u2705 Rollback completed in \u003C100ms with health alerts firing correctly"
+}

@@ -1,0 +1,200 @@
+{
+  "TestTime": "2025-09-15T17:25:40.2309927Z",
+  "TotalTests": 19,
+  "PassedTests": 4,
+  "FailedTests": 15,
+  "Coverage": 0.21052631578947367,
+  "TestResults": [
+    {
+      "TestName": "",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 0.0,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 0.05,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 0.2,
+      "InputValid": true,
+      "ExpectedAction": "BuySmall",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected BuySmall, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 0.6,
+      "InputValid": true,
+      "ExpectedAction": "Buy",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Buy, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 1.0,
+      "InputValid": true,
+      "ExpectedAction": "Buy",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Buy, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Down",
+      "PositionMultiplier": 0.0,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Down",
+      "PositionMultiplier": 0.05,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Down",
+      "PositionMultiplier": 0.2,
+      "InputValid": true,
+      "ExpectedAction": "SellSmall",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected SellSmall, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Down",
+      "PositionMultiplier": 0.6,
+      "InputValid": true,
+      "ExpectedAction": "Sell",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Sell, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Down",
+      "PositionMultiplier": 1.0,
+      "InputValid": true,
+      "ExpectedAction": "Sell",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Sell, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 0.0,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 0.05,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 0.2,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 0.6,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 1.0,
+      "InputValid": true,
+      "ExpectedAction": "Hold",
+      "ActualAction": "HOLD",
+      "TestPassed": false,
+      "ErrorMessage": "Expected Hold, got HOLD"
+    },
+    {
+      "TestName": "EdgeCase_Up_-79228162514264337593543950335",
+      "PriceDirection": "Up",
+      "PositionMultiplier": -79228162514264337593543950335,
+      "InputValid": false,
+      "ExpectedAction": "",
+      "ActualAction": "HOLD",
+      "TestPassed": true,
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "EdgeCase_Up_79228162514264337593543950335",
+      "PriceDirection": "Up",
+      "PositionMultiplier": 79228162514264337593543950335,
+      "InputValid": false,
+      "ExpectedAction": "",
+      "ActualAction": "HOLD",
+      "TestPassed": true,
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "EdgeCase_Down_-1.0",
+      "PriceDirection": "Down",
+      "PositionMultiplier": -1.0,
+      "InputValid": false,
+      "ExpectedAction": "",
+      "ActualAction": "HOLD",
+      "TestPassed": true,
+      "ErrorMessage": null
+    },
+    {
+      "TestName": "EdgeCase_Sideways_999.0",
+      "PriceDirection": "Sideways",
+      "PositionMultiplier": 999.0,
+      "InputValid": false,
+      "ExpectedAction": "",
+      "ActualAction": "HOLD",
+      "TestPassed": true,
+      "ErrorMessage": null
+    }
+  ],
+  "ErrorMessage": null
+}
