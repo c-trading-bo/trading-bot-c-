@@ -359,7 +359,7 @@ Stack Trace:
         });
         
         // Register TopstepXService for real client
-        services.AddSingleton<ITopstepXService, BotCore.Services.TopstepXService>();
+        services.AddSingleton<BotCore.Services.ITopstepXService, BotCore.Services.TopstepXService>();
         
         // Register the appropriate TopstepX client based on configuration
         services.AddSingleton<ITopstepXClient>(provider =>
@@ -381,7 +381,7 @@ Stack Trace:
             else
             {
                 var realLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
-                var topstepXService = provider.GetRequiredService<ITopstepXService>();
+                var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
                 var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
                 var accountService = provider.GetRequiredService<IAccountService>();
                 var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
@@ -527,9 +527,8 @@ Stack Trace:
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IUnifiedDataIntegrationService, TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         
-        // Register Production Readiness Validation Service for complete runtime proof (temporarily as concrete class) 
-        // TODO: Fix interface implementation
-        // services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IProductionReadinessValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
+        // Register Production Readiness Validation Service for complete runtime proof
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IProductionReadinessValidationService, TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Services.ProductionReadinessValidationService>();
         
         // Register Production Demonstration Runner for PR review artifacts
