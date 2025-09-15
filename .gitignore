@@ -18,6 +18,10 @@ trading-bot-c--1/
 **/bin/
 **/obj/
 
+# Test and demo scripts
+test_pipeline_integration.py
+demonstrate_fixes.py
+
 # Logs/temp/state
 *.log
 logs/

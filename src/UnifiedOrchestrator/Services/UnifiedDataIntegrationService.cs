@@ -241,17 +241,24 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             _logger.LogInformation("[DATA-INTEGRATION] Connecting to live TopStep data");
             
             // Check for TopStep environment configuration
+            // Phase 6C: Auth Health Check - Support both API key and JWT tokens
             var topstepApiKey = Environment.GetEnvironmentVariable("TOPSTEP_API_KEY");
+            var topstepJwtToken = Environment.GetEnvironmentVariable("TOPSTEP_JWT_TOKEN");
+            var topstepAccessToken = Environment.GetEnvironmentVariable("TOPSTEPX_ACCESS_TOKEN");
             var topstepBaseUrl = Environment.GetEnvironmentVariable("TOPSTEP_BASE_URL") ?? "https://api.topstepx.com";
             var signalRUrl = Environment.GetEnvironmentVariable("TOPSTEP_SIGNALR_URL") ?? "https://rtc.topstepx.com/hubs/market";
             
+            // Accept any valid authentication method
             var hasApiKey = !string.IsNullOrEmpty(topstepApiKey);
+            var hasJwtToken = !string.IsNullOrEmpty(topstepJwtToken);
+            var hasAccessToken = !string.IsNullOrEmpty(topstepAccessToken);
+            var hasValidAuth = hasApiKey || hasJwtToken || hasAccessToken;
             var canConnectToApi = true; // Would test actual connection in production
             
             // Simulate checking connection endpoints
             await Task.Delay(500, cancellationToken);
             
-            _isLiveDataConnected = hasApiKey && canConnectToApi;
+            _isLiveDataConnected = hasValidAuth && canConnectToApi;
             _lastLiveDataReceived = DateTime.UtcNow;
             
             _dataFlowEvents.Add(new DataFlowEvent
@@ -259,7 +266,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 Timestamp = DateTime.UtcNow,
                 EventType = "Live TopStep Data Connected",
                 Source = "TopStepX API",
-                Details = $"Connected to TopStep live data - API: {(hasApiKey ? "Configured" : "Missing")}, URL: {topstepBaseUrl}",
+                Details = $"Connected to TopStep live data - API Key: {hasApiKey}, JWT: {hasJwtToken}, Access Token: {hasAccessToken}, URL: {topstepBaseUrl}",
                 Success = _isLiveDataConnected
             });
             
@@ -269,7 +276,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             }
             else
             {
-                _logger.LogWarning("[DATA-INTEGRATION] ⚠️ Live TopStep data connection incomplete - API key: {HasKey}", hasApiKey);
+                _logger.LogWarning("[DATA-INTEGRATION] ⚠️ Live TopStep data connection incomplete - Valid auth: {HasValidAuth} (API Key: {HasApiKey}, JWT: {HasJwt}, Access Token: {HasAccessToken})", 
+                    hasValidAuth, hasApiKey, hasJwtToken, hasAccessToken);
             }
         }
         catch (Exception ex)
