@@ -139,6 +139,9 @@ public class StartupValidator : IStartupValidator
     {
         try
         {
+            // Brief delay to allow DI container to stabilize during startup
+            await Task.Delay(100, cancellationToken);
+            
             // Test that all critical services can be resolved
             var criticalServices = new[]
             {

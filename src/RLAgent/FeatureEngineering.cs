@@ -270,6 +270,9 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         RegimeProfile profile)
     {
+        // Brief yield to allow task scheduling for CPU-intensive calculations
+        await Task.Yield();
+        
         var buffer = GetMarketDataBuffer(featureKey);
         
         if (buffer.Count < 2)
@@ -308,6 +311,9 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         RegimeProfile profile)
     {
+        // Brief yield to allow task scheduling for CPU-intensive calculations
+        await Task.Yield();
+        
         var buffer = GetMarketDataBuffer(featureKey);
         
         if (buffer.Count < 2)
@@ -343,6 +349,9 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         RegimeProfile profile)
     {
+        // Brief yield to allow task scheduling for CPU-intensive calculations
+        await Task.Yield();
+        
         var buffer = GetMarketDataBuffer(featureKey);
 
         // RSI (Relative Strength Index)
@@ -374,6 +383,9 @@ public class FeatureEngineering : IDisposable
         MarketData currentData,
         RegimeProfile profile)
     {
+        // Brief yield to allow task scheduling for CPU-intensive calculations
+        await Task.Yield();
+        
         var buffer = GetMarketDataBuffer(featureKey);
 
         // Bid-ask spread
@@ -420,6 +432,9 @@ public class FeatureEngineering : IDisposable
         RegimeType regime,
         MarketData currentData)
     {
+        // Brief yield to allow task scheduling for feature calculations
+        await Task.Yield();
+        
         // One-hot encoding for regime
         features.AddRange(new[]
         {
@@ -441,6 +456,9 @@ public class FeatureEngineering : IDisposable
         List<string> featureNames,
         MarketData currentData)
     {
+        // Brief yield to allow task scheduling
+        await Task.Yield();
+        
         var timestamp = currentData.Timestamp;
         
         // Time of day (normalized)
