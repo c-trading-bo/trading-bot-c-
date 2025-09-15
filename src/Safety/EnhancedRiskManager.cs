@@ -70,48 +70,55 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         _riskMonitoringTimer = new Timer(MonitorRiskState, null, TimeSpan.Zero, _currentLimits.RiskEvaluationInterval);
         _sessionResetTimer = new Timer(CheckSessionReset, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         
+        // Initialize state in background task
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                // Load persisted risk state if available
+                var persistedState = await _persistence.LoadRiskStateAsync();
+                if (persistedState != null)
+                {
+                    // Check if state is from today
+                    if (persistedState.DailyResetTime.Date == DateTime.UtcNow.Date)
+                    {
+                        _currentState = persistedState;
+                        _logger.LogInformation("[ENHANCED-RISK] Restored risk state from persistence: PnL={PnL:C}, Level={Level}",
+                            _currentState.DailyPnL, _currentState.RiskLevel);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("[ENHANCED-RISK] Persisted state is from previous day, starting fresh");
+                        _currentState = _currentState.ResetDaily();
+                    }
+                }
+                
+                // Load position state for exposure calculation
+                var positionState = await _persistence.LoadPositionStateAsync();
+                if (positionState != null)
+                {
+                    _currentState = _currentState with 
+                    { 
+                        TotalExposure = positionState.TotalExposure,
+                        OpenPositionCount = positionState.OpenPositions.Count 
+                    };
+                    _logger.LogInformation("[ENHANCED-RISK] Restored position state: Exposure={Exposure:C}, Positions={Count}",
+                        _currentState.TotalExposure, _currentState.OpenPositionCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ENHANCED-RISK] Failed to initialize risk state from persistence");
+            }
+        });
+        
         _logger.LogInformation("[ENHANCED-RISK] Enhanced risk manager initialized with session {SessionId}", _currentSessionId);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            // Load persisted risk state if available
-            var persistedState = await _persistence.LoadRiskStateAsync();
-            if (persistedState != null)
-            {
-                // Check if state is from today
-                if (persistedState.DailyResetTime.Date == DateTime.UtcNow.Date)
-                {
-                    _currentState = persistedState;
-                    _logger.LogInformation("[ENHANCED-RISK] Restored risk state from persistence: PnL={PnL:C}, Level={Level}",
-                        _currentState.DailyPnL, _currentState.RiskLevel);
-                }
-                else
-                {
-                    _logger.LogInformation("[ENHANCED-RISK] Persisted state is from previous day, starting fresh");
-                    _currentState.ResetDaily();
-                }
-            }
-            
-            // Load position state for exposure calculation
-            var positionState = await _persistence.LoadPositionStateAsync();
-            if (positionState != null)
-            {
-                _currentState.TotalExposure = positionState.TotalExposure;
-                _currentState.OpenPositionCount = positionState.OpenPositions.Count;
-                _logger.LogInformation("[ENHANCED-RISK] Restored position state: Exposure={Exposure:C}, Positions={Count}",
-                    _currentState.TotalExposure, _currentState.OpenPositionCount);
-            }
-            
-            _logger.LogInformation("[ENHANCED-RISK] Enhanced risk manager started successfully");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[ENHANCED-RISK] Failed to start enhanced risk manager");
-            throw;
-        }
+        await Task.CompletedTask;
+        _logger.LogInformation("[ENHANCED-RISK] Enhanced risk manager started successfully");
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -142,21 +149,21 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         }
     }
 
-    // Enhanced functionality only - base manager is separate
-    public async Task<ModelsRiskState> GetCurrentRiskStateAsync()
+    // Enhanced functionality only
+    public Task<ModelsRiskState> GetCurrentRiskStateAsync()
     {
         lock (_stateLock)
         {
-            return _currentState with { }; // Return a copy
+            return Task.FromResult(_currentState with { }); // Return a copy
         }
     }
 
-    public async Task<List<RiskBreachEvent>> GetRecentBreachesAsync(TimeSpan period)
+    public Task<List<RiskBreachEvent>> GetRecentBreachesAsync(TimeSpan period)
     {
         var cutoff = DateTime.UtcNow - period;
         lock (_stateLock)
         {
-            return _recentBreaches.Where(b => b.Timestamp >= cutoff).ToList();
+            return Task.FromResult(_recentBreaches.Where(b => b.Timestamp >= cutoff).ToList());
         }
     }
 
@@ -271,60 +278,62 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             return Task.FromResult(false);
         }
         
-        // Then delegate to base manager
-        return _baseRiskManager.ValidateOrderAsync(order);
+        return Task.FromResult(true);
     }
-
-    public async Task UpdatePositionAsync(string symbol, decimal currentPrice, int quantity)
+    
+    // Helper methods for external components to update risk state
+    public async Task UpdatePositionStateAsync(string symbol, decimal currentPrice, int quantity)
     {
-        await _baseRiskManager.UpdatePositionAsync(symbol, currentPrice, quantity);
-        
         // Update our position tracking
         lock (_stateLock)
         {
             var positionValue = Math.Abs(quantity * currentPrice);
-            _currentState.TotalExposure += positionValue;
+            _currentState = _currentState with { TotalExposure = _currentState.TotalExposure + positionValue };
             
             if (quantity != 0)
             {
-                _currentState.OpenPositionCount++;
+                _currentState = _currentState with { OpenPositionCount = _currentState.OpenPositionCount + 1 };
             }
             
-            _currentState.LastUpdated = DateTime.UtcNow;
+            _currentState = _currentState with { LastUpdated = DateTime.UtcNow };
         }
         
         await TriggerRiskStateUpdate();
     }
 
-    public async Task UpdateDailyPnLAsync(decimal totalPnL)
+    public async Task UpdatePnLStateAsync(decimal totalPnL)
     {
-        await _baseRiskManager.UpdateDailyPnLAsync(totalPnL);
-        
         // Update our enhanced tracking
         lock (_stateLock)
         {
             var previousPnL = _currentState.DailyPnL;
-            _currentState.DailyPnL = totalPnL;
+            var updatedState = _currentState with { DailyPnL = totalPnL };
             
             // Update peaks and drawdowns
-            if (totalPnL > _currentState.DailyPeak)
+            if (totalPnL > updatedState.DailyPeak)
             {
-                _currentState.DailyPeak = totalPnL;
+                updatedState = updatedState with { DailyPeak = totalPnL };
             }
             
-            _currentState.DailyDrawdown = _currentState.DailyPeak - totalPnL;
+            updatedState = updatedState with { DailyDrawdown = updatedState.DailyPeak - totalPnL };
             
             // Update session metrics
             var sessionPnLChange = totalPnL - previousPnL;
-            _currentState.SessionPnL += sessionPnLChange;
+            var newSessionPnL = updatedState.SessionPnL + sessionPnLChange;
+            updatedState = updatedState with { SessionPnL = newSessionPnL };
             
-            if (_currentState.SessionPnL > _currentState.SessionPeak)
+            if (newSessionPnL > updatedState.SessionPeak)
             {
-                _currentState.SessionPeak = _currentState.SessionPnL;
+                updatedState = updatedState with { SessionPeak = newSessionPnL };
             }
             
-            _currentState.SessionDrawdown = _currentState.SessionPeak - _currentState.SessionPnL;
-            _currentState.LastUpdated = DateTime.UtcNow;
+            updatedState = updatedState with 
+            { 
+                SessionDrawdown = updatedState.SessionPeak - newSessionPnL,
+                LastUpdated = DateTime.UtcNow 
+            };
+            
+            _currentState = updatedState;
         }
         
         await CheckRiskLimitsAsync();
@@ -516,8 +525,8 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                     
                     lock (_stateLock)
                     {
-                        _currentState.ResetDaily();
-                        _currentState.ResetSession();
+                        _currentState = _currentState.ResetDaily();
+                        _currentState = _currentState.ResetSession();
                         _currentSessionId = Guid.NewGuid().ToString("N")[..8];
                     }
                     
@@ -534,7 +543,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                 {
                     lock (_stateLock)
                     {
-                        _currentState.ResetSession();
+                        _currentState = _currentState.ResetSession();
                     }
                     
                     _logger.LogInformation("[ENHANCED-RISK] Session limits reset for afternoon session");

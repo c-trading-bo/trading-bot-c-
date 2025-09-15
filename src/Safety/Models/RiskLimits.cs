@@ -67,7 +67,7 @@ public class RiskLimits
 /// <summary>
 /// Real-time risk state tracking with persistence
 /// </summary>
-public class RiskState
+public record RiskState
 {
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     public DateTime DailyResetTime { get; set; }
@@ -106,28 +106,34 @@ public class RiskState
     public string MarketRegime { get; set; } = "NORMAL"; // NORMAL, VOLATILE, NEWS, ILLIQUID
     public decimal VolatilityAdjustment { get; set; } = 1.0m;
     
-    // Reset daily metrics
-    public void ResetDaily()
+    // Reset daily metrics - create new instance for records
+    public RiskState ResetDaily()
     {
-        DailyPnL = 0;
-        DailyPeak = 0;
-        DailyDrawdown = 0;
-        DailyTradeCount = 0;
-        DailyVolume = 0;
-        DailyResetTime = DateTime.UtcNow;
-        LastUpdated = DateTime.UtcNow;
+        return this with
+        {
+            DailyPnL = 0,
+            DailyPeak = 0,
+            DailyDrawdown = 0,
+            DailyTradeCount = 0,
+            DailyVolume = 0,
+            DailyResetTime = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow
+        };
     }
     
-    // Reset session metrics
-    public void ResetSession()
+    // Reset session metrics - create new instance for records
+    public RiskState ResetSession()
     {
-        SessionPnL = 0;
-        SessionPeak = 0;
-        SessionDrawdown = 0;
-        SessionTradeCount = 0;
-        SessionVolume = 0;
-        SessionStartTime = DateTime.UtcNow;
-        LastUpdated = DateTime.UtcNow;
+        return this with
+        {
+            SessionPnL = 0,
+            SessionPeak = 0,
+            SessionDrawdown = 0,
+            SessionTradeCount = 0,
+            SessionVolume = 0,
+            SessionStartTime = DateTime.UtcNow,
+            LastUpdated = DateTime.UtcNow
+        };
     }
 }
 
