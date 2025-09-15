@@ -78,8 +78,8 @@ namespace BotCore.Services
             {
                 _logger.LogInformation("[ENHANCED-DATA-FLOW] Initializing enhanced market data flow with health monitoring");
 
-                // Initialize flow metrics for standard symbols
-                var standardSymbols = new[] { "ES", "NQ", "MES", "MNQ" };
+                // Initialize flow metrics for standard symbols (ES/NQ only)
+                var standardSymbols = new[] { "ES", "NQ" };
                 foreach (var symbol in standardSymbols)
                 {
                     _flowMetrics.TryAdd(symbol, new DataFlowMetrics

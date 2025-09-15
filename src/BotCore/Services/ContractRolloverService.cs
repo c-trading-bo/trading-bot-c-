@@ -12,7 +12,7 @@ namespace BotCore.Services
 {
     /// <summary>
     /// Contract rollover service for automatic front month detection and management
-    /// Handles ES, NQ, MES, MNQ contract rollovers to ensure trading on active contracts
+    /// Handles ES, NQ contract rollovers to ensure trading on active contracts
     /// </summary>
     public interface IContractRolloverService
     {
@@ -320,26 +320,6 @@ namespace BotCore.Services
                     ContractSize = 20,
                     Currency = "USD",
                     ExpirationRule = ContractExpirationRule.ThirdFridayOfMonth
-                },
-                ["MES"] = new ContractSpec
-                {
-                    BaseSymbol = "MES",
-                    FullName = "Micro E-mini S&P 500",
-                    MonthSequence = new[] { "H", "M", "U", "Z" }, // Mar, Jun, Sep, Dec
-                    TickSize = 0.25m,
-                    ContractSize = 5,
-                    Currency = "USD",
-                    ExpirationRule = ContractExpirationRule.ThirdFridayOfMonth
-                },
-                ["MNQ"] = new ContractSpec
-                {
-                    BaseSymbol = "MNQ",
-                    FullName = "Micro E-mini NASDAQ-100",
-                    MonthSequence = new[] { "H", "M", "U", "Z" }, // Mar, Jun, Sep, Dec
-                    TickSize = 0.25m,
-                    ContractSize = 2,
-                    Currency = "USD",
-                    ExpirationRule = ContractExpirationRule.ThirdFridayOfMonth
                 }
             };
         }
@@ -390,7 +370,7 @@ namespace BotCore.Services
         {
             var month = MonthCodeToMonth(monthCode);
             
-            // For ES/NQ/MES/MNQ: Third Friday of the month
+            // For ES/NQ: Third Friday of the month
             var thirdFriday = GetThirdFridayOfMonth(year, month);
             
             // Set expiration time to 9:30 AM ET (market open)
@@ -431,17 +411,14 @@ namespace BotCore.Services
         }
 
         /// <summary>
-        /// Extract base symbol from contract symbol
+        /// Extract base symbol from contract symbol (e.g., "ESZ3" -> "ES")
         /// </summary>
         private string ExtractBaseSymbol(string contractSymbol)
         {
-            if (contractSymbol.Length < 3)
+            if (contractSymbol.Length < 2)
                 throw new ArgumentException("Invalid contract symbol format");
 
-            // Handle MES/MNQ (3 chars) and ES/NQ (2 chars)
-            if (contractSymbol.StartsWith("MES") || contractSymbol.StartsWith("MNQ"))
-                return contractSymbol[..3];
-            
+            // Handle ES/NQ (2 chars)
             return contractSymbol[..2];
         }
 
@@ -505,7 +482,7 @@ namespace BotCore.Services
         {
             try
             {
-                var baseSymbols = new[] { "ES", "NQ", "MES", "MNQ" };
+                var baseSymbols = new[] { "ES", "NQ" };
 
                 foreach (var baseSymbol in baseSymbols)
                 {

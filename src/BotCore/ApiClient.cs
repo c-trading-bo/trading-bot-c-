@@ -27,9 +27,6 @@ namespace BotCore
         {
             ["ES"] = "F.US.EP",   // E-mini S&P 500
             ["NQ"] = "F.US.ENQ",  // E-mini NASDAQ-100
-            // Micros if you need them:
-            ["MES"] = "F.US.MES",
-            ["MNQ"] = "F.US.MNQ",
         };
 
         public async Task<string> ResolveContractIdAsync(string root, CancellationToken ct = default)

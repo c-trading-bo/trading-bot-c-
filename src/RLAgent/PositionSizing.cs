@@ -359,17 +359,13 @@ public class PositionSizingConfig
     public Dictionary<string, double> SymbolCaps { get; set; } = new()
     {
         { "ES", 0.25 },
-        { "NQ", 0.25 },
-        { "MES", 0.15 },
-        { "MNQ", 0.15 }
+        { "NQ", 0.25 }
     };
     
     public Dictionary<string, int> MaxContractsPerSymbol { get; set; } = new()
     {
         { "ES", 15 },
-        { "NQ", 12 },
-        { "MES", 50 },
-        { "MNQ", 40 }
+        { "NQ", 12 }
     };
 }
 

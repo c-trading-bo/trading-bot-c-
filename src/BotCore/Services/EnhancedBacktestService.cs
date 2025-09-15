@@ -347,8 +347,8 @@ namespace BotCore.Services
         {
             return symbol.ToUpper() switch
             {
-                "ES" or "MES" => 0.25m,
-                "NQ" or "MNQ" => 0.25m,
+                "ES" => 0.25m,
+                "NQ" => 0.25m,
                 _ => 0.01m
             };
         }

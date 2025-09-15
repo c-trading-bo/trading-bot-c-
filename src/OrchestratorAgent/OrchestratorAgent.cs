@@ -102,7 +102,7 @@ namespace OrchestratorAgent
             if (string.IsNullOrWhiteSpace(contractNameOrSymbol)) return "?";
             var s = contractNameOrSymbol.ToUpperInvariant();
             if (s.StartsWith("ES")) return "ES";
-            if (s.StartsWith("NQ") || s.Contains("MNQ")) return "NQ";
+            if (s.StartsWith("NQ")) return "NQ";
             return new string([.. s.TakeWhile(char.IsLetter)]);
         }
     }
