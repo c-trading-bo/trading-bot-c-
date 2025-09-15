@@ -114,28 +114,51 @@ public class ChampionChallengerValidationService : BackgroundService
     {
         _logger.LogInformation("🔍 Testing Read-Only Inference Brain...");
         
-        var isReady = await _inferenceBrain.IsReadyAsync(cancellationToken);
-        _logger.LogInformation("✅ Inference Brain ready: {Ready}", isReady);
-        
-        var versions = await _inferenceBrain.GetChampionVersionsAsync(cancellationToken);
-        _logger.LogInformation("✅ Champion versions - PPO: {PPO}, UCB: {UCB}, LSTM: {LSTM}", 
-            versions.GetValueOrDefault("PPO")?.VersionId ?? "none",
-            versions.GetValueOrDefault("UCB")?.VersionId ?? "none", 
-            versions.GetValueOrDefault("LSTM")?.VersionId ?? "none");
-
-        // Test decision making (read-only)
-        var context = new TradingContext
+        try
         {
-            Symbol = "ES",
-            Price = 4500,
-            Volume = 1000,
-            AccountBalance = 50000
-        };
-        
-        var decision = await _inferenceBrain.DecideAsync(context, cancellationToken);
-        _logger.LogInformation("✅ Decision made - Action: {Action}, Strategy: {Strategy}, PPO: {PPO}, UCB: {UCB}, LSTM: {LSTM}", 
-            decision.Action, decision.Strategy, 
-            decision.PPOVersionId, decision.UCBVersionId, decision.LSTMVersionId);
+            var isReady = await _inferenceBrain.IsReadyAsync(cancellationToken);
+            _logger.LogInformation("✅ Inference Brain ready: {Ready}", isReady);
+            
+            var versions = await _inferenceBrain.GetChampionVersionsAsync(cancellationToken);
+            
+            // Phase 6B: Validation Bounds - Add defensive checks for version retrieval
+            var ppoVersion = versions?.GetValueOrDefault("PPO")?.VersionId;
+            var ucbVersion = versions?.GetValueOrDefault("UCB")?.VersionId;
+            var lstmVersion = versions?.GetValueOrDefault("LSTM")?.VersionId;
+            
+            // Validate version strings before using them
+            var safePpoVersion = !string.IsNullOrEmpty(ppoVersion) && ppoVersion.Length <= 50 ? ppoVersion : "none";
+            var safeUcbVersion = !string.IsNullOrEmpty(ucbVersion) && ucbVersion.Length <= 50 ? ucbVersion : "none";
+            var safeLstmVersion = !string.IsNullOrEmpty(lstmVersion) && lstmVersion.Length <= 50 ? lstmVersion : "none";
+            
+            _logger.LogInformation("✅ Champion versions - PPO: {PPO}, UCB: {UCB}, LSTM: {LSTM}", 
+                safePpoVersion, safeUcbVersion, safeLstmVersion);
+
+            // Test decision making (read-only)
+            var context = new TradingContext
+            {
+                Symbol = "ES",
+                Price = 4500,
+                Volume = 1000,
+                AccountBalance = 50000
+            };
+            
+            var decision = await _inferenceBrain.DecideAsync(context, cancellationToken);
+            
+            // Phase 6B: Validation Bounds - Add defensive checks for decision properties  
+            var safeAction = !string.IsNullOrEmpty(decision.Action) && decision.Action.Length <= 20 ? decision.Action : "UNKNOWN";
+            var safeStrategy = !string.IsNullOrEmpty(decision.Strategy) && decision.Strategy.Length <= 50 ? decision.Strategy : "UNKNOWN";
+            var safePpoVersionId = !string.IsNullOrEmpty(decision.PPOVersionId) && decision.PPOVersionId.Length <= 50 ? decision.PPOVersionId : "none";
+            var safeUcbVersionId = !string.IsNullOrEmpty(decision.UCBVersionId) && decision.UCBVersionId.Length <= 50 ? decision.UCBVersionId : "none";
+            var safeLstmVersionId = !string.IsNullOrEmpty(decision.LSTMVersionId) && decision.LSTMVersionId.Length <= 50 ? decision.LSTMVersionId : "none";
+            
+            _logger.LogInformation("✅ Decision made - Action: {Action}, Strategy: {Strategy}, PPO: {PPO}, UCB: {UCB}, LSTM: {LSTM}", 
+                safeAction, safeStrategy, safePpoVersionId, safeUcbVersionId, safeLstmVersionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Inference Brain test failed: {Error}", ex.Message);
+        }
     }
 
     private async Task TestTrainingBrainAsync(CancellationToken cancellationToken)
@@ -160,17 +183,35 @@ public class ChampionChallengerValidationService : BackgroundService
     {
         _logger.LogInformation("🔍 Testing Promotion Service...");
         
-        var status = await _promotionService.GetPromotionStatusAsync("PPO", cancellationToken);
-        _logger.LogInformation("✅ Promotion status - Champion: {Champion}, CanRollback: {CanRollback}", 
-            status.CurrentChampionVersionId, status.CanRollback);
-        
-        // Test promotion evaluation (without actual promotion)
-        if (!string.IsNullOrEmpty(status.CurrentChampionVersionId))
+        try
         {
-            var decision = await _promotionService.EvaluatePromotionAsync("PPO", "test_challenger_v1", cancellationToken);
-            _logger.LogInformation("✅ Promotion evaluation - ShouldPromote: {ShouldPromote}, Reason: {Reason}, " +
-                "InSafeWindow: {InSafeWindow}, IsFlat: {IsFlat}", 
-                decision.ShouldPromote, decision.Reason, decision.IsInSafeWindow, decision.IsFlat);
+            var status = await _promotionService.GetPromotionStatusAsync("PPO", cancellationToken);
+            
+            // Phase 6B: Validation Bounds - Add defensive checks for promotion status
+            var safeChampionVersionId = !string.IsNullOrEmpty(status.CurrentChampionVersionId) && 
+                                       status.CurrentChampionVersionId.Length <= 50 ? 
+                                       status.CurrentChampionVersionId : "none";
+            
+            _logger.LogInformation("✅ Promotion status - Champion: {Champion}, CanRollback: {CanRollback}", 
+                safeChampionVersionId, status.CanRollback);
+            
+            // Test promotion evaluation (without actual promotion)
+            if (!string.IsNullOrEmpty(status.CurrentChampionVersionId))
+            {
+                var decision = await _promotionService.EvaluatePromotionAsync("PPO", "test_challenger_v1", cancellationToken);
+                
+                // Phase 6B: Validation Bounds - Add defensive checks for promotion decision
+                var safeReason = !string.IsNullOrEmpty(decision.Reason) && decision.Reason.Length <= 200 ? 
+                                decision.Reason : "No reason provided";
+                
+                _logger.LogInformation("✅ Promotion evaluation - ShouldPromote: {ShouldPromote}, Reason: {Reason}, " +
+                    "InSafeWindow: {InSafeWindow}, IsFlat: {IsFlat}", 
+                    decision.ShouldPromote, safeReason, decision.IsInSafeWindow, decision.IsFlat);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Promotion Service test failed: {Error}", ex.Message);
         }
     }
 

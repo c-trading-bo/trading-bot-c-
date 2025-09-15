@@ -194,13 +194,16 @@ public class TradingFeedbackService : BackgroundService
             metrics.AccuracyHistory.RemoveAt(0);
         }
         
-        metrics.AverageAccuracy = metrics.AccuracyHistory.Average();
+        // Phase 6A: Exception Guards - Add .Any() check before .Average()
+        metrics.AverageAccuracy = metrics.AccuracyHistory.Any() ? metrics.AccuracyHistory.Average() : 0.0;
         metrics.WinRate = (double)metrics.ProfitableTrades / metrics.TotalTrades;
         
         // Calculate volatility of predictions
         if (metrics.AccuracyHistory.Count >= 10)
         {
-            var variance = metrics.AccuracyHistory.Select(x => Math.Pow(x - metrics.AverageAccuracy, 2)).Average();
+            // Phase 6A: Exception Guards - Add .Any() check before .Average()
+            var variance = metrics.AccuracyHistory.Any() ? 
+                metrics.AccuracyHistory.Select(x => Math.Pow(x - metrics.AverageAccuracy, 2)).Average() : 0.0;
             metrics.AccuracyVolatility = Math.Sqrt(variance);
         }
     }
@@ -251,8 +254,12 @@ public class TradingFeedbackService : BackgroundService
             // Check for recent performance drops
             if (metrics.AccuracyHistory.Count >= 20)
             {
-                var recent = metrics.AccuracyHistory.TakeLast(10).Average();
-                var previous = metrics.AccuracyHistory.Take(10).Average();
+                // Phase 6A: Exception Guards - Add .Any() checks before .Average()
+                var recentHistory = metrics.AccuracyHistory.TakeLast(10).ToList();
+                var previousHistory = metrics.AccuracyHistory.Take(10).ToList();
+                
+                var recent = recentHistory.Any() ? recentHistory.Average() : 0.0;
+                var previous = previousHistory.Any() ? previousHistory.Average() : 0.0;
                 
                 if (recent < previous - 0.1) // 10% drop
                 {
@@ -313,9 +320,10 @@ public class TradingFeedbackService : BackgroundService
         
         // Check for overall model ensemble degradation
         var ensembleStats = _ensemble.GetModelPerformanceStats();
-        var overallAccuracy = ensembleStats.Values
-            .Where(s => s.PredictionCount >= 10)
-            .Average(s => s.AccuracyScore);
+        
+        // Phase 6A: Exception Guards - Add .Any() check before .Average()
+        var validStats = ensembleStats.Values.Where(s => s.PredictionCount >= 10).ToList();
+        var overallAccuracy = validStats.Any() ? validStats.Average(s => s.AccuracyScore) : 0.0;
         
         if (overallAccuracy < _performanceThreshold && ensembleStats.Count >= 3)
         {
@@ -478,9 +486,12 @@ public class TradingFeedbackService : BackgroundService
             Timestamp = DateTime.UtcNow,
             TotalStrategies = _performanceMetrics.Values.Select(m => m.Strategy).Distinct().Count(),
             TotalTrades = _performanceMetrics.Values.Sum(m => m.TotalTrades),
+            // Phase 6A: Exception Guards - Add .Any() check before .Average()
             OverallAccuracy = _performanceMetrics.Values
                 .Where(m => m.TotalTrades >= _minFeedbackSamples)
-                .Average(m => m.AverageAccuracy),
+                .Any() ? _performanceMetrics.Values
+                .Where(m => m.TotalTrades >= _minFeedbackSamples)
+                .Average(m => m.AverageAccuracy) : 0.0,
             OverallPnL = _performanceMetrics.Values.Sum(m => m.TotalPnL),
             StrategyMetrics = _performanceMetrics.Values.ToList(),
             ModelMetrics = _ensemble.GetModelPerformanceStats(),
