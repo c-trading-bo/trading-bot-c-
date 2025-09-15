@@ -81,28 +81,176 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
 
     private decimal CalculateRiskScore(TradingBot.Abstractions.TradingDecision decision)
     {
-        // Simple risk scoring algorithm
-        decimal riskScore = 0.1m; // Base risk
-
-        // Increase risk based on position size
-        if (decision.MaxPositionSize > _config.MaxPositionSize * 0.5m)
+        // Sophisticated multi-factor risk scoring algorithm
+        var riskFactors = new RiskFactorAnalysis();
+        
+        // 1. Position Size Risk (0-25% weight)
+        riskFactors.PositionSizeRisk = CalculatePositionSizeRisk(decision.MaxPositionSize);
+        
+        // 2. Portfolio Concentration Risk (0-20% weight)
+        riskFactors.ConcentrationRisk = CalculateConcentrationRisk(decision);
+        
+        // 3. Market Regime Risk (0-20% weight) 
+        riskFactors.MarketRegimeRisk = CalculateMarketRegimeRisk();
+        
+        // 4. Volatility Risk (0-15% weight)
+        riskFactors.VolatilityRisk = CalculateVolatilityRisk(decision);
+        
+        // 5. Correlation Risk (0-10% weight)
+        riskFactors.CorrelationRisk = CalculateCorrelationRisk(decision);
+        
+        // 6. Liquidity Risk (0-10% weight)
+        riskFactors.LiquidityRisk = CalculateLiquidityRisk(decision);
+        
+        // Apply confidence-based risk adjustment
+        var confidenceAdjustment = CalculateConfidenceAdjustment(decision.Confidence);
+        
+        // Weighted composite risk score with sophisticated factor modeling
+        var compositeRisk = 
+            (riskFactors.PositionSizeRisk * 0.25m) +
+            (riskFactors.ConcentrationRisk * 0.20m) +
+            (riskFactors.MarketRegimeRisk * 0.20m) +
+            (riskFactors.VolatilityRisk * 0.15m) +
+            (riskFactors.CorrelationRisk * 0.10m) +
+            (riskFactors.LiquidityRisk * 0.10m);
+            
+        // Apply confidence-based adjustment
+        var adjustedRisk = compositeRisk * confidenceAdjustment;
+        
+        // Apply regime-specific adjustments
+        adjustedRisk = ApplyRegimeSpecificAdjustments(adjustedRisk);
+        
+        // Log detailed risk breakdown for analysis
+        _logger.LogDebug("[RISK-ANALYSIS] Detailed risk factors: Position={Position:F3}, Concentration={Concentration:F3}, " +
+                        "Regime={Regime:F3}, Volatility={Volatility:F3}, Correlation={Correlation:F3}, " +
+                        "Liquidity={Liquidity:F3}, Confidence Adj={ConfAdj:F3}, Final={Final:F3}",
+            riskFactors.PositionSizeRisk, riskFactors.ConcentrationRisk, riskFactors.MarketRegimeRisk,
+            riskFactors.VolatilityRisk, riskFactors.CorrelationRisk, riskFactors.LiquidityRisk,
+            confidenceAdjustment, adjustedRisk);
+        
+        return Math.Max(0m, Math.Min(1m, adjustedRisk));
+    }
+    
+    private decimal CalculatePositionSizeRisk(decimal positionSize)
+    {
+        var utilizationRatio = positionSize / _config.MaxPositionSize;
+        
+        // Non-linear risk scaling - exponential increase at high utilization
+        return utilizationRatio switch
         {
-            riskScore += 0.3m;
-        }
-
-        // Increase risk if approaching daily loss limit
-        if (_dailyPnL < _config.MaxDailyLoss * 0.5m)
+            < 0.25m => utilizationRatio * 0.2m,          // Low risk zone
+            < 0.50m => 0.05m + (utilizationRatio - 0.25m) * 0.4m,  // Moderate zone
+            < 0.75m => 0.15m + (utilizationRatio - 0.50m) * 0.8m,  // High zone  
+            _ => 0.35m + (utilizationRatio - 0.75m) * 1.6m         // Critical zone
+        };
+    }
+    
+    private decimal CalculateConcentrationRisk(TradingBot.Abstractions.TradingDecision decision)
+    {
+        // Analyze portfolio concentration risk
+        var symbolConcentration = _largestPosition / Math.Max(1m, _config.MaxPositionSize);
+        var strategyConcentration = decision.MaxPositionSize / Math.Max(1m, _largestPosition + decision.MaxPositionSize);
+        
+        // Higher risk if too concentrated in single positions or strategies
+        return Math.Max(symbolConcentration * 0.6m, strategyConcentration * 0.4m);
+    }
+    
+    private decimal CalculateMarketRegimeRisk()
+    {
+        // Market regime analysis based on current conditions
+        var volatilityRegime = _maxDrawdown > _config.MaxDailyLoss * 0.3m ? 0.4m : 0.1m;
+        var trendRegime = _dailyPnL < 0 ? 0.3m : 0.1m;
+        
+        // Time-of-day adjustments (higher risk during volatile periods)
+        var currentHour = DateTime.UtcNow.Hour;
+        var timeRisk = currentHour switch
         {
-            riskScore += 0.4m;
-        }
-
-        // Decrease risk for high confidence signals
-        if (decision.Confidence > 0.8m)
+            >= 13 and <= 15 => 0.2m,  // Market open volatility
+            >= 20 and <= 22 => 0.3m,  // Overnight risk
+            _ => 0.1m
+        };
+        
+        return Math.Max(volatilityRegime, Math.Max(trendRegime, timeRisk));
+    }
+    
+    private decimal CalculateVolatilityRisk(TradingBot.Abstractions.TradingDecision decision)
+    {
+        // Volatility-based risk assessment
+        var impliedVolatility = Math.Abs(_maxDrawdown) / Math.Max(1m, Math.Abs(_peakPnL));
+        var realizededVolatility = Math.Abs(_dailyPnL) / Math.Max(1m, _config.MaxDailyLoss);
+        
+        return Math.Min(0.8m, (impliedVolatility + realizededVolatility) * 0.5m);
+    }
+    
+    private decimal CalculateCorrelationRisk(TradingBot.Abstractions.TradingDecision decision)
+    {
+        // Simplified correlation risk - in production would use full correlation matrix
+        // High correlation increases systemic risk
+        var correlationFactor = 0.3m; // Placeholder - would be calculated from historical data
+        
+        return correlationFactor * (decision.MaxPositionSize / _config.MaxPositionSize);
+    }
+    
+    private decimal CalculateLiquidityRisk(TradingBot.Abstractions.TradingDecision decision)
+    {
+        // Liquidity risk assessment based on market conditions and position size
+        var sizeLiquidityRisk = decision.MaxPositionSize > _config.MaxPositionSize * 0.5m ? 0.4m : 0.1m;
+        
+        // Market hours liquidity adjustment
+        var currentHour = DateTime.UtcNow.Hour;
+        var liquidityAdjustment = currentHour switch
         {
-            riskScore -= 0.2m;
+            >= 9 and <= 16 => 0.1m,   // High liquidity hours
+            >= 17 and <= 21 => 0.2m,  // After hours
+            _ => 0.4m                  // Overnight/weekend
+        };
+        
+        return Math.Max(sizeLiquidityRisk, liquidityAdjustment);
+    }
+    
+    private decimal CalculateConfidenceAdjustment(decimal confidence)
+    {
+        // Sophisticated confidence-based risk adjustment
+        // Higher confidence reduces risk, but with diminishing returns
+        var baseAdjustment = 1.0m;
+        
+        if (confidence > 0.9m)
+            return baseAdjustment * 0.6m;  // Very high confidence
+        if (confidence > 0.8m)
+            return baseAdjustment * 0.7m;  // High confidence
+        if (confidence > 0.6m)
+            return baseAdjustment * 0.85m; // Medium confidence
+        if (confidence > 0.4m)
+            return baseAdjustment * 1.0m;  // Neutral
+        
+        return baseAdjustment * 1.3m;      // Low confidence increases risk
+    }
+    
+    private decimal ApplyRegimeSpecificAdjustments(decimal baseRisk)
+    {
+        // Apply regime-specific risk adjustments
+        var adjustedRisk = baseRisk;
+        
+        // High volatility regime
+        if (_maxDrawdown > _config.MaxDailyLoss * 0.4m)
+        {
+            adjustedRisk *= 1.25m;
         }
-
-        return Math.Max(0m, Math.Min(1m, riskScore));
+        
+        // Losing streak adjustment
+        if (_dailyPnL < _config.MaxDailyLoss * 0.6m)
+        {
+            adjustedRisk *= 1.15m;
+        }
+        
+        // Market stress indicator
+        var stressIndicator = Math.Abs(_dailyPnL) / Math.Max(1m, Math.Abs(_peakPnL));
+        if (stressIndicator > 0.8m)
+        {
+            adjustedRisk *= 1.1m;
+        }
+        
+        return adjustedRisk;
     }
 
     public async Task<bool> ValidateOrderAsync(PlaceOrderRequest order)
@@ -278,4 +426,17 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
     {
         return new RiskMetrics(_dailyPnL, _maxDrawdown, _largestPosition, _isBreached);
     }
+}
+
+/// <summary>
+/// Comprehensive risk factor analysis structure for sophisticated risk modeling
+/// </summary>
+public class RiskFactorAnalysis
+{
+    public decimal PositionSizeRisk { get; set; }
+    public decimal ConcentrationRisk { get; set; }
+    public decimal MarketRegimeRisk { get; set; }
+    public decimal VolatilityRisk { get; set; }
+    public decimal CorrelationRisk { get; set; }
+    public decimal LiquidityRisk { get; set; }
 }

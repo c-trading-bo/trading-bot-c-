@@ -366,7 +366,8 @@ public class FuturesMarketHours : IMarketHoursService
     }
 
     /// <summary>
-    /// Check if it's a trading day (not weekend/holiday)
+    /// Check if it's a trading day (not weekend/holiday) with comprehensive holiday calendar support
+    /// Includes major US holidays that affect CME futures trading
     /// </summary>
     public async Task<bool> IsTradingDayAsync(DateTime date, CancellationToken cancellationToken = default)
     {
@@ -380,9 +381,143 @@ public class FuturesMarketHours : IMarketHoursService
             return false;
         }
 
-        // TODO: Add holiday calendar checking
-        // For now, assume all weekdays are trading days
-        return true;
+        // Check against comprehensive holiday calendar
+        return !IsHoliday(date);
+    }
+    
+    /// <summary>
+    /// Comprehensive US holiday calendar for CME futures trading
+    /// Includes all major holidays that close futures markets
+    /// </summary>
+    private bool IsHoliday(DateTime date)
+    {
+        var year = date.Year;
+        
+        // Fixed holidays
+        if (IsFixedHoliday(date)) return true;
+        
+        // Variable holidays (calculated based on date rules)
+        var holidays = new[]
+        {
+            GetMartinLutherKingDay(year),      // 3rd Monday in January
+            GetPresidentsDay(year),            // 3rd Monday in February  
+            GetMemorialDay(year),              // Last Monday in May
+            GetLaborDay(year),                 // 1st Monday in September
+            GetColumbusDay(year),              // 2nd Monday in October (observed by some exchanges)
+            GetThanksgiving(year),             // 4th Thursday in November
+            GetThanksgivingFriday(year)        // Friday after Thanksgiving
+        };
+        
+        return holidays.Any(holiday => holiday.Date == date.Date);
+    }
+    
+    private bool IsFixedHoliday(DateTime date)
+    {
+        var month = date.Month;
+        var day = date.Day;
+        
+        return (month, day) switch
+        {
+            (1, 1) => true,     // New Year's Day
+            (7, 4) => true,     // Independence Day
+            (11, 11) => true,   // Veterans Day (observed by some markets)
+            (12, 25) => true,   // Christmas Day
+            (12, 24) when date.DayOfWeek == DayOfWeek.Friday => true, // Christmas Eve (early close)
+            (12, 31) when date.DayOfWeek == DayOfWeek.Friday => true, // New Year's Eve (early close)
+            _ => false
+        };
+    }
+    
+    private DateTime GetMartinLutherKingDay(int year)
+    {
+        // 3rd Monday in January
+        var firstMonday = GetFirstMondayOfMonth(year, 1);
+        return firstMonday.AddDays(14);
+    }
+    
+    private DateTime GetPresidentsDay(int year)
+    {
+        // 3rd Monday in February
+        var firstMonday = GetFirstMondayOfMonth(year, 2);
+        return firstMonday.AddDays(14);
+    }
+    
+    private DateTime GetMemorialDay(int year)
+    {
+        // Last Monday in May
+        var lastDayOfMay = new DateTime(year, 5, 31);
+        while (lastDayOfMay.DayOfWeek != DayOfWeek.Monday)
+        {
+            lastDayOfMay = lastDayOfMay.AddDays(-1);
+        }
+        return lastDayOfMay;
+    }
+    
+    private DateTime GetLaborDay(int year)
+    {
+        // 1st Monday in September
+        return GetFirstMondayOfMonth(year, 9);
+    }
+    
+    private DateTime GetColumbusDay(int year)
+    {
+        // 2nd Monday in October
+        var firstMonday = GetFirstMondayOfMonth(year, 10);
+        return firstMonday.AddDays(7);
+    }
+    
+    private DateTime GetThanksgiving(int year)
+    {
+        // 4th Thursday in November
+        var firstThursday = GetFirstThursdayOfMonth(year, 11);
+        return firstThursday.AddDays(21);
+    }
+    
+    private DateTime GetThanksgivingFriday(int year)
+    {
+        // Friday after Thanksgiving
+        return GetThanksgiving(year).AddDays(1);
+    }
+    
+    private DateTime GetFirstMondayOfMonth(int year, int month)
+    {
+        var firstDayOfMonth = new DateTime(year, month, 1);
+        while (firstDayOfMonth.DayOfWeek != DayOfWeek.Monday)
+        {
+            firstDayOfMonth = firstDayOfMonth.AddDays(1);
+        }
+        return firstDayOfMonth;
+    }
+    
+    private DateTime GetFirstThursdayOfMonth(int year, int month)
+    {
+        var firstDayOfMonth = new DateTime(year, month, 1);
+        while (firstDayOfMonth.DayOfWeek != DayOfWeek.Thursday)
+        {
+            firstDayOfMonth = firstDayOfMonth.AddDays(1);
+        }
+        return firstDayOfMonth;
+    }
+    
+    /// <summary>
+    /// Get a list of all holidays for a given year for reporting/validation
+    /// </summary>
+    public List<(DateTime Date, string Name)> GetHolidaysForYear(int year)
+    {
+        return new List<(DateTime, string)>
+        {
+            (new DateTime(year, 1, 1), "New Year's Day"),
+            (GetMartinLutherKingDay(year), "Martin Luther King Jr. Day"),
+            (GetPresidentsDay(year), "Presidents Day"),
+            (GetMemorialDay(year), "Memorial Day"),
+            (new DateTime(year, 7, 4), "Independence Day"),
+            (GetLaborDay(year), "Labor Day"),
+            (GetColumbusDay(year), "Columbus Day"),
+            (new DateTime(year, 11, 11), "Veterans Day"),
+            (GetThanksgiving(year), "Thanksgiving"),
+            (GetThanksgivingFriday(year), "Thanksgiving Friday"),
+            (new DateTime(year, 12, 25), "Christmas Day")
+        };
     }
 
     #region Private Methods

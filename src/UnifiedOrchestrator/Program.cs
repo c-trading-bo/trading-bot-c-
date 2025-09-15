@@ -228,14 +228,15 @@ Stack Trace:
     private static void ConfigureUnifiedServices(IServiceCollection services, IConfiguration configuration, HostBuilderContext hostContext)
     {
         // Register login completion state for SignalR connection management
-        services.AddSingleton<Services.ILoginCompletionState, Services.SimpleLoginCompletionState>();
+        services.AddSingleton<Services.ILoginCompletionState, Services.EnterpriseLoginCompletionState>();
         
         // Register TradingBot.Abstractions.ILoginCompletionState for AutoTopstepXLoginService
         // Bridge the local interface to the abstractions interface
         services.AddSingleton<TradingBot.Abstractions.ILoginCompletionState>(provider => 
         {
             var localState = provider.GetRequiredService<Services.ILoginCompletionState>();
-            return new BridgeLoginCompletionState(localState);
+            var logger = provider.GetRequiredService<ILogger<BridgeLoginCompletionState>>();
+            return new BridgeLoginCompletionState(localState, logger);
         });
         
         // Register TradingLogger for production-ready logging
