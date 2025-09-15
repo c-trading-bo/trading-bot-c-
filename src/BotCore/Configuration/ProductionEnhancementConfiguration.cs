@@ -144,6 +144,12 @@ namespace BotCore.Configuration
         public int SilentFeedTimeoutSeconds { get; set; } = 60;
 
         /// <summary>
+        /// Heartbeat timeout for immediate recovery (seconds)
+        /// </summary>
+        [Range(5, 60)]
+        public int HeartbeatTimeoutSeconds { get; set; } = 15;
+
+        /// <summary>
         /// Enable automatic recovery from data flow issues
         /// </summary>
         public bool AutoRecoveryEnabled { get; set; } = true;
