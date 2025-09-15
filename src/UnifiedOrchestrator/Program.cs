@@ -685,14 +685,14 @@ Stack Trace:
         });
         
         // Configure Decision Service client options
-        var decisionServiceOptions = new DecisionServiceOptions
+        var decisionServiceOptions = new TradingBot.UnifiedOrchestrator.Configuration.DecisionServiceOptions
         {
             BaseUrl = $"http://{decisionServiceLauncherOptions.Host}:{decisionServiceLauncherOptions.Port}",
             TimeoutMs = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_TIMEOUT_MS") ?? "5000"),
             Enabled = decisionServiceLauncherOptions.Enabled,
             MaxRetries = int.Parse(Environment.GetEnvironmentVariable("DECISION_SERVICE_MAX_RETRIES") ?? "3")
         };
-        services.Configure<DecisionServiceOptions>(options =>
+        services.Configure<TradingBot.UnifiedOrchestrator.Configuration.DecisionServiceOptions>(options =>
         {
             options.BaseUrl = decisionServiceOptions.BaseUrl;
             options.TimeoutMs = decisionServiceOptions.TimeoutMs;
@@ -714,7 +714,7 @@ Stack Trace:
         services.AddSingleton<DecisionServiceClient>(provider =>
         {
             var httpClient = provider.GetRequiredService<HttpClient>();
-            var decisionServiceOptions = provider.GetRequiredService<IOptions<DecisionServiceOptions>>().Value;
+            var decisionServiceOptions = provider.GetRequiredService<IOptions<TradingBot.UnifiedOrchestrator.Configuration.DecisionServiceOptions>>().Value;
             var pythonOptions = provider.GetRequiredService<IOptions<PythonIntegrationOptions>>().Value;
             var logger = provider.GetRequiredService<ILogger<DecisionServiceClient>>();
             return new DecisionServiceClient(decisionServiceOptions, httpClient, pythonOptions, logger);

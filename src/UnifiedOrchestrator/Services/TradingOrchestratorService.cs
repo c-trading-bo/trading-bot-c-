@@ -229,7 +229,32 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Priority 1: Master Decision Orchestrator (Always-learning system)
             if (_masterOrchestrator != null)
             {
-                return await _masterOrchestrator.MakeUnifiedDecisionAsync("ES", marketContext, cancellationToken);
+                // Convert to BotCore.Services.MarketContext
+                var botCoreContext = new BotCore.Services.MarketContext
+                {
+                    Symbol = marketContext.Symbol,
+                    Price = marketContext.Price,
+                    Volume = marketContext.Volume,
+                    Timestamp = marketContext.Timestamp,
+                    TechnicalIndicators = marketContext.TechnicalIndicators
+                };
+                
+                var botCoreDecision = await _masterOrchestrator.MakeUnifiedDecisionAsync("ES", botCoreContext, cancellationToken);
+                
+                // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
+                return new UnifiedTradingDecision
+                {
+                    DecisionId = botCoreDecision.DecisionId,
+                    Symbol = botCoreDecision.Symbol,
+                    Action = botCoreDecision.Action,
+                    Confidence = botCoreDecision.Confidence,
+                    Quantity = botCoreDecision.Quantity,
+                    Strategy = botCoreDecision.Strategy,
+                    DecisionSource = botCoreDecision.DecisionSource,
+                    Reasoning = botCoreDecision.Reasoning,
+                    Timestamp = botCoreDecision.Timestamp,
+                    ProcessingTimeMs = botCoreDecision.ProcessingTimeMs
+                };
             }
             
             // Priority 2: Enhanced Brain Integration (Multi-model ensemble)
@@ -477,7 +502,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create enhanced market context from live market data
     /// </summary>
-    private async Task<MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
+    private Task<MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -485,7 +510,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // For now, create enhanced realistic market context
             var basePrice = 4500.0 + (Random.Shared.NextDouble() - 0.5) * 50; // More realistic ES movement
             
-            return new MarketContext
+            var result = new MarketContext
             {
                 Symbol = "ES",
                 Price = basePrice,
@@ -504,13 +529,15 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                     ["market_hours"] = GetMarketHoursIndicator()
                 }
             };
+            
+            return Task.FromResult(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ [MARKET-CONTEXT] Error creating market context");
             
             // Fallback to minimal context
-            return new MarketContext
+            var fallback = new MarketContext
             {
                 Symbol = "ES",
                 Price = 4500.0,
@@ -518,6 +545,8 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 Timestamp = DateTime.UtcNow,
                 TechnicalIndicators = new Dictionary<string, double>()
             };
+            
+            return Task.FromResult(fallback);
         }
     }
     
@@ -569,7 +598,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 High = barPrice + (decimal)Random.Shared.NextDouble() * 2,
                 Low = barPrice - (decimal)Random.Shared.NextDouble() * 2,
                 Close = barPrice + (decimal)(Random.Shared.NextDouble() - 0.5),
-                Volume = (int)(volume * (0.7 + Random.Shared.NextDouble() * 0.6)) // 70%-130% of base volume
+                Volume = (int)(volume * (decimal)(0.7 + Random.Shared.NextDouble() * 0.6)) // 70%-130% of base volume
             });
         }
         

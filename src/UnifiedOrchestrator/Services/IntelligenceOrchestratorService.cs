@@ -246,7 +246,17 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
 
     public async Task<TradingDecision> MakeDecisionAsync(TradingBot.Abstractions.MarketContext context, CancellationToken cancellationToken = default)
     {
-        return await GenerateDecisionAsync(context, cancellationToken);
+        // Convert from Abstractions.MarketContext to local MarketContext
+        var localContext = new MarketContext
+        {
+            Symbol = context.Symbol,
+            Price = context.Price,
+            Volume = context.Volume,
+            Timestamp = context.Timestamp,
+            TechnicalIndicators = context.TechnicalIndicators
+        };
+        
+        return await GenerateDecisionAsync(localContext, cancellationToken);
     }
 
     public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)

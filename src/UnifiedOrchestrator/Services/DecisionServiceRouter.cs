@@ -84,17 +84,65 @@ public class DecisionServiceRouter
             
             // Step 3: Fall back to C# UnifiedDecisionRouter
             _logger.LogDebug("🔄 [DECISION-SERVICE-ROUTER] Python service unavailable, using C# unified router");
-            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
+            
+            // Convert to BotCore.Services.MarketContext
+            var botCoreContext = new BotCore.Services.MarketContext
+            {
+                Symbol = marketContext.Symbol,
+                Price = marketContext.Price,
+                Volume = marketContext.Volume,
+                Timestamp = marketContext.Timestamp,
+                TechnicalIndicators = marketContext.TechnicalIndicators
+            };
+            
+            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, botCoreContext, cancellationToken);
             csharpDecision.DecisionSource = $"CSharp_{csharpDecision.DecisionSource}";
             
-            return csharpDecision;
+            // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
+            return new UnifiedTradingDecision
+            {
+                DecisionId = csharpDecision.DecisionId,
+                Symbol = csharpDecision.Symbol,
+                Action = csharpDecision.Action,
+                Confidence = csharpDecision.Confidence,
+                Quantity = csharpDecision.Quantity,
+                Strategy = csharpDecision.Strategy,
+                DecisionSource = csharpDecision.DecisionSource,
+                Reasoning = csharpDecision.Reasoning,
+                Timestamp = csharpDecision.Timestamp,
+                ProcessingTimeMs = csharpDecision.ProcessingTimeMs
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ [DECISION-SERVICE-ROUTER] Error in integrated routing for {Symbol}", symbol);
             
             // Ultimate fallback to C# system
-            return await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
+            var fallbackContext = new BotCore.Services.MarketContext
+            {
+                Symbol = marketContext.Symbol,
+                Price = marketContext.Price,
+                Volume = marketContext.Volume,
+                Timestamp = marketContext.Timestamp,
+                TechnicalIndicators = marketContext.TechnicalIndicators
+            };
+            
+            var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, fallbackContext, cancellationToken);
+            
+            // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision  
+            return new UnifiedTradingDecision
+            {
+                DecisionId = fallbackDecision.DecisionId,
+                Symbol = fallbackDecision.Symbol,
+                Action = fallbackDecision.Action,
+                Confidence = fallbackDecision.Confidence,
+                Quantity = fallbackDecision.Quantity,
+                Strategy = fallbackDecision.Strategy,
+                DecisionSource = fallbackDecision.DecisionSource,
+                Reasoning = fallbackDecision.Reasoning,
+                Timestamp = fallbackDecision.Timestamp,
+                ProcessingTimeMs = fallbackDecision.ProcessingTimeMs
+            };
         }
     }
     
