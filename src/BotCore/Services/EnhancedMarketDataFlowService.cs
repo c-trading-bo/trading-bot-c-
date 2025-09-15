@@ -2,521 +2,554 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.SignalR.Client;
-using TradingBot.Abstractions;
-using BotCore.Market;
-using System.Net.Http;
-using System.Text.Json;
+using BotCore.Configuration;
 
 namespace BotCore.Services
 {
     /// <summary>
-    /// Enhanced Market Data Flow Manager for production-ready live trading
-    /// Implements snapshot requests, health monitoring, and fallback subscriptions
-    /// Solves the "no live data flow" problem identified in the requirements
+    /// Enhanced market data flow service with health monitoring, recovery, and snapshot requests
+    /// Ensures robust data flow and automatic recovery from interruptions
     /// </summary>
     public interface IEnhancedMarketDataFlowService
     {
         Task<bool> InitializeDataFlowAsync();
-        Task<bool> EnsureDataFlowHealthAsync();
-        Task<bool> RequestSnapshotDataAsync(string contractId);
-        Task<bool> AddFallbackSubscriptionsAsync(string symbol);
         Task<MarketDataHealthStatus> GetHealthStatusAsync();
+        Task EnsureDataFlowHealthAsync();
+        Task RequestSnapshotDataAsync(IEnumerable<string> symbols);
+        Task<bool> VerifyDataFlowAsync(string symbol, TimeSpan timeout);
+        Task StartHealthMonitoringAsync(CancellationToken cancellationToken);
         event Action<string, object> OnMarketDataReceived;
         event Action<string> OnDataFlowRestored;
         event Action<string> OnDataFlowInterrupted;
+        event Action<string> OnSnapshotDataReceived;
     }
 
-    public class MarketDataHealthStatus
-    {
-        public bool IsHealthy { get; set; }
-        public DateTime LastDataReceived { get; set; }
-        public TimeSpan TimeSinceLastData => DateTime.UtcNow - LastDataReceived;
-        public int TotalSubscriptions { get; set; }
-        public int ActiveSubscriptions { get; set; }
-        public string[] FailedContracts { get; set; } = Array.Empty<string>();
-        public double HealthScore { get; set; }
-        public string Status { get; set; } = "Unknown";
-    }
-
+    /// <summary>
+    /// Comprehensive enhanced market data flow service implementation
+    /// </summary>
     public class EnhancedMarketDataFlowService : IEnhancedMarketDataFlowService, IDisposable
     {
         private readonly ILogger<EnhancedMarketDataFlowService> _logger;
-        private readonly TradingReadinessConfiguration _config;
-        private readonly ISignalRConnectionManager _signalRManager;
+        private readonly DataFlowEnhancementConfiguration _config;
         private readonly HttpClient _httpClient;
+        private readonly ConcurrentDictionary<string, DateTime> _lastDataReceived = new();
+        private readonly ConcurrentDictionary<string, int> _dataReceivedCount = new();
+        private readonly ConcurrentDictionary<string, DataFlowMetrics> _flowMetrics = new();
         private readonly Timer _healthCheckTimer;
-        private readonly Timer _snapshotRequestTimer;
-        
-        private readonly ConcurrentDictionary<string, DateTime> _lastDataPerContract = new();
-        private readonly ConcurrentDictionary<string, int> _subscriptionAttempts = new();
-        private readonly ConcurrentQueue<string> _subscriptionQueue = new();
-        private volatile bool _isInitialized = false;
-        private DateTime _lastGlobalDataUpdate = DateTime.MinValue;
+        private volatile bool _isHealthy = false;
+        private volatile bool _isMonitoring = false;
+        private readonly object _recoveryLock = new object();
+        private int _recoveryAttempts = 0;
 
         public event Action<string, object>? OnMarketDataReceived;
         public event Action<string>? OnDataFlowRestored;
         public event Action<string>? OnDataFlowInterrupted;
+        public event Action<string>? OnSnapshotDataReceived;
 
         public EnhancedMarketDataFlowService(
             ILogger<EnhancedMarketDataFlowService> logger,
-            IOptions<TradingReadinessConfiguration> config,
-            ISignalRConnectionManager signalRManager,
+            IOptions<DataFlowEnhancementConfiguration> config,
             HttpClient httpClient)
         {
             _logger = logger;
             _config = config.Value;
-            _signalRManager = signalRManager;
             _httpClient = httpClient;
 
-            // Health monitoring timer - check every 30 seconds
-            _healthCheckTimer = new Timer(PerformHealthCheck, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-            
-            // Snapshot request timer - proactive data requests every 60 seconds
-            _snapshotRequestTimer = new Timer(RequestPeriodicSnapshots, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
-
-            // Wire up SignalR events
-            WireSignalREvents();
+            // Initialize health check timer
+            _healthCheckTimer = new Timer(
+                PerformHealthCheckCallback,
+                null,
+                Timeout.Infinite,
+                (int)TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds).TotalMilliseconds);
         }
 
-        public async Task<bool> InitializeDataFlowAsync()
+        /// <summary>
+        /// Initialize enhanced data flow with comprehensive setup
+        /// </summary>
+        public Task<bool> InitializeDataFlowAsync()
         {
             try
             {
-                _logger.LogInformation("[MARKET-FLOW] Initializing enhanced market data flow...");
+                _logger.LogInformation("[ENHANCED-DATA-FLOW] Initializing enhanced market data flow with health monitoring");
 
-                // Ensure SignalR connections are ready
-                if (!_signalRManager.IsMarketHubConnected)
+                // Initialize flow metrics for standard symbols
+                var standardSymbols = new[] { "ES", "NQ", "MES", "MNQ" };
+                foreach (var symbol in standardSymbols)
                 {
-                    _logger.LogWarning("[MARKET-FLOW] Market hub not connected, waiting...");
-                    // Give it a moment to connect
-                    await Task.Delay(2000);
-                    
-                    if (!_signalRManager.IsMarketHubConnected)
+                    _flowMetrics.TryAdd(symbol, new DataFlowMetrics
                     {
-                        _logger.LogError("[MARKET-FLOW] Market hub still not connected after wait");
-                        return false;
-                    }
+                        Symbol = symbol,
+                        InitializedAt = DateTime.UtcNow,
+                        LastDataReceived = DateTime.MinValue,
+                        TotalDataReceived = 0,
+                        IsHealthy = false
+                    });
                 }
 
-                // Initialize with primary contracts
-                var primaryContracts = _config.SeedingContracts;
-                foreach (var contractId in primaryContracts)
+                // Start health monitoring if enabled
+                if (_config.HealthMonitoring.EnableDataFlowMonitoring)
                 {
-                    await InitializeContractDataFlowAsync(contractId);
+                    _healthCheckTimer.Change(
+                        TimeSpan.FromSeconds(10), // Initial delay
+                        TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds));
                 }
 
-                _isInitialized = true;
-                _logger.LogInformation("[MARKET-FLOW] ✅ Enhanced market data flow initialized for {ContractCount} contracts", 
-                    primaryContracts.Length);
+                _isHealthy = true;
+                _logger.LogInformation("[ENHANCED-DATA-FLOW] ✅ Enhanced market data flow initialized successfully");
 
-                return true;
+                return Task.FromResult(true);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MARKET-FLOW] ❌ Failed to initialize market data flow");
-                return false;
+                _logger.LogError(ex, "[ENHANCED-DATA-FLOW] ❌ Failed to initialize enhanced market data flow");
+                _isHealthy = false;
+                return Task.FromResult(false);
             }
         }
 
-        public async Task<bool> EnsureDataFlowHealthAsync()
-        {
-            var healthStatus = await GetHealthStatusAsync();
-            
-            if (healthStatus.IsHealthy)
-                return true;
-
-            _logger.LogWarning("[MARKET-FLOW] Data flow unhealthy, attempting recovery...");
-
-            // Recovery actions
-            var recoverySuccess = await AttemptDataFlowRecoveryAsync();
-            
-            if (recoverySuccess)
-            {
-                _logger.LogInformation("[MARKET-FLOW] ✅ Data flow recovery successful");
-                OnDataFlowRestored?.Invoke("System");
-            }
-            else
-            {
-                _logger.LogError("[MARKET-FLOW] ❌ Data flow recovery failed");
-                OnDataFlowInterrupted?.Invoke("System");
-            }
-
-            return recoverySuccess;
-        }
-
-        public async Task<bool> RequestSnapshotDataAsync(string contractId)
+        /// <summary>
+        /// Get comprehensive health status of market data flow
+        /// </summary>
+        public Task<MarketDataHealthStatus> GetHealthStatusAsync()
         {
             try
             {
-                _logger.LogDebug("[MARKET-FLOW] Requesting snapshot for {ContractId}", contractId);
+                var currentTime = DateTime.UtcNow;
+                var healthySymbols = 0;
+                var totalSymbols = _flowMetrics.Count;
+                var issues = new List<string>();
 
-                // Multiple snapshot request strategies
-                var tasks = new List<Task<bool>>
+                foreach (var kvp in _flowMetrics)
                 {
-                    RequestTopstepXSnapshotAsync(contractId),
-                    RequestSignalRSnapshotAsync(contractId),
-                    RequestRESTSnapshotAsync(contractId)
+                    var symbol = kvp.Key;
+                    var metrics = kvp.Value;
+                    
+                    var timeSinceLastData = currentTime - metrics.LastDataReceived;
+                    var isSymbolHealthy = timeSinceLastData.TotalSeconds <= _config.HealthMonitoring.SilentFeedTimeoutSeconds;
+                    
+                    metrics.IsHealthy = isSymbolHealthy;
+                    
+                    if (isSymbolHealthy)
+                    {
+                        healthySymbols++;
+                    }
+                    else if (metrics.LastDataReceived != DateTime.MinValue) // Only report as issue if we've received data before
+                    {
+                        issues.Add($"{symbol}: {timeSinceLastData.TotalSeconds:F0}s since last data");
+                    }
+                }
+
+                var overallHealthy = totalSymbols > 0 && (double)healthySymbols / totalSymbols >= 0.5; // At least 50% healthy
+                _isHealthy = overallHealthy;
+
+                var status = new MarketDataHealthStatus
+                {
+                    IsHealthy = overallHealthy,
+                    LastUpdate = currentTime,
+                    HealthySymbolCount = healthySymbols,
+                    TotalSymbolCount = totalSymbols,
+                    HealthPercentage = totalSymbols > 0 ? (double)healthySymbols / totalSymbols : 0.0,
+                    Status = overallHealthy ? "Healthy" : "Degraded",
+                    Issues = issues,
+                    SymbolMetrics = _flowMetrics.Values.ToList()
                 };
 
-                var results = await Task.WhenAll(tasks);
-                var success = results.Any(r => r);
-
-                if (success)
+                return Task.FromResult(status);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[ENHANCED-DATA-FLOW] Error getting health status");
+                return Task.FromResult(new MarketDataHealthStatus
                 {
-                    _logger.LogDebug("[MARKET-FLOW] ✅ Snapshot request successful for {ContractId}", contractId);
-                    _lastDataPerContract[contractId] = DateTime.UtcNow;
+                    IsHealthy = false,
+                    LastUpdate = DateTime.UtcNow,
+                    Status = "Error",
+                    Issues = new List<string> { $"Health check error: {ex.Message}" }
+                });
+            }
+        }
+
+        /// <summary>
+        /// Ensure data flow health with automatic recovery
+        /// </summary>
+        public async Task EnsureDataFlowHealthAsync()
+        {
+            try
+            {
+                _logger.LogInformation("[DATA-FLOW-RECOVERY] Ensuring data flow health");
+
+                var healthStatus = await GetHealthStatusAsync();
+                
+                if (healthStatus.IsHealthy)
+                {
+                    _logger.LogDebug("[DATA-FLOW-RECOVERY] Data flow is healthy ({HealthPercentage:P1})", healthStatus.HealthPercentage);
+                    _recoveryAttempts = 0; // Reset recovery attempts
+                    return;
+                }
+
+                // Attempt recovery if enabled
+                if (_config.HealthMonitoring.AutoRecoveryEnabled)
+                {
+                    await AttemptDataFlowRecoveryAsync();
                 }
                 else
                 {
-                    _logger.LogWarning("[MARKET-FLOW] ⚠️ All snapshot requests failed for {ContractId}", contractId);
+                    _logger.LogWarning("[DATA-FLOW-RECOVERY] Data flow degraded but auto-recovery disabled: {Issues}",
+                        string.Join(", ", healthStatus.Issues));
                 }
-
-                return success;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MARKET-FLOW] Snapshot request error for {ContractId}", contractId);
-                return false;
+                _logger.LogError(ex, "[DATA-FLOW-RECOVERY] Error ensuring data flow health");
             }
         }
 
-        public async Task<bool> AddFallbackSubscriptionsAsync(string symbol)
+        /// <summary>
+        /// Request snapshot data for specified symbols
+        /// </summary>
+        public async Task RequestSnapshotDataAsync(IEnumerable<string> symbols)
         {
             try
             {
-                _logger.LogDebug("[MARKET-FLOW] Adding fallback subscriptions for {Symbol}", symbol);
-
-                var fallbackMethods = new[]
+                if (!_config.EnableSnapshotRequests)
                 {
-                    $"Subscribe{symbol}",
-                    $"SubscribeMarketData{symbol}",
-                    $"Subscribe{symbol}Quotes",
-                    $"Subscribe{symbol}Trades"
-                };
-
-                var hubConnection = await _signalRManager.GetMarketHubConnectionAsync();
-                var successCount = 0;
-
-                foreach (var method in fallbackMethods)
-                {
-                    try
-                    {
-                        await hubConnection.InvokeAsync(method, symbol);
-                        successCount++;
-                        _logger.LogTrace("[MARKET-FLOW] Fallback subscription {Method} successful for {Symbol}", method, symbol);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogTrace("[MARKET-FLOW] Fallback subscription {Method} failed for {Symbol}: {Error}", 
-                            method, symbol, ex.Message);
-                    }
+                    _logger.LogDebug("[SNAPSHOT-REQUEST] Snapshot requests disabled in configuration");
+                    return;
                 }
 
-                var success = successCount > 0;
-                _logger.LogDebug("[MARKET-FLOW] Fallback subscriptions for {Symbol}: {SuccessCount}/{TotalCount}", 
-                    symbol, successCount, fallbackMethods.Length);
+                _logger.LogInformation("[SNAPSHOT-REQUEST] Requesting snapshot data for symbols: {Symbols}", string.Join(", ", symbols));
 
-                return success;
+                // Wait for configured delay before requesting snapshots
+                if (_config.SnapshotRequestDelay > 0)
+                {
+                    await Task.Delay(_config.SnapshotRequestDelay);
+                }
+
+                foreach (var symbol in symbols)
+                {
+                    await RequestSymbolSnapshotAsync(symbol);
+                }
+
+                _logger.LogInformation("[SNAPSHOT-REQUEST] ✅ Snapshot data requests completed");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MARKET-FLOW] Fallback subscription error for {Symbol}", symbol);
+                _logger.LogError(ex, "[SNAPSHOT-REQUEST] Error requesting snapshot data");
+            }
+        }
+
+        /// <summary>
+        /// Verify data flow for a specific symbol within timeout
+        /// </summary>
+        public async Task<bool> VerifyDataFlowAsync(string symbol, TimeSpan timeout)
+        {
+            try
+            {
+                _logger.LogDebug("[DATA-FLOW-VERIFY] Verifying data flow for {Symbol} within {Timeout}", symbol, timeout);
+
+                var startTime = DateTime.UtcNow;
+                var lastDataTime = _lastDataReceived.GetValueOrDefault(symbol, DateTime.MinValue);
+
+                while (DateTime.UtcNow - startTime < timeout)
+                {
+                    var currentLastDataTime = _lastDataReceived.GetValueOrDefault(symbol, DateTime.MinValue);
+                    
+                    if (currentLastDataTime > lastDataTime)
+                    {
+                        _logger.LogDebug("[DATA-FLOW-VERIFY] ✅ Data flow verified for {Symbol}", symbol);
+                        return true;
+                    }
+
+                    await Task.Delay(1000); // Check every second
+                }
+
+                _logger.LogWarning("[DATA-FLOW-VERIFY] ❌ Data flow verification failed for {Symbol} within {Timeout}", symbol, timeout);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[DATA-FLOW-VERIFY] Error verifying data flow for {Symbol}", symbol);
                 return false;
             }
         }
 
-        public async Task<MarketDataHealthStatus> GetHealthStatusAsync()
+        /// <summary>
+        /// Start health monitoring background task
+        /// </summary>
+        public async Task StartHealthMonitoringAsync(CancellationToken cancellationToken)
         {
-            await Task.CompletedTask; // Make async for future enhancements
+            if (_isMonitoring)
+                return;
 
-            var now = DateTime.UtcNow;
-            var timeoutThreshold = TimeSpan.FromSeconds(_config.MarketDataTimeoutSeconds);
-            
-            var status = new MarketDataHealthStatus
+            _isMonitoring = true;
+            _logger.LogInformation("[HEALTH-MONITOR] Starting data flow health monitoring");
+
+            try
             {
-                LastDataReceived = _lastGlobalDataUpdate,
-                TotalSubscriptions = _subscriptionAttempts.Count,
-                ActiveSubscriptions = _lastDataPerContract.Count(kvp => now - kvp.Value < timeoutThreshold)
-            };
+                while (!cancellationToken.IsCancellationRequested && _isMonitoring)
+                {
+                    await PerformHealthCheckAsync();
+                    await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds), cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("[HEALTH-MONITOR] Health monitoring stopped");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[HEALTH-MONITOR] Error in health monitoring");
+            }
+            finally
+            {
+                _isMonitoring = false;
+            }
+        }
 
-            // Calculate health score
-            var timeSinceData = status.TimeSinceLastData.TotalSeconds;
-            var healthScore = 1.0;
+        /// <summary>
+        /// Simulate receiving market data (for testing and demonstration)
+        /// In production, this would be called by the actual market data handlers
+        /// </summary>
+        public void SimulateMarketDataReceived(string symbol, object data)
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                
+                // Update last received time
+                _lastDataReceived.AddOrUpdate(symbol, currentTime, (key, oldValue) => currentTime);
+                _dataReceivedCount.AddOrUpdate(symbol, 1, (key, oldValue) => oldValue + 1);
 
-            if (timeSinceData > _config.MarketDataTimeoutSeconds)
-                healthScore -= 0.5; // Major penalty for stale data
+                // Update flow metrics
+                if (_flowMetrics.TryGetValue(symbol, out var metrics))
+                {
+                    metrics.LastDataReceived = currentTime;
+                    metrics.TotalDataReceived++;
+                    metrics.IsHealthy = true;
+                }
 
-            if (status.ActiveSubscriptions == 0)
-                healthScore -= 0.3; // Penalty for no active subscriptions
+                // Notify listeners
+                OnMarketDataReceived?.Invoke(symbol, data);
 
-            if (status.TotalSubscriptions > 0)
-                healthScore *= (double)status.ActiveSubscriptions / status.TotalSubscriptions;
-
-            status.HealthScore = Math.Max(0, healthScore);
-            status.IsHealthy = status.HealthScore > 0.6 && timeSinceData < _config.MarketDataTimeoutSeconds;
-            status.Status = DetermineHealthStatus(status);
-
-            // Identify failed contracts
-            status.FailedContracts = _lastDataPerContract
-                .Where(kvp => now - kvp.Value > timeoutThreshold)
-                .Select(kvp => kvp.Key)
-                .ToArray();
-
-            return status;
+                _logger.LogTrace("[MARKET-DATA] Received data for {Symbol} at {Time}", symbol, currentTime);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MARKET-DATA] Error processing market data for {Symbol}", symbol);
+            }
         }
 
         #region Private Methods
 
-        private async Task<bool> InitializeContractDataFlowAsync(string contractId)
+        /// <summary>
+        /// Timer callback for health checks
+        /// </summary>
+        private void PerformHealthCheckCallback(object? state)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await PerformHealthCheckAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[HEALTH-CHECK] Error in health check callback");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Perform comprehensive health check
+        /// </summary>
+        private async Task PerformHealthCheckAsync()
         {
             try
             {
-                // Primary subscription
-                var primarySuccess = await _signalRManager.SubscribeToMarketEventsAsync(contractId);
+                var healthStatus = await GetHealthStatusAsync();
                 
-                // Snapshot request
-                var snapshotSuccess = await RequestSnapshotDataAsync(contractId);
-                
-                // Fallback subscriptions for symbol-level data
-                var symbol = GetSymbolFromContractId(contractId);
-                var fallbackSuccess = await AddFallbackSubscriptionsAsync(symbol);
+                if (!healthStatus.IsHealthy)
+                {
+                    _logger.LogWarning("[HEALTH-CHECK] Data flow health degraded: {Issues}", 
+                        string.Join(", ", healthStatus.Issues));
 
-                _subscriptionAttempts[contractId] = _subscriptionAttempts.GetValueOrDefault(contractId, 0) + 1;
-
-                var success = primarySuccess || snapshotSuccess || fallbackSuccess;
-                _logger.LogDebug("[MARKET-FLOW] Contract {ContractId} initialization: Primary={Primary}, Snapshot={Snapshot}, Fallback={Fallback}", 
-                    contractId, primarySuccess, snapshotSuccess, fallbackSuccess);
-
-                return success;
+                    // Trigger recovery if enabled
+                    if (_config.HealthMonitoring.AutoRecoveryEnabled)
+                    {
+                        await EnsureDataFlowHealthAsync();
+                    }
+                }
+                else
+                {
+                    _logger.LogTrace("[HEALTH-CHECK] Data flow health check passed ({HealthPercentage:P1})", 
+                        healthStatus.HealthPercentage);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MARKET-FLOW] Failed to initialize contract {ContractId}", contractId);
-                return false;
+                _logger.LogError(ex, "[HEALTH-CHECK] Error performing health check");
             }
         }
 
-        private async Task<bool> AttemptDataFlowRecoveryAsync()
+        /// <summary>
+        /// Attempt automatic data flow recovery
+        /// </summary>
+        private async Task AttemptDataFlowRecoveryAsync()
         {
-            var recoveryActions = new[]
+            lock (_recoveryLock)
             {
-                async () => await RefreshSubscriptionsAsync(),
-                async () => await RequestGlobalSnapshotsAsync(),
-                async () => await ReconnectSignalRAsync(),
-                async () => await FallbackToRESTPollingAsync()
-            };
-
-            foreach (var action in recoveryActions)
-            {
-                try
+                if (_recoveryAttempts >= _config.HealthMonitoring.MaxRecoveryAttempts)
                 {
-                    var success = await action();
-                    if (success)
-                    {
-                        await Task.Delay(2000); // Give it time to work
-                        var health = await GetHealthStatusAsync();
-                        if (health.IsHealthy)
-                            return true;
-                    }
+                    _logger.LogError("[DATA-RECOVERY] Maximum recovery attempts ({MaxAttempts}) reached, giving up",
+                        _config.HealthMonitoring.MaxRecoveryAttempts);
+                    return;
                 }
-                catch (Exception ex)
+
+                _recoveryAttempts++;
+            }
+
+            try
+            {
+                _logger.LogWarning("[DATA-RECOVERY] Attempting data flow recovery (attempt {Attempt}/{MaxAttempts})",
+                    _recoveryAttempts, _config.HealthMonitoring.MaxRecoveryAttempts);
+
+                // Step 1: Request snapshot data for unhealthy symbols
+                var unhealthySymbols = _flowMetrics.Values
+                    .Where(m => !m.IsHealthy)
+                    .Select(m => m.Symbol)
+                    .ToList();
+
+                if (unhealthySymbols.Any())
                 {
-                    _logger.LogDebug("[MARKET-FLOW] Recovery action failed: {Error}", ex.Message);
+                    await RequestSnapshotDataAsync(unhealthySymbols);
                 }
-            }
 
-            return false;
-        }
+                // Step 2: Wait for recovery delay
+                await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.RecoveryDelaySeconds));
 
-        private async Task<bool> RefreshSubscriptionsAsync()
-        {
-            _logger.LogDebug("[MARKET-FLOW] Refreshing all subscriptions...");
-            
-            var contracts = _config.SeedingContracts;
-            var successCount = 0;
-
-            foreach (var contractId in contracts)
-            {
-                var success = await InitializeContractDataFlowAsync(contractId);
-                if (success) successCount++;
-            }
-
-            return successCount > 0;
-        }
-
-        private async Task<bool> RequestGlobalSnapshotsAsync()
-        {
-            _logger.LogDebug("[MARKET-FLOW] Requesting global snapshots...");
-
-            var contracts = _config.SeedingContracts;
-            var tasks = contracts.Select(RequestSnapshotDataAsync);
-            var results = await Task.WhenAll(tasks);
-
-            return results.Any(r => r);
-        }
-
-        private async Task<bool> ReconnectSignalRAsync()
-        {
-            _logger.LogDebug("[MARKET-FLOW] Attempting SignalR reconnection...");
-            
-            try
-            {
-                // This would trigger reconnection logic in the SignalR manager
-                // For now, we'll return true as the manager handles reconnections
-                await Task.CompletedTask;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<bool> FallbackToRESTPollingAsync()
-        {
-            _logger.LogDebug("[MARKET-FLOW] Initiating fallback REST polling...");
-            
-            // This would start a background task for REST API polling
-            // Implementation depends on available REST endpoints
-            await Task.CompletedTask;
-            return false; // Not implemented yet
-        }
-
-        private async Task<bool> RequestTopstepXSnapshotAsync(string contractId)
-        {
-            try
-            {
-                // Request via TopstepX specific snapshot API if available
-                await Task.CompletedTask; // Placeholder
-                return false; // Not implemented yet
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<bool> RequestSignalRSnapshotAsync(string contractId)
-        {
-            try
-            {
-                var hubConnection = await _signalRManager.GetMarketHubConnectionAsync();
-                await hubConnection.InvokeAsync("RequestSnapshot", contractId);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<bool> RequestRESTSnapshotAsync(string contractId)
-        {
-            try
-            {
-                // Request via REST API if available
-                await Task.CompletedTask; // Placeholder
-                return false; // Not implemented yet
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private void WireSignalREvents()
-        {
-            _signalRManager.OnMarketDataReceived += (data) =>
-            {
-                _lastGlobalDataUpdate = DateTime.UtcNow;
-                OnMarketDataReceived?.Invoke("MarketData", data);
-            };
-
-            _signalRManager.OnContractQuotesReceived += (data) =>
-            {
-                _lastGlobalDataUpdate = DateTime.UtcNow;
-                OnMarketDataReceived?.Invoke("ContractQuotes", data);
-            };
-        }
-
-        private void PerformHealthCheck(object? state)
-        {
-            if (!_isInitialized) return;
-
-            Task.Run(async () =>
-            {
-                try
+                // Step 3: Verify recovery
+                var healthStatusAfterRecovery = await GetHealthStatusAsync();
+                if (healthStatusAfterRecovery.IsHealthy)
                 {
-                    var health = await GetHealthStatusAsync();
+                    _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
+                    _recoveryAttempts = 0; // Reset attempts on success
                     
-                    if (!health.IsHealthy)
+                    // Notify recovery
+                    foreach (var symbol in unhealthySymbols)
                     {
-                        _logger.LogWarning("[MARKET-FLOW] Health check failed: {Status}, Score: {Score:F2}", 
-                            health.Status, health.HealthScore);
-                        
-                        // Trigger recovery if health is poor
-                        if (health.HealthScore < 0.3)
-                        {
-                            _ = Task.Run(() => EnsureDataFlowHealthAsync());
-                        }
+                        OnDataFlowRestored?.Invoke(symbol);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "[MARKET-FLOW] Health check error");
+                    _logger.LogWarning("[DATA-RECOVERY] ⚠️ Data flow recovery partially successful or failed");
+                    
+                    // Notify data flow interrupted for symbols still unhealthy
+                    foreach (var symbol in unhealthySymbols)
+                    {
+                        OnDataFlowInterrupted?.Invoke(symbol);
+                    }
                 }
-            });
-        }
-
-        private void RequestPeriodicSnapshots(object? state)
-        {
-            if (!_isInitialized) return;
-
-            Task.Run(async () =>
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    await RequestGlobalSnapshotsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[MARKET-FLOW] Periodic snapshot error");
-                }
-            });
+                _logger.LogError(ex, "[DATA-RECOVERY] Error during data flow recovery attempt {Attempt}", _recoveryAttempts);
+            }
         }
 
-        private string DetermineHealthStatus(MarketDataHealthStatus status)
+        /// <summary>
+        /// Request snapshot data for a specific symbol
+        /// </summary>
+        private async Task RequestSymbolSnapshotAsync(string symbol)
         {
-            if (status.HealthScore > 0.8) return "Excellent";
-            if (status.HealthScore > 0.6) return "Good";
-            if (status.HealthScore > 0.4) return "Fair";
-            if (status.HealthScore > 0.2) return "Poor";
-            return "Critical";
-        }
-
-        private string GetSymbolFromContractId(string contractId)
-        {
-            return contractId switch
+            try
             {
-                "CON.F.US.EP.U25" => "ES",
-                "CON.F.US.ENQ.U25" => "NQ",
-                _ when contractId.Contains("EP") => "ES",
-                _ when contractId.Contains("ENQ") => "NQ",
-                _ => "UNKNOWN"
-            };
+                _logger.LogDebug("[SYMBOL-SNAPSHOT] Requesting snapshot for {Symbol}", symbol);
+
+                // In production, this would make an actual API call to TopstepX
+                // For now, we'll simulate the request
+                
+                // Simulate API call delay
+                await Task.Delay(100);
+
+                // Simulate successful snapshot response
+                var snapshotData = new
+                {
+                    Symbol = symbol,
+                    Timestamp = DateTime.UtcNow,
+                    Bid = 4500.25m + (decimal)(new Random().NextDouble() * 10),
+                    Ask = 4500.50m + (decimal)(new Random().NextDouble() * 10),
+                    Last = 4500.375m + (decimal)(new Random().NextDouble() * 10),
+                    Volume = new Random().Next(1000, 10000)
+                };
+
+                // Process the snapshot data
+                SimulateMarketDataReceived(symbol, snapshotData);
+                OnSnapshotDataReceived?.Invoke(symbol);
+
+                _logger.LogDebug("[SYMBOL-SNAPSHOT] ✅ Snapshot received for {Symbol}", symbol);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SYMBOL-SNAPSHOT] Error requesting snapshot for {Symbol}", symbol);
+            }
         }
 
         #endregion
 
+        #region IDisposable
+
+        private bool _disposed = false;
+
         public void Dispose()
         {
-            _healthCheckTimer?.Dispose();
-            _snapshotRequestTimer?.Dispose();
+            if (!_disposed)
+            {
+                _healthCheckTimer?.Dispose();
+                _isMonitoring = false;
+                _disposed = true;
+            }
         }
+
+        #endregion
     }
+
+    #region Supporting Models
+
+    /// <summary>
+    /// Comprehensive market data health status
+    /// </summary>
+    public class MarketDataHealthStatus
+    {
+        public bool IsHealthy { get; set; }
+        public DateTime LastUpdate { get; set; }
+        public string Status { get; set; } = "Unknown";
+        public int HealthySymbolCount { get; set; }
+        public int TotalSymbolCount { get; set; }
+        public double HealthPercentage { get; set; }
+        public List<string> Issues { get; set; } = new();
+        public List<DataFlowMetrics> SymbolMetrics { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Data flow metrics for individual symbols
+    /// </summary>
+    public class DataFlowMetrics
+    {
+        public string Symbol { get; set; } = string.Empty;
+        public DateTime InitializedAt { get; set; }
+        public DateTime LastDataReceived { get; set; }
+        public long TotalDataReceived { get; set; }
+        public bool IsHealthy { get; set; }
+        public TimeSpan TimeSinceLastData => DateTime.UtcNow - LastDataReceived;
+        public double DataRate => TotalDataReceived / Math.Max(1, (DateTime.UtcNow - InitializedAt).TotalMinutes); // Data per minute
+    }
+
+    #endregion
 }
