@@ -39,6 +39,14 @@ public class MarketContext
     public double Ask { get; set; }
     public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
     public RegimeState? CurrentRegime { get; set; }
+    
+    // Additional properties for intelligence integration
+    public string Regime { get; set; } = string.Empty;
+    public double ModelConfidence { get; set; }
+    public string PrimaryBias { get; set; } = string.Empty;
+    public bool IsFomcDay { get; set; }
+    public bool IsCpiDay { get; set; }
+    public double NewsIntensity { get; set; }
 }
 
 public class MarketData

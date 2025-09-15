@@ -405,10 +405,10 @@ public class UnifiedDataIntegrationService : BackgroundService
             {
                 _logger.LogInformation("🎉 [SYSTEM-READY] All contracts ready! Health should now go green.");
                 
-                // Notify readiness tracker
+                // Update readiness tracker - let validation determine readiness
                 if (_readinessTracker != null)
                 {
-                    _readinessTracker.SetSystemReady(true);
+                    await _readinessTracker.ValidateReadinessAsync();
                 }
             }
         }
@@ -571,29 +571,27 @@ public class UnifiedDataIntegrationService : BackgroundService
     {
         return new MarketData
         {
-            Symbol = bar.Symbol,
+            Symbol = "ES", // Default symbol since MarketBar doesn't store symbol
             Open = (double)bar.Open,
             High = (double)bar.High,
             Low = (double)bar.Low,
             Close = (double)bar.Close,
-            Volume = bar.Volume,
+            Volume = (double)bar.Volume,
             Timestamp = bar.Start
         };
     }
     
     private MarketBar ConvertMarketDataToBar(MarketData data)
     {
-        return new MarketBar
-        {
-            Symbol = data.Symbol,
-            Start = data.Timestamp,
-            Ts = ((DateTimeOffset)data.Timestamp).ToUnixTimeMilliseconds(),
-            Open = (decimal)data.Open,
-            High = (decimal)data.High,
-            Low = (decimal)data.Low,
-            Close = (decimal)data.Close,
-            Volume = (int)data.Volume
-        };
+        return new MarketBar(
+            data.Timestamp,
+            data.Timestamp.AddMinutes(1), // End time is Start + 1 minute
+            (decimal)data.Open,
+            (decimal)data.High,
+            (decimal)data.Low,
+            (decimal)data.Close,
+            (long)data.Volume
+        );
     }
     
     private string GetContractIdFromSymbol(string symbol)

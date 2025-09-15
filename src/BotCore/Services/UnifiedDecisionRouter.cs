@@ -567,7 +567,7 @@ public class UnifiedDecisionRouter
                 High = price + variation + 1,
                 Low = price + variation - 1,
                 Close = price + variation,
-                Volume = (int)(volume * (0.8 + _random.NextDouble() * 0.4))
+                Volume = (int)(volume * (0.8m + (decimal)_random.NextDouble() * 0.4m))
             });
         }
         
@@ -663,7 +663,7 @@ public class UnifiedDecisionRouter
             Symbol = decision.Signal?.Symbol ?? "UNKNOWN",
             Action = decision.Action,
             Confidence = decision.Confidence,
-            Quantity = decision.MaxPositionSize ?? 1m,
+            Quantity = decision.MaxPositionSize > 0 ? decision.MaxPositionSize : 1m,
             Strategy = decision.MLStrategy ?? "INTELLIGENCE",
             Reasoning = decision.Reasoning ?? new Dictionary<string, object>(),
             Timestamp = decision.Timestamp
