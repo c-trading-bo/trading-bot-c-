@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-09-15T09:30:24.576579",
+  "market_session": "extended",
+  "total_futures_articles": 0,
+  "ES": {
+    "sentiment": 0.0,
+    "articles": [],
+    "signal": "NEUTRAL",
+    "keywords_found": [],
+    "article_count": 0,
+    "unique_keywords": []
+  },
+  "NQ": {
+    "sentiment": 0.0,
+    "articles": [],
+    "signal": "NEUTRAL",
+    "keywords_found": [],
+    "article_count": 0,
+    "unique_keywords": []
+  },
+  "analysis_type": "futures_deep_dive"
+}
