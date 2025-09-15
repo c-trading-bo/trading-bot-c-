@@ -428,8 +428,8 @@ Stack Trace:
             
             options.ScriptPaths = new Dictionary<string, string>
             {
-                ["decisionService"] = "./python/decision_service/simple_decision_service.py",
-                ["modelInference"] = "./python/ucb/neural_ucb_topstep.py"
+                ["decisionService"] = Path.Combine("python", "decision_service", "simple_decision_service.py"),
+                ["modelInference"] = Path.Combine("python", "ucb", "neural_ucb_topstep.py")
             };
             options.Timeout = int.Parse(Environment.GetEnvironmentVariable("PYTHON_TIMEOUT") ?? "30");
         });

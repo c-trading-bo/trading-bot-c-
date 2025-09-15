@@ -22,6 +22,9 @@ namespace BotCore.Extensions
             services.Configure<TradingReadinessConfiguration>(
                 configuration.GetSection("TradingReadiness"));
 
+            // Register trading readiness tracker
+            services.AddSingleton<ITradingReadinessTracker, TradingReadinessTracker>();
+
             // Register historical data bridge service
             services.AddScoped<IHistoricalDataBridgeService, HistoricalDataBridgeService>();
 
