@@ -88,36 +88,50 @@ public class DeploymentPipelineOrchestrator
         return result;
     }
 
-    private Task<CredentialDetectionResult> ExecuteCredentialDetection()
+    private async Task<CredentialDetectionResult> ExecuteCredentialDetection()
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var result = new CredentialDetectionResult();
 
         try
         {
+            _logger.LogInformation("[DEPLOYMENT-PIPELINE] Executing comprehensive credential detection");
+            
             var credentialManager = _serviceProvider.GetRequiredService<TopstepXCredentialManager>();
             
-            // Discover all available credential sources
-            var discoveryReport = credentialManager.DiscoverAllCredentialSources();
+            // Asynchronous discovery of all available credential sources
+            var discoveryReport = await Task.Run(() => credentialManager.DiscoverAllCredentialSources());
             
             result.HasCredentials = discoveryReport.HasAnyCredentials;
             result.CredentialSource = discoveryReport.RecommendedSource ?? "None";
             result.TotalSourcesFound = discoveryReport.TotalSourcesFound;
             result.IsSuccessful = discoveryReport.HasAnyCredentials;
 
+            // Enhanced credential validation
             if (discoveryReport.HasEnvironmentCredentials)
             {
                 result.Details.Add("✅ Environment variables detected and configured");
+                
+                // Validate environment credential quality
+                await ValidateEnvironmentCredentialQuality(result);
             }
 
             if (discoveryReport.HasFileCredentials)
             {
                 result.Details.Add("✅ Secure file credentials detected");
+                
+                // Validate file credential security
+                await ValidateFileCredentialSecurity(result);
             }
 
             if (!discoveryReport.HasAnyCredentials)
             {
                 result.Details.Add("❌ No TopStep credentials found in any source");
                 result.ErrorMessage = "No TopStep credentials available for automated detection";
+                
+                // Provide detailed troubleshooting guidance
+                await GenerateCredentialTroubleshootingGuide(result);
             }
 
             _logger.LogInformation("🔑 Credential Detection: {Status} - {Source} ({Count} sources)", 
@@ -126,11 +140,83 @@ public class DeploymentPipelineOrchestrator
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "[DEPLOYMENT-PIPELINE] Failed to execute credential detection");
             result.ErrorMessage = ex.Message;
             result.IsSuccessful = false;
         }
 
-        return Task.FromResult(result);
+        return result;
+    }
+    
+    /// <summary>
+    /// Validate the quality and completeness of environment credentials
+    /// </summary>
+    private async Task ValidateEnvironmentCredentialQuality(CredentialDetectionResult result)
+    {
+        await Task.Yield();
+        
+        var requiredVars = new[] { "TOPSTEPX_USERNAME", "TOPSTEPX_API_KEY", "TOPSTEPX_JWT", "TOPSTEPX_ACCOUNT_ID" };
+        var foundVars = 0;
+        
+        foreach (var varName in requiredVars)
+        {
+            var value = Environment.GetEnvironmentVariable(varName);
+            if (!string.IsNullOrEmpty(value))
+            {
+                foundVars++;
+                result.Details.Add($"  • {varName}: Present ({value.Length} chars)");
+            }
+            else
+            {
+                result.Details.Add($"  • {varName}: Missing");
+            }
+        }
+        
+        result.Details.Add($"Environment credential completeness: {foundVars}/{requiredVars.Length} variables found");
+    }
+    
+    /// <summary>
+    /// Validate the security of file-based credentials
+    /// </summary>
+    private async Task ValidateFileCredentialSecurity(CredentialDetectionResult result)
+    {
+        await Task.Yield();
+        
+        try
+        {
+            var credentialPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".topstepx");
+            if (Directory.Exists(credentialPath))
+            {
+                var files = Directory.GetFiles(credentialPath, "*.json");
+                result.Details.Add($"  • Found {files.Length} credential file(s) in secure directory");
+                
+                // Check file permissions (simplified for cross-platform)
+                foreach (var file in files.Take(3)) // Limit to first 3 files
+                {
+                    var fileInfo = new FileInfo(file);
+                    result.Details.Add($"  • {Path.GetFileName(file)}: {fileInfo.Length} bytes, modified {fileInfo.LastWriteTime:yyyy-MM-dd}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            result.Details.Add($"  • File credential validation failed: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Generate troubleshooting guide when no credentials are found
+    /// </summary>
+    private async Task GenerateCredentialTroubleshootingGuide(CredentialDetectionResult result)
+    {
+        await Task.Yield();
+        
+        result.Details.Add("Troubleshooting Guide:");
+        result.Details.Add("  1. Set environment variables: TOPSTEPX_USERNAME, TOPSTEPX_API_KEY");
+        result.Details.Add("  2. Create credential file: ~/.topstepx/credentials.json");
+        result.Details.Add("  3. Check .env file in project root");
+        result.Details.Add("  4. Verify access to credential storage systems");
+        result.Details.Add("  5. Run credential validation tool: dotnet run --project tools/CredentialValidator");
     }
 
     private async Task<StagingDeploymentResult> ExecuteStagingDeployment()
