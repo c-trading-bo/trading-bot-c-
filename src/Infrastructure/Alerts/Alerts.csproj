@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <AssemblyName>TradingBot.Infrastructure.Alerts</AssemblyName>
     <RootNamespace>TradingBot.Infrastructure.Alerts</RootNamespace>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

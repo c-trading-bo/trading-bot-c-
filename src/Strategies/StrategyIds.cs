@@ -41,6 +41,7 @@ public static class StrategyIds
     /// <param name="date">Optional date override (uses today if null)</param>
     /// <returns>Deterministic strategy ID with config hash</returns>
     public static string GenerateStrategyIdWithConfig<T>(string strategyName, T configuration, DateTime? date = null)
+        where T : class
     {
         if (string.IsNullOrWhiteSpace(strategyName))
             throw new ArgumentException("Strategy name cannot be null or empty", nameof(strategyName));
@@ -61,6 +62,7 @@ public static class StrategyIds
     /// <param name="configuration">The configuration object</param>
     /// <returns>8-character hex hash of the configuration</returns>
     public static string GenerateConfigHash<T>(T configuration)
+        where T : class
     {
         if (configuration == null)
             throw new ArgumentNullException(nameof(configuration));

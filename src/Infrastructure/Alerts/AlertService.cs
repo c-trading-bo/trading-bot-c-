@@ -79,8 +79,8 @@ namespace TradingBot.Infrastructure.Alerts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send email - Subject: {Subject}", subject);
-                throw;
+                _logger.LogError(ex, "[ALERT] Failed to send email - Subject: {Subject}, Error: {ErrorMessage}", subject, ex.Message);
+                throw new InvalidOperationException($"Failed to send email alert with subject '{subject}'", ex);
             }
         }
 
@@ -127,12 +127,12 @@ namespace TradingBot.Infrastructure.Alerts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send Slack message - Message: {Message}", message);
-                throw;
+                _logger.LogError(ex, "[ALERT] Failed to send Slack message - Message: {Message}, Error: {ErrorMessage}", message, ex.Message);
+                throw new InvalidOperationException($"Failed to send Slack alert message", ex);
             }
         }
 
-        public async Task SendCriticalAlertAsync(string title, string details)
+        public Task SendCriticalAlertAsync(string title, string details)
         {
             var subject = $"CRITICAL: {title}";
             var body = $"CRITICAL SYSTEM ALERT\n\nTitle: {title}\nDetails: {details}\n\nImmediate attention required!";
@@ -141,7 +141,7 @@ namespace TradingBot.Infrastructure.Alerts
             var emailTask = SendEmailAsync(subject, body, AlertSeverity.Critical);
             var slackTask = SendSlackAsync($"🚨 *CRITICAL ALERT*: {title}\n\n{details}", AlertSeverity.Critical);
             
-            await Task.WhenAll(emailTask, slackTask);
+            return Task.WhenAll(emailTask, slackTask);
         }
 
         public async Task SendModelHealthAlertAsync(string modelName, string healthIssue, object? metrics = null)

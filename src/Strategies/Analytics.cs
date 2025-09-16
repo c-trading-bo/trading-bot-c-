@@ -17,8 +17,10 @@ public static class Analytics
     /// <returns>Pearson correlation coefficient (-1 to 1), or NaN if calculation is not possible</returns>
     public static double CalculatePearsonCorrelation(IEnumerable<double> returnsX, IEnumerable<double> returnsY)
     {
-        if (returnsX == null || returnsY == null)
-            throw new ArgumentNullException("Returns series cannot be null");
+        if (returnsX == null)
+            throw new ArgumentNullException(nameof(returnsX));
+        if (returnsY == null)
+            throw new ArgumentNullException(nameof(returnsY));
             
         var arrayX = returnsX.ToArray();
         var arrayY = returnsY.ToArray();
@@ -70,6 +72,11 @@ public static class Analytics
         if (periods <= 0)
             throw new ArgumentException("Periods must be positive", nameof(periods));
             
+        return CalculateRollingReturnsIterator(prices, periods);
+    }
+    
+    private static IEnumerable<double> CalculateRollingReturnsIterator(IEnumerable<double> prices, int periods)
+    {
         var priceArray = prices.ToArray();
         
         if (priceArray.Length <= periods)
