@@ -535,10 +535,23 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the HTTP API
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetTradeAsync called for trade: {TradeId} (simplified implementation)", tradeId);
-            return new JsonElement();
+            // Make real HTTP call to TopstepX API for trade data
+            var url = $"/v1/trades/{tradeId}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var tradeData = JsonSerializer.Deserialize<JsonElement>(content);
+                _logger.LogInformation("[REAL-TOPSTEPX] GetTradeAsync succeeded for trade: {TradeId}", tradeId);
+                return tradeData;
+            }
+            else
+            {
+                _logger.LogWarning("[REAL-TOPSTEPX] GetTradeAsync returned {StatusCode} for trade: {TradeId}", 
+                    response.StatusCode, tradeId);
+                return new JsonElement();
+            }
         }
         catch (Exception ex)
         {
@@ -557,10 +570,23 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the HTTP API
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetContractAsync called for contract: {ContractId} (simplified implementation)", contractId);
-            return new JsonElement();
+            // Make real HTTP call to TopstepX API for contract data
+            var url = $"/v1/contracts/{contractId}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var contractData = JsonSerializer.Deserialize<JsonElement>(content);
+                _logger.LogInformation("[REAL-TOPSTEPX] GetContractAsync succeeded for contract: {ContractId}", contractId);
+                return contractData;
+            }
+            else
+            {
+                _logger.LogWarning("[REAL-TOPSTEPX] GetContractAsync returned {StatusCode} for contract: {ContractId}", 
+                    response.StatusCode, contractId);
+                return new JsonElement();
+            }
         }
         catch (Exception ex)
         {
@@ -575,10 +601,25 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the HTTP API
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] SearchContractsAsync called (simplified implementation)");
-            return new JsonElement();
+            // Make real HTTP call to TopstepX API for contract search
+            var url = "/v1/contracts/search";
+            var jsonContent = JsonSerializer.Serialize(searchRequest);
+            var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+            
+            var response = await _httpClient.PostAsync(url, content, cancellationToken);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                var contractsData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                _logger.LogInformation("[REAL-TOPSTEPX] SearchContractsAsync succeeded");
+                return contractsData;
+            }
+            else
+            {
+                _logger.LogWarning("[REAL-TOPSTEPX] SearchContractsAsync returned {StatusCode}", response.StatusCode);
+                return new JsonElement();
+            }
         }
         catch (Exception ex)
         {
@@ -593,10 +634,23 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the HTTP API
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetMarketDataAsync called for symbol: {Symbol} (simplified implementation)", symbol);
-            return new JsonElement();
+            // Make real HTTP call to TopstepX API for market data
+            var url = $"/v1/market-data/{symbol}";
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                var marketData = JsonSerializer.Deserialize<JsonElement>(content);
+                _logger.LogInformation("[REAL-TOPSTEPX] GetMarketDataAsync succeeded for symbol: {Symbol}", symbol);
+                return marketData;
+            }
+            else
+            {
+                _logger.LogWarning("[REAL-TOPSTEPX] GetMarketDataAsync returned {StatusCode} for symbol: {Symbol}", 
+                    response.StatusCode, symbol);
+                return new JsonElement();
+            }
         }
         catch (Exception ex)
         {
