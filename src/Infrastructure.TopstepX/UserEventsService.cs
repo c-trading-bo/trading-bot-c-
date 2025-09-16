@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
-// using Trading.Safety;
 
 namespace TradingBot.Infrastructure.TopstepX;
 

@@ -218,10 +218,20 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
 
     public void Dispose()
     {
-        if (_disposed) return;
-        
-        _disposed = true;
-        _expirationCheckTimer?.Dispose();
-        _validationLock?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _expirationCheckTimer?.Dispose();
+                _validationLock?.Dispose();
+            }
+            _disposed = true;
+        }
     }
 }

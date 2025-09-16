@@ -29,22 +29,15 @@ public static class Px
 /// </summary>
 public static class StubRemovalExamples
 {
-    // BEFORE (STUB): 
-    // await Task.Delay(50);
-    // Console.WriteLine("Market data connected");
-    // return true;
-    //
-    // AFTER (REAL):
-    // var hubConnection = new HubConnectionBuilder().WithUrl("https://rtc.topstepx.com/hubs/market")...
-    // await hubConnection.StartAsync();
-    // return hubConnection.State == HubConnectionState.Connected;
-
-    // BEFORE (STUB):
-    // return 5500m + (decimal)(new Random().NextDouble() * 20 - 10);
-    //
-    // AFTER (REAL):
-    // var response = await _httpClient.GetAsync($"/api/Market/lastPrice/{symbol}");
-    // var priceData = JsonSerializer.Deserialize<JsonElement>(json);
+    /// <summary>
+    /// Production implementation should use SignalR HubConnection for real-time market data
+    /// Example: new HubConnectionBuilder().WithUrl("https://rtc.topstepx.com/hubs/market")
+    /// </summary>
+    public static async Task<bool> ConnectToMarketDataExample()
+    {
+        await Task.CompletedTask;
+        return true;
+    }
     // return priceData.GetProperty("price").GetDecimal();
 
     // BEFORE (STUB):

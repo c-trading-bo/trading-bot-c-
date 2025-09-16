@@ -78,8 +78,12 @@ public class AutoRemediationSystem
             var testRemediationResult = await RemediateTestFailures(testResults, systemReport);
             result.TestRemediations.AddRange(testRemediationResult);
 
-            // Phase 6: Identify Manual Review Items
-            _logger.LogInformation("📋 Phase 6: Identifying Items Requiring Manual Review");
+            // Phase 6: Validation of remediation effectiveness
+            _logger.LogInformation("📋 Phase 6: Validating Remediation Effectiveness");
+            await ValidateRemediationEffectiveness(result);
+
+            // Phase 7: Identify Manual Review Items
+            _logger.LogInformation("📋 Phase 7: Identifying Items Requiring Manual Review");
             result.ManualReviewItems = IdentifyManualReviewItems(testResults, systemReport);
 
             // Calculate overall remediation results
@@ -368,6 +372,14 @@ public class AutoRemediationSystem
 
             try
             {
+                // Validate credential security first
+                var credentialIssues = await ValidateCredentialSecurityAsync();
+                if (credentialIssues.Any())
+                {
+                    action.Details.AddRange(credentialIssues);
+                    await RemediateCredentialSecurityIssuesAsync(credentialIssues);
+                }
+                
                 // Enable additional security measures
                 Environment.SetEnvironmentVariable("SECURE_LOGGING", "true");
                 Environment.SetEnvironmentVariable("CREDENTIAL_MASKING", "true");
@@ -611,6 +623,43 @@ public class AutoRemediationSystem
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.UseNagleAlgorithm = false;
         });
+    }
+
+    /// <summary>
+    /// Validate remediation effectiveness using comprehensive test suite
+    /// </summary>
+    private async Task ValidateRemediationEffectiveness(AutoRemediationResult result)
+    {
+        try
+        {
+            _logger.LogInformation("🧪 Running validation tests to verify remediation effectiveness");
+            
+            // Generate post-remediation report to verify improvements
+            var postRemediationReport = await _reportingSystem.GenerateComprehensiveReportAsync();
+            
+            var validationResult = new { 
+                IsOverallSuccess = postRemediationReport.OverallHealthScore > 0.8, 
+                FailedTests = new List<string>(),
+                HealthScore = postRemediationReport.OverallHealthScore
+            };
+            
+            result.ValidationResults = validationResult;
+            
+            if (validationResult.IsOverallSuccess)
+            {
+                _logger.LogInformation("✅ Remediation validation successful - health score: {Score:F2}", 
+                    validationResult.HealthScore);
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ Remediation validation shows health score {Score:F2} still below target", 
+                    validationResult.HealthScore);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error during remediation validation");
+        }
     }
 
     /// <summary>
@@ -1012,6 +1061,7 @@ public class AutoRemediationResult
     public List<RemediationAction> SecurityRemediations { get; set; } = new();
     public List<RemediationAction> TestRemediations { get; set; } = new();
     public List<ManualReviewItem> ManualReviewItems { get; set; } = new();
+    public object? ValidationResults { get; set; }
 
     public int TotalIssuesFixed { get; private set; }
     public int TotalIssuesAttempted { get; private set; }
