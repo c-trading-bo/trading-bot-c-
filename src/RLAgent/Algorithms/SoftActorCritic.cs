@@ -392,18 +392,18 @@ public class SACStatistics
 /// <summary>
 /// Experience replay buffer with random sampling
 /// </summary>
-public class ExperienceReplayBuffer
+public class ExperienceReplayBuffer : IDisposable
 {
     private readonly List<Experience> _buffer;
     private readonly int _maxSize;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     private int _index = 0;
 
     public ExperienceReplayBuffer(int maxSize)
     {
         _maxSize = maxSize;
         _buffer = new List<Experience>(maxSize);
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
     }
 
     public int Count => _buffer.Count;
@@ -432,7 +432,10 @@ public class ExperienceReplayBuffer
         
         while (indices.Count < batchSize)
         {
-            indices.Add(_random.Next(_buffer.Count));
+            var bytes = new byte[4];
+            _rng.GetBytes(bytes);
+            var randomIndex = BitConverter.ToUInt32(bytes, 0) % _buffer.Count;
+            indices.Add((int)randomIndex);
         }
         
         foreach (var index in indices)
@@ -442,18 +445,23 @@ public class ExperienceReplayBuffer
         
         return batch;
     }
+
+    public void Dispose()
+    {
+        _rng?.Dispose();
+    }
 }
 
 /// <summary>
 /// Simple neural network for actor (policy)
 /// </summary>
-public class ActorNetwork
+public class ActorNetwork : IDisposable
 {
     private readonly int _inputDim;
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -467,7 +475,7 @@ public class ActorNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         InitializeWeights();
     }
