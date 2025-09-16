@@ -47,7 +47,7 @@ public class UnifiedDataIntegrationService : BackgroundService
     
     // Current active contracts (Z25 → H26 rollover support)
     private string _currentESContract = "CON.F.US.EP.Z25"; // December 2025
-    private string _currentNQContract = "CON.F.US.NQ.Z25"; // December 2025
+    private string _currentNQContract = "CON.F.US.ENQ.Z25"; // December 2025 - CRITICAL FIX #3: Contract standardization
     
     public UnifiedDataIntegrationService(
         ILogger<UnifiedDataIntegrationService> logger,
@@ -627,7 +627,7 @@ public class ContractManager
         var contracts = new Dictionary<string, string>
         {
             ["ES"] = "CON.F.US.EP.Z25", // December 2025
-            ["NQ"] = "CON.F.US.NQ.Z25"  // December 2025
+            ["NQ"] = "CON.F.US.ENQ.Z25"  // December 2025 - CRITICAL FIX #3: Contract standardization
         };
         return Task.FromResult(contracts);
     }
@@ -653,11 +653,15 @@ public class ContractManager
 
 /// <summary>
 /// Bar count manager - unified bar counting for readiness tracking
+/// CRITICAL FIX #4: Ensures all bar events (seeded + live) use same counter via DI
 /// </summary>
 public class BarCountManager
 {
     private readonly ILogger _logger;
     private readonly ITradingReadinessTracker? _readinessTracker;
+    private int _totalProcessedBars = 0;
+    private int _seededBarsProcessed = 0;
+    private int _liveBarsProcessed = 0;
     
     public BarCountManager(ILogger logger, ITradingReadinessTracker? readinessTracker)
     {
@@ -665,10 +669,86 @@ public class BarCountManager
         _readinessTracker = readinessTracker;
     }
     
+    /// <summary>
+    /// Process a bar and update unified counters
+    /// CRITICAL FIX #4: Both historical and live bars increment same readiness counter
+    /// </summary>
     public async Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
-        // Unified bar processing logic
-        await Task.CompletedTask;
+        try
+        {
+            // Increment unified readiness tracker
+            if (_readinessTracker != null)
+            {
+                if (isHistorical)
+                {
+                    _readinessTracker.IncrementSeededBars(1);
+                    _seededBarsProcessed++;
+                    _logger.LogDebug("📊 [BAR-COUNTER] Seeded bar processed -> Total seeded: {SeededCount}", 
+                        _seededBarsProcessed);
+                }
+                else
+                {
+                    _readinessTracker.IncrementBarsSeen(1);
+                    _readinessTracker.IncrementLiveTicks(1);
+                    _liveBarsProcessed++;
+                    _logger.LogDebug("📊 [BAR-COUNTER] Live bar processed -> Total live: {LiveCount}", 
+                        _liveBarsProcessed);
+                }
+                
+                // Update market data timestamp for health monitoring
+                _readinessTracker.UpdateLastMarketDataTimestamp();
+            }
+            
+            _totalProcessedBars++;
+            
+            // Log unified counter status periodically
+            if (_totalProcessedBars % 50 == 0)
+            {
+                var readinessContext = _readinessTracker?.GetReadinessContext();
+                _logger.LogInformation("📊 [UNIFIED-BAR-COUNTER] Total processed: {Total} (Seeded: {Seeded}, Live: {Live}) | Readiness: {State} | BarsSeen: {BarsSeen}",
+                    _totalProcessedBars, _seededBarsProcessed, _liveBarsProcessed, 
+                    readinessContext?.State, readinessContext?.TotalBarsSeen);
+            }
+            
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [BAR-COUNTER] Error processing bar (Historical: {IsHistorical})", 
+                isHistorical);
+        }
+    }
+    
+    /// <summary>
+    /// Get current counter statistics
+    /// </summary>
+    public BarCounterStats GetStats()
+    {
+        var readinessContext = _readinessTracker?.GetReadinessContext();
+        
+        return new BarCounterStats
+        {
+            TotalProcessedBars = _totalProcessedBars,
+            SeededBarsProcessed = _seededBarsProcessed,
+            LiveBarsProcessed = _liveBarsProcessed,
+            ReadinessBarsSeen = readinessContext?.TotalBarsSeen ?? 0,
+            ReadinessSeededBars = readinessContext?.SeededBars ?? 0,
+            ReadinessState = readinessContext?.State.ToString() ?? "Unknown"
+        };
+    }
+    
+    /// <summary>
+    /// Reset all counters for testing or restart scenarios
+    /// </summary>
+    public void Reset()
+    {
+        _totalProcessedBars = 0;
+        _seededBarsProcessed = 0;
+        _liveBarsProcessed = 0;
+        _readinessTracker?.Reset();
+        
+        _logger.LogInformation("🔄 [BAR-COUNTER] All counters reset");
     }
 }
 
@@ -693,6 +773,20 @@ public class ContractDataStatus
     public int TotalBarsForReadiness { get; set; }
     public bool IsReady { get; set; }
     public DateTime LastLiveUpdate { get; set; }
+}
+
+/// <summary>
+/// Bar counter statistics for monitoring unified bar counting
+/// CRITICAL FIX #4: Provides visibility into unified bar counting mechanism
+/// </summary>
+public class BarCounterStats
+{
+    public int TotalProcessedBars { get; set; }
+    public int SeededBarsProcessed { get; set; }
+    public int LiveBarsProcessed { get; set; }
+    public int ReadinessBarsSeen { get; set; }
+    public int ReadinessSeededBars { get; set; }
+    public string ReadinessState { get; set; } = string.Empty;
 }
 
 public class DataIntegrationStatus
