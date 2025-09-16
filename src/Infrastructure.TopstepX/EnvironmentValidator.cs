@@ -230,7 +230,7 @@ public class EnvironmentValidator : IEnvironmentValidator
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error getting NTP time");
-            return null;
+            throw new InvalidOperationException("Failed to retrieve NTP time for clock validation", ex);
         }
     }
 }

@@ -146,11 +146,29 @@ public class SnapshotManager : ISnapshotManager
 
     public async Task<AccountSnapshot?> GetCurrentSnapshotAsync(string accountId)
     {
-        await Task.CompletedTask; // Make method async for future use
+        await Task.Yield(); // Ensure async behavior for snapshot retrieval
         
         lock (_snapshotLock)
         {
-            return _snapshots.TryGetValue(accountId, out var snapshot) ? snapshot : null;
+            if (_snapshots.TryGetValue(accountId, out var snapshot))
+            {
+                // Check if snapshot is still fresh (less than 5 minutes old)
+                if (DateTime.UtcNow - snapshot.Timestamp < TimeSpan.FromMinutes(5))
+                {
+                    _logger.LogDebug("[SNAPSHOT-MANAGER] Returning cached snapshot for account {AccountId}", MaskAccountId(accountId));
+                    return snapshot;
+                }
+                else
+                {
+                    _logger.LogDebug("[SNAPSHOT-MANAGER] Cached snapshot for account {AccountId} is stale, triggering refresh", MaskAccountId(accountId));
+                    // Trigger async refresh in background
+                    _ = Task.Run(async () => await RefreshSnapshotAsync(accountId));
+                    return snapshot; // Return stale snapshot while refresh is in progress
+                }
+            }
+            
+            _logger.LogDebug("[SNAPSHOT-MANAGER] No cached snapshot found for account {AccountId}", MaskAccountId(accountId));
+            return null;
         }
     }
 
@@ -314,5 +332,54 @@ public class SnapshotManager : ISnapshotManager
         {
             _logger.LogError(ex, "Error detecting changes between snapshots");
         }
+    }
+
+    /// <summary>
+    /// Refresh snapshot for specific account
+    /// </summary>
+    private async Task RefreshSnapshotAsync(string accountId)
+    {
+        try
+        {
+            _logger.LogDebug("[SNAPSHOT-MANAGER] Refreshing snapshot for account {AccountId}", MaskAccountId(accountId));
+            
+            var newSnapshot = await FetchAccountSnapshotAsync(accountId);
+            if (newSnapshot != null)
+            {
+                AccountSnapshot? previousSnapshot = null;
+                lock (_snapshotLock)
+                {
+                    _snapshots.TryGetValue(accountId, out previousSnapshot);
+                    _snapshots[accountId] = newSnapshot;
+                }
+
+                if (previousSnapshot != null)
+                {
+                    await DetectAndLogChangesAsync(accountId, previousSnapshot, newSnapshot);
+                }
+
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SnapshotManager",
+                    $"Successfully refreshed snapshot for account {MaskAccountId(accountId)}");
+            }
+            else
+            {
+                _logger.LogWarning("[SNAPSHOT-MANAGER] Failed to fetch updated snapshot for account {AccountId}", MaskAccountId(accountId));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[SNAPSHOT-MANAGER] Error refreshing snapshot for account {AccountId}", MaskAccountId(accountId));
+        }
+    }
+
+    /// <summary>
+    /// Mask account ID for logging
+    /// </summary>
+    private string MaskAccountId(string accountId)
+    {
+        if (string.IsNullOrEmpty(accountId) || accountId.Length <= 4)
+            return "****";
+        
+        return accountId.Substring(0, 2) + "****" + accountId.Substring(accountId.Length - 2);
     }
 }

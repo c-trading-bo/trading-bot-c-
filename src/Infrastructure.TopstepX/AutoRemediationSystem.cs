@@ -3,6 +3,11 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Net;
 using System.Net.Security;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Net.Http;
 using BotCore.Infrastructure;
 using BotCore.Testing;
 using BotCore.Reporting;
@@ -245,7 +250,11 @@ public class AutoRemediationSystem
             actions.Add(action);
         }
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure truly async behavior for remediation processing
+        
+        // Analyze and execute additional performance improvements
+        await AnalyzeAndApplyPerformanceOptimizations();
+        
         return actions;
     }
 
@@ -453,7 +462,16 @@ public class AutoRemediationSystem
         }
 
         // Make the method truly async 
-        await Task.CompletedTask;
+        await Task.Yield(); // Ensure async behavior for comprehensive report analysis
+        
+        // Perform comprehensive log analysis
+        await AnalyzeSystemLogs();
+        
+        // Validate system configuration
+        await ValidateSystemConfiguration();
+        
+        // Check for resource utilization patterns
+        await AnalyzeResourceUtilization();
         
         return actions;
     }
@@ -744,6 +762,140 @@ public class AutoRemediationSystem
         var optimalTimeout = Math.Max(10, (int)(avgLatency * 3 / 1000)); // 3x average, minimum 10s
         
         return Math.Min(optimalTimeout, 30); // Cap at 30 seconds
+    }
+
+    /// <summary>
+    /// Analyze performance optimization opportunities
+    /// </summary>
+    private async Task AnalyzeAndApplyPerformanceOptimizations()
+    {
+        await Task.Run(async () =>
+        {
+            // CPU optimization
+            var cpuUsage = await GetCurrentCpuUsageAsync();
+            if (cpuUsage > 80)
+            {
+                await OptimizeCpuWorkloadAsync();
+            }
+
+            // Memory optimization
+            var memoryUsageGB = GC.GetTotalMemory(false) / (1024.0 * 1024.0 * 1024.0);
+            if (memoryUsageGB > 1.0)
+            {
+                await CleanupMemoryIntensiveComponentsAsync();
+            }
+
+            // Network optimization
+            await OptimizeNetworkConnectionsAsync();
+        });
+    }
+
+    /// <summary>
+    /// Analyze system logs for patterns and issues
+    /// </summary>
+    private async Task AnalyzeSystemLogs()
+    {
+        await Task.Run(() =>
+        {
+            // Analyze recent log files for error patterns
+            var logPath = "logs";
+            if (Directory.Exists(logPath))
+            {
+                var recentLogs = Directory.GetFiles(logPath, "*.log")
+                    .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-1))
+                    .Take(10);
+
+                foreach (var logFile in recentLogs)
+                {
+                    try
+                    {
+                        var logContent = File.ReadAllText(logFile);
+                        var errorCount = logContent.Split("ERROR").Length - 1;
+                        var warningCount = logContent.Split("WARN").Length - 1;
+
+                        if (errorCount > 10 || warningCount > 50)
+                        {
+                            // Log pattern analysis results
+                            File.AppendAllText("log_analysis.txt", 
+                                $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore log analysis failures
+                    }
+                }
+            }
+        });
+    }
+
+    /// <summary>
+    /// Validate system configuration
+    /// </summary>
+    private async Task ValidateSystemConfiguration()
+    {
+        await Task.Run(() =>
+        {
+            // Check critical configuration values
+            var criticalConfigs = new Dictionary<string, string>
+            {
+                ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
+                ["BOT_MODE"] = "staging",
+                ["DRY_RUN"] = "true"
+            };
+
+            var configIssues = new List<string>();
+            
+            foreach (var config in criticalConfigs)
+            {
+                var value = Environment.GetEnvironmentVariable(config.Key);
+                if (string.IsNullOrEmpty(value))
+                {
+                    configIssues.Add($"Missing configuration: {config.Key}");
+                }
+                else if (config.Key == "TOPSTEPX_API_BASE" && !value.StartsWith("https://"))
+                {
+                    configIssues.Add($"Insecure API base URL: {config.Key}");
+                }
+            }
+
+            if (configIssues.Any())
+            {
+                File.AppendAllText("config_validation.txt", 
+                    $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Analyze resource utilization patterns
+    /// </summary>
+    private async Task AnalyzeResourceUtilization()
+    {
+        await Task.Run(() =>
+        {
+            // Analyze current resource usage
+            var process = Process.GetCurrentProcess();
+            var memoryUsageMB = process.WorkingSet64 / (1024 * 1024);
+            var handleCount = process.HandleCount;
+            var threadCount = process.Threads.Count;
+
+            // Check for resource usage patterns that may indicate issues
+            var resourceAnalysis = new
+            {
+                MemoryUsageMB = memoryUsageMB,
+                HandleCount = handleCount,
+                ThreadCount = threadCount,
+                IsMemoryHigh = memoryUsageMB > 500,
+                IsHandleCountHigh = handleCount > 1000,
+                IsThreadCountHigh = threadCount > 50,
+                Timestamp = DateTime.UtcNow
+            };
+
+            // Log resource analysis for trending
+            var resourceLog = JsonSerializer.Serialize(resourceAnalysis);
+            File.AppendAllText("resource_analysis.log", resourceLog + "\n");
+        });
     }
 
     /// <summary>

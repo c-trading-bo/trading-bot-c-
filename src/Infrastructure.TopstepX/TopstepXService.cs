@@ -534,12 +534,14 @@ public class TopstepXService : ITopstepXService, IDisposable
 
             _logger.LogError("[TOPSTEPX] JWT request failed with status: {Status}",
                 response.StatusCode);
-            return null;
+            
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"JWT authentication failed: HTTP {(int)response.StatusCode} - {errorContent}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!(ex is HttpRequestException))
         {
             _logger.LogError(ex, "[TOPSTEPX] JWT token request failed");
-            return null;
+            throw new InvalidOperationException("JWT token request failed due to network or service error", ex);
         }
     }
 
@@ -735,7 +737,7 @@ public class ExponentialBackoffRetryPolicy : IRetryPolicy
     {
         // Max 5 retries with exponential backoff
         if (retryContext.PreviousRetryCount >= 5)
-            return null;
+            return null; // Stop retrying after max attempts
 
         var delay = TimeSpan.FromSeconds(Math.Pow(2, retryContext.PreviousRetryCount));
         return delay > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : delay;

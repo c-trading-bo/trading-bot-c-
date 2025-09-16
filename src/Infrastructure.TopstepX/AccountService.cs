@@ -174,7 +174,12 @@ public class AccountService : IAccountService, IDisposable
         // Start the timer to refresh account data periodically
         _refreshTimer.Change(TimeSpan.Zero, interval);
         
-        await Task.CompletedTask;
+        // Perform initial account data validation
+        await ValidateAccountConfigurationAsync();
+        
+        // Log startup completion
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AccountService",
+            $"Account refresh service started with {interval} interval");
     }
 
     private async Task RefreshAccountAsync()
@@ -205,5 +210,53 @@ public class AccountService : IAccountService, IDisposable
     public void Dispose()
     {
         _refreshTimer?.Dispose();
+    }
+
+    /// <summary>
+    /// Validate account configuration and connectivity
+    /// </summary>
+    private async Task ValidateAccountConfigurationAsync()
+    {
+        try
+        {
+            // Validate environment configuration
+            var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE");
+            if (string.IsNullOrEmpty(apiBase))
+            {
+                _logger.LogWarning("[ACCOUNT] TOPSTEPX_API_BASE not configured");
+                return;
+            }
+
+            // Test basic connectivity
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var healthCheckUrl = $"{apiBase.TrimEnd('/')}/health";
+            
+            try
+            {
+                var response = await httpClient.GetAsync(healthCheckUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("[ACCOUNT] API connectivity validated successfully");
+                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AccountService",
+                        "API connectivity validation passed");
+                }
+                else
+                {
+                    _logger.LogWarning("[ACCOUNT] API health check returned: {StatusCode}", response.StatusCode);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogWarning("[ACCOUNT] API connectivity test timed out");
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogWarning(ex, "[ACCOUNT] API connectivity test failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Error during account configuration validation");
+        }
     }
 }

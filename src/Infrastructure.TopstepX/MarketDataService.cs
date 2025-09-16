@@ -167,9 +167,10 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
             var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             return property?.GetValue(obj)?.ToString();
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            _logger.LogError(ex, "[MARKET-DATA] Failed to parse market data");
+            throw new InvalidOperationException("Failed to parse market data - invalid format", ex);
         }
     }
 

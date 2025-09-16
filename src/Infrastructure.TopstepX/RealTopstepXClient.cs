@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -205,12 +206,32 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the account service
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetAccountAsync called for account: {AccountId} (simplified implementation)", MaskAccountId(accountId));
-            var mockAccount = new { accountId, status = "Active", type = "Funded" };
-            var json = JsonSerializer.Serialize(mockAccount);
+            // Real implementation using account service
+            var account = await _accountService.GetAccountAsync(accountId, cancellationToken);
+            if (account == null)
+            {
+                throw new InvalidOperationException($"Account {MaskAccountId(accountId)} not found");
+            }
+            
+            var accountData = new 
+            { 
+                accountId = account.AccountId,
+                status = account.Status,
+                type = account.Type,
+                balance = account.Balance,
+                equity = account.Equity,
+                unrealizedPnL = account.UnrealizedPnL,
+                isActive = account.IsActive,
+                riskLevel = account.RiskLevel,
+                lastUpdated = account.LastUpdated
+            };
+            
+            var json = JsonSerializer.Serialize(accountData);
             var element = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            _logger.LogInformation("[REAL-TOPSTEPX] Account data retrieved for: {AccountId}, Status: {Status}", 
+                MaskAccountId(accountId), account.Status);
+            
             return element;
         }
         catch (Exception ex)
@@ -226,12 +247,35 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the account service
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetAccountBalanceAsync called for account: {AccountId} (simplified implementation)", MaskAccountId(accountId));
-            var mockBalance = new { accountId, balance = 100000m, isRiskBreached = false };
-            var json = JsonSerializer.Serialize(mockBalance);
+            // Real implementation using account service
+            var balance = await _accountService.GetAccountBalanceAsync(accountId, cancellationToken);
+            if (balance == null)
+            {
+                throw new InvalidOperationException($"Balance information not available for account {MaskAccountId(accountId)}");
+            }
+            
+            var balanceData = new 
+            { 
+                accountId,
+                balance = balance.CurrentBalance,
+                equity = balance.Equity,
+                unrealizedPnL = balance.UnrealizedPnL,
+                realizedPnL = balance.RealizedPnL,
+                buyingPower = balance.BuyingPower,
+                netLiquidatingValue = balance.NetLiquidatingValue,
+                isRiskBreached = balance.IsRiskBreached,
+                riskPercentage = balance.RiskPercentage,
+                maxDrawdown = balance.MaxDrawdown,
+                lastUpdated = balance.LastUpdated,
+                currency = balance.Currency ?? "USD"
+            };
+            
+            var json = JsonSerializer.Serialize(balanceData);
             var element = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            _logger.LogInformation("[REAL-TOPSTEPX] Balance retrieved for: {AccountId}, Balance: {Balance:C}, Risk: {Risk}%", 
+                MaskAccountId(accountId), balance.CurrentBalance, balance.RiskPercentage);
+            
             return element;
         }
         catch (Exception ex)
@@ -247,12 +291,35 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-            // Simplified implementation - in real usage this would call the account service
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] GetAccountPositionsAsync called for account: {AccountId} (simplified implementation)", MaskAccountId(accountId));
-            var mockPositions = new[] { new { symbol = "ES", quantity = 0, unrealizedPnL = 0m } };
-            var json = JsonSerializer.Serialize(mockPositions);
+            // Real implementation using account service
+            var positions = await _accountService.GetAccountPositionsAsync(accountId, cancellationToken);
+            if (positions == null)
+            {
+                throw new InvalidOperationException($"Position information not available for account {MaskAccountId(accountId)}");
+            }
+            
+            var positionData = positions.Select(pos => new
+            {
+                symbol = pos.Symbol,
+                quantity = pos.Quantity,
+                side = pos.Side,
+                averagePrice = pos.AveragePrice,
+                marketPrice = pos.MarketPrice,
+                unrealizedPnL = pos.UnrealizedPnL,
+                realizedPnL = pos.RealizedPnL,
+                netValue = pos.NetValue,
+                openTime = pos.OpenTime,
+                lastUpdated = pos.LastUpdated,
+                riskAmount = pos.RiskAmount,
+                marginRequirement = pos.MarginRequirement
+            }).ToArray();
+            
+            var json = JsonSerializer.Serialize(positionData);
             var element = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            _logger.LogInformation("[REAL-TOPSTEPX] Positions retrieved for: {AccountId}, Count: {Count}, Total P&L: {PnL:C}", 
+                MaskAccountId(accountId), positions.Count(), positions.Sum(p => p.UnrealizedPnL));
+            
             return element;
         }
         catch (Exception ex)
@@ -264,16 +331,38 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchAccountsAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("[REAL-TOPSTEPX] SearchAccountsAsync called");
+        _logger.LogInformation("[REAL-TOPSTEPX] SearchAccountsAsync called with search criteria");
         
         try
         {
-            // Simplified implementation - in real usage this would call the account service
-            await Task.CompletedTask; // Make the method async
-            _logger.LogInformation("[REAL-TOPSTEPX] SearchAccountsAsync called (simplified implementation)");
-            var mockAccounts = new[] { new { accountId = "123456", status = "Active", type = "Funded" } };
-            var json = JsonSerializer.Serialize(mockAccounts);
+            // Real implementation using account service
+            var accounts = await _accountService.SearchAccountsAsync(searchRequest, cancellationToken);
+            if (accounts == null)
+            {
+                throw new InvalidOperationException("Account search service returned null");
+            }
+            
+            var accountsData = accounts.Select(acc => new
+            {
+                accountId = acc.AccountId,
+                status = acc.Status,
+                type = acc.Type,
+                balance = acc.Balance,
+                equity = acc.Equity,
+                isActive = acc.IsActive,
+                createdDate = acc.CreatedDate,
+                lastLoginDate = acc.LastLoginDate,
+                riskLevel = acc.RiskLevel,
+                tradingEnabled = acc.TradingEnabled,
+                accountName = acc.AccountName,
+                region = acc.Region
+            }).ToArray();
+            
+            var json = JsonSerializer.Serialize(accountsData);
             var element = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            _logger.LogInformation("[REAL-TOPSTEPX] Account search completed, found {Count} accounts", accounts.Count());
+            
             return element;
         }
         catch (Exception ex)

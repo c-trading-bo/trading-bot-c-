@@ -185,16 +185,35 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
         TokenRefreshed?.Invoke(newToken);
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("JWT Lifecycle Manager started");
-        return Task.CompletedTask;
+        _logger.LogInformation("[JWT-LIFECYCLE] JWT Lifecycle Manager starting...");
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "JwtLifecycleManager",
+            "JWT Lifecycle Manager service started - monitoring token expiration every 5 minutes");
+        
+        // Perform initial token validation if we have one
+        var currentToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+        if (!string.IsNullOrEmpty(currentToken))
+        {
+            var isValid = await ValidateTokenAsync(currentToken);
+            if (!isValid)
+            {
+                _logger.LogWarning("[JWT-LIFECYCLE] Current JWT token is invalid or expired");
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "JwtLifecycleManager",
+                    "Initial JWT token validation failed - token refresh required");
+            }
+        }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("JWT Lifecycle Manager stopping");
-        return Task.CompletedTask;
+        _logger.LogInformation("[JWT-LIFECYCLE] JWT Lifecycle Manager stopping...");
+        
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "JwtLifecycleManager",
+            "JWT Lifecycle Manager service stopped");
+        
+        _expirationCheckTimer?.Change(Timeout.Infinite, 0);
     }
 
     public void Dispose()
