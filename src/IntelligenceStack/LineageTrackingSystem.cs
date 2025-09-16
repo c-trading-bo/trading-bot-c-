@@ -309,11 +309,11 @@ public class LineageTrackingSystem
             UniqueModels = events.Where(e => e.EntityType == "model").Select(e => e.EntityId).Distinct().Count(),
             ModelVersionDistribution = events
                 .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString())
+                .GroupBy(e => e.Properties.GetValueOrDefault("model_version", "unknown").ToString() ?? "unknown")
                 .ToDictionary(g => g.Key, g => g.Count()),
             FeatureVersionDistribution = events
                 .Where(e => e.EventType == LineageEventType.DecisionStamped)
-                .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString())
+                .GroupBy(e => e.Properties.GetValueOrDefault("feature_version", "unknown").ToString() ?? "unknown")
                 .ToDictionary(g => g.Key, g => g.Count())
         };
 

@@ -233,8 +233,8 @@ public class NightlyParameterTuner
         var generations = _config.Trials / populationSize;
         var bestIndividual = population.OrderByDescending(ind => ind.Fitness).First();
         
-        result.BaselineMetrics = bestIndividual.Metrics;
-        var bestMetrics = bestIndividual.Metrics;
+        result.BaselineMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
+        var bestMetrics = bestIndividual.Metrics ?? throw new InvalidOperationException("Best individual has null metrics");
         var bestParameters = bestIndividual.Parameters;
 
         // Evolution loop

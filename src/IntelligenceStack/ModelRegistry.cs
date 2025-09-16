@@ -206,7 +206,11 @@ public class ModelRegistry : IModelRegistry
             // Perform promotion
             var familyName = ExtractFamilyFromId(modelId);
             var promotedPath = Path.Combine(_basePath, "promoted", $"{familyName}_promoted.json");
-            Directory.CreateDirectory(Path.GetDirectoryName(promotedPath));
+            var promotedDir = Path.GetDirectoryName(promotedPath);
+            if (!string.IsNullOrEmpty(promotedDir))
+            {
+                Directory.CreateDirectory(promotedDir);
+            }
 
             var promotionRecord = new PromotionRecord
             {
