@@ -474,9 +474,9 @@ public class KellyState
 /// <summary>
 /// SAC state for fraction proposal
 /// </summary>
-public class SACState
+public class SACState : IDisposable
 {
-    private readonly Random _random = new();
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
     private readonly Dictionary<RegimeType, double> _baseProposals = new()
     {
         { RegimeType.Trend, 0.6 },
@@ -499,9 +499,17 @@ public class SACState
         var proposedFraction = baseProposal + adjustment;
         
         // Add some controlled randomness for exploration
-        proposedFraction += (_random.NextDouble() - 0.5) * 0.1;
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+        proposedFraction += (randomValue - 0.5) * 0.1;
         
         return Math.Max(0.0, Math.Min(1.0, proposedFraction));
+    }
+
+    public void Dispose()
+    {
+        _rng?.Dispose();
     }
 }
 

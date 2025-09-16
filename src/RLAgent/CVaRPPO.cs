@@ -108,8 +108,13 @@ public class CVaRPPO : IDisposable
 
             for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
             {
-                // Shuffle experiences
-                var shuffledIndices = Enumerable.Range(0, experiences.Count).OrderBy(x => Random.Shared.Next()).ToArray();
+                // Shuffle experiences using cryptographically secure random
+                using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+                var shuffledIndices = Enumerable.Range(0, experiences.Count).OrderBy(x => {
+                    var bytes = new byte[4];
+                    rng.GetBytes(bytes);
+                    return BitConverter.ToUInt32(bytes, 0);
+                }).ToArray();
                 
                 // Mini-batch training
                 for (int i = 0; i < experiences.Count; i += _config.BatchSize)
@@ -574,13 +579,17 @@ public class CVaRPPO : IDisposable
 
     private int SampleFromDistribution(double[] probabilities)
     {
-        var random = Random.Shared.NextDouble();
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var bytes = new byte[8];
+        rng.GetBytes(bytes);
+        var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+        
         var cumulative = 0.0;
         
         for (int i = 0; i < probabilities.Length; i++)
         {
             cumulative += probabilities[i];
-            if (random <= cumulative)
+            if (randomValue <= cumulative)
                 return i;
         }
         
@@ -779,14 +788,14 @@ public class PolicyNetwork : IDisposable
 
     private void InitializeWeights()
     {
-        var random = new Random();
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         _weights1 = new double[_stateSize, _hiddenSize];
         _bias1 = new double[_hiddenSize];
         _weights2 = new double[_hiddenSize, _actionSize];
         _bias2 = new double[_actionSize];
         
-        // Xavier initialization
+        // Xavier initialization with secure random
         var limit1 = Math.Sqrt(6.0 / (_stateSize + _hiddenSize));
         var limit2 = Math.Sqrt(6.0 / (_hiddenSize + _actionSize));
         
@@ -794,7 +803,10 @@ public class PolicyNetwork : IDisposable
         {
             for (int j = 0; j < _hiddenSize; j++)
             {
-                _weights1[i, j] = (random.NextDouble() * 2 - 1) * limit1;
+                var bytes = new byte[8];
+                rng.GetBytes(bytes);
+                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+                _weights1[i, j] = (randomValue * 2 - 1) * limit1;
             }
         }
         
@@ -802,7 +814,10 @@ public class PolicyNetwork : IDisposable
         {
             for (int j = 0; j < _actionSize; j++)
             {
-                _weights2[i, j] = (random.NextDouble() * 2 - 1) * limit2;
+                var bytes = new byte[8];
+                rng.GetBytes(bytes);
+                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+                _weights2[i, j] = (randomValue * 2 - 1) * limit2;
             }
         }
     }
@@ -900,7 +915,7 @@ public class ValueNetwork : IDisposable
 
     private void InitializeWeights()
     {
-        var random = new Random();
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         _weights1 = new double[_stateSize, _hiddenSize];
         _bias1 = new double[_hiddenSize];
@@ -913,13 +928,19 @@ public class ValueNetwork : IDisposable
         {
             for (int j = 0; j < _hiddenSize; j++)
             {
-                _weights1[i, j] = (random.NextDouble() * 2 - 1) * limit;
+                var bytes = new byte[8];
+                rng.GetBytes(bytes);
+                var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+                _weights1[i, j] = (randomValue * 2 - 1) * limit;
             }
         }
         
         for (int i = 0; i < _hiddenSize; i++)
         {
-            _weights2[i] = (random.NextDouble() * 2 - 1) * 0.1;
+            var bytes = new byte[8];
+            rng.GetBytes(bytes);
+            var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
+            _weights2[i] = (randomValue * 2 - 1) * 0.1;
         }
     }
 

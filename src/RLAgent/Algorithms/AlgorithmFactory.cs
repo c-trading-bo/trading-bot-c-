@@ -220,7 +220,7 @@ public class AlgorithmConfig
 /// <summary>
 /// Wrapper for SAC algorithm
 /// </summary>
-public class SACAlgorithmWrapper : IRLAlgorithm
+public class SacAlgorithmWrapper : IRLAlgorithm
 {
     private readonly SoftActorCritic _sac;
 
