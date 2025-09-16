@@ -1,0 +1,946 @@
+{
+  "Projects": [
+    {
+      "Name": "Abstractions",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Abstractions/Abstractions.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.AspNetCore.SignalR.Client",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "BotCore",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/BotCore/BotCore.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.AspNetCore.SignalR.Client",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Diagnostics.HealthChecks",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Hosting",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Http",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Console",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Newtonsoft.Json",
+              "ResolvedVersion": "13.0.3",
+              "LatestVersion": "13.0.4",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Data.SQLite",
+              "ResolvedVersion": "1.0.118",
+              "LatestVersion": "2.0.2",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "HistoricalTrainer",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/ML/HistoricalTrainer/HistoricalTrainer.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.ML",
+              "ResolvedVersion": "3.0.1",
+              "LatestVersion": "4.0.2",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Infrastructure.TopstepX",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Infrastructure.TopstepX/Infrastructure.TopstepX.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.AspNetCore.SignalR.Client",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.DependencyInjection",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Hosting",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Hosting.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Console",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Options",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.IdentityModel.Tokens.Jwt",
+              "ResolvedVersion": "8.0.1",
+              "LatestVersion": "8.14.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "IntelligenceAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceAgent/IntelligenceAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "IntelligenceStack",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/IntelligenceStack/IntelligenceStack.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration.Binder",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.DependencyInjection",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Hosting",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Http",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "MLRLAuditTests",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/tests/Unit/MLRLAuditTests.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "coverlet.collector",
+              "ResolvedVersion": "6.0.0",
+              "LatestVersion": "6.0.4",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.NET.Test.Sdk",
+              "ResolvedVersion": "17.8.0",
+              "LatestVersion": "17.14.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Moq",
+              "ResolvedVersion": "4.20.69",
+              "LatestVersion": "4.20.72",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "xunit",
+              "ResolvedVersion": "2.4.2",
+              "LatestVersion": "2.9.3",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "xunit.runner.visualstudio",
+              "ResolvedVersion": "2.4.5",
+              "LatestVersion": "3.1.4",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "OrchestratorAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/OrchestratorAgent/OrchestratorAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.AspNetCore.SignalR.Client",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "RLAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/RLAgent/RLAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.16.0",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Safety",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Safety/Safety.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Hosting",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Options",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Diagnostics.PerformanceCounter",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Strategies",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Strategies/Strategies.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging.Abstractions",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Text.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "StrategyAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/StrategyAgent/StrategyAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "TopstepAuthAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/TopstepAuthAgent/TopstepAuthAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "TradingBot.Infrastructure.Alerts",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Infrastructure/Alerts/Alerts.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "TradingBot.ML",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/ML/ML.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.ML",
+              "ResolvedVersion": "3.0.1",
+              "LatestVersion": "4.0.2",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "TradingBot.Monitoring",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/Monitoring/Monitoring.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Logging",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "UnifiedOrchestrator",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/UnifiedOrchestrator/UnifiedOrchestrator.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.EntityFrameworkCore",
+              "ResolvedVersion": "8.0.11",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.EntityFrameworkCore.Design",
+              "ResolvedVersion": "8.0.11",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.EntityFrameworkCore.Sqlite",
+              "ResolvedVersion": "8.0.11",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.ML.OnnxRuntime.Gpu",
+              "ResolvedVersion": "1.19.2",
+              "LatestVersion": "1.22.1",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Newtonsoft.Json",
+              "ResolvedVersion": "13.0.3",
+              "LatestVersion": "13.0.4",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "System.Data.SQLite.Core",
+              "ResolvedVersion": "1.0.118",
+              "LatestVersion": "1.0.119",
+              "UpgradeSeverity": "Patch"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "UpdaterAgent",
+      "FilePath": "/home/runner/work/trading-bot-c-/trading-bot-c-/src/UpdaterAgent/UpdaterAgent.csproj",
+      "TargetFrameworks": [
+        {
+          "Name": "net8.0",
+          "Dependencies": [
+            {
+              "Name": "Microsoft.CodeAnalysis.Analyzers",
+              "ResolvedVersion": "3.3.4",
+              "LatestVersion": "3.11.0",
+              "UpgradeSeverity": "Minor"
+            },
+            {
+              "Name": "Microsoft.CodeAnalysis.NetAnalyzers",
+              "ResolvedVersion": "8.0.0",
+              "LatestVersion": "9.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration.EnvironmentVariables",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Microsoft.Extensions.Configuration.Json",
+              "ResolvedVersion": "9.0.0",
+              "LatestVersion": "9.0.9",
+              "UpgradeSeverity": "Patch"
+            },
+            {
+              "Name": "Serilog.Sinks.Console",
+              "ResolvedVersion": "5.0.1",
+              "LatestVersion": "6.0.0",
+              "UpgradeSeverity": "Major"
+            },
+            {
+              "Name": "SonarAnalyzer.CSharp",
+              "ResolvedVersion": "9.32.0.97167",
+              "LatestVersion": "10.15.0.120848",
+              "UpgradeSeverity": "Major"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

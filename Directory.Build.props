@@ -3,14 +3,34 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <!-- TreatWarningsAsErrors rollout completed: All phases 1-4 implemented -->
-    <!-- Phase 1: ✅ Fixed async method warnings  -->
-    <!-- Phase 2: ✅ Fixed nullable reference warnings -->
-    <!-- Phase 3: ✅ Fixed type conflict warnings -->
-    <!-- Phase 4: ✅ Enabled TreatWarningsAsErrors globally -->
-    <!-- Production requirement: Zero warnings enforced globally -->
+    <!-- Production Hardening Phase 0: Build and Dependency Hygiene -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors>CS0162;CS0168;CS0219;CS0414;CS0649;CS0693;CS1717</WarningsAsErrors>
-    <!-- Production code builds warning-free, test projects being fixed -->
+    
+    <!-- Enable nullable reference types solution-wide -->
+    <Nullable>enable</Nullable>
+    
+    <!-- Enable static code analysis -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    
+    <!-- Security and reliability analyzers -->
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microsoft Code Analysis analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
+    
+    <!-- Security analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" />
+    
+    <!-- Additional quality analyzers -->
+    <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
+  </ItemGroup>
 </Project>
