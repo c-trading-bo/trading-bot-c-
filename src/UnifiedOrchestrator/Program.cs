@@ -316,6 +316,9 @@ Stack Trace:
         services.AddSingleton<StrategyPerformanceAnalyzer>();
         services.AddSingleton<IMarketHours, BasicMarketHours>();
         
+        // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
+        services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
+        
         // Register UnifiedDecisionRouter before AutonomousDecisionEngine (dependency order)
         services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
         
@@ -998,8 +1001,7 @@ Stack Trace:
         services.AddHostedService<BotCore.Services.TradingFeedbackService>(provider => 
             provider.GetRequiredService<BotCore.Services.TradingFeedbackService>());
         
-        // Register Enhanced Trading Brain Integration - Coordinates all ML/RL/Cloud services
-        services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
+        // Enhanced Trading Brain Integration already registered above with UnifiedDecisionRouter dependencies
         
         Console.WriteLine("🚀 [ENHANCED-BRAIN] Production ML/RL/Cloud automation services registered successfully!");
         

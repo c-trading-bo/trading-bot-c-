@@ -32,9 +32,9 @@ public class UnifiedDecisionRouter
     private readonly IServiceProvider _serviceProvider;
     
     // AI Brain components in priority order
-    private EnhancedTradingBrainIntegration? _enhancedBrain;
+    private readonly EnhancedTradingBrainIntegration _enhancedBrain;
     private readonly UnifiedTradingBrain _unifiedBrain;
-    private TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator;
+    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator _intelligenceOrchestrator;
     
     // Strategy routing configuration
     private readonly Dictionary<string, StrategyConfig> _strategyConfigs;
@@ -43,54 +43,25 @@ public class UnifiedDecisionRouter
     // Decision tracking for learning
     private readonly List<DecisionOutcome> _decisionHistory = new();
     private readonly object _historyLock = new();
-    private bool _optionalServicesInitialized = false;
     
     public UnifiedDecisionRouter(
         ILogger<UnifiedDecisionRouter> logger,
         IServiceProvider serviceProvider,
-        UnifiedTradingBrain unifiedBrain)
+        UnifiedTradingBrain unifiedBrain,
+        EnhancedTradingBrainIntegration enhancedBrain,
+        TradingBot.IntelligenceStack.IntelligenceOrchestrator intelligenceOrchestrator)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _unifiedBrain = unifiedBrain;
+        _enhancedBrain = enhancedBrain;
+        _intelligenceOrchestrator = intelligenceOrchestrator;
         
         // Initialize strategy configurations
         _strategyConfigs = InitializeStrategyConfigs();
         
         _logger.LogInformation("🎯 [DECISION-ROUTER] Unified Decision Router initialized");
-        _logger.LogInformation("📊 [DECISION-ROUTER] Main brain available: Unified=True, Optional services will be initialized on first use");
-    }
-    
-    /// <summary>
-    /// Lazy initialization of optional services to avoid dependency issues during startup
-    /// </summary>
-    private void InitializeOptionalServices()
-    {
-        if (_optionalServicesInitialized) return;
-        
-        try
-        {
-            _enhancedBrain = _serviceProvider.GetService<EnhancedTradingBrainIntegration>();
-            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration available: {Available}", _enhancedBrain != null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("[DECISION-ROUTER] EnhancedTradingBrainIntegration not available: {Error}", ex.Message);
-        }
-        
-        try
-        {
-            _intelligenceOrchestrator = _serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
-            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator available: {Available}", _intelligenceOrchestrator != null);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug("[DECISION-ROUTER] IntelligenceOrchestrator not available: {Error}", ex.Message);
-        }
-        
-        _optionalServicesInitialized = true;
-        _logger.LogInformation("📊 [DECISION-ROUTER] Optional services initialized - Enhanced={Enhanced}, Intelligence={Intelligence}",
-            _enhancedBrain != null, _intelligenceOrchestrator != null);
+        _logger.LogInformation("📊 [DECISION-ROUTER] All services wired: Enhanced=True, Unified=True, Intelligence=True");
     }
     
     /// <summary>
@@ -101,9 +72,6 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
-        // Initialize optional services on first call to avoid startup dependency issues
-        InitializeOptionalServices();
-        
         var startTime = DateTime.UtcNow;
         var decisionId = GenerateDecisionId();
         
@@ -186,12 +154,6 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken)
     {
-        if (_enhancedBrain == null)
-        {
-            _logger.LogDebug("🔇 [ENHANCED-BRAIN] Not available, skipping");
-            return null;
-        }
-        
         try
         {
             // Convert MarketContext to EnhancedBrain format
@@ -251,12 +213,6 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken)
     {
-        if (_intelligenceOrchestrator == null)
-        {
-            _logger.LogDebug("🔇 [INTELLIGENCE-ORCHESTRATOR] Not available, skipping");
-            return null;
-        }
-        
         try
         {
             var abstractionContext = ConvertToAbstractionMarketContext(marketContext);
@@ -454,20 +410,17 @@ public class UnifiedDecisionRouter
             switch (outcome.Source)
             {
                 case "enhanced_brain":
-                    if (_enhancedBrain != null)
-                    {
-                        _enhancedBrain.SubmitTradingOutcome(
-                            outcome.Symbol,
-                            outcome.Strategy,
-                            outcome.Action.ToString(),
-                            outcome.RealizedPnL,
-                            new Dictionary<string, object>
-                            {
-                                ["decision_id"] = outcome.DecisionId,
-                                ["hold_time"] = outcome.HoldTime.TotalMinutes,
-                                ["was_correct"] = outcome.WasCorrect
-                            });
-                    }
+                    _enhancedBrain.SubmitTradingOutcome(
+                        outcome.Symbol,
+                        outcome.Strategy,
+                        outcome.Action.ToString(),
+                        outcome.RealizedPnL,
+                        new Dictionary<string, object>
+                        {
+                            ["decision_id"] = outcome.DecisionId,
+                            ["hold_time"] = outcome.HoldTime.TotalMinutes,
+                            ["was_correct"] = outcome.WasCorrect
+                        });
                     break;
                     
                 case "unified_brain":
