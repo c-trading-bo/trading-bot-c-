@@ -69,7 +69,7 @@ public class UnifiedDecisionRouter
     /// </summary>
     public async Task<UnifiedTradingDecision> RouteDecisionAsync(
         string symbol,
-        MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -151,7 +151,7 @@ public class UnifiedDecisionRouter
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryEnhancedBrainAsync(
         string symbol,
-        MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try
@@ -182,7 +182,7 @@ public class UnifiedDecisionRouter
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryUnifiedBrainAsync(
         string symbol,
-        MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try
@@ -210,12 +210,12 @@ public class UnifiedDecisionRouter
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryIntelligenceOrchestratorAsync(
         string symbol,
-        MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try
         {
-            var abstractionContext = ConvertToAbstractionMarketContext(marketContext);
+            var abstractionContext = EnhanceMarketContext(marketContext);
             var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken);
             
             return ConvertFromAbstractionDecision(decision);
@@ -230,7 +230,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Create forced decision based on market conditions - NEVER RETURNS HOLD
     /// </summary>
-    private UnifiedTradingDecision CreateForceDecision(string symbol, MarketContext marketContext)
+    private UnifiedTradingDecision CreateForceDecision(string symbol, TradingBot.Abstractions.MarketContext marketContext)
     {
         // Analyze market conditions to determine direction
         var marketAnalysis = AnalyzeMarketConditions(marketContext);
@@ -260,7 +260,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Create emergency decision - Last resort fallback
     /// </summary>
-    private UnifiedTradingDecision CreateEmergencyDecision(string symbol, MarketContext marketContext)
+    private UnifiedTradingDecision CreateEmergencyDecision(string symbol, TradingBot.Abstractions.MarketContext marketContext)
     {
         // Emergency decisions are always conservative BUY (ES/NQ tend to trend up)
         return new UnifiedTradingDecision
@@ -283,7 +283,7 @@ public class UnifiedDecisionRouter
     /// <summary>
     /// Analyze market conditions for forced decision making
     /// </summary>
-    private MarketAnalysis AnalyzeMarketConditions(MarketContext context)
+    private MarketAnalysis AnalyzeMarketConditions(TradingBot.Abstractions.MarketContext context)
     {
         var analysis = new MarketAnalysis();
         
@@ -480,7 +480,7 @@ public class UnifiedDecisionRouter
     
     #region Conversion Methods
     
-    private Dictionary<string, object> ConvertToEnhancedContext(MarketContext context)
+    private Dictionary<string, object> ConvertToEnhancedContext(TradingBot.Abstractions.MarketContext context)
     {
         return new Dictionary<string, object>
         {
@@ -492,7 +492,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private List<string> GetAvailableStrategies(MarketContext context)
+    private List<string> GetAvailableStrategies(TradingBot.Abstractions.MarketContext context)
     {
         var hour = DateTime.UtcNow.Hour;
         return hour switch
@@ -504,7 +504,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private Env ConvertToEnv(MarketContext context)
+    private Env ConvertToEnv(TradingBot.Abstractions.MarketContext context)
     {
         return new Env
         {
@@ -514,7 +514,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private Levels ConvertToLevels(MarketContext context)
+    private Levels ConvertToLevels(TradingBot.Abstractions.MarketContext context)
     {
         var price = (decimal)context.Price;
         return new Levels
@@ -532,7 +532,7 @@ public class UnifiedDecisionRouter
         };
     }
     
-    private IList<ModelBar> ConvertToBars(MarketContext context)
+    private IList<ModelBar> ConvertToBars(TradingBot.Abstractions.MarketContext context)
     {
         var bars = new List<ModelBar>();
         var price = (decimal)context.Price;
@@ -567,18 +567,33 @@ public class UnifiedDecisionRouter
         return riskEngine;
     }
     
-    private TradingBot.Abstractions.MarketContext ConvertToAbstractionMarketContext(MarketContext context)
+    private TradingBot.Abstractions.MarketContext EnhanceMarketContext(TradingBot.Abstractions.MarketContext context)
     {
-        return new TradingBot.Abstractions.MarketContext
+        // Enhance the context with additional properties if not already set
+        if (context.Bid == 0 && context.Ask == 0)
         {
-            Symbol = context.Symbol,
-            Price = context.Price,
-            Volume = context.Volume,
-            Bid = context.Price - 0.25,
-            Ask = context.Price + 0.25,
-            Timestamp = context.Timestamp,
-            TechnicalIndicators = context.TechnicalIndicators
-        };
+            return new TradingBot.Abstractions.MarketContext
+            {
+                Symbol = context.Symbol,
+                Price = context.Price,
+                Volume = context.Volume,
+                Bid = context.Price - 0.25,
+                Ask = context.Price + 0.25,
+                Timestamp = context.Timestamp,
+                TechnicalIndicators = context.TechnicalIndicators,
+                // Copy all other properties
+                CurrentRegime = context.CurrentRegime,
+                Regime = context.Regime,
+                ModelConfidence = context.ModelConfidence,
+                PrimaryBias = context.PrimaryBias,
+                IsFomcDay = context.IsFomcDay,
+                IsCpiDay = context.IsCpiDay,
+                NewsIntensity = context.NewsIntensity,
+                SignalStrength = context.SignalStrength,
+                ConfidenceLevel = context.ConfidenceLevel
+            };
+        }
+        return context;
     }
     
     private UnifiedTradingDecision ConvertFromEnhancedDecision(EnhancedTradingDecision enhanced)
@@ -689,14 +704,7 @@ public class UnifiedTradingDecision
     public double ProcessingTimeMs { get; set; }
 }
 
-public class MarketContext
-{
-    public string Symbol { get; set; } = string.Empty;
-    public double Price { get; set; }
-    public double Volume { get; set; }
-    public DateTime Timestamp { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
-}
+
 
 public class MarketAnalysis
 {

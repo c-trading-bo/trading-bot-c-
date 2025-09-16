@@ -221,7 +221,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get unified trading decision from master orchestrator or fallback systems
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetUnifiedTradingDecisionAsync(
-        BotCore.Services.MarketContext marketContext, 
+        TradingBot.Abstractions.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -278,7 +278,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get decision from Enhanced Brain Integration
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetEnhancedBrainDecisionAsync(
-        BotCore.Services.MarketContext marketContext, 
+        TradingBot.Abstractions.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -338,7 +338,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get decision from Unified Trading Brain
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetUnifiedBrainDecisionAsync(
-        BotCore.Services.MarketContext marketContext, 
+        TradingBot.Abstractions.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -503,7 +503,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create enhanced market context from live market data
     /// </summary>
-    private Task<BotCore.Services.MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
+    private Task<TradingBot.Abstractions.MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -511,7 +511,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // For now, create enhanced realistic market context
             var basePrice = 4500.0 + (Random.Shared.NextDouble() - 0.5) * 50; // More realistic ES movement
             
-            var result = new BotCore.Services.MarketContext
+            var result = new TradingBot.Abstractions.MarketContext
             {
                 Symbol = "ES",
                 Price = basePrice,
@@ -538,7 +538,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             _logger.LogError(ex, "❌ [MARKET-CONTEXT] Error creating market context");
             
             // Fallback to minimal context
-            var fallback = new BotCore.Services.MarketContext
+            var fallback = new TradingBot.Abstractions.MarketContext
             {
                 Symbol = "ES",
                 Price = 4500.0,
@@ -554,7 +554,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create levels from market context
     /// </summary>
-    private Levels CreateLevelsFromContext(BotCore.Services.MarketContext context)
+    private Levels CreateLevelsFromContext(TradingBot.Abstractions.MarketContext context)
     {
         var price = (decimal)context.Price;
         var atr = (decimal)context.TechnicalIndicators.GetValueOrDefault("atr", 5.0);
@@ -577,7 +577,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create bars from market context
     /// </summary>
-    private IList<Bar> CreateBarsFromContext(BotCore.Services.MarketContext context)
+    private IList<Bar> CreateBarsFromContext(TradingBot.Abstractions.MarketContext context)
     {
         var bars = new List<Bar>();
         var price = (decimal)context.Price;
@@ -1083,7 +1083,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Helper method to call MasterDecisionOrchestrator with proper type conversion
     /// </summary>
     private async Task<UnifiedTradingDecision?> CallMasterOrchestratorAsync(
-        BotCore.Services.MarketContext localMarketContext, 
+        TradingBot.Abstractions.MarketContext localMarketContext, 
         CancellationToken cancellationToken)
     {
         try

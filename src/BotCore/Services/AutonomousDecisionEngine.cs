@@ -506,7 +506,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 _logger.LogDebug("Using fallback market data: {Error}", ex.Message);
             }
             
-            var marketContext = new MarketContext
+            var marketContext = new TradingBot.Abstractions.MarketContext
             {
                 Symbol = "ES",
                 Price = currentPrice,
@@ -912,12 +912,12 @@ public class AutonomousDecisionEngine : BackgroundService
     /// <summary>
     /// Helper method to get market context from brain
     /// </summary>
-    private MarketContext? GetMarketContextFromBrain(string symbol)
+    private TradingBot.Abstractions.MarketContext? GetMarketContextFromBrain(string symbol)
     {
         try
         {
             // Create a basic market context for the symbol
-            return new MarketContext
+            return new TradingBot.Abstractions.MarketContext
             {
                 Symbol = symbol,
                 Price = symbol == "ES" ? 4500.0 : 15000.0,

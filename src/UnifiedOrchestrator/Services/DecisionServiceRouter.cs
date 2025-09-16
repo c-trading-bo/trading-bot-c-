@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Net.Http;
 using BotCore.Services;
+using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -54,7 +55,7 @@ public class DecisionServiceRouter
     /// </summary>
     public async Task<UnifiedTradingDecision> RouteIntegratedDecisionAsync(
         string symbol,
-        BotCore.Services.MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -174,7 +175,7 @@ public class DecisionServiceRouter
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryPythonDecisionServiceAsync(
         string symbol,
-        BotCore.Services.MarketContext marketContext,
+        TradingBot.Abstractions.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try
