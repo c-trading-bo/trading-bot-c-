@@ -13,6 +13,7 @@ using SupervisorAgent;
 using BotCore.Models;
 using BotCore.Services;
 using BotCore.Supervisor;
+using TopstepX.Bot.Authentication;
 using BotCore.Risk;
 using BotCore.Infra;
 using BotCore.Strategy;

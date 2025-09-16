@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
+using TopstepX.Bot.Authentication;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 

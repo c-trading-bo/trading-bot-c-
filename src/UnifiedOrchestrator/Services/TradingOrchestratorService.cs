@@ -1009,6 +1009,11 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
 
     private async Task<TradingBot.Abstractions.MarketContext> CreateMarketContextFromWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
+        // TODO: Implement real market context creation from workflow execution context
+        // This should integrate with actual TopstepX market data services
+        throw new InvalidOperationException("Real market context creation from workflow not yet implemented");
+    }
+
     /// <summary>
     /// Calculate real technical indicators from actual market data
     /// </summary>
@@ -1091,11 +1096,6 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             _logger.LogError(ex, "❌ [MARKET-CONTEXT] Failed to create real market context for {Symbol}", symbol);
             throw;
         }
-    }
-
-    private async Task<TradingBot.Abstractions.MarketContext> CreateMarketContextFromWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
-    {
-        return await CreateRealMarketEnvironmentAsync(context, cancellationToken);
     }
 
     /// <summary>
