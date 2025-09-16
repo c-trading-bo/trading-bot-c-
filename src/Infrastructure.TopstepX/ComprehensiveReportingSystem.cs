@@ -194,7 +194,7 @@ public class ComprehensiveReportingSystem
         return metrics;
     }
 
-    private Task<ThroughputMetrics> MeasureSystemThroughput()
+    private async Task<ThroughputMetrics> MeasureSystemThroughput()
     {
         var metrics = new ThroughputMetrics();
 
@@ -226,7 +226,8 @@ public class ComprehensiveReportingSystem
         jsonStopwatch.Stop();
         metrics.JsonSerializationOperationsPerSecond = jsonOperations;
 
-        return Task.FromResult(metrics);
+        await Task.CompletedTask; // Make it truly async
+        return metrics;
     }
 
     private ResourceUsage CollectResourceUsage()
@@ -255,7 +256,7 @@ public class ComprehensiveReportingSystem
         return analysis;
     }
 
-    private Task<List<FeatureInfo>> AnalyzeImplementedFeatures()
+    private async Task<List<FeatureInfo>> AnalyzeImplementedFeatures()
     {
         var features = new List<FeatureInfo>();
 
@@ -268,10 +269,11 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Performance Monitoring", Status = "Implemented", Coverage = 80 });
         features.Add(new FeatureInfo { Name = "Comprehensive Reporting", Status = "Implemented", Coverage = 87 });
 
-        return Task.FromResult(features);
+        await Task.CompletedTask; // Make it truly async
+        return features;
     }
 
-    private Task<List<FeatureInfo>> AnalyzeUnexercisedFeatures()
+    private async Task<List<FeatureInfo>> AnalyzeUnexercisedFeatures()
     {
         var features = new List<FeatureInfo>();
 
@@ -280,7 +282,8 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Real-time Market Data", Status = "Partial", Coverage = 65 });
         features.Add(new FeatureInfo { Name = "Advanced ML Strategies", Status = "Partial", Coverage = 70 });
 
-        return Task.FromResult(features);
+        await Task.CompletedTask; // Make it truly async
+        return features;
     }
 
     private double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
@@ -333,7 +336,7 @@ public class ComprehensiveReportingSystem
         return status;
     }
 
-    private Task<TechnicalDebtAnalysis> AnalyzeTechnicalDebt()
+    private async Task<TechnicalDebtAnalysis> AnalyzeTechnicalDebt()
     {
         var analysis = new TechnicalDebtAnalysis();
 
@@ -359,7 +362,8 @@ public class ComprehensiveReportingSystem
             new() { Severity = "Low", Description = "File permissions not set on all platforms", Recommendation = "Add cross-platform file security" }
         };
 
-        return Task.FromResult(analysis);
+        await Task.CompletedTask; // Make it truly async
+        return analysis;
     }
 
     private async Task<SecurityCompliance> AnalyzeSecurityCompliance()
@@ -429,7 +433,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private Task<double> AnalyzeNetworkSecurity()
+    private async Task<double> AnalyzeNetworkSecurity()
     {
         var score = 0.0;
 
@@ -443,7 +447,8 @@ public class ComprehensiveReportingSystem
         // Check timeout configuration
         score += 30; // We have proper timeouts
 
-        return Task.FromResult(Math.Min(score, 100));
+        await Task.CompletedTask; // Make it truly async
+        return Math.Min(score, 100);
     }
 
     private EnvironmentStatus CollectEnvironmentStatus()
