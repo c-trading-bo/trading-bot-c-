@@ -635,9 +635,11 @@ public class EnhancedBacktestLearningService : BackgroundService
                 }
             }
             
-            // Fallback: Generate synthetic data with realistic patterns
-            _logger.LogInformation("[HISTORICAL-DATA] File not found, generating synthetic data for backtesting");
-            return await GenerateRealisticHistoricalDataAsync(config, cancellationToken);
+            // Log that no historical data file was found
+            _logger.LogWarning("[HISTORICAL-DATA] Historical data file not found for {Symbol}", config.Symbol);
+            
+            // Return empty list instead of generating synthetic data
+            return new List<HistoricalDataPoint>();
         }
         catch (Exception ex)
         {
@@ -647,54 +649,31 @@ public class EnhancedBacktestLearningService : BackgroundService
     }
     
     /// <summary>
-    /// Generate realistic historical data for backtesting when real data is unavailable
+    /// Load REAL historical data for backtesting - NO SYNTHETIC GENERATION ALLOWED
     /// </summary>
-    private async Task<List<HistoricalDataPoint>> GenerateRealisticHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
+    private async Task<List<HistoricalDataPoint>> LoadRealHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
-        
-        var data = new List<HistoricalDataPoint>();
-        var currentDate = config.StartDate;
-        var currentPrice = config.Symbol == "ES" ? 4500m : 15000m; // Starting prices for ES/NQ
-        var volatility = 0.02m; // Daily volatility
-        var trendBias = 0.0001m; // Slight upward trend
-        
-        var random = new Random(config.StartDate.GetHashCode()); // Deterministic for same date
-        
-        while (currentDate <= config.EndDate)
+        try
         {
-            if (cancellationToken.IsCancellationRequested) break;
+            _logger.LogInformation("[HISTORICAL-DATA] Attempting to load real historical data for {Symbol}", config.Symbol);
             
-            // Apply mean reversion and momentum patterns
-            var dailyReturn = (decimal)(random.NextGaussian() * (double)volatility) + trendBias;
-            var newPrice = currentPrice * (1 + dailyReturn);
+            // In a real implementation, this would load from TopstepX historical API
+            // For now, return empty list since historical data service is not available
+            var dataPoints = new List<HistoricalDataPoint>();
             
-            // Calculate realistic OHLC with intraday volatility
-            var intraDayVol = volatility * 0.3m; // Intraday is typically 30% of daily vol
-            var highMultiplier = 1 + (decimal)(random.NextDouble() * (double)intraDayVol);
-            var lowMultiplier = 1 - (decimal)(random.NextDouble() * (double)intraDayVol);
+            // This would be the real implementation:
+            // var topstepXClient = GetService<ITopstepXClient>();
+            // var historicalData = await topstepXClient.GetHistoricalDataAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken);
+            // return ConvertToHistoricalDataPoints(historicalData);
             
-            var high = Math.Max(currentPrice, newPrice) * highMultiplier;
-            var low = Math.Min(currentPrice, newPrice) * lowMultiplier;
-            var volume = (long)(random.Next(100000, 500000) * (1 + Math.Abs((double)dailyReturn) * 5)); // Volume correlates with price movement
-            
-            data.Add(new HistoricalDataPoint
-            {
-                Symbol = config.Symbol,
-                Timestamp = currentDate,
-                Open = currentPrice,
-                High = high,
-                Low = low,
-                Close = newPrice,
-                Volume = volume
-            });
-            
-            currentPrice = newPrice;
-            currentDate = currentDate.AddDays(1);
+            _logger.LogWarning("[HISTORICAL-DATA] Historical data service not available for {Symbol}. Backtesting will be skipped.", config.Symbol);
+            return dataPoints;
         }
-        
-        _logger.LogInformation("[HISTORICAL-DATA] Generated {Count} realistic data points for {Symbol}", data.Count, config.Symbol);
-        return data;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[HISTORICAL-DATA] Cannot load real historical data for {Symbol}", config.Symbol);
+            return new List<HistoricalDataPoint>();
+        }
     }
 
     /// <summary>
@@ -1246,9 +1225,11 @@ public class EnhancedBacktestLearningService : BackgroundService
                 }
             }
             
-            // Generate realistic synthetic data if no real data available
-            _logger.LogDebug("[UNIFIED-BACKTEST] Generating synthetic bars for {Symbol}", config.Symbol);
-            return await GenerateRealisticBarsAsync(config, cancellationToken);
+            // Log that no historical bars data file was found
+            _logger.LogWarning("[UNIFIED-BACKTEST] Historical bars data file not found for {Symbol}", config.Symbol);
+            
+            // Return empty list instead of generating synthetic data
+            return new List<BotCore.Models.Bar>();
         }
         catch (Exception ex)
         {
@@ -1258,93 +1239,31 @@ public class EnhancedBacktestLearningService : BackgroundService
     }
     
     /// <summary>
-    /// Generate realistic bars with proper market microstructure
+    /// Load REAL historical bars from actual market data - NO SYNTHETIC GENERATION ALLOWED
     /// </summary>
-    private async Task<List<BotCore.Models.Bar>> GenerateRealisticBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    private async Task<List<BotCore.Models.Bar>> LoadRealHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
-        await Task.Yield();
-        
-        var bars = new List<BotCore.Models.Bar>();
-        var currentDate = config.StartDate;
-        var currentPrice = config.Symbol == "ES" ? 4500m : 15000m; // Starting prices for ES/NQ
-        
-        // Market session parameters for realistic trading patterns
-        var marketSessions = new[]
+        try
         {
-            (new TimeSpan(9, 30, 0), new TimeSpan(16, 0, 0), 1.0), // Regular trading hours (higher volume)
-            (new TimeSpan(18, 0, 0), new TimeSpan(23, 59, 59), 0.3), // Evening session
-            (new TimeSpan(0, 0, 0), new TimeSpan(8, 30, 0), 0.2) // Overnight session (lower volume)
-        };
-        
-        var random = new Random(config.StartDate.GetHashCode()); // Deterministic for same date
-        var dailyVolatility = 0.015m; // 1.5% daily volatility
-        var minuteVolatility = dailyVolatility / (decimal)Math.Sqrt(1440); // Scale to 1-minute
-        
-        while (currentDate <= config.EndDate)
-        {
-            if (cancellationToken.IsCancellationRequested) break;
+            _logger.LogInformation("[UNIFIED-BACKTEST] Attempting to load real historical bars for {Symbol}", config.Symbol);
             
-            // Generate intraday pattern with realistic volume and volatility clustering
-            for (int minute = 0; minute < 1440; minute++) // 1440 minutes in a day
-            {
-                var barTime = currentDate.AddMinutes(minute);
-                var timeOfDay = barTime.TimeOfDay;
-                
-                // Determine market session and volume multiplier
-                var volumeMultiplier = 0.1; // Default for off-hours
-                foreach (var (start, end, multiplier) in marketSessions)
-                {
-                    if ((start <= end && timeOfDay >= start && timeOfDay <= end) ||
-                        (start > end && (timeOfDay >= start || timeOfDay <= end)))
-                    {
-                        volumeMultiplier = multiplier;
-                        break;
-                    }
-                }
-                
-                // Generate price movement with volatility clustering
-                var volatilityCluster = 1.0 + Math.Sin((double)minute / 60.0) * 0.3; // Intraday volatility pattern
-                var priceChange = (decimal)(random.NextGaussian() * (double)(minuteVolatility * (decimal)volatilityCluster));
-                var newPrice = currentPrice * (1 + priceChange);
-                
-                // Calculate realistic OHLC for the minute
-                var tickSize = config.Symbol == "ES" ? 0.25m : 0.25m; // ES and NQ tick sizes
-                var intraBarVolatility = minuteVolatility * 0.5m;
-                
-                var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)(random.NextDouble() * (double)intraBarVolatility));
-                var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)(random.NextDouble() * (double)intraBarVolatility));
-                
-                // Round to tick size
-                high = Math.Round(high / tickSize) * tickSize;
-                low = Math.Round(low / tickSize) * tickSize;
-                newPrice = Math.Round(newPrice / tickSize) * tickSize;
-                
-                // Generate realistic volume based on session and price movement
-                var baseVolume = (int)(500 * volumeMultiplier); // Base volume per minute
-                var volumeVariance = Math.Max(1, Math.Abs((double)priceChange) * 10000); // Volume increases with price movement
-                var volume = (int)(baseVolume * (0.5 + random.NextDouble()) * volumeVariance);
-                
-                bars.Add(new BotCore.Models.Bar
-                {
-                    Symbol = config.Symbol,
-                    Start = barTime,
-                    Ts = ((DateTimeOffset)barTime).ToUnixTimeMilliseconds(),
-                    Open = currentPrice,
-                    High = high,
-                    Low = low,
-                    Close = newPrice,
-                    Volume = volume
-                });
-                
-                currentPrice = newPrice;
-            }
+            // In a real implementation, this would load from TopstepX historical bars API
+            // For now, return empty list since historical bars service is not available
+            var bars = new List<BotCore.Models.Bar>();
             
-            currentDate = currentDate.AddDays(1);
+            // This would be the real implementation:
+            // var topstepXClient = GetService<ITopstepXClient>();
+            // var historicalBars = await topstepXClient.GetHistoricalBarsAsync(config.Symbol, config.StartDate, config.EndDate, TimeFrame.OneMinute, cancellationToken);
+            // return ConvertToBotCoreBars(historicalBars);
+            
+            _logger.LogWarning("[UNIFIED-BACKTEST] Historical bars service not available for {Symbol}. Unified backtesting will be skipped.", config.Symbol);
+            return bars;
         }
-        
-        _logger.LogInformation("[UNIFIED-BACKTEST] Generated {Count} realistic minute bars for {Symbol} with market sessions", 
-            bars.Count, config.Symbol);
-        return bars;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UNIFIED-BACKTEST] Cannot load real historical bars for {Symbol}", config.Symbol);
+            return new List<BotCore.Models.Bar>();
+        }
     }
 
     /// <summary>
@@ -1890,29 +1809,7 @@ public class TradeResult
 #endregion
 
 /// <summary>
-/// Extension methods for Random to generate Gaussian distribution
+/// REMOVED: RandomExtensions for Gaussian distribution
+/// These extension methods were only used for synthetic data generation and have been eliminated.
+/// Real market data should be used instead of mathematically generated fake data.
 /// </summary>
-public static class RandomExtensions
-{
-    private static bool _hasSpare = false;
-    private static double _spare;
-    
-    /// <summary>
-    /// Generate normally distributed random number using Box-Muller transform
-    /// </summary>
-    public static double NextGaussian(this Random random, double mean = 0.0, double stdDev = 1.0)
-    {
-        if (_hasSpare)
-        {
-            _hasSpare = false;
-            return _spare * stdDev + mean;
-        }
-        
-        _hasSpare = true;
-        double u = random.NextDouble();
-        double v = random.NextDouble();
-        double mag = stdDev * Math.Sqrt(-2.0 * Math.Log(u));
-        _spare = mag * Math.Cos(2.0 * Math.PI * v);
-        return mag * Math.Sin(2.0 * Math.PI * v) + mean;
-    }
-}

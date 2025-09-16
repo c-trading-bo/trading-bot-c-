@@ -580,13 +580,13 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 public class SLOMonitor
 {
     private readonly ILogger<SLOMonitor> _logger;
-    private readonly SLOConfig _config;
+    private readonly SloConfig _config;
     private readonly Dictionary<string, List<double>> _latencyHistory = new();
     private readonly Dictionary<string, int> _errorCounts = new();
     private readonly Dictionary<string, DateTime> _lastBreach = new();
     private readonly object _lock = new();
 
-    public SLOMonitor(ILogger<SLOMonitor> logger, SLOConfig config)
+    public SLOMonitor(ILogger<SLOMonitor> logger, SloConfig config)
     {
         _logger = logger;
         _config = config;

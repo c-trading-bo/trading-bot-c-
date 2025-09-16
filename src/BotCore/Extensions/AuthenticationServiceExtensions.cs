@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
 using BotCore.Services;
+using TopstepX.Bot.Authentication;
 
 namespace BotCore.Extensions;
 
@@ -36,7 +37,7 @@ public static class AuthenticationServiceExtensions
         // Register auth service factory function
         services.AddSingleton<Func<CancellationToken, Task<string>>>(serviceProvider =>
         {
-            return async (cancellationToken) =>
+            return new Func<CancellationToken, Task<string>>(async (cancellationToken) =>
             {
                 // First try environment variable for pre-existing JWT
                 var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
@@ -68,7 +69,7 @@ public static class AuthenticationServiceExtensions
                 }
                 
                 throw new InvalidOperationException("No authentication credentials available (TOPSTEPX_JWT or TOPSTEPX_USERNAME/TOPSTEPX_API_KEY)");
-            };
+            });
         });
 
         // Register cached auth service as singleton

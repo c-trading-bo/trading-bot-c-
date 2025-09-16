@@ -42,7 +42,7 @@ public static class IntelligenceStackServiceExtensions
             provider.GetRequiredService<IntelligenceStackConfig>().Promotions);
         services.AddSingleton<QuarantineConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().ML.Quarantine);
-        services.AddSingleton<SLOConfig>(provider => 
+        services.AddSingleton<SloConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().SLO);
         services.AddSingleton<ObservabilityConfig>(provider => 
             provider.GetRequiredService<IntelligenceStackConfig>().Observability);

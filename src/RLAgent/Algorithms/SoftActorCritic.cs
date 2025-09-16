@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
+using TradingBot.RLAgent.Algorithms;
 
 namespace TradingBot.RLAgent.Algorithms;
 
@@ -26,6 +27,9 @@ public class SoftActorCritic
     
     // Experience replay buffer
     private readonly ExperienceReplayBuffer _replayBuffer;
+    
+    // Random number generator for exploration
+    private readonly Random _random = new();
     
     // Training statistics
     private int _totalSteps = 0;
@@ -495,7 +499,7 @@ public class ActorNetwork : IDisposable
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
         
@@ -504,9 +508,16 @@ public class ActorNetwork : IDisposable
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
+    }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0) % 1.0);
     }
 
     public double[] SampleAction(double[] state, bool isTraining)

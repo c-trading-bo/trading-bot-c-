@@ -18,6 +18,7 @@ using Infrastructure.TopstepX;
 using BotCore.Services;
 using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
 using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
+using TopstepX.Bot.Authentication;
 using DotNetEnv;
 using static DotNetEnv.Env;
 

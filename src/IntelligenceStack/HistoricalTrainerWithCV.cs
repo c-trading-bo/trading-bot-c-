@@ -426,8 +426,10 @@ public class HistoricalTrainerWithCV
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load market data for {Symbol}, generating synthetic data", symbol);
-                dataPoints = GenerateSyntheticMarketData(symbol, startTime, endTime);
+                // FAIL FAST: No synthetic data generation allowed
+                _logger.LogError("[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}. System refuses to generate synthetic data.", symbol);
+                throw new InvalidOperationException($"Real market data required for training {symbol}. " +
+                    "System will not operate on synthetic data. Implement real market data loading from TopstepX API.");
             }
             
             // Step 2: Apply data quality checks and cleaning
@@ -497,34 +499,32 @@ public class HistoricalTrainerWithCV
         }
     }
     
-    private List<MarketDataPoint> GenerateSyntheticMarketData(string symbol, DateTime startTime, DateTime endTime)
+    /// <summary>
+    /// Load REAL market data from TopstepX or other market data providers
+    /// </summary>
+    private async Task<List<MarketDataPoint>> LoadRealMarketDataFromProviderAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
-        // Fallback synthetic data generation
-        var dataPoints = new List<MarketDataPoint>();
-        var current = startTime;
-        var price = symbol == "ES" ? 4500.0 : 100.0;
-        var random = new Random(42); // Fixed seed for consistency
-
-        while (current <= endTime && dataPoints.Count < 10000) // Limit for safety
+        try
         {
-            var change = (random.NextDouble() - 0.5) * 5; // Smaller changes for synthetic data
-            price += change;
+            _logger.LogInformation("[HISTORICAL_TRAINER] Loading real market data for {Symbol} from {StartTime} to {EndTime}", symbol, startTime, endTime);
             
-            dataPoints.Add(new MarketDataPoint
-            {
-                Timestamp = current,
-                Symbol = symbol,
-                Open = price - change,
-                High = price + random.NextDouble() * 2,
-                Low = price - random.NextDouble() * 2,
-                Close = price,
-                Volume = 500 + random.Next(2000)
-            });
-
-            current = current.AddMinutes(5); // 5-minute bars for synthetic data
+            // In a real implementation, this would connect to TopstepX historical data API
+            // For now, return empty list since we don't have the historical data service implemented
+            var dataPoints = new List<MarketDataPoint>();
+            
+            // This would be the real implementation:
+            // var topstepXClient = GetService<ITopstepXClient>();
+            // var historicalData = await topstepXClient.GetHistoricalDataAsync(symbol, startTime, endTime, cancellationToken);
+            // return ConvertToMarketDataPoints(historicalData);
+            
+            _logger.LogWarning("[HISTORICAL_TRAINER] Historical data service not available for {Symbol}. Training will be skipped.", symbol);
+            return dataPoints;
         }
-
-        return dataPoints;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}", symbol);
+            return new List<MarketDataPoint>();
+        }
     }
     
     private async Task<List<MarketDataPoint>> ApplyDataQualityChecksAsync(List<MarketDataPoint> dataPoints, CancellationToken cancellationToken)
