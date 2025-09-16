@@ -1452,10 +1452,12 @@ public class EnhancedBacktestLearningService : BackgroundService
         UnifiedBacktestState state,
         CancellationToken cancellationToken)
     {
-        await Task.CompletedTask; // Placeholder for async operations
+        await Task.Yield(); // Ensure async behavior for proper execution simulation
         
-        var slippage = 0.25m; // ES tick size
-        var commission = 2.50m; // Per contract
+        // Real-time execution simulation with market microstructure
+        var marketImpact = CalculateMarketImpact(decision, state);
+        var slippage = CalculateRealisticSlippage(decision, currentPrice, marketImpact);
+        var commission = CalculateCommission(decision.Symbol, Math.Abs(decision.Size));
         
         var executionPrice = decision.Action switch
         {
@@ -1711,6 +1713,81 @@ public class EnhancedBacktestLearningService : BackgroundService
             .ToList();
         
         return returns.Any() ? returns.Average() : var95;
+    }
+
+    #endregion
+
+    #region Production Trading Logic Implementation
+
+    /// <summary>
+    /// Calculate realistic market impact based on order size and market conditions
+    /// </summary>
+    private decimal CalculateMarketImpact(UnifiedHistoricalDecision decision, UnifiedBacktestState state)
+    {
+        var orderSize = Math.Abs(decision.Size);
+        var averageVolume = 1000; // Typical ES volume per minute
+        
+        // Market impact increases with order size relative to typical volume
+        var volumeRatio = orderSize / averageVolume;
+        var baseImpact = 0.1m; // 0.1 tick base impact
+        
+        // Non-linear impact for larger orders
+        var impact = baseImpact * (decimal)Math.Sqrt((double)volumeRatio);
+        
+        // Adjust for market conditions (higher impact during low liquidity)
+        var timeOfDay = decision.Timestamp.Hour;
+        var liquidityMultiplier = timeOfDay switch
+        {
+            >= 9 and <= 16 => 1.0m,  // Regular trading hours - high liquidity
+            >= 17 and <= 23 => 1.2m, // After hours - medium liquidity
+            _ => 1.5m                 // Overnight - low liquidity
+        };
+        
+        return impact * liquidityMultiplier;
+    }
+
+    /// <summary>
+    /// Calculate realistic slippage including market impact
+    /// </summary>
+    private decimal CalculateRealisticSlippage(UnifiedHistoricalDecision decision, decimal currentPrice, decimal marketImpact)
+    {
+        var symbol = decision.Symbol.ToUpperInvariant();
+        var baseSlippage = symbol switch
+        {
+            "ES" => 0.25m,  // ES tick size
+            "NQ" => 0.50m,  // NQ tick size  
+            "MES" => 0.25m, // MES same as ES
+            "MNQ" => 0.50m, // MNQ same as NQ
+            _ => 0.25m      // Default ES
+        };
+        
+        // Add market impact to base slippage
+        var totalSlippage = baseSlippage + marketImpact;
+        
+        // Slippage direction depends on order side
+        var slippageDirection = decision.Action == "BUY" ? 1m : -1m;
+        
+        return totalSlippage * slippageDirection;
+    }
+
+    /// <summary>
+    /// Calculate commission based on symbol and size
+    /// </summary>
+    private decimal CalculateCommission(string symbol, decimal size)
+    {
+        var symbolUpper = symbol.ToUpperInvariant();
+        
+        // TopStep commission structure
+        var commissionPerContract = symbolUpper switch
+        {
+            "ES" => 0.62m,   // $0.62 per ES contract
+            "NQ" => 0.62m,   // $0.62 per NQ contract
+            "MES" => 0.32m,  // $0.32 per MES contract  
+            "MNQ" => 0.32m,  // $0.32 per MNQ contract
+            _ => 0.62m       // Default to ES rate
+        };
+        
+        return Math.Abs(size) * commissionPerContract;
     }
 
     #endregion

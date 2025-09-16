@@ -284,23 +284,46 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                _logger.LogWarning("HTTP request failed: {StatusCode} {ReasonPhrase} - {Content}", 
+                _logger.LogError("HTTP request failed: {StatusCode} {ReasonPhrase} - {Content}", 
                     response.StatusCode, response.ReasonPhrase, RedactSensitiveInfo(errorContent));
-                return null;
+                
+                // Throw appropriate exceptions instead of returning null
+                throw response.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.Unauthorized => new UnauthorizedAccessException($"Authentication failed: {errorContent}"),
+                    System.Net.HttpStatusCode.Forbidden => new InvalidOperationException($"Access forbidden: {errorContent}"),
+                    System.Net.HttpStatusCode.NotFound => new InvalidOperationException($"Resource not found: {errorContent}"),
+                    System.Net.HttpStatusCode.BadRequest => new ArgumentException($"Bad request: {errorContent}"),
+                    System.Net.HttpStatusCode.TooManyRequests => new InvalidOperationException($"Rate limit exceeded: {errorContent}"),
+                    _ => new HttpRequestException($"HTTP {(int)response.StatusCode} {response.StatusCode}: {errorContent}")
+                };
             }
 
             var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-            return JsonSerializer.Deserialize<T>(json, _jsonOptions);
+            
+            if (string.IsNullOrEmpty(json))
+            {
+                throw new InvalidOperationException("Received empty response from API");
+            }
+            
+            var result = JsonSerializer.Deserialize<T>(json, _jsonOptions);
+            if (result == null)
+            {
+                throw new InvalidOperationException($"Failed to deserialize response to {typeof(T).Name}");
+            }
+            
+            return result;
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "JSON deserialization failed for type {Type}", typeof(T).Name);
-            return null;
+            _logger.LogError(ex, "JSON deserialization failed for type {Type}. Raw content: {Content}", 
+                typeof(T).Name, await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            throw new InvalidOperationException($"Invalid JSON response format for {typeof(T).Name}", ex);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!(ex is HttpRequestException || ex is UnauthorizedAccessException || ex is InvalidOperationException || ex is ArgumentException))
         {
-            _logger.LogError(ex, "Unexpected error deserializing response");
-            return null;
+            _logger.LogError(ex, "Unexpected error deserializing response for type {Type}", typeof(T).Name);
+            throw new InvalidOperationException($"Unexpected error processing API response for {typeof(T).Name}", ex);
         }
     }
 

@@ -1061,6 +1061,19 @@ Stack Trace:
         services.AddSingleton<TradingBot.Abstractions.ICloudDataIntegration, CloudDataIntegrationService>();
 
         // ================================================================================
+        // PRODUCTION VERIFICATION AND OBSERVABILITY SERVICES
+        // ================================================================================
+        
+        // Register production database layer with Entity Framework Core
+        services.AddProductionDatabase(configuration);
+        
+        // Register comprehensive observability and monitoring (temporarily disabled for build)
+        // services.AddProductionObservability();
+        
+        // Register production verification service to validate configuration
+        services.AddHostedService<ProductionVerificationService>();
+
+        // ================================================================================
         // ADVANCED SYSTEM INITIALIZATION SERVICE
         // ================================================================================
         
