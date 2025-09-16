@@ -40,34 +40,34 @@ public class TopstepXCredentialManager
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".tsx")
             };
 
-            foreach (var legacyPath in legacyPaths)
+            // Process only existing legacy paths for migration and cleanup
+            var existingLegacyPaths = legacyPaths.Where(Directory.Exists).ToList();
+            
+            foreach (var legacyPath in existingLegacyPaths)
             {
-                if (Directory.Exists(legacyPath))
+                try
                 {
-                    try
+                    // Before removing, try to migrate credentials if they exist
+                    var legacyCredFile = Path.Combine(legacyPath, "credentials.json");
+                    if (File.Exists(legacyCredFile) && !File.Exists(_credentialsPath))
                     {
-                        // Before removing, try to migrate credentials if they exist
-                        var legacyCredFile = Path.Combine(legacyPath, "credentials.json");
-                        if (File.Exists(legacyCredFile) && !File.Exists(_credentialsPath))
+                        var credContent = File.ReadAllText(legacyCredFile);
+                        var directory = Path.GetDirectoryName(_credentialsPath);
+                        if (!Directory.Exists(directory))
                         {
-                            var credContent = File.ReadAllText(legacyCredFile);
-                            var directory = Path.GetDirectoryName(_credentialsPath);
-                            if (!Directory.Exists(directory))
-                            {
-                                Directory.CreateDirectory(directory!);
-                            }
-                            File.WriteAllText(_credentialsPath, credContent);
-                            _logger.LogInformation("📦 Migrated credentials from legacy path: {LegacyPath}", legacyPath);
+                            Directory.CreateDirectory(directory!);
                         }
+                        File.WriteAllText(_credentialsPath, credContent);
+                        _logger.LogInformation("📦 Migrated credentials from legacy path: {LegacyPath}", legacyPath);
+                    }
 
-                        // Remove legacy directory
-                        Directory.Delete(legacyPath, recursive: true);
-                        _logger.LogInformation("🧹 Cleaned up legacy credential path: {LegacyPath}", legacyPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "⚠️ Could not clean up legacy path: {LegacyPath}", legacyPath);
-                    }
+                    // Remove legacy directory
+                    Directory.Delete(legacyPath, recursive: true);
+                    _logger.LogInformation("🧹 Cleaned up legacy credential path: {LegacyPath}", legacyPath);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "⚠️ Could not clean up legacy path: {LegacyPath}", legacyPath);
                 }
             }
         }

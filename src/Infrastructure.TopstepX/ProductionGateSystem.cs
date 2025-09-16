@@ -356,33 +356,6 @@ public class ProductionGateSystem
     }
     
     /// <summary>
-    /// Calculate weighted readiness score based on multiple factors
-    /// </summary>
-    private async Task<double> CalculateWeightedReadinessScoreAsync(ProductionReadinessAssessment assessment, ProductionGateResult gateResult)
-    {
-        await Task.Yield();
-        
-        // Weighted scoring algorithm
-        var weights = new Dictionary<string, double>
-        {
-            ["tests"] = 0.30,
-            ["performance"] = 0.25,
-            ["security"] = 0.25,
-            ["remediation"] = 0.10,
-            ["issues"] = 0.10
-        };
-        
-        var score = 0.0;
-        score += (assessment.TestResultsAcceptable ? 100.0 : 0.0) * weights["tests"];
-        score += (assessment.PerformanceAcceptable ? 100.0 : 0.0) * weights["performance"];
-        score += (assessment.SecurityAcceptable ? 100.0 : 0.0) * weights["security"];
-        score += (assessment.RemediationSuccessful ? 100.0 : 0.0) * weights["remediation"];
-        score += (assessment.NoBlockingIssues ? 100.0 : 0.0) * weights["issues"];
-        
-        return score;
-    }
-    
-    /// <summary>
     /// Generate intelligent recommendations based on assessment results
     /// </summary>
     private async Task<List<string>> GenerateIntelligentRecommendationsAsync(ProductionReadinessAssessment assessment, ProductionGateResult gateResult)

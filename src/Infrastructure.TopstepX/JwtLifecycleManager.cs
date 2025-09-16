@@ -33,6 +33,11 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
     private DateTime? _currentTokenExpiry;
     private bool _disposed = false;
 
+    /// <summary>
+    /// Gets the current token expiry time for monitoring purposes
+    /// </summary>
+    public DateTime? CurrentTokenExpiry => _currentTokenExpiry;
+
     public event Action<string>? TokenNeedsRefresh;
     public event Action<string>? TokenRefreshed;
 

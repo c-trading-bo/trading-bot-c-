@@ -21,18 +21,15 @@ public class AutoRemediationSystem
 {
     private readonly ILogger<AutoRemediationSystem> _logger;
     private readonly StagingEnvironmentManager _stagingManager;
-    private readonly ComprehensiveSmokeTestSuite _testSuite;
     private readonly ComprehensiveReportingSystem _reportingSystem;
 
     public AutoRemediationSystem(
         ILogger<AutoRemediationSystem> logger,
         StagingEnvironmentManager stagingManager,
-        ComprehensiveSmokeTestSuite testSuite,
         ComprehensiveReportingSystem reportingSystem)
     {
         _logger = logger;
         _stagingManager = stagingManager;
-        _testSuite = testSuite;
         _reportingSystem = reportingSystem;
     }
 
