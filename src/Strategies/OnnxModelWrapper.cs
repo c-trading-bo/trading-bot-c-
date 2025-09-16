@@ -234,10 +234,10 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             "./models/confidence_model.onnx" // Relative path
         };
 
-        return possiblePaths.FirstOrDefault(File.Exists) ?? possiblePaths[0];
+        return possiblePaths.Where(File.Exists).FirstOrDefault() ?? possiblePaths[0];
     }
 
-    private async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
+    private static async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
     {
         await Task.Delay(1); // Simulate async work
         
@@ -267,9 +267,12 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         var volBias = 1.0 - Math.Abs(volatility - 0.3);
         baseConfidence += volBias * 0.1;
         
-        // Add small amount of realistic variation
-        var random = new Random();
-        var noise = (random.NextDouble() - 0.5) * 0.05;
+        // Add small amount of realistic variation using cryptographically secure random
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var randomBytes = new byte[4];
+        rng.GetBytes(randomBytes);
+        var randomValue = BitConverter.ToUInt32(randomBytes, 0) / (double)uint.MaxValue;
+        var noise = (randomValue - 0.5) * 0.05;
         baseConfidence += noise;
         
         return Math.Max(0.1, Math.Min(0.9, baseConfidence));

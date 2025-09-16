@@ -173,7 +173,7 @@ namespace TradingBot.Monitoring
             return true;
         }
 
-        private async void CheckModelHealth(object? state)
+        private async Task CheckModelHealthAsync(object? state)
         {
             try
             {
@@ -222,7 +222,7 @@ namespace TradingBot.Monitoring
                 var recentMean = recent.Average();
                 var olderMean = older.Average();
                 
-                if (olderMean != 0 && Math.Abs(recentMean - olderMean) / Math.Abs(olderMean) > 0.2) // 20% change threshold
+                if (Math.Abs(olderMean) > double.Epsilon && Math.Abs(recentMean - olderMean) / Math.Abs(olderMean) > 0.2) // 20% change threshold
                 {
                     return true;
                 }

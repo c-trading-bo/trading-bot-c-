@@ -88,7 +88,7 @@ class TimeOptimizationML:
         
         print(f"  Generating {num_records} synthetic records for {instrument}")
         
-        np.random.seed(42)  # Reproducible results
+        rng = np.random.default_rng(42)  # Reproducible results with modern API
         
         data = []
         strategies = ['S2', 'S3', 'S6', 'S11']
