@@ -222,9 +222,17 @@ public class MAMLLiveIntegration
             {
                 if (_modelStates.ContainsKey(regime.ToString()))
                 {
-                    // Generate synthetic recent examples for periodic update
-                    var syntheticExamples = GenerateSyntheticExamples(regime, 20);
-                    await AdaptToRegimeAsync(regime, syntheticExamples, CancellationToken.None);
+                    // FAIL FAST: No synthetic training examples allowed
+                    // Load real training examples from actual trading outcomes
+                    var realExamples = await LoadRealTrainingExamplesAsync(regime, 20, CancellationToken.None);
+                    if (realExamples.Count > 0)
+                    {
+                        await AdaptToRegimeAsync(regime, realExamples, CancellationToken.None);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[MAML-LIVE] No real training examples available for regime {Regime}. Skipping adaptation.", regime);
+                    }
                 }
             }
             
@@ -526,29 +534,26 @@ public class MAMLLiveIntegration
         return basePrediction + (random.NextDouble() - 0.5) * 0.2; // Add strategy-specific noise
     }
 
-    private List<TrainingExample> GenerateSyntheticExamples(RegimeType regime, int count)
+    /// <summary>
+    /// Load REAL training examples from actual trading outcomes - NO SYNTHETIC GENERATION
+    /// </summary>
+    private async Task<List<TrainingExample>> LoadRealTrainingExamplesAsync(RegimeType regime, int count, CancellationToken cancellationToken)
     {
-        var examples = new List<TrainingExample>();
-        var random = new Random();
-        
-        for (int i = 0; i < count; i++)
+        try
         {
-            examples.Add(new TrainingExample
-            {
-                Features = new Dictionary<string, double>
-                {
-                    ["price_momentum"] = (random.NextDouble() - 0.5) * 2,
-                    ["volume_ratio"] = random.NextDouble() * 2,
-                    ["volatility"] = random.NextDouble()
-                },
-                PredictedDirection = random.NextDouble() > 0.5 ? 1 : -1,
-                ActualOutcome = (random.NextDouble() - 0.5) * 0.02, // ±1% return
-                Timestamp = DateTime.UtcNow.AddMinutes(-i),
-                Regime = regime
-            });
+            // TODO: Implement real training examples loading from trading history database
+            // This should load actual trading outcomes, features, and results for the specific regime
+            
+            _logger.LogWarning("[MAML-LIVE] Real training examples loading not yet implemented for regime {Regime}", regime);
+            
+            // Return empty list instead of generating synthetic data
+            return new List<TrainingExample>();
         }
-        
-        return examples;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MAML-LIVE] Failed to load real training examples for regime {Regime}", regime);
+            return new List<TrainingExample>();
+        }
     }
 }
 
