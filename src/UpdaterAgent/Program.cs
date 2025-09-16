@@ -36,7 +36,11 @@ async Task<bool> HealthOkAsync(int port)
         var obj = await http.GetFromJsonAsync<Dictionary<string, object>>("/healthz");
         return obj != null && obj.TryGetValue("ok", out var ok) && ok?.ToString()?.ToLowerInvariant() == "true";
     }
-    catch { return false; }
+    catch (Exception ex) 
+    { 
+        Console.WriteLine($"[UPDATER-AGENT] Health check failed: {ex.Message}");
+        return false; 
+    }
 }
 
 async Task<bool> ModeIsAsync(int port, string wanted)
@@ -48,7 +52,11 @@ async Task<bool> ModeIsAsync(int port, string wanted)
         var mode = obj != null && obj.TryGetValue("mode", out var m) ? m?.ToString() : null;
         return string.Equals(mode, wanted, StringComparison.OrdinalIgnoreCase);
     }
-    catch { return false; }
+    catch (Exception ex) 
+    { 
+        Console.WriteLine($"[UPDATER-AGENT] Mode check failed: {ex.Message}");
+        return false; 
+    }
 }
 
 async Task<bool> ReplayGateAsync(int port, string replayDir)
@@ -67,7 +75,11 @@ async Task<HashSet<string>> CapsAsync(int port)
         var arr = await http.GetFromJsonAsync<string[]>("/capabilities");
         return arr is null ? [] : [.. arr];
     }
-    catch { return []; }
+    catch (Exception ex) 
+    { 
+        Console.WriteLine($"[UPDATER-AGENT] Capabilities retrieval failed: {ex.Message}");
+        return []; 
+    }
 }
 
 var cfg = new ConfigurationBuilder()
@@ -113,7 +125,11 @@ string Git(string args)
         p.WaitForExit();
         return s;
     }
-    catch { return string.Empty; }
+    catch (Exception ex) 
+    { 
+        Console.WriteLine($"[UPDATER-AGENT] Git command failed: {ex.Message}");
+        return string.Empty; 
+    }
 }
 
 async Task Notify(string level, string msg)
@@ -125,7 +141,10 @@ async Task Notify(string level, string msg)
         using var http = new HttpClient();
         await http.PostAsJsonAsync(url, new { content = $"`{level}` {msg}" });
     }
-    catch { }
+    catch (Exception ex) 
+    { 
+        Console.WriteLine($"[UPDATER-AGENT] Notification failed: {ex.Message}");
+    }
 }
 
 // Load .env.local to pass secrets/env to vNext process

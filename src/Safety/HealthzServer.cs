@@ -145,10 +145,17 @@ namespace OrchestratorAgent.Health
                             if (ct.IsCancellationRequested) break;
                         }
                     }
-                    try { listener.Stop(); listener.Close(); } catch { }
+                    try { listener.Stop(); listener.Close(); } 
+                    catch (Exception ex) 
+                    { 
+                        Console.WriteLine($"[HEALTHZ-SERVER] Error stopping listener: {ex.Message}");
+                    }
                 }, ct);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[HEALTHZ-SERVER] Server error: {ex.Message}");
+            }
         }
     }
 }

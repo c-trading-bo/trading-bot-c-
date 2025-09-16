@@ -22,7 +22,7 @@ public interface IUserEventsService
 public record TradeConfirmation(string OrderId, string Symbol, decimal FillPrice, int Quantity, DateTime Time);
 public record OrderUpdate(string OrderId, string Status, string Reason, DateTime Time);
 
-public class UserEventsService : IUserEventsService
+public class UserEventsService : IUserEventsService, IAsyncDisposable, IDisposable
 {
     private readonly ILogger<UserEventsService> _logger;
     private readonly AppOptions _config;
@@ -172,24 +172,33 @@ public class UserEventsService : IUserEventsService
             var property = type.GetProperty(propertyName, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             return property?.GetValue(obj)?.ToString();
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            Console.WriteLine($"[USER-EVENTS] Failed to parse user event data: {ex.Message}");
+            throw new InvalidOperationException("Failed to parse user event data - invalid JSON format", ex);
         }
     }
 
     private static decimal ParseDecimal(string? value) => decimal.TryParse(value, out var result) ? result : 0m;
     private static int ParseInt(string? value) => int.TryParse(value, out var result) ? result : 0;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         try
         {
-            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+            if (_hubConnection != null)
+            {
+                await _hubConnection.DisposeAsync();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[USER] Error disposing hub connection");
         }
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

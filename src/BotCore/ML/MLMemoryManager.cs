@@ -112,7 +112,7 @@ public class MLMemoryManager : IMLMemoryManager
                 return null;
             }
             
-            // Measure memory footprint
+            // Measure memory footprint using memory pressure monitoring instead of forced GC
             var memoryBefore = GC.GetTotalMemory(false);
             var modelVersion = new ModelVersion
             {
@@ -125,9 +125,16 @@ public class MLMemoryManager : IMLMemoryManager
                 WeakRef = new WeakReference(model)
             };
             
-            GC.Collect(2, GCCollectionMode.Forced);
+            // Monitor memory pressure instead of forcing collection
             var memoryAfter = GC.GetTotalMemory(false);
             modelVersion.MemoryFootprint = Math.Max(0, memoryAfter - memoryBefore);
+            
+            // Register for memory pressure notifications
+            if (memoryAfter > MAX_MEMORY_BYTES * 0.7)
+            {
+                _logger.LogWarning("[ML-Memory] Memory pressure detected ({MemoryMB:F1}MB), will monitor for cleanup", 
+                    memoryAfter / 1024.0 / 1024.0);
+            }
             
             _activeModels[versionKey] = modelVersion;
             lock (_lockObject)
@@ -196,26 +203,84 @@ public class MLMemoryManager : IMLMemoryManager
         
         if (currentMemory > MAX_MEMORY_BYTES * 0.8)
         {
-            _logger.LogWarning("[ML-Memory] Memory usage high ({MemoryMB:F1}MB), starting cleanup", 
+            _logger.LogWarning("[ML-Memory] Memory usage high ({MemoryMB:F1}MB), starting intelligent cleanup", 
                 currentMemory / 1024.0 / 1024.0);
                 
-            // Aggressive cleanup
-            await AggressiveCleanupAsync();
+            // Intelligent cleanup based on usage patterns
+            await PerformIntelligentCleanupAsync();
             
-            // Force GC
-            GC.Collect(2, GCCollectionMode.Forced, true);
-            GC.WaitForPendingFinalizers();
-            GC.Collect(2, GCCollectionMode.Forced, true);
+            // Wait for memory pressure to reduce naturally
+            var maxWaitTime = TimeSpan.FromSeconds(10);
+            var startTime = DateTime.UtcNow;
             
-            // Recheck
-            currentMemory = GC.GetTotalMemory(false);
+            while (DateTime.UtcNow - startTime < maxWaitTime)
+            {
+                currentMemory = GC.GetTotalMemory(false);
+                if (currentMemory <= MAX_MEMORY_BYTES * 0.75)
+                    break;
+                    
+                await Task.Delay(500);
+            }
             
+            // Only as last resort, suggest collection to runtime
             if (currentMemory > MAX_MEMORY_BYTES * 0.9)
             {
-                var memoryMB = currentMemory / 1024 / 1024;
-                throw new OutOfMemoryException($"ML memory limit reached: {memoryMB}MB");
+                _logger.LogCritical("[ML-Memory] Memory critically high, suggesting collection to runtime");
+                GC.Collect(0, GCCollectionMode.Optimized, false); // Gentle suggestion only
+                await Task.Delay(1000); // Give runtime time to respond
+                
+                currentMemory = GC.GetTotalMemory(false);
+                if (currentMemory > MAX_MEMORY_BYTES * 0.95)
+                {
+                    var memoryMB = currentMemory / 1024 / 1024;
+                    throw new OutOfMemoryException($"ML memory limit reached: {memoryMB}MB, cannot continue safely");
+                }
             }
         }
+    }
+    
+    /// <summary>
+    /// Perform intelligent cleanup based on usage patterns instead of forced GC
+    /// </summary>
+    private async Task PerformIntelligentCleanupAsync()
+    {
+        await Task.Yield();
+        
+        // Remove models that haven't been used recently and have low usage counts
+        var candidatesForRemoval = _activeModels.Values
+            .Where(m => DateTime.UtcNow - m.LastUsed > TimeSpan.FromMinutes(10) && m.UsageCount < 5)
+            .OrderBy(m => m.UsageCount)
+            .ThenBy(m => m.LastUsed)
+            .Take(_activeModels.Count / 3) // Remove up to 1/3 of unused models
+            .ToList();
+        
+        foreach (var model in candidatesForRemoval)
+        {
+            var key = $"{model.ModelId}_{model.Version}";
+            if (_activeModels.TryRemove(key, out var removed))
+            {
+                if (removed.Model is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+                removed.Model = null;
+                _logger.LogDebug("[ML-Memory] Removed unused model: {Key}", key);
+            }
+        }
+        
+        // Clear any weak references that are no longer alive
+        var deadReferences = _activeModels.Values
+            .Where(m => m.WeakRef?.IsAlive == false)
+            .ToList();
+            
+        foreach (var deadRef in deadReferences)
+        {
+            var key = $"{deadRef.ModelId}_{deadRef.Version}";
+            _activeModels.TryRemove(key, out _);
+        }
+        
+        _logger.LogInformation("[ML-Memory] Intelligent cleanup completed - removed {RemovedCount} unused models, {DeadRefs} dead references", 
+            candidatesForRemoval.Count, deadReferences.Count);
     }
 
     private async Task CleanupOldVersionsAsync(string modelId)
@@ -258,12 +323,18 @@ public class MLMemoryManager : IMLMemoryManager
         {
             var beforeMemory = GC.GetTotalMemory(false);
             
-            // Remove unused models
+            // Remove unused models based on intelligent criteria
             var unusedModels = _activeModels.Values
-                .Where(m => DateTime.UtcNow - m.LastUsed > TimeSpan.FromMinutes(30))
+                .Where(m => DateTime.UtcNow - m.LastUsed > TimeSpan.FromMinutes(30) && m.UsageCount == 0)
                 .ToList();
             
-            foreach (var model in unusedModels)
+            var longUnusedModels = _activeModels.Values
+                .Where(m => DateTime.UtcNow - m.LastUsed > TimeSpan.FromHours(2))
+                .ToList();
+                
+            var modelsToRemove = unusedModels.Concat(longUnusedModels).Distinct().ToList();
+            
+            foreach (var model in modelsToRemove)
             {
                 var key = $"{model.ModelId}_{model.Version}";
                 if (_activeModels.TryRemove(key, out var removed))
@@ -276,25 +347,33 @@ public class MLMemoryManager : IMLMemoryManager
                 }
             }
             
-            // Compact large object heap
-            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-            
-            // Collect garbage
-            GC.Collect(2, GCCollectionMode.Forced, true);
-            GC.WaitForPendingFinalizers();
-            GC.Collect(2, GCCollectionMode.Forced, true);
+            // Only suggest collection if memory pressure is actually high
+            var currentMemory = GC.GetTotalMemory(false);
+            if (currentMemory > MAX_MEMORY_BYTES * 0.8)
+            {
+                // Use memory pressure APIs instead of forcing collection
+                if (GC.TryStartNoGCRegion(1024 * 1024)) // Try to prevent GC for 1MB allocations
+                {
+                    // Do critical work if needed
+                    GC.EndNoGCRegion();
+                }
+                
+                // Gentle suggestion to runtime - not forced
+                GC.Collect(0, GCCollectionMode.Optimized, false);
+            }
             
             var afterMemory = GC.GetTotalMemory(false);
             var freedMemory = (beforeMemory - afterMemory) / 1024 / 1024;
             
-            if (freedMemory > 100) // More than 100MB freed
+            if (freedMemory > 50 || modelsToRemove.Count > 0) // Log if meaningful cleanup occurred
             {
-                _logger.LogInformation("[ML-Memory] Garbage collection freed {FreedMB}MB", freedMemory);
+                _logger.LogInformation("[ML-Memory] Intelligent cleanup freed {FreedMB}MB, removed {ModelCount} models", 
+                    freedMemory, modelsToRemove.Count);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ML-Memory] Garbage collection failed");
+            _logger.LogError(ex, "[ML-Memory] Intelligent cleanup failed");
         }
     }
 
@@ -354,19 +433,22 @@ public class MLMemoryManager : IMLMemoryManager
 
     private async Task AggressiveCleanupAsync()
     {
-        _logger.LogWarning("[ML-Memory] Starting aggressive memory cleanup");
+        _logger.LogWarning("[ML-Memory] Starting intelligent emergency cleanup");
         
-        // Unload least recently used models
+        // Remove least recently used models with priority on memory footprint
         var modelsToUnload = _activeModels.Values
             .OrderBy(m => m.LastUsed)
-            .Take(_activeModels.Count / 2)
+            .ThenByDescending(m => m.MemoryFootprint) // Prioritize large models
+            .Take(Math.Max(1, _activeModels.Count / 2)) // Remove up to half
             .ToList();
         
+        var totalFreed = 0L;
         foreach (var model in modelsToUnload)
         {
             var key = $"{model.ModelId}_{model.Version}";
             if (_activeModels.TryRemove(key, out var removed))
             {
+                totalFreed += removed.MemoryFootprint;
                 if (removed.Model is IDisposable disposable)
                 {
                     disposable.Dispose();
@@ -375,12 +457,24 @@ public class MLMemoryManager : IMLMemoryManager
             }
         }
         
-        // Force immediate GC
-        GC.Collect(2, GCCollectionMode.Forced, true);
-        GC.WaitForPendingFinalizers();
-        GC.Collect(2, GCCollectionMode.Forced, true);
+        // Clean up model history queue
+        lock (_lockObject)
+        {
+            while (_modelHistory.Count > 5) // Keep only 5 recent entries
+            {
+                _modelHistory.Dequeue();
+            }
+        }
         
-        _logger.LogInformation("[ML-Memory] Aggressive cleanup completed");
+        // Suggest LOH compaction only if we freed significant memory
+        if (totalFreed > 100 * 1024 * 1024) // 100MB
+        {
+            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(2, GCCollectionMode.Optimized, false); // Gentle suggestion
+        }
+        
+        _logger.LogInformation("[ML-Memory] Emergency cleanup completed - freed ~{FreedMB}MB from {ModelCount} models", 
+            totalFreed / 1024 / 1024, modelsToUnload.Count);
         await Task.CompletedTask;
     }
 

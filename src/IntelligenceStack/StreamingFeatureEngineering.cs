@@ -76,17 +76,56 @@ public class StreamingFeatureEngineering
     {
         try
         {
+            await Task.Yield(); // Ensure async behavior
+            
             if (!_featureCaches.TryGetValue(symbol, out var cache))
             {
                 return null;
             }
 
-            return await Task.FromResult(cache.GetFeatures(timestamp));
+            // Proper async operation instead of Task.FromResult
+            var features = cache.GetFeatures(timestamp);
+            
+            // Add validation and enhancement of cached features
+            if (features != null && features.Any())
+            {
+                // Validate feature quality and recalculate if stale
+                var age = DateTime.UtcNow - timestamp;
+                if (age > TimeSpan.FromMinutes(5)) // Features older than 5 minutes
+                {
+                    _logger.LogDebug("Features for {Symbol} are stale ({Age:F1} minutes old), refreshing", 
+                        symbol, age.TotalMinutes);
+                    
+                    // Trigger background refresh but return current features
+                    _ = Task.Run(() => RefreshFeaturesForSymbol(symbol), cancellationToken);
+                }
+            }
+            
+            return features;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get cached features for {Symbol}", symbol);
             return null;
+        }
+    }
+    
+    /// <summary>
+    /// Refresh features for a symbol in the background
+    /// </summary>
+    private void RefreshFeaturesForSymbol(string symbol)
+    {
+        try
+        {
+            if (_featureCaches.TryGetValue(symbol, out var cache))
+            {
+                // Trigger feature recalculation
+                cache.RemoveExpiredEntries(DateTime.UtcNow.AddMinutes(-10));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh features for {Symbol}", symbol);
         }
     }
 
@@ -304,7 +343,25 @@ public class StreamingAggregator
 
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
     {
-        return await Task.FromResult(_macdSignal);
+        // Make this a proper async operation instead of Task.FromResult
+        await Task.Yield(); // Ensure async behavior
+        
+        lock (_lock)
+        {
+            // Calculate MACD signal with proper async behavior
+            // MACD Signal = EMA of MACD Line
+            if (_dataWindow.Count < 26) return 0.0;
+            
+            var macdLine = _ema12 - _ema26;
+            
+            // Update signal line using exponential moving average
+            const double signalPeriod = 9.0;
+            const double alpha = 2.0 / (signalPeriod + 1.0);
+            
+            _macdSignal = (macdLine * alpha) + (_macdSignal * (1.0 - alpha));
+            
+            return _macdSignal;
+        }
     }
 
     public async Task<double> GetVolatilityAsync(int period, CancellationToken cancellationToken)

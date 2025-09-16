@@ -721,7 +721,7 @@ namespace BotCore.Brain
             else
             {
                 // Fallback to legacy RL if CVaR-PPO not available
-                var rlMultiplier = _modelManager.GetPositionSizeMultiplier(
+                var rlMultiplier = await _modelManager.GetPositionSizeMultiplierAsync(
                     strategy.SelectedStrategy,
                     context.Symbol,
                     context.CurrentPrice,
