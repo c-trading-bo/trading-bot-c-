@@ -224,7 +224,7 @@ public class SacAlgorithmWrapper : IRLAlgorithm
 {
     private readonly SoftActorCritic _sac;
 
-    public SACAlgorithmWrapper(SoftActorCritic sac)
+    public SacAlgorithmWrapper(SoftActorCritic sac)
     {
         _sac = sac;
     }

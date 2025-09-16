@@ -38,15 +38,17 @@ public static class StubRemovalExamples
         await Task.CompletedTask;
         return true;
     }
-    // return priceData.GetProperty("price").GetDecimal();
 
-    // BEFORE (STUB):
-    // return Guid.NewGuid().ToString();
-    //
-    // AFTER (REAL):
-    // var response = await _httpClient.PostAsync("/api/Order/place", content);
-    // var result = JsonSerializer.Deserialize<JsonElement>(responseJson);
-    // return result.GetProperty("orderId").GetString();
+    /// <summary>
+    /// Example method showing proper API integration pattern.
+    /// This demonstrates the expected flow from placeholder to real implementation.
+    /// </summary>
+    public static async Task<string> PlaceOrderExample()
+    {
+        // Real implementation would use actual HTTP client and API endpoints
+        await Task.CompletedTask;
+        return Guid.NewGuid().ToString();
+    }
 
     // BEFORE (STUB):
     // return new { Balance = 50000m, BuyingPower = 200000m };

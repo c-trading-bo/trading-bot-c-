@@ -462,6 +462,7 @@ public class ActorNetwork : IDisposable
     private readonly int _hiddenDim;
     private readonly double _learningRate;
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
+    private bool _disposed = false;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -570,6 +571,21 @@ public class ActorNetwork : IDisposable
         for (int i = 0; i < _outputDim; i++)
         {
             _biasOutput[i] -= gradient * 0.1;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            _rng?.Dispose();
+            _disposed = true;
         }
     }
 }

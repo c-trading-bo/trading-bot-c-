@@ -15,7 +15,7 @@ namespace BotCore.DeploymentPipeline;
 /// <summary>
 /// Main application entry point for the comprehensive deployment pipeline
 /// </summary>
-class Program
+public static class Program
 {
     static async Task<int> Main(string[] args)
     {

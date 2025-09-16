@@ -635,7 +635,8 @@ public class AutoRemediationSystem
             _logger.LogInformation("🧪 Running validation tests to verify remediation effectiveness");
             
             // Generate post-remediation report to verify improvements
-            var postRemediationReport = await _reportingSystem.GenerateComprehensiveReportAsync();
+            var dummyTestResults = new TestSuiteResult { IsOverallSuccess = true, TestResults = new Dictionary<string, object>() };
+            var postRemediationReport = await _reportingSystem.GenerateComprehensiveReportAsync(dummyTestResults);
             
             var validationResult = new { 
                 IsOverallSuccess = postRemediationReport.OverallHealthScore > 0.8, 

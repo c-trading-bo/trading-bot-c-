@@ -27,6 +27,7 @@ public class UserEventsService : IUserEventsService, IAsyncDisposable, IDisposab
     private readonly AppOptions _config;
     private HubConnection? _hubConnection;
     private bool _isConnected = false;
+    private bool _disposed = false;
     
     public event Action<TradeConfirmation>? OnTradeConfirmed;
     public event Action<OrderUpdate>? OnOrderUpdate;
@@ -183,21 +184,37 @@ public class UserEventsService : IUserEventsService, IAsyncDisposable, IDisposab
 
     public async ValueTask DisposeAsync()
     {
-        try
+        if (!_disposed)
         {
-            if (_hubConnection != null)
+            try
             {
-                await _hubConnection.DisposeAsync();
+                if (_hubConnection != null)
+                {
+                    await _hubConnection.DisposeAsync();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[USER] Error disposing hub connection");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[USER] Error during disposal of user events service");
+            }
+            finally
+            {
+                _disposed = true;
+            }
         }
     }
 
     public void Dispose()
     {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            DisposeAsync().AsTask().GetAwaiter().GetResult();
+        }
     }
 }

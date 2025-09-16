@@ -276,7 +276,8 @@ public class ProductionGateSystem
                                          assessment.RemediationSuccessful &&
                                          assessment.NoBlockingIssues;
 
-            assessment.ReadinessScore = await CalculateWeightedReadinessScoreAsync(assessment, gateResult);
+            assessment.ReadinessScore = CalculateReadinessScore(assessment);
+            assessment.Recommendations = GenerateProductionRecommendations(assessment, gateResult);
 
             // Generate AI-powered recommendations
             assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment, gateResult);
