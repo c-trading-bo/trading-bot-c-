@@ -13,7 +13,7 @@ public class IntelligenceStackConfig
     public RLConfig RL { get; set; } = new();
     public OrdersConfig Orders { get; set; } = new();
     public OrchestratorConfig Orchestrator { get; set; } = new();
-    public SLOConfig SLO { get; set; } = new();
+    public SloConfig SLO { get; set; } = new();
     public ObservabilityConfig Observability { get; set; } = new();
     public PromotionsConfig Promotions { get; set; } = new();
     public HistoricalConfig Historical { get; set; } = new();
@@ -135,7 +135,7 @@ public class TuningConfig
 public class RLConfig
 {
     public AdvisorConfig Advisor { get; set; } = new();
-    public SACConfig SAC { get; set; } = new();
+    public SacConfig SAC { get; set; } = new();
 }
 
 public class AdvisorConfig
@@ -152,7 +152,7 @@ public class AdvisorConfig
     public double MaxConfidence { get; set; } = 1.0;
 }
 
-public class SACConfig
+public class SacConfig
 {
     public bool Enabled { get; set; } = true;
     public string RetrainCron { get; set; } = "weekly";
@@ -192,7 +192,7 @@ public class LeaderElectionConfig
     public int TakeoverDeadlineSeconds { get; set; } = 10;
 }
 
-public class SLOConfig
+public class SloConfig
 {
     public int DecisionLatencyP99Ms { get; set; } = 120;
     public int E2eOrderP99Ms { get; set; } = 400;

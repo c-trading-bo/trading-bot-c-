@@ -258,7 +258,25 @@ namespace TradingBot.Monitoring
             _stopped = true;
         }
 
-        public void Dispose() => Stop();
+        private bool _disposed = false;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    Stop();
+                }
+                _disposed = true;
+            }
+        }
     }
 
     public enum LatencyType

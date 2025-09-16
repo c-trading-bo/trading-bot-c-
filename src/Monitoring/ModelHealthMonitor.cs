@@ -37,7 +37,7 @@ namespace TradingBot.Monitoring
             _brierScoreThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_BRIER_SCORE_THRESHOLD") ?? "0.3");
             
             // Monitor model health every 5 minutes
-            _monitoringTimer = new Timer(CheckModelHealth, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+            _monitoringTimer = new Timer(CheckModelHealthCallback, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
             
             _logger.LogInformation("[MODEL_HEALTH] Monitor started - Confidence drift threshold: {ConfThreshold}, Brier threshold: {BrierThreshold}",
                 _confidenceDriftThreshold, _brierScoreThreshold);
@@ -173,7 +173,13 @@ namespace TradingBot.Monitoring
             return true;
         }
 
-        private async Task CheckModelHealthAsync(object? state)
+        private void CheckModelHealthCallback(object? state)
+        {
+            // Fire and forget - don't await to avoid blocking timer
+            _ = Task.Run(async () => await CheckModelHealthAsync());
+        }
+
+        private async Task CheckModelHealthAsync()
         {
             try
             {
@@ -231,9 +237,24 @@ namespace TradingBot.Monitoring
             return false;
         }
 
+        private bool _disposed = false;
+
         public void Dispose()
         {
-            _monitoringTimer?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    _monitoringTimer?.Dispose();
+                }
+                _disposed = true;
+            }
         }
     }
 

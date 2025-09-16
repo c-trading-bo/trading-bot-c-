@@ -234,7 +234,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             "./models/confidence_model.onnx" // Relative path
         };
 
-        return possiblePaths.Where(File.Exists).FirstOrDefault() ?? possiblePaths[0];
+        return Array.Find(possiblePaths, File.Exists) ?? possiblePaths[0];
     }
 
     private static async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
