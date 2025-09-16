@@ -31,36 +31,30 @@ class RLSizerNet(nn.Module):
     def forward(self, x):
         return self.network(x)
 
-def generate_synthetic_training_data(num_samples=10000):
-    """Generate synthetic training data for demonstration."""
-    print("🔄 Generating synthetic training data...")
+def load_real_training_data_for_production(num_samples=10000):
+    """
+    Load REAL training data for production model creation - NO SYNTHETIC GENERATION
     
-    # Feature columns similar to actual bot features
-    features = {
-        'timestamp': pd.date_range('2024-01-01', periods=num_samples, freq='1min'),
-        'symbol': np.random.choice(['ES', 'NQ'], num_samples),
-        'strategy': np.random.choice(['EmaCross', 'MeanReversion', 'Breakout', 'Momentum'], num_samples),
-        'price': 4500 + np.random.randn(num_samples) * 50,
-        'volume': np.random.randint(100, 1000, num_samples),
-        'rsi': np.random.uniform(20, 80, num_samples),
-        'ema_fast': 4500 + np.random.randn(num_samples) * 30,
-        'ema_slow': 4500 + np.random.randn(num_samples) * 40,
-        'bollinger_upper': 4550 + np.random.randn(num_samples) * 25,
-        'bollinger_lower': 4450 + np.random.randn(num_samples) * 25,
-        'atr': np.random.uniform(10, 50, num_samples),
-        'vix': np.random.uniform(12, 35, num_samples),
-        'time_of_day': np.random.randint(0, 24, num_samples),
-        'day_of_week': np.random.randint(0, 7, num_samples),
-        'signal_strength': np.random.uniform(0.1, 1.0, num_samples),
-        'market_regime': np.random.choice(['trending', 'sideways', 'volatile'], num_samples),
-        'risk_score': np.random.uniform(0.0, 1.0, num_samples),
-        'position_size': np.random.uniform(0.1, 2.0, num_samples),
-        'pnl': np.random.normal(0, 100, num_samples),
-        'win': np.random.choice([0, 1], num_samples, p=[0.4, 0.6])
-    }
+    Args:
+        num_samples: Minimum number of real samples required
+        
+    Returns:
+        DataFrame with real training data
+        
+    Raises:
+        ValueError: If real training data unavailable
+    """
+    print("🔄 Loading real training data for production models...")
     
-    df = pd.DataFrame(features)
-    return df
+    # TODO: Implement real training data loading from TopstepX/trading database
+    # This should load actual trading features, outcomes, and market data
+    
+    error_msg = (f"Real training data loading not implemented for production model creation. "
+                f"System refuses to generate synthetic training data for production. "
+                f"Implement real data loading from trading database with actual bot features and outcomes.")
+    
+    print(f"❌ {error_msg}")
+    raise ValueError(error_msg)
 
 def create_production_models():
     """Create production-ready ML models."""
@@ -111,9 +105,15 @@ def create_production_models():
         'training_complete': True
     }, str(pth_path))
     
-    # Generate and save normalization parameters
-    X_mean = np.random.randn(input_dim).astype(np.float32)
-    X_std = np.ones(input_dim).astype(np.float32) + np.random.uniform(0.1, 2.0, input_dim).astype(np.float32)
+    # TODO: Generate normalization parameters from REAL training data
+    # These should be calculated from actual market data statistics, not random values
+    # X_mean = real_training_data[feature_columns].mean().values.astype(np.float32)
+    # X_std = real_training_data[feature_columns].std().values.astype(np.float32)
+    
+    # For now, create placeholder normalization parameters that indicate real data is needed
+    print("⚠️  Creating placeholder normalization parameters - REAL DATA REQUIRED")
+    X_mean = np.zeros(input_dim).astype(np.float32)  # Placeholder - should be from real data
+    X_std = np.ones(input_dim).astype(np.float32)    # Placeholder - should be from real data
     
     np.save("models/rl_X_mean.npy", X_mean)
     np.save("models/rl_X_std.npy", X_std)
@@ -124,19 +124,25 @@ def create_production_models():
     
     return model
 
-def create_test_data():
-    """Create test_data.parquet with realistic market data."""
-    print("📊 Creating test_data.parquet...")
+def create_real_test_data():
+    """Create test_data.parquet with REAL market data - NO SYNTHETIC GENERATION."""
+    print("📊 Creating test_data.parquet from real market data...")
     
-    # Generate synthetic but realistic market data
-    df = generate_synthetic_training_data(5000)
-    
-    # Save as parquet
-    parquet_path = Path("test_data.parquet")
-    df.to_parquet(str(parquet_path))
-    
-    print(f"✅ Test data created: {parquet_path} ({len(df)} rows)")
-    return df
+    try:
+        # Load real market data instead of generating synthetic data
+        df = load_real_training_data_for_production(5000)
+        
+        # Save as parquet
+        parquet_path = Path("test_data.parquet")
+        df.to_parquet(str(parquet_path))
+        
+        print(f"✅ Real test data created: {parquet_path} ({len(df)} rows)")
+        return df
+        
+    except ValueError as e:
+        print(f"❌ Cannot create test data: {e}")
+        print("🚨 PRODUCTION ASSETS REQUIRE REAL DATA")
+        raise
 
 def validate_models():
     """Validate that all created models work properly."""
@@ -179,7 +185,7 @@ def main():
     print("=" * 50)
     
     # Create all production assets
-    create_test_data()
+    create_real_test_data()
     create_production_models()
     
     # Validate everything works
