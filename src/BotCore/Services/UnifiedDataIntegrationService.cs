@@ -45,9 +45,9 @@ public class UnifiedDataIntegrationService : BackgroundService
     private readonly Dictionary<string, ContractDataStatus> _contractStatus = new();
     private readonly object _statusLock = new();
     
-    // Current active contracts (Z25 → H26 rollover support)
+    // Current active contracts (Z25 → H26 rollover support) - STANDARDIZED to ENQ
     private string _currentESContract = "CON.F.US.EP.Z25"; // December 2025
-    private string _currentNQContract = "CON.F.US.NQ.Z25"; // December 2025
+    private string _currentNQContract = "CON.F.US.ENQ.Z25"; // December 2025 - FIXED: Use ENQ consistently
     
     public UnifiedDataIntegrationService(
         ILogger<UnifiedDataIntegrationService> logger,
@@ -464,7 +464,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             
             if (rolloverNeeded.NQNeedsRollover)
             {
-                var newNQContract = rolloverNeeded.NewNQContract ?? "CON.F.US.NQ.H26"; // March 2026
+                var newNQContract = rolloverNeeded.NewNQContract ?? "CON.F.US.ENQ.H26"; // March 2026 - FIXED: Use ENQ consistently
                 _logger.LogInformation("🔄 [NQ-ROLLOVER] Rolling NQ: {Old} → {New}", _currentNQContract, newNQContract);
                 
                 await RolloverContractAsync("NQ", _currentNQContract, newNQContract, cancellationToken);
@@ -626,8 +626,8 @@ public class ContractManager
         // In production, this would query TopstepX API for current front month contracts
         var contracts = new Dictionary<string, string>
         {
-            ["ES"] = "CON.F.US.EP.Z25", // December 2025
-            ["NQ"] = "CON.F.US.NQ.Z25"  // December 2025
+            ["ES"] = "CON.F.US.EP.Z25",  // December 2025
+            ["NQ"] = "CON.F.US.ENQ.Z25"  // December 2025 - FIXED: Use ENQ consistently
         };
         return Task.FromResult(contracts);
     }
@@ -645,7 +645,7 @@ public class ContractManager
             ESNeedsRollover = needsRollover && currentES.Contains("Z25"),
             NQNeedsRollover = needsRollover && currentNQ.Contains("Z25"),
             NewESContract = needsRollover ? "CON.F.US.EP.H26" : null, // March 2026
-            NewNQContract = needsRollover ? "CON.F.US.NQ.H26" : null  // March 2026
+            NewNQContract = needsRollover ? "CON.F.US.ENQ.H26" : null  // March 2026 - FIXED: Use ENQ consistently
         };
         return Task.FromResult(result);
     }

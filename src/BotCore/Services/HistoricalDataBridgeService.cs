@@ -8,6 +8,7 @@ using BotCore.Market;
 using BotCore.Models;
 using System.Text.Json;
 using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace BotCore.Services
 {
@@ -77,8 +78,8 @@ namespace BotCore.Services
                 {
                     _logger.LogDebug("[HISTORICAL-BRIDGE] Seeding contract: {ContractId}", contractId);
 
-                    // Get recent historical bars
-                    var historicalBars = await GetRecentHistoricalBarsAsync(contractId, _config.MinSeededBars + 2);
+                    // Get recent historical bars - FIXED: Request sufficient bars for trading strategies (not just seeding)
+                    var historicalBars = await GetRecentHistoricalBarsAsync(contractId, Math.Max(_config.MinSeededBars + 2, 200));
                     
                     if (historicalBars.Any())
                     {
@@ -187,13 +188,75 @@ namespace BotCore.Services
         {
             try
             {
-                // Placeholder for TopstepX API integration - would use REST API calls
-                await Task.CompletedTask;
+                // Get JWT token from environment
+                var jwt = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
+                if (string.IsNullOrEmpty(jwt))
+                {
+                    _logger.LogDebug("[HISTORICAL-BRIDGE] No TOPSTEPX_JWT found for historical data fetching");
+                    return new List<BotCore.Models.Bar>();
+                }
+                
+                // Calculate time window - get last few days to ensure we have enough bars
+                var endTime = DateTime.UtcNow;
+                var startTime = endTime.AddDays(-7); // Get 7 days of data to ensure we have enough
+                
+                // Create request body
+                var requestBody = new
+                {
+                    contractId = contractId,
+                    live = false, // Use simulation data for consistency
+                    startTime = startTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    endTime = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    unit = 2, // Minutes
+                    unitNumber = 1, // 1-minute bars
+                    limit = Math.Max(barCount, 1000), // Get more than requested to ensure we have enough
+                    includePartialBar = false
+                };
+                
+                _logger.LogDebug("[HISTORICAL-BRIDGE] Fetching TopstepX historical data for {ContractId} from {StartTime} to {EndTime}", 
+                    contractId, startTime, endTime);
+                
+                // Set authorization header
+                _httpClient.DefaultRequestHeaders.Clear();
+                _httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
+                
+                // Make API call
+                var response = await _httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] TopstepX History API failed: {StatusCode} - {Error}", 
+                        response.StatusCode, errorContent);
+                    return new List<BotCore.Models.Bar>();
+                }
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("[HISTORICAL-BRIDGE] TopstepX History API response length: {Length} characters", responseContent.Length);
+                
+                // Debug: Log first 500 characters of response
+                var previewContent = responseContent.Length > 500 ? responseContent.Substring(0, 500) + "..." : responseContent;
+                _logger.LogInformation("[HISTORICAL-BRIDGE] 📊 API Response Preview: {Preview}", previewContent);
+                
+                // Parse response to Bar objects
+                var bars = ParseTopstepXHistoricalResponse(responseContent, contractId);
+                
+                if (bars.Count > 0)
+                {
+                    // FIXED: Use ALL available bars instead of limiting to barCount
+                    // The API fetches 1000 bars, we should use them all for better trading decisions
+                    var recentBars = bars.OrderByDescending(b => b.Ts).Take(Math.Min(bars.Count, 1000)).OrderBy(b => b.Ts).ToList();
+                    _logger.LogInformation("[HISTORICAL-BRIDGE] Retrieved {Count} TopstepX historical bars for {ContractId} (requested {RequestedCount}, using {UsedCount})", 
+                        bars.Count, contractId, barCount, recentBars.Count);
+                    return recentBars;
+                }
+                
                 return new List<BotCore.Models.Bar>();
             }
             catch (Exception ex)
             {
-                _logger.LogDebug("[HISTORICAL-BRIDGE] TopstepX bars failed for {ContractId}: {Error}", contractId, ex.Message);
+                _logger.LogError(ex, "[HISTORICAL-BRIDGE] TopstepX bars failed for {ContractId}: {Error}", contractId, ex.Message);
                 return new List<BotCore.Models.Bar>();
             }
         }
@@ -212,6 +275,143 @@ namespace BotCore.Services
                 _logger.LogDebug("[HISTORICAL-BRIDGE] Correlation manager bars failed for {ContractId}: {Error}", contractId, ex.Message);
                 return new List<BotCore.Models.Bar>();
             }
+        }
+
+        private List<BotCore.Models.Bar> ParseTopstepXHistoricalResponse(string responseContent, string contractId)
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(responseContent);
+                var root = document.RootElement;
+                
+                // Check for success field
+                if (root.TryGetProperty("success", out var successElement) && !successElement.GetBoolean())
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] TopstepX History API returned success=false for {ContractId}", contractId);
+                    return new List<BotCore.Models.Bar>();
+                }
+                
+                // TopstepX format: { "bars": [...], "success": true, "errorCode": 0, "errorMessage": null }
+                if (!root.TryGetProperty("bars", out var barsElement) || barsElement.ValueKind != JsonValueKind.Array)
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] No 'bars' array found in TopstepX response for {ContractId}", contractId);
+                    return new List<BotCore.Models.Bar>();
+                }
+                
+                var bars = new List<BotCore.Models.Bar>();
+                var symbol = GetSymbolFromContractId(contractId);
+                
+                foreach (var barElement in barsElement.EnumerateArray())
+                {
+                    try
+                    {
+                        var bar = new BotCore.Models.Bar
+                        {
+                            Symbol = symbol,
+                            Ts = ParseTopstepXTimestampToUnixMs(barElement),
+                            Open = ParseDecimalField(barElement, "o", "open"),
+                            High = ParseDecimalField(barElement, "h", "high"), 
+                            Low = ParseDecimalField(barElement, "l", "low"),
+                            Close = ParseDecimalField(barElement, "c", "close"),
+                            Volume = (int)ParseLongField(barElement, "v", "volume")
+                        };
+                        
+                        // Validate bar data
+                        if (bar.Open > 0 && bar.High > 0 && bar.Low > 0 && bar.Close > 0 && 
+                            bar.High >= bar.Low && bar.High >= bar.Open && bar.High >= bar.Close &&
+                            bar.Low <= bar.Open && bar.Low <= bar.Close)
+                        {
+                            bars.Add(bar);
+                        }
+                        else
+                        {
+                            _logger.LogDebug("[HISTORICAL-BRIDGE] Invalid bar data for {ContractId}: O:{Open} H:{High} L:{Low} C:{Close}", 
+                                contractId, bar.Open, bar.High, bar.Low, bar.Close);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "[HISTORICAL-BRIDGE] Error parsing individual bar for {ContractId}", contractId);
+                        // Continue with other bars
+                    }
+                }
+                
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Parsed {Count} valid bars from TopstepX response for {ContractId}", bars.Count, contractId);
+                
+                // Debug: Log sample of parsed bars
+                if (bars.Count > 0)
+                {
+                    var sampleBars = bars.Take(3).ToList();
+                    foreach (var bar in sampleBars)
+                    {
+                        _logger.LogInformation("[HISTORICAL-BRIDGE] 📊 Sample Bar: {Symbol} {Timestamp} O:{Open} H:{High} L:{Low} C:{Close} V:{Volume}", 
+                            bar.Symbol, new DateTime(1970, 1, 1).AddMilliseconds(bar.Ts), bar.Open, bar.High, bar.Low, bar.Close, bar.Volume);
+                    }
+                }
+                
+                return bars;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[HISTORICAL-BRIDGE] Error parsing TopstepX historical response for {ContractId}", contractId);
+                return new List<BotCore.Models.Bar>();
+            }
+        }
+        
+        private long ParseTopstepXTimestampToUnixMs(JsonElement barElement)
+        {
+            // TopstepX uses 't' field with ISO 8601 format: "2025-09-12T20:59:00+00:00"
+            if (barElement.TryGetProperty("t", out var timestampElement) && timestampElement.ValueKind == JsonValueKind.String)
+            {
+                var timestampStr = timestampElement.GetString();
+                if (DateTime.TryParse(timestampStr, out var timestamp))
+                {
+                    return ((DateTimeOffset)timestamp.ToUniversalTime()).ToUnixTimeMilliseconds();
+                }
+            }
+            
+            // Fallback: current time minus some offset
+            return DateTimeOffset.UtcNow.AddMinutes(-1).ToUnixTimeMilliseconds();
+        }
+        
+        private decimal ParseDecimalField(JsonElement element, params string[] fieldNames)
+        {
+            foreach (var fieldName in fieldNames)
+            {
+                if (element.TryGetProperty(fieldName, out var fieldElement))
+                {
+                    if (fieldElement.ValueKind == JsonValueKind.Number)
+                    {
+                        return fieldElement.GetDecimal();
+                    }
+                    if (fieldElement.ValueKind == JsonValueKind.String && 
+                        decimal.TryParse(fieldElement.GetString(), out var decimalValue))
+                    {
+                        return decimalValue;
+                    }
+                }
+            }
+            return 0;
+        }
+        
+        private long ParseLongField(JsonElement element, params string[] fieldNames)
+        {
+            foreach (var fieldName in fieldNames)
+            {
+                if (element.TryGetProperty(fieldName, out var fieldElement))
+                {
+                    if (fieldElement.ValueKind == JsonValueKind.Number)
+                    {
+                        return fieldElement.GetInt64();
+                    }
+                    if (fieldElement.ValueKind == JsonValueKind.String && 
+                        long.TryParse(fieldElement.GetString(), out var longValue))
+                    {
+                        return longValue;
+                    }
+                }
+            }
+            return 0;
         }
 
         private List<BotCore.Models.Bar> GenerateWarmupBars(string contractId, int barCount)

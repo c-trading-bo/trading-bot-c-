@@ -37,7 +37,36 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     private AutoTopstepXLoginService? _autoLoginService;
 
     public event Action<string>? TokenRefreshed;
-    public bool IsTokenValid => !string.IsNullOrEmpty(_currentToken) && DateTime.UtcNow < _tokenExpiry.AddMinutes(-5);
+    public bool IsTokenValid => !string.IsNullOrEmpty(_currentToken) && DateTime.UtcNow < _tokenExpiry.AddMinutes(-5) && IsJwtTokenActuallyValid(_currentToken);
+
+    private bool IsJwtTokenActuallyValid(string? token)
+    {
+        if (string.IsNullOrEmpty(token)) return false;
+        
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length != 3) return false;
+            
+            var payload = parts[1];
+            while (payload.Length % 4 != 0) { payload += "="; }
+            
+            var decoded = System.Text.Encoding.UTF8.GetString(System.Convert.FromBase64String(payload));
+            var json = System.Text.Json.JsonDocument.Parse(decoded);
+            
+            if (json.RootElement.TryGetProperty("exp", out var expElement))
+            {
+                var expiry = DateTimeOffset.FromUnixTimeSeconds(expElement.GetInt64());
+                return expiry > DateTimeOffset.UtcNow.AddMinutes(5); // Valid if expires more than 5 minutes from now
+            }
+            
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public CentralizedTokenProvider(
         ILogger<CentralizedTokenProvider> logger,
@@ -136,8 +165,18 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 return;
             }
 
-            // NOTE: AutoTopstepXLoginService integration temporarily disabled due to type resolution issues
-            // Will be re-enabled once dependency injection is properly configured
+            // Try to refresh via AutoTopstepXLoginService if available
+            if (_autoLoginService != null && !string.IsNullOrEmpty(_autoLoginService.JwtToken))
+            {
+                _currentToken = _autoLoginService.JwtToken;
+                _tokenExpiry = DateTime.UtcNow.AddHours(1);
+                
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+                    "Token refreshed from AutoTopstepXLoginService");
+                
+                TokenRefreshed?.Invoke(_currentToken);
+                return;
+            }
 
             // If we already have a token from environment, use it even if it's the same
             if (!string.IsNullOrEmpty(envToken))
@@ -150,6 +189,33 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 
                 TokenRefreshed?.Invoke(_currentToken);
                 return;
+            }
+
+            // If we still don't have a valid token, try to trigger authentication
+            if (!IsTokenValid)
+            {
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "TokenProvider", 
+                    "No valid token found, attempting to trigger authentication via AutoTopstepXLoginService");
+                
+                // Force authentication attempt if AutoTopstepXLoginService is available
+                if (_autoLoginService != null && !_autoLoginService.IsAuthenticated)
+                {
+                    // The AutoTopstepXLoginService should handle authentication in its background service
+                    // Just wait a bit and check again
+                    await Task.Delay(2000);
+                    
+                    if (!string.IsNullOrEmpty(_autoLoginService.JwtToken))
+                    {
+                        _currentToken = _autoLoginService.JwtToken;
+                        _tokenExpiry = DateTime.UtcNow.AddHours(1);
+                        Environment.SetEnvironmentVariable("TOPSTEPX_JWT", _currentToken);
+                        
+                        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
+                            "Token obtained after authentication attempt");
+                        
+                        TokenRefreshed?.Invoke(_currentToken);
+                    }
+                }
             }
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "TokenProvider", 

@@ -50,6 +50,7 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private readonly SemaphoreSlim _marketHubLock = new(1, 1);
     private readonly IHostApplicationLifetime _appLifetime;
     private readonly TradingBot.UnifiedOrchestrator.Services.ILoginCompletionState _loginCompletionState;
+    private readonly IServiceProvider? _serviceProvider;
     private readonly TaskCompletionSource _hubsConnected = new();
     
     private HubConnection? _userHub;
@@ -64,6 +65,20 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     private DateTime _longestConnectedStart = DateTime.MinValue;
     private volatile int _totalMessagesReceived = 0;
     private bool _disposed = false;
+
+    // Flow telemetry counters for live data monitoring
+    private static long _quotesPerMin, _tradesPerMin;
+    private static readonly Timer _flowTelemetry = new(_ => {
+        var q = Interlocked.Exchange(ref _quotesPerMin, 0);
+        var t = Interlocked.Exchange(ref _tradesPerMin, 0);
+        Console.WriteLine($"[FLOW] quotes={q}/min trades={t}/min");
+    }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    
+    // Subscription replay storage - store actual calls for replay on reconnect
+    private readonly ConcurrentQueue<(string hub, string method, object[] args)> _subscriptionReplays = new();
+    
+    // Readiness tracker for feeding live data to bar pipeline
+    private BotCore.Services.ITradingReadinessTracker? _readinessTracker;
 
     public bool IsUserHubConnected => _userHub?.State == HubConnectionState.Connected && _userHubWired;
     public bool IsMarketHubConnected => _marketHub?.State == HubConnectionState.Connected && _marketHubWired;
@@ -84,7 +99,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         ITokenProvider tokenProvider,
         IConfiguration configuration,
         IHostApplicationLifetime appLifetime,
-        TradingBot.UnifiedOrchestrator.Services.ILoginCompletionState loginCompletionState)
+        TradingBot.UnifiedOrchestrator.Services.ILoginCompletionState loginCompletionState,
+        IServiceProvider serviceProvider)
     {
         _logger = logger;
         _tradingLogger = tradingLogger;
@@ -92,8 +108,19 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         _configuration = configuration;
         _appLifetime = appLifetime;
         _loginCompletionState = loginCompletionState;
+        _serviceProvider = serviceProvider;
         _connectionHealthTimer = new Timer(CheckConnectionHealth, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60)); // Increased from 30s to 60s to be less aggressive
         _tokenProvider.TokenRefreshed += (token) => _ = Task.Run(() => OnTokenRefreshed(token));
+        
+        // Try to get readiness tracker from service provider
+        try
+        {
+            _readinessTracker = _serviceProvider?.GetService(typeof(BotCore.Services.ITradingReadinessTracker)) as BotCore.Services.ITradingReadinessTracker;
+        }
+        catch
+        {
+            // Ignore if not available
+        }
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -492,12 +519,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 ConnectionStateChanged?.Invoke("UserHub:Reconnecting");
             };
             
-            // Add reconnected event handler to restore state
+            // Add reconnected event handler to restore state and replay subscriptions
             _userHub.Reconnected += async (connectionId) =>
             {
                 _userHubWired = true;
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, SignalRManagerLogSource, $"User Hub reconnected with ID: {connectionId}");
                 ConnectionStateChanged?.Invoke("UserHub:Reconnected");
+                
+                // Replay subscriptions after reconnection
+                await ReplaySubscriptionsAsync("UserHub", _userHub);
+                
                 CheckAndSetHubsConnected();
             };
             
@@ -597,12 +628,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
                 ConnectionStateChanged?.Invoke("MarketHub:Reconnecting");
             };
             
-            // Add reconnected event handler to restore state
+            // Add reconnected event handler to restore state and replay subscriptions
             _marketHub.Reconnected += async (connectionId) =>
             {
                 _marketHubWired = true;
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, SignalRManagerLogSource, $"Market Hub reconnected with ID: {connectionId}");
                 ConnectionStateChanged?.Invoke("MarketHub:Reconnected");
+                
+                // Replay subscriptions after reconnection
+                await ReplaySubscriptionsAsync("MarketHub", _marketHub);
+                
                 CheckAndSetHubsConnected();
             };
             SetupMarketHubEventHandlers();
@@ -1308,7 +1343,33 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         var hubSubscriptions = _subscriptionManifest.GetOrAdd(hub, new ConcurrentDictionary<string, int>());
         hubSubscriptions.AddOrUpdate(method, 1, (key, count) => count + 1);
+        
+        // Store for replay on reconnect
+        _subscriptionReplays.Enqueue((hub, method, new object[] { parameter }));
+        
         _logger.LogInformation("[SUB-MANIFEST] Added: {Hub} -> {Method}({Parameter})", hub, method, parameter);
+    }
+    
+    /// <summary>
+    /// Replay all subscriptions for a specific hub after reconnection
+    /// </summary>
+    private async Task ReplaySubscriptionsAsync(string hubName, HubConnection hub)
+    {
+        var replayed = 0;
+        foreach (var (replayHub, method, args) in _subscriptionReplays.Where(r => r.hub == hubName))
+        {
+            try 
+            {
+                await hub.InvokeAsync(method, args);
+                replayed++;
+                _logger.LogInformation("[SUB-REPLAY] {hub} -> {method}({args})", hubName, method, string.Join(",", args));
+            } 
+            catch (Exception ex) 
+            {
+                _logger.LogError(ex, "[SUB-REPLAY] {hub} -> {method} failed", hubName, method);
+            }
+        }
+        _logger.LogInformation("[SUB-REPLAY] Replayed {count} subscriptions for {hub}", replayed, hubName);
     }
 
     private void SetupUserHubEventHandlers()
@@ -1358,10 +1419,11 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     {
         if (_marketHub == null) return;
         
-        // Enhanced market data event handlers with better coverage
+        // Enhanced market data event handlers with flow telemetry
         _marketHub.On<object>("GatewayQuote", data => 
         { 
-            Interlocked.Increment(ref _totalMessagesReceived); 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _quotesPerMin); // Flow counter
             OnMarketDataReceived?.Invoke(data); 
             if (_totalMessagesReceived % 10 == 1) // Log every 10th quote to avoid spam
                 _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: GatewayQuote #{Count}", _totalMessagesReceived); 
@@ -1369,7 +1431,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         
         _marketHub.On<object>("GatewayTrade", data => 
         { 
-            Interlocked.Increment(ref _totalMessagesReceived); 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _tradesPerMin); // Flow counter
             OnMarketDataReceived?.Invoke(data); 
             _logger.LogInformation("[MARKET-HUB] 🔄 LIVE DATA: GatewayTrade #{Count}", _totalMessagesReceived); 
         });
@@ -1385,14 +1448,16 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         // Additional event types that might be used by TopstepX
         _marketHub.On<object>("Quote", data => 
         { 
-            Interlocked.Increment(ref _totalMessagesReceived); 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _quotesPerMin); // Flow counter
             OnMarketDataReceived?.Invoke(data); 
             _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: Quote #{Count}", _totalMessagesReceived); 
         });
         
         _marketHub.On<object>("Trade", data => 
         { 
-            Interlocked.Increment(ref _totalMessagesReceived); 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _tradesPerMin); // Flow counter
             OnMarketDataReceived?.Invoke(data); 
             _logger.LogInformation("[MARKET-HUB] 💹 LIVE DATA: Trade #{Count}", _totalMessagesReceived); 
         });
@@ -1406,9 +1471,18 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
         
         _marketHub.On<object>("ContractQuotes", data => 
         { 
-            Interlocked.Increment(ref _totalMessagesReceived); 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _quotesPerMin); // Flow counter
             OnContractQuotesReceived?.Invoke(data); 
             _logger.LogInformation("[MARKET-HUB] 📈 LIVE DATA: ContractQuotes #{Count}", _totalMessagesReceived); 
+        });
+        
+        _marketHub.On<object>("ContractTrades", data => 
+        { 
+            Interlocked.Increment(ref _totalMessagesReceived);
+            Interlocked.Increment(ref _tradesPerMin); // Flow counter - ADDED MISSING EVENT
+            OnMarketDataReceived?.Invoke(data); 
+            _logger.LogInformation("[MARKET-HUB] 💹 LIVE DATA: ContractTrades #{Count}", _totalMessagesReceived); 
         });
         
         // Catch-all event handler for debugging unrecognized events

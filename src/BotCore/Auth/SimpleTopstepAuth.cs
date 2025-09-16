@@ -37,10 +37,10 @@ namespace BotCore.Auth
                      Environment.GetEnvironmentVariable("TOPSTEP_API_KEY") ?? 
                      throw new InvalidOperationException("TOPSTEPX_API_KEY or TOPSTEP_API_KEY environment variable not set.");
             
-            // Ensure base address is set - UPDATED: Use ProjectX Gateway API
+            // Ensure base address is set - Use TopstepX API
             if (_http.BaseAddress == null)
             {
-                _http.BaseAddress = new Uri("https://gateway-api-demo.s2f.projectx.com");
+                _http.BaseAddress = new Uri("https://api.topstepx.com");
             }
         }
 
@@ -75,7 +75,7 @@ namespace BotCore.Auth
             {
                 _logger.LogInformation("Refreshing TopstepX JWT token...");
 
-                // Use the EXACT working endpoint and payload from August 22
+                // Use TopstepX API endpoint for authentication
                 var request = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
                 {
                     Content = new StringContent(
@@ -116,6 +116,9 @@ namespace BotCore.Auth
                     _jwt = newJwt;
                     _expUtc = expiry;
                 }
+
+                // Update environment variable so other services can use the fresh token
+                Environment.SetEnvironmentVariable("TOPSTEPX_JWT", newJwt);
 
                 _logger.LogInformation("JWT token refreshed successfully, expires at {ExpiryUtc}", expiry);
             }
