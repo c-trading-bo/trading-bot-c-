@@ -144,13 +144,14 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
     /// </summary>
     private async Task SetAuthHeaderFromEnvironmentAsync()
     {
+        await Task.Yield(); // Ensure async behavior
+        
         var token = GetAuthToken();
         if (!string.IsNullOrEmpty(token))
         {
             _httpClient.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         }
-        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
