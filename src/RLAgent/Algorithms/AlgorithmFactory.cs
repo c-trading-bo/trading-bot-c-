@@ -61,7 +61,7 @@ public static class AlgorithmFactory
         logger.LogInformation("[ALGORITHM_FACTORY] Created SAC algorithm with config: {Config}", 
             System.Text.Json.JsonSerializer.Serialize(sacConfig));
         
-        return new SACAlgorithmWrapper(sac);
+        return new SacAlgorithmWrapper(sac);
     }
 
     /// <summary>

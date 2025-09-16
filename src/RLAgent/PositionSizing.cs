@@ -474,7 +474,7 @@ public class KellyState
 /// <summary>
 /// SAC state for fraction proposal
 /// </summary>
-public class SACState : IDisposable
+public class SacState : IDisposable
 {
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
     private readonly Dictionary<RegimeType, double> _baseProposals = new()

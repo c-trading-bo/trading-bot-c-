@@ -8,7 +8,7 @@ namespace TradingBot.RLAgent;
 /// CVaR-PPO Implementation with training loop, experience buffer, and model versioning
 /// Implements requirement 2.1: Training loop (policy, value, CVaR head), experience buffer, advantage/CVaR estimation, model save/restore
 /// </summary>
-public class CVaRPPO : IDisposable
+public class CVaRppo : IDisposable
 {
     private readonly ILogger<CVaRPPO> _logger;
     private readonly CVaRPPOConfig _config;
@@ -776,6 +776,7 @@ public class PolicyNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[,] _weights2 = null!;
     private double[] _bias2 = null!;
+    private bool _disposed = false;
 
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
     {
@@ -904,6 +905,7 @@ public class ValueNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[] _weights2 = null!;
     private double _bias2;
+    private bool _disposed = false;
 
     public ValueNetwork(int stateSize, int hiddenSize)
     {

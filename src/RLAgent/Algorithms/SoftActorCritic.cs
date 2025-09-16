@@ -330,7 +330,7 @@ public class SoftActorCritic
 /// <summary>
 /// SAC configuration parameters
 /// </summary>
-public class SACConfig
+public class SacConfig
 {
     public int StateDimension { get; set; } = 20;          // Number of features
     public int ActionDimension { get; set; } = 1;          // Position size
@@ -363,7 +363,7 @@ public class Experience
 /// <summary>
 /// Training result from SAC update
 /// </summary>
-public class SACTrainingResult
+public class SacTrainingResult
 {
     public bool Success { get; set; }
     public string? Message { get; set; }
@@ -380,7 +380,7 @@ public class SACTrainingResult
 /// <summary>
 /// Current SAC statistics
 /// </summary>
-public class SACStatistics
+public class SacStatistics
 {
     public int TotalSteps { get; set; }
     public double AverageReward { get; set; }
@@ -539,7 +539,10 @@ public class ActorNetwork : IDisposable
         {
             for (int i = 0; i < _outputDim; i++)
             {
-                output[i] += (_random.NextDouble() * 2 - 1) * 0.1; // Small exploration noise
+                var bytes = new byte[8];
+                _rng.GetBytes(bytes);
+                var randomValue = Math.Abs(BitConverter.ToDouble(bytes, 0) % 1.0);
+                output[i] += (randomValue * 2 - 1) * 0.1; // Small exploration noise
             }
         }
         
