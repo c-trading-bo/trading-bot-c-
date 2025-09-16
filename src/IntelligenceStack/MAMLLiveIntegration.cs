@@ -322,20 +322,24 @@ public class MAMLLiveIntegration
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
-        // Check if performance gain is reasonable
-        if (step.PerformanceGain < -0.1)
+        // Perform validation asynchronously to avoid blocking adaptation pipeline
+        return await Task.Run(() =>
         {
-            return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" };
-        }
+            // Check if performance gain is reasonable
+            if (step.PerformanceGain < -0.1)
+            {
+                return new ValidationResult { IsValid = false, Reason = "Performance degradation too large" };
+            }
 
-        // Check if weight changes are within reasonable bounds
-        var maxChange = step.WeightChanges.Values.Max(Math.Abs);
-        if (maxChange > 0.5)
-        {
-            return new ValidationResult { IsValid = false, Reason = "Weight changes too large" };
-        }
+            // Check if weight changes are within reasonable bounds
+            var maxChange = step.WeightChanges.Values.Max(Math.Abs);
+            if (maxChange > 0.5)
+            {
+                return new ValidationResult { IsValid = false, Reason = "Weight changes too large" };
+            }
 
-        return new ValidationResult { IsValid = true };
+            return new ValidationResult { IsValid = true };
+        }, cancellationToken);
     }
 
     private AdaptationStep ApplyBoundedUpdates(AdaptationStep step)
@@ -365,38 +369,46 @@ public class MAMLLiveIntegration
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
-        // Get recent adaptation history
-        var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>());
-        var recentHistory = history.TakeLast(10).ToList();
-        
-        if (recentHistory.Count < 5)
+        // Analyze adaptation stability asynchronously to avoid blocking adaptation pipeline
+        return await Task.Run(() =>
         {
-            return false; // Not enough history to determine instability
-        }
+            // Get recent adaptation history
+            var history = _adaptationHistory.GetValueOrDefault(modelState.RegimeKey, new List<AdaptationStep>());
+            var recentHistory = history.TakeLast(10).ToList();
+            
+            if (recentHistory.Count < 5)
+            {
+                return false; // Not enough history to determine instability
+            }
 
-        // Calculate variance in performance gains
-        var gains = recentHistory.Select(h => h.PerformanceGain).ToList();
-        var mean = gains.Average();
-        var variance = gains.Select(g => Math.Pow(g - mean, 2)).Average();
-        
-        // Get baseline variance
-        var baselineVariance = _baselinePerformance.GetValueOrDefault($"{modelState.RegimeKey}_variance", variance);
-        
-        // Check if current variance exceeds rollback threshold
-        return variance > baselineVariance * _config.RollbackVarMultiplier;
+            // Calculate variance in performance gains
+            var gains = recentHistory.Select(h => h.PerformanceGain).ToList();
+            var mean = gains.Average();
+            var variance = gains.Select(g => Math.Pow(g - mean, 2)).Average();
+            
+            // Get baseline variance
+            var baselineVariance = _baselinePerformance.GetValueOrDefault($"{modelState.RegimeKey}_variance", variance);
+            
+            // Check if current variance exceeds rollback threshold
+            return variance > baselineVariance * _config.RollbackVarMultiplier;
+        }, cancellationToken);
     }
 
     private async Task PerformRollbackAsync(MAMLModelState modelState, CancellationToken cancellationToken)
     {
-        lock (_lock)
+        // Perform model rollback asynchronously to avoid blocking adaptation pipeline
+        await Task.Run(() =>
         {
-            // Reset to baseline weights
-            modelState.CurrentWeights = new Dictionary<string, double>(modelState.BaselineWeights);
-            modelState.IsStable = false;
-            modelState.LastRollback = DateTime.UtcNow;
-        }
+            lock (_lock)
+            {
+                // Reset to baseline weights
+                modelState.CurrentWeights = new Dictionary<string, double>(modelState.BaselineWeights);
+                modelState.IsStable = false;
+                modelState.LastRollback = DateTime.UtcNow;
+            }
 
-        _logger.LogWarning("[MAML_LIVE] Performed rollback for regime: {Regime}", modelState.RegimeKey);
+            _logger.LogWarning("[MAML_LIVE] Performed rollback for regime: {Regime}", modelState.RegimeKey);
+        }, cancellationToken);
     }
 
     private async Task ApplyAdaptationAsync(
@@ -404,39 +416,43 @@ public class MAMLLiveIntegration
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
-        lock (_lock)
+        // Apply adaptation changes asynchronously to avoid blocking adaptation pipeline
+        await Task.Run(() =>
         {
-            // Apply weight changes
-            foreach (var (key, change) in step.WeightChanges)
+            lock (_lock)
             {
-                if (modelState.CurrentWeights.ContainsKey(key))
+                // Apply weight changes
+                foreach (var (key, change) in step.WeightChanges)
                 {
-                    modelState.CurrentWeights[key] += change;
-                    
-                    // Ensure weights stay in reasonable bounds
-                    modelState.CurrentWeights[key] = Math.Max(0.1, Math.Min(2.0, modelState.CurrentWeights[key]));
+                    if (modelState.CurrentWeights.ContainsKey(key))
+                    {
+                        modelState.CurrentWeights[key] += change;
+                        
+                        // Ensure weights stay in reasonable bounds
+                        modelState.CurrentWeights[key] = Math.Max(0.1, Math.Min(2.0, modelState.CurrentWeights[key]));
+                    }
+                }
+
+                // Update state
+                modelState.LastAdaptation = DateTime.UtcNow;
+                modelState.AdaptationCount++;
+                modelState.IsStable = true;
+
+                // Store adaptation history
+                if (!_adaptationHistory.ContainsKey(modelState.RegimeKey))
+                {
+                    _adaptationHistory[modelState.RegimeKey] = new List<AdaptationStep>();
+                }
+                
+                _adaptationHistory[modelState.RegimeKey].Add(step);
+                
+                // Keep only recent history
+                if (_adaptationHistory[modelState.RegimeKey].Count > 100)
+                {
+                    _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
                 }
             }
-
-            // Update state
-            modelState.LastAdaptation = DateTime.UtcNow;
-            modelState.AdaptationCount++;
-            modelState.IsStable = true;
-
-            // Store adaptation history
-            if (!_adaptationHistory.ContainsKey(modelState.RegimeKey))
-            {
-                _adaptationHistory[modelState.RegimeKey] = new List<AdaptationStep>();
-            }
-            
-            _adaptationHistory[modelState.RegimeKey].Add(step);
-            
-            // Keep only recent history
-            if (_adaptationHistory[modelState.RegimeKey].Count > 100)
-            {
-                _adaptationHistory[modelState.RegimeKey].RemoveAt(0);
-            }
-        }
+        }, cancellationToken);
     }
 
     private async Task UpdateEnsembleWeightsAsync(

@@ -182,21 +182,25 @@ public class ModelQuarantineManager : IQuarantineManager
 
     public async Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
     {
-        try
+        // Retrieve quarantined models asynchronously to avoid blocking quarantine operations
+        return await Task.Run(() =>
         {
-            lock (_lock)
+            try
             {
-                return _modelHealth
-                    .Where(kvp => kvp.Value.State == HealthState.Quarantine)
-                    .Select(kvp => kvp.Key)
-                    .ToList();
+                lock (_lock)
+                {
+                    return _modelHealth
+                        .Where(kvp => kvp.Value.State == HealthState.Quarantine)
+                        .Select(kvp => kvp.Key)
+                        .ToList();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[QUARANTINE] Failed to get quarantined models");
-            return new List<string>();
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[QUARANTINE] Failed to get quarantined models");
+                return new List<string>();
+            }
+        }, cancellationToken);
     }
 
     /// <summary>
@@ -502,14 +506,18 @@ public class ModelQuarantineManager : IQuarantineManager
 
     private async Task IncrementShadowDecisionCountAsync(string modelId, CancellationToken cancellationToken)
     {
-        lock (_lock)
+        // Increment shadow decision count asynchronously to avoid blocking performance recording
+        await Task.Run(() =>
         {
-            if (_modelHealth.TryGetValue(modelId, out var healthState) && 
-                healthState.State == HealthState.Quarantine)
+            lock (_lock)
             {
-                _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
+                if (_modelHealth.TryGetValue(modelId, out var healthState) && 
+                    healthState.State == HealthState.Quarantine)
+                {
+                    _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
+                }
             }
-        }
+        }, cancellationToken);
     }
 
     private async Task SaveStateAsync(CancellationToken cancellationToken = default)

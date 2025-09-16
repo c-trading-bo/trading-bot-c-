@@ -383,7 +383,12 @@ public class ObservabilityDashboard
     /// </summary>
     private async Task<RLAdvisorDashboard> GetRLAdvisorDashboardAsync(CancellationToken cancellationToken)
     {
-        var rlStatus = _rlAdvisor.GetCurrentStatus();
+        // Get RL advisor status asynchronously to avoid blocking dashboard generation
+        var rlStatus = await Task.Run(() => _rlAdvisor.GetCurrentStatus(), cancellationToken);
+        
+        // Retrieve recent metrics asynchronously from persistent storage
+        var recentMetricsTask = Task.Run(() => GetRecentMetrics("rl_decisions"), cancellationToken);
+        var recentMetrics = await recentMetricsTask;
         
         return new RLAdvisorDashboard
         {
@@ -400,7 +405,7 @@ public class ObservabilityDashboard
                     ExplorationRate = kvp.Value.ExplorationRate
                 }
             ),
-            RecentDecisions = GetRecentMetrics("rl_decisions")
+            RecentDecisions = recentMetrics
                 .TakeLast(50)
                 .Select(m => new RLDecisionView
                 {
@@ -419,13 +424,12 @@ public class ObservabilityDashboard
     /// </summary>
     private async Task<MAMLStatusDashboard> GetMAMLStatusAsync(CancellationToken cancellationToken)
     {
-        var mamlStatus = _maml.GetCurrentStatus();
+        // Get MAML status asynchronously to enable concurrent dashboard data collection
+        var mamlStatus = await Task.Run(() => _maml.GetCurrentStatus(), cancellationToken);
         
-        return new MAMLStatusDashboard
-        {
-            Enabled = mamlStatus.Enabled,
-            LastUpdate = mamlStatus.LastUpdate,
-            RegimeAdaptations = mamlStatus.RegimeStates.ToDictionary(
+        // Process regime state data asynchronously to avoid blocking UI
+        var regimeStatesTask = Task.Run(() => 
+            mamlStatus.RegimeStates.ToDictionary(
                 kvp => kvp.Key,
                 kvp => new MAMLRegimeView
                 {
@@ -435,7 +439,15 @@ public class ObservabilityDashboard
                     IsStable = kvp.Value.IsStable,
                     CurrentWeights = kvp.Value.CurrentWeights
                 }
-            ),
+            ), cancellationToken);
+        
+        var regimeAdaptations = await regimeStatesTask;
+        
+        return new MAMLStatusDashboard
+        {
+            Enabled = mamlStatus.Enabled,
+            LastUpdate = mamlStatus.LastUpdate,
+            RegimeAdaptations = regimeAdaptations,
             WeightBounds = new Dictionary<string, double>
             {
                 ["max_change_pct"] = mamlStatus.MaxWeightChangePct,
@@ -467,24 +479,33 @@ public class ObservabilityDashboard
     {
         var timestamp = DateTime.UtcNow;
         
-        // Collect ensemble metrics
-        var ensembleStatus = _ensemble.GetCurrentStatus();
-        RecordMetric("regime_changes", ensembleStatus.InTransition ? 1.0 : 0.0, timestamp, new Dictionary<string, string>
+        // Collect ensemble metrics asynchronously
+        var ensembleStatusTask = Task.Run(() => _ensemble.GetCurrentStatus());
+        var sloStatusTask = Task.Run(() => _sloMonitor.GetCurrentSLOStatus());
+        var healthReportTask = Task.Run(() => _quarantine.GetHealthReport());
+        
+        // Await all metrics collection tasks concurrently
+        var ensembleStatus = await ensembleStatusTask;
+        var sloStatus = await sloStatusTask;
+        var healthReport = await healthReportTask;
+        
+        // Record metrics asynchronously to avoid blocking subsequent collections
+        var recordingTasks = new[]
         {
-            ["current_regime"] = ensembleStatus.CurrentRegime.ToString(),
-            ["previous_regime"] = ensembleStatus.PreviousRegime.ToString()
-        });
-
-        // Collect SLO metrics
-        var sloStatus = _sloMonitor.GetCurrentSLOStatus();
-        RecordMetric("decision_latency", sloStatus.DecisionLatencyP99Ms, timestamp);
-        RecordMetric("order_latency", sloStatus.OrderLatencyP99Ms, timestamp);
-        RecordMetric("error_rate", sloStatus.ErrorRate, timestamp);
-
-        // Collect quarantine metrics
-        var healthReport = _quarantine.GetHealthReport();
-        RecordMetric("healthy_models", healthReport.HealthyModels, timestamp);
-        RecordMetric("quarantined_models", healthReport.QuarantinedModels, timestamp);
+            Task.Run(() => RecordMetric("regime_changes", ensembleStatus.InTransition ? 1.0 : 0.0, timestamp, new Dictionary<string, string>
+            {
+                ["current_regime"] = ensembleStatus.CurrentRegime.ToString(),
+                ["previous_regime"] = ensembleStatus.PreviousRegime.ToString()
+            })),
+            Task.Run(() => RecordMetric("decision_latency", sloStatus.DecisionLatencyP99Ms, timestamp)),
+            Task.Run(() => RecordMetric("order_latency", sloStatus.OrderLatencyP99Ms, timestamp)),
+            Task.Run(() => RecordMetric("error_rate", sloStatus.ErrorRate, timestamp)),
+            Task.Run(() => RecordMetric("healthy_models", healthReport.HealthyModels, timestamp)),
+            Task.Run(() => RecordMetric("quarantined_models", healthReport.QuarantinedModels, timestamp))
+        };
+        
+        // Ensure all metrics are recorded before method completion
+        await Task.WhenAll(recordingTasks);
     }
 
     private async Task GenerateDashboardFilesAsync()

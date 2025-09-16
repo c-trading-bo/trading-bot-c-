@@ -543,37 +543,41 @@ public class LineageTrackingSystem
 
     private async Task<List<ProcessingStep>> GetProcessingChainAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
-        // Build processing chain for the decision
-        return new List<ProcessingStep>
+        // Build processing chain asynchronously to avoid blocking lineage recording
+        return await Task.Run(() =>
         {
-            new ProcessingStep
+            // Build processing chain for the decision
+            return new List<ProcessingStep>
             {
-                StepName = "feature_extraction",
-                ComponentName = "feature_store",
-                Version = decision.FeaturesVersion,
-                InputHash = decision.FeaturesHash,
-                OutputHash = CalculateInputDataHash(decision),
-                ProcessingTime = TimeSpan.FromMilliseconds(50)
-            },
-            new ProcessingStep
-            {
-                StepName = "model_inference",
-                ComponentName = "model_registry",
-                Version = decision.ModelVersion,
-                InputHash = CalculateInputDataHash(decision),
-                OutputHash = decision.DecisionId[..8],
-                ProcessingTime = TimeSpan.FromMilliseconds(100)
-            },
-            new ProcessingStep
-            {
-                StepName = "confidence_calibration",
-                ComponentName = "calibration_manager",
-                Version = "v1.0",
-                InputHash = decision.DecisionId[..8],
-                OutputHash = decision.DecisionId[^8..],
-                ProcessingTime = TimeSpan.FromMilliseconds(20)
-            }
-        };
+                new ProcessingStep
+                {
+                    StepName = "feature_extraction",
+                    ComponentName = "feature_store",
+                    Version = decision.FeaturesVersion,
+                    InputHash = decision.FeaturesHash,
+                    OutputHash = CalculateInputDataHash(decision),
+                    ProcessingTime = TimeSpan.FromMilliseconds(50)
+                },
+                new ProcessingStep
+                {
+                    StepName = "model_inference",
+                    ComponentName = "model_registry",
+                    Version = decision.ModelVersion,
+                    InputHash = CalculateInputDataHash(decision),
+                    OutputHash = decision.DecisionId[..8],
+                    ProcessingTime = TimeSpan.FromMilliseconds(100)
+                },
+                new ProcessingStep
+                {
+                    StepName = "confidence_calibration",
+                    ComponentName = "calibration_manager",
+                    Version = "v1.0",
+                    InputHash = decision.DecisionId[..8],
+                    OutputHash = decision.DecisionId[^8..],
+                    ProcessingTime = TimeSpan.FromMilliseconds(20)
+                }
+            };
+        }, cancellationToken);
     }
 
     private async Task RecordLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
@@ -634,17 +638,21 @@ public class LineageTrackingSystem
 
     private async Task<List<LineageEvent>> GetEventsInPeriodAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
-        var allEvents = new List<LineageEvent>();
-        
-        lock (_lock)
+        // Retrieve lineage events in period asynchronously to avoid blocking analysis operations
+        return await Task.Run(() =>
         {
-            foreach (var events in _eventHistory.Values)
+            var allEvents = new List<LineageEvent>();
+            
+            lock (_lock)
             {
-                allEvents.AddRange(events.Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime));
+                foreach (var events in _eventHistory.Values)
+                {
+                    allEvents.AddRange(events.Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime));
+                }
             }
-        }
-        
-        return allEvents.OrderBy(e => e.Timestamp).ToList();
+            
+            return allEvents.OrderBy(e => e.Timestamp).ToList();
+        }, cancellationToken);
     }
 
     private async Task<CompleteModelLineage> GetCompleteModelLineageAsync(string modelId, CancellationToken cancellationToken)
@@ -693,19 +701,23 @@ public class LineageTrackingSystem
 
     private async Task<List<LineageEvent>> GetRelatedEventsAsync(string entityId, CancellationToken cancellationToken)
     {
-        var relatedEvents = new List<LineageEvent>();
-        
-        lock (_lock)
+        // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
+        return await Task.Run(() =>
         {
-            foreach (var events in _eventHistory.Values)
+            var relatedEvents = new List<LineageEvent>();
+            
+            lock (_lock)
             {
-                relatedEvents.AddRange(events.Where(e => 
-                    e.EntityId == entityId || 
-                    e.Properties.Values.Any(v => v.ToString() == entityId)));
+                foreach (var events in _eventHistory.Values)
+                {
+                    relatedEvents.AddRange(events.Where(e => 
+                        e.EntityId == entityId || 
+                        e.Properties.Values.Any(v => v.ToString() == entityId)));
+                }
             }
-        }
-        
-        return relatedEvents.OrderBy(e => e.Timestamp).ToList();
+            
+            return relatedEvents.OrderBy(e => e.Timestamp).ToList();
+        }, cancellationToken);
     }
 
     private string ExtractFamilyFromId(string modelId)

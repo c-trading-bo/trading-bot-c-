@@ -623,67 +623,75 @@ public class SLOMonitor
 
     private async Task RecordLatencyAsync(string metricType, double latencyMs, int thresholdMs, CancellationToken cancellationToken)
     {
-        try
+        // Record latency metrics asynchronously to avoid blocking performance monitoring
+        await Task.Run(() =>
         {
-            lock (_lock)
+            try
             {
-                if (!_latencyHistory.TryGetValue(metricType, out var history))
+                lock (_lock)
                 {
-                    history = new List<double>();
-                    _latencyHistory[metricType] = history;
-                }
-
-                history.Add(latencyMs);
-
-                // Keep only recent samples (last 1000)
-                if (history.Count > 1000)
-                {
-                    history.RemoveAt(0);
-                }
-
-                // Check P99 latency
-                if (history.Count >= 10)
-                {
-                    var p99 = CalculatePercentile(history, 0.99);
-                    
-                    if (p99 > thresholdMs)
+                    if (!_latencyHistory.TryGetValue(metricType, out var history))
                     {
-                        HandleSLOBreach(metricType, p99, thresholdMs);
+                        history = new List<double>();
+                        _latencyHistory[metricType] = history;
+                    }
+
+                    history.Add(latencyMs);
+
+                    // Keep only recent samples (last 1000)
+                    if (history.Count > 1000)
+                    {
+                        history.RemoveAt(0);
+                    }
+
+                    // Check P99 latency
+                    if (history.Count >= 10)
+                    {
+                        var p99 = CalculatePercentile(history, 0.99);
+                        
+                        if (p99 > thresholdMs)
+                        {
+                            HandleSLOBreach(metricType, p99, thresholdMs);
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[SLO] Failed to record latency for {MetricType}: {Latency}ms", metricType, latencyMs);
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SLO] Failed to record latency for {MetricType}: {Latency}ms", metricType, latencyMs);
+            }
+        }, cancellationToken);
     }
 
     private async Task CheckErrorBudgetAsync(CancellationToken cancellationToken)
     {
-        try
+        // Check error budget asynchronously to avoid blocking SLO monitoring
+        await Task.Run(() =>
         {
-            lock (_lock)
+            try
             {
-                var totalErrors = _errorCounts.Values.Sum();
-                var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
-                
-                if (totalDecisions > 0)
+                lock (_lock)
                 {
-                    var errorRate = (double)totalErrors / totalDecisions;
-                    var errorBudget = _config.DailyErrorBudgetPct / 100.0;
+                    var totalErrors = _errorCounts.Values.Sum();
+                    var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
                     
-                    if (errorRate > errorBudget)
+                    if (totalDecisions > 0)
                     {
-                        HandleSLOBreach("error_budget", errorRate * 100, errorBudget * 100);
+                        var errorRate = (double)totalErrors / totalDecisions;
+                        var errorBudget = _config.DailyErrorBudgetPct / 100.0;
+                        
+                        if (errorRate > errorBudget)
+                        {
+                            HandleSLOBreach("error_budget", errorRate * 100, errorBudget * 100);
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[SLO] Failed to check error budget");
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[SLO] Failed to check error budget");
+            }
+        }, cancellationToken);
     }
 
     private void HandleSLOBreach(string metricType, double actualValue, double threshold)

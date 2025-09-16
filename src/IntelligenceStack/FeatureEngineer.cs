@@ -38,14 +38,23 @@ public class FeatureEngineer
     public FeatureEngineer(
         ILogger<FeatureEngineer> logger,
         IOnlineLearningSystem onlineLearningSystem,
-        string logsPath = "/logs/features")
+        string logsPath = "logs/features")
     {
         _logger = logger;
         _onlineLearningSystem = onlineLearningSystem;
-        _logsPath = logsPath;
+        _logsPath = Path.GetFullPath(logsPath); // Use absolute path from relative input
         
-        // Ensure logs directory exists
-        Directory.CreateDirectory(_logsPath);
+        // Ensure logs directory exists with proper error handling
+        try
+        {
+            Directory.CreateDirectory(_logsPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[FEATURE_ENGINEER] Could not create logs directory {LogsPath}, using temp directory", _logsPath);
+            _logsPath = Path.Combine(Path.GetTempPath(), "trading-bot", "features");
+            Directory.CreateDirectory(_logsPath);
+        }
         
         // Start periodic update timer
         _updateTimer = new Timer(PerformScheduledUpdate, null, _updateInterval, _updateInterval);
@@ -347,8 +356,8 @@ public class FeatureEngineer
     {
         try
         {
-            // Perform async calculation with statistical analysis
-            return await Task.Run(async () =>
+            // Step 1: Perform async calculation of correlation sum
+            var correlationResult = await Task.Run(async () =>
             {
                 // Simulate async statistical computation
                 await Task.Delay(1, cancellationToken);
@@ -367,18 +376,20 @@ public class FeatureEngineer
                 
                 return validPairs > 0 ? correlationSum / validPairs : 0.0;
             }, cancellationToken);
-            var featureHistory = tracker.GetFeatureHistory(featureName);
+
+            // Step 2: Get feature history asynchronously
+            var featureHistory = await Task.Run(() => tracker.GetFeatureHistory(featureName), cancellationToken);
             
             if (featureHistory.Count < 10)
             {
                 return 0.0; // Not enough data
             }
 
-            // Calculate correlation coefficient
-            var correlation = CalculateCorrelation(featureHistory, predictions);
+            // Step 3: Calculate correlation coefficient asynchronously
+            var correlation = await Task.Run(() => CalculateCorrelation(featureHistory, predictions), cancellationToken);
             
-            // Calculate contribution as correlation weighted by recent performance
-            var recentAccuracy = outcomes.TakeLast(10).Average();
+            // Step 4: Calculate contribution as correlation weighted by recent performance
+            var recentAccuracy = await Task.Run(() => outcomes.TakeLast(10).Average(), cancellationToken);
             var marginalContribution = correlation * recentAccuracy * featureValue;
 
             return marginalContribution;
