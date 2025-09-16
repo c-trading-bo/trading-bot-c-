@@ -842,170 +842,119 @@ public class AutonomousDecisionEngine : BackgroundService
     }
     
     /// <summary>
-    /// Get current market price for the specified symbol
+    /// Get current market price - REQUIRES REAL DATA ONLY
     /// </summary>
     private async Task<decimal> GetCurrentMarketPriceAsync(string symbol, CancellationToken cancellationToken)
     {
         try
         {
-            // Try to get market data from the unified brain's context
-            if (_marketAnalyzer != null)
+            // TODO: Implement real market price retrieval from TopstepX or market data service
+            // This should connect to actual live market data like:
+            // - TopstepX live price API
+            // - MarketDataService for real-time prices
+            // - SignalR market hub connection
+            
+            var realPrice = await GetRealMarketPriceAsync(symbol, cancellationToken);
+            if (realPrice.HasValue && realPrice.Value > 0)
             {
-                var marketData = GetMarketDataFromAnalyzer(symbol);
-                if (marketData.HasValue && marketData.Value > 0)
-                {
-                    return marketData.Value;
-                }
+                _logger.LogDebug("Retrieved real market price for {Symbol}: ${Price}", symbol, realPrice.Value);
+                return realPrice.Value;
             }
             
-            // Fallback to unified brain if direct market data unavailable
-            var marketContext = GetMarketContextFromBrain(symbol);
-            if (marketContext?.Price > 0)
-            {
-                return (decimal)marketContext.Price;
-            }
-            
-            // Ultimate fallback: use typical ES/NQ ranges for initial operation
-            var fallbackPrice = symbol switch
-            {
-                "ES" => 4500m, // Typical ES range
-                "NQ" => 15000m, // Typical NQ range
-                _ => 100m // Generic fallback
-            };
-            
-            _logger.LogDebug("Using fallback price for {Symbol}: {Price}", symbol, fallbackPrice);
-            
-            // Small delay to simulate async operation
-            await Task.Delay(1, cancellationToken);
-            
-            return fallbackPrice;
+            // FAIL FAST: No hardcoded fallback prices
+            throw new InvalidOperationException($"Real market price not available for {symbol}. Refusing to use fallback estimates.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ [AUTONOMOUS-ENGINE] Failed to get current price for {Symbol}", symbol);
-            return symbol == "ES" ? 4500m : 15000m; // Conservative fallback
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to get real market price for {Symbol}. System will not trade without real data.", symbol);
+            throw new InvalidOperationException($"Cannot retrieve real market price for {symbol}. Trading stopped to prevent decisions on fake data.", ex);
         }
     }
     
     /// <summary>
-    /// Helper method to get market data from analyzer
+    /// Get real market price from actual market data sources
     /// </summary>
-    private decimal? GetMarketDataFromAnalyzer(string symbol)
+    private async Task<decimal?> GetRealMarketPriceAsync(string symbol, CancellationToken cancellationToken)
     {
+        // TODO: Implement real market price retrieval
+        // This should integrate with:
+        // 1. TopstepX real-time price API
+        // 2. MarketDataService with SignalR connection
+        // 3. RedundantDataFeedManager for live prices
+        
         try
         {
-            // Use existing market analyzer capabilities
-            // For now, estimate current price based on symbol
-            return symbol switch
-            {
-                "ES" => 4500m + (decimal)(new Random().NextDouble() * 100 - 50),
-                "NQ" => 15000m + (decimal)(new Random().NextDouble() * 500 - 250),
-                _ => null
-            };
+            // Example integration with service provider to get real data service
+            // var dataService = _serviceProvider.GetService<IMarketDataService>();
+            // if (dataService != null)
+            // {
+            //     return await dataService.GetLastPriceAsync(symbol);
+            // }
+            
+            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] Real market price service not yet implemented for {Symbol}", symbol);
+            return null;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to retrieve real market price for {Symbol}", symbol);
             return null;
         }
     }
     
     /// <summary>
-    /// Helper method to get market context from brain
-    /// </summary>
-    private TradingBot.Abstractions.MarketContext? GetMarketContextFromBrain(string symbol)
-    {
-        try
-        {
-            // Create a basic market context for the symbol
-            return new TradingBot.Abstractions.MarketContext
-            {
-                Symbol = symbol,
-                Price = symbol == "ES" ? 4500.0 : 15000.0,
-                Volume = symbol == "ES" ? 25000.0 : 35000.0,
-                Timestamp = DateTime.UtcNow,
-                TechnicalIndicators = new Dictionary<string, double>
-                {
-                    ["RSI"] = 50.0,
-                    ["MACD"] = 0.0,
-                    ["BollingerPosition"] = 0.5,
-                    ["ATR"] = symbol == "ES" ? 15.0 : 50.0,
-                    ["VolumeMA"] = symbol == "ES" ? 25000.0 : 35000.0
-                }
-            };
-        }
-        catch
-        {
-            return null;
-        }
-    }
-    
-    /// <summary>
-    /// Get current volume for the specified symbol
+    /// Get current volume - REQUIRES REAL DATA ONLY
     /// </summary>
     private async Task<long> GetCurrentVolumeAsync(string symbol, CancellationToken cancellationToken)
     {
         try
         {
-            // Get volume estimate from market context
-            var marketContext = GetMarketContextFromBrain(symbol);
-            if (marketContext?.Volume > 0)
+            // TODO: Implement real volume retrieval from actual market data
+            var realVolume = await GetRealVolumeAsync(symbol, cancellationToken);
+            if (realVolume.HasValue && realVolume.Value > 0)
             {
-                return (long)marketContext.Volume;
+                _logger.LogDebug("Retrieved real volume for {Symbol}: {Volume}", symbol, realVolume.Value);
+                return realVolume.Value;
             }
             
-            // Estimate based on typical trading volumes during different sessions
-            var currentTime = DateTime.UtcNow.TimeOfDay;
-            var estimatedVolume = symbol switch
-            {
-                "ES" => GetEstimatedESVolume(currentTime),
-                "NQ" => GetEstimatedNQVolume(currentTime),
-                _ => 1000L // Generic volume estimate
-            };
-            
-            _logger.LogDebug("Using estimated volume for {Symbol}: {Volume}", symbol, estimatedVolume);
-            
-            // Small delay to simulate async operation
-            await Task.Delay(1, cancellationToken);
-            
-            return estimatedVolume;
+            // FAIL FAST: No volume estimates
+            throw new InvalidOperationException($"Real volume data not available for {symbol}. Refusing to use time-based estimates.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ [AUTONOMOUS-ENGINE] Failed to get current volume for {Symbol}", symbol);
-            return 1000L; // Conservative fallback volume
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to get real volume for {Symbol}. System will not trade without real data.", symbol);
+            throw new InvalidOperationException($"Cannot retrieve real volume data for {symbol}. Trading stopped to prevent decisions on fake data.", ex);
         }
     }
     
     /// <summary>
-    /// Estimate ES volume based on time of day
+    /// Get real volume from actual market data sources
     /// </summary>
-    private long GetEstimatedESVolume(TimeSpan currentTime)
+    private async Task<long?> GetRealVolumeAsync(string symbol, CancellationToken cancellationToken)
     {
-        // ES volume patterns based on typical market sessions (Central Time equivalent)
-        return currentTime.Hours switch
+        // TODO: Implement real volume retrieval
+        // This should integrate with:
+        // 1. TopstepX real-time volume data
+        // 2. MarketDataService for live volume
+        // 3. RedundantDataFeedManager for volume feeds
+        
+        try
         {
-            >= 8 and <= 10 => 50000L,   // High volume morning session
-            >= 14 and <= 16 => 45000L,  // High volume closing session
-            >= 11 and <= 13 => 25000L,  // Lower volume lunch session
-            >= 18 or <= 2 => 30000L,    // Moderate overnight volume
-            _ => 20000L                 // Off-hours volume
-        };
-    }
-    
-    /// <summary>
-    /// Estimate NQ volume based on time of day
-    /// </summary>
-    private long GetEstimatedNQVolume(TimeSpan currentTime)
-    {
-        // NQ typically has higher overnight volume due to tech sector
-        return currentTime.Hours switch
+            // Example integration with service provider to get real data service
+            // var dataService = _serviceProvider.GetService<IMarketDataService>();
+            // if (dataService != null)
+            // {
+            //     var marketData = await dataService.GetMarketDataAsync(symbol);
+            //     return (long)marketData?.Volume;
+            // }
+            
+            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] Real volume service not yet implemented for {Symbol}", symbol);
+            return null;
+        }
+        catch (Exception ex)
         {
-            >= 8 and <= 10 => 75000L,   // Very high volume morning session
-            >= 14 and <= 16 => 70000L,  // High volume closing session
-            >= 18 or <= 2 => 45000L,    // Higher overnight volume than ES
-            >= 11 and <= 13 => 35000L,  // Lunch session
-            _ => 30000L                 // Off-hours volume
-        };
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to retrieve real volume for {Symbol}", symbol);
+            return null;
+        }
     }
     
     /// <summary>
@@ -1038,85 +987,66 @@ public class AutonomousDecisionEngine : BackgroundService
     }
     
     /// <summary>
-    /// Get recent bars for analysis
+    /// Get recent bars for analysis - REQUIRES REAL DATA ONLY
     /// </summary>
     private async Task<List<Bar>> GetRecentBarsAsync(string symbol, int count, CancellationToken cancellationToken)
     {
+        // FAIL FAST: No synthetic data generation allowed
+        // When real market data is unavailable, throw exception instead of generating fake data
+        
         try
         {
-            // Try to get recent bars from available data sources
-            var currentPrice = await GetCurrentMarketPriceAsync(symbol, cancellationToken);
-            if (currentPrice > 0)
+            // TODO: Implement real historical data retrieval from TopstepX or other market data provider
+            // This should connect to actual market data services like:
+            // - TopstepX historical API
+            // - RedundantDataFeedManager 
+            // - MarketDataService
+            
+            var realBars = await GetRealHistoricalBarsAsync(symbol, count, cancellationToken);
+            if (realBars != null && realBars.Count > 0)
             {
-                // Generate realistic synthetic bars for immediate operation using current price
-                return GenerateSyntheticBarsFromCurrentPrice(symbol, currentPrice, count);
+                _logger.LogDebug("Retrieved {Count} real historical bars for {Symbol}", realBars.Count, symbol);
+                return realBars;
             }
             
-            // Ultimate fallback: generate realistic synthetic bars
-            var fallbackPrice = symbol == "ES" ? 4500m : 15000m;
-            return GenerateSyntheticBarsFromCurrentPrice(symbol, fallbackPrice, count);
+            // FAIL FAST: No fake data fallback
+            throw new InvalidOperationException($"Real historical bars not available for {symbol}. Refusing to operate on synthetic data.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "⚠️ [AUTONOMOUS-ENGINE] Failed to get recent bars for {Symbol}", symbol);
-            
-            // Generate emergency fallback bars
-            var emergencyPrice = symbol == "ES" ? 4500m : 15000m;
-            return GenerateSyntheticBarsFromCurrentPrice(symbol, emergencyPrice, count);
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to get real historical bars for {Symbol}. System will not trade without real data.", symbol);
+            throw new InvalidOperationException($"Cannot retrieve real historical data for {symbol}. Trading stopped to prevent decisions on fake data.", ex);
         }
     }
     
     /// <summary>
-    /// Generate realistic synthetic bars for immediate operation
+    /// Get real historical bars from actual market data sources
     /// </summary>
-    private List<Bar> GenerateSyntheticBarsFromCurrentPrice(string symbol, decimal currentPrice, int count)
+    private async Task<List<Bar>?> GetRealHistoricalBarsAsync(string symbol, int count, CancellationToken cancellationToken)
     {
-        var bars = new List<Bar>();
-        var random = new Random();
-        var basePrice = currentPrice;
-        var tickSize = symbol == "ES" ? 0.25m : 0.25m;
+        // TODO: Implement real market data retrieval
+        // This should integrate with:
+        // 1. TopstepX historical data API
+        // 2. RedundantDataFeedManager for bars
+        // 3. Real market data providers (not synthetic)
         
-        for (int i = count - 1; i >= 0; i--)
+        try
         {
-            // Generate realistic price movement within daily range
-            var priceVariation = (decimal)(random.NextDouble() - 0.5) * (basePrice * 0.01m); // ±1% variation
-            var barOpen = Math.Round(basePrice + priceVariation, 2);
+            // Example integration with service provider to get real data service
+            // var dataService = _serviceProvider.GetService<IHistoricalDataProvider>();
+            // if (dataService != null)
+            // {
+            //     return await dataService.GetBarsAsync(symbol, count, cancellationToken);
+            // }
             
-            // Generate realistic OHLC within bar
-            var barRange = Math.Max(tickSize * 4, barOpen * 0.002m); // Minimum 4 ticks or 0.2% range
-            var barHigh = barOpen + (decimal)random.NextDouble() * barRange;
-            var barLow = barOpen - (decimal)random.NextDouble() * barRange;
-            var barClose = barLow + (decimal)random.NextDouble() * (barHigh - barLow);
-            
-            // Round to tick size
-            barHigh = Math.Round(barHigh / tickSize) * tickSize;
-            barLow = Math.Round(barLow / tickSize) * tickSize;
-            barClose = Math.Round(barClose / tickSize) * tickSize;
-            
-            // Generate realistic volume
-            var baseVolume = symbol == "ES" ? 25000L : 35000L;
-            var volumeVariation = (long)(baseVolume * random.NextDouble() * 0.5); // ±50% variation
-            var barVolume = baseVolume + volumeVariation;
-            
-            bars.Add(new Bar
-            {
-                Symbol = symbol,
-                Start = DateTime.UtcNow.AddMinutes(-i),
-                Ts = ((DateTimeOffset)DateTime.UtcNow.AddMinutes(-i)).ToUnixTimeMilliseconds(),
-                Open = barOpen,
-                High = barHigh,
-                Low = barLow,
-                Close = barClose,
-                Volume = (int)barVolume
-            });
-            
-            basePrice = barClose; // Next bar starts from this close
+            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] Real historical data service not yet implemented for {Symbol}", symbol);
+            return null;
         }
-        
-        _logger.LogDebug("Generated {Count} synthetic bars for {Symbol} starting from ${Price}", 
-            count, symbol, currentPrice);
-        
-        return bars;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [AUTONOMOUS-ENGINE] Failed to retrieve real historical data for {Symbol}", symbol);
+            return null;
+        }
     }
     
     /// <summary>
