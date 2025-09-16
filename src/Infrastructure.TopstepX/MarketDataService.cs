@@ -21,7 +21,7 @@ public interface IMarketDataService
 public record MarketTick(string Symbol, decimal Price, decimal Volume, DateTime Timestamp);
 public record MarketDepth(string Symbol, decimal BidPrice, decimal AskPrice, int BidSize, int AskSize);
 
-public class MarketDataService : IMarketDataService
+public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposable
 {
     private readonly ILogger<MarketDataService> _logger;
     private readonly AppOptions _config;
@@ -175,15 +175,23 @@ public class MarketDataService : IMarketDataService
 
     private static decimal ParseDecimal(string? value) => decimal.TryParse(value, out var result) ? result : 0m;
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         try
         {
-            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+            if (_hubConnection != null)
+            {
+                await _hubConnection.DisposeAsync();
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[MARKET] Error disposing hub connection");
         }
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }

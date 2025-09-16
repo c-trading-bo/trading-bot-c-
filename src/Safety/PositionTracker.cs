@@ -50,7 +50,10 @@ namespace OrchestratorAgent.Infra
                 var avg = ReadDecimal(je, ["avgPrice", "averagePrice", "AvgPrice", "AveragePrice"]);
                 ApplySnapshot(symbol, qty, avg);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[POSITION-TRACKER] Failed to process position snapshot");
+            }
         }
 
         public void OnTrade(JsonElement je)
@@ -67,7 +70,10 @@ namespace OrchestratorAgent.Infra
                 if (qty <= 0 || price <= 0m) return;
                 ApplyFill(symbol, isSell ? -qty : qty, price);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[POSITION-TRACKER] Failed to process trade event");
+            }
         }
 
         public void OnMarketTrade(JsonElement je)
@@ -79,7 +85,10 @@ namespace OrchestratorAgent.Infra
                 if (string.IsNullOrWhiteSpace(symbol) || price <= 0m) return;
                 UpdateLastPrice(symbol, price);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                _log.LogWarning(ex, "[POSITION-TRACKER] Failed to process market trade event");
+            }
         }
 
         public sealed record SearchOpenPositionsResponse(List<Position> positions, bool success, int errorCode, string? errorMessage);

@@ -171,7 +171,7 @@ namespace BotCore.ML
         /// <summary>
         /// Get ML-optimized position size multiplier for a strategy signal
         /// </summary>
-        public decimal GetPositionSizeMultiplier(
+        public async Task<decimal> GetPositionSizeMultiplierAsync(
             string strategyId,
             string symbol,
             decimal price,
@@ -192,8 +192,8 @@ namespace BotCore.ML
                 {
                     try
                     {
-                        // Load model synchronously for now
-                        var session = _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false).Result;
+                        // Load model asynchronously with proper await
+                        var session = await _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false);
                         if (session != null)
                         {
                             // Create simple feature array for the model
@@ -238,7 +238,7 @@ namespace BotCore.ML
         /// <summary>
         /// Check if a signal should be filtered out by ML meta-classifier
         /// </summary>
-        public bool ShouldAcceptSignal(
+        public async Task<bool> ShouldAcceptSignalAsync(
             string strategyId,
             string symbol,
             decimal price,
@@ -258,8 +258,8 @@ namespace BotCore.ML
                 {
                     try
                     {
-                        // Load meta-classifier model
-                        var session = _onnxLoader.LoadModelAsync(_metaClassifierPath, validateInference: false).Result;
+                        // Load meta-classifier model asynchronously
+                        var session = await _onnxLoader.LoadModelAsync(_metaClassifierPath, validateInference: false);
                         if (session != null)
                         {
                             // Create feature array for classification
@@ -313,7 +313,7 @@ namespace BotCore.ML
         /// <summary>
         /// Get execution quality score for order routing decisions
         /// </summary>
-        public decimal GetExecutionQualityScore(
+        public async Task<decimal> GetExecutionQualityScoreAsync(
             string symbol,
             Side side,
             decimal price,
@@ -332,8 +332,8 @@ namespace BotCore.ML
                 {
                     try
                     {
-                        // Load execution quality model
-                        var session = _onnxLoader.LoadModelAsync(_execQualityPath, validateInference: false).Result;
+                        // Load execution quality model asynchronously
+                        var session = await _onnxLoader.LoadModelAsync(_execQualityPath, validateInference: false);
                         if (session != null)
                         {
                             // Create feature array for quality prediction
