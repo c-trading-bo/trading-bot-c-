@@ -352,7 +352,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             };
             
             var levels = CreateLevelsFromContext(marketContext);
-            var bars = CreateBarsFromContext(marketContext);
+            var bars = await CreateRealBarsFromContextAsync(marketContext, cancellationToken);
             var risk = CreateRiskEngine();
             
             var brainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
@@ -407,26 +407,17 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 decision.DecisionId, decision.Action, decision.Symbol, 
                 decision.Quantity, decision.Strategy);
             
-            // Simulate trade execution (in production, this would be real order submission)
-            await Task.Delay(50, cancellationToken); // Simulate execution latency
+            // TODO: Implement REAL trade execution through TopstepX API
+            // This should place actual orders through TopstepX trading platform
             
-            // Simulate trade outcome
-            var success = Random.Shared.NextDouble() > 0.3; // 70% success rate
-            var pnl = success ? 
-                (decimal)(Random.Shared.NextDouble() * 100 - 30) : // -30 to +70
-                (decimal)(Random.Shared.NextDouble() * -50 - 10);  // -60 to -10
+            // FAIL FAST: No simulated trade execution allowed
+            throw new InvalidOperationException($"Real trade execution not yet implemented for {decision.Symbol}. " +
+                "System requires actual order placement through TopstepX API, not simulated trades.");
             
-            var result = new TradeExecutionResult
-            {
-                DecisionId = decision.DecisionId,
-                Success = success,
-                ExecutionTime = DateTime.UtcNow,
-                PnL = pnl,
-                ExecutedQuantity = decision.Quantity,
-                ExecutionMessage = success ? "Trade executed successfully" : "Trade execution failed"
-            };
-            
-            return result;
+            // Real execution would look like:
+            // var orderService = _serviceProvider.GetRequiredService<ITopstepXOrderService>();
+            // var orderResult = await orderService.PlaceOrderAsync(decision.Symbol, decision.Action, decision.Quantity, cancellationToken);
+            // return ConvertOrderResultToTradeExecutionResult(orderResult);
         }
         catch (Exception ex)
         {
@@ -454,8 +445,9 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     {
         try
         {
-            // Calculate hold time (simulated)
-            var holdTime = TimeSpan.FromMinutes(Random.Shared.Next(5, 120)); // 5-120 minutes
+            // TODO: Calculate real hold time based on actual trading strategy and market conditions
+            // This should be determined by the actual strategy logic, not random simulation
+            var holdTime = TimeSpan.FromMinutes(30); // Default placeholder - should be strategy-specific
             
             var outcomeMetadata = new Dictionary<string, object>
             {
@@ -501,53 +493,23 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     }
     
     /// <summary>
-    /// Create enhanced market context from live market data
+    /// Create enhanced market context from REAL market data ONLY
     /// </summary>
-    private Task<TradingBot.Abstractions.MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
+    private async Task<TradingBot.Abstractions.MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
     {
         try
         {
-            // In production, this would get real market data
-            // For now, create enhanced realistic market context
-            var basePrice = 4500.0 + (Random.Shared.NextDouble() - 0.5) * 50; // More realistic ES movement
+            // TODO: Implement real market context creation from TopstepX/market data services
+            // This should get actual price, volume, and technical indicators from live market data
             
-            var result = new TradingBot.Abstractions.MarketContext
-            {
-                Symbol = "ES",
-                Price = basePrice,
-                Volume = 1500 + Random.Shared.Next(1000), // Realistic ES volume
-                Timestamp = DateTime.UtcNow,
-                TechnicalIndicators = new Dictionary<string, double>
-                {
-                    ["rsi"] = 30 + Random.Shared.NextDouble() * 40, // 30-70 range
-                    ["macd"] = (Random.Shared.NextDouble() - 0.5) * 4, // -2 to 2
-                    ["volatility"] = 0.12 + Random.Shared.NextDouble() * 0.18, // 0.12-0.30
-                    ["atr"] = 5 + Random.Shared.NextDouble() * 5, // 5-10 ATR
-                    ["volume_z"] = (Random.Shared.NextDouble() - 0.5) * 2, // -1 to 1
-                    ["price_momentum"] = (Random.Shared.NextDouble() - 0.5) * 0.02, // -1% to +1%
-                    ["support_distance"] = Random.Shared.NextDouble() * 20, // 0-20 points from support
-                    ["resistance_distance"] = Random.Shared.NextDouble() * 20, // 0-20 points from resistance
-                    ["market_hours"] = GetMarketHoursIndicator()
-                }
-            };
-            
-            return Task.FromResult(result);
+            // FAIL FAST: No synthetic market context allowed
+            throw new InvalidOperationException("Real market context creation not yet implemented. " +
+                "System requires actual price, volume, and technical indicators from live market feeds.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [MARKET-CONTEXT] Error creating market context");
-            
-            // Fallback to minimal context
-            var fallback = new TradingBot.Abstractions.MarketContext
-            {
-                Symbol = "ES",
-                Price = 4500.0,
-                Volume = 1000,
-                Timestamp = DateTime.UtcNow,
-                TechnicalIndicators = new Dictionary<string, double>()
-            };
-            
-            return Task.FromResult(fallback);
+            _logger.LogError(ex, "❌ [MARKET-CONTEXT] Cannot create market context without real market data");
+            throw new InvalidOperationException("Real market context required. Trading stopped.", ex);
         }
     }
     
@@ -577,33 +539,25 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create bars from market context
     /// </summary>
-    private IList<Bar> CreateBarsFromContext(TradingBot.Abstractions.MarketContext context)
+    /// <summary>
+    /// Create bars from REAL market data ONLY - NO SYNTHETIC GENERATION
+    /// </summary>
+    private async Task<IList<Bar>> CreateRealBarsFromContextAsync(TradingBot.Abstractions.MarketContext context, CancellationToken cancellationToken)
     {
-        var bars = new List<Bar>();
-        var price = (decimal)context.Price;
-        var volume = (decimal)context.Volume;
-        
-        // Create synthetic bars for the brain (in production, would use real historical bars)
-        for (int i = 10; i > 0; i--)
+        try
         {
-            var timestamp = context.Timestamp.AddMinutes(-i);
-            var variation = (decimal)(Random.Shared.NextDouble() - 0.5) * 3;
-            var barPrice = price + variation;
+            // TODO: Implement real historical bars retrieval using context symbol and timeframe
+            // This should get actual OHLCV bars from TopstepX/market data providers
             
-            bars.Add(new Bar
-            {
-                Symbol = context.Symbol,
-                Start = timestamp,
-                Ts = ((DateTimeOffset)timestamp).ToUnixTimeMilliseconds(),
-                Open = barPrice,
-                High = barPrice + (decimal)Random.Shared.NextDouble() * 2,
-                Low = barPrice - (decimal)Random.Shared.NextDouble() * 2,
-                Close = barPrice + (decimal)(Random.Shared.NextDouble() - 0.5),
-                Volume = (int)(volume * (decimal)(0.7 + Random.Shared.NextDouble() * 0.6)) // 70%-130% of base volume
-            });
+            // FAIL FAST: No synthetic bar generation allowed
+            throw new InvalidOperationException($"Real historical bars creation not yet implemented for {context.Symbol}. " +
+                "System requires actual OHLCV data from live market feeds, not synthetic bars.");
         }
-        
-        return bars;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot create bars without real market data for {Symbol}", context.Symbol);
+            throw new InvalidOperationException($"Real historical bars required for {context.Symbol}. Trading stopped.", ex);
+        }
     }
     
     /// <summary>
@@ -774,13 +728,14 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 _logger.LogInformation("🚀 Using Enhanced ML/RL/Cloud Brain Integration...");
                 
                 // Create market context for enhanced decision making
+                // TODO: Replace with real market context from actual data sources
                 var marketContext = new Dictionary<string, object>
                 {
                     ["symbol"] = "ES",
                     ["timestamp"] = DateTime.UtcNow,
-                    ["volatility"] = 0.15,
-                    ["volume"] = 1000000,
-                    ["price"] = 4500.0,
+                    ["volatility"] = 0.15, // TODO: Get from real volatility calculation
+                    ["volume"] = 1000000,   // TODO: Get from real volume data
+                    ["price"] = 0.0,        // TODO: Get from real price feed - NEVER use hardcoded prices
                     ["context"] = context
                 };
                 
@@ -815,11 +770,12 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             {
                 _logger.LogInformation("🧠 Using Standard UnifiedTradingBrain for intelligent trading decision...");
                 
-                // Create sample environment data for the brain
-                var env = CreateSampleEnvironment();
-                var levels = CreateSampleLevels();
-                var bars = CreateSampleBars();
-                var riskEngine = CreateSampleRiskEngine();
+                // FAIL FAST: No synthetic environment data allowed
+                // Create real market environment data for the brain from actual data sources
+                var env = await CreateRealEnvironmentAsync("ES", cancellationToken);
+                var levels = await CreateRealLevelsAsync("ES", cancellationToken);
+                var bars = await GetRealBarsAsync("ES", 10, cancellationToken);
+                var riskEngine = CreateRiskEngineFromRealConfig();
                 
                 // Get intelligent decision from the brain
                 var brainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
@@ -837,7 +793,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 // Fallback to Intelligence Orchestrator if brain is not initialized
                 _logger.LogInformation("🤖 Using Intelligence Orchestrator for ML/RL decision...");
                 
-                var marketContext = CreateMarketContextFromWorkflow(context);
+                var marketContext = await CreateMarketContextFromWorkflowAsync(context, cancellationToken);
                 var mlDecision = await _intelligenceOrchestrator.MakeDecisionAsync(marketContext, cancellationToken);
                 
                 _logger.LogInformation("🤖 ML Decision: {Action} Confidence={Confidence:P1}", 
@@ -900,94 +856,119 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     }
 
     // Helper methods for ML/RL integration
-    private TradingBot.Abstractions.MarketContext CreateMarketEnvironment(WorkflowExecutionContext context)
+    /// <summary>
+    /// Create real market environment from workflow context - REQUIRES REAL DATA ONLY
+    /// </summary>
+    private async Task<TradingBot.Abstractions.MarketContext> CreateRealMarketEnvironmentAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        return new TradingBot.Abstractions.MarketContext
+        try
         {
-            Symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES",
-            Price = 4500.0 + (Random.Shared.NextDouble() - 0.5) * 50,
-            Volume = 1000 + Random.Shared.Next(1000),
-            Timestamp = DateTime.UtcNow,
-            TechnicalIndicators = new Dictionary<string, double>
-            {
-                ["rsi"] = 30 + Random.Shared.NextDouble() * 40,
-                ["macd"] = (Random.Shared.NextDouble() - 0.5) * 3,
-                ["volatility"] = 0.08 + Random.Shared.NextDouble() * 0.20,
-                ["momentum"] = (Random.Shared.NextDouble() - 0.5) * 2
-            }
-        };
-    }
-
-    private TradingBot.Abstractions.MarketContext CreateMarketContextFromWorkflow(WorkflowExecutionContext context)
-    {
-        return CreateMarketEnvironment(context);
-    }
-
-    private Env CreateSampleEnvironment()
-    {
-        return new Env
-        {
-            Symbol = "ES",
-            atr = 5.0m + (decimal)(Random.Shared.NextDouble() * 2), // ATR around 5-7
-            volz = 0.15m + (decimal)(Random.Shared.NextDouble() * 0.1) // Volume Z-score
-        };
-    }
-
-    private Levels CreateSampleLevels()
-    {
-        var basePrice = 4500.0m;
-        return new Levels
-        {
-            Support1 = basePrice - 10,
-            Support2 = basePrice - 20,
-            Support3 = basePrice - 30,
-            Resistance1 = basePrice + 10,
-            Resistance2 = basePrice + 20,
-            Resistance3 = basePrice + 30,
-            VWAP = basePrice,
-            DailyPivot = basePrice,
-            WeeklyPivot = basePrice + 5,
-            MonthlyPivot = basePrice - 5
-        };
-    }
-
-    private IList<Bar> CreateSampleBars()
-    {
-        var bars = new List<Bar>();
-        var basePrice = 4500.0m;
-        var currentTime = DateTime.UtcNow;
-        
-        for (int i = 0; i < 10; i++)
-        {
-            var variation = (decimal)(Random.Shared.NextDouble() - 0.5) * 5;
-            var openPrice = basePrice + variation;
-            var closePrice = openPrice + (decimal)(Random.Shared.NextDouble() - 0.5) * 2;
+            var symbol = context.Parameters.GetValueOrDefault("symbol", "ES").ToString() ?? "ES";
             
-            bars.Add(new Bar
-            {
-                Symbol = "ES",
-                Start = currentTime.AddMinutes(-i),
-                Ts = ((DateTimeOffset)currentTime.AddMinutes(-i)).ToUnixTimeMilliseconds(),
-                Open = openPrice,
-                High = Math.Max(openPrice, closePrice) + (decimal)Random.Shared.NextDouble(),
-                Low = Math.Min(openPrice, closePrice) - (decimal)Random.Shared.NextDouble(),
-                Close = closePrice,
-                Volume = 100 + Random.Shared.Next(200)
-            });
+            // TODO: Implement real market environment creation from TopstepX/market data services
+            // This should get actual price, volume, and technical indicators from live market data
+            
+            // FAIL FAST: No synthetic market environment allowed
+            throw new InvalidOperationException($"Real market environment creation not yet implemented for {symbol}. " +
+                "System requires actual price, volume, and technical indicators from live market feeds.");
         }
-        
-        return bars;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot create market environment without real market data");
+            throw new InvalidOperationException("Real market environment required. Trading stopped.", ex);
+        }
     }
 
-    private RiskEngine CreateSampleRiskEngine()
+    private async Task<TradingBot.Abstractions.MarketContext> CreateMarketContextFromWorkflowAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        var riskEngine = new RiskEngine();
-        // Configure with sample risk parameters using the actual properties
-        riskEngine.cfg.risk_per_trade = 100m; // $100 risk per trade
-        riskEngine.cfg.max_daily_drawdown = 1000m;
-        riskEngine.cfg.max_open_positions = 1;
-        
-        return riskEngine;
+        return await CreateRealMarketEnvironmentAsync(context, cancellationToken);
+    }
+
+    /// <summary>
+    /// Create real market environment from actual data sources - REQUIRES REAL DATA ONLY
+    /// </summary>
+    private async Task<Env> CreateRealEnvironmentAsync(string symbol, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // TODO: Implement real environment data retrieval from TopstepX/market data services
+            // This should get actual ATR and volume Z-score from real market analysis
+            
+            // For now, throw exception to prevent trading on fake data
+            throw new InvalidOperationException($"Real environment data not yet implemented for {symbol}. " +
+                "System requires actual ATR and volume Z-score calculations from live market data.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot create environment without real market data for {Symbol}", symbol);
+            throw new InvalidOperationException($"Real environment data required for {symbol}. Trading stopped.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Create real support/resistance levels from actual market analysis - REQUIRES REAL DATA ONLY
+    /// </summary>
+    private async Task<Levels> CreateRealLevelsAsync(string symbol, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // TODO: Implement real levels calculation from TopstepX/market data services
+            // This should calculate actual support/resistance, VWAP, and pivot levels from real price action
+            
+            // For now, throw exception to prevent trading on fake data
+            throw new InvalidOperationException($"Real levels calculation not yet implemented for {symbol}. " +
+                "System requires actual support/resistance analysis from live market data.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot create levels without real market analysis for {Symbol}", symbol);
+            throw new InvalidOperationException($"Real levels analysis required for {symbol}. Trading stopped.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Get real historical bars from actual market data sources - REQUIRES REAL DATA ONLY
+    /// </summary>
+    private async Task<IList<Bar>> GetRealBarsAsync(string symbol, int count, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // TODO: Implement real historical bars retrieval from TopstepX/market data services
+            // This should get actual OHLCV bars from real market data providers
+            
+            // For now, throw exception to prevent trading on fake data
+            throw new InvalidOperationException($"Real historical bars not yet implemented for {symbol}. " +
+                "System requires actual OHLCV data from live market feeds.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot get bars without real market data for {Symbol}", symbol);
+            throw new InvalidOperationException($"Real historical bars required for {symbol}. Trading stopped.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Create risk engine from real configuration - NO HARDCODED VALUES
+    /// </summary>
+    private RiskEngine CreateRiskEngineFromRealConfig()
+    {
+        try
+        {
+            // TODO: Load real risk parameters from configuration or TopstepX account settings
+            // This should use actual account balance, risk limits, and position sizing rules
+            
+            var riskEngine = new RiskEngine();
+            
+            // These should come from real configuration, not hardcoded values
+            // For now, throw exception to prevent using fake risk parameters
+            throw new InvalidOperationException("Real risk configuration not yet implemented. " +
+                "System requires actual account balance and risk limits from TopstepX account data.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [ORCHESTRATOR] Cannot create risk engine without real configuration");
+            throw new InvalidOperationException("Real risk configuration required. Trading stopped.", ex);
+        }
     }
 
     private TradingBot.Abstractions.TradingDecision ConvertBrainToTradingDecision(BrainDecision brainDecision)
