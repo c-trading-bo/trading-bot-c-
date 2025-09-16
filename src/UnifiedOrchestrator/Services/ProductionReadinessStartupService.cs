@@ -155,7 +155,7 @@ public class ProductionReadinessStartupService : IHostedService
         try
         {
             // Test TopstepX client behavior
-            var topstepClient = _serviceProvider.GetService<ITopstepXClient>();
+            var topstepClient = _serviceProvider.GetService<TradingBot.Abstractions.ITopstepXClient>();
             if (topstepClient != null)
             {
                 var clientType = topstepClient.GetType().Name;
