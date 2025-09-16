@@ -83,6 +83,34 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public bool IsUserHubConnected => _userHub?.State == HubConnectionState.Connected && _userHubWired;
     public bool IsMarketHubConnected => _marketHub?.State == HubConnectionState.Connected && _marketHubWired;
 
+    /// <summary>
+    /// Gets the current connection state for health monitoring
+    /// Returns Connected only if both hubs are connected and wired
+    /// </summary>
+    public async Task<HubConnectionState> GetConnectionStateAsync()
+    {
+        await Task.CompletedTask; // Make it async for interface compliance
+        
+        if (IsUserHubConnected && IsMarketHubConnected)
+        {
+            return HubConnectionState.Connected;
+        }
+        
+        if (_userHub?.State == HubConnectionState.Connecting || 
+            _marketHub?.State == HubConnectionState.Connecting)
+        {
+            return HubConnectionState.Connecting;
+        }
+        
+        if (_userHub?.State == HubConnectionState.Reconnecting || 
+            _marketHub?.State == HubConnectionState.Reconnecting)
+        {
+            return HubConnectionState.Reconnecting;
+        }
+        
+        return HubConnectionState.Disconnected;
+    }
+
     public event Action<string>? ConnectionStateChanged;
     public event Action<object>? OnMarketDataReceived;
     public event Action<object>? OnContractQuotesReceived;
