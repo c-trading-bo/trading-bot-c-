@@ -119,12 +119,17 @@ public class HealthMonitorAdapter : IHealthMonitor
         _logger.LogDebug("🔍 Getting health status for {Component}", componentName);
         await Task.Yield();
         
-        var status = new HealthStatus 
-        { 
-            IsHealthy = true, 
-            Details = $"Component {componentName} is healthy",
-            Timestamp = DateTime.UtcNow,
-            ComponentName = componentName
+        var status = new HealthStatus
+        {
+            ComponentName = componentName,
+            IsHealthy = true,
+            Status = "Healthy", 
+            TradingAllowed = true,
+            ConnectedHubs = 1,
+            TotalHubs = 1,
+            ErrorRate = 0.0,
+            AverageLatencyMs = 50.0,
+            StatusMessage = "System operational"
         };
         
         // Trigger events
