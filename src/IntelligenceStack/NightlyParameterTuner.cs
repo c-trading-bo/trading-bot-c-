@@ -807,10 +807,14 @@ public class NightlyParameterTuner
                     // Apply stable parameters to model registry via re-registration
                     var registration = new ModelRegistration
                     {
-                        ModelFamily = modelFamily,
-                        Version = "rollback",
-                        Parameters = parameters,
-                        TrainingMethod = "rollback"
+                        FamilyName = modelFamily,
+                        FeaturesVersion = "rollback",
+                        Metadata = new Dictionary<string, object>
+                        {
+                            ["parameters"] = parameters ?? new Dictionary<string, double>(),
+                            ["rollback_reason"] = "performance_degradation",
+                            ["rollback_timestamp"] = DateTime.UtcNow
+                        }
                     };
                     await _modelRegistry.RegisterModelAsync(registration, cancellationToken);
                     
@@ -966,12 +970,14 @@ public class Individual
 public class TuningResult
 {
     public DateTime Date { get; set; }
+    public DateTime StartTime { get; set; }
     public bool Success { get; set; }
     public TuningMethod Method { get; set; }
     public bool ImprovedBaseline { get; set; }
     public ModelMetrics? BestMetrics { get; set; }
     public int TrialsCompleted { get; set; }
     public bool RolledBack { get; set; }
+    public Dictionary<string, double>? BestParameters { get; set; }
 }
 
 public enum TuningMethod
