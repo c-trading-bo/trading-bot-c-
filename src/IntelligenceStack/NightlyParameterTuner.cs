@@ -282,19 +282,48 @@ public class NightlyParameterTuner
 
     private async Task<TuningSession> CreateTuningSessionAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        var session = new TuningSession
+        // Create tuning session asynchronously with proper initialization
+        var session = await Task.Run(() =>
         {
-            ModelFamily = modelFamily,
-            SessionId = Guid.NewGuid().ToString(),
-            StartTime = DateTime.UtcNow,
-            ParameterSpace = GetParameterSpace(modelFamily),
-            TrialHistory = new List<TrialResult>()
-        };
+            var newSession = new TuningSession
+            {
+                ModelFamily = modelFamily,
+                SessionId = Guid.NewGuid().ToString(),
+                StartTime = DateTime.UtcNow,
+                ParameterSpace = GetParameterSpace(modelFamily),
+                TrialHistory = new List<TrialResult>()
+            };
 
-        lock (_lock)
+            lock (_lock)
+            {
+                _activeSessions[newSession.SessionId] = newSession;
+            }
+
+            return newSession;
+        }, cancellationToken);
+
+        // Initialize session state asynchronously
+        await Task.Run(async () =>
         {
-            _activeSessions[session.SessionId] = session;
-        }
+            // Prepare session workspace directory
+            var sessionDir = Path.Combine(_statePath, "sessions", session.SessionId);
+            Directory.CreateDirectory(sessionDir);
+            
+            // Save session metadata
+            var sessionMetadata = new
+            {
+                session.ModelFamily,
+                session.SessionId,
+                session.StartTime,
+                ParameterCount = session.ParameterSpace.Count
+            };
+            
+            var metadataJson = JsonSerializer.Serialize(sessionMetadata, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(Path.Combine(sessionDir, "metadata.json"), metadataJson, cancellationToken);
+            
+            _logger.LogInformation("[NIGHTLY_TUNING] Created tuning session {SessionId} for {ModelFamily}", 
+                session.SessionId, session.ModelFamily);
+        }, cancellationToken);
 
         return session;
     }
@@ -322,16 +351,105 @@ public class NightlyParameterTuner
 
     private async Task<Dictionary<string, double>> GetBaselineParametersAsync(string modelFamily, CancellationToken cancellationToken)
     {
-        // Return current best parameters or defaults using configurable values
-        return new Dictionary<string, double>
+        // Load baseline parameters asynchronously from multiple sources
+        var baselineTask = Task.Run(async () =>
         {
-            ["learning_rate"] = 0.01,
-            ["batch_size"] = _networkConfig.Batch.DefaultBatchSize,
-            ["hidden_size"] = 128,
-            ["dropout_rate"] = 0.1,
-            ["l2_regularization"] = 1e-4,
-            ["ensemble_size"] = 5
-        };
+            // Step 1: Try to load from historical tuning results
+            var historicalParams = await LoadHistoricalBestParametersAsync(modelFamily, cancellationToken);
+            if (historicalParams != null)
+            {
+                return historicalParams;
+            }
+
+            // Step 2: Load from model registry if available
+            var registryParams = await LoadParametersFromRegistryAsync(modelFamily, cancellationToken);
+            if (registryParams != null)
+            {
+                return registryParams;
+            }
+
+            // Step 3: Use intelligent defaults based on model family
+            return GetIntelligentDefaultsAsync(modelFamily, cancellationToken).Result;
+        }, cancellationToken);
+
+        return await baselineTask;
+    }
+
+    private async Task<Dictionary<string, double>?> LoadHistoricalBestParametersAsync(string modelFamily, CancellationToken cancellationToken)
+    {
+        return await Task.Run(() =>
+        {
+            if (_tuningHistory.TryGetValue(modelFamily, out var history))
+            {
+                var bestResult = history
+                    .Where(r => r.Success && !r.RolledBack)
+                    .OrderByDescending(r => r.BestMetrics?.AUC ?? 0)
+                    .FirstOrDefault();
+
+                return bestResult?.BestParameters;
+            }
+            return null;
+        }, cancellationToken);
+    }
+
+    private async Task<Dictionary<string, double>?> LoadParametersFromRegistryAsync(string modelFamily, CancellationToken cancellationToken)
+    {
+        return await Task.Run(async () =>
+        {
+            try
+            {
+                // Load from model registry
+                var configPath = Path.Combine(_statePath, "registry", $"{modelFamily}_config.json");
+                if (File.Exists(configPath))
+                {
+                    var configJson = await File.ReadAllTextAsync(configPath, cancellationToken);
+                    var config = JsonSerializer.Deserialize<Dictionary<string, object>>(configJson);
+                    if (config?.TryGetValue("parameters", out var paramsObj) == true)
+                    {
+                        if (paramsObj is JsonElement jsonElement)
+                        {
+                            return jsonElement.Deserialize<Dictionary<string, double>>();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[NIGHTLY_TUNING] Failed to load parameters from registry for {ModelFamily}", modelFamily);
+            }
+            return null;
+        }, cancellationToken);
+    }
+
+    private async Task<Dictionary<string, double>> GetIntelligentDefaultsAsync(string modelFamily, CancellationToken cancellationToken)
+    {
+        return await Task.Run(() =>
+        {
+            // Return model-family specific intelligent defaults
+            var defaults = new Dictionary<string, double>
+            {
+                ["learning_rate"] = 0.01,
+                ["batch_size"] = _networkConfig.Batch.DefaultBatchSize,
+                ["hidden_size"] = 128,
+                ["dropout_rate"] = 0.1,
+                ["l2_regularization"] = 1e-4,
+                ["ensemble_size"] = 5
+            };
+
+            // Adjust defaults based on model family characteristics
+            if (modelFamily.Contains("LSTM", StringComparison.OrdinalIgnoreCase))
+            {
+                defaults["learning_rate"] = 0.005; // Lower learning rate for RNNs
+                defaults["hidden_size"] = 256; // Larger hidden size for LSTM
+            }
+            else if (modelFamily.Contains("Transformer", StringComparison.OrdinalIgnoreCase))
+            {
+                defaults["learning_rate"] = 0.0001; // Even lower for transformers
+                defaults["hidden_size"] = 512; // Much larger hidden size
+            }
+
+            return defaults;
+        }, cancellationToken);
     }
 
     private async Task<ModelMetrics> EvaluateParametersAsync(
@@ -686,8 +804,15 @@ public class NightlyParameterTuner
                     var parametersJson = await File.ReadAllTextAsync(parameterBackupPath, cancellationToken);
                     var parameters = JsonSerializer.Deserialize<Dictionary<string, double>>(parametersJson);
                     
-                    // Apply stable parameters to model registry
-                    await _modelRegistry.UpdateModelParametersAsync(modelFamily, parameters, cancellationToken);
+                    // Apply stable parameters to model registry via re-registration
+                    var registration = new ModelRegistration
+                    {
+                        ModelFamily = modelFamily,
+                        Version = "rollback",
+                        Parameters = parameters,
+                        TrainingMethod = "rollback"
+                    };
+                    await _modelRegistry.RegisterModelAsync(registration, cancellationToken);
                     
                     _logger.LogInformation("[NIGHTLY_TUNING] Restored stable parameters for {ModelFamily} from {BackupPath}", 
                         modelFamily, parameterBackupPath);
@@ -846,6 +971,7 @@ public class TuningResult
     public bool ImprovedBaseline { get; set; }
     public ModelMetrics? BestMetrics { get; set; }
     public int TrialsCompleted { get; set; }
+    public bool RolledBack { get; set; }
 }
 
 public enum TuningMethod

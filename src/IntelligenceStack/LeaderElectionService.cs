@@ -375,98 +375,114 @@ public class QuarantineManager : IQuarantineManager
             return new QuarantineStatus { State = HealthState.Healthy, ModelId = modelId };
         }
 
-        lock (_lock)
+        // Perform health check asynchronously to avoid blocking
+        return await Task.Run(() =>
         {
-            if (!_modelStatus.TryGetValue(modelId, out var status))
+            lock (_lock)
             {
-                status = new QuarantineStatus
+                if (!_modelStatus.TryGetValue(modelId, out var status))
                 {
-                    ModelId = modelId,
-                    State = HealthState.Healthy,
-                    BlendWeight = 1.0
-                };
-                _modelStatus[modelId] = status;
-            }
+                    status = new QuarantineStatus
+                    {
+                        ModelId = modelId,
+                        State = HealthState.Healthy,
+                        BlendWeight = 1.0
+                    };
+                    _modelStatus[modelId] = status;
+                }
 
-            return status;
-        }
+                return status;
+            }
+        }, cancellationToken);
     }
 
     public async Task QuarantineModelAsync(string modelId, QuarantineReason reason, CancellationToken cancellationToken = default)
     {
-        try
+        // Perform quarantine operation asynchronously to avoid blocking the calling thread
+        await Task.Run(() =>
         {
-            lock (_lock)
+            try
             {
-                if (!_modelStatus.TryGetValue(modelId, out var status))
+                lock (_lock)
                 {
-                    status = new QuarantineStatus { ModelId = modelId };
-                    _modelStatus[modelId] = status;
+                    if (!_modelStatus.TryGetValue(modelId, out var status))
+                    {
+                        status = new QuarantineStatus { ModelId = modelId };
+                        _modelStatus[modelId] = status;
+                    }
+
+                    status.State = HealthState.Quarantine;
+                    status.Reason = reason;
+                    status.QuarantinedAt = DateTime.UtcNow;
+                    status.BlendWeight = 0.0;
+                    status.ShadowDecisionCount = 0;
                 }
 
-                status.State = HealthState.Quarantine;
-                status.Reason = reason;
-                status.QuarantinedAt = DateTime.UtcNow;
-                status.BlendWeight = 0.0;
-                status.ShadowDecisionCount = 0;
+                _logger.LogWarning("[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})", modelId, reason);
             }
-
-            _logger.LogWarning("[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})", modelId, reason);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[QUARANTINE] Failed to quarantine model: {ModelId}", modelId);
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[QUARANTINE] Failed to quarantine model: {ModelId}", modelId);
+            }
+        }, cancellationToken);
     }
 
     public async Task<bool> TryRestoreModelAsync(string modelId, CancellationToken cancellationToken = default)
     {
-        try
+        // Perform restoration check asynchronously
+        return await Task.Run(() =>
         {
-            lock (_lock)
+            try
             {
-                if (!_modelStatus.TryGetValue(modelId, out var status))
+                lock (_lock)
                 {
+                    if (!_modelStatus.TryGetValue(modelId, out var status))
+                    {
+                        return false;
+                    }
+
+                    if (status.State != HealthState.Quarantine)
+                    {
+                        return true; // Already restored
+                    }
+
+                    // Check if model has completed shadow period
+                    if (status.ShadowDecisionCount >= _config.ShadowDecisionsForReentry)
+                    {
+                        status.State = HealthState.Healthy;
+                        status.BlendWeight = 1.0;
+                        status.QuarantinedAt = null;
+                        status.Reason = null;
+                        status.ShadowDecisionCount = 0;
+
+                        _logger.LogInformation("[QUARANTINE] Model restored from quarantine: {ModelId}", modelId);
+                        return true;
+                    }
+
                     return false;
                 }
-
-                if (status.State != HealthState.Quarantine)
-                {
-                    return true; // Already restored
-                }
-
-                // Check if model has completed shadow period
-                if (status.ShadowDecisionCount >= _config.ShadowDecisionsForReentry)
-                {
-                    status.State = HealthState.Healthy;
-                    status.BlendWeight = 1.0;
-                    status.QuarantinedAt = null;
-                    status.Reason = null;
-                    status.ShadowDecisionCount = 0;
-
-                    _logger.LogInformation("[QUARANTINE] Model restored from quarantine: {ModelId}", modelId);
-                    return true;
-                }
-
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[QUARANTINE] Failed to restore model: {ModelId}", modelId);
                 return false;
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[QUARANTINE] Failed to restore model: {ModelId}", modelId);
-            return false;
-        }
+        }, cancellationToken);
     }
 
     public async Task<List<string>> GetQuarantinedModelsAsync(CancellationToken cancellationToken = default)
     {
-        lock (_lock)
+        // Get quarantined models asynchronously
+        return await Task.Run(() =>
         {
-            return _modelStatus
-                .Where(kvp => kvp.Value.State == HealthState.Quarantine)
-                .Select(kvp => kvp.Key)
-                .ToList();
-        }
+            lock (_lock)
+            {
+                return _modelStatus
+                    .Where(kvp => kvp.Value.State == HealthState.Quarantine)
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+            }
+        }, cancellationToken);
     }
 
     public async Task UpdateModelPerformanceAsync(string modelId, ModelPerformance performance, CancellationToken cancellationToken = default)
