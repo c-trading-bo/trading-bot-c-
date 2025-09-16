@@ -109,7 +109,7 @@ namespace UnifiedOrchestrator.Services
             }
         }
 
-        public StreamingFeatures? GetCachedFeatures(string symbol)
+        public async Task<StreamingFeatures?> GetCachedFeaturesAsync(string symbol)
         {
             if (!_tickCache.TryGetValue(symbol, out var ticks) || ticks.Count == 0)
                 return null;
@@ -123,7 +123,7 @@ namespace UnifiedOrchestrator.Services
             if (latestTick == null)
                 return null;
 
-            return GenerateFeaturesAsync(symbol, latestTick.Timestamp, CancellationToken.None).Result;
+            return await GenerateFeaturesAsync(symbol, latestTick.Timestamp, CancellationToken.None);
         }
 
         public bool HasStaleFeatures()
