@@ -235,7 +235,8 @@ public enum TradingAction
     BuySmall,
     SellSmall,
     Close,
-    ReducePosition
+    ReducePosition,
+    Abstain  // CRITICAL FIX #2: Added for Python service error handling
 }
 
 /// <summary>
