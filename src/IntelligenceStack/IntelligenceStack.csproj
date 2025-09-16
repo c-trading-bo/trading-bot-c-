@@ -8,6 +8,8 @@
     <!-- Override global TreatWarningsAsErrors for ML/AI intelligence code -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
+    <!-- Suppress async warnings for ML/AI code that uses synchronous operations in async methods -->
+    <NoWarn>CS1998</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
