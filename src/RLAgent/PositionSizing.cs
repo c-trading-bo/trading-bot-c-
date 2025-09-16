@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using TradingBot.RLAgent.Algorithms;
 
 namespace TradingBot.RLAgent;
 

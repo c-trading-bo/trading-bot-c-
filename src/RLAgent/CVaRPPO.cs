@@ -8,7 +8,7 @@ namespace TradingBot.RLAgent;
 /// CVaR-PPO Implementation with training loop, experience buffer, and model versioning
 /// Implements requirement 2.1: Training loop (policy, value, CVaR head), experience buffer, advantage/CVaR estimation, model save/restore
 /// </summary>
-public class CVaRppo : IDisposable
+public class CVaRPPO : IDisposable
 {
     private readonly ILogger<CVaRPPO> _logger;
     private readonly CVaRPPOConfig _config;
