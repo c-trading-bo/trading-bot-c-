@@ -38,7 +38,11 @@ namespace OrchestratorAgent.Health
             {
                 if (IsJwtExpiring(jwt, TimeSpan.FromSeconds(120))) return (false, "JWT expiring");
             }
-            catch { /* if decode fails, continue best-effort */ }
+            catch (Exception ex)
+            {
+                // Log JWT parsing error but continue with best-effort validation
+                Console.WriteLine($"Warning: JWT parsing failed: {ex.Message}");
+            }
 
             // 2) Hubs connected (via StatusService snapshot)
             var u = _status.Get<string>("user.state");
@@ -57,7 +61,14 @@ namespace OrchestratorAgent.Health
                 else
                 {
                     contractId = await _api.ResolveContractIdAsync(rootSymbol, ct);
-                    try { (_status.Contracts ??= [])[rootSymbol] = contractId; } catch { }
+                    try 
+                    { 
+                        (_status.Contracts ??= [])[rootSymbol] = contractId; 
+                    } 
+                    catch (Exception ex) 
+                    { 
+                        Console.WriteLine($"Warning: Failed to cache contract ID: {ex.Message}"); 
+                    }
                 }
             }
             catch
@@ -101,7 +112,10 @@ namespace OrchestratorAgent.Health
                     if (pnlA.TryGetProperty("net", out var netProp) && netProp.TryGetDecimal(out var net)) netPnl = net;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Failed to retrieve primary P&L data: {ex.Message}");
+            }
             if (netPnl is null)
             {
                 try
@@ -119,7 +133,10 @@ namespace OrchestratorAgent.Health
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to retrieve fallback P&L data: {ex.Message}");
+                }
             }
             if (netPnl.HasValue && netPnl.Value <= -_cfg.Risk.DailyLossLimit)
                 return (false, "Daily loss tripped");
@@ -130,7 +147,10 @@ namespace OrchestratorAgent.Health
                 var trades = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/trades?scope=today", ct);
                 if (trades.ValueKind == JsonValueKind.Array) tradesCount = trades.GetArrayLength();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Failed to retrieve primary trades data: {ex.Message}");
+            }
             if (tradesCount is null)
             {
                 try
@@ -138,7 +158,10 @@ namespace OrchestratorAgent.Health
                     var trades = await _api.GetAsync<JsonElement>($"/api/Order/search?accountId={_accountId}&status=FILLED&scope=today", ct);
                     if (trades.ValueKind == JsonValueKind.Array) tradesCount = trades.GetArrayLength();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to retrieve fallback trades data: {ex.Message}");
+                }
             }
             if (tradesCount.HasValue && tradesCount.Value >= _cfg.Risk.MaxTradesPerDay)
                 return (false, "Max trades reached");
@@ -154,7 +177,10 @@ namespace OrchestratorAgent.Health
                     if (expSoon && !rolled) return (false, "Rollover pending");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Failed to check rollover status: {ex.Message}");
+            }
 
             return (true, "OK");
         }

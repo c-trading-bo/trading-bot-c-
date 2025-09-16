@@ -201,63 +201,13 @@ public interface ITopstepXClient
 }
 
 /// <summary>
-/// Configuration for TopstepX client selection and mock scenarios
+/// Configuration for TopstepX client (production only)
 /// </summary>
 public class TopstepXClientConfiguration
 {
     /// <summary>
-    /// Which client implementation to use: "Real" or "Mock"
+    /// Client implementation type - always "Real" for production
     /// </summary>
     public string ClientType { get; set; } = "Real";
-    
-    /// <summary>
-    /// Mock scenario to simulate: "FundedAccount", "EvaluationAccount", "RiskBreach", "ApiError"
-    /// </summary>
-    public string MockScenario { get; set; } = "FundedAccount";
-    
-    /// <summary>
-    /// Enable detailed mock audit logging
-    /// </summary>
-    public bool EnableMockAuditLogging { get; set; } = true;
-    
-    /// <summary>
-    /// Simulated latency for mock responses (milliseconds)
-    /// </summary>
-    public int MockLatencyMs { get; set; } = 100;
-    
-    /// <summary>
-    /// Mock error rate (0.0 - 1.0) for ApiError scenario
-    /// </summary>
-    public double MockErrorRate { get; set; } = 0.1;
-    
-    /// <summary>
-    /// Mock account configuration
-    /// </summary>
-    public MockAccountConfiguration MockAccount { get; set; } = new();
 }
 
-/// <summary>
-/// Mock account configuration for different scenarios
-/// </summary>
-public class MockAccountConfiguration
-{
-    public string AccountId { get; set; } = "123456789";
-    public string AccountType { get; set; } = "Funded"; // "Funded", "Evaluation"
-    public decimal Balance { get; set; } = 100000m;
-    public decimal DayTradingBuyingPower { get; set; } = 400000m;
-    public decimal MaxTrailingDrawdown { get; set; } = 3000m;
-    public decimal CurrentDrawdown { get; set; } = 0m;
-    public bool IsRiskBreached { get; set; } = false;
-    public bool IsTradingAllowed { get; set; } = true;
-}
-
-/// <summary>
-/// Mock scenario types
-/// </summary>
-public enum MockScenarioType
-{
-    FundedAccount,
-    EvaluationAccount, 
-    RiskBreach,
-    ApiError
-}

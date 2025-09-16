@@ -17,7 +17,7 @@
         "MinBarsSeen": 5,
         "MinSeededBars": 3,
         "MinLiveTicks": 1,
-        "AllowMockData": true
+        "AllowMockData": false
       },
       "Production": {
         "MinBarsSeen": 10,

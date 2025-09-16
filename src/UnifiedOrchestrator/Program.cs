@@ -385,11 +385,14 @@ Stack Trace:
         });
 
         // ========================================================================
-        // TOPSTEPX CLIENT - CONFIG-DRIVEN MOCK/REAL SELECTION
+        // TOPSTEPX CLIENT - PRODUCTION-ONLY REAL IMPLEMENTATION
         // ========================================================================
         
-        // Configure TopstepX client configuration
-        services.Configure<TopstepXClientConfiguration>(configuration.GetSection("TopstepXClient"));
+        // Configure TopstepX client configuration for real connections only
+        services.Configure<TopstepXClientConfiguration>(config =>
+        {
+            config.ClientType = "Real";
+        });
         
         // Register TopstepXHttpClient for real client
         services.AddHttpClient("TopstepX", client =>
@@ -402,36 +405,19 @@ Stack Trace:
         // Register TopstepXService for real client
         services.AddSingleton<BotCore.Services.ITopstepXService, BotCore.Services.TopstepXService>();
         
-        // Register the appropriate TopstepX client based on configuration
+        // Register the REAL TopstepX client for production trading
         services.AddSingleton<ITopstepXClient>(provider =>
         {
-            var clientConfig = provider.GetRequiredService<IOptions<TopstepXClientConfiguration>>().Value;
-            var logger = provider.GetRequiredService<ILogger<ITopstepXClient>>();
+            var logger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
+            var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
+            var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
+            var accountService = provider.GetRequiredService<IAccountService>();
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient("TopstepX");
             
-            logger.LogInformation("[TOPSTEPX-CLIENT] Initializing client type: {ClientType}, scenario: {Scenario}", 
-                clientConfig.ClientType, clientConfig.MockScenario);
-            
-            if (clientConfig.ClientType.Equals("Mock", StringComparison.OrdinalIgnoreCase))
-            {
-                var mockLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.MockTopstepXClient>>();
-                var mockConfig = provider.GetRequiredService<IOptions<TopstepXClientConfiguration>>();
-                
-                logger.LogInformation("[TOPSTEPX-CLIENT] Using MockTopstepXClient with scenario: {Scenario}", clientConfig.MockScenario);
-                return new TradingBot.Infrastructure.TopstepX.MockTopstepXClient(mockLogger, mockConfig);
-            }
-            else
-            {
-                var realLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
-                var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
-                var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
-                var accountService = provider.GetRequiredService<IAccountService>();
-                var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-                var httpClient = httpClientFactory.CreateClient("TopstepX");
-                
-                logger.LogInformation("[TOPSTEPX-CLIENT] Using RealTopstepXClient");
-                return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
-                    realLogger, topstepXService, orderService, accountService, httpClient);
-            }
+            logger.LogInformation("[TOPSTEPX-CLIENT] Using REAL TopstepX client for production trading");
+            return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
+                logger, topstepXService, orderService, accountService, httpClient);
         });
 
         // Configure AppOptions for Safety components
@@ -550,8 +536,8 @@ Stack Trace:
         // Register Shadow Tester for A/B validation
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IShadowTester, TradingBot.UnifiedOrchestrator.Promotion.ShadowTester>();
         
-        // Register Position Service for flat validation
-        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.IPositionService, TradingBot.UnifiedOrchestrator.Promotion.MockPositionService>();
+        // Register Position Service for real position tracking
+        services.AddSingleton<TradingBot.UnifiedOrchestrator.Promotion.IPositionService, TradingBot.UnifiedOrchestrator.Promotion.ProductionPositionService>();
         
         // Register Promotion Service with atomic swaps and instant rollback
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IPromotionService, TradingBot.UnifiedOrchestrator.Promotion.PromotionService>();

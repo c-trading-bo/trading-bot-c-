@@ -51,18 +51,17 @@ public sealed class TopstepAuthAgent
 // Simple HttpRequestMessage.Clone() so we can resend the content on retries:
 public static class HttpRequestMessageExtensions
 {
-    public static HttpRequestMessage Clone(this HttpRequestMessage req)
+    public static async Task<HttpRequestMessage> CloneAsync(this HttpRequestMessage req)
     {
         var clone = new HttpRequestMessage(req.Method, req.RequestUri);
         // Copy headers
         foreach (var h in req.Headers)
             clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
-        // Copy content
+        // Copy content asynchronously
         if (req.Content != null)
         {
-            var contentBytesTask = req.Content.ReadAsByteArrayAsync();
-            contentBytesTask.Wait();
-            var newContent = new ByteArrayContent(contentBytesTask.Result);
+            var contentBytes = await req.Content.ReadAsByteArrayAsync();
+            var newContent = new ByteArrayContent(contentBytes);
             foreach (var h in req.Content.Headers)
                 newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
             clone.Content = newContent;
