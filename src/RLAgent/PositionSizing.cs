@@ -29,9 +29,8 @@ public class PositionSizing
     /// <summary>
     /// Calculate position size using CVaR/Kelly & SAC blend
     /// </summary>
-    public async Task<PositionSizeResult> CalculatePositionSizeAsync(
-        PositionSizeRequest request,
-        CancellationToken cancellationToken = default)
+    public PositionSizeResult CalculatePositionSize(
+        PositionSizeRequest request)
     {
         try
         {

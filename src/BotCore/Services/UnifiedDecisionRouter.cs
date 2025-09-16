@@ -32,9 +32,9 @@ public class UnifiedDecisionRouter
     private readonly IServiceProvider _serviceProvider;
     
     // AI Brain components in priority order
-    private readonly EnhancedTradingBrainIntegration? _enhancedBrain;
+    private readonly EnhancedTradingBrainIntegration _enhancedBrain;
     private readonly UnifiedTradingBrain _unifiedBrain;
-    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator;
+    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator _intelligenceOrchestrator;
     
     // Strategy routing configuration
     private readonly Dictionary<string, StrategyConfig> _strategyConfigs;
@@ -47,22 +47,21 @@ public class UnifiedDecisionRouter
     public UnifiedDecisionRouter(
         ILogger<UnifiedDecisionRouter> logger,
         IServiceProvider serviceProvider,
-        UnifiedTradingBrain unifiedBrain)
+        UnifiedTradingBrain unifiedBrain,
+        EnhancedTradingBrainIntegration enhancedBrain,
+        TradingBot.IntelligenceStack.IntelligenceOrchestrator intelligenceOrchestrator)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
         _unifiedBrain = unifiedBrain;
-        
-        // Try to get optional enhanced services
-        _enhancedBrain = serviceProvider.GetService<EnhancedTradingBrainIntegration>();
-        _intelligenceOrchestrator = serviceProvider.GetService<TradingBot.IntelligenceStack.IntelligenceOrchestrator>();
+        _enhancedBrain = enhancedBrain;
+        _intelligenceOrchestrator = intelligenceOrchestrator;
         
         // Initialize strategy configurations
         _strategyConfigs = InitializeStrategyConfigs();
         
         _logger.LogInformation("🎯 [DECISION-ROUTER] Unified Decision Router initialized");
-        _logger.LogInformation("📊 [DECISION-ROUTER] Available brains: Enhanced={Enhanced}, Unified=True, Intelligence={Intelligence}",
-            _enhancedBrain != null, _intelligenceOrchestrator != null);
+        _logger.LogInformation("📊 [DECISION-ROUTER] All services wired: Enhanced=True, Unified=True, Intelligence=True");
     }
     
     /// <summary>
@@ -155,12 +154,6 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken)
     {
-        if (_enhancedBrain == null)
-        {
-            _logger.LogDebug("🔇 [ENHANCED-BRAIN] Not available, skipping");
-            return null;
-        }
-        
         try
         {
             // Convert MarketContext to EnhancedBrain format
@@ -220,12 +213,6 @@ public class UnifiedDecisionRouter
         MarketContext marketContext,
         CancellationToken cancellationToken)
     {
-        if (_intelligenceOrchestrator == null)
-        {
-            _logger.LogDebug("🔇 [INTELLIGENCE-ORCHESTRATOR] Not available, skipping");
-            return null;
-        }
-        
         try
         {
             var abstractionContext = ConvertToAbstractionMarketContext(marketContext);
@@ -423,20 +410,17 @@ public class UnifiedDecisionRouter
             switch (outcome.Source)
             {
                 case "enhanced_brain":
-                    if (_enhancedBrain != null)
-                    {
-                        _enhancedBrain.SubmitTradingOutcome(
-                            outcome.Symbol,
-                            outcome.Strategy,
-                            outcome.Action.ToString(),
-                            outcome.RealizedPnL,
-                            new Dictionary<string, object>
-                            {
-                                ["decision_id"] = outcome.DecisionId,
-                                ["hold_time"] = outcome.HoldTime.TotalMinutes,
-                                ["was_correct"] = outcome.WasCorrect
-                            });
-                    }
+                    _enhancedBrain.SubmitTradingOutcome(
+                        outcome.Symbol,
+                        outcome.Strategy,
+                        outcome.Action.ToString(),
+                        outcome.RealizedPnL,
+                        new Dictionary<string, object>
+                        {
+                            ["decision_id"] = outcome.DecisionId,
+                            ["hold_time"] = outcome.HoldTime.TotalMinutes,
+                            ["was_correct"] = outcome.WasCorrect
+                        });
                     break;
                     
                 case "unified_brain":

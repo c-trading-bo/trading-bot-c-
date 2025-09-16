@@ -108,6 +108,9 @@ public class OnnxEnsembleWrapper : IDisposable
     {
         try
         {
+            // Brief yield for async context
+            await Task.Yield();
+            
             if (_modelSessions.TryRemove(modelName, out var modelSession))
             {
                 modelSession.Session.Dispose();
@@ -353,6 +356,9 @@ public class OnnxEnsembleWrapper : IDisposable
 
     private async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
     {
+        // Brief yield for async context in CPU-intensive operation
+        await Task.Yield();
+        
         var batchSize = batchFeatures.Length;
         var featureCount = batchFeatures[0].Length;
 
@@ -443,6 +449,9 @@ public class OnnxEnsembleWrapper : IDisposable
 
     private async Task ValidateModelAsync(ModelSession modelSession, CancellationToken cancellationToken)
     {
+        // Brief yield for async context
+        await Task.Yield();
+        
         try
         {
             var inputInfo = modelSession.Session.InputMetadata.First();

@@ -89,7 +89,7 @@ public class HistoricalTrainerWithCV
                 cvResult.FoldResults.Add(foldResult);
                 
                 _logger.LogInformation("[HISTORICAL_CV] Completed fold {Fold}/{Total} - AUC: {AUC:F3}, EdgeBps: {Edge:F1}", 
-                    foldNumber, splits.Count, foldResult.TestMetrics.AUC, foldResult.TestMetrics.EdgeBps);
+                    foldNumber, splits.Count, foldResult.TestMetrics?.AUC ?? 0.0, foldResult.TestMetrics?.EdgeBps ?? 0.0);
                 
                 foldNumber++;
                 

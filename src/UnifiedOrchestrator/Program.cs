@@ -292,6 +292,46 @@ Stack Trace:
         // Register system health monitoring service
         services.AddHostedService<SystemHealthMonitoringService>();
 
+        // ================================================================================
+        // 🚀 AUTONOMOUS TRADING ENGINE - PROFIT-MAXIMIZING SYSTEM 🚀
+        // ================================================================================
+        
+        // Configure autonomous trading options
+        services.Configure<AutonomousConfig>(options =>
+        {
+            options.Enabled = Environment.GetEnvironmentVariable("AUTONOMOUS_MODE") == "true";
+            options.TradeDuringLunch = Environment.GetEnvironmentVariable("TRADE_DURING_LUNCH") == "true";
+            options.TradeOvernight = Environment.GetEnvironmentVariable("TRADE_OVERNIGHT") == "true";
+            options.TradePreMarket = Environment.GetEnvironmentVariable("TRADE_PREMARKET") == "true";
+            options.MaxContractsPerTrade = int.Parse(Environment.GetEnvironmentVariable("MAX_CONTRACTS_PER_TRADE") ?? "5");
+            options.DailyProfitTarget = decimal.Parse(Environment.GetEnvironmentVariable("DAILY_PROFIT_TARGET") ?? "300");
+            options.MaxDailyLoss = decimal.Parse(Environment.GetEnvironmentVariable("MAX_DAILY_LOSS") ?? "-1000");
+            options.MaxDrawdown = decimal.Parse(Environment.GetEnvironmentVariable("MAX_DRAWDOWN") ?? "-2000");
+        });
+        
+        // Register autonomous decision engine components
+        services.AddSingleton<TopStepComplianceManager>();
+        services.AddSingleton<MarketConditionAnalyzer>();
+        services.AddSingleton<AutonomousPerformanceTracker>();
+        services.AddSingleton<StrategyPerformanceAnalyzer>();
+        services.AddSingleton<IMarketHours, BasicMarketHours>();
+        
+        // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
+        services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
+        
+        // Register UnifiedDecisionRouter before AutonomousDecisionEngine (dependency order)
+        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        
+        // Register the main autonomous decision engine as hosted service
+        services.AddSingleton<AutonomousDecisionEngine>();
+        services.AddHostedService<AutonomousDecisionEngine>(provider => 
+            provider.GetRequiredService<AutonomousDecisionEngine>());
+        
+        Console.WriteLine("🚀 [AUTONOMOUS-ENGINE] Registered autonomous trading engine - Profit-maximizing TopStep bot ready!");
+        Console.WriteLine("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
+        
+        // ================================================================================
+
         // Register trading activity logger for comprehensive trading event logging
         services.AddSingleton<TradingActivityLogger>();
 
@@ -553,7 +593,7 @@ Stack Trace:
         // ================================================================================
         
         // Register the unified decision routing system - NEVER returns HOLD
-        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        // (Already registered above with AutonomousDecisionEngine dependencies)
         
         // Register decision service router for Python integration
         services.AddSingleton<DecisionServiceRouter>();
@@ -820,7 +860,7 @@ Stack Trace:
         // ================================================================================
         
         // Register advanced ML/AI system components using extension methods
-        services.AddSingleton<BotCore.ML.IMLMemoryManager, BotCore.ML.MLMemoryManager>();
+        // Note: IMLMemoryManager already registered earlier in the service registration
         services.AddSingleton<BotCore.Market.RedundantDataFeedManager>();
         services.AddSingleton<BotCore.Market.IEconomicEventManager, BotCore.Market.EconomicEventManager>();
         
@@ -928,8 +968,28 @@ Stack Trace:
         // �🚀 ENHANCED ML/RL/CLOUD INTEGRATION SERVICES - PRODUCTION AUTOMATION 🚀
         // ================================================================================
         
+        // Register HttpClient for Cloud Model Synchronization Service - GitHub API access
+        services.AddHttpClient<BotCore.Services.CloudModelSynchronizationService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com/");
+            client.DefaultRequestHeaders.Add("User-Agent", "TradingBot-CloudSync/1.0");
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+        
         // Register Cloud Model Synchronization Service - Automated GitHub model downloads
-        services.AddSingleton<BotCore.Services.CloudModelSynchronizationService>();
+        services.AddSingleton<BotCore.Services.CloudModelSynchronizationService>(provider =>
+        {
+            var logger = provider.GetRequiredService<ILogger<BotCore.Services.CloudModelSynchronizationService>>();
+            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient(nameof(BotCore.Services.CloudModelSynchronizationService));
+            var memoryManager = provider.GetRequiredService<BotCore.ML.IMLMemoryManager>();
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var resilienceService = provider.GetService<BotCore.Services.ProductionResilienceService>();
+            var monitoringService = provider.GetService<BotCore.Services.ProductionMonitoringService>();
+            
+            return new BotCore.Services.CloudModelSynchronizationService(
+                logger, httpClient, memoryManager, configuration, resilienceService, monitoringService);
+        });
         services.AddHostedService<BotCore.Services.CloudModelSynchronizationService>(provider => 
             provider.GetRequiredService<BotCore.Services.CloudModelSynchronizationService>());
         
@@ -941,8 +1001,7 @@ Stack Trace:
         services.AddHostedService<BotCore.Services.TradingFeedbackService>(provider => 
             provider.GetRequiredService<BotCore.Services.TradingFeedbackService>());
         
-        // Register Enhanced Trading Brain Integration - Coordinates all ML/RL/Cloud services
-        services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
+        // Enhanced Trading Brain Integration already registered above with UnifiedDecisionRouter dependencies
         
         Console.WriteLine("🚀 [ENHANCED-BRAIN] Production ML/RL/Cloud automation services registered successfully!");
         

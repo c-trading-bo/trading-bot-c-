@@ -763,9 +763,9 @@ public class PolicyNetwork : IDisposable
     private readonly int _stateSize;
     private readonly int _actionSize;
     private readonly int _hiddenSize;
-    private double[,] _weights1;
+    private double[,] _weights1 = null!;
     private double[] _bias1 = null!;
-    private double[,] _weights2;
+    private double[,] _weights2 = null!;
     private double[] _bias2 = null!;
 
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
@@ -885,7 +885,7 @@ public class ValueNetwork : IDisposable
 {
     private readonly int _stateSize;
     private readonly int _hiddenSize;
-    private double[,] _weights1;
+    private double[,] _weights1 = null!;
     private double[] _bias1 = null!;
     private double[] _weights2 = null!;
     private double _bias2;

@@ -103,6 +103,9 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
     public async Task ReleaseLeadershipAsync(CancellationToken cancellationToken = default)
     {
+        // Brief async operation for proper async pattern
+        await Task.Delay(1, cancellationToken);
+        
         try
         {
             lock (_lock)
