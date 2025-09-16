@@ -305,7 +305,7 @@ namespace BotCore.Services
             if (!shouldRetry || attempt >= maxRetries)
             {
                 // Throw specific exceptions based on status code
-                var exception = statusCode switch
+                Exception exception = statusCode switch
                 {
                     System.Net.HttpStatusCode.Unauthorized => new UnauthorizedAccessException($"Authentication failed for {endpoint}: {errorContent}"),
                     System.Net.HttpStatusCode.Forbidden => new InvalidOperationException($"Access forbidden for {endpoint}: {errorContent}"),

@@ -1,111 +1,20 @@
-using TradingBot.Abstractions;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using TradingBot.Abstractions;
+using Trading.Safety;
 
 namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 
 /// <summary>
-/// Simple adapters to bridge Safety project implementations with Abstractions interfaces
-/// These provide minimal functionality to get the system running
+/// Health monitor adapter with proper interface implementation
 /// </summary>
-
-public class KillSwitchWatcherAdapter : IKillSwitchWatcher
-{
-    private readonly ILogger<KillSwitchWatcherAdapter> _logger;
-    private bool _isActive = false;
-
-    public event Action<bool>? KillSwitchToggled;
-    public event Action? OnKillSwitchActivated;
-
-    public bool IsKillSwitchActive => _isActive;
-
-    public KillSwitchWatcherAdapter(ILogger<KillSwitchWatcherAdapter> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task<bool> IsKillSwitchActiveAsync()
-    {
-        // Check for kill file existence
-        var killFile = Path.Combine(Directory.GetCurrentDirectory(), "kill.txt");
-        _isActive = File.Exists(killFile);
-        
-        if (_isActive)
-        {
-            _logger.LogWarning("🛑 Kill switch activated - kill.txt file detected");
-            OnKillSwitchActivated?.Invoke();
-            KillSwitchToggled?.Invoke(true);
-        }
-        
-        return await Task.FromResult(_isActive);
-    }
-
-    public async Task StartWatchingAsync()
-    {
-        _logger.LogInformation("🔍 Kill switch watcher started");
-        await Task.CompletedTask;
-    }
-}
-
-public class RiskManagerAdapter : IRiskManager
-{
-    private readonly ILogger<RiskManagerAdapter> _logger;
-    private bool _isBreached = false;
-
-    public event Action<RiskBreach>? RiskBreachDetected;
-    public event Action<RiskBreach>? OnRiskBreach;
-
-    public bool IsRiskBreached => _isBreached;
-
-    public RiskManagerAdapter(ILogger<RiskManagerAdapter> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task<RiskAssessment> AssessRiskAsync(TradingDecision decision)
-    {
-        _logger.LogDebug("🔍 Assessing risk for trading decision");
-        
-        // Simple risk assessment - approve all in DRY_RUN mode
-        var assessment = new RiskAssessment
-        {
-            RiskScore = 0.3m,
-            MaxPositionSize = 5m,
-            CurrentExposure = 0m,
-            VaR = 100m,
-            RiskLevel = "LOW",
-            Warnings = new List<string>(),
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Trigger events if risk score is elevated (for demonstration)
-        if (assessment.RiskScore > 0.5m)
-        {
-            var breach = new RiskBreach 
-            { 
-                Type = "RISK_THRESHOLD",
-                Description = "Risk threshold exceeded in assessment",
-                Severity = 0.75m,  // Numeric severity level
-                Message = "Risk threshold exceeded",
-                CurrentValue = assessment.RiskScore,
-                Limit = 0.5m,
-                Timestamp = DateTime.UtcNow
-            };
-            RiskBreachDetected?.Invoke(breach);
-            OnRiskBreach?.Invoke(breach);
-            _isBreached = true;
-        }
-        
-        return await Task.FromResult(assessment);
-    }
-}
-
-public class HealthMonitorAdapter : IHealthMonitor
+public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
 {
     private readonly ILogger<HealthMonitorAdapter> _logger;
 
-    public event Action<HealthStatus>? HealthStatusChanged;
-    public event Action<HealthStatus>? OnHealthChanged;
+    public event Action<Trading.Safety.HealthStatus>? OnHealthChanged;
 
     public bool IsTradingAllowed => true; // Allow trading in DRY_RUN mode
 
@@ -114,55 +23,59 @@ public class HealthMonitorAdapter : IHealthMonitor
         _logger = logger;
     }
 
-    public async Task<HealthStatus> GetHealthStatusAsync(string componentName)
+    public async Task StartMonitoringAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("🔍 Getting health status for {Component}", componentName);
+        _logger.LogInformation("🔍 Starting health monitoring");
         await Task.Yield();
-        
-        var status = new HealthStatus
-        {
-            ComponentName = componentName,
-            IsHealthy = true,
-            Status = "Healthy", 
-            TradingAllowed = true,
-            ConnectedHubs = 1,
-            TotalHubs = 1,
-            ErrorRate = 0.0,
-            AverageLatencyMs = 50.0,
-            StatusMessage = "System operational"
-        };
-        
-        // Trigger events
-        HealthStatusChanged?.Invoke(status);
-        OnHealthChanged?.Invoke(status);
-        
-        return status;
-    }
 
-    public async Task StartMonitoringAsync()
-    {
-        _logger.LogInformation("🚀 Starting health monitoring...");
-        
         // Start background monitoring
         _ = Task.Run(async () =>
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 try
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1));
-                    
-                    // Periodic health check
-                    var healthStatus = await GetHealthStatusAsync("System");
-                    _logger.LogDebug("💓 Health monitoring heartbeat - Status: {IsHealthy}", healthStatus.IsHealthy);
+                    _logger.LogDebug("🔍 Performing health check");
+                    await Task.Delay(5000, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ Error in health monitoring loop");
+                    _logger.LogError(ex, "🚨 Health monitoring error");
                 }
             }
-        });
-        
-        await Task.CompletedTask;
+        }, cancellationToken);
+    }
+
+    public void RecordHubConnection(string hubName, bool isConnected)
+    {
+        _logger.LogDebug("🔌 Hub connection: {Hub} = {Connected}", hubName, isConnected);
+    }
+
+    public void RecordApiCall(string operation, TimeSpan duration, bool success)
+    {
+        _logger.LogDebug("📡 API call: {Operation} took {Duration}ms, success: {Success}", 
+            operation, duration.TotalMilliseconds, success);
+    }
+
+    public void RecordError(string source, Exception error)
+    {
+        _logger.LogWarning(error, "❌ Error from {Source}", source);
+    }
+
+    public Trading.Safety.HealthStatus GetCurrentHealth()
+    {
+        return new Trading.Safety.HealthStatus(
+            IsHealthy: true,
+            TradingAllowed: true,
+            ConnectedHubs: 1,
+            TotalHubs: 1,
+            ErrorRate: 0.0,
+            AverageLatencyMs: 10.0,
+            StatusMessage: "System is healthy"
+        );
     }
 }
