@@ -1098,16 +1098,8 @@ Stack Trace:
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Temporarily register basic IntelligenceStackConfig to prevent DI errors
-        services.Configure<IntelligenceStackConfig>(configuration.GetSection("IntelligenceStack"));
-        services.AddSingleton<IntelligenceStackConfig>(provider => 
-        {
-            return new IntelligenceStackConfig(); // Default config
-        });
-        
-        // Note: Full IntelligenceStack temporarily disabled due to 39 async compilation errors
-        // This allows UnifiedDecisionRouter to work with IntelligenceOrchestrator as optional dependency
-        // services.AddIntelligenceStack(configuration);
+        // Register the real intelligence stack services - NO SHORTCUTS
+        services.AddIntelligenceStack(configuration);
     }
 
 }
