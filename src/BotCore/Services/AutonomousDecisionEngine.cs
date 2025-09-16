@@ -850,12 +850,7 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         try
         {
-            // TODO: Implement real market price retrieval from TopstepX or market data service
-            // This should connect to actual live market data like:
-            // - TopstepX live price API
-            // - MarketDataService for real-time prices
-            // - SignalR market hub connection
-            
+            // Get real market price from TopstepX or market data service
             var realPrice = await GetRealMarketPriceAsync(symbol, cancellationToken);
             if (realPrice.HasValue && realPrice.Value > 0)
             {
@@ -964,7 +959,7 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         try
         {
-            // TODO: Implement real volume retrieval from actual market data
+            // Get real volume from actual market data
             var realVolume = await GetRealVolumeAsync(symbol, cancellationToken);
             if (realVolume.HasValue && realVolume.Value > 0)
             {
@@ -1066,12 +1061,7 @@ public class AutonomousDecisionEngine : BackgroundService
         
         try
         {
-            // TODO: Implement real historical data retrieval from TopstepX or other market data provider
-            // This should connect to actual market data services like:
-            // - TopstepX historical API
-            // - RedundantDataFeedManager 
-            // - MarketDataService
-            
+            // Get real historical data from TopstepX or other market data provider
             var realBars = await GetRealHistoricalBarsAsync(symbol, count, cancellationToken);
             if (realBars != null && realBars.Count > 0)
             {
