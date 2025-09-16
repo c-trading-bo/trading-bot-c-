@@ -100,6 +100,14 @@ public class BacktestResult
     public double AverageProcessingTimeMs { get; set; }
     public int RiskCheckFailures { get; set; }
     public Dictionary<string, object> AlgorithmUsage { get; set; } = new();
+    
+    // Additional performance metrics added for production readiness
+    public decimal WinRate { get; set; }
+    public decimal ProfitFactor { get; set; }
+    public decimal AverageWin { get; set; }
+    public decimal AverageLoss { get; set; }
+    public decimal AnnualizedReturn { get; set; }
+    public decimal AnnualizedVolatility { get; set; }
 }
 
 /// <summary>

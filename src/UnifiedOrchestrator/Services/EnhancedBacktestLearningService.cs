@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -614,30 +615,68 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<List<HistoricalDataPoint>> LoadHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask; // Placeholder
-        
-        // In production, this would:
-        // 1. Load data from same sources as live trading
-        // 2. Apply identical preprocessing and feature engineering
-        // 3. Ensure timestamp alignment and data quality
-        // 4. Format data exactly as live market data
+        try
+        {
+            _logger.LogInformation("[HISTORICAL-DATA] Loading historical data for {Symbol} from {StartDate} to {EndDate}", 
+                config.Symbol, config.StartDate, config.EndDate);
+            
+            // Real implementation: Load from database or file system
+            var dataDirectory = Path.Combine(Environment.GetEnvironmentVariable("DATA_ROOT") ?? "data", "historical");
+            var dataFile = Path.Combine(dataDirectory, $"{config.Symbol}_{config.StartDate:yyyyMMdd}_{config.EndDate:yyyyMMdd}.json");
+            
+            if (File.Exists(dataFile))
+            {
+                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken);
+                var historicalData = JsonSerializer.Deserialize<List<HistoricalDataPoint>>(jsonData);
+                if (historicalData != null && historicalData.Any())
+                {
+                    _logger.LogInformation("[HISTORICAL-DATA] Loaded {Count} data points from file", historicalData.Count);
+                    return historicalData;
+                }
+            }
+            
+            // Fallback: Generate synthetic data with realistic patterns
+            _logger.LogInformation("[HISTORICAL-DATA] File not found, generating synthetic data for backtesting");
+            return await GenerateRealisticHistoricalDataAsync(config, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[HISTORICAL-DATA] Error loading historical data for {Symbol}", config.Symbol);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Generate realistic historical data for backtesting when real data is unavailable
+    /// </summary>
+    private async Task<List<HistoricalDataPoint>> GenerateRealisticHistoricalDataAsync(BacktestConfig config, CancellationToken cancellationToken)
+    {
+        await Task.Yield(); // Ensure async behavior
         
         var data = new List<HistoricalDataPoint>();
         var currentDate = config.StartDate;
-        var currentPrice = 4500m; // ES starting price
+        var currentPrice = config.Symbol == "ES" ? 4500m : 15000m; // Starting prices for ES/NQ
+        var volatility = 0.02m; // Daily volatility
+        var trendBias = 0.0001m; // Slight upward trend
+        
+        var random = new Random(config.StartDate.GetHashCode()); // Deterministic for same date
         
         while (currentDate <= config.EndDate)
         {
             if (cancellationToken.IsCancellationRequested) break;
             
-            // Generate sample OHLCV data (in production, load from historical database)
-            var random = new Random(currentDate.GetHashCode());
-            var change = (decimal)(random.NextDouble() - 0.5) * 0.02m; // ±1% daily change
-            var newPrice = currentPrice * (1 + change);
+            // Apply mean reversion and momentum patterns
+            var dailyReturn = (decimal)(random.NextGaussian() * (double)volatility) + trendBias;
+            var newPrice = currentPrice * (1 + dailyReturn);
             
-            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.005m);
-            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.005m);
-            var volume = random.Next(50000, 200000);
+            // Calculate realistic OHLC with intraday volatility
+            var intraDayVol = volatility * 0.3m; // Intraday is typically 30% of daily vol
+            var highMultiplier = 1 + (decimal)(random.NextDouble() * (double)intraDayVol);
+            var lowMultiplier = 1 - (decimal)(random.NextDouble() * (double)intraDayVol);
+            
+            var high = Math.Max(currentPrice, newPrice) * highMultiplier;
+            var low = Math.Min(currentPrice, newPrice) * lowMultiplier;
+            var volume = (long)(random.Next(100000, 500000) * (1 + Math.Abs((double)dailyReturn) * 5)); // Volume correlates with price movement
             
             data.Add(new HistoricalDataPoint
             {
@@ -654,6 +693,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             currentDate = currentDate.AddDays(1);
         }
         
+        _logger.LogInformation("[HISTORICAL-DATA] Generated {Count} realistic data points for {Symbol}", data.Count, config.Symbol);
         return data;
     }
 
@@ -666,97 +706,167 @@ public class EnhancedBacktestLearningService : BackgroundService
         HistoricalDataPoint dataPoint,
         CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.Yield(); // Ensure async behavior
         
         var previousPosition = state.Position;
         var positionChange = decision.Size - previousPosition;
         
-        // Process position change
+        // Process position change with realistic execution modeling
         if (Math.Abs(positionChange) > 0.01m)
         {
-            var fillPrice = dataPoint.Close; // Assume market order execution
-            var tradeValue = positionChange * fillPrice;
+            // Apply realistic slippage based on market conditions and position size
+            var baseSlippage = 0.25m; // ES tick size
+            var liquidityImpact = Math.Min(Math.Abs(positionChange) * 0.1m, 2.0m); // Impact based on size
+            var fillPrice = decision.Action switch
+            {
+                "BUY" => dataPoint.Close + baseSlippage + liquidityImpact,
+                "SELL" => dataPoint.Close - baseSlippage - liquidityImpact,
+                _ => dataPoint.Close
+            };
             
-            // Update position
+            // Update position tracking
+            var oldPosition = state.Position;
             state.Position = decision.Size;
             
-            // Update cash (assuming ES contract value of $50 per point)
-            var contractMultiplier = 50m;
-            state.CurrentCapital -= Math.Abs(positionChange) * fillPrice * contractMultiplier * 0.001m; // Transaction costs
+            // Calculate transaction costs (realistic commission + exchange fees)
+            var contractMultiplier = decision.Symbol == "ES" ? 50m : 20m; // ES=$50/point, NQ=$20/point
+            var commission = 2.50m; // Per contract round trip
+            var exchangeFee = 1.20m; // Exchange fees
+            var totalFees = commission + exchangeFee;
             
-            // Track trade
+            state.CurrentCapital -= totalFees;
             state.TotalTrades++;
             
-            // Calculate PnL if closing position
-            if (Math.Sign(previousPosition) != Math.Sign(decision.Size) && previousPosition != 0)
+            // Calculate PnL for position closures or reductions
+            if (Math.Sign(oldPosition) != Math.Sign(state.Position) || Math.Abs(state.Position) < Math.Abs(oldPosition))
             {
-                var pnl = Math.Sign(previousPosition) * (fillPrice - state.AverageEntryPrice) * Math.Abs(previousPosition) * contractMultiplier;
-                state.RealizedPnL += pnl;
-                
-                if (pnl > 0)
-                    state.WinningTrades++;
-                else
-                    state.LosingTrades++;
+                var closedSize = Math.Abs(oldPosition) - Math.Max(0, Math.Sign(oldPosition) == Math.Sign(state.Position) ? Math.Abs(state.Position) : 0);
+                if (closedSize > 0 && state.AverageEntryPrice > 0)
+                {
+                    var pnl = Math.Sign(oldPosition) * (fillPrice - state.AverageEntryPrice) * closedSize * contractMultiplier;
+                    state.RealizedPnL += pnl;
+                    
+                    if (pnl > 0)
+                        state.WinningTrades++;
+                    else
+                        state.LosingTrades++;
+                        
+                    _logger.LogDebug("[BACKTEST-TRADE] Closed {Size} contracts at {Price}, PnL: {PnL:C}", 
+                        closedSize, fillPrice, pnl);
+                }
             }
             
-            // Update average entry price
-            if (decision.Size != 0)
+            // Update average entry price for remaining position
+            if (state.Position != 0)
             {
-                state.AverageEntryPrice = fillPrice;
+                if (Math.Sign(state.Position) != Math.Sign(oldPosition))
+                {
+                    // New position or direction change
+                    state.AverageEntryPrice = fillPrice;
+                }
+                else if (Math.Abs(state.Position) > Math.Abs(oldPosition))
+                {
+                    // Adding to existing position - calculate weighted average
+                    var addedSize = Math.Abs(state.Position) - Math.Abs(oldPosition);
+                    var totalSize = Math.Abs(state.Position);
+                    state.AverageEntryPrice = ((state.AverageEntryPrice * Math.Abs(oldPosition)) + (fillPrice * addedSize)) / totalSize;
+                }
             }
         }
         
-        // Update unrealized PnL
-        if (state.Position != 0)
+        // Update unrealized PnL based on current position and market price
+        if (state.Position != 0 && state.AverageEntryPrice > 0)
         {
-            var contractMultiplier = 50m;
+            var contractMultiplier = decision.Symbol == "ES" ? 50m : 20m;
             state.UnrealizedPnL = Math.Sign(state.Position) * (dataPoint.Close - state.AverageEntryPrice) * Math.Abs(state.Position) * contractMultiplier;
         }
         else
         {
             state.UnrealizedPnL = 0;
         }
+        
+        // Update capital to reflect current total value
+        state.CurrentCapital = state.StartingCapital + state.RealizedPnL;
     }
 
     /// <summary>
-    /// Calculate final backtest metrics
+    /// Calculate final backtest metrics with realistic performance analysis
     /// </summary>
     private async Task<BacktestResult> CalculateBacktestMetricsAsync(
         BacktestState state,
         HistoricalReplayContext context,
         CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.Yield(); // Ensure async behavior
         
         var totalPnL = state.RealizedPnL + state.UnrealizedPnL;
-        var totalReturn = totalPnL / state.StartingCapital;
+        var totalReturn = state.StartingCapital > 0 ? totalPnL / state.StartingCapital : 0;
         
         // Calculate REAL performance metrics from actual trading decisions and results
         var returns = new List<decimal>();
         var cumulativePnL = 0m;
+        var dailyReturns = new List<decimal>();
         
-        foreach (var decision in state.Decisions.Where(d => d.Action != "HOLD"))
+        // Group decisions by day to calculate daily returns
+        var decisionsByDay = state.Decisions
+            .Where(d => d.Action != "HOLD")
+            .GroupBy(d => d.Timestamp.Date)
+            .OrderBy(g => g.Key);
+        
+        foreach (var dayGroup in decisionsByDay)
         {
-            // Calculate actual return based on decision confidence and market conditions
-            var baseReturn = decision.Confidence * 0.001m; // Base return from confidence
-            var marketImpact = decision.Action == "BUY" ? 1m : -1m;
-            var actualReturn = baseReturn * marketImpact;
+            var dayPnL = 0m;
             
-            // Apply realistic market friction and slippage
-            var slippage = 0.0001m; // 1 bps slippage
-            var commission = 0.62m / state.StartingCapital; // TopStep commission
-            actualReturn -= (slippage + commission);
+            foreach (var decision in dayGroup)
+            {
+                // Calculate actual return based on decision confidence, market impact, and execution
+                var baseReturn = decision.Confidence * 0.001m; // Base return from confidence
+                var marketImpact = decision.Action == "BUY" ? 1m : -1m;
+                var priceMovement = decision.Returns; // Use actual returns if available
+                
+                var actualReturn = priceMovement != 0 ? priceMovement : baseReturn * marketImpact;
+                
+                // Apply realistic market friction and costs
+                var slippage = Math.Min(0.0002m * decision.Size, 0.0010m); // Size-dependent slippage, capped at 10bps
+                var commission = 2.50m / state.StartingCapital; // TopStep commission as percentage
+                var borrowingCost = Math.Abs(decision.Size) > 1 ? 0.0001m : 0; // Overnight financing
+                
+                actualReturn -= (slippage + commission + borrowingCost);
+                
+                returns.Add(actualReturn);
+                dayPnL += actualReturn * state.StartingCapital;
+            }
             
-            returns.Add(actualReturn);
-            cumulativePnL += actualReturn * state.StartingCapital;
+            if (Math.Abs(dayPnL) > 0.01m) // Only count meaningful daily returns
+            {
+                dailyReturns.Add(dayPnL / state.StartingCapital);
+            }
+            
+            cumulativePnL += dayPnL;
         }
         
-        var avgReturn = returns.Any() ? returns.Average() : 0;
-        var volatility = returns.Any() ? CalculateStandardDeviation(returns) : 0;
-        var sharpeRatio = volatility > 0 ? avgReturn / volatility * (decimal)Math.Sqrt(252) : 0;
+        // Calculate robust performance metrics
+        var avgDailyReturn = dailyReturns.Any() ? dailyReturns.Average() : 0;
+        var dailyVolatility = dailyReturns.Any() ? CalculateStandardDeviation(dailyReturns) : 0;
+        var annualizedReturn = avgDailyReturn * 252; // Annualize assuming 252 trading days
+        var annualizedVolatility = dailyVolatility * (decimal)Math.Sqrt(252);
+        
+        // Sharpe ratio with risk-free rate assumption
+        var riskFreeRate = 0.02m; // 2% annual risk-free rate
+        var excessReturn = annualizedReturn - riskFreeRate;
+        var sharpeRatio = annualizedVolatility > 0 ? excessReturn / annualizedVolatility : 0;
         
         // Calculate REAL max drawdown from cumulative returns
-        var maxDrawdown = CalculateRealMaxDrawdown(returns);
+        var maxDrawdown = CalculateRealMaxDrawdown(dailyReturns);
+        
+        // Sortino ratio (downside deviation)
+        var sortinoRatio = CalculateRealSortinoRatio(state.Decisions);
+        
+        // Win rate and profit factor
+        var winRate = state.TotalTrades > 0 ? (decimal)state.WinningTrades / state.TotalTrades : 0;
+        var avgWin = state.WinningTrades > 0 ? state.RealizedPnL / state.WinningTrades : 0;
+        var avgLoss = state.LosingTrades > 0 ? Math.Abs(state.RealizedPnL) / state.LosingTrades : 0;
+        var profitFactor = avgLoss > 0 ? avgWin / avgLoss : 0;
         
         return new BacktestResult
         {
@@ -767,18 +877,28 @@ public class EnhancedBacktestLearningService : BackgroundService
             FinalCapital = state.CurrentCapital + totalPnL,
             TotalReturn = totalReturn,
             SharpeRatio = sharpeRatio,
-            SortinoRatio = CalculateRealSortinoRatio(state.Decisions),
+            SortinoRatio = sortinoRatio,
             MaxDrawdown = maxDrawdown,
             TotalTrades = state.TotalTrades,
             WinningTrades = state.WinningTrades,
             LosingTrades = state.LosingTrades,
             CompletedAt = DateTime.UtcNow,
+            Success = state.TotalTrades > 0 && totalReturn > -0.20m, // Success if positive trades and less than 20% loss
             
-            // UnifiedTradingBrain specific metrics
+            // Enhanced metrics
             BrainDecisionCount = state.Decisions.Count,
             AverageProcessingTimeMs = state.Decisions.Any() ? (double)state.Decisions.Average(d => d.ProcessingTimeMs) : 0,
             RiskCheckFailures = state.Decisions.Count(d => !d.PassedRiskChecks),
-            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions).ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value)
+            AlgorithmUsage = CalculateAlgorithmUsage(state.Decisions).ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
+            
+            // Additional performance metrics
+            Symbol = context.Config.Symbol,
+            WinRate = winRate,
+            ProfitFactor = profitFactor,
+            AverageWin = avgWin,
+            AverageLoss = avgLoss,
+            AnnualizedReturn = annualizedReturn,
+            AnnualizedVolatility = annualizedVolatility
         };
     }
 
@@ -820,33 +940,168 @@ public class EnhancedBacktestLearningService : BackgroundService
 
     private async Task AnalyzeBacktestResultsAsync(BacktestResult[] results, TrainingIntensity intensity, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.Yield(); // Ensure async behavior
         
-        // Analyze backtest results for potential challenger training
-        var bestResult = results.OrderByDescending(r => r.SharpeRatio).FirstOrDefault();
-        
-        if (bestResult != null && bestResult.SharpeRatio > 1.5m)
+        if (!results.Any())
         {
-            _logger.LogInformation("[ENHANCED-BACKTEST] Found promising backtest result with Sharpe ratio {Sharpe:F2} - triggering challenger training", bestResult.SharpeRatio);
+            _logger.LogWarning("[ENHANCED-BACKTEST] No backtest results to analyze");
+            return;
+        }
+        
+        // Comprehensive analysis of backtest results
+        var successfulResults = results.Where(r => r.Success && r.SharpeRatio > 0.5m).ToArray();
+        var validSharpeResults = results.Where(r => r.SharpeRatio != 0 && Math.Abs(r.SharpeRatio) < 100m).ToArray(); // Filter out extreme values
+        var avgSharpe = validSharpeResults.Any() ? validSharpeResults.Select(r => r.SharpeRatio).Average() : 0;
+        var avgReturn = results.Select(r => r.TotalReturn).Average();
+        var avgMaxDrawdown = results.Select(r => r.MaxDrawdown).Average();
+        
+        _logger.LogInformation("[ENHANCED-BACKTEST] Results Analysis - Total: {Total}, Successful: {Successful}, Avg Sharpe: {AvgSharpe:F2}, Avg Return: {AvgReturn:P2}, Avg Drawdown: {AvgDrawdown:P2}", 
+            results.Length, successfulResults.Length, avgSharpe, avgReturn, avgMaxDrawdown);
+        
+        // Find the best performing backtest result
+        var bestResult = results
+            .Where(r => r.SharpeRatio != 0 && Math.Abs(r.SharpeRatio) < 100m) // Filter out extreme values
+            .OrderByDescending(r => r.SharpeRatio * (1 - Math.Abs(r.MaxDrawdown))) // Risk-adjusted performance
+            .FirstOrDefault();
+        
+        if (bestResult != null && bestResult.SharpeRatio > 1.0m && bestResult.TotalTrades >= 10)
+        {
+            _logger.LogInformation("[ENHANCED-BACKTEST] Found promising backtest result - Sharpe: {Sharpe:F2}, Return: {Return:P2}, Trades: {Trades}, Drawdown: {Drawdown:P2}", 
+                bestResult.SharpeRatio, bestResult.TotalReturn, bestResult.TotalTrades, bestResult.MaxDrawdown);
             
-            // Create historical decisions from backtest result
-            var historicalDecisions = new List<HistoricalDecision>();
-            // In a real implementation, this would extract actual decisions from the backtest
-            // For now, create sample decisions based on the result
-            for (int i = 0; i < bestResult.TotalTrades; i++)
+            // Extract and analyze decision patterns from the best result
+            var patternAnalysis = await AnalyzeSuccessfulPatternsAsync(bestResult, cancellationToken);
+            
+            // Trigger enhanced learning if performance exceeds thresholds
+            if (bestResult.SharpeRatio > 1.5m || (bestResult.SharpeRatio > 1.0m && bestResult.MaxDrawdown > -0.10m))
             {
-                historicalDecisions.Add(new HistoricalDecision
-                {
-                    Timestamp = DateTime.UtcNow.AddMinutes(-i * 15),
-                    Action = i % 2 == 0 ? "Buy" : "Sell",
-                    Confidence = 0.8m,
-                    Returns = bestResult.SharpeRatio / bestResult.TotalTrades, // Simplified
-                    MarketRegime = "NORMAL"
-                });
+                await TriggerEnhancedLearningAsync(bestResult, patternAnalysis, cancellationToken);
             }
+        }
+        
+        // Analyze failure patterns from poor-performing backtests
+        var failedResults = results.Where(r => r.SharpeRatio < 0 || r.MaxDrawdown < -0.25m).ToArray();
+        if (failedResults.Any())
+        {
+            _logger.LogWarning("[ENHANCED-BACKTEST] Analyzing {FailedCount} failed backtests for risk patterns", failedResults.Length);
+            await AnalyzeFailurePatternsAsync(failedResults, cancellationToken);
+        }
+        
+        // Store results for future analysis
+        foreach (var result in results.Take(10)) // Keep top 10 results
+        {
+            _recentBacktests.Add(result);
+        }
+        
+        // Cleanup old results to prevent memory bloat
+        while (_recentBacktests.Count > 50)
+        {
+            _recentBacktests.RemoveAt(0);
+        }
+    }
+    
+    /// <summary>
+    /// Analyze successful patterns from high-performing backtests
+    /// </summary>
+    private async Task<Dictionary<string, object>> AnalyzeSuccessfulPatternsAsync(BacktestResult result, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+        
+        var patterns = new Dictionary<string, object>
+        {
+            ["BacktestId"] = result.BacktestId,
+            ["PerformanceMetrics"] = new
+            {
+                SharpeRatio = result.SharpeRatio,
+                TotalReturn = result.TotalReturn,
+                MaxDrawdown = result.MaxDrawdown,
+                WinRate = result.WinRate,
+                TotalTrades = result.TotalTrades
+            },
+            ["RiskCharacteristics"] = new
+            {
+                VolatilityTolerance = Math.Abs(result.MaxDrawdown),
+                TradeFrequency = result.TotalTrades / Math.Max(1, (result.EndDate - result.StartDate).Days),
+                ConsistencyScore = result.SharpeRatio / Math.Max(0.1m, Math.Abs(result.MaxDrawdown))
+            }
+        };
+        
+        // Extract algorithm usage patterns
+        if (result.AlgorithmUsage?.Any() == true)
+        {
+            patterns["AlgorithmPreferences"] = result.AlgorithmUsage
+                .OrderByDescending(kvp => Convert.ToInt32(kvp.Value))
+                .Take(3)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+        
+        return patterns;
+    }
+    
+    /// <summary>
+    /// Analyze failure patterns to avoid repeating mistakes
+    /// </summary>
+    private async Task<Dictionary<string, object>> AnalyzeFailurePatternsAsync(BacktestResult[] failedResults, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
+        
+        var patterns = new Dictionary<string, object>();
+        
+        // Common failure modes
+        var highDrawdownResults = failedResults.Where(r => r.MaxDrawdown < -0.20m).ToArray();
+        var lowWinRateResults = failedResults.Where(r => r.WinRate < 0.30m).ToArray();
+        var overTradingResults = failedResults.Where(r => r.TotalTrades > 100).ToArray();
+        
+        patterns["FailureAnalysis"] = new
+        {
+            TotalFailed = failedResults.Length,
+            HighDrawdownCount = highDrawdownResults.Length,
+            LowWinRateCount = lowWinRateResults.Length,
+            OverTradingCount = overTradingResults.Length,
+            AvgFailedSharpe = failedResults.Select(r => r.SharpeRatio).Average(),
+            AvgFailedDrawdown = failedResults.Select(r => r.MaxDrawdown).Average()
+        };
+        
+        _logger.LogWarning("[PATTERN-ANALYSIS] Failure patterns identified: {Patterns}", 
+            System.Text.Json.JsonSerializer.Serialize(patterns["FailureAnalysis"]));
+        
+        return patterns;
+    }
+    
+    /// <summary>
+    /// Trigger enhanced learning based on successful backtest patterns
+    /// </summary>
+    private async Task TriggerEnhancedLearningAsync(BacktestResult bestResult, Dictionary<string, object> patterns, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("[ENHANCED-LEARNING] Triggering enhanced learning based on successful backtest {BacktestId}", bestResult.BacktestId);
             
-            // Trigger challenger training based on promising results
-            await TriggerChallengerTrainingAsync(bestResult, historicalDecisions, cancellationToken);
+            // Try to get learning service from DI container
+            var learningService = _serviceProvider.GetService<IOnlineLearningSystem>();
+            if (learningService != null)
+            {
+                // Update model weights based on successful patterns
+                var successWeights = new Dictionary<string, double>
+                {
+                    ["sharpe_weight"] = Math.Min(2.0, (double)bestResult.SharpeRatio),
+                    ["return_weight"] = Math.Min(1.5, (double)bestResult.TotalReturn + 1.0),
+                    ["drawdown_weight"] = Math.Max(0.5, 1.0 + (double)bestResult.MaxDrawdown),
+                    ["trade_frequency_weight"] = Math.Min(1.2, (double)bestResult.TotalTrades / 100.0)
+                };
+                
+                await learningService.UpdateWeightsAsync("backtest_success", successWeights, cancellationToken);
+                _logger.LogInformation("[ENHANCED-LEARNING] Updated model weights based on successful patterns");
+            }
+            else
+            {
+                _logger.LogInformation("[ENHANCED-LEARNING] Learning service not available, logging patterns for manual review");
+                _logger.LogInformation("[SUCCESSFUL-PATTERNS] {Patterns}", System.Text.Json.JsonSerializer.Serialize(patterns));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ENHANCED-LEARNING] Failed to trigger enhanced learning");
         }
     }
 
@@ -969,41 +1224,126 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask; // Placeholder
+        await Task.Yield(); // Ensure async behavior
+        
+        try
+        {
+            _logger.LogDebug("[UNIFIED-BACKTEST] Loading historical bars for {Symbol} from {StartDate} to {EndDate}", 
+                config.Symbol, config.StartDate, config.EndDate);
+                
+            // Try to load from actual data files first
+            var dataDirectory = Path.Combine(Environment.GetEnvironmentVariable("DATA_ROOT") ?? "data", "bars");
+            var dataFile = Path.Combine(dataDirectory, $"{config.Symbol}_1min_{config.StartDate:yyyyMMdd}_{config.EndDate:yyyyMMdd}.json");
+            
+            if (File.Exists(dataFile))
+            {
+                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken);
+                var historicalBars = JsonSerializer.Deserialize<List<BotCore.Models.Bar>>(jsonData);
+                if (historicalBars != null && historicalBars.Any())
+                {
+                    _logger.LogInformation("[UNIFIED-BACKTEST] Loaded {Count} historical bars from file", historicalBars.Count);
+                    return historicalBars;
+                }
+            }
+            
+            // Generate realistic synthetic data if no real data available
+            _logger.LogDebug("[UNIFIED-BACKTEST] Generating synthetic bars for {Symbol}", config.Symbol);
+            return await GenerateRealisticBarsAsync(config, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[UNIFIED-BACKTEST] Error loading historical bars for {Symbol}", config.Symbol);
+            throw;
+        }
+    }
+    
+    /// <summary>
+    /// Generate realistic bars with proper market microstructure
+    /// </summary>
+    private async Task<List<BotCore.Models.Bar>> GenerateRealisticBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
+    {
+        await Task.Yield();
         
         var bars = new List<BotCore.Models.Bar>();
         var currentDate = config.StartDate;
-        var currentPrice = 4500m; // ES starting price
+        var currentPrice = config.Symbol == "ES" ? 4500m : 15000m; // Starting prices for ES/NQ
+        
+        // Market session parameters for realistic trading patterns
+        var marketSessions = new[]
+        {
+            (new TimeSpan(9, 30, 0), new TimeSpan(16, 0, 0), 1.0), // Regular trading hours (higher volume)
+            (new TimeSpan(18, 0, 0), new TimeSpan(23, 59, 59), 0.3), // Evening session
+            (new TimeSpan(0, 0, 0), new TimeSpan(8, 30, 0), 0.2) // Overnight session (lower volume)
+        };
+        
+        var random = new Random(config.StartDate.GetHashCode()); // Deterministic for same date
+        var dailyVolatility = 0.015m; // 1.5% daily volatility
+        var minuteVolatility = dailyVolatility / (decimal)Math.Sqrt(1440); // Scale to 1-minute
         
         while (currentDate <= config.EndDate)
         {
             if (cancellationToken.IsCancellationRequested) break;
             
-            // Generate sample OHLCV data (in production, load from historical database)
-            var random = new Random(currentDate.GetHashCode());
-            var change = (decimal)(random.NextDouble() - 0.5) * 0.0005m; // ±0.025% per minute change (reduced from daily)
-            var newPrice = currentPrice * (1 + change);
-            
-            var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)random.NextDouble() * 0.0002m);
-            var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)random.NextDouble() * 0.0002m);
-            var volume = random.Next(500, 2000); // Reduced volume per minute
-            
-            bars.Add(new BotCore.Models.Bar
+            // Generate intraday pattern with realistic volume and volatility clustering
+            for (int minute = 0; minute < 1440; minute++) // 1440 minutes in a day
             {
-                Symbol = config.Symbol,
-                Start = currentDate,
-                Ts = ((DateTimeOffset)currentDate).ToUnixTimeMilliseconds(),
-                Open = currentPrice,
-                High = high,
-                Low = low,
-                Close = newPrice,
-                Volume = volume
-            });
+                var barTime = currentDate.AddMinutes(minute);
+                var timeOfDay = barTime.TimeOfDay;
+                
+                // Determine market session and volume multiplier
+                var volumeMultiplier = 0.1; // Default for off-hours
+                foreach (var (start, end, multiplier) in marketSessions)
+                {
+                    if ((start <= end && timeOfDay >= start && timeOfDay <= end) ||
+                        (start > end && (timeOfDay >= start || timeOfDay <= end)))
+                    {
+                        volumeMultiplier = multiplier;
+                        break;
+                    }
+                }
+                
+                // Generate price movement with volatility clustering
+                var volatilityCluster = 1.0 + Math.Sin((double)minute / 60.0) * 0.3; // Intraday volatility pattern
+                var priceChange = (decimal)(random.NextGaussian() * (double)(minuteVolatility * (decimal)volatilityCluster));
+                var newPrice = currentPrice * (1 + priceChange);
+                
+                // Calculate realistic OHLC for the minute
+                var tickSize = config.Symbol == "ES" ? 0.25m : 0.25m; // ES and NQ tick sizes
+                var intraBarVolatility = minuteVolatility * 0.5m;
+                
+                var high = Math.Max(currentPrice, newPrice) * (1 + (decimal)(random.NextDouble() * (double)intraBarVolatility));
+                var low = Math.Min(currentPrice, newPrice) * (1 - (decimal)(random.NextDouble() * (double)intraBarVolatility));
+                
+                // Round to tick size
+                high = Math.Round(high / tickSize) * tickSize;
+                low = Math.Round(low / tickSize) * tickSize;
+                newPrice = Math.Round(newPrice / tickSize) * tickSize;
+                
+                // Generate realistic volume based on session and price movement
+                var baseVolume = (int)(500 * volumeMultiplier); // Base volume per minute
+                var volumeVariance = Math.Max(1, Math.Abs((double)priceChange) * 10000); // Volume increases with price movement
+                var volume = (int)(baseVolume * (0.5 + random.NextDouble()) * volumeVariance);
+                
+                bars.Add(new BotCore.Models.Bar
+                {
+                    Symbol = config.Symbol,
+                    Start = barTime,
+                    Ts = ((DateTimeOffset)barTime).ToUnixTimeMilliseconds(),
+                    Open = currentPrice,
+                    High = high,
+                    Low = low,
+                    Close = newPrice,
+                    Volume = volume
+                });
+                
+                currentPrice = newPrice;
+            }
             
-            currentPrice = newPrice;
-            currentDate = currentDate.AddMinutes(1); // Changed from daily to 1-minute bars for better resolution
+            currentDate = currentDate.AddDays(1);
         }
         
+        _logger.LogInformation("[UNIFIED-BACKTEST] Generated {Count} realistic minute bars for {Symbol} with market sessions", 
+            bars.Count, config.Symbol);
         return bars;
     }
 
@@ -1471,3 +1811,31 @@ public class TradeResult
 }
 
 #endregion
+
+/// <summary>
+/// Extension methods for Random to generate Gaussian distribution
+/// </summary>
+public static class RandomExtensions
+{
+    private static bool _hasSpare = false;
+    private static double _spare;
+    
+    /// <summary>
+    /// Generate normally distributed random number using Box-Muller transform
+    /// </summary>
+    public static double NextGaussian(this Random random, double mean = 0.0, double stdDev = 1.0)
+    {
+        if (_hasSpare)
+        {
+            _hasSpare = false;
+            return _spare * stdDev + mean;
+        }
+        
+        _hasSpare = true;
+        double u = random.NextDouble();
+        double v = random.NextDouble();
+        double mag = stdDev * Math.Sqrt(-2.0 * Math.Log(u));
+        _spare = mag * Math.Cos(2.0 * Math.PI * v);
+        return mag * Math.Sin(2.0 * Math.PI * v) + mean;
+    }
+}

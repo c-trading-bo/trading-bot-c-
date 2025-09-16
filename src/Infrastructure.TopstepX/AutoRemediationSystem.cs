@@ -747,23 +747,49 @@ public class AutoRemediationSystem
     }
 
     /// <summary>
-    /// Real memory cleanup implementation
+    /// Intelligent memory cleanup implementation without forced GC
     /// </summary>
     private async Task CleanupMemoryIntensiveComponentsAsync()
     {
         // Clean up specific components that may be holding memory
         await Task.Run(() =>
         {
-            // Clean up any cached data that can be regenerated
-            // Use a simpler approach without System.Runtime.Caching dependency
-            GC.Collect(0, GCCollectionMode.Default, false); // Minor cleanup only
-
-            // Clean up ThreadPool if needed
+            // Clean up any cached data that can be regenerated using smart approaches
+            var memoryBefore = GC.GetTotalMemory(false);
+            
+            // Use proper memory management patterns
+            // 1. Check for thread pool pressure
             ThreadPool.GetAvailableThreads(out var workerThreads, out var ioThreads);
             if (workerThreads < Environment.ProcessorCount)
             {
-                // System under pressure, reduce concurrent operations
+                // System under pressure, optimize thread usage
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 2, ioThreads);
+                ThreadPool.SetMinThreads(Environment.ProcessorCount, Math.Min(ioThreads, Environment.ProcessorCount));
+            }
+            
+            // 2. Clean up temporary files and caches
+            var tempPath = Path.GetTempPath();
+            try
+            {
+                var tempFiles = Directory.GetFiles(tempPath, "trading_*", SearchOption.TopDirectoryOnly)
+                    .Where(f => File.GetCreationTime(f) < DateTime.Now.AddHours(-1))
+                    .Take(10); // Limit cleanup to avoid blocking
+                    
+                foreach (var file in tempFiles)
+                {
+                    try { File.Delete(file); } catch { /* Ignore cleanup failures */ }
+                }
+            }
+            catch { /* Ignore temp cleanup failures */ }
+            
+            // 3. Only suggest collection if memory pressure is significant
+            var memoryAfter = GC.GetTotalMemory(false);
+            var memoryUsageGB = memoryAfter / (1024.0 * 1024.0 * 1024.0);
+            
+            if (memoryUsageGB > 1.5) // Only if using more than 1.5GB
+            {
+                // Gentle suggestion to runtime - not forced
+                GC.Collect(0, GCCollectionMode.Optimized, false);
             }
         });
     }

@@ -946,14 +946,34 @@ namespace TradingBot.Critical
         {
             LogCriticalError("SYSTEM FREEZE DETECTED", null);
             
-            // Try to recover
-            GC.Collect(2, GCCollectionMode.Forced);
-            GC.WaitForPendingFinalizers();
+            // Try intelligent recovery without forced GC
+            _logger.LogCritical("[CRITICAL] System freeze detected, initiating intelligent recovery");
             
-            // If still frozen after GC, initiate emergency protocol
-            if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(30))
+            // Monitor memory pressure and respond appropriately
+            var memoryBefore = GC.GetTotalMemory(false);
+            var memoryPressure = memoryBefore / (1024 * 1024 * 1024); // GB
+            
+            if (memoryPressure > 2) // If using more than 2GB
             {
-                await ActivateEmergencyMode(new Exception("System freeze > 30 seconds"));
+                _logger.LogWarning("[CRITICAL] High memory pressure detected ({MemoryGB:F1}GB), suggesting collection", memoryPressure);
+                // Gentle suggestion to runtime, not forced
+                GC.Collect(0, GCCollectionMode.Optimized, false);
+                await Task.Delay(2000); // Give runtime time to respond
+            }
+            
+            // Check for thread pool starvation
+            ThreadPool.GetAvailableThreads(out var workerThreads, out var ioThreads);
+            if (workerThreads < Environment.ProcessorCount)
+            {
+                _logger.LogWarning("[CRITICAL] Thread pool starvation detected, adjusting limits");
+                ThreadPool.SetMinThreads(Environment.ProcessorCount * 2, ioThreads);
+            }
+            
+            // If still frozen after intelligent recovery, initiate emergency protocol
+            await Task.Delay(5000); // Wait 5 seconds for recovery
+            if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(35))
+            {
+                await ActivateEmergencyMode(new Exception("System freeze > 35 seconds after recovery attempt"));
             }
         }
         
