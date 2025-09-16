@@ -326,11 +326,15 @@ public class MockLeaderElectionService : ILeaderElectionService
 
     public Task<bool> TryAcquireLeadershipAsync(CancellationToken cancellationToken = default)
     {
+        // Mock implementation - always successful and trigger event
+        LeadershipChanged?.Invoke(this, new LeadershipChangedEventArgs { IsLeader = true });
         return Task.FromResult(true);
     }
 
     public Task ReleaseLeadershipAsync(CancellationToken cancellationToken = default)
     {
+        // Mock implementation - trigger event for leadership release
+        LeadershipChanged?.Invoke(this, new LeadershipChangedEventArgs { IsLeader = false });
         return Task.CompletedTask;
     }
 
