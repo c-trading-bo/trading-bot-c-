@@ -174,7 +174,7 @@ public class UserEventsService : IUserEventsService, IAsyncDisposable, IDisposab
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[USER-EVENTS] Failed to parse user event data");
+            Console.WriteLine($"[USER-EVENTS] Failed to parse user event data: {ex.Message}");
             throw new InvalidOperationException("Failed to parse user event data - invalid JSON format", ex);
         }
     }

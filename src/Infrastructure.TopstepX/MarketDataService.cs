@@ -169,7 +169,7 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MARKET-DATA] Failed to parse market data");
+            Console.WriteLine($"[MARKET-DATA] Failed to parse market data: {ex.Message}");
             throw new InvalidOperationException("Failed to parse market data - invalid format", ex);
         }
     }

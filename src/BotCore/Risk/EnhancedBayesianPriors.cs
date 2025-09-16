@@ -319,24 +319,24 @@ public class EnhancedBayesianPriors : IBayesianPriors
         var random = new Random();
 
         // Use Gamma sampling to generate Beta
-        var x = SampleGamma(alpha, random);
-        var y = SampleGamma(beta, random);
+        var x = SampleGamma(alpha, random, CancellationToken.None);
+        var y = SampleGamma(beta, random, CancellationToken.None);
 
         return x / (x + y);
     }
 
-    private decimal SampleGamma(decimal shape, Random random)
+    private decimal SampleGamma(decimal shape, Random random, CancellationToken cancellationToken = default)
     {
         // Simple gamma sampling using acceptance-rejection
         if (shape < 1m)
         {
-            return SampleGamma(shape + 1m, random) * (decimal)Math.Pow(random.NextDouble(), 1.0 / (double)shape);
+            return SampleGamma(shape + 1m, random, cancellationToken) * (decimal)Math.Pow(random.NextDouble(), 1.0 / (double)shape);
         }
 
         var d = shape - 1m / 3m;
         var c = 1m / (decimal)Math.Sqrt(9.0 * (double)d);
 
-        while (true)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var x = (decimal)random.NextDouble();
             var y = (decimal)random.NextDouble();
@@ -349,6 +349,9 @@ public class EnhancedBayesianPriors : IBayesianPriors
                 return d * v;
             }
         }
+        
+        // Fallback if cancellation was requested
+        return d; // Return a reasonable default value
     }
 
     private void InitializeHierarchicalStructure()

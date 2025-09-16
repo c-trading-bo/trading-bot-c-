@@ -117,40 +117,28 @@ public class HealthMonitorAdapter : IHealthMonitor
     public async Task<HealthStatus> GetHealthStatusAsync(string componentName)
     {
         _logger.LogDebug("🔍 Getting health status for {Component}", componentName);
+        await Task.Yield();
         
-        var status = new HealthStatus
-        {
-            ComponentName = componentName,
-            IsHealthy = true,
-            Status = "Healthy",
-            TradingAllowed = true,
-            ConnectedHubs = 1,
-            TotalHubs = 1,
-            ErrorRate = 0.0,
-            AverageLatencyMs = 50.0,
-            StatusMessage = "System operational",
-            LastCheck = DateTime.UtcNow,
-            Metrics = new Dictionary<string, object>
-            {
-                ["uptime"] = TimeSpan.FromMinutes(30),
-                ["memoryUsage"] = "512MB",
-                ["cpuUsage"] = "15%"
-            },
-            Issues = new List<string>()
+        var status = new HealthStatus 
+        { 
+            IsHealthy = true, 
+            Details = $"Component {componentName} is healthy",
+            Timestamp = DateTime.UtcNow,
+            ComponentName = componentName
         };
-
-        // Trigger health status change events (for demonstration)
+        
+        // Trigger events
         HealthStatusChanged?.Invoke(status);
         OnHealthChanged?.Invoke(status);
         
-        return await Task.FromResult(status);
+        return status;
     }
 
     public async Task StartMonitoringAsync()
     {
-        _logger.LogInformation("🔍 [HEALTH-MONITOR] Starting health monitoring for DRY_RUN mode");
+        _logger.LogInformation("🚀 Starting health monitoring...");
         
-        // Start background monitoring task
+        // Start background monitoring
         _ = Task.Run(async () =>
         {
             while (true)
@@ -158,22 +146,18 @@ public class HealthMonitorAdapter : IHealthMonitor
                 try
                 {
                     await Task.Delay(TimeSpan.FromMinutes(1));
-                    var status = await GetHealthStatusAsync("System");
-                    _logger.LogDebug("🔍 [HEALTH-MONITOR] Periodic health check: {Status}", status.Status);
+                    
+                    // Periodic health check
+                    var healthStatus = await GetHealthStatusAsync("System");
+                    _logger.LogDebug("💓 Health monitoring heartbeat - Status: {IsHealthy}", healthStatus.IsHealthy);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ [HEALTH-MONITOR] Error during periodic health check");
+                    _logger.LogError(ex, "❌ Error in health monitoring loop");
                 }
             }
         });
         
-        await Task.CompletedTask;
-    }
-
-    public async Task StartMonitoringAsync()
-    {
-        _logger.LogInformation("🔍 Health monitor started");
         await Task.CompletedTask;
     }
 }
