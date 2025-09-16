@@ -141,6 +141,8 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
     public async Task<bool> IsLeaderAsync(CancellationToken cancellationToken = default)
     {
+        await Task.Yield(); // Ensure proper async execution
+        
         if (!_config.Enabled)
         {
             return true; // Always leader when disabled

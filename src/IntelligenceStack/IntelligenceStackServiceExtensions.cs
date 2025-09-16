@@ -30,6 +30,23 @@ public static class IntelligenceStackServiceExtensions
         // PRODUCTION INTELLIGENCE SERVICES ONLY - ZERO MOCK IMPLEMENTATIONS
         // ================================================================================
         
+        // Register IntelligenceStackConfig first (required dependency)
+        services.Configure<IntelligenceStackConfig>(configuration.GetSection("IntelligenceStack"));
+        services.AddSingleton<IntelligenceStackConfig>(provider => 
+            provider.GetRequiredService<IOptions<IntelligenceStackConfig>>().Value);
+            
+        // Configure minimal CloudFlowOptions for compatibility (local definition)
+        services.Configure<CloudFlowOptions>(options =>
+        {
+            options.Enabled = false;
+            options.CloudEndpoint = "";
+            options.InstanceId = Environment.MachineName;
+            options.TimeoutSeconds = 30;
+        });
+        
+        // Register HttpClient for IntelligenceOrchestrator
+        services.AddHttpClient();
+        
         // Register core intelligence services - ALL PRODUCTION IMPLEMENTATIONS
         services.AddSingleton<IRegimeDetector, RegimeDetectorWithHysteresis>();
         services.AddSingleton<IFeatureStore, FeatureStore>();

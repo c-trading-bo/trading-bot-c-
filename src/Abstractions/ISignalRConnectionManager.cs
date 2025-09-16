@@ -16,6 +16,11 @@ public interface ISignalRConnectionManager
     bool IsMarketHubConnected { get; }
     event Action<string> ConnectionStateChanged;
     
+    /// <summary>
+    /// Gets the current connection state for health monitoring
+    /// </summary>
+    Task<HubConnectionState> GetConnectionStateAsync();
+    
     // TopstepX specification compliant subscription methods
     Task<bool> SubscribeToUserEventsAsync(string accountId);
     Task<bool> SubscribeToMarketEventsAsync(string contractId);

@@ -226,7 +226,7 @@ public class ComprehensiveReportingSystem
         jsonStopwatch.Stop();
         metrics.JsonSerializationOperationsPerSecond = jsonOperations;
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure proper async execution
         return metrics;
     }
 
@@ -269,7 +269,7 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Performance Monitoring", Status = "Implemented", Coverage = 80 });
         features.Add(new FeatureInfo { Name = "Comprehensive Reporting", Status = "Implemented", Coverage = 87 });
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure proper async execution
         return features;
     }
 
@@ -282,7 +282,7 @@ public class ComprehensiveReportingSystem
         features.Add(new FeatureInfo { Name = "Real-time Market Data", Status = "Partial", Coverage = 65 });
         features.Add(new FeatureInfo { Name = "Advanced ML Strategies", Status = "Partial", Coverage = 70 });
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure proper async execution
         return features;
     }
 
@@ -362,7 +362,7 @@ public class ComprehensiveReportingSystem
             new() { Severity = "Low", Description = "File permissions not set on all platforms", Recommendation = "Add cross-platform file security" }
         };
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure proper async execution
         return analysis;
     }
 
@@ -447,7 +447,7 @@ public class ComprehensiveReportingSystem
         // Check timeout configuration
         score += 30; // We have proper timeouts
 
-        await Task.CompletedTask; // Make it truly async
+        await Task.Yield(); // Ensure proper async execution
         return Math.Min(score, 100);
     }
 

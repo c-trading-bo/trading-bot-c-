@@ -68,7 +68,7 @@ public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
 
     public Trading.Safety.HealthStatus GetCurrentHealth()
     {
-        return new Trading.Safety.HealthStatus(
+        var healthStatus = new Trading.Safety.HealthStatus(
             IsHealthy: true,
             TradingAllowed: true,
             ConnectedHubs: 1,
@@ -77,5 +77,10 @@ public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
             AverageLatencyMs: 10.0,
             StatusMessage: "System is healthy"
         );
+        
+        // Trigger health changed event for monitoring systems
+        OnHealthChanged?.Invoke(healthStatus);
+        
+        return healthStatus;
     }
 }

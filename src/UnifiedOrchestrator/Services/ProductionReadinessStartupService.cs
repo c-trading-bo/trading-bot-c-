@@ -6,6 +6,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.IntelligenceStack;
+using TradingBot.Abstractions;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -154,7 +155,7 @@ public class ProductionReadinessStartupService : IHostedService
         try
         {
             // Test TopstepX client behavior
-            var topstepClient = _serviceProvider.GetService<TradingBot.Infrastructure.TopstepX.ITopstepXClient>();
+            var topstepClient = _serviceProvider.GetService<ITopstepXClient>();
             if (topstepClient != null)
             {
                 var clientType = topstepClient.GetType().Name;

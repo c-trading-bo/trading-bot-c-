@@ -1098,10 +1098,8 @@ Stack Trace:
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
     {
-
-        // Register the real intelligence stack services
+        // Register the real intelligence stack services - NO SHORTCUTS
         services.AddIntelligenceStack(configuration);
-
     }
 
 }
