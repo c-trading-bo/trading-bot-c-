@@ -44,13 +44,18 @@ public class CloudModelSynchronizationService : BackgroundService
         _resilienceService = resilienceService;
         _monitoringService = monitoringService;
         
-        // Configure GitHub API access with validation
-        _githubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN") ?? 
-                      configuration["GitHub:Token"] ?? "";
+        // CRITICAL FIX #6: Enhanced GitHub token resolution with multiple sources
+        _githubToken = ResolveGitHubToken(configuration);
         
         if (string.IsNullOrWhiteSpace(_githubToken))
         {
             _logger.LogWarning("⚠️ [CLOUD-SYNC] GitHub token not configured - cloud model sync will be disabled");
+            _logger.LogInformation("🔧 [CLOUD-SYNC] Token sources checked: GITHUB_TOKEN env, GitHub:Token config, GITHUB_PAT env, GH_TOKEN env");
+        }
+        else
+        {
+            _logger.LogInformation("✅ [CLOUD-SYNC] GitHub token configured successfully (length: {TokenLength})", 
+                _githubToken.Length);
         }
         
         _repositoryOwner = configuration["GitHub:Owner"] ?? "c-trading-bo";
@@ -165,6 +170,52 @@ public class CloudModelSynchronizationService : BackgroundService
         {
             _logger.LogError(ex, "🌐 [CLOUD-SYNC] Model synchronization failed");
         }
+    }
+
+    /// <summary>
+    /// CRITICAL FIX #6: Resolve GitHub token from multiple sources with validation
+    /// </summary>
+    private string ResolveGitHubToken(IConfiguration configuration)
+    {
+        // Try multiple token sources in priority order
+        var tokenSources = new[]
+        {
+            ("GITHUB_TOKEN", Environment.GetEnvironmentVariable("GITHUB_TOKEN")),
+            ("GitHub:Token config", configuration["GitHub:Token"]),
+            ("GITHUB_PAT", Environment.GetEnvironmentVariable("GITHUB_PAT")),
+            ("GH_TOKEN", Environment.GetEnvironmentVariable("GH_TOKEN")),
+            ("GitHubToken", configuration["GitHubToken"]),
+            ("Secrets:GitHubToken", configuration["Secrets:GitHubToken"])
+        };
+
+        foreach (var (sourceName, token) in tokenSources)
+        {
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                // Basic token validation
+                if (token.StartsWith("ghp_") || token.StartsWith("github_pat_") || token.Length >= 40)
+                {
+                    _logger.LogInformation("🔧 [CLOUD-SYNC] GitHub token found from source: {Source}", sourceName);
+                    return token;
+                }
+                else
+                {
+                    _logger.LogWarning("🔧 [CLOUD-SYNC] Invalid token format from source: {Source} (length: {Length})", 
+                        sourceName, token.Length);
+                }
+            }
+        }
+
+        // Log environment for debugging (without exposing values)
+        var envVars = Environment.GetEnvironmentVariables();
+        var githubRelatedVars = envVars.Keys.Cast<string>()
+            .Where(k => k.ToUpper().Contains("GITHUB") || k.ToUpper().Contains("GH_"))
+            .ToList();
+            
+        _logger.LogWarning("🔧 [CLOUD-SYNC] No valid GitHub token found. Available GitHub-related env vars: {EnvVars}", 
+            string.Join(", ", githubRelatedVars));
+
+        return string.Empty;
     }
 
     /// <summary>
