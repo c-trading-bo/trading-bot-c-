@@ -1,81 +1,40 @@
 {
-  "timestamp": "2025-09-16T09:24:25.495871",
+  "timestamp": "2025-09-16T12:44:03.288320",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 15,
+  "total_articles_processed": 13,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.26549999999999996,
-      "article_count": 2,
+      "sentiment_score": 0.3,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Stock market today: Dow, S&P 500, Nasdaq futures climbed as Senate confirm Trump's Fed pick Miran",
+          "title": "The hurdles are low for another 10% gain for the S&P 500, says this Wall Street veteran",
           "sentiment": 0.3,
           "textblob_score": 0.0,
           "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-climbed-as-senate-confirm-trumps-fed-pick-miran-231256341.html",
-          "published": "2025-09-15T23:12:56Z",
-          "relevance_keywords": [
-            "S&P"
-          ]
-        },
-        {
-          "title": "S&P 500 Builds on Record High as Cook, Miran Rulings Heap More Scrutiny on Fed Rate Call",
-          "sentiment": 0.23099999999999998,
-          "textblob_score": 0.33,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://www.barrons.com/livecoverage/stock-market-news-today-091625/card/s-p-500-builds-on-record-high-as-cook-miran-rulings-heap-more-scrutiny-on-fed-rate-call-USqKdp76565SrwHUysXS?siteid=yhoof2&yptr=yahoo",
-          "published": "2025-09-16T07:42:29Z",
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/the-hurdles-are-low-for-another-10-gain-for-the-s-p-500-says-this-wall-street-veteran-cfb2cbff?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 11:46:00 GMT",
           "relevance_keywords": [
             "S&P"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.2,
+      "confidence": 0.1,
       "sources": [
-        "yahoo_finance"
+        "marketwatch"
       ]
     },
     "NQ": {
-      "sentiment_score": 0.3275757575757575,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Stock market today: Dow, S&P 500, Nasdaq futures climbed as Senate confirm Trump's Fed pick Miran",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-climbed-as-senate-confirm-trumps-fed-pick-miran-231256341.html",
-          "published": "2025-09-15T23:12:56Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        },
-        {
-          "title": "Melt-Up Puts Nasdaq on Track for 10-Day Streak: Markets Wrap",
-          "sentiment": 0.3551515151515151,
-          "textblob_score": 0.07878787878787878,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-15/asian-futures-show-cautious-optimism-ahead-of-fed-markets-wrap",
-          "published": "Mon, 15 Sep 2025 22:33:14 GMT",
-          "relevance_keywords": [
-            "Nasdaq",
-            "Nasdaq 100"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance",
-        "bloomberg"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -102,169 +61,184 @@
       "sources": []
     },
     "TSLA": {
-      "sentiment_score": 0.197337962962963,
-      "article_count": 9,
+      "sentiment_score": 0.2039164462081129,
+      "article_count": 7,
       "articles": [
         {
-          "title": "Tesla stock surges, turning positive year to date as Elon Musk buys $1 billion in shares",
-          "sentiment": 0.4590909090909091,
-          "textblob_score": 0.22727272727272727,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/tesla-stock-surges-turning-positive-year-to-date-as-elon-musk-buys-1-billion-in-shares-152228766.html",
-          "published": "2025-09-15T20:03:38Z",
-          "relevance_keywords": [
-            "Tesla",
-            "Elon Musk"
-          ]
-        },
-        {
-          "title": "Port Operator ICTSI Eyes Emerging Market Acquisitions",
-          "sentiment": -0.10383333333333333,
-          "textblob_score": -0.14833333333333334,
+          "title": "France\u2019s Penchant for Soaking the Rich Returns in Budget Crisis",
+          "sentiment": 0.170625,
+          "textblob_score": 0.24375,
           "keyword_score": 0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-16/port-operator-ictsi-eyes-emerging-market-acquisitions",
-          "published": "Tue, 16 Sep 2025 09:22:47 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-16/france-s-penchant-for-soaking-the-rich-returns-in-budget-crisis",
+          "published": "Tue, 16 Sep 2025 12:03:18 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "US Trade, Defense Teams in New Delhi to Revive Trade Talks",
-          "sentiment": 0.39545454545454545,
-          "textblob_score": 0.13636363636363635,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/us-trade-defense-teams-in-new-delhi-to-revive-trade-talks",
-          "published": "Tue, 16 Sep 2025 03:19:54 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "UBS Faces $26 Billion Increase in Capital Requirements",
+          "title": "Family Offices Managing $727 Billion Embrace Private Equity",
           "sentiment": 0.3,
           "textblob_score": 0.0,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-16/ubs-faces-26-billion-increase-in-capital-requirements",
-          "published": "Tue, 16 Sep 2025 08:52:42 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-16/family-offices-managing-727-billion-embrace-private-equity",
+          "published": "Tue, 16 Sep 2025 12:00:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Kumar: Arab States Question US Role In Doha Attack",
-          "sentiment": 0.34709090909090906,
-          "textblob_score": 0.06727272727272728,
+          "title": "Euro Heads for Four-Year High as Traders Prepare for Fed Cuts",
+          "sentiment": 0.3373333333333333,
+          "textblob_score": 0.05333333333333334,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-16/kumar-arab-states-question-us-role-in-doha-attack-video",
-          "published": "Tue, 16 Sep 2025 08:13:38 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-16/euro-heads-for-highest-in-four-years-with-1-20-level-in-sight",
+          "published": "Tue, 16 Sep 2025 06:56:48 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Mark Wahlberg\u2019s former Beverly Hills estate gets a $7 million price cut",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/mark-wahlbergs-former-beverly-hills-estate-gets-a-7-million-price-cut-7ec030f2?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 09:05:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "This hedge fund smells blood in the water and is launching a short-selling strategy to capitalize",
-          "sentiment": -0.365625,
-          "textblob_score": -0.09375,
+          "title": "China Reaches Tiktok 'Consensus' With US, Trump UK State Visit | The Opening Trade 9/16",
+          "sentiment": -0.28487654320987654,
+          "textblob_score": 0.021604938271604937,
           "keyword_score": -1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/this-hedge-fund-smells-blood-in-the-water-and-is-launching-a-short-selling-strategy-to-capitalize-8a95bb40?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 07:43:00 GMT",
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-16/the-opening-trade-9-16-video",
+          "published": "Tue, 16 Sep 2025 11:38:22 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Alphabet\u2019s stock was an AI loser. Now it\u2019s beaten out Nvidia on the year.",
-          "sentiment": 0.37386363636363634,
-          "textblob_score": 0.5340909090909091,
-          "keyword_score": 0,
+          "title": "Retail sales are strong for the third month in a row. Economy still seems to be in pretty good shape.",
+          "sentiment": 0.5483333333333333,
+          "textblob_score": 0.3547619047619048,
+          "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/alphabets-stock-was-an-ai-loser-now-its-beaten-out-nvidia-on-the-year-c4100fa6?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 00:08:00 GMT",
+          "url": "https://www.marketwatch.com/story/retail-sales-are-strong-for-the-third-month-in-a-row-in-a-good-sign-for-the-economy-1884b947?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 12:40:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Your financial plan looks like a winner. Do you really need a second opinion?",
-          "sentiment": 0.06999999999999999,
-          "textblob_score": 0.09999999999999999,
+          "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
+          "sentiment": 0.055999999999999994,
+          "textblob_score": 0.08,
           "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/your-financial-plan-looks-like-a-winner-do-you-really-need-a-second-opinion-c6d8ea8a?mod=mw_rss_topstories",
-          "published": "Mon, 15 Sep 2025 22:20:00 GMT",
+          "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 10:33:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Ripple: Key Developments Setting Up Long-Term Growth For XRP",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4823243-ripple-key-developments-setting-up-long-term-growth-for-xrp?source=feed_all_articles",
+          "published": "Tue, 16 Sep 2025 08:34:35 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.9,
+      "confidence": 0.7,
       "sources": [
-        "yahoo_finance",
         "bloomberg",
-        "marketwatch"
+        "marketwatch",
+        "seeking_alpha"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.22511363636363635,
+      "sentiment_score": 0.40812499999999996,
       "article_count": 2,
       "articles": [
         {
-          "title": "Alphabet\u2019s stock was an AI loser. Now it\u2019s beaten out Nvidia on the year.",
-          "sentiment": 0.37386363636363634,
-          "textblob_score": 0.5340909090909091,
+          "title": "The best-performing Dow stock this year isn\u2019t Nvidia. How this bank rose to the top.",
+          "sentiment": 0.385,
+          "textblob_score": 0.55,
           "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/alphabets-stock-was-an-ai-loser-now-its-beaten-out-nvidia-on-the-year-c4100fa6?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 00:08:00 GMT",
+          "url": "https://www.marketwatch.com/story/the-best-performing-dow-stock-this-year-isnt-nvidia-how-this-bank-rose-to-the-top-7eec9e8c?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 11:40:00 GMT",
           "relevance_keywords": [
             "Nvidia"
           ]
         },
         {
-          "title": "What CoreWeave\u2019s new $6.3 billion contract with Nvidia says about the AI trade",
-          "sentiment": 0.07636363636363636,
-          "textblob_score": 0.10909090909090909,
-          "keyword_score": 0,
+          "title": "These stock-market experts don\u2019t love AI. Here\u2019s what they do recommend.",
+          "sentiment": 0.43124999999999997,
+          "textblob_score": 0.1875,
+          "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/what-coreweaves-new-6-3-billion-contract-with-nvidia-says-about-the-ai-trade-086b98bb?mod=mw_rss_topstories",
-          "published": "Mon, 15 Sep 2025 22:37:00 GMT",
+          "url": "https://www.marketwatch.com/story/these-stock-market-experts-dont-love-ai-heres-what-they-do-recommend-6852923a?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 11:30:00 GMT",
           "relevance_keywords": [
             "Nvidia"
           ]
         }
       ],
-      "signal": "NEUTRAL",
+      "signal": "BULLISH",
       "confidence": 0.2,
       "sources": [
         "marketwatch"
       ]
     },
     "AAPL": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": 0.052986111111111144,
+      "article_count": 3,
+      "articles": [
+        {
+          "title": "France\u2019s Penchant for Soaking the Rich Returns in Budget Crisis",
+          "sentiment": 0.170625,
+          "textblob_score": 0.24375,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-16/france-s-penchant-for-soaking-the-rich-returns-in-budget-crisis",
+          "published": "Tue, 16 Sep 2025 12:03:18 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Italy\u2019s\u00a0Chiesi\u00a0Raises Annual Guidance on Drug Sales Growth",
+          "sentiment": 0.42833333333333334,
+          "textblob_score": 0.18333333333333332,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-16/italy-s-chiesi-raises-annual-guidance-on-drug-sales-growth",
+          "published": "Tue, 16 Sep 2025 11:45:01 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Apple Is Dead Money (Rating Downgrade)",
+          "sentiment": -0.43999999999999995,
+          "textblob_score": -0.2,
+          "keyword_score": -1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4823213-apple-is-dead-money?source=feed_all_articles",
+          "published": "Tue, 16 Sep 2025 08:30:00 -0400",
+          "relevance_keywords": [
+            "Apple"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.3,
+      "sources": [
+        "bloomberg",
+        "seeking_alpha"
+      ]
     }
   },
   "sources_used": [
