@@ -2,11 +2,17 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using TradingBot.Abstractions;
+using TradingBot.Infrastructure.TopstepX;
+using IAccountService = TradingBot.Infrastructure.TopstepX.IAccountService;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using IModelRegistry = TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry;
 
 namespace TradingBot.UnifiedOrchestrator.Promotion;
 
@@ -570,25 +576,100 @@ public interface IPositionService
 }
 
 /// <summary>
-/// Mock position service implementation
+/// Production position service implementation
+/// Provides real position tracking via TopstepX API
 /// </summary>
-public class MockPositionService : IPositionService
+public class ProductionPositionService : IPositionService
 {
+    private readonly ILogger<ProductionPositionService> _logger;
+    private readonly IAccountService _accountService;
+    private readonly ITopstepXClient _topstepXClient;
+
+    public ProductionPositionService(
+        ILogger<ProductionPositionService> logger,
+        IAccountService accountService,
+        ITopstepXClient topstepXClient)
+    {
+        _logger = logger;
+        _accountService = accountService;
+        _topstepXClient = topstepXClient;
+    }
+
     public async Task<bool> IsCurrentlyFlatAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        return true; // Mock: always flat for testing
+        try
+        {
+            var positions = await GetAllPositionsAsync(cancellationToken);
+            var hasOpenPositions = positions.Values.Any(pos => Math.Abs(pos) > 0.001m);
+            
+            _logger.LogDebug("Position check: {HasPositions} open positions", hasOpenPositions ? "Has" : "No");
+            return !hasOpenPositions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to check if currently flat");
+            // Conservative approach: assume not flat if we can't verify
+            return false;
+        }
     }
 
     public async Task<decimal> GetCurrentPositionAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        return 0; // Mock: no position
+        try
+        {
+            var positions = await GetAllPositionsAsync(cancellationToken);
+            positions.TryGetValue(symbol, out var position);
+            
+            _logger.LogDebug("Position for {Symbol}: {Position}", symbol, position);
+            return position;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get position for symbol {Symbol}", symbol);
+            return 0; // Default to no position if error
+        }
     }
 
     public async Task<Dictionary<string, decimal>> GetAllPositionsAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        return new Dictionary<string, decimal>(); // Mock: no positions
+        try
+        {
+            // Get account ID from environment or configuration
+            var accountId = Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID");
+            if (string.IsNullOrEmpty(accountId))
+            {
+                _logger.LogWarning("No account ID configured, returning empty positions");
+                return new Dictionary<string, decimal>();
+            }
+
+            // Get positions from TopstepX API
+            var positionsResponse = await _topstepXClient.GetAccountPositionsAsync(accountId, cancellationToken);
+            var positions = new Dictionary<string, decimal>();
+
+            // Parse positions from API response
+            if (positionsResponse.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var position in positionsResponse.EnumerateArray())
+                {
+                    if (position.TryGetProperty("symbol", out var symbolElement) &&
+                        position.TryGetProperty("quantity", out var quantityElement))
+                    {
+                        var symbol = symbolElement.GetString();
+                        if (symbol != null && quantityElement.TryGetDecimal(out var quantity))
+                        {
+                            positions[symbol] = quantity;
+                        }
+                    }
+                }
+            }
+
+            _logger.LogDebug("Retrieved {Count} positions from TopstepX", positions.Count);
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get all positions");
+            return new Dictionary<string, decimal>(); // Return empty on error
+        }
     }
 }
