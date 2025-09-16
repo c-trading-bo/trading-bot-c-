@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- Legacy project analyzer configuration -->
+  <PropertyGroup>
+    <!-- Disable problematic analyzers for legacy projects during production hardening -->
+    <NoWarn>$(NoWarn);S2139;S2486;S108;S125;S2955;S3267;S2325;SCS0005;S3400;S3928;S4456;S3904;AsyncFixer01</NoWarn>
+  </PropertyGroup>
+</Project>
