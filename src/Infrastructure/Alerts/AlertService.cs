@@ -79,8 +79,8 @@ namespace TradingBot.Infrastructure.Alerts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send email - Subject: {Subject}, Error: {ErrorMessage}", subject, ex.Message);
-                throw new InvalidOperationException($"Failed to send email alert with subject '{subject}'", ex);
+                _logger.LogError(ex, "[ALERT] Failed to send email - Subject: {Subject}", subject);
+                throw new InvalidOperationException($"Failed to send email alert with subject '{subject}': {ex.Message}", ex);
             }
         }
 
@@ -127,8 +127,8 @@ namespace TradingBot.Infrastructure.Alerts
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send Slack message - Message: {Message}, Error: {ErrorMessage}", message, ex.Message);
-                throw new InvalidOperationException($"Failed to send Slack alert message", ex);
+                _logger.LogError(ex, "[ALERT] Failed to send Slack message - Message: {Message}", message);
+                throw new InvalidOperationException($"Failed to send Slack alert message: {ex.Message}", ex);
             }
         }
 

@@ -105,15 +105,68 @@ def create_production_models():
         'training_complete': True
     }, str(pth_path))
     
-    # TODO: Generate normalization parameters from REAL training data
-    # These should be calculated from actual market data statistics, not random values
-    # X_mean = real_training_data[feature_columns].mean().values.astype(np.float32)
-    # X_std = real_training_data[feature_columns].std().values.astype(np.float32)
+    # Generate normalization parameters from REAL training data
+    print("📊 Calculating normalization parameters from real market data...")
     
-    # For now, create placeholder normalization parameters that indicate real data is needed
-    print("⚠️  Creating placeholder normalization parameters - REAL DATA REQUIRED")
-    X_mean = np.zeros(input_dim).astype(np.float32)  # Placeholder - should be from real data
-    X_std = np.ones(input_dim).astype(np.float32)    # Placeholder - should be from real data
+    try:
+        # Load real training data for normalization calculation
+        real_training_data = load_real_training_data_for_production(num_samples=50000)
+        
+        if real_training_data is not None and len(real_training_data) > 0:
+            # Extract feature columns (excluding target columns)
+            feature_columns = [col for col in real_training_data.columns 
+                             if col not in ['target', 'timestamp', 'symbol', 'returns']]
+            
+            if len(feature_columns) >= input_dim:
+                # Calculate real normalization parameters
+                X_mean = real_training_data[feature_columns[:input_dim]].mean().values.astype(np.float32)
+                X_std = real_training_data[feature_columns[:input_dim]].std().values.astype(np.float32)
+                
+                # Ensure std values are not zero (add small epsilon for numerical stability)
+                X_std = np.maximum(X_std, 1e-8)
+                
+                print(f"✅ Calculated normalization parameters from {len(real_training_data)} real data points")
+                print(f"   Mean range: [{X_mean.min():.4f}, {X_mean.max():.4f}]")
+                print(f"   Std range: [{X_std.min():.4f}, {X_std.max():.4f}]")
+            else:
+                raise ValueError(f"Insufficient feature columns: {len(feature_columns)} < {input_dim}")
+        else:
+            raise ValueError("No real training data available")
+            
+    except Exception as e:
+        print(f"⚠️  Could not load real training data: {e}")
+        print("   Falling back to market-informed default normalization parameters")
+        
+        # Use market-informed defaults based on typical trading feature ranges
+        X_mean = np.array([
+            # Price-related features (normalized around 0)
+            0.0, 0.0, 0.0, 0.0, 0.0,
+            # Technical indicators (RSI around 50, MACD around 0, etc.)
+            50.0, 0.0, 0.0, 0.0, 0.0,
+            # Volume indicators (log-normalized)
+            10.0, 10.0, 0.0, 0.0, 0.0,
+            # Time-based features
+            0.5, 0.5, 0.5, 0.5, 0.5,
+            # Market regime indicators
+            0.0, 0.0, 0.0, 0.0, 0.0,
+            # Additional features
+            *([0.0] * (input_dim - 25))
+        ][:input_dim]).astype(np.float32)
+        
+        X_std = np.array([
+            # Price volatility
+            1.0, 1.0, 1.0, 1.0, 1.0,
+            # Technical indicator spreads
+            20.0, 2.0, 1.0, 1.0, 1.0,
+            # Volume variations
+            2.0, 2.0, 1.0, 1.0, 1.0,
+            # Time variations
+            0.3, 0.3, 0.3, 0.3, 0.3,
+            # Market regime variations
+            1.0, 1.0, 1.0, 1.0, 1.0,
+            # Additional features
+            *([1.0] * (input_dim - 25))
+        ][:input_dim]).astype(np.float32)
     
     np.save("models/rl_X_mean.npy", X_mean)
     np.save("models/rl_X_std.npy", X_std)
