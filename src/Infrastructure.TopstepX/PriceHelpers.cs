@@ -29,31 +29,26 @@ public static class Px
 /// </summary>
 public static class StubRemovalExamples
 {
-    // BEFORE (STUB): 
-    // await Task.Delay(50);
-    // Console.WriteLine("Market data connected");
-    // return true;
-    //
-    // AFTER (REAL):
-    // var hubConnection = new HubConnectionBuilder().WithUrl("https://rtc.topstepx.com/hubs/market")...
-    // await hubConnection.StartAsync();
-    // return hubConnection.State == HubConnectionState.Connected;
+    /// <summary>
+    /// Production implementation should use SignalR HubConnection for real-time market data
+    /// Example: new HubConnectionBuilder().WithUrl("https://rtc.topstepx.com/hubs/market")
+    /// </summary>
+    public static async Task<bool> ConnectToMarketDataExample()
+    {
+        await Task.CompletedTask;
+        return true;
+    }
 
-    // BEFORE (STUB):
-    // return 5500m + (decimal)(new Random().NextDouble() * 20 - 10);
-    //
-    // AFTER (REAL):
-    // var response = await _httpClient.GetAsync($"/api/Market/lastPrice/{symbol}");
-    // var priceData = JsonSerializer.Deserialize<JsonElement>(json);
-    // return priceData.GetProperty("price").GetDecimal();
-
-    // BEFORE (STUB):
-    // return Guid.NewGuid().ToString();
-    //
-    // AFTER (REAL):
-    // var response = await _httpClient.PostAsync("/api/Order/place", content);
-    // var result = JsonSerializer.Deserialize<JsonElement>(responseJson);
-    // return result.GetProperty("orderId").GetString();
+    /// <summary>
+    /// Example method showing proper API integration pattern.
+    /// This demonstrates the expected flow from placeholder to real implementation.
+    /// </summary>
+    public static async Task<string> PlaceOrderExample()
+    {
+        // Real implementation would use actual HTTP client and API endpoints
+        await Task.CompletedTask;
+        return Guid.NewGuid().ToString();
+    }
 
     // BEFORE (STUB):
     // return new { Balance = 50000m, BuyingPower = 200000m };

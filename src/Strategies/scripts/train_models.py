@@ -104,14 +104,14 @@ class ModelTrainer:
                     # Remove last row (no future return)
                     return labels.iloc[:-1].values
                 else:
-                    # Fallback: random labels with slight bias
-                    np.random.seed(42)
-                    return np.random.choice([0, 1], size=len(features_df), p=[0.45, 0.55])
+                    # Fallback: random labels with slight bias using modern numpy random
+                    rng = np.random.default_rng(42)
+                    return rng.choice([0, 1], size=len(features_df), p=[0.45, 0.55])
                     
         except Exception as e:
             logger.error(f"Error creating labels: {e}")
-            np.random.seed(42)
-            return np.random.choice([0, 1], size=len(features_df), p=[0.45, 0.55])
+            rng = np.random.default_rng(42)
+            return rng.choice([0, 1], size=len(features_df), p=[0.45, 0.55])
     
     def prepare_features(self, features_df):
         """Prepare features for training"""

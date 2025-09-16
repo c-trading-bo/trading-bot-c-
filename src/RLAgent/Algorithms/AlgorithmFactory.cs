@@ -61,7 +61,7 @@ public static class AlgorithmFactory
         logger.LogInformation("[ALGORITHM_FACTORY] Created SAC algorithm with config: {Config}", 
             System.Text.Json.JsonSerializer.Serialize(sacConfig));
         
-        return new SACAlgorithmWrapper(sac);
+        return new SacAlgorithmWrapper(sac);
     }
 
     /// <summary>
@@ -220,11 +220,11 @@ public class AlgorithmConfig
 /// <summary>
 /// Wrapper for SAC algorithm
 /// </summary>
-public class SACAlgorithmWrapper : IRLAlgorithm
+public class SacAlgorithmWrapper : IRLAlgorithm
 {
     private readonly SoftActorCritic _sac;
 
-    public SACAlgorithmWrapper(SoftActorCritic sac)
+    public SacAlgorithmWrapper(SoftActorCritic sac)
     {
         _sac = sac;
     }

@@ -110,7 +110,6 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
         try
         {
             // Real REST call to /api/Market/lastPrice/{symbol}
-            // This replaces: return 5500m + (decimal)(new Random().NextDouble() * 20 - 10);
             var response = await _httpClient.GetAsync($"/api/Market/lastPrice/{symbol}");
             response.EnsureSuccessStatusCode();
             

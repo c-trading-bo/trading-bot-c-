@@ -2,70 +2,81 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-public sealed class TopstepAuthAgent
+namespace TopstepX.Bot.Authentication
 {
-    private readonly HttpClient _http;
-    private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
-
-    public TopstepAuthAgent(HttpClient http)
+    public sealed class TopstepAuthAgent
     {
-        _http = http;
-        _http.BaseAddress ??= new Uri("https://api.topstepx.com");
-        _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-    }
+        private readonly HttpClient _http;
 
-    public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
-    {
-        // IMPORTANT: /api/Auth/loginKey (exact path)
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
+        public TopstepAuthAgent(HttpClient http)
         {
-            // Use property names exactly as docs show: userName, apiKey
-            Content = new StringContent(
-                JsonSerializer.Serialize(new { userName = username, apiKey }),
-                Encoding.UTF8, "application/json")
-        };
-
-        using var resp = await _http.SendAsync(req, ct);
-        if (!resp.IsSuccessStatusCode)
-        {
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
+            _http = http;
+            // Use configuration-based URL, requiring environment variable for production
+            var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE");
+            if (string.IsNullOrEmpty(apiBase))
+            {
+                throw new InvalidOperationException("TOPSTEPX_API_BASE environment variable is required for TopstepX authentication");
+            }
+            _http.BaseAddress ??= new Uri(apiBase);
+            _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         }
 
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-        return doc.RootElement.GetProperty("token").GetString()!;
-    }
+        public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
+        {
+            // IMPORTANT: /api/Auth/loginKey (exact path)
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
+            {
+                // Use property names exactly as docs show: userName, apiKey
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { userName = username, apiKey }),
+                    Encoding.UTF8, "application/json")
+            };
 
-    public async Task<string?> ValidateAsync(CancellationToken ct)
-    {
-        var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
-        using var resp = await _http.SendAsync(req, ct);
-        if (!resp.IsSuccessStatusCode) return null;
+            using var resp = await _http.SendAsync(req, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                var body = await resp.Content.ReadAsStringAsync(ct);
+                throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
+            }
 
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-        if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
-        return null;
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            return doc.RootElement.GetProperty("token").GetString()!;
+        }
+
+        public async Task<string?> ValidateAsync(CancellationToken ct)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
+            using var resp = await _http.SendAsync(req, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
+            return null;
+        }
     }
 }
 
-// Simple HttpRequestMessage.Clone() so we can resend the content on retries:
-public static class HttpRequestMessageExtensions
+namespace TopstepX.Bot.Extensions
 {
-    public static async Task<HttpRequestMessage> CloneAsync(this HttpRequestMessage req)
+    // Simple HttpRequestMessage.Clone() so we can resend the content on retries:
+    public static class HttpRequestMessageExtensions
     {
-        var clone = new HttpRequestMessage(req.Method, req.RequestUri);
-        // Copy headers
-        foreach (var h in req.Headers)
-            clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
-        // Copy content asynchronously
-        if (req.Content != null)
+        public static async Task<HttpRequestMessage> CloneAsync(this HttpRequestMessage req)
         {
-            var contentBytes = await req.Content.ReadAsByteArrayAsync();
-            var newContent = new ByteArrayContent(contentBytes);
-            foreach (var h in req.Content.Headers)
-                newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
-            clone.Content = newContent;
+            var clone = new HttpRequestMessage(req.Method, req.RequestUri);
+            // Copy headers
+            foreach (var h in req.Headers)
+                clone.Headers.TryAddWithoutValidation(h.Key, h.Value);
+            // Copy content asynchronously
+            if (req.Content != null)
+            {
+                var contentBytes = await req.Content.ReadAsByteArrayAsync();
+                var newContent = new ByteArrayContent(contentBytes);
+                foreach (var h in req.Content.Headers)
+                    newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);
+                clone.Content = newContent;
+            }
+            return clone;
         }
-        return clone;
     }
 }

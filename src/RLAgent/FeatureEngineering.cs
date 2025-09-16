@@ -178,8 +178,8 @@ public class FeatureEngineering : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURE_ENG] Failed to process streaming tick for {Symbol}", tick.Symbol);
-            throw;
+            _logger.LogError(ex, "[FEATURE_ENG] Failed to process streaming tick for {Symbol}: {ErrorMessage}", tick.Symbol, ex.Message);
+            throw new InvalidOperationException($"Failed to process streaming tick for symbol {tick.Symbol}", ex);
         }
     }
 
@@ -1066,10 +1066,14 @@ public class StreamingSymbolAggregator : IDisposable
             MicrostructureFeatures = _microstructureCalc.GetFeatures()
         };
 
-        // Add time window features
+        // Add time window features using configured windows
         foreach (var kvp in _windowAggregators)
         {
-            features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
+            // Validate against config to ensure we're using configured windows
+            if (_config.StreamingTimeWindows.Contains(kvp.Key))
+            {
+                features.TimeWindowFeatures[kvp.Key.ToString()] = kvp.Value.GetFeatures();
+            }
         }
 
         return features;
@@ -1077,7 +1081,13 @@ public class StreamingSymbolAggregator : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
             foreach (var aggregator in _windowAggregators.Values)
             {
@@ -1134,8 +1144,8 @@ public class TimeWindowAggregator : IDisposable
                 ["volume_avg"] = volumes.Average(),
                 ["tick_count"] = _ticks.Count,
                 ["price_range"] = prices.Max() - prices.Min(),
-                ["last_price"] = prices.Last(),
-                ["first_price"] = prices.First()
+                ["last_price"] = _ticks.Count > 0 ? _ticks[_ticks.Count - 1].Price : 0,
+                ["first_price"] = _ticks.Count > 0 ? _ticks[0].Price : 0
             };
         }
     }
@@ -1222,7 +1232,7 @@ public class MicrostructureCalculator : IDisposable
             return new Dictionary<string, double>
             {
                 ["spread_avg"] = CalculateAverageSpread(),
-                ["spread_current"] = _ticks.Last().Ask - _ticks.Last().Bid,
+                ["spread_current"] = _ticks.Count > 0 ? _ticks[_ticks.Count - 1].Ask - _ticks[_ticks.Count - 1].Bid : 0,
                 ["order_flow_imbalance"] = CalculateOrderFlowImbalance(),
                 ["price_impact"] = CalculatePriceImpact(),
                 ["tick_direction"] = GetLastTickDirection(),
@@ -1275,7 +1285,7 @@ public class MicrostructureCalculator : IDisposable
     {
         if (_ticks.Count < 2) return 0;
         
-        var last = _ticks.Last();
+        var last = _ticks[_ticks.Count - 1];
         var previous = _ticks[_ticks.Count - 2];
         
         return last.Price > previous.Price ? 1 : (last.Price < previous.Price ? -1 : 0);
@@ -1305,7 +1315,13 @@ public class MicrostructureCalculator : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
             lock (_lock)
             {

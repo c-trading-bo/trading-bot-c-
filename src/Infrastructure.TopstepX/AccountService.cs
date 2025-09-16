@@ -14,12 +14,12 @@ public interface IAccountService
     Task<AccountInfo> GetAccountInfoAsync();
     Task<PositionInfo[]> GetPositionsAsync();
     Task<decimal> GetAccountBalanceAsync();
+    Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken);
     Task StartPeriodicRefreshAsync(TimeSpan interval);
     event Action<AccountInfo> OnAccountUpdated;
     
     // Additional methods needed by RealTopstepXClient
     Task<AccountInfo?> GetAccountAsync(string accountId, CancellationToken cancellationToken);
-    Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken);
     Task<PositionInfo[]?> GetAccountPositionsAsync(string accountId, CancellationToken cancellationToken);
     Task<AccountInfo[]?> SearchAccountsAsync(CancellationToken cancellationToken);
 }

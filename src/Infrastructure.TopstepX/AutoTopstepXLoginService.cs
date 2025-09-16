@@ -4,6 +4,7 @@ using TradingBot.Abstractions;
 using Infrastructure.TopstepX;
 using System.Text.Json;
 using System.Net.Http.Json;
+using TopstepX.Bot.Authentication;
 
 namespace TradingBot.Infrastructure.TopstepX;
 

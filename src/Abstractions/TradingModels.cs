@@ -447,9 +447,9 @@ public class WorkflowSchedule
                     return LastHour;
                     
                 // Core hours (morning and afternoon peaks)
-                if ((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16))
+                if (((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16)) && !string.IsNullOrEmpty(CoreHours)) 
                 {
-                    if (!string.IsNullOrEmpty(CoreHours)) return CoreHours;
+                    return CoreHours;
                 }
                 
                 // Overnight/extended hours

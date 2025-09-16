@@ -155,15 +155,15 @@ namespace TradingBot.Monitoring
                 
                 lock (_lockObject)
                 {
-                    // Mark current deployments as rolled back
-                    foreach (var key in new[] { $"{modelName}_prod", $"{modelName}_canary" })
+                    // Mark current deployments as rolled back  
+                    var keysToUpdate = new[] { $"{modelName}_prod", $"{modelName}_canary" }
+                        .Where(key => _activeDeployments.ContainsKey(key));
+                        
+                    foreach (var key in keysToUpdate)
                     {
-                        if (_activeDeployments.ContainsKey(key))
-                        {
-                            _activeDeployments[key].Status = DeploymentStatus.RolledBack;
-                            _activeDeployments[key].EndTime = DateTime.UtcNow;
-                            _activeDeployments[key].FailureReason = reason;
-                        }
+                        _activeDeployments[key].Status = DeploymentStatus.RolledBack;
+                        _activeDeployments[key].EndTime = DateTime.UtcNow;
+                        _activeDeployments[key].FailureReason = reason;
                     }
                 }
 
@@ -216,7 +216,7 @@ namespace TradingBot.Monitoring
                 CanaryDeployments = deployments.Count(d => d.Status == DeploymentStatus.Canary),
                 FailedDeployments = deployments.Count(d => d.Status == DeploymentStatus.Failed),
                 RolledBackDeployments = deployments.Count(d => d.Status == DeploymentStatus.RolledBack),
-                IsHealthy = deployments.All(d => d.Status == DeploymentStatus.Active || d.Status == DeploymentStatus.Canary)
+                IsHealthy = deployments.TrueForAll(d => d.Status == DeploymentStatus.Active || d.Status == DeploymentStatus.Canary)
             };
 
             return status;

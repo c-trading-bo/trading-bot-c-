@@ -38,9 +38,6 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     private readonly ILogger<OnnxModelWrapper> _logger;
     private readonly bool _isModelLoaded;
     
-    // ONNX Runtime session - ready for when packages are integrated
-    // private InferenceSession? _session;
-    
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
     {
@@ -82,7 +79,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         if (!_isModelLoaded)
         {
             _logger.LogWarning("[ONNX] Model not available, returning default confidence");
-            return GetDefaultConfidence();
+            return DefaultConfidence;
         }
 
         try
@@ -105,14 +102,14 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX] Error during model prediction");
-            return GetDefaultConfidence();
+            return DefaultConfidence;
         }
     }
 
-    public async Task<double> PredictConfidenceAsync(params (string Name, double Value)[] features)
+    public Task<double> PredictConfidenceAsync(params (string Name, double Value)[] features)
     {
         var featureDict = features.ToDictionary(f => f.Name, f => f.Value);
-        return await PredictConfidenceAsync(featureDict);
+        return PredictConfidenceAsync(featureDict);
     }
 
     private Dictionary<string, double> NormalizeFeatures(Dictionary<string, double> features)
@@ -165,7 +162,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         return normalized;
     }
 
-    private double GetDefaultFeatureValue(string featureName)
+    private static double GetDefaultFeatureValue(string featureName)
     {
         return featureName switch
         {
@@ -190,21 +187,6 @@ public class OnnxModelWrapper : IOnnxModelWrapper
 
             // Production ONNX inference logic
             // Note: This implementation is ready for when ONNX packages are added to the project
-            /*
-            var inputData = _expectedFeatures.Select(f => (float)features.GetValueOrDefault(f, 0.0)).ToArray();
-            var tensor = new DenseTensor<float>(inputData, new[] { 1, inputData.Length });
-            
-            var inputs = new List<NamedOnnxValue>
-            {
-                NamedOnnxValue.CreateFromTensor("input", tensor)
-            };
-            
-            using var results = _session!.Run(inputs);
-            var output = results.First().AsEnumerable<float>().First();
-            
-            return Math.Max(0.0, Math.Min(1.0, output));
-            */
-            
             // For now, use the sophisticated simulation until ONNX packages are integrated
             return await SimulateModelPrediction(features);
         }
@@ -227,22 +209,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
                 return false;
             }
 
-            // Production ONNX session initialization
-            // Note: This implementation is ready for when ONNX packages are added
-            /*
-            try
-            {
-                _session = new InferenceSession(modelPath);
-                _logger.LogInformation("[ONNX] Model loaded successfully from: {ModelPath}", modelPath);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[ONNX] Failed to load model from: {ModelPath}", modelPath);
-                return false;
-            }
-            */
-            
+            // Production ONNX session initialization would go here when packages are integrated
             // For now, return false to use simulation mode
             // This maintains production-ready infrastructure while packages are being integrated
             _logger.LogInformation("[ONNX] Model infrastructure ready - using simulation mode until packages integrated");
@@ -255,7 +222,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         }
     }
 
-    private string GetModelPath()
+    private static string GetModelPath()
     {
         // Standard model file locations for production deployment
         var possiblePaths = new[]
@@ -267,19 +234,10 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             "./models/confidence_model.onnx" // Relative path
         };
 
-        foreach (var path in possiblePaths)
-        {
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        // Return default path for logging purposes
-        return possiblePaths[0];
+        return Array.Find(possiblePaths, File.Exists) ?? possiblePaths[0];
     }
 
-    private async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
+    private static async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
     {
         await Task.Delay(1); // Simulate async work
         
@@ -309,18 +267,18 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         var volBias = 1.0 - Math.Abs(volatility - 0.3);
         baseConfidence += volBias * 0.1;
         
-        // Add small amount of realistic variation
-        var random = new Random();
-        var noise = (random.NextDouble() - 0.5) * 0.05;
+        // Add small amount of realistic variation using cryptographically secure random
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var randomBytes = new byte[4];
+        rng.GetBytes(randomBytes);
+        var randomValue = BitConverter.ToUInt32(randomBytes, 0) / (double)uint.MaxValue;
+        var noise = (randomValue - 0.5) * 0.05;
         baseConfidence += noise;
         
         return Math.Max(0.1, Math.Min(0.9, baseConfidence));
     }
 
-    private double GetDefaultConfidence()
-    {
-        return 0.3; // Conservative default
-    }
+    private const double DefaultConfidence = 0.3; // Conservative default
 }
 
 /// <summary>
@@ -334,8 +292,8 @@ public static class ConfidenceHelper
     /// <summary>
     /// Quick confidence prediction for strategies
     /// </summary>
-    public static async Task<double> PredictAsync(params (string Name, double Value)[] features)
+    public static Task<double> PredictAsync(params (string Name, double Value)[] features)
     {
-        return await _defaultWrapper.PredictConfidenceAsync(features);
+        return _defaultWrapper.PredictConfidenceAsync(features);
     }
 }
