@@ -49,8 +49,12 @@ class TimeOptimizationML:
         data = self.load_performance_data(instrument)
         
         if data.empty:
-            print(f"  ⚠️  No historical data found for {instrument}. Generating synthetic data.")
-            data = self.generate_synthetic_data(instrument)
+            # FAIL FAST: No synthetic data generation allowed
+            error_msg = f"No historical data found for {instrument}. System refuses to generate synthetic data for training."
+            print(f"  ❌ {error_msg}")
+            raise ValueError(f"Real historical data required for {instrument}. "
+                           f"Implement real data loading from TopstepX or trading database.")
+        
         
         for strategy in ['S2', 'S3', 'S6', 'S11']:
             print(f"  Training {strategy}...")
@@ -83,78 +87,30 @@ class TimeOptimizationML:
         
         return pd.DataFrame()
     
-    def generate_synthetic_data(self, instrument, num_records=1000):
-        """Generate synthetic performance data for testing"""
+    def load_real_performance_data(self, instrument, min_records=1000):
+        """
+        Load REAL performance data from trading database - NO SYNTHETIC GENERATION
         
-        print(f"  Generating {num_records} synthetic records for {instrument}")
+        Args:
+            instrument: Trading instrument (e.g., 'ES', 'NQ')  
+            min_records: Minimum number of records required
+            
+        Returns:
+            DataFrame with real trading performance data
+            
+        Raises:
+            ValueError: If real data unavailable (FAIL FAST)
+        """
         
-        rng = np.random.default_rng(42)  # Reproducible results with modern API
+        # TODO: Implement real performance data loading from trading database
+        # This should load actual trade outcomes, PnL, and market features from real trading history
         
-        data = []
-        strategies = ['S2', 'S3', 'S6', 'S11']
+        error_msg = (f"Real performance data loading not implemented for {instrument}. "
+                    f"System refuses to generate synthetic trading performance data. "
+                    f"Implement real data loading from trading database with actual trade outcomes.")
         
-        for _ in range(num_records):
-            timestamp = datetime.now().replace(
-                hour=np.random.randint(0, 24),
-                minute=np.random.randint(0, 60),
-                second=0,
-                microsecond=0
-            )
-            
-            strategy = np.random.choice(strategies)
-            
-            # Create realistic win rates based on time of day
-            hour = timestamp.hour
-            
-            # Strategy-specific time preferences
-            if strategy == 'S2':  # VWAP Mean Reversion
-                base_win_rate = 0.85 if hour in [0, 3, 12, 19, 23] else 0.60
-            elif strategy == 'S3':  # Compression Breakout
-                base_win_rate = 0.90 if hour in [3, 9, 10] else 0.65
-            elif strategy == 'S6':  # Opening Drive
-                base_win_rate = 0.95 if hour == 9 else 0.30
-            elif strategy == 'S11':  # ADR Exhaustion
-                base_win_rate = 0.88 if hour in [13, 14, 15] else 0.55
-            else:
-                base_win_rate = 0.65
-            
-            # Add some randomness
-            win_rate = base_win_rate + np.random.normal(0, 0.1)
-            win_rate = np.clip(win_rate, 0.2, 0.95)
-            
-            # Generate PnL based on win rate
-            is_profitable = np.random.random() < win_rate
-            pnl = np.random.normal(50, 30) if is_profitable else np.random.normal(-40, 20)
-            
-            # Market features
-            volatility = np.random.lognormal(0, 0.3)
-            volume_ratio = np.random.lognormal(0, 0.2)
-            vix_level = np.random.normal(20, 5)
-            es_nq_correlation = np.random.normal(0.8, 0.1)
-            
-            data.append({
-                'timestamp': timestamp,
-                'strategy': strategy,
-                'instrument': instrument,
-                'pnl': pnl,
-                'volatility': volatility,
-                'volume_ratio': volume_ratio,
-                'vix_level': vix_level,
-                'es_nq_correlation': es_nq_correlation,
-                'session_range': np.random.normal(50, 15),
-                'distance_from_vwap': np.random.normal(0, 10),
-                'rsi': np.random.normal(50, 15),
-                'delta_divergence': np.random.normal(0, 5)
-            })
-        
-        df = pd.DataFrame(data)
-        
-        # Save synthetic data
-        output_file = self.data_dir / f"{instrument}_performance_history.csv"
-        df.to_csv(output_file, index=False)
-        print(f"  Saved synthetic data to {output_file}")
-        
-        return df
+        print(f"  ❌ {error_msg}")
+        raise ValueError(error_msg)
     
     def train_ml_model(self, instrument, strategy, data):
         """Train ML model for strategy time optimization"""

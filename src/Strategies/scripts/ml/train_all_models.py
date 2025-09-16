@@ -64,34 +64,37 @@ class MLTrainingPipeline:
         
         print(f"[PIPELINE] Loaded {len(self.training_data)} samples from {files_loaded} records")
         
-        # Generate synthetic if needed
+        # FAIL FAST: No synthetic data generation allowed  
         if len(self.training_data) < 1000:
-            print("[PIPELINE] Generating synthetic data...")
-            self.generate_synthetic_data(1000 - len(self.training_data))
+            error_msg = f"Insufficient training data: {len(self.training_data)} samples. System refuses to generate synthetic data."
+            print(f"[PIPELINE] ❌ {error_msg}")
+            raise ValueError("Real training data required. Implement real data loading from trading database with actual outcomes.")
         
         return len(self.training_data) > 0
     
-    def generate_synthetic_data(self, n_samples: int):
-        """Generate synthetic training data"""
+    def load_real_training_data_from_database(self, min_samples: int):
+        """
+        Load REAL training data from trading database - NO SYNTHETIC GENERATION
         
-        for _ in range(n_samples):
-            # Generate realistic trading features
-            features = np.random.randn(43).tolist()
+        Args:
+            min_samples: Minimum number of samples required
             
-            # Add some structure to features
-            features[0] = np.random.uniform(4000, 5000)  # Price
-            features[1] = np.random.uniform(0.5, 3.0)     # ATR
-            features[2] = np.random.uniform(0, 100)       # RSI
-            features[3] = np.random.uniform(-0.05, 0.05)  # Returns
+        Returns:
+            bool: True if sufficient real data loaded
             
-            self.training_data.append({
-                'features': features,
-                'target': np.random.randn() * 10,
-                'strategy': np.random.randint(0, 12),
-                'reward': np.random.randn() * 100,
-                'symbol': np.random.choice(['ES', 'NQ']),
-                'timestamp': datetime.utcnow().isoformat()
-            })
+        Raises:
+            ValueError: If insufficient real data available
+        """
+        
+        # TODO: Implement real training data loading from trading database
+        # This should load actual trade outcomes, features, targets, and rewards from real trading history
+        
+        error_msg = (f"Real training data loading not implemented. "
+                    f"System refuses to generate synthetic training features and targets. "
+                    f"Implement real data loading from trading database with actual ML training examples.")
+        
+        print(f"[PIPELINE] ❌ {error_msg}")
+        raise ValueError(error_msg)
     
     def train_all_models(self):
         """Train all ML models"""
