@@ -35,6 +35,50 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<IntelligenceStackConfig>(provider => 
             provider.GetRequiredService<IOptions<IntelligenceStackConfig>>().Value);
             
+        // Register individual config sections as required dependencies for specific services
+        services.AddSingleton<HysteresisConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Regime.Hysteresis);
+        services.AddSingleton<PromotionsConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Promotions);
+        services.AddSingleton<QuarantineConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Quarantine);
+        services.AddSingleton<SLOConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().SLO);
+        services.AddSingleton<ObservabilityConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Observability);
+        services.AddSingleton<RLConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().RL);
+        services.AddSingleton<TuningConfig>(provider => 
+            new TuningConfig { Trials = 50, EarlyStopNoImprove = 10 }); // Default tuning config
+        services.AddSingleton<IdempotentConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Orders.Idempotent);
+        services.AddSingleton<NetworkConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Network);
+        services.AddSingleton<HistoricalConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Historical);
+        services.AddSingleton<LeaderElectionConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Orchestrator.LeaderElection);
+        services.AddSingleton<MLConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML);
+        services.AddSingleton<OnlineConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Online);
+        services.AddSingleton<OrdersConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Orders);
+        services.AddSingleton<OrchestratorConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Orchestrator);
+        services.AddSingleton<MetaLearningConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Online.MetaLearning);
+        services.AddSingleton<DriftConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().Online.Drift);
+        services.AddSingleton<RegimeConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Regime);
+        services.AddSingleton<EnsembleConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Ensemble);
+        services.AddSingleton<CalibrationConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Calibration);
+        services.AddSingleton<ConfidenceConfig>(provider => 
+            provider.GetRequiredService<IntelligenceStackConfig>().ML.Confidence);
+            
         // Configure minimal CloudFlowOptions for compatibility (local definition)
         services.Configure<CloudFlowOptions>(options =>
         {
