@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Net.Http;
-using TradingBot.Abstractions;
 using BotCore.Services;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -55,7 +54,7 @@ public class DecisionServiceRouter
     /// </summary>
     public async Task<UnifiedTradingDecision> RouteIntegratedDecisionAsync(
         string symbol,
-        MarketContext marketContext,
+        BotCore.Services.MarketContext marketContext,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
@@ -85,17 +84,8 @@ public class DecisionServiceRouter
             // Step 3: Fall back to C# UnifiedDecisionRouter
             _logger.LogDebug("🔄 [DECISION-SERVICE-ROUTER] Python service unavailable, using C# unified router");
             
-            // Convert to BotCore.Services.MarketContext
-            var botCoreContext = new BotCore.Services.MarketContext
-            {
-                Symbol = marketContext.Symbol,
-                Price = marketContext.Price,
-                Volume = marketContext.Volume,
-                Timestamp = marketContext.Timestamp,
-                TechnicalIndicators = marketContext.TechnicalIndicators
-            };
-            
-            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, botCoreContext, cancellationToken);
+            // No conversion needed - both are BotCore.Services.MarketContext
+            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
             csharpDecision.DecisionSource = $"CSharp_{csharpDecision.DecisionSource}";
             
             // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
@@ -118,16 +108,7 @@ public class DecisionServiceRouter
             _logger.LogError(ex, "❌ [DECISION-SERVICE-ROUTER] Error in integrated routing for {Symbol}", symbol);
             
             // Ultimate fallback to C# system
-            var fallbackContext = new BotCore.Services.MarketContext
-            {
-                Symbol = marketContext.Symbol,
-                Price = marketContext.Price,
-                Volume = marketContext.Volume,
-                Timestamp = marketContext.Timestamp,
-                TechnicalIndicators = marketContext.TechnicalIndicators
-            };
-            
-            var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, fallbackContext, cancellationToken);
+            var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
             
             // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision  
             return new UnifiedTradingDecision
@@ -193,7 +174,7 @@ public class DecisionServiceRouter
     /// </summary>
     private async Task<UnifiedTradingDecision?> TryPythonDecisionServiceAsync(
         string symbol,
-        MarketContext marketContext,
+        BotCore.Services.MarketContext marketContext,
         CancellationToken cancellationToken)
     {
         try

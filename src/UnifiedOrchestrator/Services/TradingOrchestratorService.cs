@@ -32,7 +32,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     private readonly ICentralMessageBus _messageBus;
     
     // NEW: Master Decision Orchestrator - The ONE decision source
-    private readonly MasterDecisionOrchestrator? _masterOrchestrator;
+    private readonly BotCore.Services.MasterDecisionOrchestrator? _masterOrchestrator;
     
     // Legacy components for fallback compatibility
     private readonly UnifiedTradingBrain _tradingBrain;
@@ -62,7 +62,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         _serviceProvider = serviceProvider;
         
         // Try to get the new master orchestrator (priority)
-        _masterOrchestrator = serviceProvider.GetService<MasterDecisionOrchestrator>();
+        _masterOrchestrator = serviceProvider.GetService<BotCore.Services.MasterDecisionOrchestrator>();
         
         // Get enhanced brain integration (optional)
         _enhancedBrain = serviceProvider.GetService<BotCore.Services.EnhancedTradingBrainIntegration>();
@@ -221,7 +221,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get unified trading decision from master orchestrator or fallback systems
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetUnifiedTradingDecisionAsync(
-        MarketContext marketContext, 
+        BotCore.Services.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -229,32 +229,33 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Priority 1: Master Decision Orchestrator (Always-learning system)
             if (_masterOrchestrator != null)
             {
-                // Convert to BotCore.Services.MarketContext
-                var botCoreContext = new BotCore.Services.MarketContext
+                try
                 {
-                    Symbol = marketContext.Symbol,
-                    Price = marketContext.Price,
-                    Volume = marketContext.Volume,
-                    Timestamp = marketContext.Timestamp,
-                    TechnicalIndicators = marketContext.TechnicalIndicators
-                };
-                
-                var botCoreDecision = await _masterOrchestrator.MakeUnifiedDecisionAsync("ES", botCoreContext, cancellationToken);
-                
-                // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
-                return new UnifiedTradingDecision
+                    // Call master orchestrator with conversion
+                    var botCoreDecision = await CallMasterOrchestratorAsync(marketContext, cancellationToken);
+                    
+                    if (botCoreDecision != null)
+                    {
+                        // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
+                        return new UnifiedTradingDecision
+                        {
+                            DecisionId = botCoreDecision.DecisionId,
+                            Symbol = botCoreDecision.Symbol,
+                            Action = botCoreDecision.Action,
+                            Confidence = botCoreDecision.Confidence,
+                            Quantity = botCoreDecision.Quantity,
+                            Strategy = botCoreDecision.Strategy,
+                            DecisionSource = botCoreDecision.DecisionSource,
+                            Reasoning = botCoreDecision.Reasoning,
+                            Timestamp = botCoreDecision.Timestamp,
+                            ProcessingTimeMs = botCoreDecision.ProcessingTimeMs
+                        };
+                    }
+                }
+                catch (Exception ex)
                 {
-                    DecisionId = botCoreDecision.DecisionId,
-                    Symbol = botCoreDecision.Symbol,
-                    Action = botCoreDecision.Action,
-                    Confidence = botCoreDecision.Confidence,
-                    Quantity = botCoreDecision.Quantity,
-                    Strategy = botCoreDecision.Strategy,
-                    DecisionSource = botCoreDecision.DecisionSource,
-                    Reasoning = botCoreDecision.Reasoning,
-                    Timestamp = botCoreDecision.Timestamp,
-                    ProcessingTimeMs = botCoreDecision.ProcessingTimeMs
-                };
+                    _logger.LogWarning(ex, "⚠️ [MASTER-ORCHESTRATOR] Failed to get decision, falling back");
+                }
             }
             
             // Priority 2: Enhanced Brain Integration (Multi-model ensemble)
@@ -277,7 +278,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get decision from Enhanced Brain Integration
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetEnhancedBrainDecisionAsync(
-        MarketContext marketContext, 
+        BotCore.Services.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -337,7 +338,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// Get decision from Unified Trading Brain
     /// </summary>
     private async Task<UnifiedTradingDecision?> GetUnifiedBrainDecisionAsync(
-        MarketContext marketContext, 
+        BotCore.Services.MarketContext marketContext, 
         CancellationToken cancellationToken)
     {
         try
@@ -502,7 +503,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create enhanced market context from live market data
     /// </summary>
-    private Task<MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
+    private Task<BotCore.Services.MarketContext> CreateEnhancedMarketContextAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -510,7 +511,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // For now, create enhanced realistic market context
             var basePrice = 4500.0 + (Random.Shared.NextDouble() - 0.5) * 50; // More realistic ES movement
             
-            var result = new MarketContext
+            var result = new BotCore.Services.MarketContext
             {
                 Symbol = "ES",
                 Price = basePrice,
@@ -537,7 +538,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             _logger.LogError(ex, "❌ [MARKET-CONTEXT] Error creating market context");
             
             // Fallback to minimal context
-            var fallback = new MarketContext
+            var fallback = new BotCore.Services.MarketContext
             {
                 Symbol = "ES",
                 Price = 4500.0,
@@ -553,7 +554,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create levels from market context
     /// </summary>
-    private Levels CreateLevelsFromContext(MarketContext context)
+    private Levels CreateLevelsFromContext(BotCore.Services.MarketContext context)
     {
         var price = (decimal)context.Price;
         var atr = (decimal)context.TechnicalIndicators.GetValueOrDefault("atr", 5.0);
@@ -576,7 +577,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     /// <summary>
     /// Create bars from market context
     /// </summary>
-    private IList<Bar> CreateBarsFromContext(MarketContext context)
+    private IList<Bar> CreateBarsFromContext(BotCore.Services.MarketContext context)
     {
         var bars = new List<Bar>();
         var price = (decimal)context.Price;
@@ -1077,6 +1078,40 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             _ => TradeSide.Hold
         };
     }
+
+    /// <summary>
+    /// Helper method to call MasterDecisionOrchestrator with proper type conversion
+    /// </summary>
+    private async Task<UnifiedTradingDecision?> CallMasterOrchestratorAsync(
+        BotCore.Services.MarketContext localMarketContext, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Call the BotCore.Services.MasterDecisionOrchestrator directly - no conversion needed
+            var decision = await _masterOrchestrator!.MakeUnifiedDecisionAsync("ES", localMarketContext, cancellationToken);
+            
+            // Convert the returned BotCore.Services.UnifiedTradingDecision to our local UnifiedTradingDecision type
+            return decision != null ? new UnifiedTradingDecision
+            {
+                DecisionId = decision.DecisionId,
+                Symbol = decision.Symbol,
+                Action = decision.Action,
+                Confidence = decision.Confidence,
+                Quantity = decision.Quantity,
+                Strategy = decision.Strategy,
+                DecisionSource = decision.DecisionSource,
+                Reasoning = decision.Reasoning,
+                Timestamp = decision.Timestamp,
+                ProcessingTimeMs = decision.ProcessingTimeMs
+            } : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Failed to call MasterDecisionOrchestrator");
+            return null;
+        }
+    }
 }
 
 #region Data Models
@@ -1099,18 +1134,6 @@ public class UnifiedTradingDecision
 }
 
 /// <summary>
-/// Enhanced market context for trading decisions
-/// </summary>
-public class MarketContext
-{
-    public string Symbol { get; set; } = string.Empty;
-    public double Price { get; set; }
-    public double Volume { get; set; }
-    public DateTime Timestamp { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
-}
-
-/// <summary>
 /// Trade execution result
 /// </summary>
 public class TradeExecutionResult
@@ -1122,5 +1145,4 @@ public class TradeExecutionResult
     public decimal ExecutedQuantity { get; set; }
     public string ExecutionMessage { get; set; } = string.Empty;
 }
-
 #endregion
