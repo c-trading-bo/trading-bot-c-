@@ -34,7 +34,7 @@ public class UnifiedDecisionRouter
     // AI Brain components in priority order
     private readonly EnhancedTradingBrainIntegration _enhancedBrain;
     private readonly UnifiedTradingBrain _unifiedBrain;
-    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator _intelligenceOrchestrator;
+    private readonly TradingBot.IntelligenceStack.IntelligenceOrchestrator? _intelligenceOrchestrator;
     
     // Strategy routing configuration
     private readonly Dictionary<string, StrategyConfig> _strategyConfigs;
@@ -49,7 +49,7 @@ public class UnifiedDecisionRouter
         IServiceProvider serviceProvider,
         UnifiedTradingBrain unifiedBrain,
         EnhancedTradingBrainIntegration enhancedBrain,
-        TradingBot.IntelligenceStack.IntelligenceOrchestrator intelligenceOrchestrator)
+        TradingBot.IntelligenceStack.IntelligenceOrchestrator? intelligenceOrchestrator = null)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -61,7 +61,8 @@ public class UnifiedDecisionRouter
         _strategyConfigs = InitializeStrategyConfigs();
         
         _logger.LogInformation("🎯 [DECISION-ROUTER] Unified Decision Router initialized");
-        _logger.LogInformation("📊 [DECISION-ROUTER] All services wired: Enhanced=True, Unified=True, Intelligence=True");
+        _logger.LogInformation("📊 [DECISION-ROUTER] All services wired: Enhanced=True, Unified=True, Intelligence={IntelligenceAvailable}", 
+            _intelligenceOrchestrator != null);
     }
     
     /// <summary>
@@ -215,6 +216,13 @@ public class UnifiedDecisionRouter
     {
         try
         {
+            // Check if IntelligenceOrchestrator is available
+            if (_intelligenceOrchestrator == null)
+            {
+                _logger.LogDebug("🤖 [INTELLIGENCE-ORCHESTRATOR] Not available - skipping");
+                return null;
+            }
+            
             var abstractionContext = EnhanceMarketContext(marketContext);
             var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken);
             

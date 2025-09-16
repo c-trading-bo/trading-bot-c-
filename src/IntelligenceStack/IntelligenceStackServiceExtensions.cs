@@ -44,6 +44,9 @@ public static class IntelligenceStackServiceExtensions
             options.TimeoutSeconds = 30;
         });
         
+        // Register HttpClient for IntelligenceOrchestrator
+        services.AddHttpClient();
+        
         // Register core intelligence services - ALL PRODUCTION IMPLEMENTATIONS
         services.AddSingleton<IRegimeDetector, RegimeDetectorWithHysteresis>();
         services.AddSingleton<IFeatureStore, FeatureStore>();

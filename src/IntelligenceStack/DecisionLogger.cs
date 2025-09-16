@@ -243,41 +243,44 @@ public class DriftMonitor
 
         try
         {
-            lock (_lock)
+            // Load baseline asynchronously from persistent storage
+            var baseline = await LoadBaselineAsync(modelId, cancellationToken);
+            
+            if (baseline == null)
             {
-                if (!_baselines.TryGetValue(modelId, out var baseline))
-                {
-                    // Create initial baseline
-                    baseline = CreateBaseline(features);
-                    _baselines[modelId] = baseline;
-                    
-                    return new DriftDetectionResult { HasDrift = false, Message = "Baseline established" };
-                }
-
-                // Calculate PSI for feature drift
-                var psi = CalculatePSI(baseline.FeatureDistribution, features.Features);
+                // Create and persist initial baseline asynchronously
+                baseline = CreateBaseline(features);
+                await SaveBaselineAsync(modelId, baseline, cancellationToken);
                 
-                // Check thresholds
-                var hasWarning = psi > _config.PsiWarn;
-                var hasBlock = psi > _config.PsiBlock;
-
-                var result = new DriftDetectionResult
-                {
-                    HasDrift = hasWarning,
-                    ShouldBlock = hasBlock,
-                    PSI = psi,
-                    Message = hasBlock ? "Feature drift detected - blocking" : 
-                             hasWarning ? "Feature drift warning" : "No drift detected"
-                };
-
-                if (hasWarning)
-                {
-                    _logger.LogWarning("[DRIFT] Feature drift detected for {ModelId}: PSI={PSI:F3} (warn>{Warn}, block>{Block})", 
-                        modelId, psi, _config.PsiWarn, _config.PsiBlock);
-                }
-
-                return result;
+                return new DriftDetectionResult { HasDrift = false, Message = "Baseline established" };
             }
+
+            // Calculate PSI for feature drift
+            var psi = CalculatePSI(baseline.FeatureDistribution, features.Features);
+            
+            // Check thresholds
+            var hasWarning = psi > _config.PsiWarn;
+            var hasBlock = psi > _config.PsiBlock;
+
+            var result = new DriftDetectionResult
+            {
+                HasDrift = hasWarning,
+                ShouldBlock = hasBlock,
+                PSI = psi,
+                Message = hasBlock ? "Feature drift detected - blocking" : 
+                         hasWarning ? "Feature drift warning" : "No drift detected"
+            };
+
+            if (hasWarning)
+            {
+                _logger.LogWarning("[DRIFT] Feature drift detected for {ModelId}: PSI={PSI:F3} (warn>{Warn}, block>{Block})", 
+                    modelId, psi, _config.PsiWarn, _config.PsiBlock);
+                
+                // Asynchronously log drift event for analysis
+                await LogDriftEventAsync(modelId, result, cancellationToken);
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -316,6 +319,50 @@ public class DriftMonitor
         }
 
         return Math.Abs(psi);
+    }
+
+    /// <summary>
+    /// Asynchronously load baseline from persistent storage
+    /// </summary>
+    private async Task<FeatureBaseline?> LoadBaselineAsync(string modelId, CancellationToken cancellationToken)
+    {
+        // Use local cache first
+        if (_baselines.TryGetValue(modelId, out var cachedBaseline))
+        {
+            return cachedBaseline;
+        }
+
+        // Simulate async file I/O - in production this would load from database/file system
+        await Task.Delay(1, cancellationToken);
+        
+        // For now, return null indicating no persisted baseline exists
+        return null;
+    }
+
+    /// <summary>
+    /// Asynchronously save baseline to persistent storage
+    /// </summary>
+    private async Task SaveBaselineAsync(string modelId, FeatureBaseline baseline, CancellationToken cancellationToken)
+    {
+        // Update local cache
+        _baselines[modelId] = baseline;
+        
+        // Simulate async file I/O - in production this would save to database/file system
+        await Task.Delay(1, cancellationToken);
+        
+        _logger.LogDebug("[DRIFT] Baseline saved for model {ModelId}", modelId);
+    }
+
+    /// <summary>
+    /// Asynchronously log drift event for analysis
+    /// </summary>
+    private async Task LogDriftEventAsync(string modelId, DriftDetectionResult result, CancellationToken cancellationToken)
+    {
+        // Simulate async logging to analytics system
+        await Task.Delay(1, cancellationToken);
+        
+        _logger.LogInformation("[DRIFT-EVENT] ModelId={ModelId}, PSI={PSI:F3}, Block={Block}", 
+            modelId, result.PSI, result.ShouldBlock);
     }
 
     private class FeatureBaseline

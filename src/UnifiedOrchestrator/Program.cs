@@ -319,13 +319,13 @@ Stack Trace:
         // Register Enhanced Trading Brain Integration BEFORE UnifiedDecisionRouter (dependency order)
         services.AddSingleton<BotCore.Services.EnhancedTradingBrainIntegration>();
         
-        // Temporarily disable UnifiedDecisionRouter to resolve IntelligenceOrchestrator DI issue
-        // services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
+        // Register UnifiedDecisionRouter before AutonomousDecisionEngine (dependency order)
+        services.AddSingleton<BotCore.Services.UnifiedDecisionRouter>();
         
-        // Temporarily disable AutonomousDecisionEngine due to UnifiedDecisionRouter dependency
-        // services.AddSingleton<AutonomousDecisionEngine>();
-        // services.AddHostedService<AutonomousDecisionEngine>(provider => 
-        //     provider.GetRequiredService<AutonomousDecisionEngine>());
+        // Register the main autonomous decision engine as hosted service
+        services.AddSingleton<AutonomousDecisionEngine>();
+        services.AddHostedService<AutonomousDecisionEngine>(provider => 
+            provider.GetRequiredService<AutonomousDecisionEngine>());
         
         Console.WriteLine("🚀 [AUTONOMOUS-ENGINE] Registered autonomous trading engine - Profit-maximizing TopStep bot ready!");
         Console.WriteLine("💰 [AUTONOMOUS-ENGINE] Features: Auto strategy switching, dynamic position sizing, TopStep compliance, continuous learning");
@@ -1098,15 +1098,15 @@ Stack Trace:
     /// </summary>
     private static void RegisterIntelligenceStackServices(IServiceCollection services, IConfiguration configuration)
     {
-        // Register minimal config to prevent DI errors
+        // Temporarily register basic IntelligenceStackConfig to prevent DI errors
         services.Configure<IntelligenceStackConfig>(configuration.GetSection("IntelligenceStack"));
         services.AddSingleton<IntelligenceStackConfig>(provider => 
         {
-            // Return default config if none configured
-            return new IntelligenceStackConfig();
+            return new IntelligenceStackConfig(); // Default config
         });
-
-        // TODO: Re-enable full intelligence stack after resolving CloudFlowOptions DI issue
+        
+        // Note: Full IntelligenceStack temporarily disabled due to 39 async compilation errors
+        // This allows UnifiedDecisionRouter to work with IntelligenceOrchestrator as optional dependency
         // services.AddIntelligenceStack(configuration);
     }
 
