@@ -16,7 +16,27 @@ public interface IAccountService
     Task<decimal> GetAccountBalanceAsync();
     Task StartPeriodicRefreshAsync(TimeSpan interval);
     event Action<AccountInfo> OnAccountUpdated;
+    
+    // Additional methods needed by RealTopstepXClient
+    Task<AccountInfo?> GetAccountAsync(string accountId, CancellationToken cancellationToken);
+    Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken);
+    Task<PositionInfo[]?> GetAccountPositionsAsync(string accountId, CancellationToken cancellationToken);
+    Task<AccountInfo[]?> SearchAccountsAsync(CancellationToken cancellationToken);
 }
+
+public record BalanceInfo(
+    decimal CurrentBalance,
+    decimal AvailableBalance,
+    decimal BuyingPower,
+    decimal DayPnL,
+    decimal UnrealizedPnL,
+    decimal Equity = 0m,
+    decimal TotalValue = 0m,
+    decimal MarginUsed = 0m,
+    decimal FreeMargin = 0m,
+    string Currency = "USD",
+    decimal RiskPercentage = 0m
+);
 
 public record AccountInfo(
     string AccountId,
@@ -24,7 +44,12 @@ public record AccountInfo(
     decimal BuyingPower,
     decimal DayPnL,
     decimal UnrealizedPnL,
-    string Status
+    string Status,
+    string Type = "Funded",
+    decimal Equity = 0m,
+    bool IsActive = true,
+    string RiskLevel = "Medium",
+    DateTime LastUpdated = default
 );
 
 public record PositionInfo(
@@ -32,7 +57,16 @@ public record PositionInfo(
     int Quantity,
     decimal AvgPrice,
     decimal MarketValue,
-    decimal UnrealizedPnL
+    decimal UnrealizedPnL,
+    string Side = "Long",
+    decimal AveragePrice = 0m,
+    decimal MarketPrice = 0m,
+    decimal RealizedPnL = 0m,
+    decimal NetValue = 0m,
+    DateTime OpenTime = default,
+    DateTime LastUpdated = default,
+    decimal RiskAmount = 0m,
+    decimal MarginRequirement = 0m
 );
 
 public class AccountService : IAccountService, IDisposable
@@ -178,8 +212,7 @@ public class AccountService : IAccountService, IDisposable
         await ValidateAccountConfigurationAsync();
         
         // Log startup completion
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AccountService",
-            $"Account refresh service started with {interval} interval");
+        _logger.LogInformation("[ACCOUNT] Account refresh service started with {Interval} interval", interval);
     }
 
     private async Task RefreshAccountAsync()
@@ -237,8 +270,7 @@ public class AccountService : IAccountService, IDisposable
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation("[ACCOUNT] API connectivity validated successfully");
-                    await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AccountService",
-                        "API connectivity validation passed");
+                    _logger.LogInformation("[ACCOUNT] API connectivity validation passed");
                 }
                 else
                 {
@@ -257,6 +289,77 @@ public class AccountService : IAccountService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ACCOUNT] Error during account configuration validation");
+        }
+    }
+    
+    // Implementation of additional methods needed by RealTopstepXClient
+    public async Task<AccountInfo?> GetAccountAsync(string accountId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var accountInfo = await GetAccountInfoAsync();
+            if (accountInfo.AccountId == accountId)
+            {
+                return accountInfo;
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Failed to get account {AccountId}", accountId);
+            return null;
+        }
+    }
+    
+    public async Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var accountInfo = await GetAccountInfoAsync();
+            if (accountInfo.AccountId == accountId)
+            {
+                return new BalanceInfo(
+                    accountInfo.Balance,
+                    accountInfo.BuyingPower,
+                    accountInfo.BuyingPower,
+                    accountInfo.DayPnL,
+                    accountInfo.UnrealizedPnL
+                );
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Failed to get balance for account {AccountId}", accountId);
+            return null;
+        }
+    }
+    
+    public async Task<PositionInfo[]?> GetAccountPositionsAsync(string accountId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var positions = await GetPositionsAsync();
+            return positions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Failed to get positions for account {AccountId}", accountId);
+            return null;
+        }
+    }
+    
+    public async Task<AccountInfo[]?> SearchAccountsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var accountInfo = await GetAccountInfoAsync();
+            return new[] { accountInfo };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Failed to search accounts");
+            return null;
         }
     }
 }
