@@ -38,14 +38,23 @@ public class FeatureEngineer
     public FeatureEngineer(
         ILogger<FeatureEngineer> logger,
         IOnlineLearningSystem onlineLearningSystem,
-        string logsPath = "/logs/features")
+        string logsPath = "logs/features")
     {
         _logger = logger;
         _onlineLearningSystem = onlineLearningSystem;
-        _logsPath = logsPath;
+        _logsPath = Path.GetFullPath(logsPath); // Use absolute path from relative input
         
-        // Ensure logs directory exists
-        Directory.CreateDirectory(_logsPath);
+        // Ensure logs directory exists with proper error handling
+        try
+        {
+            Directory.CreateDirectory(_logsPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[FEATURE_ENGINEER] Could not create logs directory {LogsPath}, using temp directory", _logsPath);
+            _logsPath = Path.Combine(Path.GetTempPath(), "trading-bot", "features");
+            Directory.CreateDirectory(_logsPath);
+        }
         
         // Start periodic update timer
         _updateTimer = new Timer(PerformScheduledUpdate, null, _updateInterval, _updateInterval);

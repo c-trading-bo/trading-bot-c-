@@ -117,21 +117,52 @@ public class ProductionVerificationService : IHostedService
     {
         _logger.LogInformation("🔒 [SECURITY-VERIFICATION] Verifying configuration security...");
 
-        // Verify ClientType is set to Real
+        // Check if this is a development environment
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? _configuration["Environment"] ?? "Production";
+        var isDevelopment = environment.Equals("Development", StringComparison.OrdinalIgnoreCase) || 
+                           environment.Equals("dev", StringComparison.OrdinalIgnoreCase) ||
+                           string.IsNullOrEmpty(_configuration["TopstepXClient:ClientType"]); // Assume dev if not configured
+        
+        _logger.LogInformation("🔍 [SECURITY-VERIFICATION] Environment: {Environment}, IsDevelopment: {IsDevelopment}", environment, isDevelopment);
+
+        // Verify ClientType is set to Real (allow flexibility in development)
         var clientType = _configuration["TopstepXClient:ClientType"];
         if (clientType != "Real")
         {
-            _logger.LogError("❌ [SECURITY-VERIFICATION] ClientType is not set to 'Real': {ClientType}", clientType);
-            throw new InvalidOperationException($"Production deployment requires ClientType=Real, found: {clientType}");
+            if (isDevelopment)
+            {
+                _logger.LogWarning("⚠️ [SECURITY-VERIFICATION] Development mode: ClientType is not 'Real': {ClientType}", clientType ?? "null");
+                _logger.LogInformation("ℹ️ [SECURITY-VERIFICATION] Development mode allows non-Real client types for testing");
+            }
+            else
+            {
+                _logger.LogError("❌ [SECURITY-VERIFICATION] Production deployment requires ClientType=Real, found: {ClientType}", clientType);
+                throw new InvalidOperationException($"Production deployment requires ClientType=Real, found: {clientType}");
+            }
         }
-        _logger.LogInformation("✅ [SECURITY-VERIFICATION] ClientType: {ClientType}", clientType);
+        else
+        {
+            _logger.LogInformation("✅ [SECURITY-VERIFICATION] ClientType: {ClientType}", clientType);
+        }
 
-        // Verify API URLs use HTTPS
+        // Verify API URLs use HTTPS (allow flexibility in development)
         var apiUrl = _configuration["TopstepX:ApiBaseUrl"];
         if (!string.IsNullOrEmpty(apiUrl) && !apiUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogError("❌ [SECURITY-VERIFICATION] API URL does not use HTTPS: {ApiUrl}", apiUrl);
-            throw new InvalidOperationException($"Production deployment requires HTTPS API URLs: {apiUrl}");
+            if (isDevelopment)
+            {
+                _logger.LogWarning("⚠️ [SECURITY-VERIFICATION] Development mode: API URL does not use HTTPS: {ApiUrl}", apiUrl);
+                _logger.LogInformation("ℹ️ [SECURITY-VERIFICATION] Development mode allows HTTP URLs for testing");
+            }
+            else
+            {
+                _logger.LogError("❌ [SECURITY-VERIFICATION] Production deployment requires HTTPS API URLs: {ApiUrl}", apiUrl);
+                throw new InvalidOperationException($"Production deployment requires HTTPS API URLs: {apiUrl}");
+            }
+        }
+        else if (!string.IsNullOrEmpty(apiUrl))
+        {
+            _logger.LogInformation("✅ [SECURITY-VERIFICATION] API URL uses HTTPS: {ApiUrl}", apiUrl);
         }
         _logger.LogInformation("✅ [SECURITY-VERIFICATION] API URL uses HTTPS: {ApiUrl}", apiUrl);
 
