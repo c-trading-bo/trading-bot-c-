@@ -67,7 +67,7 @@ public class DecisionServiceRouter
             // Step 1: Check Python decision service health
             await CheckPythonServiceHealthAsync(cancellationToken);
             
-            // Step 2: Try Python decision service if healthy
+            // Step 2: Try Python decision service if healthy and enabled  
             if (_pythonServiceHealthy && _options.Enabled)
             {
                 var pythonDecision = await TryPythonDecisionServiceAsync(symbol, marketContext, cancellationToken);
@@ -80,7 +80,20 @@ public class DecisionServiceRouter
                         pythonDecision.Action, symbol, pythonDecision.Confidence);
                     return pythonDecision;
                 }
+                else
+                {
+                    // CRITICAL FIX #2: Python service failed - abstain and continue to C# fallback
+                    _logger.LogWarning("🐍 [PYTHON-ABSTAIN] Python service failed, abstaining and falling back to C# for {Symbol}", symbol);
+                    // Don't return here - continue to C# fallback
+                }
             }
+            else if (_options.Enabled)
+            {
+                // CRITICAL FIX #2: Python service enabled but unhealthy - abstain and continue
+                _logger.LogDebug("🐍 [PYTHON-ABSTAIN] Python service enabled but unhealthy, abstaining and falling back to C# for {Symbol}", symbol);
+                // Don't return here - continue to C# fallback  
+            }
+            // If Python is disabled, just continue to C# system without logging abstain
             
             // Step 3: Fall back to C# UnifiedDecisionRouter
             _logger.LogDebug("🔄 [DECISION-SERVICE-ROUTER] Python service unavailable, using C# unified router");
@@ -89,17 +102,39 @@ public class DecisionServiceRouter
             var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
             csharpDecision.DecisionSource = $"CSharp_{csharpDecision.DecisionSource}";
             
-            // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
-            return new UnifiedTradingDecision
+            // CRITICAL FIX #1: Apply size floor mechanism before conversion
+            // Convert to TradingBot.Abstractions.TradingDecision for size floor processing
+            var abstractionDecision = new TradingBot.Abstractions.TradingDecision
             {
-                DecisionId = csharpDecision.DecisionId,
                 Symbol = csharpDecision.Symbol,
                 Action = csharpDecision.Action,
                 Confidence = csharpDecision.Confidence,
                 Quantity = csharpDecision.Quantity,
+                Reasoning = csharpDecision.Reasoning ?? new Dictionary<string, object>()
+            };
+            
+            // Apply size floor to prevent "smart direction + zero size = HOLD"
+            abstractionDecision = abstractionDecision.ApplySizeFloor();
+            
+            // Log size floor application if it occurred
+            if (abstractionDecision.Reasoning?.ContainsKey("SizeFloorApplied") == true)
+            {
+                _logger.LogInformation("🔧 [SIZE-FLOOR] Applied size floor: {Symbol} {Action} confidence={Confidence:P1} size={OriginalSize}->{NewSize}",
+                    symbol, abstractionDecision.Action, abstractionDecision.Confidence, 
+                    abstractionDecision.Reasoning["OriginalQuantity"], abstractionDecision.Quantity);
+            }
+            
+            // Convert from processed decision to local UnifiedTradingDecision
+            return new UnifiedTradingDecision
+            {
+                DecisionId = csharpDecision.DecisionId,
+                Symbol = abstractionDecision.Symbol,
+                Action = abstractionDecision.Action,
+                Confidence = abstractionDecision.Confidence,
+                Quantity = abstractionDecision.Quantity, // Size floor applied
                 Strategy = csharpDecision.Strategy,
                 DecisionSource = csharpDecision.DecisionSource,
-                Reasoning = csharpDecision.Reasoning,
+                Reasoning = abstractionDecision.Reasoning ?? new Dictionary<string, object>(),
                 Timestamp = csharpDecision.Timestamp,
                 ProcessingTimeMs = csharpDecision.ProcessingTimeMs
             };
@@ -111,17 +146,30 @@ public class DecisionServiceRouter
             // Ultimate fallback to C# system
             var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
             
-            // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision  
-            return new UnifiedTradingDecision
+            // CRITICAL FIX #1: Apply size floor mechanism to fallback decision too
+            var abstractionFallback = new TradingBot.Abstractions.TradingDecision
             {
-                DecisionId = fallbackDecision.DecisionId,
                 Symbol = fallbackDecision.Symbol,
                 Action = fallbackDecision.Action,
                 Confidence = fallbackDecision.Confidence,
                 Quantity = fallbackDecision.Quantity,
+                Reasoning = fallbackDecision.Reasoning ?? new Dictionary<string, object>()
+            };
+            
+            // Apply size floor
+            abstractionFallback = abstractionFallback.ApplySizeFloor();
+            
+            // Convert from processed fallback decision to local UnifiedTradingDecision  
+            return new UnifiedTradingDecision
+            {
+                DecisionId = fallbackDecision.DecisionId,
+                Symbol = abstractionFallback.Symbol,
+                Action = abstractionFallback.Action,
+                Confidence = abstractionFallback.Confidence,
+                Quantity = abstractionFallback.Quantity, // Size floor applied
                 Strategy = fallbackDecision.Strategy,
                 DecisionSource = fallbackDecision.DecisionSource,
-                Reasoning = fallbackDecision.Reasoning,
+                Reasoning = abstractionFallback.Reasoning ?? new Dictionary<string, object>(),
                 Timestamp = fallbackDecision.Timestamp,
                 ProcessingTimeMs = fallbackDecision.ProcessingTimeMs
             };
@@ -244,13 +292,13 @@ public class DecisionServiceRouter
         // Conservative position sizing from Python service
         var quantity = Math.Max(1m, Math.Min(3m, (decimal)(pythonResponse.Decision?.PositionSize ?? 1.0)));
         
-        return new UnifiedTradingDecision
+        // Create abstraction decision for size floor processing
+        var abstractionDecision = new TradingBot.Abstractions.TradingDecision
         {
             Symbol = symbol,
             Action = action,
             Confidence = confidence,
             Quantity = quantity,
-            Strategy = pythonResponse.Decision?.Strategy ?? "PYTHON_UCB",
             Reasoning = new Dictionary<string, object>
             {
                 ["python_response"] = pythonResponse,
@@ -260,7 +308,28 @@ public class DecisionServiceRouter
                 ["features_count"] = pythonResponse.Features?.Count ?? 0,
                 ["processing_time_python"] = pythonResponse.ProcessingTime,
                 ["confidence_boost_applied"] = pythonResponse.Confidence < 0.51
-            },
+            }
+        };
+        
+        // CRITICAL FIX #1: Apply size floor to Python decisions too
+        abstractionDecision = abstractionDecision.ApplySizeFloor();
+        
+        // Log size floor application if it occurred
+        if (abstractionDecision.Reasoning?.ContainsKey("SizeFloorApplied") == true)
+        {
+            _logger.LogInformation("🔧 [SIZE-FLOOR-PYTHON] Applied size floor: {Symbol} {Action} confidence={Confidence:P1} size={OriginalSize}->{NewSize}",
+                symbol, abstractionDecision.Action, abstractionDecision.Confidence, 
+                abstractionDecision.Reasoning["OriginalQuantity"], abstractionDecision.Quantity);
+        }
+        
+        return new UnifiedTradingDecision
+        {
+            Symbol = abstractionDecision.Symbol,
+            Action = abstractionDecision.Action,
+            Confidence = abstractionDecision.Confidence,
+            Quantity = abstractionDecision.Quantity, // Size floor applied
+            Strategy = pythonResponse.Decision?.Strategy ?? "PYTHON_UCB",
+            Reasoning = abstractionDecision.Reasoning ?? new Dictionary<string, object>(),
             Timestamp = DateTime.UtcNow
         };
     }

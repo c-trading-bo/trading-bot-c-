@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using BotCore.ML;
 using TradingBot.RLAgent;
 using System.Collections.Concurrent;
+using System.IO;
 
 namespace BotCore.Services;
 
@@ -206,6 +207,7 @@ public class ModelEnsembleService
 
     /// <summary>
     /// Load and manage models from different sources
+    /// CRITICAL FIX #5: Add path validation and skip missing models gracefully
     /// </summary>
     public async Task LoadModelAsync(string modelName, string modelPath, ModelSource source, double weight = 1.0, CancellationToken cancellationToken = default)
     {
@@ -213,23 +215,72 @@ public class ModelEnsembleService
         {
             _logger.LogInformation("🔀 [ENSEMBLE] Loading model: {ModelName} from {Source}", modelName, source);
             
+            // CRITICAL FIX #5: Path validation before loading
+            if (string.IsNullOrWhiteSpace(modelPath))
+            {
+                _logger.LogWarning("🔀 [ENSEMBLE] Empty path for model {ModelName}, skipping gracefully", modelName);
+                return;
+            }
+            
+            // Check if file/directory exists
+            if (!File.Exists(modelPath) && !Directory.Exists(modelPath))
+            {
+                _logger.LogWarning("🔀 [ENSEMBLE] Model path does not exist: {ModelPath} for {ModelName}, skipping gracefully", 
+                    modelPath, modelName);
+                return;
+            }
+            
+            // Additional validation for specific model types
+            if (modelName.Contains("cvar_ppo") || modelName.Contains("CVaR-PPO"))
+            {
+                if (!ValidateCVaRPPOModelPath(modelPath, modelName))
+                {
+                    _logger.LogWarning("🔀 [ENSEMBLE] CVaR-PPO model validation failed for {ModelName} at {ModelPath}, skipping gracefully", 
+                        modelName, modelPath);
+                    return;
+                }
+            }
+            
             object? model = null;
             
             // Load model based on type and source
             if (modelPath.EndsWith(".onnx"))
             {
+                if (!File.Exists(modelPath))
+                {
+                    _logger.LogWarning("🔀 [ENSEMBLE] ONNX file not found: {ModelPath}, skipping {ModelName} gracefully", 
+                        modelPath, modelName);
+                    return;
+                }
+                
                 model = await _memoryManager.LoadModelAsync<object>(modelPath, "latest");
             }
-            else if (modelName.Contains("cvar_ppo"))
+            else if (modelName.Contains("cvar_ppo") || modelName.Contains("CVaR-PPO"))
             {
-                // Load CVaR-PPO model
-                var config = new CVaRPPOConfig(); // Use default config
-                var cvarAgent = new CVaRPPO(
-                    Microsoft.Extensions.Logging.Abstractions.NullLogger<CVaRPPO>.Instance, 
-                    config, 
-                    modelPath);
-                // CVaRPPO initializes automatically in constructor
-                model = cvarAgent;
+                // CRITICAL FIX #5: Enhanced CVaR-PPO model loading with graceful handling
+                try
+                {
+                    var config = new CVaRPPOConfig(); // Use default config
+                    var cvarAgent = new CVaRPPO(
+                        Microsoft.Extensions.Logging.Abstractions.NullLogger<CVaRPPO>.Instance, 
+                        config, 
+                        modelPath);
+                    // CVaRPPO initializes automatically in constructor
+                    model = cvarAgent;
+                    
+                    _logger.LogInformation("🔀 [ENSEMBLE] CVaR-PPO model loaded successfully: {ModelName}", modelName);
+                }
+                catch (Exception cvarEx)
+                {
+                    _logger.LogWarning(cvarEx, "🔀 [ENSEMBLE] CVaR-PPO model loading failed for {ModelName}, skipping gracefully", modelName);
+                    return;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("🔀 [ENSEMBLE] Unknown model type for {ModelName} at {ModelPath}, skipping gracefully", 
+                    modelName, modelPath);
+                return;
             }
             
             if (model != null)
@@ -261,12 +312,14 @@ public class ModelEnsembleService
             }
             else
             {
-                _logger.LogWarning("🔀 [ENSEMBLE] Failed to load model: {ModelName}", modelName);
+                _logger.LogWarning("🔀 [ENSEMBLE] Failed to load model: {ModelName} - model object is null", modelName);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "🔀 [ENSEMBLE] Error loading model {ModelName}", modelName);
+            // CRITICAL FIX #5: Graceful error handling - don't crash, just log and continue
+            _logger.LogWarning(ex, "🔀 [ENSEMBLE] Error loading model {ModelName} from {ModelPath}, skipping gracefully", 
+                modelName, modelPath);
         }
     }
 
@@ -512,6 +565,62 @@ public class ModelEnsembleService
         lock (_ensembleLock)
         {
             return new Dictionary<string, ModelPerformance>(_modelPerformance);
+        }
+    }
+    
+    /// <summary>
+    /// CRITICAL FIX #5: Validate CVaR-PPO model path and structure
+    /// </summary>
+    private bool ValidateCVaRPPOModelPath(string modelPath, string modelName)
+    {
+        try
+        {
+            // Check if it's a directory (typical for saved RL models)
+            if (Directory.Exists(modelPath))
+            {
+                // Look for common RL model files
+                var hasCheckpoint = Directory.GetFiles(modelPath, "*.checkpoint", SearchOption.AllDirectories).Any();
+                var hasModel = Directory.GetFiles(modelPath, "*.model", SearchOption.AllDirectories).Any();
+                var hasConfig = Directory.GetFiles(modelPath, "*.json", SearchOption.AllDirectories).Any() ||
+                               Directory.GetFiles(modelPath, "*.yaml", SearchOption.AllDirectories).Any();
+                
+                if (hasCheckpoint || hasModel || hasConfig)
+                {
+                    _logger.LogDebug("🔀 [ENSEMBLE] CVaR-PPO model path validation passed: {ModelPath}", modelPath);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("🔀 [ENSEMBLE] CVaR-PPO model directory missing required files: {ModelPath}", modelPath);
+                    return false;
+                }
+            }
+            
+            // Check if it's a single file
+            if (File.Exists(modelPath))
+            {
+                var fileInfo = new FileInfo(modelPath);
+                var validExtensions = new[] { ".pt", ".pth", ".pkl", ".checkpoint", ".model", ".onnx" };
+                
+                if (validExtensions.Any(ext => modelPath.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.LogDebug("🔀 [ENSEMBLE] CVaR-PPO model file validation passed: {ModelPath}", modelPath);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("🔀 [ENSEMBLE] CVaR-PPO model file has unsupported extension: {ModelPath}", modelPath);
+                    return false;
+                }
+            }
+            
+            _logger.LogWarning("🔀 [ENSEMBLE] CVaR-PPO model path does not exist: {ModelPath}", modelPath);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "🔀 [ENSEMBLE] CVaR-PPO model path validation failed: {ModelPath}", modelPath);
+            return false;
         }
     }
 
