@@ -510,7 +510,16 @@ public class SacState : IDisposable
 
     public void Dispose()
     {
-        _rng?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _rng?.Dispose();
+        }
     }
 }
 

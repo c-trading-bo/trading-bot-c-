@@ -886,7 +886,13 @@ public class PolicyNetwork : IDisposable
 
     public void Dispose()
     {
-        // Clean up if needed
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        // Nothing to dispose in this simplified implementation
     }
 }
 
@@ -997,7 +1003,13 @@ public class ValueNetwork : IDisposable
 
     public void Dispose()
     {
-        // Clean up if needed
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        // Nothing to dispose in this simplified implementation
     }
 }
 
@@ -1035,7 +1047,16 @@ public class CVaRNetwork : IDisposable
 
     public void Dispose()
     {
-        _valueNetwork?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _valueNetwork?.Dispose();
+        }
     }
 }
 
