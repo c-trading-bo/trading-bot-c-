@@ -573,15 +573,21 @@ public class ModelEnsembleService
 
     private Task<StrategyPrediction?> GetSingleStrategyPredictionAsync(LoadedModel model, double[] contextVector, List<string> availableStrategies, CancellationToken cancellationToken)
     {
-        // Implementation would depend on model type
-        // For now, return a simple prediction
+        // TODO: Replace this placeholder with actual model inference
+        // This is a temporary implementation that should be replaced with real ML model prediction
+        // The confidence should come from the model's actual softmax output or calibrated probability
         var random = new Random();
         var strategy = availableStrategies[random.Next(availableStrategies.Count)];
+        
+        // PLACEHOLDER: This confidence should come from actual model inference
+        // In production, this would be: var confidence = await model.GetPredictionConfidence(contextVector);
+        var baseConfidence = 0.7; // This will be replaced by actual model output
+        var confidenceVariation = random.NextDouble() * 0.3;
         
         return Task.FromResult<StrategyPrediction?>(new StrategyPrediction
         {
             SelectedStrategy = strategy,
-            Confidence = 0.7 + random.NextDouble() * 0.3,
+            Confidence = baseConfidence + confidenceVariation, // TODO: Replace with model.GetConfidence()
             Weight = model.Weight,
             ModelName = model.Name
         });
