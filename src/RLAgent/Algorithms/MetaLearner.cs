@@ -256,7 +256,7 @@ public class MetaLearner
     /// <summary>
     /// Calculate loss for action prediction
     /// </summary>
-    private double CalculateActionLoss(double[] prediction, double[] target, double reward)
+    private static double CalculateActionLoss(double[] prediction, double[] target, double reward)
     {
         var mse = 0.0;
         for (int i = 0; i < prediction.Length; i++)
@@ -272,7 +272,7 @@ public class MetaLearner
     /// <summary>
     /// Compute gradients for a single experience (simplified)
     /// </summary>
-    private Dictionary<string, double[]> ComputeGradients(PolicyNetwork policy, TaskExperience experience)
+    private static Dictionary<string, double[]> ComputeGradients(PolicyNetwork policy, TaskExperience experience)
     {
         // Simplified gradient computation
         // In a full implementation, this would use proper backpropagation
@@ -320,7 +320,7 @@ public class MetaLearner
     /// <summary>
     /// Accumulate gradients
     /// </summary>
-    private void AccumulateGradients(Dictionary<string, double[]> accumulator, Dictionary<string, double[]> newGradients)
+    private static void AccumulateGradients(Dictionary<string, double[]> accumulator, Dictionary<string, double[]> newGradients)
     {
         foreach (var kvp in newGradients)
         {
@@ -341,7 +341,7 @@ public class MetaLearner
     /// <summary>
     /// Apply gradients to policy network
     /// </summary>
-    private void ApplyGradients(PolicyNetwork policy, Dictionary<string, double[]> gradients, double learningRate)
+    private static void ApplyGradients(PolicyNetwork policy, Dictionary<string, double[]> gradients, double learningRate)
     {
         foreach (var kvp in gradients)
         {

@@ -126,7 +126,7 @@ public class SnapshotManager : ISnapshotManager
 
             if (previousSnapshot != null)
             {
-                await DetectAndLogChangesAsync(accountId, previousSnapshot, currentSnapshot);
+                await DetectAndLogChangesAsync(previousSnapshot, currentSnapshot);
             }
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SnapshotManager",
@@ -254,7 +254,7 @@ public class SnapshotManager : ISnapshotManager
         }
     }
 
-    private async Task DetectAndLogChangesAsync(string accountId, AccountSnapshot previous, AccountSnapshot current)
+    private async Task DetectAndLogChangesAsync(AccountSnapshot previous, AccountSnapshot current)
     {
         try
         {
@@ -355,7 +355,7 @@ public class SnapshotManager : ISnapshotManager
 
                 if (previousSnapshot != null)
                 {
-                    await DetectAndLogChangesAsync(accountId, previousSnapshot, newSnapshot);
+                    await DetectAndLogChangesAsync(previousSnapshot, newSnapshot);
                 }
 
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SnapshotManager",
@@ -375,7 +375,7 @@ public class SnapshotManager : ISnapshotManager
     /// <summary>
     /// Mask account ID for logging
     /// </summary>
-    private string MaskAccountId(string accountId)
+    private static string MaskAccountId(string accountId)
     {
         if (string.IsNullOrEmpty(accountId) || accountId.Length <= 4)
             return "****";

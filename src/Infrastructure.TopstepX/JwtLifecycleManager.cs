@@ -33,6 +33,11 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
     private DateTime? _currentTokenExpiry;
     private bool _disposed = false;
 
+    /// <summary>
+    /// Gets the current token expiry time for monitoring purposes
+    /// </summary>
+    public DateTime? CurrentTokenExpiry => _currentTokenExpiry;
+
     public event Action<string>? TokenNeedsRefresh;
     public event Action<string>? TokenRefreshed;
 
@@ -150,13 +155,19 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
         }
     }
 
-    private async void CheckTokenExpiration(object? state)
+    private void CheckTokenExpiration(object? state)
     {
         if (_disposed || string.IsNullOrEmpty(_currentToken)) return;
 
+        // Fire-and-forget is acceptable here as we handle exceptions internally
+        _ = Task.Run(async () => await CheckTokenExpirationAsync());
+    }
+
+    private async Task CheckTokenExpirationAsync()
+    {
         try
         {
-            var lifetimePercentage = GetTokenLifetimePercentage(_currentToken);
+            var lifetimePercentage = GetTokenLifetimePercentage(_currentToken!);
             
             // Trigger refresh at 75% of token lifetime
             if (lifetimePercentage >= 75.0)
@@ -164,7 +175,7 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "JwtLifecycleManager",
                     $"Token is {lifetimePercentage:F1}% through its lifetime - triggering refresh");
                 
-                TokenNeedsRefresh?.Invoke(_currentToken);
+                TokenNeedsRefresh?.Invoke(_currentToken!);
             }
             else if (lifetimePercentage >= 50.0)
             {

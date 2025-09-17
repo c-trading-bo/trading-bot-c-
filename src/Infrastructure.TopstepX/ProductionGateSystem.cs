@@ -50,7 +50,7 @@ public class ProductionGateSystem
 
             // Gate 1: Pre-flight Environment Validation
             _logger.LogInformation("🛫 Gate 1: Pre-flight Environment Validation");
-            result.PreflightValidation = await ExecutePreflightValidation(cancellationToken);
+            result.PreflightValidation = await ExecutePreflightValidation();
 
             // Gate 2: Comprehensive Testing Suite
             _logger.LogInformation("🧪 Gate 2: Comprehensive Testing Suite");
@@ -62,7 +62,7 @@ public class ProductionGateSystem
 
             // Gate 4: Security and Compliance Validation
             _logger.LogInformation("🔒 Gate 4: Security and Compliance Validation");
-            result.SecurityValidation = await ExecuteSecurityValidation(result.TestSuiteExecution);
+            result.SecurityValidation = await ExecuteSecurityValidation();
 
             // Gate 5: Auto-remediation and Issue Resolution
             _logger.LogInformation("🔧 Gate 5: Auto-remediation and Issue Resolution");
@@ -95,7 +95,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<PreflightValidationResult> ExecutePreflightValidation(CancellationToken cancellationToken)
+    private async Task<PreflightValidationResult> ExecutePreflightValidation()
     {
         var result = new PreflightValidationResult();
 
@@ -140,9 +140,9 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<TestSuiteResult> ExecuteComprehensiveTestSuite(CancellationToken cancellationToken)
+    private Task<TestSuiteResult> ExecuteComprehensiveTestSuite(CancellationToken cancellationToken)
     {
-        return await _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
+        return _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
     }
 
     private PerformanceValidationResult ExecutePerformanceValidation(TestSuiteResult testResults)
@@ -183,7 +183,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<SecurityValidationResult> ExecuteSecurityValidation(TestSuiteResult testResults)
+    private async Task<SecurityValidationResult> ExecuteSecurityValidation()
     {
         var result = new SecurityValidationResult();
 
@@ -218,7 +218,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<AutoRemediationResult> ExecuteAutoRemediation(TestSuiteResult testResults)
+    private static async Task<AutoRemediationResult> ExecuteAutoRemediation(TestSuiteResult testResults)
     {
         // Generate a basic comprehensive report for auto-remediation
         var basicReport = new ComprehensiveReport
@@ -277,10 +277,10 @@ public class ProductionGateSystem
                                          assessment.NoBlockingIssues;
 
             assessment.ReadinessScore = CalculateReadinessScore(assessment);
-            assessment.Recommendations = GenerateProductionRecommendations(assessment, gateResult);
+            assessment.Recommendations = GenerateProductionRecommendations(assessment);
 
             // Generate AI-powered recommendations
-            assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment, gateResult);
+            assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment);
             
             _logger.LogInformation("[PRODUCTION-GATE] Production readiness assessment completed - Ready: {IsReady}, Score: {Score:F1}", 
                 assessment.IsProductionReady, assessment.ReadinessScore);
@@ -317,7 +317,7 @@ public class ProductionGateSystem
     /// <summary>
     /// Validate performance metrics against production baselines
     /// </summary>
-    private async Task<bool> ValidatePerformanceMetricsAsync(PerformanceValidationResult performance)
+    private static async Task<bool> ValidatePerformanceMetricsAsync(PerformanceValidationResult performance)
     {
         await Task.Yield();
         
@@ -356,36 +356,9 @@ public class ProductionGateSystem
     }
     
     /// <summary>
-    /// Calculate weighted readiness score based on multiple factors
-    /// </summary>
-    private async Task<double> CalculateWeightedReadinessScoreAsync(ProductionReadinessAssessment assessment, ProductionGateResult gateResult)
-    {
-        await Task.Yield();
-        
-        // Weighted scoring algorithm
-        var weights = new Dictionary<string, double>
-        {
-            ["tests"] = 0.30,
-            ["performance"] = 0.25,
-            ["security"] = 0.25,
-            ["remediation"] = 0.10,
-            ["issues"] = 0.10
-        };
-        
-        var score = 0.0;
-        score += (assessment.TestResultsAcceptable ? 100.0 : 0.0) * weights["tests"];
-        score += (assessment.PerformanceAcceptable ? 100.0 : 0.0) * weights["performance"];
-        score += (assessment.SecurityAcceptable ? 100.0 : 0.0) * weights["security"];
-        score += (assessment.RemediationSuccessful ? 100.0 : 0.0) * weights["remediation"];
-        score += (assessment.NoBlockingIssues ? 100.0 : 0.0) * weights["issues"];
-        
-        return score;
-    }
-    
-    /// <summary>
     /// Generate intelligent recommendations based on assessment results
     /// </summary>
-    private async Task<List<string>> GenerateIntelligentRecommendationsAsync(ProductionReadinessAssessment assessment, ProductionGateResult gateResult)
+    private async Task<List<string>> GenerateIntelligentRecommendationsAsync(ProductionReadinessAssessment assessment)
     {
         await Task.Yield();
         
@@ -424,9 +397,9 @@ public class ProductionGateSystem
         return recommendations;
     }
 
-    private async Task<ComprehensiveReport> GenerateComprehensiveReport(ProductionGateResult gateResult)
+    private Task<ComprehensiveReport> GenerateComprehensiveReport(ProductionGateResult gateResult)
     {
-        return await _reportingSystem.GenerateComprehensiveReportAsync(
+        return _reportingSystem.GenerateComprehensiveReportAsync(
             gateResult.TestSuiteExecution,
             new Dictionary<string, object>
             {
@@ -440,7 +413,7 @@ public class ProductionGateSystem
     }
 
     // Helper validation methods
-    private Dictionary<string, bool> ValidateCriticalSystems()
+    private static Dictionary<string, bool> ValidateCriticalSystems()
     {
         return new Dictionary<string, bool>
         {
@@ -451,7 +424,7 @@ public class ProductionGateSystem
         };
     }
 
-    private (int presentCount, int totalCount, int missingCount) ValidateRequiredEnvironmentVariables()
+    private static (int presentCount, int totalCount, int missingCount) ValidateRequiredEnvironmentVariables()
     {
         var requiredVars = new[]
         {
@@ -469,7 +442,8 @@ public class ProductionGateSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            var response = await client.GetAsync("https://api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            await client.GetAsync(apiUrl);
             return true; // Any response indicates connectivity
         }
         catch
@@ -478,7 +452,7 @@ public class ProductionGateSystem
         }
     }
 
-    private bool ValidateSecurityPrerequisites()
+    private static bool ValidateSecurityPrerequisites()
     {
         // Check for HTTPS usage
         var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "";
@@ -490,19 +464,19 @@ public class ProductionGateSystem
         return httpsUsed && isDryRun;
     }
 
-    private bool ValidateLatencyRequirements(TestCategoryResult perfTests)
+    private static bool ValidateLatencyRequirements(TestCategoryResult perfTests)
     {
         // All performance tests should pass for latency requirements
         return perfTests.PassRate >= 0.8;
     }
 
-    private bool ValidateThroughputRequirements(TestCategoryResult perfTests)
+    private static bool ValidateThroughputRequirements(TestCategoryResult perfTests)
     {
         // Throughput should meet minimum requirements
         return perfTests.PassRate >= 0.8;
     }
 
-    private bool ValidateResourceUsage()
+    private static bool ValidateResourceUsage()
     {
         var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
         var memoryMB = currentProcess.WorkingSet64 / (1024 * 1024);
@@ -511,7 +485,7 @@ public class ProductionGateSystem
         return memoryMB < 1024;
     }
 
-    private bool ValidateStabilityUnderLoad(TestCategoryResult perfTests)
+    private static bool ValidateStabilityUnderLoad(TestCategoryResult perfTests)
     {
         // All performance tests should indicate stability
         return perfTests.PassRate >= 0.9;
@@ -633,8 +607,7 @@ public class ProductionGateSystem
     }
 
     private List<string> GenerateProductionRecommendations(
-        ProductionReadinessAssessment assessment,
-        ProductionGateResult gateResult)
+        ProductionReadinessAssessment assessment)
     {
         var recommendations = new List<string>();
 

@@ -1163,7 +1163,7 @@ public class TimeWindowAggregator : IDisposable
         return totalVolume > 0 ? totalValue / totalVolume : 0;
     }
 
-    private double CalculateVolatility(double[] prices)
+    private static double CalculateVolatility(double[] prices)
     {
         if (prices.Length < 2) return 0;
         

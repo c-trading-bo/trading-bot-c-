@@ -66,7 +66,9 @@ public class TopstepXService : ITopstepXService, IDisposable
         _httpClient = new HttpClient(handler)
         {
             Timeout = TimeSpan.FromSeconds(30),
-            BaseAddress = new Uri(_configuration["TopstepX:ApiUrl"] ?? "https://api.topstepx.com")
+            BaseAddress = new Uri(_configuration["TopstepX:ApiUrl"] ?? 
+                Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? 
+                throw new InvalidOperationException("TopstepX API URL must be configured via TopstepX:ApiUrl setting or TOPSTEPX_API_BASE environment variable"))
         };
 
         // Set environment variable for .NET HTTP handler compatibility
@@ -161,7 +163,9 @@ public class TopstepXService : ITopstepXService, IDisposable
 
     private Task BuildSignalRConnection()
     {
-        var signalRUrl = _configuration["TopstepX:SignalRUrl"] ?? "https://rtc.topstepx.com";
+        var signalRUrl = _configuration["TopstepX:SignalRUrl"] ?? 
+            Environment.GetEnvironmentVariable("TOPSTEPX_SIGNALR_URL") ?? 
+            throw new InvalidOperationException("TopstepX SignalR URL must be configured via TopstepX:SignalRUrl setting or TOPSTEPX_SIGNALR_URL environment variable");
         var hubUrl = $"{signalRUrl.TrimEnd('/')}/tradingHub";
 
         _logger.LogInformation("[TOPSTEPX] Building SignalR connection to {Url}", hubUrl);
@@ -494,7 +498,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to market data");
-            throw;
+            throw new InvalidOperationException("Failed to subscribe to TopstepX market data events", ex);
         }
     }
 
@@ -707,24 +711,32 @@ public class TopstepXService : ITopstepXService, IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        _disposed = true;
-
-        _reconnectTimer?.Dispose();
-
-        try
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
         {
-            _hubConnection?.StopAsync().Wait(TimeSpan.FromSeconds(5));
-            _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[TOPSTEPX] Error disposing hub connection");
-        }
+            if (disposing)
+            {
+                _reconnectTimer?.Dispose();
 
-        _httpClient?.Dispose();
+                try
+                {
+                    _hubConnection?.StopAsync().Wait(TimeSpan.FromSeconds(5));
+                    _hubConnection?.DisposeAsync().AsTask().Wait(TimeSpan.FromSeconds(5));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[TOPSTEPX] Error disposing hub connection");
+                }
+
+                _httpClient?.Dispose();
+            }
+            _disposed = true;
+        }
     }
 }
 

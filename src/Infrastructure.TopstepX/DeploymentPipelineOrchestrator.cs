@@ -151,7 +151,7 @@ public class DeploymentPipelineOrchestrator
     /// <summary>
     /// Validate the quality and completeness of environment credentials
     /// </summary>
-    private async Task ValidateEnvironmentCredentialQuality(CredentialDetectionResult result)
+    private static async Task ValidateEnvironmentCredentialQuality(CredentialDetectionResult result)
     {
         await Task.Yield();
         
@@ -178,7 +178,7 @@ public class DeploymentPipelineOrchestrator
     /// <summary>
     /// Validate the security of file-based credentials
     /// </summary>
-    private async Task ValidateFileCredentialSecurity(CredentialDetectionResult result)
+    private static async Task ValidateFileCredentialSecurity(CredentialDetectionResult result)
     {
         await Task.Yield();
         
@@ -207,7 +207,7 @@ public class DeploymentPipelineOrchestrator
     /// <summary>
     /// Generate troubleshooting guide when no credentials are found
     /// </summary>
-    private async Task GenerateCredentialTroubleshootingGuide(CredentialDetectionResult result)
+    private static async Task GenerateCredentialTroubleshootingGuide(CredentialDetectionResult result)
     {
         await Task.Yield();
         

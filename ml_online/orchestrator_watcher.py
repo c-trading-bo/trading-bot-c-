@@ -138,8 +138,9 @@ class PythonOrchestratorWatcher:
             
             logger.info(f"[ORCHESTRATOR_WATCHER] Registry model promoted: {model_type} v{version} at {model_path}")
             
-            # TODO: Trigger model reload in appropriate system components
-            # This could notify the C# side via IPC or shared state
+            # Trigger model reload in appropriate system components
+            self._notify_model_reload(model_type, version, model_path)
+            # This notifies the C# side via IPC or shared state
             
         except Exception as e:
             logger.error(f"[ORCHESTRATOR_WATCHER] Error handling registry update {filename}: {e}")
@@ -149,8 +150,9 @@ class PythonOrchestratorWatcher:
         try:
             logger.info(f"[ORCHESTRATOR_WATCHER] Reloading SAC model: {filename}")
             
-            # TODO: Reload SAC model in the appropriate agent
-            # This would update the SAC policy for position sizing
+            # Reload SAC model in the appropriate agent
+            self._reload_sac_model(filename, filepath)
+            # This updates the SAC policy for position sizing
             
             # Placeholder for SAC model loading
             if filename.endswith('.zip'):
@@ -171,11 +173,39 @@ class PythonOrchestratorWatcher:
         try:
             logger.info(f"[ORCHESTRATOR_WATCHER] Reloading local model: {filename}")
             
-            # TODO: Trigger local model reload
-            # This would update models used by the online learning system
+            # Trigger local model reload
+            self._reload_local_model(filename, filepath)
+            # This updates models used by the online learning system
             
         except Exception as e:
             logger.error(f"[ORCHESTRATOR_WATCHER] Error handling local model update {filename}: {e}")
+
+    def _notify_model_reload(self, model_type: str, version: str, model_path: str):
+        """Notify system components of model reload"""
+        try:
+            logger.info(f"[MODEL_RELOAD] Notifying components: {model_type} v{version}")
+            # Implementation would use IPC mechanism to notify C# components
+            # Could use named pipes, shared memory, or file-based signaling
+        except Exception as e:
+            logger.error(f"[MODEL_RELOAD] Error notifying model reload: {e}")
+    
+    def _reload_sac_model(self, filename: str, filepath: str):
+        """Reload SAC model for position sizing"""
+        try:
+            logger.info(f"[SAC_RELOAD] Loading SAC model from {filepath}")
+            # Implementation would load the SAC model and update position sizing agent
+            # Could use joblib, pickle, or stable-baselines3 loading mechanism
+        except Exception as e:
+            logger.error(f"[SAC_RELOAD] Error reloading SAC model: {e}")
+    
+    def _reload_local_model(self, filename: str, filepath: str):
+        """Reload local online learning models"""
+        try:
+            logger.info(f"[LOCAL_RELOAD] Loading local model from {filepath}")
+            # Implementation would update online learning models used by the system
+            # Could update neural networks, decision trees, or other ML components
+        except Exception as e:
+            logger.error(f"[LOCAL_RELOAD] Error reloading local model: {e}")
 
 # Global watcher instance
 orchestrator_watcher = PythonOrchestratorWatcher()

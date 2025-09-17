@@ -48,7 +48,7 @@ public class ComprehensiveSmokeTestSuite
 
             // Phase 2: Credential and Environment Tests  
             _logger.LogInformation("📋 Phase 2: Credential and Environment Validation");
-            result.CredentialTests = await ExecuteCredentialTests(cancellationToken);
+            result.CredentialTests = await ExecuteCredentialTests();
 
             // Phase 3: TopstepX Integration Tests
             _logger.LogInformation("📋 Phase 3: TopstepX Integration Tests");
@@ -56,19 +56,19 @@ public class ComprehensiveSmokeTestSuite
 
             // Phase 4: Trading System Component Tests
             _logger.LogInformation("📋 Phase 4: Trading System Component Tests");
-            result.ComponentTests = await ExecuteComponentTests(cancellationToken);
+            result.ComponentTests = await ExecuteComponentTests();
 
             // Phase 5: End-to-End Simulation Tests
             _logger.LogInformation("📋 Phase 5: End-to-End Simulation Tests");
-            result.EndToEndTests = await ExecuteEndToEndTests(cancellationToken);
+            result.EndToEndTests = await ExecuteEndToEndTests();
 
             // Phase 6: Performance and Load Tests
             _logger.LogInformation("📋 Phase 6: Performance and Load Tests");
-            result.PerformanceTests = await ExecutePerformanceTests(cancellationToken);
+            result.PerformanceTests = await ExecutePerformanceTests();
 
             // Phase 7: Safety and Risk Management Tests
             _logger.LogInformation("📋 Phase 7: Safety and Risk Management Tests");
-            result.SafetyTests = await ExecuteSafetyTests(cancellationToken);
+            result.SafetyTests = await ExecuteSafetyTests();
 
             overallStopwatch.Stop();
             result.EndTime = DateTime.UtcNow;
@@ -103,13 +103,13 @@ public class ComprehensiveSmokeTestSuite
         });
 
         // Test 2: File System Access
-        result.AddTest("File System Access", () =>
+        result.AddTest("File System Access", async () =>
         {
-            var tempFile = Path.GetTempFileName();
+            var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             try
             {
-                File.WriteAllText(tempFile, "test");
-                return File.ReadAllText(tempFile) == "test";
+                await File.WriteAllTextAsync(tempFile, "test");
+                return await File.ReadAllTextAsync(tempFile) == "test";
             }
             finally
             {
@@ -124,7 +124,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
-                var response = await client.GetAsync("https://httpbin.org/status/200", cancellationToken);
+                var testUrl = Environment.GetEnvironmentVariable("TEST_HTTP_URL") ?? "https://httpbin.org/status/200";
+                var response = await client.GetAsync(testUrl, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -138,7 +139,7 @@ public class ComprehensiveSmokeTestSuite
         {
             var testObj = new { Name = "Test", Value = 123 };
             var json = JsonSerializer.Serialize(testObj);
-            var deserialized = JsonSerializer.Deserialize<dynamic>(json);
+            JsonSerializer.Deserialize<dynamic>(json);
             return !string.IsNullOrEmpty(json);
         });
 
@@ -146,7 +147,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteCredentialTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteCredentialTests()
     {
         var result = new TestCategoryResult("Credentials");
 
@@ -194,7 +195,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteIntegrationTests(CancellationToken cancellationToken)
+    private static async Task<TestCategoryResult> ExecuteIntegrationTests(CancellationToken cancellationToken)
     {
         var result = new TestCategoryResult("Integration");
 
@@ -205,7 +206,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                var response = await client.GetAsync("https://api.topstepx.com", cancellationToken);
+                var apiBaseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                await client.GetAsync(apiBaseUrl, cancellationToken);
                 // Any response (including 401 unauthorized) means the endpoint is reachable
                 return true;
             }
@@ -222,7 +224,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                var response = await client.GetAsync("https://rtc.topstepx.com", cancellationToken);
+                var rtcBaseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
+                await client.GetAsync(rtcBaseUrl, cancellationToken);
                 return true; // Any response means endpoint exists
             }
             catch
@@ -243,7 +246,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteComponentTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteComponentTests()
     {
         var result = new TestCategoryResult("Components");
 
@@ -288,7 +291,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteEndToEndTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteEndToEndTests()
     {
         var result = new TestCategoryResult("End-to-End");
 
@@ -300,7 +303,7 @@ public class ComprehensiveSmokeTestSuite
                 // Simulate full bot startup without actual trading
                 Environment.SetEnvironmentVariable("DRY_RUN", "true");
                 
-                var discoveryReport = _credentialManager.DiscoverAllCredentialSources();
+                _credentialManager.DiscoverAllCredentialSources();
                 var stagingResult = await _stagingManager.ConfigureStagingEnvironmentAsync();
                 
                 return stagingResult.EnvironmentConfigured;
@@ -332,7 +335,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecutePerformanceTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecutePerformanceTests()
     {
         var result = new TestCategoryResult("Performance");
 
@@ -340,7 +343,7 @@ public class ComprehensiveSmokeTestSuite
         result.AddTest("Credential Loading Performance", () =>
         {
             var stopwatch = Stopwatch.StartNew();
-            var discovery = _credentialManager.DiscoverAllCredentialSources();
+            _credentialManager.DiscoverAllCredentialSources();
             stopwatch.Stop();
             return stopwatch.ElapsedMilliseconds < 1000; // Should be fast
         });
@@ -369,7 +372,7 @@ public class ComprehensiveSmokeTestSuite
             // Perform some operations
             for (int i = 0; i < 1000; i++)
             {
-                var obj = new { Index = i, Data = $"Test data {i}" };
+                _ = new { Index = i, Data = $"Test data {i}" };
             }
             
             var afterMemory = GC.GetTotalMemory(false);
@@ -382,7 +385,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteSafetyTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteSafetyTests()
     {
         var result = new TestCategoryResult("Safety");
 
@@ -392,8 +395,8 @@ public class ComprehensiveSmokeTestSuite
             var killFile = Environment.GetEnvironmentVariable("KILL_FILE") ?? "kill.txt";
             var killFileExists = File.Exists(killFile);
             
-            // Test that kill file detection works
-            var isDryRun = Environment.GetEnvironmentVariable("DRY_RUN") == "true" || killFileExists;
+            // Test that kill file detection works  
+            _ = Environment.GetEnvironmentVariable("DRY_RUN") == "true" || killFileExists;
             return true; // Kill switch detection always works
         });
 

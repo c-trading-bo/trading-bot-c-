@@ -49,12 +49,4 @@ public static class StubRemovalExamples
         await Task.CompletedTask;
         return Guid.NewGuid().ToString();
     }
-
-    // BEFORE (STUB):
-    // return new { Balance = 50000m, BuyingPower = 200000m };
-    //
-    // AFTER (REAL):
-    // var response = await _httpClient.GetAsync($"/api/Account/{accountId}");
-    // var accountData = JsonSerializer.Deserialize<JsonElement>(json);
-    // return new AccountInfo(...);
 }

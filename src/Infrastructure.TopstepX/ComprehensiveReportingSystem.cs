@@ -151,7 +151,7 @@ public class ComprehensiveReportingSystem
         return metrics;
     }
 
-    private async Task<LatencyMetrics> MeasureSystemLatency()
+    private static async Task<LatencyMetrics> MeasureSystemLatency()
     {
         var metrics = new LatencyMetrics();
 
@@ -185,7 +185,8 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            await client.GetAsync("https://api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            await client.GetAsync(apiUrl);
         }
         catch { /* Ignore errors for latency measurement */ }
         netStopwatch.Stop();
@@ -286,7 +287,7 @@ public class ComprehensiveReportingSystem
         return features;
     }
 
-    private double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
+    private static double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
     {
         var allFeatures = implemented.Concat(unexercised).ToList();
         if (allFeatures.Count == 0) return 0;
@@ -295,7 +296,7 @@ public class ComprehensiveReportingSystem
         return totalCoverage / allFeatures.Count;
     }
 
-    private async Task<SystemHealthStatus> CollectSystemHealthStatus()
+    private static async Task<SystemHealthStatus> CollectSystemHealthStatus()
     {
         var status = new SystemHealthStatus();
 
@@ -313,7 +314,7 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            var response = await client.GetAsync("https://api.topstepx.com");
+            await client.GetAsync("https://api.topstepx.com");
             status.ExternalConnectivityHealthy = true;
         }
         catch
@@ -387,7 +388,7 @@ public class ComprehensiveReportingSystem
         return compliance;
     }
 
-    private double AnalyzeCredentialSecurity()
+    private static double AnalyzeCredentialSecurity()
     {
         var score = 0.0;
 
@@ -408,7 +409,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private double AnalyzeEnvironmentSecurity()
+    private static double AnalyzeEnvironmentSecurity()
     {
         var score = 0.0;
 
@@ -433,7 +434,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private async Task<double> AnalyzeNetworkSecurity()
+    private static async Task<double> AnalyzeNetworkSecurity()
     {
         var score = 0.0;
 
@@ -542,7 +543,7 @@ public class ComprehensiveReportingSystem
         _logger.LogInformation("📄 Report saved to: {Filepath}", filepath);
     }
 
-    private string GenerateSummaryText(ComprehensiveReport report)
+    private static string GenerateSummaryText(ComprehensiveReport report)
     {
         var summary = $@"
 === COMPREHENSIVE SYSTEM REPORT ===

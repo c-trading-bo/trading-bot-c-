@@ -550,21 +550,88 @@ public class MAMLLiveIntegration
         {
             _logger.LogDebug("[MAML-LIVE] Loading real training examples for regime {Regime}", regime);
             
-            // In a real implementation, this would query the trading history database
-            // for actual trading examples matching the regime type
             var examples = new List<TrainingExample>();
             
-            // This would be the real implementation:
-            // var tradingDatabase = GetService<ITradingHistoryService>();
-            // var recentTrades = await tradingDatabase.GetTradesByRegimeAsync(regime, count, cancellationToken);
-            // return ConvertTradesToTrainingExamples(recentTrades);
+            // Attempt to load from trading history database
+            var tradingExamples = await LoadFromTradingHistoryDatabase(regime, count, cancellationToken);
+            if (tradingExamples.Count > 0)
+            {
+                _logger.LogInformation("[MAML-LIVE] Loaded {Count} real training examples from trading database for regime {Regime}", 
+                    tradingExamples.Count, regime);
+                return tradingExamples;
+            }
             
-            _logger.LogInformation("[MAML-LIVE] Trading history database not available. No training examples loaded for regime {Regime}", regime);
+            // Fallback: Attempt to load from external data sources
+            var externalExamples = await LoadFromExternalDataSources(regime, count, cancellationToken);
+            if (externalExamples.Count > 0)
+            {
+                _logger.LogInformation("[MAML-LIVE] Loaded {Count} training examples from external sources for regime {Regime}", 
+                    externalExamples.Count, regime);
+                return externalExamples;
+            }
+            
+            _logger.LogWarning("[MAML-LIVE] No real training data sources available for regime {Regime}. " +
+                             "MAML adaptation will be skipped to prevent training on synthetic data.", regime);
             return examples;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MAML-LIVE] Failed to load real training examples for regime {Regime}", regime);
+            return new List<TrainingExample>();
+        }
+    }
+    
+    /// <summary>
+    /// Load training examples from trading history database
+    /// </summary>
+    private async Task<List<TrainingExample>> LoadFromTradingHistoryDatabase(RegimeType regime, int count, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check if trading database is available
+            var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "trading.db");
+            if (!File.Exists(dbPath))
+            {
+                _logger.LogDebug("[MAML-LIVE] Trading database not found at {DbPath}", dbPath);
+                return new List<TrainingExample>();
+            }
+            
+            // Note: In a full implementation, this would use dependency injection
+            // to get ITradingHistoryService and load actual trade outcomes
+            _logger.LogDebug("[MAML-LIVE] Trading database available but service integration not configured for MAML");
+            
+            // This prevents MAML from training on synthetic data when real data is unavailable
+            return new List<TrainingExample>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MAML-LIVE] Error accessing trading history database");
+            return new List<TrainingExample>();
+        }
+    }
+    
+    /// <summary>
+    /// Load training examples from external data sources (TopstepX, market data, etc.)
+    /// </summary>
+    private async Task<List<TrainingExample>> LoadFromExternalDataSources(RegimeType regime, int count, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Yield(); // Placeholder for async operation
+            
+            // In a full implementation, this would integrate with:
+            // 1. TopstepX market data API for recent regime-specific market conditions
+            // 2. External market data providers for training examples
+            // 3. Historical strategy performance data
+            
+            _logger.LogDebug("[MAML-LIVE] External data source integration not configured for regime {Regime}", regime);
+            
+            // Returning empty list to enforce "no synthetic data" policy
+            return new List<TrainingExample>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MAML-LIVE] Error loading from external data sources");
             return new List<TrainingExample>();
         }
     }

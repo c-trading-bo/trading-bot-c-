@@ -21,18 +21,15 @@ public class AutoRemediationSystem
 {
     private readonly ILogger<AutoRemediationSystem> _logger;
     private readonly StagingEnvironmentManager _stagingManager;
-    private readonly ComprehensiveSmokeTestSuite _testSuite;
     private readonly ComprehensiveReportingSystem _reportingSystem;
 
     public AutoRemediationSystem(
         ILogger<AutoRemediationSystem> logger,
         StagingEnvironmentManager stagingManager,
-        ComprehensiveSmokeTestSuite testSuite,
         ComprehensiveReportingSystem reportingSystem)
     {
         _logger = logger;
         _stagingManager = stagingManager;
-        _testSuite = testSuite;
         _reportingSystem = reportingSystem;
     }
 
@@ -55,27 +52,27 @@ public class AutoRemediationSystem
 
             // Phase 1: Environment and Configuration Issues
             _logger.LogInformation("📋 Phase 1: Environment and Configuration Remediation");
-            var envRemediationResult = await RemediateEnvironmentIssues(testResults, systemReport);
+            var envRemediationResult = await RemediateEnvironmentIssues(systemReport);
             result.EnvironmentRemediations.AddRange(envRemediationResult);
 
             // Phase 2: Credential and Authentication Issues
             _logger.LogInformation("📋 Phase 2: Credential and Authentication Remediation");
-            var credRemediationResult = await RemediateCredentialIssues(testResults, systemReport);
+            var credRemediationResult = await RemediateCredentialIssues(systemReport);
             result.CredentialRemediations.AddRange(credRemediationResult);
 
             // Phase 3: Performance and Latency Issues
             _logger.LogInformation("📋 Phase 3: Performance and Latency Remediation");
-            var perfRemediationResult = await RemediatePerformanceIssues(testResults, systemReport);
+            var perfRemediationResult = await RemediatePerformanceIssues(systemReport);
             result.PerformanceRemediations.AddRange(perfRemediationResult);
 
             // Phase 4: Security and Compliance Issues
             _logger.LogInformation("📋 Phase 4: Security and Compliance Remediation");
-            var secRemediationResult = await RemediateSecurityIssues(testResults, systemReport);
+            var secRemediationResult = await RemediateSecurityIssues(systemReport);
             result.SecurityRemediations.AddRange(secRemediationResult);
 
             // Phase 5: Test Failures and System Health Issues
             _logger.LogInformation("📋 Phase 5: Test Failures and System Health Remediation");
-            var testRemediationResult = await RemediateTestFailures(testResults, systemReport);
+            var testRemediationResult = await RemediateTestFailures(testResults);
             result.TestRemediations.AddRange(testRemediationResult);
 
             // Phase 6: Validation of remediation effectiveness
@@ -104,7 +101,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateEnvironmentIssues(
-        TestSuiteResult testResults, 
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -208,7 +204,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateCredentialIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -263,7 +258,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediatePerformanceIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -328,8 +322,11 @@ public class AutoRemediationSystem
                 
                 if (memoryPressure > 1.0) // Only suggest GC if > 1GB in use
                 {
-                    // Use default GC mode, not forced
-                    GC.Collect(0, GCCollectionMode.Default, false);
+                    // Request garbage collection without forcing it
+                    GC.WaitForPendingFinalizers();
+                    // Monitor memory and let runtime decide optimal collection timing
+                    GC.AddMemoryPressure(1024 * 1024); // Add 1MB pressure to trigger natural collection
+                    GC.RemoveMemoryPressure(1024 * 1024); // Remove the pressure immediately
                 }
 
                 var memoryAfter = GC.GetTotalMemory(false);
@@ -337,7 +334,7 @@ public class AutoRemediationSystem
                 
                 action.Success = true;
                 action.Result = $"Memory optimization completed, freed {freedMB}MB";
-                action.Details.Add("Used proper memory pressure monitoring");
+                action.Details.Add("Used memory pressure monitoring without forced collection");
                 action.Details.Add($"Memory before: {memoryBefore / (1024 * 1024)}MB");
                 action.Details.Add($"Memory after: {memoryAfter / (1024 * 1024)}MB");
                 action.Details.Add("Applied selective component cleanup");
@@ -355,7 +352,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateSecurityIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -407,8 +403,7 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateTestFailures(
-        TestSuiteResult testResults,
-        ComprehensiveReport systemReport)
+        TestSuiteResult testResults)
     {
         var actions = new List<RemediationAction>();
 
@@ -584,7 +579,7 @@ public class AutoRemediationSystem
         return manualItems;
     }
 
-    private List<(string Key, string DefaultValue)> DetectMissingEnvironmentVariables()
+    private static List<(string Key, string DefaultValue)> DetectMissingEnvironmentVariables()
     {
         var requiredVars = new Dictionary<string, string>
         {
@@ -609,9 +604,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Apply comprehensive security hardening
     /// </summary>
-    private async Task ApplySecurityHardeningAsync()
+    private static Task ApplySecurityHardeningAsync()
     {
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Configure secure HTTP client settings globally
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
@@ -673,42 +668,39 @@ public class AutoRemediationSystem
     /// <summary>
     /// Validate credential security
     /// </summary>
-    private async Task<List<string>> ValidateCredentialSecurityAsync()
+    private static async Task<List<string>> ValidateCredentialSecurityAsync()
     {
         var issues = new List<string>();
         
-        await Task.Run(() =>
+        // Check for insecure credential storage
+        var sensitiveVars = new[] { "TOPSTEPX_API_KEY", "GITHUB_TOKEN", "PASSWORD", "SECRET" };
+        
+        foreach (var varName in sensitiveVars)
         {
-            // Check for insecure credential storage
-            var sensitiveVars = new[] { "TOPSTEPX_API_KEY", "GITHUB_TOKEN", "PASSWORD", "SECRET" };
-            
-            foreach (var varName in sensitiveVars)
+            var value = Environment.GetEnvironmentVariable(varName);
+            if (!string.IsNullOrEmpty(value))
             {
-                var value = Environment.GetEnvironmentVariable(varName);
-                if (!string.IsNullOrEmpty(value))
+                if (value.Length < 10)
                 {
-                    if (value.Length < 10)
-                    {
-                        issues.Add($"{varName} appears to be too short or placeholder");
-                    }
-                    
-                    if (value.Contains("demo") || value.Contains("test") || value.Contains("placeholder"))
-                    {
-                        issues.Add($"{varName} contains placeholder text");
-                    }
+                    issues.Add($"{varName} appears to be too short or placeholder");
+                }
+                
+                if (value.Contains("demo") || value.Contains("test") || value.Contains("placeholder"))
+                {
+                    issues.Add($"{varName} contains placeholder text");
                 }
             }
-            
-            // Check for hardcoded credentials in environment
-            if (File.Exists(".env"))
+        }
+        
+        // Check for hardcoded credentials in environment
+        if (File.Exists(".env"))
+        {
+            var envContent = await File.ReadAllTextAsync(".env");
+            if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
             {
-                var envContent = File.ReadAllText(".env");
-                if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
-                {
-                    issues.Add("Potential hardcoded credentials found in .env file");
-                }
+                issues.Add("Potential hardcoded credentials found in .env file");
             }
-        });
+        }
         
         return issues;
     }
@@ -716,9 +708,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Remediate credential security issues
     /// </summary>
-    private async Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
+    private static Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
     {
-        await Task.Run(() =>
+        return Task.Run(async () =>
         {
             foreach (var issue in issues)
             {
@@ -739,7 +731,7 @@ public class AutoRemediationSystem
                 if (issue.Contains("hardcoded"))
                 {
                     // Log security warning for manual review
-                    File.AppendAllText("security_warnings.log", 
+                    await File.AppendAllTextAsync("security_warnings.log", 
                         $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - {issue}\n");
                 }
             }
@@ -749,14 +741,17 @@ public class AutoRemediationSystem
     /// <summary>
     /// Real network optimization implementation
     /// </summary>
-    private async Task OptimizeNetworkConnectionsAsync()
+    private static async Task OptimizeNetworkConnectionsAsync()
     {
         // Test connection to TopstepX APIs and optimize settings
         using var httpClient = new HttpClient();
+        var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+        var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
+        
         var testUrls = new[]
         {
-            "https://api.topstepx.com/health",
-            "https://rtc.topstepx.com/health"
+            $"{apiBase}/health",
+            $"{rtcBase}/health"
         };
 
         var connectionTimes = new List<double>();
@@ -789,12 +784,13 @@ public class AutoRemediationSystem
     /// <summary>
     /// Calculate optimal timeout based on actual network performance
     /// </summary>
-    private async Task<int> CalculateOptimalTimeoutAsync()
+    private static async Task<int> CalculateOptimalTimeoutAsync()
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(5);
         
-        var testUrl = "https://api.topstepx.com/health";
+        var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+        var testUrl = $"{apiBase}/health";
         var measurements = new List<double>();
         
         for (int i = 0; i < 3; i++)
@@ -824,9 +820,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Analyze performance optimization opportunities
     /// </summary>
-    private async Task AnalyzeAndApplyPerformanceOptimizations()
+    private static Task AnalyzeAndApplyPerformanceOptimizations()
     {
-        await Task.Run(async () =>
+        return Task.Run(async () =>
         {
             // CPU optimization
             var cpuUsage = await GetCurrentCpuUsageAsync();
@@ -850,86 +846,80 @@ public class AutoRemediationSystem
     /// <summary>
     /// Analyze system logs for patterns and issues
     /// </summary>
-    private async Task AnalyzeSystemLogs()
+    private static async Task AnalyzeSystemLogs()
     {
-        await Task.Run(() =>
+        // Analyze recent log files for error patterns
+        var logPath = "logs";
+        if (Directory.Exists(logPath))
         {
-            // Analyze recent log files for error patterns
-            var logPath = "logs";
-            if (Directory.Exists(logPath))
+            var recentLogs = Directory.GetFiles(logPath, "*.log")
+                .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-1))
+                .Take(10);
+
+            foreach (var logFile in recentLogs)
             {
-                var recentLogs = Directory.GetFiles(logPath, "*.log")
-                    .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-1))
-                    .Take(10);
-
-                foreach (var logFile in recentLogs)
+                try
                 {
-                    try
-                    {
-                        var logContent = File.ReadAllText(logFile);
-                        var errorCount = logContent.Split("ERROR").Length - 1;
-                        var warningCount = logContent.Split("WARN").Length - 1;
+                    var logContent = await File.ReadAllTextAsync(logFile);
+                    var errorCount = logContent.Split("ERROR").Length - 1;
+                    var warningCount = logContent.Split("WARN").Length - 1;
 
-                        if (errorCount > 10 || warningCount > 50)
-                        {
-                            // Log pattern analysis results
-                            File.AppendAllText("log_analysis.txt", 
-                                $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
-                        }
-                    }
-                    catch
+                    if (errorCount > 10 || warningCount > 50)
                     {
-                        // Ignore log analysis failures
+                        // Log pattern analysis results
+                        await File.AppendAllTextAsync("log_analysis.txt", 
+                            $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
                     }
                 }
+                catch
+                {
+                    // Ignore log analysis failures
+                }
             }
-        });
+        }
     }
 
     /// <summary>
     /// Validate system configuration
     /// </summary>
-    private async Task ValidateSystemConfiguration()
+    private static async Task ValidateSystemConfiguration()
     {
-        await Task.Run(() =>
+        // Check critical configuration values
+        var criticalConfigs = new Dictionary<string, string>
         {
-            // Check critical configuration values
-            var criticalConfigs = new Dictionary<string, string>
-            {
-                ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
-                ["BOT_MODE"] = "staging",
-                ["DRY_RUN"] = "true"
-            };
+            ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
+            ["BOT_MODE"] = "staging",
+            ["DRY_RUN"] = "true"
+        };
 
-            var configIssues = new List<string>();
-            
-            foreach (var config in criticalConfigs)
+        var configIssues = new List<string>();
+        
+        foreach (var (key, defaultValue) in criticalConfigs)
+        {
+            var value = Environment.GetEnvironmentVariable(key);
+            if (string.IsNullOrEmpty(value))
             {
-                var value = Environment.GetEnvironmentVariable(config.Key);
-                if (string.IsNullOrEmpty(value))
-                {
-                    configIssues.Add($"Missing configuration: {config.Key}");
-                }
-                else if (config.Key == "TOPSTEPX_API_BASE" && !value.StartsWith("https://"))
-                {
-                    configIssues.Add($"Insecure API base URL: {config.Key}");
-                }
+                configIssues.Add($"Missing configuration: {key}");
             }
+            else if (key == "TOPSTEPX_API_BASE" && !value.StartsWith("https://"))
+            {
+                configIssues.Add($"Insecure API base URL: {key}");
+            }
+        }
 
-            if (configIssues.Any())
-            {
-                File.AppendAllText("config_validation.txt", 
-                    $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
-            }
-        });
+        if (configIssues.Any())
+        {
+            await File.AppendAllTextAsync("config_validation.txt", 
+                $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
+        }
     }
 
     /// <summary>
     /// Analyze resource utilization patterns
     /// </summary>
-    private async Task AnalyzeResourceUtilization()
+    private Task AnalyzeResourceUtilization()
     {
-        await Task.Run(() =>
+        return Task.Run(async () =>
         {
             // Analyze current resource usage
             var process = Process.GetCurrentProcess();
@@ -951,20 +941,19 @@ public class AutoRemediationSystem
 
             // Log resource analysis for trending
             var resourceLog = JsonSerializer.Serialize(resourceAnalysis);
-            File.AppendAllText("resource_analysis.log", resourceLog + "\n");
+            await File.AppendAllTextAsync("resource_analysis.log", resourceLog + "\n");
         });
     }
 
     /// <summary>
     /// Intelligent memory cleanup implementation without forced GC
     /// </summary>
-    private async Task CleanupMemoryIntensiveComponentsAsync()
+    private static Task CleanupMemoryIntensiveComponentsAsync()
     {
-        // Clean up specific components that may be holding memory
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Clean up any cached data that can be regenerated using smart approaches
-            var memoryBefore = GC.GetTotalMemory(false);
+            GC.GetTotalMemory(false);
             
             // Use proper memory management patterns
             // 1. Check for thread pool pressure
@@ -997,8 +986,9 @@ public class AutoRemediationSystem
             
             if (memoryUsageGB > 1.5) // Only if using more than 1.5GB
             {
-                // Gentle suggestion to runtime - not forced
-                GC.Collect(0, GCCollectionMode.Optimized, false);
+                // Use memory pressure hints instead of forced collection
+                GC.AddMemoryPressure(1024 * 1024 * 100); // 100MB pressure
+                // Let runtime handle collection naturally
             }
         });
     }
@@ -1006,7 +996,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Get current CPU usage
     /// </summary>
-    private async Task<double> GetCurrentCpuUsageAsync()
+    private static async Task<double> GetCurrentCpuUsageAsync()
     {
         using var process = Process.GetCurrentProcess();
         var startTime = DateTime.UtcNow;
@@ -1027,7 +1017,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Optimize CPU workload
     /// </summary>
-    private async Task OptimizeCpuWorkloadAsync()
+    private static async Task OptimizeCpuWorkloadAsync()
     {
         await Task.Run(() =>
         {

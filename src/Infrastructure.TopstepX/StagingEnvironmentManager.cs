@@ -217,7 +217,7 @@ public class StagingEnvironmentManager
             stopwatch.Stop();
             result.ResponseTime = stopwatch.ElapsedMilliseconds;
             result.ErrorMessage = ex.Message;
-            _logger.LogWarning("⚠️ TopstepX connectivity check failed: {Error}", ex.Message);
+            _logger.LogWarning(ex, "⚠️ TopstepX connectivity check failed: {Error}", ex.Message);
         }
 
         return result;
