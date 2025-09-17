@@ -478,8 +478,8 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     {
         try
         {
-            // Calculate Brier score based on predicted confidence vs actual outcome
-            var confidence = Convert.ToDouble(tradeRecord.Metadata.GetValueOrDefault("prediction_confidence", 0.7));
+            // Extract real prediction confidence or calculate from trade characteristics
+            var confidence = ExtractOrCalculateConfidence(tradeRecord);
             var hitRate = CalculateTradeHitRate(tradeRecord);
             
             // Brier score = (predicted_probability - actual_outcome)^2
@@ -489,6 +489,81 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         catch
         {
             return 0.25; // Default Brier score
+        }
+    }
+
+    private double ExtractOrCalculateConfidence(TradeRecord tradeRecord)
+    {
+        try
+        {
+            // First, try to extract real confidence from metadata
+            if (tradeRecord.Metadata.TryGetValue("prediction_confidence", out var storedConfidence))
+            {
+                var confidence = Convert.ToDouble(storedConfidence);
+                if (confidence >= 0.0 && confidence <= 1.0)
+                {
+                    return confidence;
+                }
+            }
+            
+            // Calculate confidence based on trade characteristics if not stored
+            return CalculateConfidenceFromTradeData(tradeRecord);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to extract confidence for trade {TradeId}, using calculated value", tradeRecord.Id);
+            return CalculateConfidenceFromTradeData(tradeRecord);
+        }
+    }
+    
+    private double CalculateConfidenceFromTradeData(TradeRecord tradeRecord)
+    {
+        try
+        {
+            // Calculate confidence based on multiple trade characteristics
+            var factors = new List<double>();
+            
+            // Factor 1: Position size relative to max (larger size = higher confidence)
+            if (tradeRecord.Metadata.TryGetValue("position_size_ratio", out var sizeRatio))
+            {
+                factors.Add(Convert.ToDouble(sizeRatio));
+            }
+            
+            // Factor 2: Risk-reward ratio (better R = higher confidence)
+            if (tradeRecord.Metadata.TryGetValue("risk_reward_ratio", out var rrRatio))
+            {
+                var rr = Convert.ToDouble(rrRatio);
+                factors.Add(Math.Min(1.0, rr / 3.0)); // Normalize 3:1 RR to confidence 1.0
+            }
+            
+            // Factor 3: Market condition alignment
+            if (tradeRecord.Metadata.TryGetValue("market_alignment", out var alignment))
+            {
+                factors.Add(Convert.ToDouble(alignment));
+            }
+            
+            // Calculate weighted average confidence
+            if (factors.Any())
+            {
+                var avgConfidence = factors.Average();
+                return Math.Max(0.1, Math.Min(0.95, avgConfidence)); // Bound between 0.1-0.95
+            }
+            
+            // Fallback: calculate from trade timing and market conditions
+            var tradingHour = tradeRecord.Timestamp.Hour;
+            var sessionConfidence = tradingHour switch
+            {
+                >= 9 and <= 16 => 0.8,   // Market hours - high confidence
+                >= 18 and <= 23 => 0.6,  // Overnight - medium confidence  
+                _ => 0.4                  // Off hours - lower confidence
+            };
+            
+            return sessionConfidence;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to calculate confidence from trade data, using conservative estimate");
+            return 0.5; // Conservative fallback
         }
     }
 
