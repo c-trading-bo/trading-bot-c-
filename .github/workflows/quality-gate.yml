@@ -1,0 +1,168 @@
+name: Full-Stack Quality Gate – Static Only
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1️⃣ Analyzer – fail on any violation
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+          
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build with analyzers
+        run: |
+          echo "🏗 Running analyzer with warnings as errors..."
+          dotnet build --configuration Release --no-restore /warnaserror
+
+      # 2️⃣ Guardrails – placeholders
+      - name: Scan for placeholders
+        run: |
+          echo "🔍 Checking for TODO/STUB/PLACEHOLDER/NotImplementedException..."
+          # Look for actual TODO comments (not in documentation) or NotImplementedException
+          VIOLATIONS=0
+          
+          # Check for TODO comments that are not in documentation
+          if find ./src -name "*.cs" \
+             -exec grep -HnE "^[[:space:]]*//[[:space:]]*TODO[[:space:]]*:" {} \; | head -1; then
+            echo "❌ Found TODO comment in source code"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          # Check for NotImplementedException
+          if find ./src -name "*.cs" \
+             -exec grep -HnE "throw new NotImplementedException" {} \; | head -1; then
+            echo "❌ Found NotImplementedException in source code" 
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          # Check for STUB/PLACEHOLDER markers (but not in strings)
+          if find ./src -name "*.cs" \
+             -exec grep -HnE "^[[:space:]]*//[[:space:]]*(STUB|PLACEHOLDER)[[:space:]]*:" {} \; | head -1; then
+            echo "❌ Found STUB/PLACEHOLDER comment in source code"
+            VIOLATIONS=$((VIOLATIONS + 1))
+          fi
+          
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "❌ Found $VIOLATIONS placeholder violations — remove before committing."
+            exit 1
+          fi
+          
+          echo "✅ No placeholder violations found in source code"
+
+      # 3️⃣ Guardrails – commented-out code (ignore XML docs)
+      - name: Scan for commented-out code
+        run: |
+          echo "🔍 Checking for commented-out code..."
+          # Look for actual commented-out C# code patterns, excluding legitimate comments
+          if find . -name "*.cs" \
+             -not -path "./.git/*" \
+             -not -path "./bin/*" \
+             -not -path "./obj/*" \
+             -exec grep -HnE "^[[:space:]]*//[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*[(].*[)].*;" {} \; \
+             | grep -v "Copyright" \
+             | grep -v "License" \
+             | head -5; then
+            echo "❌ Found commented-out code — remove or restore before committing."
+            exit 1
+          fi
+          echo "✅ No commented-out code found"
+
+      # 4️⃣ Guardrails – hardcoded credentials
+      - name: Scan for hardcoded credentials
+        run: |
+          echo "🔍 Checking for hardcoded credentials..."
+          # Look for patterns that suggest hardcoded credentials
+          if grep -RInE "(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9_\-]{16,}['\"]" \
+             --exclude-dir={.git,.github,bin,obj,packages,node_modules} \
+             --exclude="*.md" \
+             . | grep -v "PLACEHOLDER" | grep -v "YOUR_"; then
+            echo "❌ Found possible hardcoded credentials — move to secure secrets storage."
+            exit 1
+          fi
+          echo "✅ No hardcoded credentials found"
+
+      # 5️⃣ Guardrails – hardcoded URLs and configuration
+      - name: Scan for hardcoded URLs and configuration
+        run: |
+          echo "🔍 Checking for hardcoded URLs and configuration..."
+          # Look for hardcoded URLs that should be environment-driven
+          if find . -name "*.cs" \
+             -not -path "./.git/*" \
+             -not -path "./bin/*" \
+             -not -path "./obj/*" \
+             -exec grep -HnE "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" {} \; \
+             | grep -v "GetEnvironmentVariable" \
+             | grep -v "example.com" \
+             | grep -v "localhost" \
+             | head -5; then
+            echo "⚠️ Found hardcoded URLs — consider making them environment-configurable."
+            # Don't fail for this, just warn
+          fi
+
+      # 6️⃣ Dead-code detection placeholder
+      - name: Dead code scan
+        run: |
+          echo "🔍 Running dead-code detection..."
+          # Placeholder for CodeQL or NDepend integration
+          echo "📋 Dead-code detection framework ready for integration"
+          echo "   Next: Integrate CodeQL query or NDepend analysis to detect:"
+          echo "   - Unused classes not reachable from orchestrator entry points"
+          echo "   - Private methods with no callers"
+          echo "   - Unreferenced assemblies or projects"
+          # For now, just check for obvious unused files
+          if find . -name "*.cs" -path "./src/*" \
+             -exec grep -l "class.*Test\|interface.*Test" {} \; 2>/dev/null | head -1; then
+            echo "📋 Found test classes in src/ - consider moving to tests/"
+          fi
+
+      # 7️⃣ Security scan for sensitive patterns
+      - name: Security pattern scan
+        run: |
+          echo "🔍 Scanning for security anti-patterns..."
+          # Check for dangerous patterns
+          SECURITY_ISSUES=0
+          
+          # Check for hardcoded localhost or development URLs in production code
+          if find ./src -name "*.cs" -exec grep -l "localhost\|127.0.0.1" {} \; | head -1; then
+            echo "⚠️ Found localhost references in src/ code"
+            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+          fi
+          
+          # Check for disabled SSL/TLS validation
+          if find ./src -name "*.cs" -exec grep -l "IgnoreSSL\|IgnoreCertificate\|AcceptAllCertificates" {} \; | head -1; then
+            echo "❌ Found disabled SSL/TLS certificate validation"
+            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+          fi
+          
+          # Check for SQL injection patterns
+          if find ./src -name "*.cs" -exec grep -l "\".*SELECT.*\".*+.*" {} \; | head -1; then
+            echo "❌ Found potential SQL injection pattern"
+            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
+          fi
+          
+          if [ $SECURITY_ISSUES -gt 0 ]; then
+            echo "❌ Security issues found - address before committing"
+            exit 1
+          fi
+          echo "✅ No security anti-patterns found"
+
+      - name: ✅ Quality Gate Passed
+        run: |
+          echo "🎉 All static quality checks passed!"
+          echo "✅ Analyzer-clean (zero violations)"
+          echo "✅ Guardrail-compliant (no placeholders/commented code/credentials)"
+          echo "✅ Security pattern compliant"
+          echo "✅ Ready for development workflow"
