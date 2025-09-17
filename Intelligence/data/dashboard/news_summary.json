@@ -1,83 +1,38 @@
 {
-  "timestamp": "2025-09-17T15:27:32.276546",
+  "timestamp": "2025-09-17T18:35:24.209622",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "workflow_run": "69",
+  "workflow_run": "70",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-17T15:22:45.047859",
+    "timestamp": "2025-09-17T18:30:39.648821",
     "analysis_mode": "comprehensive",
     "market_session": "regular",
-    "total_articles_processed": 12,
+    "total_articles_processed": 8,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.11666666666666665,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Dow rises, S&P 500 and Nasdaq steady as Wall Street braces for Fed decision",
-            "sentiment": 0.11666666666666665,
-            "textblob_score": 0.16666666666666666,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-rises-sp-500-and-nasdaq-steady-as-wall-street-braces-for-fed-decision-230515767.html",
-            "published": "2025-09-16T23:05:15Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "NQ": {
-        "sentiment_score": 0.11666666666666665,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Dow rises, S&P 500 and Nasdaq steady as Wall Street braces for Fed decision",
-            "sentiment": 0.11666666666666665,
-            "textblob_score": 0.16666666666666666,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-rises-sp-500-and-nasdaq-steady-as-wall-street-braces-for-fed-decision-230515767.html",
-            "published": "2025-09-16T23:05:15Z",
-            "relevance_keywords": [
-              "Nasdaq"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "SPY": {
-        "sentiment_score": 0.075,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Harbor Human Capital Factor US Large Cap ETF",
-            "sentiment": 0.075,
-            "textblob_score": 0.10714285714285714,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823704-harbor-human-capital-factor-us-large-cap-etf?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 10:45:00 -0400",
-            "relevance_keywords": [
-              "large cap"
-            ]
-          }
-        ],
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
         "signal": "NEUTRAL",
-        "confidence": 0.1,
-        "sources": [
-          "seeking_alpha"
-        ]
+        "confidence": 0.0,
+        "sources": []
       },
       "QQQ": {
         "sentiment_score": 0.0,
@@ -88,141 +43,43 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.3292424242424242,
-        "article_count": 2,
-        "articles": [
-          {
-            "title": "MARA Holdings (MARA) Soars 7.9% as Crypto Stakeholders Work on 1-Million Bitcoin Purchase",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/mara-holdings-mara-soars-7-145909531.html",
-            "published": "2025-09-17T14:59:09Z",
-            "relevance_keywords": [
-              "Bitcoin",
-              "crypto"
-            ]
-          },
-          {
-            "title": "Wall Street Turns Crypto Bet Loved by Hedge Funds Into ETF Bait",
-            "sentiment": 0.35848484848484846,
-            "textblob_score": 0.5121212121212121,
-            "keyword_score": 0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/wall-street-turns-crypto-bet-loved-by-hedge-funds-into-etf-bait",
-            "published": "Wed, 17 Sep 2025 15:04:26 GMT",
-            "relevance_keywords": [
-              "crypto"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.2,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg"
-        ]
-      },
-      "TSLA": {
-        "sentiment_score": 0.2238888888888889,
-        "article_count": 4,
-        "articles": [
-          {
-            "title": "Mike Mayo\u2019s Big Bank Optimism Climbs on Deal-Making Rebound",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/mike-mayo-s-big-bank-optimism-climbs-on-deal-making-rebound",
-            "published": "Wed, 17 Sep 2025 14:37:23 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "It\u2019s the hottest chip stock you\u2019ve probably never heard of \u2014 and it just soared 30% in a week",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/its-the-hottest-chip-stock-youve-probably-never-heard-of-and-it-just-soared-30-in-a-week-bbd4f7a4?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 14:46:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Should Gen Z and millennials even bother including Social Security in their retirement plans anymore?",
-            "sentiment": -0.05444444444444444,
-            "textblob_score": -0.07777777777777778,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/should-gen-z-and-millennials-even-bother-including-social-security-in-their-retirement-plans-anymore-1d9fd1ff?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 14:00:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Arhaus: I Need More Clarity On Revenue And Profits",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823705-arhaus-i-need-more-clarity-on-revenue-and-profits?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 10:47:21 -0400",
-            "relevance_keywords": [
-              "EV"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.4,
-        "sources": [
-          "bloomberg",
-          "marketwatch",
-          "seeking_alpha"
-        ]
-      },
-      "NVDA": {
-        "sentiment_score": -0.18148148148148147,
+        "sentiment_score": 0.14959259259259258,
         "article_count": 3,
         "articles": [
           {
-            "title": "BlackRock\u2019s $185 Billion Model Makers Are Amping Up Stock Bets",
-            "sentiment": -0.2644444444444444,
-            "textblob_score": -0.37777777777777777,
-            "keyword_score": 0.0,
+            "title": "American Bitcoin CEO Ho Pushes Back on National Security Concerns Over Bitmain Hardware",
+            "sentiment": -0.16,
+            "textblob_score": 0.2,
+            "keyword_score": -1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/blackrock-s-185-billion-model-makers-are-amping-up-stock-bets",
-            "published": "Wed, 17 Sep 2025 14:09:25 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-17/michael-ho-on-security-concerns-over-bitmain-hardware-video",
+            "published": "Wed, 17 Sep 2025 18:27:06 GMT",
             "relevance_keywords": [
-              "artificial intelligence"
+              "Bitcoin"
             ]
           },
           {
-            "title": "Oracle Sparks Bubble Talk With Stock Price in Dot-Com Territory",
-            "sentiment": -0.42,
-            "textblob_score": -0.6,
-            "keyword_score": 0,
+            "title": "Cannot Have Strong GDP Without Cheap Energy: Eric Trump",
+            "sentiment": 0.5527777777777778,
+            "textblob_score": 0.3611111111111111,
+            "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/oracle-sparks-bubble-talk-with-stock-price-in-dot-com-territory",
-            "published": "Wed, 17 Sep 2025 09:53:06 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-17/cannot-have-strong-gdp-without-cheap-energy-eric-trump-video",
+            "published": "Wed, 17 Sep 2025 17:44:34 GMT",
             "relevance_keywords": [
-              "artificial intelligence"
+              "Bitcoin"
             ]
           },
           {
-            "title": "Nvidia shares slip to one-week low. A report says China has banned its chips.",
-            "sentiment": 0.13999999999999999,
-            "textblob_score": 0.19999999999999998,
+            "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
             "keyword_score": 0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/nvidia-shares-slip-to-one-week-low-a-report-says-china-has-banned-its-chips-e45c70cc?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 13:27:00 GMT",
+            "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 17:24:00 GMT",
             "relevance_keywords": [
-              "Nvidia"
+              "Bitcoin"
             ]
           }
         ],
@@ -231,6 +88,93 @@
         "sources": [
           "bloomberg",
           "marketwatch"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.45571717171717174,
+        "article_count": 4,
+        "articles": [
+          {
+            "title": "Tesla stock surges, turning positive year to date as Elon Musk buys $1 billion in shares",
+            "sentiment": 0.4590909090909091,
+            "textblob_score": 0.22727272727272727,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/tesla-stock-surges-turning-positive-year-to-date-as-elon-musk-buys-1-billion-in-shares-152228766.html",
+            "published": "2025-09-15T20:03:38Z",
+            "relevance_keywords": [
+              "Tesla",
+              "Elon Musk"
+            ]
+          },
+          {
+            "title": "Cannot Have Strong GDP Without Cheap Energy: Eric Trump",
+            "sentiment": 0.5527777777777778,
+            "textblob_score": 0.3611111111111111,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-17/cannot-have-strong-gdp-without-cheap-energy-eric-trump-video",
+            "published": "Wed, 17 Sep 2025 17:44:34 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Tesla\u2019s stock-market win streak might be over \u2014 but it\u2019s made Elon Musk $38 billion richer",
+            "sentiment": 0.7549999999999999,
+            "textblob_score": 0.65,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/teslas-stock-may-be-ending-a-streak-but-not-before-making-musk-38-billion-richer-02e8a660?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 18:25:00 GMT",
+            "relevance_keywords": [
+              "Tesla",
+              "Elon Musk",
+              "EV"
+            ]
+          },
+          {
+            "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
+            "sentiment": 0.055999999999999994,
+            "textblob_score": 0.08,
+            "keyword_score": 0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 18:07:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.4,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg",
+          "marketwatch"
+        ]
+      },
+      "NVDA": {
+        "sentiment_score": -0.3,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Nvidia: You'll Regret Not Selling Here",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4823789-nvidia-youll-regret-not-selling-here?source=feed_all_articles",
+            "published": "Wed, 17 Sep 2025 14:15:25 -0400",
+            "relevance_keywords": [
+              "Nvidia"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.1,
+        "sources": [
+          "seeking_alpha"
         ]
       },
       "AAPL": {
@@ -252,7 +196,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-17T15:27:32.138638",
+    "timestamp": "2025-09-17T18:35:24.060669",
     "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
@@ -274,7 +218,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-17T15:22:43.131562",
+    "timestamp": "2025-09-17T18:30:37.654708",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
