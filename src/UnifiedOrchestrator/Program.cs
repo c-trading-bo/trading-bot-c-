@@ -500,7 +500,7 @@ Stack Trace:
         services.AddSingleton<IHealthMonitor, Trading.Safety.HealthMonitor>();
 
         // ================================================================================
-        // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
+        // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
         // ================================================================================
         
         // Register the REAL sophisticated orchestrators
@@ -509,7 +509,7 @@ Stack Trace:
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddHostedService<UnifiedOrchestratorService>();
 
-        // NO MORE FAKE MasterOrchestrator - using REAL sophisticated services only
+        // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
 
         // ================================================================================
         // AI/ML TRADING BRAIN REGISTRATION - DUAL ML APPROACH WITH UCB
