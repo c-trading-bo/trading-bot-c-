@@ -557,14 +557,14 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
     }
 
-    private class OnlineLearningState
+    private sealed class OnlineLearningState
     {
         public Dictionary<string, Dictionary<string, double>> RegimeWeights { get; set; } = new();
         public Dictionary<string, double> BaselineVariance { get; set; } = new();
         public DateTime LastSaved { get; set; }
     }
 
-    private class FeatureDriftState
+    private sealed class FeatureDriftState
     {
         public string ModelId { get; set; } = string.Empty;
         public Dictionary<string, double> BaselineFeatures { get; set; } = new();

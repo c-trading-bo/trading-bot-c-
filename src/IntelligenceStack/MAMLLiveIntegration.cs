@@ -584,7 +584,7 @@ public class MAMLLiveIntegration
     /// <summary>
     /// Load training examples from trading history database
     /// </summary>
-    private async Task<List<TrainingExample>> LoadFromTradingHistoryDatabase(RegimeType regime, int count, CancellationToken cancellationToken)
+    private Task<List<TrainingExample>> LoadFromTradingHistoryDatabase(RegimeType regime, int count, CancellationToken cancellationToken)
     {
         try
         {
@@ -593,7 +593,7 @@ public class MAMLLiveIntegration
             if (!File.Exists(dbPath))
             {
                 _logger.LogDebug("[MAML-LIVE] Trading database not found at {DbPath}", dbPath);
-                return new List<TrainingExample>();
+                return Task.FromResult(new List<TrainingExample>());
             }
             
             // Note: In a full implementation, this would use dependency injection
@@ -601,12 +601,12 @@ public class MAMLLiveIntegration
             _logger.LogDebug("[MAML-LIVE] Trading database available but service integration not configured for MAML");
             
             // This prevents MAML from training on synthetic data when real data is unavailable
-            return new List<TrainingExample>();
+            return Task.FromResult(new List<TrainingExample>());
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[MAML-LIVE] Error accessing trading history database");
-            return new List<TrainingExample>();
+            return Task.FromResult(new List<TrainingExample>());
         }
     }
     

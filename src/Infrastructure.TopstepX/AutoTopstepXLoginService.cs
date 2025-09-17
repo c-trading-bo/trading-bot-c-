@@ -342,7 +342,10 @@ public class AutoTopstepXLoginService : BackgroundService
         }
     }
 
+    // AsyncFixer false positive: This method overrides base.StopAsync and legitimately needs await
+#pragma warning disable AsyncFixer01 // The method does not need to use async/await
     public override async Task StopAsync(CancellationToken cancellationToken)
+#pragma warning restore AsyncFixer01
     {
         _logger.LogInformation("🛑 Stopping AutoTopstepXLoginService");
         await base.StopAsync(cancellationToken);

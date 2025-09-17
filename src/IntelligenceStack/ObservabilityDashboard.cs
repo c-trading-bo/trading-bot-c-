@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// Comprehensive observability system with golden signals and trading-specific dashboards
 /// Provides regime timeline, ensemble weights, confidence distribution, and performance monitoring
 /// </summary>
-public class ObservabilityDashboard
+public class ObservabilityDashboard : IDisposable
 {
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
@@ -633,6 +633,12 @@ public class ObservabilityDashboard
         {
             ["low"] = 0.5, ["medium"] = 1.0, ["high"] = 2.0, ["extreme"] = 4.0
         };
+    }
+
+    public void Dispose()
+    {
+        _updateTimer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 

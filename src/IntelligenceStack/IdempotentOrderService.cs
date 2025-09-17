@@ -388,7 +388,7 @@ public class IdempotentOrderService : IIdempotentOrderService
             orderKey[..8], request.Symbol, request.Side, priceBucket);
     }
 
-    private class OrderRecord
+    private sealed class OrderRecord
     {
         public string OrderKey { get; set; } = string.Empty;
         public string OrderId { get; set; } = string.Empty;
