@@ -24,7 +24,12 @@ name: "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System)"
         required: false
         type: string
   push:
-    branches: ['main', '*']
+    branches: ['main']
+    paths:
+      - 'Intelligence/**'
+      - 'ml/**'
+      - 'src/**/*.cs'
+      - '.github/workflows/ultimate_ml_rl_training_pipeline.yml'
 
 permissions:
   contents: write
