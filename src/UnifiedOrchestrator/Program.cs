@@ -503,11 +503,15 @@ Stack Trace:
         // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
         // ================================================================================
         
-        // Register the REAL sophisticated orchestrators
+        // Register REAL sophisticated orchestrators (NO DUPLICATES)
         services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
-        services.AddHostedService<UnifiedOrchestratorService>();
+        
+        // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
+        services.AddSingleton<UnifiedOrchestratorService>();
+        services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
         // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
 
@@ -567,7 +571,7 @@ Stack Trace:
         // Register Trading Brain Adapter for UnifiedTradingBrain parity
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.ITradingBrainAdapter, TradingBot.UnifiedOrchestrator.Brains.TradingBrainAdapter>();
         
-        // Register Unified Data Integration Service for historical + live data
+        // Register Unified Data Integration Service for historical + live data (PRIMARY IMPLEMENTATION)
         services.AddSingleton<TradingBot.UnifiedOrchestrator.Interfaces.IUnifiedDataIntegrationService, TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         services.AddHostedService<TradingBot.UnifiedOrchestrator.Services.UnifiedDataIntegrationService>();
         
@@ -603,10 +607,10 @@ Stack Trace:
         // Register unified model path resolver for cross-platform ONNX loading
         services.AddSingleton<BotCore.Services.UnifiedModelPathResolver>();
         
-        // Register unified data integration service for historical + live data bridge
-        services.AddSingleton<BotCore.Services.UnifiedDataIntegrationService>();
-        services.AddHostedService<BotCore.Services.UnifiedDataIntegrationService>(provider => 
-            provider.GetRequiredService<BotCore.Services.UnifiedDataIntegrationService>());
+        // REMOVED DUPLICATE: Different UnifiedDataIntegrationService implementation conflicts with primary
+        // services.AddSingleton<BotCore.Services.UnifiedDataIntegrationService>();
+        // services.AddHostedService<BotCore.Services.UnifiedDataIntegrationService>(provider => 
+        //     provider.GetRequiredService<BotCore.Services.UnifiedDataIntegrationService>());
         
         // Register the MASTER DECISION ORCHESTRATOR - The ONE always-learning brain
         services.AddSingleton<BotCore.Services.MasterDecisionOrchestrator>();
@@ -762,12 +766,14 @@ Stack Trace:
             var logger = provider.GetRequiredService<ILogger<DecisionServiceClient>>();
             return new DecisionServiceClient(decisionServiceOptions, httpClient, pythonOptions, logger);
         });
+        
+        // Register decision services as singletons first, then as hosted services (NO DUPLICATES)
         services.AddSingleton<DecisionServiceLauncher>();
         services.AddSingleton<DecisionServiceIntegration>();
         
-        // Register as hosted services for automatic startup/shutdown
-        services.AddHostedService<DecisionServiceLauncher>();
-        services.AddHostedService<DecisionServiceIntegration>();
+        // Register as hosted services for automatic startup/shutdown (SINGLE REGISTRATION ONLY)
+        services.AddHostedService(provider => provider.GetRequiredService<DecisionServiceLauncher>());
+        services.AddHostedService(provider => provider.GetRequiredService<DecisionServiceIntegration>());
         
         // Register feature demonstration service
         services.AddHostedService<FeatureDemonstrationService>();
@@ -1102,9 +1108,11 @@ Stack Trace:
         services.AddHostedService<AdvancedSystemInitializationService>();
 
         // Register the main unified orchestrator service
-        services.AddSingleton<UnifiedOrchestratorService>();
-        services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
-        services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        // REMOVED DUPLICATE REGISTRATION: UnifiedOrchestratorService already registered at line ~510
+        // Duplicate registration causes multiple agent sessions and premium cost violations
+        // services.AddSingleton<UnifiedOrchestratorService>();
+        // services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
+        // services.AddHostedService(provider => provider.GetRequiredService<UnifiedOrchestratorService>());
 
     }
 

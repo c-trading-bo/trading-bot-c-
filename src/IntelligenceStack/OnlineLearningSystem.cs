@@ -511,7 +511,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to extract confidence for trade {TradeId}, using calculated value", tradeRecord.Id);
+            _logger.LogWarning(ex, "Failed to extract confidence for trade {TradeId}, using calculated value", tradeRecord.TradeId);
             return CalculateConfidenceFromTradeData(tradeRecord);
         }
     }
@@ -550,7 +550,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
             
             // Fallback: calculate from trade timing and market conditions
-            var tradingHour = tradeRecord.Timestamp.Hour;
+            var tradingHour = tradeRecord.FillTime.Hour;
             var sessionConfidence = tradingHour switch
             {
                 >= 9 and <= 16 => 0.8,   // Market hours - high confidence

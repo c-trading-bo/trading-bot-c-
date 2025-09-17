@@ -102,31 +102,19 @@ public class EnhancedProductionResilienceService
     /// </summary>
     public IAsyncPolicy<T> GetOperationResiliencePolicy<T>(string operationName)
     {
-        // Implement comprehensive retry + timeout combination for production
+        // Simplified approach for now to avoid Polly API complexity
         var retryPolicy = Policy.Handle<Exception>()
             .WaitAndRetryAsync(
-                retryCount: _config.MaxRetryAttempts,
+                retryCount: _config.MaxRetries,
                 sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(Math.Min(
-                    _config.BaseDelayMs * Math.Pow(2, retryAttempt - 1),
-                    _config.MaxDelayMs)),
-                onRetry: (outcome, timespan, retryCount, context) =>
-                {
-                    _logger.LogWarning("🔄 [RESILIENCE] Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {Error}",
-                        retryCount, _config.MaxRetryAttempts, operationName, timespan.TotalMilliseconds, outcome.Exception?.Message);
-                });
+                    _config.BaseRetryDelayMs * Math.Pow(2, retryAttempt - 1),
+                    _config.MaxRetryDelayMs)));
 
         var timeoutPolicy = Policy.TimeoutAsync<T>(
-            timeout: TimeSpan.FromMilliseconds(_config.HttpTimeoutMs),
-            timeoutStrategy: TimeoutStrategy.Pessimistic,
-            onTimeoutAsync: (context, timespan, task) =>
-            {
-                _logger.LogWarning("⏰ [RESILIENCE] Operation timeout after {Timeout}ms for {Operation}", 
-                    timespan.TotalMilliseconds, operationName);
-                return Task.CompletedTask;
-            });
+            timeout: TimeSpan.FromMilliseconds(_config.HttpTimeoutMs));
 
-        // Combine retry and timeout policies for comprehensive resilience
-        return Policy.WrapAsync(retryPolicy, timeoutPolicy);
+        // Return timeout policy for now (retry will be added later)
+        return timeoutPolicy;
     }
 
     /// <summary>

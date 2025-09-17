@@ -28,6 +28,11 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     private readonly Dictionary<string, UnifiedWorkflow> _registeredWorkflows = new();
     private readonly HashSet<string> _activeWorkflows = new();
     private readonly object _workflowLock = new();
+    
+    // Agent session registry to prevent duplicates - addresses Comment #3304685224
+    private readonly HashSet<string> _activeAgentSessions = new();
+    private readonly object _agentSessionLock = new();
+    private readonly Dictionary<string, DateTime> _agentSessionStartTimes = new();
 
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
@@ -321,6 +326,68 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to update TopstepX connection status");
+        }
+    }
+    
+    /// <summary>
+    /// Launch agent with duplicate prevention - ensures only one session per agentKey
+    /// Addresses Comment #3304685224: Eliminate Duplicate Agent Launches
+    /// </summary>
+    public bool TryLaunchAgent(string agentKey, Func<Task> launchAction)
+    {
+        lock (_agentSessionLock)
+        {
+            // Check if agent session already active
+            if (_activeAgentSessions.Contains(agentKey))
+            {
+                var startTime = _agentSessionStartTimes.GetValueOrDefault(agentKey);
+                _logger.LogWarning("🚫 [AGENT-REGISTRY] Duplicate launch prevented for agentKey: {AgentKey}, already running since {StartTime}", 
+                    agentKey, startTime);
+                return false;
+            }
+            
+            // Register new agent session
+            _activeAgentSessions.Add(agentKey);
+            _agentSessionStartTimes[agentKey] = DateTime.UtcNow;
+            
+            _logger.LogInformation("✅ [AGENT-REGISTRY] Agent session registered: {AgentKey} at {StartTime}", 
+                agentKey, DateTime.UtcNow);
+            
+            // Execute launch action asynchronously
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await launchAction();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ [AGENT-REGISTRY] Agent launch failed for {AgentKey}", agentKey);
+                }
+                finally
+                {
+                    // Remove from registry when done
+                    lock (_agentSessionLock)
+                    {
+                        _activeAgentSessions.Remove(agentKey);
+                        _agentSessionStartTimes.Remove(agentKey);
+                        _logger.LogInformation("🗑️ [AGENT-REGISTRY] Agent session cleanup: {AgentKey}", agentKey);
+                    }
+                }
+            });
+            
+            return true;
+        }
+    }
+    
+    /// <summary>
+    /// Get audit log of all agent sessions for runtime proof
+    /// </summary>
+    public Dictionary<string, DateTime> GetActiveAgentSessions()
+    {
+        lock (_agentSessionLock)
+        {
+            return new Dictionary<string, DateTime>(_agentSessionStartTimes);
         }
     }
 }
