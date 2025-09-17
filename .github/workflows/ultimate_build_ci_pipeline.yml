@@ -493,20 +493,151 @@ jobs:
         run: |
           echo "🛡️ Running Dead Code Detection Framework..."
           
-          # Dead code detection framework (CodeQL integration ready)
-          echo "📋 Dead-code detection framework operational"
-          echo "   • CodeQL query ready: .github/codeql/dead-code.ql"
-          echo "   • Entry point analysis: Orchestrator-based architecture supported"
-          echo "   • Call graph analysis: Unused methods, classes, and fields detection"
-          echo "   • Activation: Enable CodeQL in repository settings"
+          # Dead code detection - functional implementation
+          DEAD_CODE_VIOLATIONS=0
           
-          # Basic dead code checks for now
-          if find . -name "*.cs" -path "./src/*" \
-             -exec grep -l "class.*Test\|interface.*Test" {} \; 2>/dev/null | head -1; then
-            echo "📋 Found test classes in src/ - consider moving to tests/"
+          echo "🔍 Scanning for dead code patterns..."
+          
+          # 1️⃣ Check for unused private methods (basic pattern)
+          echo "📋 Checking for potentially unused private methods..."
+          UNUSED_PRIVATE_METHODS=$(find ./src -name "*.cs" -exec grep -l "private.*void\|private.*Task\|private.*string\|private.*int\|private.*bool" {} \; | \
+            xargs -I {} sh -c 'echo "=== {} ==="; grep -n "private.*[a-zA-Z][a-zA-Z0-9]*(" "$1" | head -5' -- {} | \
+            grep -E "private.*(void|Task|string|int|bool).*[a-zA-Z][a-zA-Z0-9]*\(" | wc -l)
+          
+          if [ "$UNUSED_PRIVATE_METHODS" -gt 50 ]; then
+            echo "⚠️ Found $UNUSED_PRIVATE_METHODS potential unused private methods (threshold: 50)"
+            echo "💡 Consider reviewing private method usage in the codebase"
+            # Don't fail for this as it requires more sophisticated analysis
           fi
           
-          echo "✅ Dead code detection framework ready for CodeQL integration"
+          # 2️⃣ Check for actual unit test classes in src/ (definite violation)
+          echo "📋 Checking for misplaced unit test classes..."
+          TEST_CLASSES_IN_SRC=$(find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | wc -l)
+          
+          if [ "$TEST_CLASSES_IN_SRC" -gt 0 ]; then
+            echo "❌ Found $TEST_CLASSES_IN_SRC actual unit test classes in src/ directory"
+            find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | head -5
+            echo "❌ Unit test classes should be in tests/ directory, not src/"
+            DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + TEST_CLASSES_IN_SRC))
+          fi
+          
+          # 3️⃣ Check for obvious dead code patterns
+          echo "📋 Checking for obvious dead code patterns..."
+          
+          # Check for empty classes (no methods, properties, or fields)
+          EMPTY_CLASSES=$(find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | wc -l)
+          if [ "$EMPTY_CLASSES" -gt 0 ]; then
+            echo "❌ Found $EMPTY_CLASSES empty classes"
+            find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | head -3
+            DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + EMPTY_CLASSES))
+          fi
+          
+          # Check for unused using statements (basic check)
+          echo "📋 Checking for potentially unused using statements..."
+          EXCESSIVE_USINGS=$(find ./src -name "*.cs" -exec grep -c "^using " {} \; | awk '$1 > 15 {count++} END {print count+0}')
+          if [ "$EXCESSIVE_USINGS" -gt 10 ]; then
+            echo "⚠️ Found $EXCESSIVE_USINGS files with excessive using statements (>15 each)"
+            echo "💡 Consider removing unused using statements"
+          fi
+          
+          # 4️⃣ Check for potentially unreferenced files and dead code patterns
+          echo "📋 Checking for dead code patterns and unreferenced files..."
+          
+          DEAD_CODE_PATTERNS=0
+          
+          # Check for files with only imports/usings and empty classes/interfaces
+          MINIMAL_FILES=$(find ./src -name "*.cs" -exec sh -c '
+            file="$1"
+            if file "$file" | grep -q "text"; then
+              lines=$(grep -v "^[[:space:]]*$\|^[[:space:]]*//\|^[[:space:]]*using\|^[[:space:]]*namespace\|^[[:space:]]*{\|^[[:space:]]*}" "$file" 2>/dev/null | wc -l)
+              if [ "$lines" -lt 3 ]; then
+                echo "$file"
+              fi
+            fi
+          ' _ {} \; | wc -l)
+          
+          if [ "$MINIMAL_FILES" -gt 0 ]; then
+            echo "⚠️ Found $MINIMAL_FILES files with minimal content (potential dead code)"
+            DEAD_CODE_PATTERNS=$((DEAD_CODE_PATTERNS + MINIMAL_FILES))
+          fi
+          
+          # Check for unused private methods (methods declared but never called within the same file)
+          echo "📋 Checking for potentially unused private methods..."
+          UNUSED_PRIVATE_COUNT=0
+          
+          # Simple heuristic: find private methods and check if they're called in the same file
+          for cs_file in $(find ./src -name "*.cs" -type f | head -10); do
+            private_methods=$(grep -n "private.*[a-zA-Z][a-zA-Z0-9]*(" "$cs_file" | grep -v "get\|set" | head -5)
+            if [ -n "$private_methods" ]; then
+              while IFS= read -r method_line; do
+                method_name=$(echo "$method_line" | sed -n 's/.*private.*\([a-zA-Z][a-zA-Z0-9]*\)(.*/\1/p')
+                if [ -n "$method_name" ] && [ "$method_name" != "get" ] && [ "$method_name" != "set" ]; then
+                  # Check if method is called elsewhere in the same file
+                  if ! grep -q "$method_name(" "$cs_file" | grep -v "private.*$method_name("; then
+                    UNUSED_PRIVATE_COUNT=$((UNUSED_PRIVATE_COUNT + 1))
+                  fi
+                fi
+              done <<< "$private_methods"
+            fi
+          done
+          
+          if [ "$UNUSED_PRIVATE_COUNT" -gt 20 ]; then
+            echo "⚠️ Found $UNUSED_PRIVATE_COUNT potentially unused private methods"
+            echo "💡 Consider reviewing private method usage (sampled from first 10 files)"
+          fi
+          
+          # Check for duplicate or very similar file names (potential dead code)
+          echo "📋 Checking for duplicate file patterns..."
+          DUPLICATE_PATTERNS=$(find ./src -name "*.cs" -type f | sed 's/.*\///' | sort | uniq -d | wc -l)
+          
+          if [ "$DUPLICATE_PATTERNS" -gt 0 ]; then
+            echo "⚠️ Found $DUPLICATE_PATTERNS files with duplicate names in different directories"
+            find ./src -name "*.cs" -type f | sed 's/.*\///' | sort | uniq -d | head -3
+            echo "💡 Check if these are intentional or potential dead code"
+          fi
+          
+          # 5️⃣ Summary and decision
+          TOTAL_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + (DEAD_CODE_PATTERNS > 10 ? 1 : 0)))
+          
+          echo ""
+          echo "📊 Dead Code Detection Summary:"
+          echo "   • Unit test classes in src/: $TEST_CLASSES_IN_SRC"
+          echo "   • Empty classes: $EMPTY_CLASSES"
+          echo "   • Minimal content files: $MINIMAL_FILES"
+          echo "   • Unused private methods (sampled): $UNUSED_PRIVATE_COUNT"
+          echo "   • Duplicate file patterns: $DUPLICATE_PATTERNS"
+          echo "   • Critical violations: $DEAD_CODE_VIOLATIONS"
+          echo "   • Pattern warnings: $DEAD_CODE_PATTERNS"
+          echo "   • Total score: $TOTAL_VIOLATIONS"
+          echo ""
+          echo "🔧 CodeQL Integration Status:"
+          echo "   • CodeQL query ready: .github/codeql/dead-code.ql"
+          echo "   • Entry point analysis: Orchestrator-based architecture supported"
+          echo "   • Advanced analysis: Enable CodeQL in repository settings for comprehensive detection"
+          
+          # Fail build if significant dead code violations found
+          if [ "$TOTAL_VIOLATIONS" -gt 2 ]; then
+            echo ""
+            echo "❌ Critical dead code violations found ($TOTAL_VIOLATIONS > 2)"
+            echo "💡 Please clean up dead code before committing:"
+            echo "   • Move unit test classes from src/ to tests/"
+            echo "   • Remove empty classes and minimal content files"
+            echo "   • Review and remove unused private methods"
+            echo "   • Enable CodeQL for advanced dead code detection"
+            exit 1
+          elif [ "$TOTAL_VIOLATIONS" -gt 0 ] || [ "$DEAD_CODE_PATTERNS" -gt 20 ]; then
+            echo ""
+            echo "⚠️ Dead code issues detected (violations: $TOTAL_VIOLATIONS, patterns: $DEAD_CODE_PATTERNS)"
+            echo "💡 Consider addressing these issues to improve code quality"
+            echo "   • Review unused private methods and minimal files"
+            echo "   • Consider enabling CodeQL for comprehensive analysis"
+            echo "   • Current patterns are within acceptable limits for a large codebase"
+          else
+            echo ""
+            echo "✅ No significant dead code violations detected"
+          fi
+          
+          echo "✅ Dead code detection completed successfully"
 
       - name: "🛡️ Quality Gate Summary"
         if: env.CODE_ANALYSIS == 'true'
@@ -520,7 +651,7 @@ jobs:
           echo "   🏗️ Analyzer compliance - Zero violations"
           echo "   🚧 Guardrail enforcement - No placeholders/commented code/credentials"
           echo "   🔒 Security patterns - No anti-patterns detected"
-          echo "   💀 Dead code framework - Ready for CodeQL integration"
+          echo "   💀 Dead code detection - Active with violation enforcement"
           echo ""
           echo "🎯 QUALITY STANDARDS ENFORCED:"
           echo "   • Production-ready code only"
