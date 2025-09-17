@@ -56,9 +56,9 @@ public class RealTradingMetricsService : BackgroundService
                 // Main service loop - metrics are pushed via timer
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogInformation("[REAL_METRICS] Real Trading Metrics Service stopping");
+            _logger.LogInformation(ex, "[REAL_METRICS] Real Trading Metrics Service stopping");
         }
         catch (Exception ex)
         {
