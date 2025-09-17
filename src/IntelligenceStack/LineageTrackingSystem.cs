@@ -21,7 +21,6 @@ public class LineageTrackingSystem
     private readonly IModelRegistry _modelRegistry;
     private readonly IFeatureStore _featureStore;
     private readonly ICalibrationManager _calibrationManager;
-    private readonly IDecisionLogger _decisionLogger;
     private readonly string _lineagePath;
     
     private readonly Dictionary<string, LineageSnapshot> _snapshots = new();
@@ -33,14 +32,12 @@ public class LineageTrackingSystem
         IModelRegistry modelRegistry,
         IFeatureStore featureStore,
         ICalibrationManager calibrationManager,
-        IDecisionLogger decisionLogger,
         string lineagePath = "data/lineage")
     {
         _logger = logger;
         _modelRegistry = modelRegistry;
         _featureStore = featureStore;
         _calibrationManager = calibrationManager;
-        _decisionLogger = decisionLogger;
         _lineagePath = lineagePath;
         
         Directory.CreateDirectory(_lineagePath);

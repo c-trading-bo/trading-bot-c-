@@ -195,7 +195,7 @@ public class DecisionLogger : IDecisionLogger
         return $"D{timestamp}_{random}";
     }
 
-    private class DecisionLogEntry
+    private sealed class DecisionLogEntry
     {
         public DateTime Timestamp { get; set; }
         public IntelligenceDecision Decision { get; set; } = new();
@@ -203,7 +203,7 @@ public class DecisionLogger : IDecisionLogger
         public PerformanceMetrics Performance { get; set; } = new();
     }
 
-    private class SystemInfo
+    private sealed class SystemInfo
     {
         public string MachineName { get; set; } = string.Empty;
         public int ProcessId { get; set; }
@@ -211,7 +211,7 @@ public class DecisionLogger : IDecisionLogger
         public long MemoryUsage { get; set; }
     }
 
-    private class PerformanceMetrics
+    private sealed class PerformanceMetrics
     {
         public double DecisionLatencyMs { get; set; }
         public int MemoryPressure { get; set; }
@@ -365,7 +365,7 @@ public class DriftMonitor
             modelId, result.PSI, result.ShouldBlock);
     }
 
-    private class FeatureBaseline
+    private sealed class FeatureBaseline
     {
         public DateTime CreatedAt { get; set; }
         public Dictionary<string, double> FeatureDistribution { get; set; } = new();

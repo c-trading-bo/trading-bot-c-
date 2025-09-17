@@ -99,7 +99,7 @@ public class ComprehensiveSmokeTestSuite
         result.AddTest("Environment Variable Detection", () =>
         {
             var envVars = new[] { "PATH", "HOME", "USER" };
-            return envVars.All(var => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(var)));
+            return Array.TrueForAll(envVars, var => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(var)));
         });
 
         // Test 2: File System Access
@@ -385,7 +385,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteSafetyTests()
+    private static async Task<TestCategoryResult> ExecuteSafetyTests()
     {
         var result = new TestCategoryResult("Safety");
 

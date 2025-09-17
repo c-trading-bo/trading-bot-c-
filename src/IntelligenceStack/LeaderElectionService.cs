@@ -339,7 +339,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         }
     }
 
-    private class LeaderLockData
+    private sealed class LeaderLockData
     {
         public string NodeId { get; set; } = string.Empty;
         public DateTime AcquiredAt { get; set; }

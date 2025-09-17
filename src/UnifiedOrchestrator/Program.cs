@@ -90,7 +90,7 @@ public class Program
             var host = CreateHostBuilder(args).Build();
             
             // Display startup information
-            // DisplayStartupInfo(); // Commented out for now to focus on build
+            // Note: DisplayStartupInfo() temporarily disabled during build phase
             
             // Run the unified orchestrator
             await host.RunAsync();

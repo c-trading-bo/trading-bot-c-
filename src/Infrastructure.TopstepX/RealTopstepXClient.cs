@@ -444,14 +444,11 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var status = await _orderService.GetOrderStatusAsync(orderId);
-#pragma warning restore CS0618 // Type or member is obsolete
-            var json = JsonSerializer.Serialize(status);
-            var element = JsonSerializer.Deserialize<JsonElement>(json);
+            var searchRequest = new { orderId = orderId };
+            var result = await _orderService.SearchOrdersAsync(searchRequest);
             
             _logger.LogInformation("[REAL-TOPSTEPX] GetOrderStatusAsync successful for order: {OrderId}", orderId);
-            return element;
+            return result;
         }
         catch (Exception ex)
         {
@@ -591,7 +588,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetContractAsync failed for contract: {ContractId}", contractId);
-            throw;
+            throw new InvalidOperationException($"Failed to get contract details for {contractId}", ex);
         }
     }
 
@@ -624,7 +621,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchContractsAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search contracts through TopstepX API", ex);
         }
     }
 
@@ -655,7 +652,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetMarketDataAsync failed for symbol: {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Failed to get market data for {symbol}", ex);
         }
     }
 

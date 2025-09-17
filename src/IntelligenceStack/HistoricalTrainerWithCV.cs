@@ -427,7 +427,7 @@ public class HistoricalTrainerWithCV
             catch (Exception ex)
             {
                 // FAIL FAST: No synthetic data generation allowed
-                _logger.LogError("[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}. System refuses to generate synthetic data.", symbol);
+                _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}. System refuses to generate synthetic data.", symbol);
                 throw new InvalidOperationException($"Real market data required for training {symbol}. " +
                     "System will not operate on synthetic data. Implement real market data loading from TopstepX API.");
             }
@@ -502,7 +502,7 @@ public class HistoricalTrainerWithCV
     /// <summary>
     /// Load REAL market data from TopstepX or other market data providers
     /// </summary>
-    private async Task<List<MarketDataPoint>> LoadRealMarketDataFromProviderAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private Task<List<MarketDataPoint>> LoadRealMarketDataFromProviderAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
     {
         try
         {
@@ -512,18 +512,16 @@ public class HistoricalTrainerWithCV
             // For now, return empty list since we don't have the historical data service implemented
             var dataPoints = new List<MarketDataPoint>();
             
-            // This would be the real implementation:
-            // var topstepXClient = GetService<ITopstepXClient>();
-            // var historicalData = await topstepXClient.GetHistoricalDataAsync(symbol, startTime, endTime, cancellationToken);
-            // return ConvertToMarketDataPoints(historicalData);
+            // Real TopstepX historical data integration will be implemented
+            // when historical data API endpoints become available
             
             _logger.LogWarning("[HISTORICAL_TRAINER] Historical data service not available for {Symbol}. Training will be skipped.", symbol);
-            return dataPoints;
+            return Task.FromResult(dataPoints);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}", symbol);
-            return new List<MarketDataPoint>();
+            return Task.FromResult(new List<MarketDataPoint>());
         }
     }
     

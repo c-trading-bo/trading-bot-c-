@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// Comprehensive observability system with golden signals and trading-specific dashboards
 /// Provides regime timeline, ensemble weights, confidence distribution, and performance monitoring
 /// </summary>
-public class ObservabilityDashboard
+public class ObservabilityDashboard : IDisposable
 {
     private readonly ILogger<ObservabilityDashboard> _logger;
     private readonly ObservabilityConfig _config;
@@ -22,7 +22,7 @@ public class ObservabilityDashboard
     private readonly ModelQuarantineManager _quarantine;
     private readonly MAMLLiveIntegration _maml;
     private readonly RLAdvisorSystem _rlAdvisor;
-    private readonly SLOMonitor _sloMonitor;
+    private readonly SloMonitor _sloMonitor;
     private readonly string _dashboardPath;
     
     private readonly Dictionary<string, MetricTimeSeries> _metrics = new();
@@ -36,7 +36,7 @@ public class ObservabilityDashboard
         ModelQuarantineManager quarantine,
         MAMLLiveIntegration maml,
         RLAdvisorSystem rlAdvisor,
-        SLOMonitor sloMonitor,
+        SloMonitor sloMonitor,
         string dashboardPath = "wwwroot/dashboards")
     {
         _logger = logger;
@@ -94,7 +94,7 @@ public class ObservabilityDashboard
         // Perform brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken);
         
-        var sloStatus = _sloMonitor.GetCurrentSLOStatus();
+        var sloStatus = _sloMonitor.GetCurrentSloStatus();
         var ensembleStatus = _ensemble.GetCurrentStatus();
         var mamlStatus = _maml.GetCurrentStatus();
         
@@ -345,30 +345,30 @@ public class ObservabilityDashboard
     /// <summary>
     /// Get SLO budget dashboard
     /// </summary>
-    private async Task<SLOBudgetDashboard> GetSLOBudgetAsync(CancellationToken cancellationToken)
+    private async Task<SloBudgetDashboard> GetSLOBudgetAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
         await Task.Delay(1, cancellationToken);
         
-        var sloStatus = _sloMonitor.GetCurrentSLOStatus();
+        var sloStatus = _sloMonitor.GetCurrentSloStatus();
         
-        return new SLOBudgetDashboard
+        return new SloBudgetDashboard
         {
-            DecisionLatencyBudget = new SLOBudget
+            DecisionLatencyBudget = new SloBudget
             {
                 Target = 120,
                 Current = sloStatus.DecisionLatencyP99Ms,
                 BudgetRemaining = Math.Max(0, (120 - sloStatus.DecisionLatencyP99Ms) / 120),
                 IsHealthy = sloStatus.DecisionLatencyP99Ms < 120
             },
-            OrderLatencyBudget = new SLOBudget
+            OrderLatencyBudget = new SloBudget
             {
                 Target = 400,
                 Current = sloStatus.OrderLatencyP99Ms,
                 BudgetRemaining = Math.Max(0, (400 - sloStatus.OrderLatencyP99Ms) / 400),
                 IsHealthy = sloStatus.OrderLatencyP99Ms < 400
             },
-            ErrorBudget = new SLOBudget
+            ErrorBudget = new SloBudget
             {
                 Target = 0.5,
                 Current = sloStatus.ErrorRate * 100,
@@ -422,7 +422,7 @@ public class ObservabilityDashboard
     /// <summary>
     /// Get MAML status dashboard
     /// </summary>
-    private async Task<MAMLStatusDashboard> GetMAMLStatusAsync(CancellationToken cancellationToken)
+    private async Task<MamlStatusDashboard> GetMAMLStatusAsync(CancellationToken cancellationToken)
     {
         // Get MAML status asynchronously to enable concurrent dashboard data collection
         var mamlStatus = await Task.Run(() => _maml.GetCurrentStatus(), cancellationToken);
@@ -431,7 +431,7 @@ public class ObservabilityDashboard
         var regimeStatesTask = Task.Run(() => 
             mamlStatus.RegimeStates.ToDictionary(
                 kvp => kvp.Key,
-                kvp => new MAMLRegimeView
+                kvp => new MamlRegimeView
                 {
                     LastAdaptation = kvp.Value.LastAdaptation,
                     AdaptationCount = kvp.Value.AdaptationCount,
@@ -443,7 +443,7 @@ public class ObservabilityDashboard
         
         var regimeAdaptations = await regimeStatesTask;
         
-        return new MAMLStatusDashboard
+        return new MamlStatusDashboard
         {
             Enabled = mamlStatus.Enabled,
             LastUpdate = mamlStatus.LastUpdate,
@@ -481,7 +481,7 @@ public class ObservabilityDashboard
         
         // Collect ensemble metrics asynchronously
         var ensembleStatusTask = Task.Run(() => _ensemble.GetCurrentStatus());
-        var sloStatusTask = Task.Run(() => _sloMonitor.GetCurrentSLOStatus());
+        var sloStatusTask = Task.Run(() => _sloMonitor.GetCurrentSloStatus());
         var healthReportTask = Task.Run(() => _quarantine.GetHealthReport());
         
         // Await all metrics collection tasks concurrently
@@ -634,6 +634,12 @@ public class ObservabilityDashboard
             ["low"] = 0.5, ["medium"] = 1.0, ["high"] = 2.0, ["extreme"] = 4.0
         };
     }
+
+    public void Dispose()
+    {
+        _updateTimer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }
 
 #region Dashboard Data Models
@@ -649,9 +655,9 @@ public class DashboardData
     public DrawdownForecast? DrawdownForecast { get; set; }
     public SafetyEventsDashboard? SafetyEvents { get; set; }
     public ModelHealthDashboard? ModelHealth { get; set; }
-    public SLOBudgetDashboard? SLOBudget { get; set; }
+    public SloBudgetDashboard? SLOBudget { get; set; }
     public RLAdvisorDashboard? RLAdvisorStatus { get; set; }
-    public MAMLStatusDashboard? MAMLStatus { get; set; }
+    public MamlStatusDashboard? MAMLStatus { get; set; }
 }
 
 public class GoldenSignals
@@ -803,14 +809,14 @@ public class QuarantineEvent
     public string Reason { get; set; } = string.Empty;
 }
 
-public class SLOBudgetDashboard
+public class SloBudgetDashboard
 {
-    public SLOBudget DecisionLatencyBudget { get; set; } = new();
-    public SLOBudget OrderLatencyBudget { get; set; } = new();
-    public SLOBudget ErrorBudget { get; set; } = new();
+    public SloBudget DecisionLatencyBudget { get; set; } = new();
+    public SloBudget OrderLatencyBudget { get; set; } = new();
+    public SloBudget ErrorBudget { get; set; } = new();
 }
 
-public class SLOBudget
+public class SloBudget
 {
     public double Target { get; set; }
     public double Current { get; set; }
@@ -844,15 +850,15 @@ public class RLDecisionView
     public bool IsAdviseOnly { get; set; }
 }
 
-public class MAMLStatusDashboard
+public class MamlStatusDashboard
 {
     public bool Enabled { get; set; }
     public DateTime LastUpdate { get; set; }
-    public Dictionary<string, MAMLRegimeView> RegimeAdaptations { get; set; } = new();
+    public Dictionary<string, MamlRegimeView> RegimeAdaptations { get; set; } = new();
     public Dictionary<string, double> WeightBounds { get; set; } = new();
 }
 
-public class MAMLRegimeView
+public class MamlRegimeView
 {
     public DateTime LastAdaptation { get; set; }
     public int AdaptationCount { get; set; }

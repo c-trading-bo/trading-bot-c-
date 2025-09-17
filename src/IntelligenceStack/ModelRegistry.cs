@@ -363,7 +363,7 @@ public class ModelRegistry : IModelRegistry
         return string.Equals(calculatedChecksum, model.Checksum, StringComparison.OrdinalIgnoreCase);
     }
 
-    private class PromotionRecord
+    private sealed class PromotionRecord
     {
         public string ModelId { get; set; } = string.Empty;
         public DateTime PromotedAt { get; set; }

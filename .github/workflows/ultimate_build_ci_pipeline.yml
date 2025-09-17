@@ -355,6 +355,138 @@ jobs:
             echo "⚠️ SonarQube token not available, skipping analysis"
           fi
 
+      # 🛡️ INTEGRATED QUALITY GATE - Full-Stack Static Analysis
+      - name: "🛡️ Quality Gate: Analyzer Compliance (Zero Tolerance)"
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🛡️ Running Full-Stack Quality Gate - Analyzer Compliance..."
+          
+          # Build with warnings as errors for strict compliance
+          echo "🏗 Building with zero tolerance for analyzer violations..."
+          if [ "${{ steps.analysis.outputs.solution_exists }}" = "true" ]; then
+            if [ -f "${{ env.SOLUTION_FILE }}" ]; then
+              dotnet build "${{ env.SOLUTION_FILE }}" --configuration Release --no-restore /warnaserror
+            elif [ -n "${{ steps.analysis.outputs.solution_file }}" ]; then
+              dotnet build "${{ steps.analysis.outputs.solution_file }}" --configuration Release --no-restore /warnaserror
+            fi
+          else
+            dotnet build --configuration Release --no-restore /warnaserror
+          fi
+          
+          echo "✅ Analyzer compliance verified - zero violations achieved"
+
+      # Guardrails – placeholders
+      - name: Scan for placeholders
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Checking for TODO/STUB/PLACEHOLDER/NotImplementedException..."
+          if grep -RInE "TODO|STUB|PLACEHOLDER|NotImplementedException" --exclude-dir={.git,.github} .; then
+            echo "❌ Found placeholders — remove before committing."
+            exit 1
+          fi
+
+      # Guardrails – commented-out code (ignore XML docs)
+      - name: Scan for commented-out code
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Checking for commented-out code..."
+          if grep -RInE "^[[:space:]]*//[[:space:]]*[A-Za-z0-9_]+" --exclude-dir={.git,.github} --include=\*.cs . \
+             | grep -v "^[[:space:]]*///"; then
+            echo "❌ Found commented-out code — remove or restore before committing."
+            exit 1
+          fi
+
+      # Guardrails – hardcoded credentials
+      - name: Scan for hardcoded credentials
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Checking for hardcoded credentials..."
+          if grep -RInE "(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9_\-]{16,}['\"]" \
+             --exclude-dir={.git,.github} .; then
+            echo "❌ Found possible hardcoded credentials — move to secure secrets storage."
+            exit 1
+          fi
+
+      # Guardrails – security patterns
+      - name: Scan for insecure patterns
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Checking for insecure patterns..."
+          if grep -RInE "ServicePointManager\.ServerCertificateValidationCallback|SELECT \* FROM|http://" \
+             --exclude-dir={.git,.github} .; then
+            echo "❌ Found insecure patterns — fix before committing."
+            exit 1
+          fi
+
+      # Dead-code detection (CodeQL)
+      - name: Dead code scan
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo "🔍 Running dead-code detection..."
+          
+          # Check if CodeQL is available
+          if command -v codeql &> /dev/null; then
+            echo "📋 CodeQL available - running comprehensive dead code analysis..."
+            codeql database create db --language=csharp --source-root .
+            codeql database analyze db .github/codeql/dead-code.ql --format=sarif-latest --output=deadcode.sarif
+            if grep -q "result" deadcode.sarif; then
+              echo "❌ Dead code detected — remove or wire into orchestrator."
+              exit 1
+            fi
+            echo "✅ No dead code detected by CodeQL analysis"
+          else
+            echo "📋 CodeQL not available - running fallback dead code detection..."
+            
+            # Fallback: Basic dead code detection without CodeQL
+            DEAD_CODE_VIOLATIONS=0
+            
+            # Check for actual unit test classes in src/
+            TEST_CLASSES_IN_SRC=$(find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | wc -l)
+            if [ "$TEST_CLASSES_IN_SRC" -gt 0 ]; then
+              echo "❌ Found $TEST_CLASSES_IN_SRC unit test classes in src/ directory"
+              DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + TEST_CLASSES_IN_SRC))
+            fi
+            
+            # Check for empty classes
+            EMPTY_CLASSES=$(find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | wc -l)
+            if [ "$EMPTY_CLASSES" -gt 0 ]; then
+              echo "❌ Found $EMPTY_CLASSES empty classes"
+              DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + EMPTY_CLASSES))
+            fi
+            
+            if [ "$DEAD_CODE_VIOLATIONS" -gt 0 ]; then
+              echo "❌ Dead code violations found ($DEAD_CODE_VIOLATIONS) — remove before committing."
+              exit 1
+            fi
+            
+            echo "✅ No critical dead code violations detected"
+          fi
+
+      - name: "🛡️ Quality Gate Summary"
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
+          echo ""
+          echo "🛡️ ============================================"
+          echo "🛡️ FULL-STACK QUALITY GATE COMPLETE"
+          echo "=============================================="
+          echo ""
+          echo "✅ STATIC ANALYSIS COMPLETED:"
+          echo "   🏗️ Analyzer compliance - Zero violations"
+          echo "   🚧 Guardrail enforcement - No placeholders/commented code/credentials"
+          echo "   🔒 Security patterns - No insecure patterns detected"
+          echo "   💀 Dead code detection - Active with comprehensive analysis"
+          echo ""
+          echo "🎯 QUALITY STANDARDS ENFORCED:"
+          echo "   • Production-ready code only"
+          echo "   • No TODO/STUB placeholders"
+          echo "   • No hardcoded credentials or URLs"
+          echo "   • Security-compliant patterns"
+          echo "   • Zero analyzer violations"
+          echo "   • Dead code elimination active"
+          echo ""
+          echo "✅ Repository meets enterprise production standards!"
+          echo "=============================================="
+
       - name: "📦 Package Creation (Release Mode)"
         if: env.BUILD_CONFIGURATION == 'Release' && (env.BUILD_MODE == 'release' || env.BUILD_MODE == 'ultimate')
         run: |

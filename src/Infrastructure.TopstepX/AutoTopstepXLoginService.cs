@@ -192,10 +192,11 @@ public class AutoTopstepXLoginService : BackgroundService
     {
         try
         {
-            // Ensure BaseAddress is set - UPDATED: Use working TopstepX API
+            // Ensure BaseAddress is set - Use environment variable with fallback
             if (_httpClient.BaseAddress == null)
             {
-                _httpClient.BaseAddress = new Uri("https://api.topstepx.com");
+                var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                _httpClient.BaseAddress = new Uri(apiBase);
             }
             
             _httpClient.DefaultRequestHeaders.Authorization = 
@@ -341,7 +342,10 @@ public class AutoTopstepXLoginService : BackgroundService
         }
     }
 
+    // AsyncFixer false positive: This method overrides base.StopAsync and legitimately needs await
+#pragma warning disable AsyncFixer01 // The method does not need to use async/await
     public override async Task StopAsync(CancellationToken cancellationToken)
+#pragma warning restore AsyncFixer01
     {
         _logger.LogInformation("🛑 Stopping AutoTopstepXLoginService");
         await base.StopAsync(cancellationToken);

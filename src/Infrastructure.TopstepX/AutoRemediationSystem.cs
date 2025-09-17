@@ -1017,9 +1017,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Optimize CPU workload
     /// </summary>
-    private static async Task OptimizeCpuWorkloadAsync()
+    private static Task OptimizeCpuWorkloadAsync()
     {
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Optimize thread pool settings
             ThreadPool.GetMinThreads(out var minWorker, out var minIo);
