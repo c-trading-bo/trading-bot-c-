@@ -239,7 +239,7 @@ public class MetaLearner
     /// <summary>
     /// Evaluate adapted policy on query set
     /// </summary>
-    private double EvaluateOnQuerySet(PolicyNetwork policy, List<TaskExperience> querySet)
+    private static double EvaluateOnQuerySet(PolicyNetwork policy, List<TaskExperience> querySet)
     {
         var totalLoss = 0.0;
         

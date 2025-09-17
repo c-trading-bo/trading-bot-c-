@@ -599,6 +599,13 @@ public class ActorNetwork : IDisposable
             _disposed = true;
         }
     }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
+    }
 }
 
 /// <summary>
@@ -624,7 +631,7 @@ public class CriticNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         InitializeWeights();
     }
@@ -755,7 +762,7 @@ public class ValueNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         InitializeWeights();
     }
@@ -821,6 +828,13 @@ public class ValueNetwork
         
         // Update output bias (simplified)
         _biasOutput[0] += gradient;
+    }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
     }
 }
 

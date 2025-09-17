@@ -275,23 +275,4 @@ public class UpdaterAgent
         return output.Trim();
     }
 
-    private static IDictionary<string, string?> ChildEnvFromDotEnv(string root)
-    {
-        var dict = new Dictionary<string, string?>();
-        var envFile = Path.Combine(root, ".env.local");
-        if (File.Exists(envFile))
-        {
-            foreach (var line in File.ReadAllLines(envFile))
-            {
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                if (line.TrimStart().StartsWith('#')) continue;
-                var idx = line.IndexOf('=');
-                if (idx <= 0) continue;
-                var key = line[..idx].Trim();
-                var val = line[(idx + 1)..].Trim();
-                dict[key] = val;
-            }
-        }
-        return dict;
-    }
 }
