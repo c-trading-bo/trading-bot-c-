@@ -375,7 +375,7 @@ public class SnapshotManager : ISnapshotManager
     /// <summary>
     /// Mask account ID for logging
     /// </summary>
-    private string MaskAccountId(string accountId)
+    private static string MaskAccountId(string accountId)
     {
         if (string.IsNullOrEmpty(accountId) || accountId.Length <= 4)
             return "****";

@@ -103,7 +103,7 @@ public class ComprehensiveSmokeTestSuite
         });
 
         // Test 2: File System Access
-        result.AddTest("File System Access", () =>
+        result.AddTest("File System Access", async () =>
         {
             var tempFile = Path.GetTempFileName();
             try

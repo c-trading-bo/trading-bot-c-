@@ -287,7 +287,7 @@ public class ComprehensiveReportingSystem
         return features;
     }
 
-    private double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
+    private static double CalculateCoveragePercentage(List<FeatureInfo> implemented, List<FeatureInfo> unexercised)
     {
         var allFeatures = implemented.Concat(unexercised).ToList();
         if (allFeatures.Count == 0) return 0;

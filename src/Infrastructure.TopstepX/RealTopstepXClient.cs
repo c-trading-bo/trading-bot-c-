@@ -151,7 +151,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] Authentication failed");
-            throw;
+            throw new InvalidOperationException("TopstepX authentication failed", ex);
         }
     }
 
@@ -192,7 +192,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] Token refresh failed");
-            throw;
+            throw new InvalidOperationException("TopstepX token refresh failed", ex);
         }
     }
 
@@ -237,7 +237,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetAccountAsync failed for account: {AccountId}", MaskAccountId(accountId));
-            throw;
+            throw new InvalidOperationException($"Failed to get account information for {MaskAccountId(accountId)}", ex);
         }
     }
 
@@ -281,7 +281,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetAccountBalanceAsync failed for account: {AccountId}", MaskAccountId(accountId));
-            throw;
+            throw new InvalidOperationException($"Failed to get account balance for {MaskAccountId(accountId)}", ex);
         }
     }
 
@@ -325,7 +325,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetAccountPositionsAsync failed for account: {AccountId}", MaskAccountId(accountId));
-            throw;
+            throw new InvalidOperationException($"Failed to get account positions for {MaskAccountId(accountId)}", ex);
         }
     }
 
@@ -370,7 +370,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchAccountsAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search TopstepX accounts", ex);
         }
     }
 
@@ -417,7 +417,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] PlaceOrderAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to place order through TopstepX", ex);
         }
     }
 
@@ -456,7 +456,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetOrderStatusAsync failed for order: {OrderId}", orderId);
-            throw;
+            throw new InvalidOperationException($"Failed to get order status for order {orderId}", ex);
         }
     }
 
@@ -473,7 +473,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchOrdersAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search orders through TopstepX", ex);
         }
     }
 
@@ -490,7 +490,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchOpenOrdersAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search open orders through TopstepX", ex);
         }
     }
 
@@ -525,7 +525,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchTradesAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search trades through TopstepX", ex);
         }
     }
 

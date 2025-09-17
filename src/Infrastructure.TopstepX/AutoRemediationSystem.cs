@@ -604,9 +604,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Apply comprehensive security hardening
     /// </summary>
-    private async Task ApplySecurityHardeningAsync()
+    private Task ApplySecurityHardeningAsync()
     {
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Configure secure HTTP client settings globally
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
@@ -697,7 +697,7 @@ public class AutoRemediationSystem
             // Check for hardcoded credentials in environment
             if (File.Exists(".env"))
             {
-                var envContent = await File.ReadAllTextAsync(".env");
+                var envContent = File.ReadAllText(".env");
                 if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
                 {
                     issues.Add("Potential hardcoded credentials found in .env file");
@@ -734,7 +734,7 @@ public class AutoRemediationSystem
                 if (issue.Contains("hardcoded"))
                 {
                     // Log security warning for manual review
-                    await File.AppendAllTextAsync("security_warnings.log", 
+                    File.AppendAllText("security_warnings.log", 
                         $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - {issue}\n");
                 }
             }
@@ -861,14 +861,14 @@ public class AutoRemediationSystem
                 {
                     try
                     {
-                        var logContent = await File.ReadAllTextAsync(logFile);
+                        var logContent = File.ReadAllText(logFile);
                         var errorCount = logContent.Split("ERROR").Length - 1;
                         var warningCount = logContent.Split("WARN").Length - 1;
 
                         if (errorCount > 10 || warningCount > 50)
                         {
                             // Log pattern analysis results
-                            await File.AppendAllTextAsync("log_analysis.txt", 
+                            File.AppendAllText("log_analysis.txt", 
                                 $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
                         }
                     }
@@ -913,7 +913,7 @@ public class AutoRemediationSystem
 
             if (configIssues.Any())
             {
-                await File.AppendAllTextAsync("config_validation.txt", 
+                File.AppendAllText("config_validation.txt", 
                     $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
             }
         });
@@ -946,7 +946,7 @@ public class AutoRemediationSystem
 
             // Log resource analysis for trending
             var resourceLog = JsonSerializer.Serialize(resourceAnalysis);
-            await File.AppendAllTextAsync("resource_analysis.log", resourceLog + "\n");
+            File.AppendAllText("resource_analysis.log", resourceLog + "\n");
         });
     }
 
