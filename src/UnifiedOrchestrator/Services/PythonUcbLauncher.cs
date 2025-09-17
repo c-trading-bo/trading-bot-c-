@@ -25,7 +25,6 @@ public class PythonUcbLauncher : IHostedService
             // In DRY_RUN mode, we simulate the process without actually launching Python
             
             // Check if Python is available (in production)
-            // var pythonPath = Environment.GetEnvironmentVariable("PYTHON_PATH") ?? "python";
             
             // In production, this would:
             // 1. Verify Python environment and dependencies

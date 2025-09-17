@@ -543,7 +543,6 @@ public class FeatureEngineer : IDisposable
 /// </summary>
 public class FeatureImportanceTracker
 {
-    private readonly string _strategyId;
     private readonly int _maxWindowSize;
     private readonly Queue<FeatureSet> _featureHistory = new();
     private readonly Queue<double> _predictionHistory = new();
@@ -553,7 +552,6 @@ public class FeatureImportanceTracker
 
     public FeatureImportanceTracker(string strategyId, int maxWindowSize)
     {
-        _strategyId = strategyId;
         _maxWindowSize = maxWindowSize;
     }
 

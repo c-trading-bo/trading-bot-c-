@@ -801,8 +801,6 @@ Stack Trace:
                 // Try to register more complex services (these might fail due to missing dependencies)
                 try 
                 {
-                    // services.TryAddSingleton<BotCore.Services.ES_NQ_CorrelationManager>();
-                    // services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
                     services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
                     // OrderFillConfirmationSystem already registered above with proper factory
@@ -958,7 +956,8 @@ Stack Trace:
         // Register HttpClient for Cloud Model Synchronization Service - GitHub API access
         services.AddHttpClient<BotCore.Services.CloudModelSynchronizationService>(client =>
         {
-            client.BaseAddress = new Uri("https://api.github.com/");
+            var githubApiUrl = Environment.GetEnvironmentVariable("GITHUB_API_URL") ?? "https://api.github.com/";
+            client.BaseAddress = new Uri(githubApiUrl);
             client.DefaultRequestHeaders.Add("User-Agent", "TradingBot-CloudSync/1.0");
             client.Timeout = TimeSpan.FromSeconds(60);
         });

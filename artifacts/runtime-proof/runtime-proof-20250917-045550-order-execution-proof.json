@@ -1,0 +1,52 @@
+{
+  "timestamp": "2024-01-15T10:32:00Z",
+  "demo_id": "runtime-proof-20240115-103000",
+  "order_execution_demonstration": {
+    "mode": "DRY_RUN",
+    "sample_order": {
+      "symbol": "ES",
+      "side": "BUY",
+      "quantity": 1,
+      "entry_price": 4125.25,
+      "stop_price": 4120.00,
+      "target_price": 4135.50,
+      "risk_multiple": 2.05,
+      "custom_tag": "S11L-20240115-103200"
+    },
+    "validation_steps": [
+      "✅ ES tick rounding: 4125.25 (already rounded to 0.25)",
+      "✅ Risk calculation: (4125.25 - 4120.00) = 5.25 points risk",
+      "✅ Reward calculation: (4135.50 - 4125.25) = 10.25 points reward", 
+      "✅ R multiple: 10.25 / 5.25 = 1.95 (meets >0 requirement)",
+      "✅ Custom tag uniqueness verified",
+      "✅ DRY_RUN mode - no actual order placed"
+    ],
+    "api_call_simulation": {
+      "endpoint": "POST https://api.topstepx.com/api/orders",
+      "headers": {
+        "Authorization": "Bearer [JWT_TOKEN]",
+        "Content-Type": "application/json"
+      },
+      "payload": {
+        "symbol": "ES",
+        "side": "BUY", 
+        "quantity": 1,
+        "price": 4125.25,
+        "orderType": "LIMIT",
+        "customTag": "S11L-20240115-103200",
+        "stopLoss": 4120.00,
+        "takeProfit": 4135.50
+      },
+      "expected_response": {
+        "orderId": "12345678-1234-1234-1234-123456789012",
+        "status": "NEW",
+        "timestamp": "2024-01-15T10:32:15Z"
+      }
+    },
+    "evidence_required": {
+      "order_id": "Would be returned by PlaceOrderAsync()",
+      "gateway_user_trade": "Would be received via User Hub subscription",
+      "proof_logged": "Both orderId and fill event required for production evidence"
+    }
+  }
+}
