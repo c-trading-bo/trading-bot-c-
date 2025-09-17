@@ -151,29 +151,28 @@ public class UpdaterAgent
         return true;
     }
 
-    private Task<bool> RunReplays()
+    private static Task<bool> RunReplays()
     {
         // Replay validation logic would go here
         return Task.FromResult(true);
     }
 
-    private async Task DeployUpdate(string head, string outDir)
+    private async Task DeployUpdate(string head)
     {
         Log.Information("Launching vNext in SHADOW on :{Port}", _shadowPort);
-        var childEnv = ChildEnvFromDotEnv(_repoPath);
         
         // Launch shadow process and validate
-        if (await LaunchAndValidateShadow(outDir, childEnv))
+        if (LaunchAndValidateShadow())
         {
             await PromoteToLive(head);
         }
     }
 
-    private Task<bool> LaunchAndValidateShadow(string outDir, IDictionary<string, string?> childEnv)
+    private static bool LaunchAndValidateShadow()
     {
         // Launch shadow process logic
         Log.Information("Shadow process validation completed");
-        return Task.FromResult(true);
+        return true;
     }
 
     private async Task PromoteToLive(string head)
