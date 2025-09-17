@@ -485,7 +485,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             };
 
             var features = await ExtractFeaturesAsync(context, cancellationToken);
-            var confidence = await MakePredictionAsync(model, features, cancellationToken);
+            var confidence = await MakePredictionAsync(features, cancellationToken);
             
             var prediction = new MLPrediction
             {
@@ -654,17 +654,33 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         string decisionId, MarketContext context, RegimeState regime, 
         ModelArtifact model, double confidence, double size, double latencyMs)
     {
+        string direction;
+        if (size > 0.1)
+            direction = "LONG";
+        else if (size < -0.1)
+            direction = "SHORT";
+        else
+            direction = "HOLD";
+
+        TradingAction action;
+        if (size > 0.1)
+            action = TradingAction.Buy;
+        else if (size < -0.1)
+            action = TradingAction.Sell;
+        else
+            action = TradingAction.Hold;
+
         return new TradingDecision
         {
             DecisionId = decisionId,
             Signal = new TradingSignal
             {
                 Symbol = context.Symbol,
-                Direction = size > 0.1 ? "LONG" : size < -0.1 ? "SHORT" : "HOLD",
+                Direction = direction,
                 Strength = (decimal)Math.Abs(confidence),
                 Timestamp = DateTime.UtcNow
             },
-            Action = size > 0.1 ? TradingAction.Buy : size < -0.1 ? TradingAction.Sell : TradingAction.Hold,
+            Action = action,
             Confidence = (decimal)confidence,
             MLConfidence = (decimal)confidence,
             MLStrategy = model.Id,
@@ -1015,9 +1031,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     throw new InvalidOperationException($"Client error from cloud endpoint: {response.StatusCode}");
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
-                _logger.LogWarning("[INTELLIGENCE] Cloud push timeout on attempt {Attempt}", attempt + 1);
+                _logger.LogWarning(ex, "[INTELLIGENCE] Cloud push timeout on attempt {Attempt}", attempt + 1);
             }
             catch (HttpRequestException ex)
             {

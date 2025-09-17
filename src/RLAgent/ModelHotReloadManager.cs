@@ -277,17 +277,23 @@ public class ModelHotReloadManager : IDisposable
 
     public void Dispose()
     {
-        if (_disposed)
-            return;
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        _disposed = true;
-        
-        _fileWatcher?.Dispose();
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
-        _reloadSemaphore?.Dispose();
-        
-        _logger.LogInformation("[HOT_RELOAD] Model hot-reload manager disposed");
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            _disposed = true;
+            
+            _fileWatcher?.Dispose();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            _reloadSemaphore?.Dispose();
+            
+            _logger.LogInformation("[HOT_RELOAD] Model hot-reload manager disposed");
+        }
     }
 }
 

@@ -28,9 +28,6 @@ public class SoftActorCritic
     // Experience replay buffer
     private readonly ExperienceReplayBuffer _replayBuffer;
     
-    // Random number generator for exploration
-    private readonly Random _random = new();
-    
     // Training statistics
     private int _totalSteps = 0;
     private double _averageReward = 0.0;
@@ -305,7 +302,7 @@ public class SoftActorCritic
     /// <summary>
     /// Combine state and action into single input vector
     /// </summary>
-    private double[] CombineStateAction(double[] state, double[] action)
+    private static double[] CombineStateAction(double[] state, double[] action)
     {
         var combined = new double[state.Length + action.Length];
         Array.Copy(state, 0, combined, 0, state.Length);
@@ -613,7 +610,7 @@ public class CriticNetwork
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -627,7 +624,7 @@ public class CriticNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         InitializeWeights();
     }
@@ -646,7 +643,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
         
@@ -655,7 +652,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
     }
@@ -733,6 +730,13 @@ public class CriticNetwork
             _biasOutput[i] = tau * source._biasOutput[i] + (1 - tau) * _biasOutput[i];
         }
     }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
+    }
 }
 
 /// <summary>
@@ -744,7 +748,7 @@ public class ValueNetwork
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -758,7 +762,7 @@ public class ValueNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
+        _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
         InitializeWeights();
     }
@@ -777,7 +781,7 @@ public class ValueNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
         
@@ -786,7 +790,7 @@ public class ValueNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
     }
@@ -824,6 +828,13 @@ public class ValueNetwork
         
         // Update output bias (simplified)
         _biasOutput[0] += gradient;
+    }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
     }
 }
 

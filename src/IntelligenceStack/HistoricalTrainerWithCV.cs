@@ -482,7 +482,7 @@ public class HistoricalTrainerWithCV
         return new Dictionary<DateTime, long>(); // Simplified
     }
     
-    private void EnhanceWithVolumeData(List<MarketDataPoint> dataPoints, Dictionary<DateTime, long> volumeData)
+    private static void EnhanceWithVolumeData(List<MarketDataPoint> dataPoints, Dictionary<DateTime, long> volumeData)
     {
         foreach (var point in dataPoints)
         {

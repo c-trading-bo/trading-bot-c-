@@ -119,35 +119,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         foreach (var (key, value) in features)
         {
             var normalizedKey = key.ToLowerInvariant();
-            
-            switch (normalizedKey)
-            {
-                case "vix_level":
-                    normalized[normalizedKey] = Math.Max(0, Math.Min(100, value)) / 100.0;
-                    break;
-                case "volume_ratio":
-                    normalized[normalizedKey] = Math.Max(0, Math.Min(10, value)) / 10.0;
-                    break;
-                case "rsi":
-                    normalized[normalizedKey] = Math.Max(0, Math.Min(100, value)) / 100.0;
-                    break;
-                case "momentum":
-                case "price_change":
-                    normalized[normalizedKey] = Math.Tanh(value / 0.05); // Normalize around 5% changes
-                    break;
-                case "volatility":
-                    normalized[normalizedKey] = Math.Max(0, Math.Min(5, value)) / 5.0;
-                    break;
-                case "time_of_day":
-                    normalized[normalizedKey] = (value % 24) / 24.0;
-                    break;
-                case "day_of_week":
-                    normalized[normalizedKey] = (value % 7) / 7.0;
-                    break;
-                default:
-                    normalized[normalizedKey] = Math.Tanh(value); // Default normalization
-                    break;
-            }
+            normalized[normalizedKey] = NormalizeFeatureValue(normalizedKey, value);
         }
         
         // Add default values for missing expected features
@@ -160,6 +132,21 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         }
         
         return normalized;
+    }
+
+    private static double NormalizeFeatureValue(string featureName, double value)
+    {
+        return featureName switch
+        {
+            "vix_level" => Math.Max(0, Math.Min(100, value)) / 100.0,
+            "volume_ratio" => Math.Max(0, Math.Min(10, value)) / 10.0,
+            "rsi" => Math.Max(0, Math.Min(100, value)) / 100.0,
+            "momentum" or "price_change" => Math.Tanh(value / 0.05),
+            "volatility" => Math.Max(0, Math.Min(5, value)) / 5.0,
+            "time_of_day" => (value % 24) / 24.0,
+            "day_of_week" => (value % 7) / 7.0,
+            _ => Math.Tanh(value) // Default normalization
+        };
     }
 
     private static double GetDefaultFeatureValue(string featureName)

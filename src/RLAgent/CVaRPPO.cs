@@ -443,8 +443,7 @@ public class CVaRPPO : IDisposable
         var advantages = new double[experiences.Count];
         var cvarTargets = new double[experiences.Count];
         
-        // Calculate returns and advantages using GAE (Generalized Advantage Estimation)
-        var returns = CalculateReturns(experiences);
+        // Calculate values for GAE (Generalized Advantage Estimation)
         var values = experiences.Select(e => _valueNetwork.Forward(e.State)[0]).ToArray();
         
         // GAE calculation
@@ -569,7 +568,7 @@ public class CVaRPPO : IDisposable
         };
     }
 
-    private double[] SoftmaxActivation(double[] logits)
+    private static double[] SoftmaxActivation(double[] logits)
     {
         var maxLogit = logits.Max();
         var exps = logits.Select(x => Math.Exp(x - maxLogit)).ToArray();
@@ -577,7 +576,7 @@ public class CVaRPPO : IDisposable
         return exps.Select(x => x / sum).ToArray();
     }
 
-    private int SampleFromDistribution(double[] probabilities)
+    private static int SampleFromDistribution(double[] probabilities)
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         var bytes = new byte[8];
@@ -776,8 +775,6 @@ public class PolicyNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[,] _weights2 = null!;
     private double[] _bias2 = null!;
-    private bool _disposed = false;
-
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
     {
         _stateSize = stateSize;
@@ -865,7 +862,7 @@ public class PolicyNetwork : IDisposable
         }
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
         var data = new
         {
@@ -876,21 +873,25 @@ public class PolicyNetwork : IDisposable
         };
         
         var json = JsonSerializer.Serialize(data);
-        await File.WriteAllTextAsync(path, json, cancellationToken);
+        return File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var json = await File.ReadAllTextAsync(path, cancellationToken);
-        var data = JsonSerializer.Deserialize<JsonElement>(json);
-        
         // Load weights (simplified - in practice would handle proper deserialization)
         InitializeWeights(); // Reset to defaults for now
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        // Clean up if needed
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        // Nothing to dispose in this simplified implementation
     }
 }
 
@@ -905,8 +906,6 @@ public class ValueNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[] _weights2 = null!;
     private double _bias2;
-    private bool _disposed = false;
-
     public ValueNetwork(int stateSize, int hiddenSize)
     {
         _stateSize = stateSize;
@@ -994,17 +993,22 @@ public class ValueNetwork : IDisposable
         await File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var json = await File.ReadAllTextAsync(path, cancellationToken);
-        var data = JsonSerializer.Deserialize<JsonElement>(json);
-        
-        InitializeWeights(); // Reset for now
+        // Load weights (simplified - in practice would handle proper deserialization)
+        InitializeWeights(); // Reset to defaults for now
+        return Task.CompletedTask;
     }
 
     public void Dispose()
     {
-        // Clean up if needed
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        // Nothing to dispose in this simplified implementation
     }
 }
 
@@ -1030,19 +1034,28 @@ public class CVaRNetwork : IDisposable
         _valueNetwork.UpdateWeights(loss, learningRate);
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        await _valueNetwork.SaveAsync(path, cancellationToken);
+        return _valueNetwork.SaveAsync(path, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        await _valueNetwork.LoadAsync(path, cancellationToken);
+        return _valueNetwork.LoadAsync(path, cancellationToken);
     }
 
     public void Dispose()
     {
-        _valueNetwork?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _valueNetwork?.Dispose();
+        }
     }
 }
 

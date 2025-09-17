@@ -1,0 +1,75 @@
+# PRODUCTION-READY CODE ENFORCEMENT
+# This configuration ensures zero tolerance for non-production patterns
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_style = space
+indent_size = 4
+
+# PRODUCTION ENFORCEMENT: Block all non-production patterns
+# These rules will cause build failures for any TODO/FIXME/HACK/STUB/placeholder patterns
+
+# TODO/FIXME/HACK/STUB enforcement - treat as errors
+dotnet_diagnostic.S1135.severity = error  # TODO/FIXME comments should be addressed
+dotnet_diagnostic.S1134.severity = error  # Track uses of "FIXME" tags
+
+# Production readiness enforcement
+dotnet_diagnostic.S125.severity = error   # Remove commented out code
+dotnet_diagnostic.S1068.severity = error  # Remove unused private members
+dotnet_diagnostic.S1481.severity = error  # Remove unused local variables
+dotnet_diagnostic.S1144.severity = error  # Remove unused private methods
+dotnet_diagnostic.S1172.severity = error  # Remove unused method parameters
+dotnet_diagnostic.S4487.severity = error  # Remove unread private fields
+
+# Code quality enforcement (zero tolerance)
+dotnet_diagnostic.S2325.severity = error  # Make methods static when possible
+dotnet_diagnostic.S3881.severity = error  # Fix IDisposable implementations
+dotnet_diagnostic.S2139.severity = error  # Catch clauses should do more than rethrow
+dotnet_diagnostic.S3358.severity = error  # Extract nested ternary operations
+dotnet_diagnostic.S1066.severity = error  # Merge if statements when possible
+dotnet_diagnostic.S6667.severity = error  # Log exceptions with their message
+dotnet_diagnostic.S1854.severity = error  # Remove useless assignments
+dotnet_diagnostic.S2933.severity = error  # Make fields readonly when possible
+dotnet_diagnostic.S6612.severity = error  # Use lambda parameters instead of captured arguments
+dotnet_diagnostic.S4136.severity = error  # Method overloads should be adjacent
+
+# Security enforcement
+dotnet_diagnostic.SCS0005.severity = error  # Weak random number generator
+dotnet_diagnostic.S2068.severity = error   # Hard-coded credentials
+dotnet_diagnostic.S4790.severity = error   # Using weak hashing algorithms
+dotnet_diagnostic.S5122.severity = error   # CORS policies should be restrictive
+
+# Async/await enforcement
+dotnet_diagnostic.AsyncFixer01.severity = error  # Unnecessary async/await usage
+dotnet_diagnostic.AsyncFixer02.severity = error  # Long-running operations should not block
+dotnet_diagnostic.AsyncFixer03.severity = error  # Fire-and-forget async-void methods
+dotnet_diagnostic.AsyncFixer04.severity = error  # Fire-and-forget async call
+dotnet_diagnostic.AsyncFixer05.severity = error  # Downcasting from Task to void-returning Delegate
+
+# Naming conventions enforcement
+dotnet_diagnostic.S101.severity = error    # Class names should comply with naming convention
+dotnet_diagnostic.SA1300.severity = error  # Element should begin with uppercase letter
+
+# Performance enforcement
+dotnet_diagnostic.S1244.severity = error   # Floating point numbers should not be tested for equality
+dotnet_diagnostic.S6608.severity = error   # Prefer indexer over LINQ methods
+dotnet_diagnostic.S3267.severity = error   # Loops should be simplified with LINQ
+
+# Maintainability enforcement
+dotnet_diagnostic.S138.severity = error    # Methods should not have too many lines
+dotnet_diagnostic.S1541.severity = error   # Methods and classes should not have too many lines
+dotnet_diagnostic.S104.severity = error    # Files should not have too many lines
+
+# Documentation enforcement for public APIs
+dotnet_diagnostic.S1591.severity = suggestion  # Missing XML documentation (suggestion only for internal APIs)
+
+# Specific patterns that indicate non-production code
+# These will be caught by custom analyzers and comment patterns
+dotnet_diagnostic.S1135.severity = error   # TODO tags should be handled

@@ -60,7 +60,7 @@ public class PositionSizing
                 var finalContracts = (int)Math.Floor(cappedFraction * maxContractsSymbol);
                 
                 // Apply step change limit (≤ +2 contracts as per requirement)
-                finalContracts = ApplyStepChangeLimit(finalContracts, request, symbolKey);
+                finalContracts = ApplyStepChangeLimit(finalContracts, request);
                 
                 var result = new PositionSizeResult
                 {
@@ -225,7 +225,7 @@ public class PositionSizing
     /// <summary>
     /// Apply step change limit (≤ +2 contracts as per requirement)
     /// </summary>
-    private int ApplyStepChangeLimit(int newContracts, PositionSizeRequest request, string symbolKey)
+    private int ApplyStepChangeLimit(int newContracts, PositionSizeRequest request)
     {
         var currentContracts = request.CurrentPosition?.Size ?? 0;
         var stepChange = Math.Abs(newContracts - currentContracts);
@@ -510,7 +510,16 @@ public class SacState : IDisposable
 
     public void Dispose()
     {
-        _rng?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _rng?.Dispose();
+        }
     }
 }
 

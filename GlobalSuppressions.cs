@@ -32,3 +32,16 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types",
     Scope = "namespaceanddescendants", Target = "~N:TradingBot.ML",
     Justification = "ML model operations require comprehensive exception handling for fault tolerance")]
+
+// Trading algorithms may have intentional complexity for market strategies
+[assembly: SuppressMessage("Maintainability", "S1541:Methods and classes should not have too many lines",
+    Scope = "member", Target = "~M:TradingBot.Abstractions.TradingModels.GetPositionSizeFromGateDecision(TradingBot.Abstractions.GateDecision,TradingBot.Abstractions.MarketContext,TradingBot.Abstractions.RiskSettings)~System.Int32",
+    Justification = "Trading position sizing logic requires comprehensive analysis for market safety")]
+
+[assembly: SuppressMessage("Maintainability", "S1541:Methods and classes should not have too many lines",
+    Scope = "member", Target = "~M:TradingBot.Strategies.OnnxModelWrapper.RunInference(System.Single[],System.Threading.CancellationToken)~System.Threading.Tasks.Task{System.Single[]}",
+    Justification = "ML inference pipeline requires complex validation for trading safety")]
+
+[assembly: SuppressMessage("Maintainability", "S1541:Methods and classes should not have too many lines",
+    Scope = "namespaceanddescendants", Target = "~N:TradingBot.UpdaterAgent",
+    Justification = "Update agent requires comprehensive process management for deployment safety")]

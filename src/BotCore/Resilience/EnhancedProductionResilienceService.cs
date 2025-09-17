@@ -102,11 +102,6 @@ public class EnhancedProductionResilienceService
     /// </summary>
     public IAsyncPolicy<T> GetOperationResiliencePolicy<T>(string operationName)
     {
-    /// <summary>
-    /// Get resilience policy for general operations with retry and timeout
-    /// </summary>
-    public IAsyncPolicy<T> GetOperationResiliencePolicy<T>(string operationName)
-    {
         // Implement comprehensive retry + timeout combination for production
         var retryPolicy = Policy.Handle<Exception>()
             .WaitAndRetryAsync(

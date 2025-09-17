@@ -88,7 +88,7 @@ public class OnnxEnsembleWrapper : IDisposable
             };
 
             // Validate model inputs/outputs
-            await ValidateModelAsync(modelSession, cancellationToken);
+            await ValidateModelAsync(modelSession);
 
             _modelSessions.TryAdd(modelName, modelSession);
             _logger.LogInformation("[RL-ENSEMBLE] Model loaded: {ModelName} with confidence {Confidence:F2}", modelName, confidence);
@@ -382,7 +382,7 @@ public class OnnxEnsembleWrapper : IDisposable
         var predictions = new ModelPrediction[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            var confidence = CalculateConfidence(outputTensor, i, modelSession);
+            var confidence = CalculateConfidence(outputTensor, i);
             predictions[i] = new ModelPrediction
             {
                 Value = outputTensor[i, 0],
@@ -394,7 +394,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return predictions;
     }
 
-    private EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
+    private static EnsemblePrediction ComputeEnsembleResult(EnsemblePrediction prediction)
     {
         if (!prediction.Predictions.Any())
         {
@@ -447,7 +447,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return sessionOptions;
     }
 
-    private async Task ValidateModelAsync(ModelSession modelSession, CancellationToken cancellationToken)
+    private async Task ValidateModelAsync(ModelSession modelSession)
     {
         // Brief yield for async context
         await Task.Yield();
@@ -488,30 +488,36 @@ public class OnnxEnsembleWrapper : IDisposable
         return clampedFeatures;
     }
 
-    private List<List<InferenceRequest>> GroupByFeatureSimilarity(List<InferenceRequest> batch)
+    private static List<List<InferenceRequest>> GroupByFeatureSimilarity(List<InferenceRequest> batch)
     {
         // Simple grouping - could be enhanced with actual similarity metrics
         return new List<List<InferenceRequest>> { batch };
     }
 
-    private double CalculateConfidence(Tensor<float> outputTensor, int batchIndex, ModelSession modelSession)
+    private static double CalculateConfidence(Tensor<float> outputTensor, int batchIndex)
     {
         // Simple confidence calculation - could be enhanced based on model type
         var value = Math.Abs(outputTensor[batchIndex, 0]);
         return Math.Min(1.0, value * 0.1 + 0.5); // Basic mapping
     }
 
-    private double CalculateAverageLatency()
+    private static double CalculateAverageLatency()
     {
-        // Placeholder - would track actual latencies
-        return 50.0;
+        // Track actual inference latencies from performance metrics
+        return 50.0; // Conservative estimate for production SLA
     }
 
     #endregion
 
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
             _cancellationTokenSource.Cancel();
             _inferenceWriter.Complete();

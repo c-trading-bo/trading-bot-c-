@@ -291,12 +291,8 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[LEADER] Renewal timer error");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[LEADER] Failed to renew leadership");
-                }
+                _logger.LogError(ex, "[LEADER] Failed to renew leadership");
+            }
             });
         }, null, renewalInterval, renewalInterval);
         

@@ -274,24 +274,23 @@ public class StreamingAggregator
         // Parameters kept for interface compatibility but not stored as they're unused
     }
 
-    public async Task UpdateAsync(MarketData data, CancellationToken cancellationToken)
+    public Task UpdateAsync(MarketData data, CancellationToken cancellationToken)
     {
-        await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            _dataWindow.Enqueue(data);
+            
+            // Maintain window size
+            while (_dataWindow.Count > _maxWindowSize)
             {
-                _dataWindow.Enqueue(data);
-                
-                // Maintain window size
-                while (_dataWindow.Count > _maxWindowSize)
-                {
-                    _dataWindow.Dequeue();
-                }
-
-                // Update streaming EMAs
-                UpdateStreamingEMAs(data.Close);
+                _dataWindow.Dequeue();
             }
-        }, cancellationToken);
+
+            // Update streaming EMAs
+            UpdateStreamingEMAs(data.Close);
+        }
+        
+        return Task.CompletedTask;
     }
 
     private void UpdateStreamingEMAs(double price)
@@ -363,26 +362,23 @@ public class StreamingAggregator
         }
     }
 
-    public async Task<double> GetVolatilityAsync(int period, CancellationToken cancellationToken)
+    public Task<double> GetVolatilityAsync(int period, CancellationToken cancellationToken)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            var data = _dataWindow.TakeLast(period).ToList();
+            if (data.Count < 2) return Task.FromResult(0.0);
+
+            var returns = new List<double>();
+            for (int i = 1; i < data.Count; i++)
             {
-                var data = _dataWindow.TakeLast(period).ToList();
-                if (data.Count < 2) return 0.0;
-
-                var returns = new List<double>();
-                for (int i = 1; i < data.Count; i++)
-                {
-                    returns.Add(Math.Log(data[i].Close / data[i - 1].Close));
-                }
-
-                var mean = returns.Average();
-                var variance = returns.Select(r => Math.Pow(r - mean, 2)).Average();
-                return Math.Sqrt(variance) * Math.Sqrt(252); // Annualized volatility
+                returns.Add(Math.Log(data[i].Close / data[i - 1].Close));
             }
-        }, cancellationToken);
+
+            var mean = returns.Average();
+            var variance = returns.Select(r => Math.Pow(r - mean, 2)).Average();
+            return Task.FromResult(Math.Sqrt(variance) * Math.Sqrt(252)); // Annualized volatility
+        }
     }
 
     public async Task<double> GetATRAsync(int period, CancellationToken cancellationToken)

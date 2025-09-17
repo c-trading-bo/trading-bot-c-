@@ -62,7 +62,6 @@ public class SACState
     {
         // Use technical indicators and market features to propose a position size fraction
         var rsi = TechnicalIndicators.GetValueOrDefault("RSI", 50.0);
-        var momentum = TechnicalIndicators.GetValueOrDefault("Momentum", 0.0);
         var volatility = TechnicalIndicators.GetValueOrDefault("Volatility", 0.1);
         
         // Base proposal based on regime
