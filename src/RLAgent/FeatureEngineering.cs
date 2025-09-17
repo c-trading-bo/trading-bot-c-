@@ -37,7 +37,7 @@ public class FeatureEngineering : IDisposable
             TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         // Daily feature importance reporting timer
-        _dailyReportTimer = new Timer(GenerateDailyFeatureReport, null, 
+        _dailyReportTimer = new Timer(async (state) => await GenerateDailyFeatureReportAsync(state), null, 
             TimeSpan.FromDays(1), TimeSpan.FromDays(1));
 
         _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation", 
@@ -426,7 +426,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Add regime-based features
     /// </summary>
-    private async Task AddRegimeFeatures(
+    private static async Task AddRegimeFeatures(
         List<double> features,
         List<string> featureNames,
         RegimeType regime)
@@ -450,7 +450,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Add time-based features
     /// </summary>
-    private async Task AddTimeFeatures(
+    private static async Task AddTimeFeatures(
         List<double> features,
         List<string> featureNames,
         MarketData currentData)
@@ -563,7 +563,7 @@ public class FeatureEngineering : IDisposable
         return previous > 0 ? (current - previous) / previous : 0.0;
     }
 
-    private double CalculateVolatility(double[] prices)
+    private static double CalculateVolatility(double[] prices)
     {
         if (prices.Length < 2) return 0.0;
         
@@ -664,7 +664,7 @@ public class FeatureEngineering : IDisposable
         return trueRanges.TakeLast(14).Average();
     }
 
-    private (double macd, double signal) CalculateMACD(MarketData[] buffer, MarketData current)
+    private static (double macd, double signal) CalculateMACD(MarketData[] buffer, MarketData current)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
         if (prices.Length < 26) return (0.0, 0.0);

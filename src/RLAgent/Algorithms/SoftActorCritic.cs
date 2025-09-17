@@ -302,7 +302,7 @@ public class SoftActorCritic
     /// <summary>
     /// Combine state and action into single input vector
     /// </summary>
-    private double[] CombineStateAction(double[] state, double[] action)
+    private static double[] CombineStateAction(double[] state, double[] action)
     {
         var combined = new double[state.Length + action.Length];
         Array.Copy(state, 0, combined, 0, state.Length);
