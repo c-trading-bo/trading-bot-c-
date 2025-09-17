@@ -86,6 +86,48 @@ public class TradingConfiguration
     [Required]
     [Range(5, 60)]
     public int DecisionTimeoutSeconds { get; set; } = 30;
+
+    // ML/AI Configuration Parameters (addresses hardcoded values issue)
+    
+    /// <summary>
+    /// AI model confidence threshold for trade execution
+    /// Replaces hardcoded 0.7 value
+    /// </summary>
+    [Required]
+    [Range(0.1, 0.95)]
+    public double AIConfidenceThreshold { get; set; } = 0.75;
+
+    /// <summary>
+    /// Default position sizing multiplier for dynamic calculation
+    /// Replaces hardcoded 2.5 value
+    /// </summary>
+    [Required]
+    [Range(0.5, 5.0)]
+    public double DefaultPositionSizeMultiplier { get; set; } = 2.0;
+
+    /// <summary>
+    /// Regime detection confidence threshold
+    /// Replaces hardcoded 1.0 value for regime detection
+    /// </summary>
+    [Required]
+    [Range(0.1, 1.0)]
+    public double RegimeDetectionThreshold { get; set; } = 0.8;
+
+    /// <summary>
+    /// Stop loss buffer as percentage of ATR
+    /// Replaces hardcoded 0.05 value
+    /// </summary>
+    [Required]
+    [Range(0.01, 0.2)]
+    public double StopLossBufferPercentage { get; set; } = 0.04;
+
+    /// <summary>
+    /// Reward to risk ratio threshold for trade validation
+    /// Replaces hardcoded 1.2 value
+    /// </summary>
+    [Required]
+    [Range(1.0, 3.0)]
+    public double RewardRiskRatioThreshold { get; set; } = 1.5;
 }
 
 /// <summary>

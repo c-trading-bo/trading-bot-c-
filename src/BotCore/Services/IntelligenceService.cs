@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using BotCore.Models; // For TradeSetup class
+using TradingBot.BotCore.Services; // For MLConfigurationService
 
 // Use the canonical MarketContext from Abstractions
 using IntelligenceMarketContext = TradingBot.Abstractions.MarketContext;
@@ -36,10 +37,12 @@ public class IntelligenceService : IIntelligenceService
     private readonly string _signalsPath;
     private readonly ILogger<IntelligenceService> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly MLConfigurationService _mlConfig;
 
-    public IntelligenceService(ILogger<IntelligenceService> logger, string? signalsPath = null)
+    public IntelligenceService(ILogger<IntelligenceService> logger, MLConfigurationService mlConfig, string? signalsPath = null)
     {
         _logger = logger;
+        _mlConfig = mlConfig;
         _signalsPath = signalsPath ?? "data/signals/latest.json";
         _jsonOptions = new JsonSerializerOptions
         {
@@ -261,7 +264,7 @@ public class IntelligenceService : IIntelligenceService
 
         // Extended targets in trending markets with high confidence
         if (intelligence.Regime.Equals("Trending", StringComparison.OrdinalIgnoreCase) &&
-            (decimal)intelligence.ModelConfidence >= 0.7m)
+            (decimal)intelligence.ModelConfidence >= (decimal)_mlConfig.GetAIConfidenceThreshold())
             multiplier *= 2.0m;
 
         // Volatile regimes get extended targets
