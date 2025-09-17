@@ -121,7 +121,7 @@ public class DecisionLogger : IDecisionLogger
         return decisions;
     }
 
-    private void EnrichDecision(IntelligenceDecision decision)
+    private static void EnrichDecision(IntelligenceDecision decision)
     {
         // Ensure decision has an ID
         if (string.IsNullOrEmpty(decision.DecisionId))
@@ -188,10 +188,10 @@ public class DecisionLogger : IDecisionLogger
         await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
     }
 
-    private string GenerateDecisionId()
+    private static string GenerateDecisionId()
     {
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var random = Random.Shared.Next(1000, 9999);
+        var random = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999);
         return $"D{timestamp}_{random}";
     }
 

@@ -241,7 +241,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         };
     }
 
-    private double ApplyCalibration(CalibrationMap map, double rawConfidence)
+    private static double ApplyCalibration(CalibrationMap map, double rawConfidence)
     {
         return map.Method switch
         {
@@ -253,13 +253,13 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         };
     }
 
-    private double ApplyPlattCalibration(double rawConfidence, double slope, double intercept)
+    private static double ApplyPlattCalibration(double rawConfidence, double slope, double intercept)
     {
         var logit = slope * rawConfidence + intercept;
         return 1.0 / (1.0 + Math.Exp(-logit));
     }
 
-    private double ApplyIsotonicCalibration(double rawConfidence, Dictionary<string, double> parameters)
+    private static double ApplyIsotonicCalibration(double rawConfidence, Dictionary<string, double> parameters)
     {
         // Find appropriate bin
         var bestBin = 0;
@@ -281,7 +281,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         return parameters.GetValueOrDefault($"bin_{bestBin}", rawConfidence);
     }
 
-    private double CalculateBrierScore(List<CalibrationPoint> points, Func<CalibrationPoint, double> predictor)
+    private static double CalculateBrierScore(List<CalibrationPoint> points, Func<CalibrationPoint, double> predictor)
     {
         if (points.Count == 0) return 1.0;
         
@@ -296,7 +296,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         return sum / points.Sum(p => p.Weight);
     }
 
-    private double CalculateLogLoss(List<CalibrationPoint> points, Func<CalibrationPoint, double> predictor)
+    private static double CalculateLogLoss(List<CalibrationPoint> points, Func<CalibrationPoint, double> predictor)
     {
         if (points.Count == 0) return double.MaxValue;
         
