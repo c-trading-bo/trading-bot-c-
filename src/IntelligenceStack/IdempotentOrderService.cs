@@ -67,8 +67,9 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[IDEMPOTENT] Failed to generate order key");
-            throw;
+            _logger.LogError(ex, "[IDEMPOTENT] Failed to generate order key for {ModelId}-{Symbol}", 
+                request.ModelId, request.Symbol);
+            throw new InvalidOperationException($"Order key generation failed for {request.ModelId}", ex);
         }
     }
 

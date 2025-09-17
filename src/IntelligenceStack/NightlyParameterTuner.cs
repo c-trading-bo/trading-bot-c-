@@ -792,7 +792,7 @@ public class NightlyParameterTuner
 
             // Step 3: Execute rollback operations concurrently
             var stableVersion = await stableVersionTask;
-            var configPath = await rollbackConfigTask;
+            await rollbackConfigTask;
 
             // Step 4: Restore stable parameters
             var restoreTask = Task.Run(async () =>
@@ -844,7 +844,7 @@ public class NightlyParameterTuner
         catch (Exception ex)
         {
             _logger.LogError(ex, "[NIGHTLY_TUNING] Rollback failed for {ModelFamily}", modelFamily);
-            throw;
+            throw new InvalidOperationException($"Parameter rollback failed for model family {modelFamily}", ex);
         }
     }
 
