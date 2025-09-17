@@ -124,8 +124,8 @@ public class HistoricalTrainerWithCV
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily} with {FoldCount} folds", 
-                modelFamily, folds.Count);
+            _logger.LogError(ex, "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}", 
+                modelFamily);
             throw new InvalidOperationException($"Cross-validation failed for model family {modelFamily}", ex);
         }
     }

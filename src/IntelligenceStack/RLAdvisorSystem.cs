@@ -603,7 +603,6 @@ public class RLAdvisorSystem
         return await Task.Run(() =>
         {
             var windows = new List<EpisodeWindow>();
-            var windowSize = TimeSpan.FromHours(4); // 4-hour episodes
             
             for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
