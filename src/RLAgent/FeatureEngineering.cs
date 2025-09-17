@@ -827,7 +827,13 @@ public class FeatureEngineering : IDisposable
 
     public void Dispose()
     {
-        if (!_disposed)
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
         {
             _cancellationTokenSource.Cancel();
             _dailyReportTimer?.Dispose();
