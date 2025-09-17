@@ -674,7 +674,14 @@ public class RLAdvisorSystem
     private RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
     {
         var priceChange = next.Price - current.Price;
-        var actionType = priceChange > 0 ? 1 : (priceChange < 0 ? 2 : 0); // Buy, Sell, Hold
+        int actionType;
+        if (priceChange > 0)
+            actionType = 1; // Buy
+        else if (priceChange < 0)
+            actionType = 2; // Sell
+        else
+            actionType = 0; // Hold
+            
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
         return new RLActionResult

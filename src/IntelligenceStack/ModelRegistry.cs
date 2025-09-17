@@ -113,7 +113,7 @@ public class ModelRegistry : IModelRegistry
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REGISTRY] Failed to get model: {Family}_{Version}", familyName, version);
-            throw;
+            throw new ModelNotFoundException($"Model retrieval failed for {familyName}:{version}", ex);
         }
     }
 
@@ -174,7 +174,7 @@ public class ModelRegistry : IModelRegistry
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REGISTRY] Failed to register model: {Family}", registration.FamilyName);
-            throw;
+            throw new InvalidOperationException($"Model registration failed for {registration.FamilyName}", ex);
         }
     }
 

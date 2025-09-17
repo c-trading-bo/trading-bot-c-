@@ -64,7 +64,7 @@ public class StreamingFeatureEngineering : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process market data for feature engineering");
-            throw;
+            throw new InvalidOperationException("Feature engineering processing failed for market data", ex);
         }
     }
 

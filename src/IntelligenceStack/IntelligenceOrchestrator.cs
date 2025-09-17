@@ -491,11 +491,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             {
                 Symbol = symbol,
                 Confidence = confidence,
-                Direction = confidence > 0.55 ? "BUY" : confidence < 0.45 ? "SELL" : "HOLD",
+                Direction = GetDirectionFromConfidence(confidence),
                 ModelId = model.Id,
                 Timestamp = DateTime.UtcNow,
                 IsValid = true
             };
+            
+            // Helper method
+            string GetDirectionFromConfidence(double conf)
+            {
+                if (conf > 0.55) return "BUY";
+                if (conf < 0.45) return "SELL";
+                return "HOLD";
+            }
 
             _logger.LogDebug("[INTELLIGENCE] Generated prediction for {Symbol}: {Direction} (confidence: {Confidence:F3})", 
                 symbol, prediction.Direction, confidence);
@@ -569,12 +577,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     {
                         Symbol = symbol,
                         Confidence = ensemblePrediction.Confidence,
-                        Direction = ensemblePrediction.EnsembleResult > 0.55f ? "BUY" : 
-                                   ensemblePrediction.EnsembleResult < 0.45f ? "SELL" : "HOLD",
+                        Direction = GetEnsembleDirection(ensemblePrediction.EnsembleResult),
                         ModelId = $"ensemble_{strategyId}",
                         Timestamp = DateTime.UtcNow,
                         IsValid = !ensemblePrediction.IsAnomaly,
                         Metadata = new Dictionary<string, object>
+                        
+            // Helper method
+            string GetEnsembleDirection(float result)
+            {
+                if (result > 0.55f) return "BUY";
+                if (result < 0.45f) return "SELL";
+                return "HOLD";
+            }
                         {
                             ["ensemble_result"] = ensemblePrediction.EnsembleResult,
                             ["latency_ms"] = ensemblePrediction.LatencyMs,

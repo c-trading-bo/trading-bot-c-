@@ -174,7 +174,7 @@ public class HistoricalTrainerWithCV
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LEAK_SAFE_LABELING] Failed to generate leak-safe labels for {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Leak-safe label generation failed for {symbol}", ex);
         }
     }
 

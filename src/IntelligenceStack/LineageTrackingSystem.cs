@@ -83,7 +83,7 @@ public class LineageTrackingSystem
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LINEAGE] Failed to create lineage snapshot: {SnapshotId}", snapshotId);
-            throw;
+            throw new InvalidOperationException($"Lineage snapshot creation failed for {snapshotId}", ex);
         }
     }
 
@@ -148,7 +148,7 @@ public class LineageTrackingSystem
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LINEAGE] Failed to stamp decision: {DecisionId}", decisionId);
-            throw;
+            throw new InvalidOperationException($"Decision stamping failed for {decisionId}", ex);
         }
     }
 
@@ -280,7 +280,7 @@ public class LineageTrackingSystem
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LINEAGE] Failed to get decision lineage: {DecisionId}", decisionId);
-            throw;
+            throw new InvalidOperationException($"Decision lineage retrieval failed for {decisionId}", ex);
         }
     }
 

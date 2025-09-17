@@ -158,7 +158,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[IDEMPOTENT] Failed to register order: {OrderKey} -> {OrderId}", orderKey, orderId);
-            throw;
+            throw new InvalidOperationException($"Order registration failed for key {orderKey[..8]}...", ex);
         }
     }
 

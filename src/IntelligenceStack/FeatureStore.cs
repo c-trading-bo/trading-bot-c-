@@ -230,7 +230,7 @@ public class FeatureStore : IFeatureStore
         catch (Exception ex)
         {
             _logger.LogError(ex, "[FEATURES] Failed to save schema: {Version}", schema.Version);
-            throw;
+            throw new InvalidOperationException($"Schema save failed for version {schema.Version}", ex);
         }
     }
 
