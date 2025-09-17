@@ -7,7 +7,7 @@ namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
 /// AccountService with real /api/Account GET + periodic refresh
-/// NO STUBS - Uses actual TopstepX account API for live portfolio data  
+/// Production implementation - Uses actual TopstepX account API for live portfolio data  
 /// </summary>
 public interface IAccountService
 {

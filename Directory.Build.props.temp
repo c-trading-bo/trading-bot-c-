@@ -1,0 +1,96 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    
+    <!-- PRODUCTION HARDENING: ABSOLUTE ZERO TOLERANCE FOR NON-PRODUCTION CODE -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>CS0162;CS0168;CS0219;CS0414;CS0649;CS0693;CS1717;CS8602;CS8604;CS8618;CS8625;CS1998</WarningsAsErrors>
+    
+    <!-- Enable nullable reference types solution-wide -->
+    <Nullable>enable</Nullable>
+    
+    <!-- Enable static code analysis with production-ready enforcement -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    
+    <!-- Security and reliability analyzers -->
+    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    
+    <!-- PRODUCTION ENFORCEMENT: ALL WARNINGS ARE ERRORS - ABSOLUTELY NO SUPPRESSIONS ALLOWED -->
+    <!-- Every single analyzer warning must be fixed, not suppressed -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
+    
+    <!-- ENHANCED BUSINESS LOGIC ENFORCEMENT -->
+    <EnforceBusinessLogicValidation>true</EnforceBusinessLogicValidation>
+    <FailBuildOnProductionViolations>true</FailBuildOnProductionViolations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microsoft Code Analysis analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
+    
+    <!-- Security analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" />
+    
+    <!-- Additional quality analyzers -->
+    <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- PRODUCTION ENFORCEMENT: ZERO-TOLERANCE GENERALIZED DETECTION FOR ALL NON-PRODUCTION PATTERNS -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Placeholder/Mock/Stub patterns detected. All code must be production-ready. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 3: Fake Data Arrays Detection -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\s+(byte|int|double|float|decimal)\[\s*[0-9]+\s*\]' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Fixed-size data arrays detected. Use dynamic sizing. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 4: Empty Async Placeholder Detection -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'Task\.Yield\(\)|Task\.Delay\([0-9]+\)|throw\s+new\s+NotImplementedException|return\s+Task\.CompletedTask\s*;' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Empty/placeholder async implementations detected. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 5: Test/Dev-Only Comments Detection -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '//\s*for\s+testing|//\s*debug\s+only|//\s*temporary|//\s*remove\s+this|//\s*TODO|//\s*FIXME|//\s*HACK' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Development/testing-only code comments detected. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 6: Commented-Out Code Detection (actual code blocks only) -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '^\s*//\s*(if\s*\(|for\s*\(|while\s*\(|return\s+[^/]|var\s+|public\s+|private\s+|\w+\s*=)' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Commented-out code blocks detected. Remove unused code. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 7: Weak Random Generation Detection -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\s+Random\s*\(|Random\.Shared' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Weak random number generation detected. Use cryptographically secure random. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+  
+  <!-- BUSINESS LOGIC VALIDATION: GENERALIZED patterns for zero-tolerance production enforcement -->
+    <!-- ANY Hardcoded Financial Ratios -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(SharpeRatio|sharpeRatio|Ratio|ratio|Correlation|correlation)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded financial ratios detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- ANY Weak Random Number Generation -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\s+Random\(\)|Random\.Shared|_random\.Next|\.NextDouble\(\)' {} \; | grep -q .; then echo 'CRITICAL: Weak random number generation detected. Security violation.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- ANY Hardcoded Thresholds or Limits -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(Threshold|threshold|Limit|limit|Min|max|Max)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded thresholds or limits detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+
+</Project>

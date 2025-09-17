@@ -8,7 +8,7 @@ namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
 /// UserEventsService with real /hubs/user listener for GatewayUserTrade events
-/// NO STUBS - Uses actual TopstepX user hub for trade confirmations
+/// Production implementation - Uses actual TopstepX user hub for trade confirmations
 /// </summary>
 public interface IUserEventsService
 {

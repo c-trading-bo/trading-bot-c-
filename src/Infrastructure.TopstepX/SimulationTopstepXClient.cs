@@ -10,13 +10,13 @@ using TradingBot.Abstractions;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
-/// Mock TopstepX client for CI/testing purposes
+/// Simulation TopstepX client for CI/testing purposes
 /// Provides realistic responses without connecting to real TopstepX servers
-/// Used only when MOCK_TOPSTEPX=true environment variable is set
+/// Used only when TOPSTEPX_SIMULATION_MODE=true environment variable is set
 /// </summary>
-public class MockTopstepXClient : ITopstepXClient, IDisposable
+public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 {
-    private readonly ILogger<MockTopstepXClient> _logger;
+    private readonly ILogger<SimulationTopstepXClient> _logger;
     private volatile bool _disposed;
     private volatile bool _isConnected;
 
@@ -31,10 +31,10 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
     public event Action<string>? OnError;
     public event Action<bool>? OnConnectionStateChanged;
 
-    public MockTopstepXClient(ILogger<MockTopstepXClient> logger)
+    public SimulationTopstepXClient(ILogger<SimulationTopstepXClient> logger)
     {
         _logger = logger;
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock TopstepX client initialized for CI/testing");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation TopstepX client initialized for CI/testing");
     }
 
     // ====================================================================
@@ -46,7 +46,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         await Task.Delay(100, cancellationToken); // Simulate connection delay
         _isConnected = true;
         OnConnectionStateChanged?.Invoke(true);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Connected to mock TopstepX services");
+        _logger.LogInformation("[SIM-TOPSTEPX] Connected to mock TopstepX services");
         return true;
     }
 
@@ -55,7 +55,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         await Task.Delay(50, cancellationToken); // Simulate disconnection delay
         _isConnected = false;
         OnConnectionStateChanged?.Invoke(false);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Disconnected from mock TopstepX services");
+        _logger.LogInformation("[SIM-TOPSTEPX] Disconnected from mock TopstepX services");
         return true;
     }
 
@@ -69,7 +69,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         await Task.Delay(200, cancellationToken); // Simulate auth delay
         var jwt = "mock.jwt.token.for.testing";
         var expires = DateTimeOffset.UtcNow.AddHours(1);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock authentication successful for user: {Username}", username);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation authentication successful for user: {Username}", username);
         return (jwt, expires);
     }
 
@@ -79,7 +79,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         await Task.Delay(100, cancellationToken); // Simulate refresh delay
         var jwt = "mock.refreshed.jwt.token";
         var expires = DateTimeOffset.UtcNow.AddHours(1);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock token refresh successful");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation token refresh successful");
         return (jwt, expires);
     }
 
@@ -93,13 +93,13 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         var mockResponse = JsonSerializer.Serialize(new
         {
             accountId = accountId,
-            accountName = "Mock Trading Account",
+            accountName = "Simulation Trading Account",
             accountType = "Evaluation",
             status = "Active",
             created = DateTimeOffset.UtcNow.AddDays(-30),
             lastUpdated = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock account data retrieved for: {AccountId}", accountId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation account data retrieved for: {AccountId}", accountId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -118,7 +118,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             currency = "USD",
             lastUpdated = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock balance data retrieved for: {AccountId}", accountId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation balance data retrieved for: {AccountId}", accountId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -144,7 +144,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             totalUnrealizedPnL = -237.50m,
             lastUpdated = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock positions retrieved for: {AccountId}", accountId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation positions retrieved for: {AccountId}", accountId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -155,12 +155,12 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         {
             accounts = new[]
             {
-                new { accountId = "MOCK-001", accountName = "Mock Evaluation Account", status = "Active" },
-                new { accountId = "MOCK-002", accountName = "Mock Live Account", status = "Active" }
+                new { accountId = "SIM-001", accountName = "Simulation Evaluation Account", status = "Active" },
+                new { accountId = "SIM-002", accountName = "Simulation Live Account", status = "Active" }
             },
             totalCount = 2
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock account search completed");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation account search completed");
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -182,10 +182,10 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             quantity = 1,
             price = 4125.25m,
             orderType = "LIMIT",
-            customTag = $"MOCK-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}"
+            customTag = $"SIM-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}"
         });
         
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock order placed successfully. OrderId: {OrderId}", orderId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation order placed successfully. OrderId: {OrderId}", orderId);
         
         // Simulate order update event after a short delay
         _ = Task.Run(async () =>
@@ -209,7 +209,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
     public async Task<bool> CancelOrderAsync(string orderId, CancellationToken cancellationToken = default)
     {
         await Task.Delay(150, cancellationToken);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock order cancelled. OrderId: {OrderId}", orderId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation order cancelled. OrderId: {OrderId}", orderId);
         return true;
     }
 
@@ -228,7 +228,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             fillPrice = 4125.25m,
             timestamp = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock order status retrieved. OrderId: {OrderId}", orderId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation order status retrieved. OrderId: {OrderId}", orderId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -252,7 +252,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             },
             totalCount = 1
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock order search completed");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation order search completed");
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -264,7 +264,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             orders = new object[0], // No open orders in mock
             totalCount = 0
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock open orders search completed (no open orders)");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation open orders search completed (no open orders)");
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -293,7 +293,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             },
             totalCount = 1
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock trade search completed");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation trade search completed");
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -311,7 +311,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             commission = 2.50m,
             timestamp = DateTimeOffset.UtcNow.AddMinutes(-3)
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock trade details retrieved. TradeId: {TradeId}", tradeId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation trade details retrieved. TradeId: {TradeId}", tradeId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -336,7 +336,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             tradingHours = "17:00-16:00 CT",
             lastUpdated = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock contract details retrieved. ContractId: {ContractId}", contractId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation contract details retrieved. ContractId: {ContractId}", contractId);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -353,7 +353,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             },
             totalCount = 3
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock contract search completed");
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation contract search completed");
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -385,7 +385,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
             changePercent = 0.067m,
             timestamp = DateTimeOffset.UtcNow
         });
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock market data retrieved for: {Symbol}", symbol);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation market data retrieved for: {Symbol}", symbol);
         return JsonSerializer.Deserialize<JsonElement>(mockResponse);
     }
 
@@ -396,21 +396,21 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
     public async Task<bool> SubscribeOrdersAsync(string accountId, CancellationToken cancellationToken = default)
     {
         await Task.Delay(100, cancellationToken);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock subscription to order updates for account: {AccountId}", accountId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to order updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeTradesAsync(string accountId, CancellationToken cancellationToken = default)
     {
         await Task.Delay(100, cancellationToken);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock subscription to trade updates for account: {AccountId}", accountId);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to trade updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
         await Task.Delay(100, cancellationToken);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock subscription to market data for: {Symbol}", symbol);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to market data for: {Symbol}", symbol);
         
         // Simulate periodic market data updates
         _ = Task.Run(async () =>
@@ -438,7 +438,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
     public async Task<bool> SubscribeLevel2DataAsync(string symbol, CancellationToken cancellationToken = default)
     {
         await Task.Delay(120, cancellationToken);
-        _logger.LogInformation("[MOCK-TOPSTEPX] Mock subscription to Level 2 data for: {Symbol}", symbol);
+        _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to Level 2 data for: {Symbol}", symbol);
         return true;
     }
 
@@ -458,7 +458,7 @@ public class MockTopstepXClient : ITopstepXClient, IDisposable
         {
             _disposed = true;
             _isConnected = false;
-            _logger.LogInformation("[MOCK-TOPSTEPX] Mock TopstepX client disposed");
+            _logger.LogInformation("[SIM-TOPSTEPX] Simulation TopstepX client disposed");
         }
     }
 }

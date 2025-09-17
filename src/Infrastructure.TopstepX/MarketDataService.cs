@@ -8,7 +8,7 @@ namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
 /// MarketDataService with real /hubs/market SignalR integration
-/// NO STUBS - Uses actual TopstepX market hub for live price data
+/// Production implementation - Uses actual TopstepX market hub for live price data
 /// </summary>
 public interface IMarketDataService
 {

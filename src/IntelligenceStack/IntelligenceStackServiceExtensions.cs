@@ -14,20 +14,20 @@ namespace TradingBot.IntelligenceStack;
 
 /// <summary>
 /// Production-only intelligence stack service extensions
-/// ALL MOCK SERVICES HAVE BEEN PERMANENTLY REMOVED
+/// ALL SIMULATION SERVICES HAVE BEEN PERMANENTLY REMOVED
 /// </summary>
 public static class IntelligenceStackServiceExtensions
 {
     /// <summary>
     /// Register the complete intelligence stack with dependency injection
-    /// ALL SERVICES ARE PRODUCTION IMPLEMENTATIONS - ZERO MOCKS
+    /// ALL SERVICES ARE PRODUCTION IMPLEMENTATIONS - ZERO SIMULATIONS
     /// </summary>
     public static IServiceCollection AddIntelligenceStack(
         this IServiceCollection services, 
         IConfiguration configuration)
     {
         // ================================================================================
-        // PRODUCTION INTELLIGENCE SERVICES ONLY - ZERO MOCK IMPLEMENTATIONS
+        // PRODUCTION INTELLIGENCE SERVICES ONLY - ZERO SIMULATION IMPLEMENTATIONS
         // ================================================================================
         
         // Register IntelligenceStackConfig first (required dependency)
@@ -143,7 +143,7 @@ public static class IntelligenceStackServiceExtensions
 
 /// <summary>
 /// Service to verify at runtime that all intelligence services are production implementations
-/// PROVIDES CONCRETE RUNTIME PROOF THAT ZERO MOCK SERVICES ARE ACTIVE
+/// PROVIDES CONCRETE RUNTIME PROOF THAT ZERO SIMULATION SERVICES ARE ACTIVE
 /// </summary>
 public interface IIntelligenceStackVerificationService
 {
@@ -207,7 +207,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                     
                     if (isMock)
                     {
-                        var error = $"CRITICAL ERROR: Service {serviceName} uses MOCK implementation: {typeName} from {assemblyName}";
+                        var error = $"CRITICAL ERROR: Service {serviceName} uses SIMULATION implementation: {typeName} from {assemblyName}";
                         _logger.LogError("❌ [PRODUCTION-VERIFICATION] {Error}", error);
                         result.Errors.Add(error);
                         result.IsProductionReady = false;

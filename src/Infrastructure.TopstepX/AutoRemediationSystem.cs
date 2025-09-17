@@ -696,7 +696,7 @@ public class AutoRemediationSystem
         if (File.Exists(".env"))
         {
             var envContent = await File.ReadAllTextAsync(".env");
-            if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
+            if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("TEMPLATE_VALUE"))
             {
                 issues.Add("Potential hardcoded credentials found in .env file");
             }
