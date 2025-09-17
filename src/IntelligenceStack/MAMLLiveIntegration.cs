@@ -114,7 +114,6 @@ public class MamlLiveIntegration
 
             // Validate adaptation step
             var validationResult = await ValidateAdaptationAsync(
-                modelState, 
                 adaptationStep, 
                 cancellationToken);
 

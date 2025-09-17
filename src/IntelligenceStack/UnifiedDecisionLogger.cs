@@ -154,7 +154,7 @@ public static class DecisionLoggingExtensions
     /// <summary>
     /// Log a trading decision from BotSupervisor
     /// </summary>
-    public static async Task LogTradingDecisionAsync(
+    public static Task LogTradingDecisionAsync(
         this UnifiedDecisionLogger logger,
         string symbol,
         string strategy,
@@ -175,13 +175,13 @@ public static class DecisionLoggingExtensions
                 ["source"] = "BotSupervisor"
             });
             
-        await logger.LogDecisionAsync(decision);
+        return logger.LogDecisionAsync(decision);
     }
     
     /// <summary>
     /// Log a regime detection decision
     /// </summary>
-    public static async Task LogRegimeDecisionAsync(
+    public static Task LogRegimeDecisionAsync(
         this UnifiedDecisionLogger logger,
         string symbol,
         string previousRegime,
@@ -199,13 +199,13 @@ public static class DecisionLoggingExtensions
                 ["source"] = "RegimeDetector"
             });
             
-        await logger.LogDecisionAsync(decision);
+        return logger.LogDecisionAsync(decision);
     }
     
     /// <summary>
     /// Log an order fill with complete context
     /// </summary>
-    public static async Task LogOrderFillAsync(
+    public static Task LogOrderFillAsync(
         this UnifiedDecisionLogger logger,
         string orderId,
         string symbol,
@@ -229,6 +229,6 @@ public static class DecisionLoggingExtensions
         decision.FillPrice = fillPrice;
         decision.FillTime = DateTime.UtcNow;
         
-        await logger.LogDecisionAsync(decision);
+        return logger.LogDecisionAsync(decision);
     }
 }

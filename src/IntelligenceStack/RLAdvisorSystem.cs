@@ -142,7 +142,7 @@ public class RLAdvisorSystem
             await agent.UpdateAsync(decision.StateVector, decision.RawAction, reward, outcome.NextState, cancellationToken);
             
             // Update performance tracking
-            await UpdatePerformanceTrackingAsync(agentKey, decision, outcome, cancellationToken);
+            await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken);
 
             _logger.LogDebug("[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}", 
                 agentKey, reward);

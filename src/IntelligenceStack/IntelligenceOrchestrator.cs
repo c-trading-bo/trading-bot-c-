@@ -485,7 +485,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             };
 
             var features = await ExtractFeaturesAsync(context, cancellationToken);
-            var confidence = await MakePredictionAsync(model, features, cancellationToken);
+            var confidence = await MakePredictionAsync(features, cancellationToken);
             
             var prediction = new MLPrediction
             {
