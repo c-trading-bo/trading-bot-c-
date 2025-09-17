@@ -26,12 +26,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     
     // Core services
     private readonly IRegimeDetector _regimeDetector;
-    private readonly IFeatureStore _featureStore;
     private readonly IModelRegistry _modelRegistry;
     private readonly ICalibrationManager _calibrationManager;
     private readonly IDecisionLogger _decisionLogger;
     private readonly TradingBot.Abstractions.IStartupValidator _startupValidator;
-    private readonly IIdempotentOrderService _idempotentOrderService;
     private readonly FeatureEngineer _featureEngineer;
     
     // Cloud flow components (merged from CloudFlowService)
@@ -74,12 +72,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         _serviceProvider = serviceProvider;
         _config = config;
         _regimeDetector = regimeDetector;
-        _featureStore = featureStore;
         _modelRegistry = modelRegistry;
         _calibrationManager = calibrationManager;
         _decisionLogger = decisionLogger;
         _startupValidator = startupValidator;
-        _idempotentOrderService = idempotentOrderService;
         
         // Initialize FeatureEngineer with online learning system
         _featureEngineer = new FeatureEngineer(

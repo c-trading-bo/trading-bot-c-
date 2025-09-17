@@ -19,7 +19,6 @@ public class HistoricalTrainerWithCV
     private readonly ILogger<HistoricalTrainerWithCV> _logger;
     private readonly IModelRegistry _modelRegistry;
     private readonly IFeatureStore _featureStore;
-    private readonly IQuarantineManager _quarantineManager;
     private readonly PromotionCriteria _promotionCriteria;
     private readonly string _dataPath;
     
@@ -30,14 +29,12 @@ public class HistoricalTrainerWithCV
         ILogger<HistoricalTrainerWithCV> logger,
         IModelRegistry modelRegistry,
         IFeatureStore featureStore,
-        IQuarantineManager quarantineManager,
         PromotionCriteria promotionCriteria,
         string dataPath = "data/historical_training")
     {
         _logger = logger;
         _modelRegistry = modelRegistry;
         _featureStore = featureStore;
-        _quarantineManager = quarantineManager;
         _promotionCriteria = promotionCriteria;
         _dataPath = dataPath;
         
@@ -499,31 +496,6 @@ public class HistoricalTrainerWithCV
         }
     }
     
-    /// <summary>
-    /// Load REAL market data from TopstepX or other market data providers
-    /// </summary>
-    private Task<List<MarketDataPoint>> LoadRealMarketDataFromProviderAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
-    {
-        try
-        {
-            _logger.LogInformation("[HISTORICAL_TRAINER] Loading real market data for {Symbol} from {StartTime} to {EndTime}", symbol, startTime, endTime);
-            
-            // In a real implementation, this would connect to TopstepX historical data API
-            // For now, return empty list since we don't have the historical data service implemented
-            var dataPoints = new List<MarketDataPoint>();
-            
-            // Real TopstepX historical data integration will be implemented
-            // when historical data API endpoints become available
-            
-            _logger.LogWarning("[HISTORICAL_TRAINER] Historical data service not available for {Symbol}. Training will be skipped.", symbol);
-            return Task.FromResult(dataPoints);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[HISTORICAL_TRAINER] Failed to load real market data for {Symbol}", symbol);
-            return Task.FromResult(new List<MarketDataPoint>());
-        }
-    }
     
     private async Task<List<MarketDataPoint>> ApplyDataQualityChecksAsync(List<MarketDataPoint> dataPoints, CancellationToken cancellationToken)
     {
