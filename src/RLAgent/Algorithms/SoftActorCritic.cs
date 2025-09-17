@@ -399,6 +399,7 @@ public class ExperienceReplayBuffer : IDisposable
     private readonly int _maxSize;
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     private int _index = 0;
+    private bool _disposed = false;
 
     public ExperienceReplayBuffer(int maxSize)
     {
@@ -449,7 +450,17 @@ public class ExperienceReplayBuffer : IDisposable
 
     public void Dispose()
     {
-        _rng?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            _rng?.Dispose();
+            _disposed = true;
+        }
     }
 }
 
