@@ -87,7 +87,7 @@ public class AccountService : IAccountService, IDisposable
         _httpClient.BaseAddress = new Uri(_config.ApiBase);
         
         // Create timer but don't start it yet
-        _refreshTimer = new Timer(async _ => await RefreshAccountAsync(), null, Timeout.Infinite, Timeout.Infinite);
+        _refreshTimer = new Timer(RefreshAccountCallback, null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public async Task<AccountInfo> GetAccountInfoAsync()
@@ -251,6 +251,12 @@ public class AccountService : IAccountService, IDisposable
         {
             _logger.LogError(ex, "[ACCOUNT] Error during periodic refresh");
         }
+    }
+
+    private void RefreshAccountCallback(object? state)
+    {
+        // Fire-and-forget is acceptable here as we handle exceptions internally
+        _ = Task.Run(async () => await RefreshAccountAsync());
     }
 
     /// <summary>

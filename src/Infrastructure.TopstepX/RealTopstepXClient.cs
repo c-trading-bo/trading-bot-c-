@@ -826,7 +826,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         }
     }
 
-    private string MaskCredential(string credential)
+    private static string MaskCredential(string credential)
     {
         if (string.IsNullOrEmpty(credential) || credential.Length <= 4)
             return "****";
@@ -834,7 +834,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         return credential[..2] + "****" + credential[^2..];
     }
 
-    private string MaskAccountId(string accountId)
+    private static string MaskAccountId(string accountId)
     {
         if (string.IsNullOrEmpty(accountId) || accountId.Length <= 6)
             return "****";

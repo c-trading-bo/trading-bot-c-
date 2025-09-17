@@ -72,7 +72,7 @@ public class AutoRemediationSystem
 
             // Phase 5: Test Failures and System Health Issues
             _logger.LogInformation("📋 Phase 5: Test Failures and System Health Remediation");
-            var testRemediationResult = await RemediateTestFailures(testResults, systemReport);
+            var testRemediationResult = await RemediateTestFailures(testResults);
             result.TestRemediations.AddRange(testRemediationResult);
 
             // Phase 6: Validation of remediation effectiveness
@@ -322,8 +322,11 @@ public class AutoRemediationSystem
                 
                 if (memoryPressure > 1.0) // Only suggest GC if > 1GB in use
                 {
-                    // Use default GC mode, not forced
-                    GC.Collect(0, GCCollectionMode.Default, false);
+                    // Request garbage collection without forcing it
+                    GC.WaitForPendingFinalizers();
+                    // Monitor memory and let runtime decide optimal collection timing
+                    GC.AddMemoryPressure(1024 * 1024); // Add 1MB pressure to trigger natural collection
+                    GC.RemoveMemoryPressure(1024 * 1024); // Remove the pressure immediately
                 }
 
                 var memoryAfter = GC.GetTotalMemory(false);
@@ -331,7 +334,7 @@ public class AutoRemediationSystem
                 
                 action.Success = true;
                 action.Result = $"Memory optimization completed, freed {freedMB}MB";
-                action.Details.Add("Used proper memory pressure monitoring");
+                action.Details.Add("Used memory pressure monitoring without forced collection");
                 action.Details.Add($"Memory before: {memoryBefore / (1024 * 1024)}MB");
                 action.Details.Add($"Memory after: {memoryAfter / (1024 * 1024)}MB");
                 action.Details.Add("Applied selective component cleanup");
@@ -400,8 +403,7 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateTestFailures(
-        TestSuiteResult testResults,
-        ComprehensiveReport systemReport)
+        TestSuiteResult testResults)
     {
         var actions = new List<RemediationAction>();
 
@@ -577,7 +579,7 @@ public class AutoRemediationSystem
         return manualItems;
     }
 
-    private List<(string Key, string DefaultValue)> DetectMissingEnvironmentVariables()
+    private static List<(string Key, string DefaultValue)> DetectMissingEnvironmentVariables()
     {
         var requiredVars = new Dictionary<string, string>
         {

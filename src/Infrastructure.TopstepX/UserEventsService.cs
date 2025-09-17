@@ -153,7 +153,7 @@ public class UserEventsService : IUserEventsService, IAsyncDisposable, IDisposab
         catch (Exception ex)
         {
             _logger.LogError(ex, "[USER] Failed to subscribe to trades");
-            throw;
+            throw new InvalidOperationException("Failed to subscribe to user trade events", ex);
         }
     }
 

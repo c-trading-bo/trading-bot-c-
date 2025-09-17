@@ -102,8 +102,24 @@ public class EnhancedProductionResilienceService
     /// </summary>
     public IAsyncPolicy<T> GetOperationResiliencePolicy<T>(string operationName)
     {
-        // For now, just return timeout policy to resolve compilation issues
-        // TODO: Implement proper retry + timeout combination for production
+    /// <summary>
+    /// Get resilience policy for general operations with retry and timeout
+    /// </summary>
+    public IAsyncPolicy<T> GetOperationResiliencePolicy<T>(string operationName)
+    {
+        // Implement comprehensive retry + timeout combination for production
+        var retryPolicy = Policy.Handle<Exception>()
+            .WaitAndRetryAsync(
+                retryCount: _config.MaxRetryAttempts,
+                sleepDurationProvider: retryAttempt => TimeSpan.FromMilliseconds(Math.Min(
+                    _config.BaseDelayMs * Math.Pow(2, retryAttempt - 1),
+                    _config.MaxDelayMs)),
+                onRetry: (outcome, timespan, retryCount, context) =>
+                {
+                    _logger.LogWarning("🔄 [RESILIENCE] Retry {RetryCount}/{MaxRetries} for {Operation} after {Delay}ms. Error: {Error}",
+                        retryCount, _config.MaxRetryAttempts, operationName, timespan.TotalMilliseconds, outcome.Exception?.Message);
+                });
+
         var timeoutPolicy = Policy.TimeoutAsync<T>(
             timeout: TimeSpan.FromMilliseconds(_config.HttpTimeoutMs),
             timeoutStrategy: TimeoutStrategy.Pessimistic,
@@ -114,7 +130,8 @@ public class EnhancedProductionResilienceService
                 return Task.CompletedTask;
             });
 
-        return timeoutPolicy;
+        // Combine retry and timeout policies for comprehensive resilience
+        return Policy.WrapAsync(retryPolicy, timeoutPolicy);
     }
 
     /// <summary>

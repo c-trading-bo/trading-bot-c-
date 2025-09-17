@@ -74,7 +74,7 @@ public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
                 };
 
                 _logger.LogError(ex, "JWT refresh failed: {ErrorData}", System.Text.Json.JsonSerializer.Serialize(errorData));
-                throw;
+                throw new InvalidOperationException("JWT token refresh failed", ex);
             }
             finally
             {

@@ -498,7 +498,7 @@ public class TopstepXService : ITopstepXService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[TOPSTEPX] Failed to subscribe to market data");
-            throw;
+            throw new InvalidOperationException("Failed to subscribe to TopstepX market data events", ex);
         }
     }
 
