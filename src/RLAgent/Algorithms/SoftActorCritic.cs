@@ -599,13 +599,6 @@ public class ActorNetwork : IDisposable
             _disposed = true;
         }
     }
-
-    private double GetRandomDouble()
-    {
-        var bytes = new byte[8];
-        _rng.GetBytes(bytes);
-        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
-    }
 }
 
 /// <summary>
@@ -617,7 +610,7 @@ public class CriticNetwork
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -650,7 +643,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
         
@@ -659,7 +652,7 @@ public class CriticNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
     }
@@ -737,6 +730,13 @@ public class CriticNetwork
             _biasOutput[i] = tau * source._biasOutput[i] + (1 - tau) * _biasOutput[i];
         }
     }
+
+    private double GetRandomDouble()
+    {
+        var bytes = new byte[8];
+        _rng.GetBytes(bytes);
+        return Math.Abs(BitConverter.ToDouble(bytes, 0)) / double.MaxValue;
+    }
 }
 
 /// <summary>
@@ -748,7 +748,7 @@ public class ValueNetwork
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
+    private readonly System.Security.Cryptography.RandomNumberGenerator _rng;
     
     // Network weights (simplified implementation)
     private double[,] _weightsInput = null!;
@@ -781,7 +781,7 @@ public class ValueNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
         
@@ -790,7 +790,7 @@ public class ValueNetwork
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (_random.NextDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
             }
         }
     }
