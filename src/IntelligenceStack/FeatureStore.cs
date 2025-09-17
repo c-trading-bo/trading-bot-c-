@@ -90,8 +90,9 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to get features for {Symbol}", symbol);
-            throw;
+            _logger.LogError(ex, "[FEATURES] Failed to get features for {Symbol} from {FromTime} to {ToTime}", 
+                symbol, fromTime, toTime);
+            throw new InvalidOperationException($"Feature retrieval failed for symbol {symbol}", ex);
         }
     }
 
@@ -127,8 +128,9 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to save features for {Symbol}", features.Symbol);
-            throw;
+            _logger.LogError(ex, "[FEATURES] Failed to save features for {Symbol} at {Timestamp}", 
+                features.Symbol, features.Timestamp);
+            throw new InvalidOperationException($"Feature saving failed for symbol {features.Symbol}", ex);
         }
     }
 

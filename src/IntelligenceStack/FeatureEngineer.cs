@@ -89,10 +89,12 @@ public class FeatureEngineer : IDisposable
 
             // Get or create importance tracker for this strategy
             var tracker = _importanceTrackers.GetOrAdd(strategyId, 
-                _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                id => new FeatureImportanceTracker(id, _rollingWindowSize));
 
             // Update tracker with new data
-            await tracker.UpdateAsync(features, predictions.Last(), outcomes.Last(), cancellationToken);
+            var lastPrediction = predictions[predictions.Count - 1];
+            var lastOutcome = outcomes[outcomes.Count - 1];
+            await tracker.UpdateAsync(features, lastPrediction, lastOutcome, cancellationToken);
 
             // Calculate SHAP approximation using marginal contributions
             foreach (var (featureName, featureValue) in features.Features)

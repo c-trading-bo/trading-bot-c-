@@ -261,13 +261,20 @@ public class DriftMonitor
             var hasWarning = psi > _config.PsiWarn;
             var hasBlock = psi > _config.PsiBlock;
 
+            string message;
+            if (hasBlock)
+                message = "Feature drift detected - blocking";
+            else if (hasWarning)
+                message = "Feature drift warning";
+            else
+                message = "No drift detected";
+                
             var result = new DriftDetectionResult
             {
                 HasDrift = hasWarning,
                 ShouldBlock = hasBlock,
                 PSI = psi,
-                Message = hasBlock ? "Feature drift detected - blocking" : 
-                         hasWarning ? "Feature drift warning" : "No drift detected"
+                Message = message
             };
 
             if (hasWarning)
@@ -298,10 +305,9 @@ public class DriftMonitor
         };
     }
 
-    private double CalculatePSI(Dictionary<string, double> baseline, Dictionary<string, double> current)
+    private static double CalculatePSI(Dictionary<string, double> baseline, Dictionary<string, double> current)
     {
         var psi = 0.0;
-        var totalFeatures = baseline.Count;
 
         foreach (var feature in baseline.Keys)
         {
