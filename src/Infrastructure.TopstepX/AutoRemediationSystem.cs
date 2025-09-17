@@ -32,6 +32,16 @@ internal static class AutoRemediationConstants
     // Retry constants
     public const int MAX_RETRY_ATTEMPTS = 2;
     public const int RETRY_DELAY_FACTOR = 3;
+    
+    // Network and timeout constants
+    public const int HIGH_LATENCY_THRESHOLD_MS = 5000;
+    public const int HIGH_MEMORY_THRESHOLD_MB = 500;
+    public const int CONNECTION_TIMEOUT_MS = 30000;
+    public const int MAX_CONNECTION_LIMIT = 10;
+    public const int OPTIMAL_TIMEOUT_MULTIPLIER = 3;
+    public const int MAX_TIMEOUT_SECONDS = 30;
+    public const int VALIDATION_LENGTH_THRESHOLD = 10;
+    public const int THREAD_MULTIPLIER = 2;
 }
 
 /// <summary>
@@ -283,7 +293,7 @@ public class AutoRemediationSystem
         var actions = new List<RemediationAction>();
 
         // Issue 1: High network latency
-        if (systemReport.PerformanceMetrics.LatencyMetrics.NetworkConnectivityLatency > 5000)
+        if (systemReport.PerformanceMetrics.LatencyMetrics.NetworkConnectivityLatency > AutoRemediationConstants.HIGH_LATENCY_THRESHOLD_MS)
         {
             var action = new RemediationAction
             {
@@ -700,7 +710,7 @@ public class AutoRemediationSystem
             var value = Environment.GetEnvironmentVariable(varName);
             if (!string.IsNullOrEmpty(value))
             {
-                if (value.Length < 10)
+                if (value.Length < AutoRemediationConstants.VALIDATION_LENGTH_THRESHOLD)
                 {
                     issues.Add($"{varName} appears to be too short or placeholder");
                 }
@@ -797,8 +807,8 @@ public class AutoRemediationSystem
         }
 
         // Optimize connection pooling
-        ServicePointManager.DefaultConnectionLimit = Math.Max(10, Environment.ProcessorCount * 2);
-        ServicePointManager.MaxServicePointIdleTime = 30000; // 30 seconds
+        ServicePointManager.DefaultConnectionLimit = Math.Max(AutoRemediationConstants.MAX_CONNECTION_LIMIT, Environment.ProcessorCount * AutoRemediationConstants.THREAD_MULTIPLIER);
+        ServicePointManager.MaxServicePointIdleTime = AutoRemediationConstants.CONNECTION_TIMEOUT_MS; // 30 seconds
     }
 
     /// <summary>
@@ -813,7 +823,7 @@ public class AutoRemediationSystem
         var testUrl = $"{apiBase}/health";
         var measurements = new List<double>();
         
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < AutoRemediationConstants.RETRY_DELAY_FACTOR; i++)
         {
             try
             {
@@ -832,9 +842,9 @@ public class AutoRemediationSystem
         
         // Calculate 95th percentile + buffer
         var avgLatency = measurements.Average();
-        var optimalTimeout = Math.Max(10, (int)(avgLatency * 3 / 1000)); // 3x average, minimum 10s
+        var optimalTimeout = Math.Max(AutoRemediationConstants.MAX_CONNECTION_LIMIT, (int)(avgLatency * AutoRemediationConstants.OPTIMAL_TIMEOUT_MULTIPLIER / AutoRemediationConstants.HEALTH_CHECK_INTERVAL_MS)); // 3x average, minimum 10s
         
-        return Math.Min(optimalTimeout, 30); // Cap at 30 seconds
+        return Math.Min(optimalTimeout, AutoRemediationConstants.MAX_TIMEOUT_SECONDS); // Cap at 30 seconds
     }
 
     /// <summary>
@@ -981,7 +991,7 @@ public class AutoRemediationSystem
             if (workerThreads < Environment.ProcessorCount)
             {
                 // System under pressure, optimize thread usage
-                ThreadPool.SetMaxThreads(Environment.ProcessorCount * 2, ioThreads);
+                ThreadPool.SetMaxThreads(Environment.ProcessorCount * AutoRemediationConstants.THREAD_MULTIPLIER, ioThreads);
                 ThreadPool.SetMinThreads(Environment.ProcessorCount, Math.Min(ioThreads, Environment.ProcessorCount));
             }
             
@@ -1031,7 +1041,7 @@ public class AutoRemediationSystem
         var totalMsPassed = (endTime - startTime).TotalMilliseconds;
         var cpuUsageTotal = cpuUsedMs / (Environment.ProcessorCount * totalMsPassed);
         
-        return cpuUsageTotal * 100;
+        return cpuUsageTotal * AutoRemediationConstants.MEMORY_USAGE_PERCENT;
     }
 
     /// <summary>
