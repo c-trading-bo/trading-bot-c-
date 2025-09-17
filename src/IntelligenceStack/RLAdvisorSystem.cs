@@ -556,7 +556,7 @@ public class RLAdvisorSystem
             
             foreach (var window in episodeWindows)
             {
-                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, tradeData, cancellationToken);
+                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken);
                 episodes.Add(episode);
             }
             
@@ -573,7 +573,6 @@ public class RLAdvisorSystem
         // For production, this would integrate with historical data providers
         var dataPoints = new List<RLMarketDataPoint>();
         var current = startDate;
-        var seed = symbol.GetHashCode(); // Deterministic seed for consistency
         
         while (current <= endDate)
         {
@@ -624,7 +623,6 @@ public class RLAdvisorSystem
     private async Task<TrainingEpisode> CreateEpisodeFromMarketDataAsync(
         EpisodeWindow window, 
         List<RLMarketDataPoint> marketData, 
-        List<TradeRecord> tradeData, 
         CancellationToken cancellationToken)
     {
         return await Task.Run(() =>

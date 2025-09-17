@@ -351,7 +351,7 @@ public class ModelQuarantineManager : IQuarantineManager
         var latencyIssue = current.Latency > 100; // Hardcoded threshold for now
 
         // Determine new health state
-        var newState = DetermineHealthState(brierDelta, hitRateDelta, latencyIssue, healthState.State);
+        var newState = DetermineHealthState(brierDelta, hitRateDelta, latencyIssue);
         
         if (newState != previousState)
         {
@@ -359,7 +359,7 @@ public class ModelQuarantineManager : IQuarantineManager
             
             if (newState == HealthState.Quarantine)
             {
-                var reason = GetQuarantineReason(brierDelta, hitRateDelta, latencyIssue);
+                var reason = GetQuarantineReason(hitRateDelta, latencyIssue);
                 healthState.QuarantineReason = reason;
                 healthState.QuarantinedAt = DateTime.UtcNow;
                 
@@ -374,7 +374,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
     }
 
-    private HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue, HealthState currentState)
+    private HealthState DetermineHealthState(double brierDelta, double hitRateDelta, bool latencyIssue)
     {
         // Check for quarantine conditions (most severe)
         if (brierDelta > 0.1 || hitRateDelta > 0.1 || latencyIssue) // Brier increase of 0.1 or hit rate drop of 0.1
@@ -398,7 +398,7 @@ public class ModelQuarantineManager : IQuarantineManager
         return HealthState.Healthy;
     }
 
-    private QuarantineReason GetQuarantineReason(double brierDelta, double hitRateDelta, bool latencyIssue)
+    private QuarantineReason GetQuarantineReason(double hitRateDelta, bool latencyIssue)
     {
         if (latencyIssue)
             return QuarantineReason.LatencyTooHigh;
