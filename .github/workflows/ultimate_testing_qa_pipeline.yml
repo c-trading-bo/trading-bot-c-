@@ -75,14 +75,56 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           persist-credentials: true
 
+      - name: "🔍 Session Existence Check & Deduplication"
+        id: session_check
+        run: |
+          echo "🔍 Checking for existing testing QA sessions..."
+          
+          # Use shared session deduplicator script
+          python .github/scripts/session_deduplicator.py check \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'ultimate-testing-qa' }}" \
+            "${{ github.sha }}" \
+            "${{ github.run_id }}"
+
+      - name: "📝 Register Testing Session (if not skipping)"
+        if: steps.session_check.outputs.skip_execution != 'true'
+        run: |
+          echo "📝 Registering new testing session..."
+          
+          python .github/scripts/session_deduplicator.py register \
+            "${{ steps.session_check.outputs.session_key }}" \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'ultimate-testing-qa' }}" \
+            "${{ github.run_id }}" \
+            "${{ github.sha }}"
+
       - name: "🐍 Setup Python Environment"
+        if: steps.session_check.outputs.skip_execution != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: "⚡ Cache Testing Dependencies"
+        if: steps.session_check.outputs.skip_execution != 'true'
         uses: actions/cache@v4
+
+      - name: "🚫 Duplicate Testing Session Prevention Notice"
+        if: steps.session_check.outputs.skip_execution == 'true'
+        run: |
+          echo "🚫 ============================================"
+          echo "🚫 DUPLICATE TESTING SESSION PREVENTED"
+          echo "=============================================="
+          echo ""
+          echo "✅ PREMIUM TESTING SESSION SAVED!"
+          echo "🔍 Session Key: ${{ steps.session_check.outputs.session_key }}"
+          echo "⏰ Event Type: ${{ github.event_name }}"
+          echo "🧪 Testing workflow already running for this commit"
+          echo ""
+          echo "💰 COST SAVINGS: Duplicate testing execution prevented"
+          echo "✅ This prevents redundant QA runs!"
+          echo "=============================================="
         with:
           path: |
             ~/.cache/pip
@@ -512,7 +554,7 @@ jobs:
           EOF
 
       - name: "🧪 Unit Testing Suite"
-        if: env.TEST_TYPE == 'all' || env.TEST_TYPE == 'unit_tests'
+        if: steps.session_check.outputs.skip_execution != 'true' && (env.TEST_TYPE == 'all' || env.TEST_TYPE == 'unit_tests')
         run: |
           echo "🧪 Running comprehensive unit testing suite..."
           
@@ -942,6 +984,7 @@ jobs:
           echo "=============================================="
 
       - name: "🔗 Integrate with BotCore Decision Engine"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           echo "🔗 Converting Testing QA results to BotCore format..."
           
@@ -952,3 +995,26 @@ jobs:
             --output-path "Intelligence/data/integrated/testing_qa_status.json"
           
           echo "✅ BotCore testing QA integration complete"
+
+      - name: "🧹 Testing Session Cleanup & Audit"
+        if: always()
+        run: |
+          echo "🧹 Cleaning up testing session..."
+          
+          SESSION_KEY="${{ steps.session_check.outputs.session_key }}"
+          SKIP_EXECUTION="${{ steps.session_check.outputs.skip_execution }}"
+          
+          # Create audit entry
+          python .github/scripts/session_deduplicator.py audit \
+            "${SESSION_KEY}" \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'ultimate-testing-qa' }}" \
+            "${{ github.run_id }}" \
+            "${{ github.sha }}" \
+            "$([ "${SKIP_EXECUTION}" = "true" ] && echo "false" || echo "true")" \
+            "${{ job.status }}"
+          
+          # Clean up session
+          python .github/scripts/session_deduplicator.py cleanup "${SESSION_KEY}"
+          
+          echo "✅ Testing session cleanup complete"
