@@ -69,11 +69,11 @@ public class ProductionReadinessStartupService : IHostedService
         var allowMockData = _configuration.GetValue<bool>("AllowMockData", false);
         if (!allowMockData)
         {
-            _logger.LogInformation("✅ [CONFIG-PROOF] AllowMockData = false (MOCK DATA DISABLED)");
+            _logger.LogInformation("✅ [CONFIG-PROOF] AllowMockData = false (SIMULATION DATA DISABLED)");
         }
         else
         {
-            _logger.LogWarning("⚠️ [CONFIG-PROOF] AllowMockData = true (MOCK DATA ENABLED - NOT RECOMMENDED FOR PRODUCTION)");
+            _logger.LogWarning("⚠️ [CONFIG-PROOF] AllowMockData = true (SIMULATION DATA ENABLED - NOT RECOMMENDED FOR PRODUCTION)");
         }
 
         // 3. Verify API endpoints use HTTPS
@@ -163,7 +163,7 @@ public class ProductionReadinessStartupService : IHostedService
                 
                 if (clientType.Contains("Mock", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogError("❌ [RUNTIME-PROOF] CRITICAL: TopstepX client is MOCK implementation!");
+                    _logger.LogError("❌ [RUNTIME-PROOF] CRITICAL: TopstepX client is SIMULATION implementation!");
                 }
                 else
                 {

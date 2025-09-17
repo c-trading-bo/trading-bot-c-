@@ -365,6 +365,22 @@ public enum WorkflowStatus
 /// </summary>
 public class WorkflowSchedule
 {
+    // Market timing constants
+    private const int SundayMarketOpenHour = 18;  // 6 PM ET
+    private const int FridayMarketCloseHour = 17; // 5 PM ET
+    private const int MaintenanceStartHour = 17;  // 5 PM ET - start of maintenance break
+    private const int MaintenanceEndHour = 18;    // 6 PM ET - end of maintenance break
+    
+    // Standard market hours
+    private const int MarketOpenHour = 9;    // 9 AM ET
+    private const int MarketCloseHour = 16;  // 4 PM ET
+    private const int FirstHourEnd = 10;     // 10 AM ET
+    private const int LastHourStart = 15;    // 3 PM ET
+    private const int CoreMorningEnd = 11;   // 11 AM ET
+    private const int CoreAfternoonStart = 14; // 2 PM ET
+    private const int OvernightStart = 18;   // 6 PM ET
+    private const int OvernightEnd = 8;      // 8 AM ET
+    
     public string? MarketHours { get; set; }        // During market hours
     public string? ExtendedHours { get; set; }      // Extended trading hours
     public string? Overnight { get; set; }          // Overnight sessions
@@ -419,7 +435,7 @@ public class WorkflowSchedule
         // Sunday: market opens at 6 PM ET
         if (dayOfWeek == DayOfWeek.Sunday)
         {
-            if (hour >= 18)
+            if (hour >= SundayMarketOpenHour)
                 return MarketHours ?? Regular;
             else
                 return Disabled ?? Weekends;
@@ -434,7 +450,7 @@ public class WorkflowSchedule
         var dayOfWeek = et.DayOfWeek;
         
         // Friday: market closes at 5 PM ET
-        if (dayOfWeek == DayOfWeek.Friday && hour >= 17)
+        if (dayOfWeek == DayOfWeek.Friday && hour >= FridayMarketCloseHour)
             return Disabled ?? Weekends;
         
         // Check for maintenance break (Monday-Thursday 5-6 PM ET)
@@ -458,9 +474,9 @@ public class WorkflowSchedule
         // Monday-Thursday: daily maintenance break 5-6 PM ET
         if (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday)
         {
-            if (hour == 17) // 5 PM ET - start of maintenance break
+            if (hour == MaintenanceStartHour) // 5 PM ET - start of maintenance break
                 return Disabled;
-            if (hour == 18) // 6 PM ET - end of maintenance break, session resumes
+            if (hour == MaintenanceEndHour) // 6 PM ET - end of maintenance break, session resumes
                 return MarketHours ?? Regular;
         }
         return null;
@@ -468,9 +484,9 @@ public class WorkflowSchedule
 
     private static bool IsRegularTradingTime(DayOfWeek dayOfWeek, int hour)
     {
-        return (dayOfWeek == DayOfWeek.Sunday && hour >= 18) || 
+        return (dayOfWeek == DayOfWeek.Sunday && hour >= SundayMarketOpenHour) || 
                (dayOfWeek >= DayOfWeek.Monday && dayOfWeek <= DayOfWeek.Thursday) ||
-               (dayOfWeek == DayOfWeek.Friday && hour < 17);
+               (dayOfWeek == DayOfWeek.Friday && hour < FridayMarketCloseHour);
     }
 
     private string? GetTradingHoursSchedule(int hour)
@@ -496,17 +512,17 @@ public class WorkflowSchedule
 
     private bool IsStandardMarketHour(int hour)
     {
-        return hour >= 9 && hour <= 16 && !string.IsNullOrEmpty(MarketHours);
+        return hour >= MarketOpenHour && hour <= MarketCloseHour && !string.IsNullOrEmpty(MarketHours);
     }
 
     private string? GetSpecialTradingPeriod(int hour)
     {
         // First hour of traditional market
-        if (hour >= 9 && hour <= 10 && !string.IsNullOrEmpty(FirstHour)) 
+        if (hour >= MarketOpenHour && hour <= FirstHourEnd && !string.IsNullOrEmpty(FirstHour)) 
             return FirstHour;
             
         // Last hour of traditional market  
-        if (hour >= 15 && hour <= 16 && !string.IsNullOrEmpty(LastHour)) 
+        if (hour >= LastHourStart && hour <= MarketCloseHour && !string.IsNullOrEmpty(LastHour)) 
             return LastHour;
             
         // Core hours (morning and afternoon peaks)
@@ -518,13 +534,13 @@ public class WorkflowSchedule
 
     private static bool IsCoreHour(int hour)
     {
-        return (hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16);
+        return (hour >= MarketOpenHour && hour <= CoreMorningEnd) || (hour >= CoreAfternoonStart && hour <= MarketCloseHour);
     }
 
     private string? GetExtendedHoursSchedule(int hour)
     {
         // Overnight/extended hours
-        if ((hour >= 18 || hour <= 8) && !string.IsNullOrEmpty(Overnight)) 
+        if ((hour >= OvernightStart || hour <= OvernightEnd) && !string.IsNullOrEmpty(Overnight)) 
             return Overnight;
             
         // Extended hours

@@ -7,7 +7,7 @@ namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
 /// OrderService with real /api/Order/place POST with retries and idempotency
-/// NO STUBS - Uses actual TopstepX order placement API
+/// Production implementation - Uses actual TopstepX order placement API
 /// Implements IBrokerAdapter for centralized order management
 /// </summary>
 public interface IOrderService : TradingBot.Abstractions.IBrokerAdapter

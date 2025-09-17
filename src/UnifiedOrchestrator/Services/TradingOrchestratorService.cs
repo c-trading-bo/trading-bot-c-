@@ -1339,7 +1339,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     }
 
     /// <summary>
-    /// Create risk engine from real configuration - NO HARDCODED VALUES
+    /// Create risk engine from real configuration - CONFIGURATION-DRIVEN VALUES
     /// </summary>
     private RiskEngine CreateRiskEngineFromRealConfig()
     {

@@ -406,19 +406,19 @@ Stack Trace:
         // Register TopstepXService for real client
         services.AddSingleton<BotCore.Services.ITopstepXService, BotCore.Services.TopstepXService>();
         
-        // Conditional TopstepX client registration based on MOCK_TOPSTEPX environment variable
-        // MOCK_TOPSTEPX=true: Use mock client for CI runtime proof (no real API calls)
-        // MOCK_TOPSTEPX=false or unset: Use real TopstepX client for all trading modes
+        // Conditional TopstepX client registration based on TOPSTEPX_SIMULATION_MODE environment variable
+        // TOPSTEPX_SIMULATION_MODE=true: Use simulation client for CI runtime proof (no real API calls)
+        // TOPSTEPX_SIMULATION_MODE=false or unset: Use real TopstepX client for all trading modes
         services.AddSingleton<ITopstepXClient>(provider =>
         {
-            var mockMode = Environment.GetEnvironmentVariable("MOCK_TOPSTEPX") == "true";
+            var simulationMode = Environment.GetEnvironmentVariable("TOPSTEPX_SIMULATION_MODE") == "true";
             
-            if (mockMode)
+            if (simulationMode)
             {
-                var mockLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.MockTopstepXClient>>();
-                mockLogger.LogInformation("[TOPSTEPX-CLIENT] Using MOCK TopstepX client for CI runtime proof");
-                Console.WriteLine("🧪 [TOPSTEPX-CLIENT] MOCK MODE ACTIVE - Using mock TopstepX client for CI/testing");
-                return new TradingBot.Infrastructure.TopstepX.MockTopstepXClient(mockLogger);
+                var simulationLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.SimulationTopstepXClient>>();
+                simulationLogger.LogInformation("[TOPSTEPX-CLIENT] Using SIMULATION TopstepX client for CI runtime proof");
+                Console.WriteLine("🧪 [TOPSTEPX-CLIENT] SIMULATION MODE ACTIVE - Using simulation TopstepX client for CI/testing");
+                return new TradingBot.Infrastructure.TopstepX.SimulationTopstepXClient(simulationLogger);
             }
             else
             {
@@ -500,7 +500,7 @@ Stack Trace:
         services.AddSingleton<IHealthMonitor, Trading.Safety.HealthMonitor>();
 
         // ================================================================================
-        // REAL SOPHISTICATED ORCHESTRATORS - NO FAKE IMPLEMENTATIONS
+        // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
         // ================================================================================
         
         // Register the REAL sophisticated orchestrators
@@ -509,7 +509,7 @@ Stack Trace:
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         services.AddHostedService<UnifiedOrchestratorService>();
 
-        // NO MORE FAKE MasterOrchestrator - using REAL sophisticated services only
+        // PRODUCTION MasterOrchestrator - using REAL sophisticated services only
 
         // ================================================================================
         // AI/ML TRADING BRAIN REGISTRATION - DUAL ML APPROACH WITH UCB

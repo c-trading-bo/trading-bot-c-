@@ -15,6 +15,9 @@ namespace TradingBot.Infrastructure.Alerts
     /// </summary>
     public class AlertService : IAlertService
     {
+        // Configuration constants
+        private const int DefaultSmtpPort = 587;
+        
         private readonly ILogger<AlertService> _logger;
         private readonly HttpClient _httpClient;
         private readonly string? _slackWebhook;
@@ -34,7 +37,7 @@ namespace TradingBot.Infrastructure.Alerts
             // Load configuration from environment
             _slackWebhook = Environment.GetEnvironmentVariable("ALERT_SLACK_WEBHOOK");
             _smtpServer = Environment.GetEnvironmentVariable("ALERT_EMAIL_SMTP");
-            _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("ALERT_EMAIL_PORT"), out var port) ? port : 587;
+            _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("ALERT_EMAIL_PORT"), out var port) ? port : DefaultSmtpPort;
             _useTls = (Environment.GetEnvironmentVariable("ALERT_EMAIL_USE_TLS") ?? "true").ToLowerInvariant() is "true" or "1";
             _smtpUsername = Environment.GetEnvironmentVariable("ALERT_EMAIL_USERNAME");
             _smtpPassword = Environment.GetEnvironmentVariable("ALERT_EMAIL_PASSWORD");
