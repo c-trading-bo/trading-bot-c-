@@ -296,13 +296,13 @@ public class EnsembleMetaLearner
             await Task.Delay(10, cancellationToken); // Simulate model loading time
             
             // Step 2: Feature extraction and normalization
-            var features = await ProcessFeaturesAsync(context, model, cancellationToken);
+            var features = await ProcessFeaturesAsync(context, cancellationToken);
             
             // Step 3: Model inference
-            var rawPrediction = await RunModelInferenceAsync(model, features, cancellationToken);
+            var rawPrediction = await RunModelInferenceAsync(features, cancellationToken);
             
             // Step 4: Post-processing and calibration
-            var calibratedPrediction = await CalibrateModelOutputAsync(model, rawPrediction, cancellationToken);
+            var calibratedPrediction = await CalibrateModelOutputAsync(rawPrediction, cancellationToken);
             
             return calibratedPrediction;
         }, cancellationToken);
@@ -323,7 +323,6 @@ public class EnsembleMetaLearner
     
     private async Task<Dictionary<string, double>> ProcessFeaturesAsync(
         MarketContext context, 
-        ModelArtifact model, 
         CancellationToken cancellationToken)
     {
         return await Task.Run(() =>
@@ -340,7 +339,6 @@ public class EnsembleMetaLearner
     }
     
     private async Task<(double Confidence, double Direction)> RunModelInferenceAsync(
-        ModelArtifact model, 
         Dictionary<string, double> features, 
         CancellationToken cancellationToken)
     {
@@ -361,7 +359,6 @@ public class EnsembleMetaLearner
     }
     
     private async Task<(double Confidence, double Direction)> CalibrateModelOutputAsync(
-        ModelArtifact model, 
         (double Confidence, double Direction) rawPrediction, 
         CancellationToken cancellationToken)
     {

@@ -402,7 +402,7 @@ public class HistoricalTrainerWithCV
             // Step 1: Load historical data from multiple sources asynchronously
             var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
             var backupDataTask = LoadBackupMarketDataAsync(symbol, startTime, endTime, cancellationToken);
-            var volumeDataTask = LoadVolumeDataAsync(symbol, startTime, endTime, cancellationToken);
+            var volumeDataTask = LoadVolumeDataAsync(cancellationToken);
             
             try
             {
@@ -446,9 +446,6 @@ public class HistoricalTrainerWithCV
         var current = startTime;
         var price = symbol == "ES" ? 4500.0 : 100.0; // Different base prices for different symbols
         
-        // Use crypto-secure random with seed for deterministic test data
-        var seed = symbol.GetHashCode() + startTime.GetHashCode();
-        
         while (current <= endTime)
         {
             var change = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 10.0); // Secure random price change
@@ -478,7 +475,7 @@ public class HistoricalTrainerWithCV
         return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
     }
     
-    private async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
     {
         // Simulate loading enhanced volume data
         await Task.Delay(50, cancellationToken);

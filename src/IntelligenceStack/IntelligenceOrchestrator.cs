@@ -168,7 +168,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             // 4. Make raw prediction
-            var rawConfidence = await MakePredictionAsync(model, features, cancellationToken);
+            var rawConfidence = await MakePredictionAsync(features, cancellationToken);
             
             // 5. Apply calibration
             var calibratedConfidence = await _calibrationManager.CalibrateConfidenceAsync(
@@ -420,7 +420,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         };
     }
 
-    private async Task<double> MakePredictionAsync(ModelArtifact model, FeatureSet features, CancellationToken cancellationToken)
+    private async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
     {
         // Perform async prediction with model inference
         return await Task.Run(async () =>

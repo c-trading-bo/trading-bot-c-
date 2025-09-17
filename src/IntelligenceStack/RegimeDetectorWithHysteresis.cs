@@ -194,11 +194,6 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     {
         return (_config.VolLowIn, _config.VolHighIn, _config.TrendIn);
     }
-    
-    private (double VolLow, double VolHigh, double Trend) GetOutThresholds()
-    {
-        return (_config.VolLowOut, _config.VolHighOut, _config.TrendOut);
-    }
 
     private double CalculateConfidence(double value, double threshold, double maxValue)
     {

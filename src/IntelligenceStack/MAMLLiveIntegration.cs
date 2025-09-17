@@ -324,7 +324,6 @@ public class MamlLiveIntegration
     }
 
     private async Task<ValidationResult> ValidateAdaptationAsync(
-        MamlModelState modelState,
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
