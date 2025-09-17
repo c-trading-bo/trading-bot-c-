@@ -145,7 +145,7 @@ public class ProductionGateSystem
         return _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
     }
 
-    private PerformanceValidationResult ExecutePerformanceValidation(TestSuiteResult testResults)
+    private static PerformanceValidationResult ExecutePerformanceValidation(TestSuiteResult testResults)
     {
         var result = new PerformanceValidationResult();
 

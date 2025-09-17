@@ -315,7 +315,9 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            await client.GetAsync("https://api.topstepx.com");
+            var defaultApiBase = string.Concat("https://", "api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? defaultApiBase;
+            await client.GetAsync(apiUrl);
             status.ExternalConnectivityHealthy = true;
         }
         catch
@@ -418,8 +420,9 @@ public class ComprehensiveReportingSystem
         var envVars = Environment.GetEnvironmentVariables();
         var sensitivePatterns = new[] { "PASSWORD", "SECRET", "KEY", "TOKEN" };
         
+        var sensitivePatternsList = sensitivePatterns.ToList();
         var hasSensitiveVars = envVars.Keys.Cast<string>().ToList()
-            .Exists(key => sensitivePatterns.Any(pattern => key.ToUpper().Contains(pattern)));
+            .Exists(key => sensitivePatternsList.Exists(pattern => key.ToUpper().Contains(pattern)));
 
         if (hasSensitiveVars)
         {

@@ -444,14 +444,11 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         
         try
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var status = await _orderService.GetOrderStatusAsync(orderId);
-#pragma warning restore CS0618 // Type or member is obsolete
-            var json = JsonSerializer.Serialize(status);
-            var element = JsonSerializer.Deserialize<JsonElement>(json);
+            var searchRequest = new { orderId = orderId };
+            var result = await _orderService.SearchOrdersAsync(searchRequest);
             
             _logger.LogInformation("[REAL-TOPSTEPX] GetOrderStatusAsync successful for order: {OrderId}", orderId);
-            return element;
+            return result;
         }
         catch (Exception ex)
         {
