@@ -288,9 +288,13 @@ public class SnapshotManager : ISnapshotManager
                 {
                     changes.Add($"Closed position: {prevPos!.Symbol}");
                 }
-                else if (hadPosition && hasPosition && (prevPos!.Quantity != currPos!.Quantity || prevPos.AveragePrice != currPos.AveragePrice))
+                else if (hadPosition && hasPosition)
                 {
-                    changes.Add($"Position changed: {symbol} {prevPos.Quantity} → {currPos.Quantity} shares");
+                    // Both positions exist, check for changes
+                    if (prevPos!.Quantity != currPos!.Quantity || prevPos.AveragePrice != currPos.AveragePrice)
+                    {
+                        changes.Add($"Position changed: {symbol} {prevPos.Quantity} → {currPos.Quantity} shares");
+                    }
                 }
             }
 
@@ -311,9 +315,13 @@ public class SnapshotManager : ISnapshotManager
                 {
                     changes.Add($"Order removed: {prevOrder!.OrderId}");
                 }
-                else if (hadOrder && hasOrder && prevOrder!.Status != currOrder!.Status)
+                else if (hadOrder && hasOrder)
                 {
-                    changes.Add($"Order status changed: {orderId} {prevOrder.Status} → {currOrder.Status}");
+                    // Both orders exist, check for status changes
+                    if (prevOrder!.Status != currOrder!.Status)
+                    {
+                        changes.Add($"Order status changed: {orderId} {prevOrder.Status} → {currOrder.Status}");
+                    }
                 }
             }
 

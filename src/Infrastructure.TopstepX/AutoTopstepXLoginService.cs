@@ -192,10 +192,11 @@ public class AutoTopstepXLoginService : BackgroundService
     {
         try
         {
-            // Ensure BaseAddress is set - UPDATED: Use working TopstepX API
+            // Ensure BaseAddress is set - Use environment variable with fallback
             if (_httpClient.BaseAddress == null)
             {
-                _httpClient.BaseAddress = new Uri("https://api.topstepx.com");
+                var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                _httpClient.BaseAddress = new Uri(apiBase);
             }
             
             _httpClient.DefaultRequestHeaders.Authorization = 

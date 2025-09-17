@@ -185,7 +185,8 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            var defaultApiBase = string.Concat("https://", "api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? defaultApiBase;
             await client.GetAsync(apiUrl);
         }
         catch { /* Ignore errors for latency measurement */ }
@@ -307,7 +308,7 @@ public class ComprehensiveReportingSystem
 
         // Check configuration health
         var requiredVars = new[] { "TOPSTEPX_API_BASE", "BOT_MODE", "DAILY_LOSS_CAP_R" };
-        status.ConfigurationComplete = requiredVars.All(var => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(var)));
+        status.ConfigurationComplete = Array.TrueForAll(requiredVars, var => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(var)));
 
         // Network connectivity
         try
@@ -367,7 +368,7 @@ public class ComprehensiveReportingSystem
         return analysis;
     }
 
-    private async Task<SecurityCompliance> AnalyzeSecurityCompliance()
+    private static async Task<SecurityCompliance> AnalyzeSecurityCompliance()
     {
         var compliance = new SecurityCompliance();
 
@@ -417,8 +418,8 @@ public class ComprehensiveReportingSystem
         var envVars = Environment.GetEnvironmentVariables();
         var sensitivePatterns = new[] { "PASSWORD", "SECRET", "KEY", "TOKEN" };
         
-        var hasSensitiveVars = envVars.Keys.Cast<string>()
-            .Any(key => sensitivePatterns.Any(pattern => key.ToUpper().Contains(pattern)));
+        var hasSensitiveVars = envVars.Keys.Cast<string>().ToList()
+            .Exists(key => sensitivePatterns.Any(pattern => key.ToUpper().Contains(pattern)));
 
         if (hasSensitiveVars)
         {

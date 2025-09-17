@@ -14,9 +14,6 @@ public interface IOrderService : TradingBot.Abstractions.IBrokerAdapter
 {
     Task<OrderResult> PlaceOrderAsync(PlaceOrderRequest request);
     
-    [Obsolete("Use SearchOrdersAsync instead for better performance and filtering.")]
-    Task<OrderStatus> GetOrderStatusAsync(string orderId);
-    
     Task<JsonElement> SearchOrdersAsync(object searchRequest);
     Task<JsonElement> SearchOpenOrdersAsync(object searchRequest);
 }

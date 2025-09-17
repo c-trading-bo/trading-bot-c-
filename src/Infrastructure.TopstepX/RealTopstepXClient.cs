@@ -591,7 +591,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetContractAsync failed for contract: {ContractId}", contractId);
-            throw;
+            throw new InvalidOperationException($"Failed to get contract details for {contractId}", ex);
         }
     }
 
@@ -624,7 +624,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] SearchContractsAsync failed");
-            throw;
+            throw new InvalidOperationException("Failed to search contracts through TopstepX API", ex);
         }
     }
 
@@ -655,7 +655,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetMarketDataAsync failed for symbol: {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Failed to get market data for {symbol}", ex);
         }
     }
 
