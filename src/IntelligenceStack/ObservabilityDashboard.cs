@@ -20,7 +20,7 @@ public class ObservabilityDashboard : IDisposable
     private readonly ObservabilityConfig _config;
     private readonly EnsembleMetaLearner _ensemble;
     private readonly ModelQuarantineManager _quarantine;
-    private readonly MAMLLiveIntegration _maml;
+    private readonly MamlLiveIntegration _maml;
     private readonly RLAdvisorSystem _rlAdvisor;
     private readonly SloMonitor _sloMonitor;
     private readonly string _dashboardPath;
@@ -34,7 +34,7 @@ public class ObservabilityDashboard : IDisposable
         ObservabilityConfig config,
         EnsembleMetaLearner ensemble,
         ModelQuarantineManager quarantine,
-        MAMLLiveIntegration maml,
+        MamlLiveIntegration maml,
         RLAdvisorSystem rlAdvisor,
         SloMonitor sloMonitor,
         string dashboardPath = "wwwroot/dashboards")
@@ -74,7 +74,7 @@ public class ObservabilityDashboard : IDisposable
                 ModelHealth = await GetModelHealthDashboardAsync(cancellationToken),
                 SLOBudget = await GetSLOBudgetAsync(cancellationToken),
                 RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken),
-                MAMLStatus = await GetMAMLStatusAsync(cancellationToken)
+                MamlStatus = await GetMamlStatusAsync(cancellationToken)
             };
 
             return dashboardData;
@@ -422,7 +422,7 @@ public class ObservabilityDashboard : IDisposable
     /// <summary>
     /// Get MAML status dashboard
     /// </summary>
-    private async Task<MamlStatusDashboard> GetMAMLStatusAsync(CancellationToken cancellationToken)
+    private async Task<MamlStatusDashboard> GetMamlStatusAsync(CancellationToken cancellationToken)
     {
         // Get MAML status asynchronously to enable concurrent dashboard data collection
         var mamlStatus = await Task.Run(() => _maml.GetCurrentStatus(), cancellationToken);
@@ -637,8 +637,16 @@ public class ObservabilityDashboard : IDisposable
 
     public void Dispose()
     {
-        _updateTimer?.Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _updateTimer?.Dispose();
+        }
     }
 }
 
@@ -657,7 +665,7 @@ public class DashboardData
     public ModelHealthDashboard? ModelHealth { get; set; }
     public SloBudgetDashboard? SLOBudget { get; set; }
     public RLAdvisorDashboard? RLAdvisorStatus { get; set; }
-    public MamlStatusDashboard? MAMLStatus { get; set; }
+    public MamlStatusDashboard? MamlStatus { get; set; }
 }
 
 public class GoldenSignals

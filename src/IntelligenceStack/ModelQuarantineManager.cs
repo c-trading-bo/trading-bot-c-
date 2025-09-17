@@ -409,31 +409,6 @@ public class ModelQuarantineManager : IQuarantineManager
         return QuarantineReason.BrierDeltaTooHigh;
     }
 
-    private ModelMetrics CalculateBaselineMetrics(List<ModelPerformance> history)
-    {
-        if (history.Count < 5)
-        {
-            return new ModelMetrics
-            {
-                AUC = 0.6,
-                PrAt10 = 0.1,
-                ECE = 0.05,
-                EdgeBps = 3.0
-            };
-        }
-
-        // Use recent stable period as baseline (exclude most recent 20%)
-        var stableHistory = history.Take((int)(history.Count * 0.8)).TakeLast(20).ToList();
-        
-        return new ModelMetrics
-        {
-            AUC = 0.6, // Placeholder - would calculate from actual predictions
-            PrAt10 = stableHistory.Average(p => p.HitRate * 0.1),
-            ECE = stableHistory.Average(p => p.BrierScore),
-            EdgeBps = 3.0 // Placeholder
-        };
-    }
-
     private ModelPerformance CalculateBaselinePerformance(List<ModelPerformance> history)
     {
         if (history.Count < 5)

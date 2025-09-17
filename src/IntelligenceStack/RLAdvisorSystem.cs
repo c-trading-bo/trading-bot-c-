@@ -778,7 +778,6 @@ public class RLAdvisorSystem
 
 public class RLAgent
 {
-    private readonly ILogger _logger;
     private readonly AdvisorConfig _config;
     public RLAgentType AgentType { get; set; }
     public string AgentKey { get; }
@@ -790,7 +789,6 @@ public class RLAgent
 
     public RLAgent(ILogger logger, RLAgentType agentType, string agentKey, AdvisorConfig config)
     {
-        _logger = logger;
         _config = config;
         AgentType = agentType;
         AgentKey = agentKey;

@@ -16,7 +16,7 @@ namespace TradingBot.IntelligenceStack;
 /// Idempotent order service with SHA1 deduplication
 /// Implements 24h deduplication window with retry backoff
 /// </summary>
-public class IdempotentOrderService : IIdempotentOrderService
+public class IdempotentOrderService : IIdempotentOrderService, IDisposable
 {
     private readonly ILogger<IdempotentOrderService> _logger;
     private readonly IdempotentConfig _config;
@@ -346,7 +346,16 @@ public class IdempotentOrderService : IIdempotentOrderService
 
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _cleanupTimer?.Dispose();
+        }
     }
 
     /// <summary>

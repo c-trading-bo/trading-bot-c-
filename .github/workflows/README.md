@@ -46,7 +46,24 @@ The quality gate functionality is embedded within the existing Ultimate Build & 
 2. `🛡️ Quality Gate: Guardrail Enforcement` 
 3. `🛡️ Quality Gate: Security Pattern Scanning`
 4. `🛡️ Quality Gate: Dead Code Detection` - **Active with build enforcement**
-5. `🛡️ Quality Gate Summary`
+5. `🛡️ Quality Gate: Runtime Proof` - **ACTIVE and BLOCKING** ✅
+6. `🛡️ Quality Gate: SonarCloud Integration` - **ACTIVE and BLOCKING** ✅  
+7. `🛡️ Quality Gate Summary`
+
+### ✅ **Runtime Proof Step - ACTIVE & BLOCKING**
+
+**NEW:** The pipeline now includes a mandatory runtime proof generation step that:
+- **Generates runtime evidence** of all production capabilities
+- **Demonstrates TopstepX integration** with real market data retrieval
+- **Validates order execution** through PlaceOrderAsync() in DRY_RUN mode
+- **Proves exception handling** with full context logging
+- **Creates audit artifacts** for compliance verification
+
+**Runtime Proof Execution:**
+- Runs after static analysis passes
+- Generates evidence artifacts in `artifacts/runtime-proof/`
+- **Blocks deployment** if any capability fails demonstration
+- **Required for merge** - no exceptions
 
 ### ✅ **Activation and Control**
 
@@ -201,3 +218,48 @@ Monitor quality gate performance within existing CI metrics:
 - Quality gate is additive, not replacing
 
 The Full-Stack Quality Gate is now **fully integrated** into the existing analyzer workflow, providing unified quality enforcement without workflow duplication.
+
+## SonarCloud Integration
+
+### **Overview**
+The CI workflow now includes SonarCloud integration that runs alongside analyzers and runtime proof. SonarCloud quality gate failures will cause the CI job to fail, ensuring code quality standards are maintained.
+
+### **Required GitHub Secrets**
+Configure these secrets in **Settings → Secrets and variables → Actions**:
+
+| Secret Name | Value | Description |
+|-------------|-------|-------------|
+| `SONAR_HOST_URL` | `https://sonarcloud.io` | SonarCloud server URL |
+| `SONAR_ORG_KEY` | `c-trading-bo` | SonarCloud organization key |
+| `SONAR_PROJECT_KEY` | `trading-bot-c-` | SonarCloud project key |
+| `SONAR_TOKEN` | `a1ae0cc69eb6ecb1a8d8ca19582480aa21f6af35` | SonarCloud authentication token |
+
+### **Quality Gate Enforcement**
+- **`/d:sonar.qualitygate.wait=true`** - Forces CI to wait for SonarCloud analysis and fail if quality gate is red
+- **Integrated execution** - Runs in same job as analyzers and runtime proof
+- **No branch protection required** - Quality gate failure makes build red, but merge is still possible if desired
+- **Full visibility** - All quality issues are logged and visible in CI output
+
+### **Workflow Integration**
+SonarCloud is integrated into the existing `ultimate_build_ci_pipeline.yml` workflow:
+
+```yaml
+- name: "🔍 Advanced Code Analysis (SonarCloud with Quality Gate)"
+  run: |
+    dotnet sonarscanner begin \
+      /k:"${{ secrets.SONAR_PROJECT_KEY }}" \
+      /o:"${{ secrets.SONAR_ORG_KEY }}" \
+      /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+      /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+      /d:sonar.qualitygate.wait=true
+    dotnet build --no-restore -warnaserror
+    dotnet test --no-build
+    dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+```
+
+### **Benefits**
+- ✅ **Unified Quality Gate** - Analyzers + SonarCloud + Runtime Proof in existing workflow
+- ✅ **Fail Fast** - Quality gate failures immediately visible
+- ✅ **Policy Compliant** - Runtime proof uses mock TopstepX client for CI
+- ✅ **No Bypass** - Agent must fix issues before build turns green
+- ✅ **Single Pipeline** - No separate workflow files to maintain

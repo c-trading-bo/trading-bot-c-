@@ -14,15 +14,14 @@ namespace TradingBot.IntelligenceStack;
 /// MAML (Model-Agnostic Meta-Learning) integration for live trading
 /// Implements adaptive learning with bounded updates and rollback capabilities
 /// </summary>
-public class MAMLLiveIntegration
+public class MamlLiveIntegration
 {
-    private readonly ILogger<MAMLLiveIntegration> _logger;
+    private readonly ILogger<MamlLiveIntegration> _logger;
     private readonly MetaLearningConfig _config;
     private readonly IOnlineLearningSystem _onlineLearning;
     private readonly EnsembleMetaLearner _ensemble;
-    private readonly string _statePath;
     
-    private readonly Dictionary<string, MAMLModelState> _modelStates = new();
+    private readonly Dictionary<string, MamlModelState> _modelStates = new();
     private readonly Dictionary<string, List<AdaptationStep>> _adaptationHistory = new();
     private readonly Dictionary<string, double> _baselinePerformance = new();
     private readonly object _lock = new();
@@ -30,8 +29,8 @@ public class MAMLLiveIntegration
     private Timer? _updateTimer;
     private DateTime _lastUpdate = DateTime.MinValue;
 
-    public MAMLLiveIntegration(
-        ILogger<MAMLLiveIntegration> logger,
+    public MamlLiveIntegration(
+        ILogger<MamlLiveIntegration> logger,
         MetaLearningConfig config,
         IOnlineLearningSystem onlineLearning,
         EnsembleMetaLearner ensemble,
@@ -41,9 +40,8 @@ public class MAMLLiveIntegration
         _config = config;
         _onlineLearning = onlineLearning;
         _ensemble = ensemble;
-        _statePath = statePath;
         
-        Directory.CreateDirectory(_statePath);
+        Directory.CreateDirectory(statePath);
         
         if (_config.Enabled)
         {
@@ -73,7 +71,7 @@ public class MAMLLiveIntegration
     /// <summary>
     /// Perform MAML adaptation for a specific regime
     /// </summary>
-    public async Task<MAMLAdaptationResult> AdaptToRegimeAsync(
+    public async Task<MamlAdaptationResult> AdaptToRegimeAsync(
         RegimeType regime,
         IEnumerable<TrainingExample> recentExamples,
         CancellationToken cancellationToken = default)
@@ -83,7 +81,7 @@ public class MAMLLiveIntegration
             var regimeKey = regime.ToString();
             _logger.LogInformation("[MAML_LIVE] Starting MAML adaptation for regime: {Regime}", regime);
 
-            var result = new MAMLAdaptationResult
+            var result = new MamlAdaptationResult
             {
                 Regime = regime,
                 StartTime = DateTime.UtcNow,
@@ -159,7 +157,7 @@ public class MAMLLiveIntegration
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MAML_LIVE] MAML adaptation failed for regime: {Regime}", regime);
-            return new MAMLAdaptationResult 
+            return new MamlAdaptationResult 
             { 
                 Regime = regime, 
                 Success = false, 
@@ -171,17 +169,17 @@ public class MAMLLiveIntegration
     /// <summary>
     /// Get current MAML status for all regimes
     /// </summary>
-    public MAMLStatus GetCurrentStatus()
+    public MamlStatus GetCurrentStatus()
     {
         lock (_lock)
         {
-            var status = new MAMLStatus
+            var status = new MamlStatus
             {
                 Enabled = _config.Enabled,
                 LastUpdate = _lastUpdate,
                 MaxWeightChangePct = _config.MaxWeightChangePctPer5Min,
                 RollbackMultiplier = _config.RollbackVarMultiplier,
-                RegimeStates = new Dictionary<string, MAMLRegimeStatus>()
+                RegimeStates = new Dictionary<string, MamlRegimeStatus>()
             };
 
             foreach (var (regime, modelState) in _modelStates)
@@ -189,7 +187,7 @@ public class MAMLLiveIntegration
                 var adaptationHistory = _adaptationHistory.GetValueOrDefault(regime, new List<AdaptationStep>());
                 var recentAdaptations = adaptationHistory.TakeLast(10).ToList();
                 
-                status.RegimeStates[regime] = new MAMLRegimeStatus
+                status.RegimeStates[regime] = new MamlRegimeStatus
                 {
                     LastAdaptation = modelState.LastAdaptation,
                     AdaptationCount = modelState.AdaptationCount,
@@ -244,13 +242,13 @@ public class MAMLLiveIntegration
         }
     }
 
-    private MAMLModelState GetOrCreateModelState(string regimeKey)
+    private MamlModelState GetOrCreateModelState(string regimeKey)
     {
         lock (_lock)
         {
             if (!_modelStates.TryGetValue(regimeKey, out var state))
             {
-                state = new MAMLModelState
+                state = new MamlModelState
                 {
                     RegimeKey = regimeKey,
                     CurrentWeights = new Dictionary<string, double>
@@ -274,14 +272,14 @@ public class MAMLLiveIntegration
         }
     }
 
-    private bool ShouldPerformUpdate(MAMLModelState modelState)
+    private bool ShouldPerformUpdate(MamlModelState modelState)
     {
         var timeSinceLastUpdate = DateTime.UtcNow - modelState.LastAdaptation;
         return timeSinceLastUpdate >= TimeSpan.FromMinutes(5); // Minimum 5-minute interval
     }
 
     private async Task<AdaptationStep> PerformInnerLoopAdaptationAsync(
-        MAMLModelState modelState,
+        MamlModelState modelState,
         List<TrainingExample> examples,
         CancellationToken cancellationToken)
     {
@@ -326,7 +324,7 @@ public class MAMLLiveIntegration
     }
 
     private async Task<ValidationResult> ValidateAdaptationAsync(
-        MAMLModelState modelState,
+        MamlModelState modelState,
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
@@ -373,7 +371,7 @@ public class MAMLLiveIntegration
     }
 
     private async Task<bool> ShouldRollbackAsync(
-        MAMLModelState modelState,
+        MamlModelState modelState,
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
@@ -402,7 +400,7 @@ public class MAMLLiveIntegration
         }, cancellationToken);
     }
 
-    private async Task PerformRollbackAsync(MAMLModelState modelState, CancellationToken cancellationToken)
+    private async Task PerformRollbackAsync(MamlModelState modelState, CancellationToken cancellationToken)
     {
         // Perform model rollback asynchronously to avoid blocking adaptation pipeline
         await Task.Run(() =>
@@ -420,7 +418,7 @@ public class MAMLLiveIntegration
     }
 
     private async Task ApplyAdaptationAsync(
-        MAMLModelState modelState,
+        MamlModelState modelState,
         AdaptationStep step,
         CancellationToken cancellationToken)
     {
@@ -639,7 +637,7 @@ public class MAMLLiveIntegration
 
 #region Supporting Classes
 
-public class MAMLAdaptationResult
+public class MamlAdaptationResult
 {
     public RegimeType Regime { get; set; }
     public DateTime StartTime { get; set; }
@@ -651,16 +649,16 @@ public class MAMLAdaptationResult
     public double PerformanceImprovement { get; set; }
 }
 
-public class MAMLStatus
+public class MamlStatus
 {
     public bool Enabled { get; set; }
     public DateTime LastUpdate { get; set; }
     public int MaxWeightChangePct { get; set; }
     public double RollbackMultiplier { get; set; }
-    public Dictionary<string, MAMLRegimeStatus> RegimeStates { get; set; } = new();
+    public Dictionary<string, MamlRegimeStatus> RegimeStates { get; set; } = new();
 }
 
-public class MAMLRegimeStatus
+public class MamlRegimeStatus
 {
     public DateTime LastAdaptation { get; set; }
     public int AdaptationCount { get; set; }
@@ -670,7 +668,7 @@ public class MAMLRegimeStatus
     public bool IsStable { get; set; }
 }
 
-public class MAMLModelState
+public class MamlModelState
 {
     public string RegimeKey { get; set; } = string.Empty;
     public Dictionary<string, double> CurrentWeights { get; set; } = new();

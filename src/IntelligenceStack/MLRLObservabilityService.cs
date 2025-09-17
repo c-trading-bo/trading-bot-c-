@@ -17,9 +17,9 @@ namespace TradingBot.IntelligenceStack;
 /// Full ML/RL observability system with Prometheus/Grafana export
 /// Implements requirement: Full ML/RL observability: prediction accuracy, drift, latency, RL rewards, exploration rates, policy norms
 /// </summary>
-public class MLRLObservabilityService : IDisposable
+public class MlrlObservabilityService : IDisposable
 {
-    private readonly ILogger<MLRLObservabilityService> _logger;
+    private readonly ILogger<MlrlObservabilityService> _logger;
     private readonly HttpClient _httpClient;
     private readonly Timer _exportTimer;
     
@@ -39,8 +39,8 @@ public class MLRLObservabilityService : IDisposable
     private readonly ConcurrentDictionary<string, MetricValue> _metricsStorage = new();
     private readonly object _lock = new();
 
-    public MLRLObservabilityService(
-        ILogger<MLRLObservabilityService> logger,
+    public MlrlObservabilityService(
+        ILogger<MlrlObservabilityService> logger,
         HttpClient httpClient)
     {
         _logger = logger;
@@ -351,9 +351,18 @@ public class MLRLObservabilityService : IDisposable
 
     public void Dispose()
     {
-        _exportTimer?.Dispose();
-        _meter?.Dispose();
-        _httpClient?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _exportTimer?.Dispose();
+            _meter?.Dispose();
+            _httpClient?.Dispose();
+        }
     }
 }
 

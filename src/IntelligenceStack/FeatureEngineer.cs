@@ -15,7 +15,7 @@ namespace TradingBot.IntelligenceStack;
 /// Real-time feature engineering with adaptive importance weighting
 /// Implements rolling SHAP and permutation importance for intra-day feature re-weighting
 /// </summary>
-public class FeatureEngineer
+public class FeatureEngineer : IDisposable
 {
     private readonly ILogger<FeatureEngineer> _logger;
     private readonly IOnlineLearningSystem _onlineLearningSystem;
@@ -32,7 +32,6 @@ public class FeatureEngineer
     
     // State management
     private readonly Timer _updateTimer;
-    private readonly object _lock = new();
     private DateTime _lastUpdate = DateTime.UtcNow;
 
     public FeatureEngineer(
@@ -508,9 +507,18 @@ public class FeatureEngineer
 
     public void Dispose()
     {
-        _updateTimer?.Dispose();
-        _importanceTrackers.Clear();
-        _currentWeights.Clear();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _updateTimer?.Dispose();
+            _importanceTrackers.Clear();
+            _currentWeights.Clear();
+        }
     }
 
     /// <summary>
@@ -535,7 +543,6 @@ public class FeatureEngineer
 /// </summary>
 public class FeatureImportanceTracker
 {
-    private readonly string _strategyId;
     private readonly int _maxWindowSize;
     private readonly Queue<FeatureSet> _featureHistory = new();
     private readonly Queue<double> _predictionHistory = new();
@@ -545,7 +552,6 @@ public class FeatureImportanceTracker
 
     public FeatureImportanceTracker(string strategyId, int maxWindowSize)
     {
-        _strategyId = strategyId;
         _maxWindowSize = maxWindowSize;
     }
 

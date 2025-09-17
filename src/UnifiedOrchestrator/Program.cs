@@ -406,19 +406,34 @@ Stack Trace:
         // Register TopstepXService for real client
         services.AddSingleton<BotCore.Services.ITopstepXService, BotCore.Services.TopstepXService>();
         
-        // Register the REAL TopstepX client for production trading
+        // Conditional TopstepX client registration based on MOCK_TOPSTEPX environment variable
+        // MOCK_TOPSTEPX=true: Use mock client for CI runtime proof (no real API calls)
+        // MOCK_TOPSTEPX=false or unset: Use real TopstepX client for all trading modes
         services.AddSingleton<ITopstepXClient>(provider =>
         {
-            var logger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
-            var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
-            var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
-            var accountService = provider.GetRequiredService<IAccountService>();
-            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient("TopstepX");
+            var mockMode = Environment.GetEnvironmentVariable("MOCK_TOPSTEPX") == "true";
             
-            logger.LogInformation("[TOPSTEPX-CLIENT] Using REAL TopstepX client for production trading");
-            return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
-                logger, topstepXService, orderService, accountService, httpClient);
+            if (mockMode)
+            {
+                var mockLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.MockTopstepXClient>>();
+                mockLogger.LogInformation("[TOPSTEPX-CLIENT] Using MOCK TopstepX client for CI runtime proof");
+                Console.WriteLine("🧪 [TOPSTEPX-CLIENT] MOCK MODE ACTIVE - Using mock TopstepX client for CI/testing");
+                return new TradingBot.Infrastructure.TopstepX.MockTopstepXClient(mockLogger);
+            }
+            else
+            {
+                var realLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
+                var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
+                var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
+                var accountService = provider.GetRequiredService<IAccountService>();
+                var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpClientFactory.CreateClient("TopstepX");
+                
+                realLogger.LogInformation("[TOPSTEPX-CLIENT] Using REAL TopstepX client for production trading");
+                Console.WriteLine("🚀 [TOPSTEPX-CLIENT] REAL MODE ACTIVE - Connecting to live TopstepX APIs");
+                return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
+                    realLogger, topstepXService, orderService, accountService, httpClient);
+            }
         });
 
         // Configure AppOptions for Safety components
@@ -801,8 +816,6 @@ Stack Trace:
                 // Try to register more complex services (these might fail due to missing dependencies)
                 try 
                 {
-                    // services.TryAddSingleton<BotCore.Services.ES_NQ_CorrelationManager>();
-                    // services.TryAddSingleton<BotCore.Services.ES_NQ_PortfolioHeatManager>();
                     services.TryAddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
                     services.TryAddSingleton<BotCore.Services.ExecutionAnalyzer>();
                     // OrderFillConfirmationSystem already registered above with proper factory
@@ -958,7 +971,8 @@ Stack Trace:
         // Register HttpClient for Cloud Model Synchronization Service - GitHub API access
         services.AddHttpClient<BotCore.Services.CloudModelSynchronizationService>(client =>
         {
-            client.BaseAddress = new Uri("https://api.github.com/");
+            var githubApiUrl = Environment.GetEnvironmentVariable("GITHUB_API_URL") ?? "https://api.github.com/";
+            client.BaseAddress = new Uri(githubApiUrl);
             client.DefaultRequestHeaders.Add("User-Agent", "TradingBot-CloudSync/1.0");
             client.Timeout = TimeSpan.FromSeconds(60);
         });

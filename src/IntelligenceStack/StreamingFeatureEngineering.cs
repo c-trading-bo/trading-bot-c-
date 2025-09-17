@@ -13,13 +13,12 @@ namespace TradingBot.IntelligenceStack;
 /// Streaming feature aggregation and caching service
 /// Implements requirement: Streaming feature aggregation and caching in FeatureEngineering
 /// </summary>
-public class StreamingFeatureEngineering
+public class StreamingFeatureEngineering : IDisposable
 {
     private readonly ILogger<StreamingFeatureEngineering> _logger;
     private readonly ConcurrentDictionary<string, FeatureCache> _featureCaches = new();
     private readonly ConcurrentDictionary<string, StreamingAggregator> _aggregators = new();
     private readonly Timer _cleanupTimer;
-    private readonly object _lock = new();
 
     // Cache configuration
     private readonly TimeSpan _cacheRetention = TimeSpan.FromHours(24);
@@ -241,9 +240,18 @@ public class StreamingFeatureEngineering
 
     public void Dispose()
     {
-        _cleanupTimer?.Dispose();
-        _featureCaches.Clear();
-        _aggregators.Clear();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _cleanupTimer?.Dispose();
+            _featureCaches.Clear();
+            _aggregators.Clear();
+        }
     }
 }
 
@@ -252,8 +260,6 @@ public class StreamingFeatureEngineering
 /// </summary>
 public class StreamingAggregator
 {
-    private readonly string _symbol;
-    private readonly ILogger _logger;
     private readonly Queue<MarketData> _dataWindow = new();
     private readonly object _lock = new();
     private readonly int _maxWindowSize = 200; // Keep last 200 data points
@@ -265,8 +271,7 @@ public class StreamingAggregator
 
     public StreamingAggregator(string symbol, ILogger logger)
     {
-        _symbol = symbol;
-        _logger = logger;
+        // Parameters kept for interface compatibility but not stored as they're unused
     }
 
     public async Task UpdateAsync(MarketData data, CancellationToken cancellationToken)
@@ -497,7 +502,6 @@ public class StreamingAggregator
 /// </summary>
 public class FeatureCache
 {
-    private readonly string _symbol;
     private readonly int _maxSize;
     private readonly SortedDictionary<DateTime, Dictionary<string, double>> _cache = new();
     private readonly object _lock = new();
@@ -506,7 +510,7 @@ public class FeatureCache
 
     public FeatureCache(string symbol, int maxSize)
     {
-        _symbol = symbol;
+        // Symbol parameter kept for interface compatibility but not stored as it's unused
         _maxSize = maxSize;
     }
 

@@ -322,20 +322,29 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
     public void Dispose()
     {
-        try
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
         {
-            if (_isLeader)
+            try
             {
-                ReleaseLeadershipAsync(CancellationToken.None).GetAwaiter().GetResult();
+                if (_isLeader)
+                {
+                    ReleaseLeadershipAsync(CancellationToken.None).GetAwaiter().GetResult();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[LEADER] Error during dispose");
-        }
-        finally
-        {
-            StopRenewalTimer();
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[LEADER] Error during dispose");
+            }
+            finally
+            {
+                StopRenewalTimer();
+            }
         }
     }
 
