@@ -359,7 +359,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private void ScheduleNightlyCalibration()
     {
         var now = DateTime.Now;
-        var scheduled = new DateTime(now.Year, now.Month, now.Day, 2, 30, 0);
+        var scheduled = new DateTime(now.Year, now.Month, now.Day, 2, 30, 0, DateTimeKind.Local);
         
         // If we've passed today's schedule, schedule for tomorrow
         if (scheduled <= now)

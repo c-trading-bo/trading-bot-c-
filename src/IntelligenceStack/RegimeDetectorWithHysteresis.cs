@@ -149,7 +149,6 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     {
         var volRatio = indicators["vol_ratio"];
         var trendZScore = Math.Abs(indicators["trend_zscore"]);
-        var spreadRatio = indicators["spread_ratio"];
         
         // Apply hysteresis logic based on current state
         var inThresholds = GetInThresholds();

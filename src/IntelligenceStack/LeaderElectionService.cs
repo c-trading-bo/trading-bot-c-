@@ -302,7 +302,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         _renewalTimer = null;
     }
 
-    private string GenerateNodeId()
+    private static string GenerateNodeId()
     {
         var hostname = Environment.MachineName;
         var processId = Environment.ProcessId;

@@ -287,9 +287,6 @@ public class FeatureEngineer : IDisposable
                 return;
             }
 
-            // Calculate current prediction
-            var prediction = await predictionFunction(features);
-
             // Get recent predictions and outcomes for SHAP calculation
             var recentPredictions = tracker.GetRecentPredictions();
             var recentOutcomes = tracker.GetRecentOutcomes();
@@ -358,7 +355,7 @@ public class FeatureEngineer : IDisposable
         try
         {
             // Step 1: Perform async calculation of correlation sum
-            var correlationResult = await Task.Run(async () =>
+            await Task.Run(async () =>
             {
                 // Simulate async statistical computation
                 await Task.Delay(1, cancellationToken);

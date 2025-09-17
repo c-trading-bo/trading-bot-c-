@@ -269,11 +269,8 @@ public class HistoricalTrainerWithCV
         TimeSeriesSplit split,
         CancellationToken cancellationToken)
     {
-        // Generate training data with proper purging around the split
-        var trainingData = new List<TrainingExample>();
-        
         // Get features for training period
-        var features = await _featureStore.GetFeaturesAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);
+        await _featureStore.GetFeaturesAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);
         
         // Generate leak-safe labels
         var examples = await GenerateLeakSafeLabelsAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);

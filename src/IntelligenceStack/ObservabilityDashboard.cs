@@ -96,7 +96,6 @@ public class ObservabilityDashboard : IDisposable
         
         var sloStatus = _sloMonitor.GetCurrentSloStatus();
         var ensembleStatus = _ensemble.GetCurrentStatus();
-        var mamlStatus = _maml.GetCurrentStatus();
         
         return new GoldenSignals
         {

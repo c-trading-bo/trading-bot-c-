@@ -53,7 +53,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             // Requirement: deterministic orderKey with 24h dedupe
             var priceBucket = Math.Round(request.Price / 0.25) * 0.25; // Round to ES/MES tick size
             var timestampBucket = new DateTime(request.Timestamp.Year, request.Timestamp.Month, request.Timestamp.Day, 
-                request.Timestamp.Hour, request.Timestamp.Minute / 5 * 5, 0); // 5-minute buckets for idempotency
+                request.Timestamp.Hour, request.Timestamp.Minute / 5 * 5, 0, DateTimeKind.Utc); // 5-minute buckets for idempotency
             
             var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{timestampBucket:yyyy-MM-dd_HH-mm}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
             
@@ -361,7 +361,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     /// <summary>
     /// Async validation of order request with external service checks
     /// </summary>
-    private async Task ValidateOrderRequestAsync(OrderRequest request, CancellationToken cancellationToken)
+    private static async Task ValidateOrderRequestAsync(OrderRequest request, CancellationToken cancellationToken)
     {
         // Simulate async validation with external services
         await Task.Delay(1, cancellationToken);
@@ -375,7 +375,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     /// <summary>
     /// Async hash computation for production systems
     /// </summary>
-    private async Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
+    private static async Task<string> ComputeHashAsync(string content, CancellationToken cancellationToken)
     {
         return await Task.Run(() =>
         {
