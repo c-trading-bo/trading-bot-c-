@@ -1,12 +1,27 @@
-# TopstepX Client Mock Implementation
+# TopstepX Client Mock Implementation - UPDATED
 
 ## Overview
 
-✅ **Complete Implementation** - ITopstepXClient mock with config-driven selection and comprehensive scenario support.
+✅ **UPDATED Implementation** - ITopstepXClient mock with environment variable control for CI compliance.
 
 ## Key Features Delivered
 
-### 1. Interface Parity ✅
+### 1. Environment Variable Control ✅
+```bash
+# Use mock TopstepX client for CI runtime proof
+export MOCK_TOPSTEPX=true
+
+# Use real TopstepX client for all trading (default)
+export MOCK_TOPSTEPX=false  # or unset
+```
+
+### 2. Policy Compliance ✅  
+- **Live Trading**: Real TopstepX APIs on local device ✅
+- **Local DRY_RUN**: Real TopstepX APIs on local device ✅  
+- **Staging DRY_RUN**: Real TopstepX APIs on staging device ✅
+- **CI Runtime Proof**: Mock TopstepX client (no remote calls) ✅
+
+### 3. Interface Parity ✅
 - `ITopstepXClient` interface with **complete method signatures** covering all TopstepX functionality
 - Authentication, Account Management, Order Management, Trade Management, Market Data, Real-time Subscriptions
 - **Identical return types and method signatures** between mock and real implementations
