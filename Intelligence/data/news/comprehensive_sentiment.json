@@ -1,22 +1,22 @@
 {
-  "timestamp": "2025-09-16T12:44:03.288320",
+  "timestamp": "2025-09-17T06:32:51.369059",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 13,
+  "total_articles_processed": 17,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
-      "sentiment_score": 0.3,
+      "sentiment_score": 0.21,
       "article_count": 1,
       "articles": [
         {
-          "title": "The hurdles are low for another 10% gain for the S&P 500, says this Wall Street veteran",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/the-hurdles-are-low-for-another-10-gain-for-the-s-p-500-says-this-wall-street-veteran-cfb2cbff?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 11:46:00 GMT",
+          "title": "S&P 500, Nasdaq Touch Fresh Highs Intraday",
+          "sentiment": 0.21,
+          "textblob_score": 0.3,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/s-p-500-nasdaq-touch-fresh-highs-intraday-ggW0kL5ymrwd5ZcnJIpz?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-15T18:35:39Z",
           "relevance_keywords": [
             "S&P"
           ]
@@ -25,16 +25,68 @@
       "signal": "NEUTRAL",
       "confidence": 0.1,
       "sources": [
-        "marketwatch"
+        "yahoo_finance"
       ]
     },
     "NQ": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
+      "sentiment_score": 0.29680833333333334,
+      "article_count": 4,
+      "articles": [
+        {
+          "title": "S&P 500, Nasdaq Touch Fresh Highs Intraday",
+          "sentiment": 0.21,
+          "textblob_score": 0.3,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/s-p-500-nasdaq-touch-fresh-highs-intraday-ggW0kL5ymrwd5ZcnJIpz?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-15T18:35:39Z",
+          "relevance_keywords": [
+            "Nasdaq"
+          ]
+        },
+        {
+          "title": "Nasdaq supports reforms to reduce burden on public companies, CEO Friedman says",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/nasdaq-supports-reforms-reduce-burden-184133661.html",
+          "published": "2025-09-15T18:41:33Z",
+          "relevance_keywords": [
+            "Nasdaq"
+          ]
+        },
+        {
+          "title": "China Tech Stocks Jump as AI Boom Pushes Index to Four-Year High",
+          "sentiment": 0.2524,
+          "textblob_score": -0.06799999999999999,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/china-tech-stocks-surge-to-2021-level-as-investors-bet-on-ai",
+          "published": "Wed, 17 Sep 2025 02:45:55 GMT",
+          "relevance_keywords": [
+            "tech stocks"
+          ]
+        },
+        {
+          "title": "AI Optimism Boosts China Tech Stocks to 2021 High | The China Show (9/17/2025)",
+          "sentiment": 0.42483333333333334,
+          "textblob_score": 0.17833333333333334,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-17/the-china-show-9-17-2025-video",
+          "published": "Wed, 17 Sep 2025 05:27:37 GMT",
+          "relevance_keywords": [
+            "tech stocks"
+          ]
+        }
+      ],
       "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "confidence": 0.4,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg"
+      ]
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -53,191 +105,194 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
-    },
-    "TSLA": {
-      "sentiment_score": 0.2039164462081129,
-      "article_count": 7,
+      "sentiment_score": -0.122,
+      "article_count": 2,
       "articles": [
         {
-          "title": "France\u2019s Penchant for Soaking the Rich Returns in Budget Crisis",
-          "sentiment": 0.170625,
-          "textblob_score": 0.24375,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/france-s-penchant-for-soaking-the-rich-returns-in-budget-crisis",
-          "published": "Tue, 16 Sep 2025 12:03:18 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Family Offices Managing $727 Billion Embrace Private Equity",
-          "sentiment": 0.3,
+          "title": "Strategy Stock Has Underperformed Bitcoin. How To Profit From Potentially Further Weakness.",
+          "sentiment": -0.3,
           "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/family-offices-managing-727-billion-embrace-private-equity",
-          "published": "Tue, 16 Sep 2025 12:00:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Euro Heads for Four-Year High as Traders Prepare for Fed Cuts",
-          "sentiment": 0.3373333333333333,
-          "textblob_score": 0.05333333333333334,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/euro-heads-for-highest-in-four-years-with-1-20-level-in-sight",
-          "published": "Tue, 16 Sep 2025 06:56:48 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "China Reaches Tiktok 'Consensus' With US, Trump UK State Visit | The Opening Trade 9/16",
-          "sentiment": -0.28487654320987654,
-          "textblob_score": 0.021604938271604937,
           "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-16/the-opening-trade-9-16-video",
-          "published": "Tue, 16 Sep 2025 11:38:22 GMT",
+          "source": "yahoo_finance",
+          "url": "https://www.investors.com/research/options/bitcoin-strategy-mstr-stock-underperformed-bitcoin/?src=A00220&yptr=yahoo",
+          "published": "2025-09-15T19:01:43Z",
           "relevance_keywords": [
-            "EV"
+            "Bitcoin"
           ]
         },
         {
-          "title": "Retail sales are strong for the third month in a row. Economy still seems to be in pretty good shape.",
-          "sentiment": 0.5483333333333333,
-          "textblob_score": 0.3547619047619048,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/retail-sales-are-strong-for-the-third-month-in-a-row-in-a-good-sign-for-the-economy-1884b947?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 12:40:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
+          "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
           "sentiment": 0.055999999999999994,
           "textblob_score": 0.08,
           "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 10:33:00 GMT",
+          "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 23:24:00 GMT",
           "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Ripple: Key Developments Setting Up Long-Term Growth For XRP",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823243-ripple-key-developments-setting-up-long-term-growth-for-xrp?source=feed_all_articles",
-          "published": "Tue, 16 Sep 2025 08:34:35 -0400",
-          "relevance_keywords": [
-            "EV"
+            "Bitcoin"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.7,
+      "confidence": 0.2,
       "sources": [
-        "bloomberg",
-        "marketwatch",
-        "seeking_alpha"
+        "yahoo_finance",
+        "marketwatch"
       ]
     },
-    "NVDA": {
-      "sentiment_score": 0.40812499999999996,
-      "article_count": 2,
+    "TSLA": {
+      "sentiment_score": 0.3501527777777777,
+      "article_count": 8,
       "articles": [
         {
-          "title": "The best-performing Dow stock this year isn\u2019t Nvidia. How this bank rose to the top.",
-          "sentiment": 0.385,
-          "textblob_score": 0.55,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/the-best-performing-dow-stock-this-year-isnt-nvidia-how-this-bank-rose-to-the-top-7eec9e8c?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 11:40:00 GMT",
+          "title": "As Digital Asset Treasury Companies Reach Fever Pitch, Strategy Stock Is Down 11%. Should You Buy the Dip?",
+          "sentiment": -0.054444444444444455,
+          "textblob_score": -0.07777777777777779,
+          "keyword_score": 0.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/digital-asset-treasury-companies-reach-183446248.html",
+          "published": "2025-09-15T18:34:46Z",
           "relevance_keywords": [
-            "Nvidia"
+            "EV"
           ]
         },
         {
-          "title": "These stock-market experts don\u2019t love AI. Here\u2019s what they do recommend.",
-          "sentiment": 0.43124999999999997,
-          "textblob_score": 0.1875,
+          "title": "India Bulk Drug Makers Start Preparing for Ozempic Patent Expiry",
+          "sentiment": 0.3113333333333333,
+          "textblob_score": 0.01619047619047619,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/india-bulk-drug-makers-start-preparing-for-ozempic-patent-expiry",
+          "published": "Wed, 17 Sep 2025 06:27:40 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Japan\u2019s Solid 20-Year Bond Auction Soothes Political Jitters",
+          "sentiment": 0.384,
+          "textblob_score": 0.12,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/japan-20-year-bond-auction-sees-strongest-demand-since-2020",
+          "published": "Wed, 17 Sep 2025 03:41:56 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Yuan Rises Past Fixing in Bullish Signal Before Xi-Trump Call",
+          "sentiment": 0.34199999999999997,
+          "textblob_score": 0.059999999999999984,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/yuan-rises-past-fixing-in-bullish-signal-before-xi-trump-call",
+          "published": "Wed, 17 Sep 2025 06:08:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Evergrande Liquidators Seek Receivership of Ex-CEO Xia\u2019s Assets",
+          "sentiment": 0.40499999999999997,
+          "textblob_score": 0.15,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/evergrande-liquidators-seek-receivership-of-ex-ceo-xia-s-assets",
+          "published": "Wed, 17 Sep 2025 05:40:39 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "EU Business Group Calls for Fair China Trade Ties",
+          "sentiment": 0.46333333333333326,
+          "textblob_score": 0.2333333333333333,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-17/eu-business-group-calls-for-fair-china-trade-ties-video",
+          "published": "Wed, 17 Sep 2025 05:35:06 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Bloom Energy\u2019s stock is surging \u2014 and could ride Oracle\u2019s growth to even more gains",
+          "sentiment": 0.6499999999999999,
+          "textblob_score": 0.5,
           "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/these-stock-market-experts-dont-love-ai-heres-what-they-do-recommend-6852923a?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 11:30:00 GMT",
+          "url": "https://www.marketwatch.com/story/bloom-energys-stock-is-surging-and-could-ride-oracles-growth-to-even-more-gains-25c30ff3?mod=mw_rss_topstories",
+          "published": "Wed, 17 Sep 2025 01:39:00 GMT",
           "relevance_keywords": [
-            "Nvidia"
+            "EV"
+          ]
+        },
+        {
+          "title": "Why the Fed\u2019s rate cut might not boost the economy",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/why-the-feds-rate-cut-might-not-boost-the-economy-b764c0e6?mod=mw_rss_topstories",
+          "published": "Tue, 16 Sep 2025 22:29:00 GMT",
+          "relevance_keywords": [
+            "EV"
           ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.2,
+      "confidence": 0.8,
       "sources": [
+        "yahoo_finance",
+        "bloomberg",
         "marketwatch"
       ]
     },
-    "AAPL": {
-      "sentiment_score": 0.052986111111111144,
-      "article_count": 3,
+    "NVDA": {
+      "sentiment_score": 0.2524,
+      "article_count": 1,
       "articles": [
         {
-          "title": "France\u2019s Penchant for Soaking the Rich Returns in Budget Crisis",
-          "sentiment": 0.170625,
-          "textblob_score": 0.24375,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/france-s-penchant-for-soaking-the-rich-returns-in-budget-crisis",
-          "published": "Tue, 16 Sep 2025 12:03:18 GMT",
-          "relevance_keywords": [
-            "Mac"
-          ]
-        },
-        {
-          "title": "Italy\u2019s\u00a0Chiesi\u00a0Raises Annual Guidance on Drug Sales Growth",
-          "sentiment": 0.42833333333333334,
-          "textblob_score": 0.18333333333333332,
+          "title": "China Tech Stocks Jump as AI Boom Pushes Index to Four-Year High",
+          "sentiment": 0.2524,
+          "textblob_score": -0.06799999999999999,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-16/italy-s-chiesi-raises-annual-guidance-on-drug-sales-growth",
-          "published": "Tue, 16 Sep 2025 11:45:01 GMT",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/china-tech-stocks-surge-to-2021-level-as-investors-bet-on-ai",
+          "published": "Wed, 17 Sep 2025 02:45:55 GMT",
           "relevance_keywords": [
-            "Mac"
-          ]
-        },
-        {
-          "title": "Apple Is Dead Money (Rating Downgrade)",
-          "sentiment": -0.43999999999999995,
-          "textblob_score": -0.2,
-          "keyword_score": -1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823213-apple-is-dead-money?source=feed_all_articles",
-          "published": "Tue, 16 Sep 2025 08:30:00 -0400",
-          "relevance_keywords": [
-            "Apple"
+            "artificial intelligence"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.3,
+      "confidence": 0.1,
       "sources": [
-        "bloomberg",
-        "seeking_alpha"
+        "bloomberg"
+      ]
+    },
+    "AAPL": {
+      "sentiment_score": 0.3113333333333333,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "India Bulk Drug Makers Start Preparing for Ozempic Patent Expiry",
+          "sentiment": 0.3113333333333333,
+          "textblob_score": 0.01619047619047619,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/india-bulk-drug-makers-start-preparing-for-ozempic-patent-expiry",
+          "published": "Wed, 17 Sep 2025 06:27:40 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
       ]
     }
   },
