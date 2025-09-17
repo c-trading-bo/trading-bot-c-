@@ -314,7 +314,7 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            var response = await client.GetAsync("https://api.topstepx.com");
+            await client.GetAsync("https://api.topstepx.com");
             status.ExternalConnectivityHealthy = true;
         }
         catch

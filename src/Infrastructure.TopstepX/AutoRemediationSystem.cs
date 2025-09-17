@@ -959,7 +959,7 @@ public class AutoRemediationSystem
         await Task.Run(() =>
         {
             // Clean up any cached data that can be regenerated using smart approaches
-            var memoryBefore = GC.GetTotalMemory(false);
+            GC.GetTotalMemory(false);
             
             // Use proper memory management patterns
             // 1. Check for thread pool pressure

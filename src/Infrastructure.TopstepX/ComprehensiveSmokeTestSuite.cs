@@ -138,7 +138,7 @@ public class ComprehensiveSmokeTestSuite
         {
             var testObj = new { Name = "Test", Value = 123 };
             var json = JsonSerializer.Serialize(testObj);
-            var deserialized = JsonSerializer.Deserialize<dynamic>(json);
+            JsonSerializer.Deserialize<dynamic>(json);
             return !string.IsNullOrEmpty(json);
         });
 
@@ -205,7 +205,7 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                var response = await client.GetAsync("https://api.topstepx.com", cancellationToken);
+                await client.GetAsync("https://api.topstepx.com", cancellationToken);
                 // Any response (including 401 unauthorized) means the endpoint is reachable
                 return true;
             }
@@ -222,7 +222,7 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                var response = await client.GetAsync("https://rtc.topstepx.com", cancellationToken);
+                await client.GetAsync("https://rtc.topstepx.com", cancellationToken);
                 return true; // Any response means endpoint exists
             }
             catch
@@ -300,7 +300,7 @@ public class ComprehensiveSmokeTestSuite
                 // Simulate full bot startup without actual trading
                 Environment.SetEnvironmentVariable("DRY_RUN", "true");
                 
-                var discoveryReport = _credentialManager.DiscoverAllCredentialSources();
+                _credentialManager.DiscoverAllCredentialSources();
                 var stagingResult = await _stagingManager.ConfigureStagingEnvironmentAsync();
                 
                 return stagingResult.EnvironmentConfigured;
@@ -340,7 +340,7 @@ public class ComprehensiveSmokeTestSuite
         result.AddTest("Credential Loading Performance", () =>
         {
             var stopwatch = Stopwatch.StartNew();
-            var discovery = _credentialManager.DiscoverAllCredentialSources();
+            _credentialManager.DiscoverAllCredentialSources();
             stopwatch.Stop();
             return stopwatch.ElapsedMilliseconds < 1000; // Should be fast
         });
@@ -369,7 +369,7 @@ public class ComprehensiveSmokeTestSuite
             // Perform some operations
             for (int i = 0; i < 1000; i++)
             {
-                var obj = new { Index = i, Data = $"Test data {i}" };
+                _ = new { Index = i, Data = $"Test data {i}" };
             }
             
             var afterMemory = GC.GetTotalMemory(false);
@@ -392,8 +392,8 @@ public class ComprehensiveSmokeTestSuite
             var killFile = Environment.GetEnvironmentVariable("KILL_FILE") ?? "kill.txt";
             var killFileExists = File.Exists(killFile);
             
-            // Test that kill file detection works
-            var isDryRun = Environment.GetEnvironmentVariable("DRY_RUN") == "true" || killFileExists;
+            // Test that kill file detection works  
+            _ = Environment.GetEnvironmentVariable("DRY_RUN") == "true" || killFileExists;
             return true; // Kill switch detection always works
         });
 

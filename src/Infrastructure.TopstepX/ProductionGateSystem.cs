@@ -140,9 +140,9 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<TestSuiteResult> ExecuteComprehensiveTestSuite(CancellationToken cancellationToken)
+    private Task<TestSuiteResult> ExecuteComprehensiveTestSuite(CancellationToken cancellationToken)
     {
-        return await _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
+        return _testSuite.ExecuteFullTestSuiteAsync(cancellationToken);
     }
 
     private PerformanceValidationResult ExecutePerformanceValidation(TestSuiteResult testResults)
@@ -280,7 +280,7 @@ public class ProductionGateSystem
             assessment.Recommendations = GenerateProductionRecommendations(assessment, gateResult);
 
             // Generate AI-powered recommendations
-            assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment, gateResult);
+            assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment);
             
             _logger.LogInformation("[PRODUCTION-GATE] Production readiness assessment completed - Ready: {IsReady}, Score: {Score:F1}", 
                 assessment.IsProductionReady, assessment.ReadinessScore);
@@ -358,7 +358,7 @@ public class ProductionGateSystem
     /// <summary>
     /// Generate intelligent recommendations based on assessment results
     /// </summary>
-    private async Task<List<string>> GenerateIntelligentRecommendationsAsync(ProductionReadinessAssessment assessment, ProductionGateResult gateResult)
+    private async Task<List<string>> GenerateIntelligentRecommendationsAsync(ProductionReadinessAssessment assessment)
     {
         await Task.Yield();
         
@@ -397,9 +397,9 @@ public class ProductionGateSystem
         return recommendations;
     }
 
-    private async Task<ComprehensiveReport> GenerateComprehensiveReport(ProductionGateResult gateResult)
+    private Task<ComprehensiveReport> GenerateComprehensiveReport(ProductionGateResult gateResult)
     {
-        return await _reportingSystem.GenerateComprehensiveReportAsync(
+        return _reportingSystem.GenerateComprehensiveReportAsync(
             gateResult.TestSuiteExecution,
             new Dictionary<string, object>
             {
@@ -413,7 +413,7 @@ public class ProductionGateSystem
     }
 
     // Helper validation methods
-    private Dictionary<string, bool> ValidateCriticalSystems()
+    private static Dictionary<string, bool> ValidateCriticalSystems()
     {
         return new Dictionary<string, bool>
         {
@@ -424,7 +424,7 @@ public class ProductionGateSystem
         };
     }
 
-    private (int presentCount, int totalCount, int missingCount) ValidateRequiredEnvironmentVariables()
+    private static (int presentCount, int totalCount, int missingCount) ValidateRequiredEnvironmentVariables()
     {
         var requiredVars = new[]
         {
@@ -442,7 +442,8 @@ public class ProductionGateSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            var response = await client.GetAsync("https://api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            await client.GetAsync(apiUrl);
             return true; // Any response indicates connectivity
         }
         catch
@@ -451,7 +452,7 @@ public class ProductionGateSystem
         }
     }
 
-    private bool ValidateSecurityPrerequisites()
+    private static bool ValidateSecurityPrerequisites()
     {
         // Check for HTTPS usage
         var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "";
@@ -463,19 +464,19 @@ public class ProductionGateSystem
         return httpsUsed && isDryRun;
     }
 
-    private bool ValidateLatencyRequirements(TestCategoryResult perfTests)
+    private static bool ValidateLatencyRequirements(TestCategoryResult perfTests)
     {
         // All performance tests should pass for latency requirements
         return perfTests.PassRate >= 0.8;
     }
 
-    private bool ValidateThroughputRequirements(TestCategoryResult perfTests)
+    private static bool ValidateThroughputRequirements(TestCategoryResult perfTests)
     {
         // Throughput should meet minimum requirements
         return perfTests.PassRate >= 0.8;
     }
 
-    private bool ValidateResourceUsage()
+    private static bool ValidateResourceUsage()
     {
         var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
         var memoryMB = currentProcess.WorkingSet64 / (1024 * 1024);
@@ -484,7 +485,7 @@ public class ProductionGateSystem
         return memoryMB < 1024;
     }
 
-    private bool ValidateStabilityUnderLoad(TestCategoryResult perfTests)
+    private static bool ValidateStabilityUnderLoad(TestCategoryResult perfTests)
     {
         // All performance tests should indicate stability
         return perfTests.PassRate >= 0.9;
