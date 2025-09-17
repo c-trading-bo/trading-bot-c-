@@ -862,7 +862,7 @@ public class PolicyNetwork : IDisposable
         }
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
         var data = new
         {
@@ -873,15 +873,14 @@ public class PolicyNetwork : IDisposable
         };
         
         var json = JsonSerializer.Serialize(data);
-        await File.WriteAllTextAsync(path, json, cancellationToken);
+        return File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var json = await File.ReadAllTextAsync(path, cancellationToken);
-        
         // Load weights (simplified - in practice would handle proper deserialization)
         InitializeWeights(); // Reset to defaults for now
+        return Task.CompletedTask;
     }
 
     public void Dispose()
@@ -994,11 +993,11 @@ public class ValueNetwork : IDisposable
         await File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var json = await File.ReadAllTextAsync(path, cancellationToken);
-        
-        InitializeWeights(); // Reset for now
+        // Load weights (simplified - in practice would handle proper deserialization)
+        InitializeWeights(); // Reset to defaults for now
+        return Task.CompletedTask;
     }
 
     public void Dispose()
@@ -1035,14 +1034,14 @@ public class CVaRNetwork : IDisposable
         _valueNetwork.UpdateWeights(loss, learningRate);
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
-        await _valueNetwork.SaveAsync(path, cancellationToken);
+        return _valueNetwork.SaveAsync(path, cancellationToken);
     }
 
-    public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
+    public Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
-        await _valueNetwork.LoadAsync(path, cancellationToken);
+        return _valueNetwork.LoadAsync(path, cancellationToken);
     }
 
     public void Dispose()

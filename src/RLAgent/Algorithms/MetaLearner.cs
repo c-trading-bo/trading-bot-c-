@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Security.Cryptography;
 
 namespace TradingBot.RLAgent.Algorithms;
 
@@ -514,13 +515,12 @@ public class MetaExperienceBuffer
 {
     private readonly Dictionary<string, TaskData> _tasks;
     private readonly int _maxSize;
-    private readonly Random _random;
+    private static readonly RandomNumberGenerator _secureRandom = RandomNumberGenerator.Create();
 
     public MetaExperienceBuffer(int maxSize)
     {
         _maxSize = maxSize;
         _tasks = new Dictionary<string, TaskData>();
-        _random = new Random();
     }
 
     public int TaskCount => _tasks.Count;
@@ -556,7 +556,7 @@ public class MetaExperienceBuffer
         
         while (taskIndices.Count < Math.Min(batchSize, availableTasks.Count))
         {
-            taskIndices.Add(_random.Next(availableTasks.Count));
+            taskIndices.Add(GenerateSecureRandomInt(availableTasks.Count));
         }
         
         foreach (var index in taskIndices)
@@ -565,6 +565,13 @@ public class MetaExperienceBuffer
         }
         
         return sampledTasks;
+    }
+    
+    private static int GenerateSecureRandomInt(int maxValue)
+    {
+        var bytes = new byte[4];
+        _secureRandom.GetBytes(bytes);
+        return (int)(BitConverter.ToUInt32(bytes, 0) % (uint)maxValue);
     }
 }
 
@@ -577,8 +584,8 @@ public class PolicyNetwork
     private readonly int _outputDim;
     private readonly int _hiddenDim;
     private readonly double _learningRate;
-    private readonly Random _random;
-    
+    private static readonly RandomNumberGenerator _secureRandom = RandomNumberGenerator.Create();
+
     // Network parameters
     private readonly Dictionary<string, double[]> _parameters;
 
@@ -588,7 +595,6 @@ public class PolicyNetwork
         _outputDim = outputDim;
         _hiddenDim = hiddenDim;
         _learningRate = learningRate;
-        _random = new Random();
         
         _parameters = new Dictionary<string, double[]>();
         InitializeParameters();
@@ -607,13 +613,13 @@ public class PolicyNetwork
         // Xavier initialization
         for (int i = 0; i < _parameters["input_weights"].Length; i++)
         {
-            _parameters["input_weights"][i] = (_random.NextDouble() * 2 - 1) * scale;
+            _parameters["input_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
         
         scale = Math.Sqrt(2.0 / _hiddenDim);
         for (int i = 0; i < _parameters["output_weights"].Length; i++)
         {
-            _parameters["output_weights"][i] = (_random.NextDouble() * 2 - 1) * scale;
+            _parameters["output_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
     }
 
@@ -674,6 +680,20 @@ public class PolicyNetwork
         }
         
         return cloned;
+    }
+    
+    private static double GenerateSecureRandomDouble()
+    {
+        var bytes = new byte[4];
+        _secureRandom.GetBytes(bytes);
+        return (double)BitConverter.ToUInt32(bytes, 0) / uint.MaxValue;
+    }
+    
+    private static int GenerateSecureRandomInt(int maxValue)
+    {
+        var bytes = new byte[4];
+        _secureRandom.GetBytes(bytes);
+        return (int)(BitConverter.ToUInt32(bytes, 0) % (uint)maxValue);
     }
 }
 

@@ -790,7 +790,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Generate daily feature importance report
     /// </summary>
-    private async void GenerateDailyFeatureReport(object? state)
+    private async Task GenerateDailyFeatureReportAsync(object? state)
     {
         try
         {

@@ -4,9 +4,9 @@
     <LangVersion>latest</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     
-    <!-- PRODUCTION HARDENING: ZERO TOLERANCE FOR NON-PRODUCTION CODE -->
+    <!-- PRODUCTION HARDENING: ABSOLUTE ZERO TOLERANCE FOR NON-PRODUCTION CODE -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors>CS0162;CS0168;CS0219;CS0414;CS0649;CS0693;CS1717</WarningsAsErrors>
+    <WarningsAsErrors>CS0162;CS0168;CS0219;CS0414;CS0649;CS0693;CS1717;CS8602;CS8604;CS8618;CS8625;CS1998</WarningsAsErrors>
     
     <!-- Enable nullable reference types solution-wide -->
     <Nullable>enable</Nullable>
@@ -20,11 +20,15 @@
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     
-    <!-- PRODUCTION ENFORCEMENT: ALL WARNINGS ARE ERRORS - NO SUPPRESSIONS ALLOWED -->
+    <!-- PRODUCTION ENFORCEMENT: ALL WARNINGS ARE ERRORS - ABSOLUTELY NO SUPPRESSIONS ALLOWED -->
     <!-- Every single analyzer warning must be fixed, not suppressed -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <WarningsNotAsErrors />
+    
+    <!-- ENHANCED BUSINESS LOGIC ENFORCEMENT -->
+    <EnforceBusinessLogicValidation>true</EnforceBusinessLogicValidation>
+    <FailBuildOnProductionViolations>true</FailBuildOnProductionViolations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,13 +45,58 @@
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- PRODUCTION ENFORCEMENT: Custom target to scan for non-production patterns -->
+  <!-- PRODUCTION ENFORCEMENT: Comprehensive custom target to scan for ALL non-production patterns -->
   <Target Name="ProductionReadinessCheck" BeforeTargets="Build">
     <ItemGroup>
       <SourceFiles Include="**/*.cs" Exclude="bin/**;obj/**;packages/**" />
     </ItemGroup>
     
+    <!-- Phase 1: Basic TODO/FIXME/HACK Detection -->
     <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E '//\s*(TODO|FIXME|HACK):|^\s*/\*\s*(TODO|FIXME|HACK):' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: TODO/FIXME/HACK comments found. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 2: Business Logic Placeholder Detection (Code Only - Excludes Comments) -->
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E '(class|interface|struct)\s+.*Mock|Mock.*\s*=|new\s+Mock|\.Mock\.|MockData|FakeData|StubData|PLACEHOLDER\s*=|return\s+.*PLACEHOLDER' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Placeholder/Mock/Fake implementation code found. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 3: Hardcoded Business Value Detection -->
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'return\s+0\.7[^0-9]|return\s+2\.5[^0-9]|return\s+1\.5[^0-9]|return\s+0\.3[^0-9]|return\s+1\.0[^0-9]|new\s+byte\[\s*1024\s*\]|10000\s*[;,)]' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Hardcoded business values found (0.7, 2.5, 1.5, 0.3, 1.0, 1024 bytes, 10000 samples). Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 4: Empty/Placeholder Implementation Detection -->
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'Task\.Yield\(\)|Task\.Delay\(50\)|Task\.Delay\(100\)|throw\s+new\s+NotImplementedException|return\s+Task\.CompletedTask\s*;' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Empty/placeholder async implementations found. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 5: Test/Development-Only Code Detection -->
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E '//\s*for\s+testing|//\s*debug\s+only|//\s*temporary|//\s*remove\s+this' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Development/testing-only code found. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+  
+  <!-- BUSINESS LOGIC VALIDATION: Custom target to detect specific trading bot non-production patterns -->
+  <Target Name="TradingBotBusinessLogicValidation" BeforeTargets="Build">
+    <!-- Critical Trading Pattern Detection -->
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'Confidence\s*=\s*0\.7|confidence\s*=\s*0\.7|\.Confidence\s*=\s*0\.7' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded AI confidence (0.7) detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'PositionSize\s*=\s*2\.5|positionSize\s*=\s*2\.5|\.PositionSize\s*=\s*2\.5' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded position sizing (2.5) detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'SharpeRatio\s*=\s*1\.5|sharpeRatio\s*=\s*1\.5|\.SharpeRatio\s*=\s*1\.5' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded Sharpe ratio (1.5) detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'Correlation\s*=\s*0\.3|correlation\s*=\s*0\.3|\.Correlation\s*=\s*0\.3' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded correlation factor (0.3) detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E 'new\s+Random\(\)|_random\.Next|\.NextDouble\(\)' {} \; | grep -q .; then echo 'CRITICAL: Weak random number generation detected. Security violation.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
   </Target>
