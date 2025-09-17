@@ -357,7 +357,7 @@ public class StartupValidator : IStartupValidator
             
             // Simulate halt test (should complete in < 3 seconds)
             var stopwatch = Stopwatch.StartNew();
-            var timeout = new CancellationTokenSource(3000);
+            using var timeout = new CancellationTokenSource(3000);
             
             try
             {

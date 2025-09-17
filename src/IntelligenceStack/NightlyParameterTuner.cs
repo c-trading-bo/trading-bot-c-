@@ -20,7 +20,6 @@ public class NightlyParameterTuner
     private readonly TuningConfig _config;
     private readonly NetworkConfig _networkConfig;
     private readonly IModelRegistry _modelRegistry;
-    private readonly HistoricalTrainerWithCV _historicalTrainer;
     private readonly string _statePath;
     
     private readonly Dictionary<string, TuningSession> _activeSessions = new();
@@ -39,7 +38,7 @@ public class NightlyParameterTuner
         _config = config;
         _networkConfig = networkConfig;
         _modelRegistry = modelRegistry;
-        _historicalTrainer = historicalTrainer;
+        // historicalTrainer parameter kept for interface compatibility but not stored as it's unused
         _statePath = statePath;
         
         Directory.CreateDirectory(_statePath);
