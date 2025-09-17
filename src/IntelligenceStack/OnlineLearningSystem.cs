@@ -332,7 +332,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             {
                 var baselineValue = baseline[key];
                 var diff = Math.Abs(currentValue - baselineValue);
-                var normalizedDiff = baselineValue != 0 ? diff / Math.Abs(baselineValue) : diff;
+                var normalizedDiff = Math.Abs(baselineValue) > 1e-10 ? diff / Math.Abs(baselineValue) : diff;
                 score += normalizedDiff;
                 featureCount++;
             }
@@ -548,7 +548,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             var recall = CalculateRecall(tradeRecord);
             
             // F1 Score = 2 * (precision * recall) / (precision + recall)
-            if (precision + recall == 0) return 0.0;
+            if (Math.Abs(precision + recall) < 1e-10) return 0.0;
             return 2.0 * (precision * recall) / (precision + recall);
         }
         catch

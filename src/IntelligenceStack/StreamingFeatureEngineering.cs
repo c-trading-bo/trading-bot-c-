@@ -437,7 +437,7 @@ public class StreamingAggregator
                 var avgGain = gains.Average();
                 var avgLoss = losses.Average();
 
-                if (avgLoss == 0) return 100.0;
+                if (Math.Abs(avgLoss) < 1e-10) return 100.0;
                 
                 var rs = avgGain / avgLoss;
                 return 100.0 - (100.0 / (1.0 + rs));

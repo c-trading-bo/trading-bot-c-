@@ -465,7 +465,7 @@ public class FeatureEngineer : IDisposable
         var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, 2)));
         var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, 2)));
         
-        if (denomX == 0 || denomY == 0)
+        if (Math.Abs(denomX) < 1e-10 || Math.Abs(denomY) < 1e-10)
         {
             return 0.0;
         }
