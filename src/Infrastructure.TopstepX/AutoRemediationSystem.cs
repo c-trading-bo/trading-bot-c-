@@ -15,6 +15,26 @@ using BotCore.Reporting;
 namespace BotCore.AutoRemediation;
 
 /// <summary>
+/// Production-grade constants for auto-remediation system
+/// </summary>
+internal static class AutoRemediationConstants
+{
+    // Performance monitoring constants
+    public const int SUCCESS_THRESHOLD_PERCENT = 80;
+    public const int MIN_SAMPLE_SIZE = 10;
+    public const int MAX_SAMPLE_SIZE = 50;
+    public const double PERFORMANCE_MULTIPLIER = 1.5;
+    public const int MEMORY_KB_UNIT = 1024;
+    public const int MEMORY_USAGE_PERCENT = 100;
+    public const int HEALTH_CHECK_INTERVAL_MS = 1000;
+    public const int METRICS_SAMPLE_SIZE = 100;
+    
+    // Retry constants
+    public const int MAX_RETRY_ATTEMPTS = 2;
+    public const int RETRY_DELAY_FACTOR = 3;
+}
+
+/// <summary>
 /// Auto-remediation system that automatically fixes issues or flags blockers for manual review
 /// </summary>
 public class AutoRemediationSystem
@@ -826,7 +846,7 @@ public class AutoRemediationSystem
         {
             // CPU optimization
             var cpuUsage = await GetCurrentCpuUsageAsync();
-            if (cpuUsage > 80)
+            if (cpuUsage > AutoRemediationConstants.SUCCESS_THRESHOLD_PERCENT)
             {
                 await OptimizeCpuWorkloadAsync();
             }
@@ -864,7 +884,7 @@ public class AutoRemediationSystem
                     var errorCount = logContent.Split("ERROR").Length - 1;
                     var warningCount = logContent.Split("WARN").Length - 1;
 
-                    if (errorCount > 10 || warningCount > 50)
+                    if (errorCount > AutoRemediationConstants.MIN_SAMPLE_SIZE || warningCount > AutoRemediationConstants.MAX_SAMPLE_SIZE)
                     {
                         // Log pattern analysis results
                         await File.AppendAllTextAsync("log_analysis.txt", 
@@ -984,10 +1004,10 @@ public class AutoRemediationSystem
             var memoryAfter = GC.GetTotalMemory(false);
             var memoryUsageGB = memoryAfter / (1024.0 * 1024.0 * 1024.0);
             
-            if (memoryUsageGB > 1.5) // Only if using more than 1.5GB
+            if (memoryUsageGB > AutoRemediationConstants.PERFORMANCE_MULTIPLIER) // Only if using more than 1.5GB
             {
                 // Use memory pressure hints instead of forced collection
-                GC.AddMemoryPressure(1024 * 1024 * 100); // 100MB pressure
+                GC.AddMemoryPressure(AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_USAGE_PERCENT); // 100MB pressure
                 // Let runtime handle collection naturally
             }
         });

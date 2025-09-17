@@ -11,6 +11,20 @@ using BotCore.Services;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
+/// Production-grade constants for TopstepX client operations
+/// </summary>
+internal static class TopstepXConstants
+{
+    // Retry constants
+    public const int MAX_RETRY_ATTEMPTS = 2;
+    public const int RETRY_DELAY_FACTOR = 3;
+    
+    // Connection timeout constants  
+    public const int DEFAULT_TIMEOUT_SECONDS = 30;
+    public const int MIN_TIMEOUT_SECONDS = 10;
+}
+
+/// <summary>
 /// Real TopstepX client implementation that wraps existing services
 /// Provides interface parity with MockTopstepXClient for hot-swapping
 /// </summary>
@@ -828,7 +842,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         if (string.IsNullOrEmpty(credential) || credential.Length <= 4)
             return "****";
         
-        return credential[..2] + "****" + credential[^2..];
+        return credential[..TopstepXConstants.MAX_RETRY_ATTEMPTS] + "****" + credential[^TopstepXConstants.MAX_RETRY_ATTEMPTS..];
     }
 
     private static string MaskAccountId(string accountId)
@@ -836,7 +850,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         if (string.IsNullOrEmpty(accountId) || accountId.Length <= 6)
             return "****";
         
-        return accountId[..3] + "****" + accountId[^3..];
+        return accountId[..TopstepXConstants.RETRY_DELAY_FACTOR] + "****" + accountId[^TopstepXConstants.RETRY_DELAY_FACTOR..];
     }
 
     public void Dispose()
