@@ -475,7 +475,7 @@ public class HistoricalTrainerWithCV
         return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
     }
     
-    private async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
+    private static async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
     {
         // Simulate loading enhanced volume data
         await Task.Delay(50, cancellationToken);

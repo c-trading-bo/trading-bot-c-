@@ -181,7 +181,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             // 7. Calculate position size with Kelly criterion
-            var positionSize = CalculatePositionSize(calibratedConfidence, context);
+            var positionSize = CalculatePositionSize(calibratedConfidence);
 
             // 8. Create trading decision
             var decision = CreateTradingDecision(
@@ -637,7 +637,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await GetOnlinePredictionAsync(symbol, strategyId, cancellationToken);
     }
 
-    private double CalculatePositionSize(double confidence, MarketContext context)
+    private double CalculatePositionSize(double confidence)
     {
         // Apply Kelly criterion with clip using configurable parameters
         var edge = (confidence - _config.ML.Confidence.EdgeConversionOffset) * _config.ML.Confidence.EdgeConversionMultiplier; // Convert to [-1, 1] range

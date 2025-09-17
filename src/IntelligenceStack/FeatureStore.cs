@@ -310,7 +310,7 @@ public class FeatureStore : IFeatureStore
         };
     }
 
-    private string CalculateChecksum(FeatureSet features)
+    private static string CalculateChecksum(FeatureSet features)
     {
         var content = JsonSerializer.Serialize(features.Features);
         using var sha = SHA256.Create();
@@ -318,7 +318,7 @@ public class FeatureStore : IFeatureStore
         return Convert.ToHexString(hash)[..16]; // First 16 chars
     }
 
-    private string CalculateSchemaChecksum(FeatureSchema schema)
+    private static string CalculateSchemaChecksum(FeatureSchema schema)
     {
         var content = JsonSerializer.Serialize(schema.Features);
         using var sha = SHA256.Create();

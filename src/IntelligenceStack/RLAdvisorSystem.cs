@@ -94,7 +94,7 @@ public class RLAdvisorSystem
             await LogRLDecisionAsync(agentKey, recommendation, context, cancellationToken);
 
             // Increment shadow decision count
-            await IncrementShadowDecisionCountAsync(agentKey, cancellationToken);
+            await IncrementShadowDecisionCountAsync(agentKey);
 
             _logger.LogDebug("[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})", 
                 context.Symbol, recommendation.Action, recommendation.Confidence);
@@ -399,7 +399,7 @@ public class RLAdvisorSystem
         await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken);
     }
 
-    private async Task IncrementShadowDecisionCountAsync(string agentKey, CancellationToken cancellationToken)
+    private async Task IncrementShadowDecisionCountAsync(string agentKey)
     {
         // Brief yield for async context
         await Task.Yield();
@@ -445,7 +445,6 @@ public class RLAdvisorSystem
 
     private async Task UpdatePerformanceTrackingAsync(
         string agentKey,
-        RLDecision decision,
         ExitOutcome outcome,
         CancellationToken cancellationToken)
     {

@@ -289,7 +289,7 @@ public class NightlyParameterTuner
                 ModelFamily = modelFamily,
                 SessionId = Guid.NewGuid().ToString(),
                 StartTime = DateTime.UtcNow,
-                ParameterSpace = GetParameterSpace(modelFamily),
+                ParameterSpace = GetParameterSpace(),
                 TrialHistory = new List<TrialResult>()
             };
 
@@ -327,7 +327,7 @@ public class NightlyParameterTuner
         return session;
     }
 
-    private Dictionary<string, ParameterRange> GetParameterSpace(string modelFamily)
+    private Dictionary<string, ParameterRange> GetParameterSpace()
     {
         // Define parameter search space for different model families using configurable batch sizes
         var batchSizes = new double[] { 
@@ -532,7 +532,7 @@ public class NightlyParameterTuner
         CancellationToken cancellationToken)
     {
         var population = new List<Individual>();
-        var paramSpace = GetParameterSpace(modelFamily);
+        var paramSpace = GetParameterSpace();
         
         for (int i = 0; i < populationSize; i++)
         {

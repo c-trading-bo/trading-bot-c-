@@ -321,7 +321,7 @@ public class EnsembleMetaLearner
         };
     }
     
-    private async Task<Dictionary<string, double>> ProcessFeaturesAsync(
+    private static async Task<Dictionary<string, double>> ProcessFeaturesAsync(
         MarketContext context, 
         CancellationToken cancellationToken)
     {
@@ -338,7 +338,7 @@ public class EnsembleMetaLearner
         }, cancellationToken);
     }
     
-    private async Task<(double Confidence, double Direction)> RunModelInferenceAsync(
+    private static async Task<(double Confidence, double Direction)> RunModelInferenceAsync(
         Dictionary<string, double> features, 
         CancellationToken cancellationToken)
     {
@@ -358,7 +358,7 @@ public class EnsembleMetaLearner
         }, cancellationToken);
     }
     
-    private async Task<(double Confidence, double Direction)> CalibrateModelOutputAsync(
+    private static async Task<(double Confidence, double Direction)> CalibrateModelOutputAsync(
         (double Confidence, double Direction) rawPrediction, 
         CancellationToken cancellationToken)
     {
@@ -452,7 +452,7 @@ public class EnsembleMetaLearner
         return 1.0 / (1.0 + Math.Exp(-6 * (progress - 0.5))); // Sigmoid centered at 0.5
     }
 
-    private Dictionary<string, double> BlendWeights(
+    private static Dictionary<string, double> BlendWeights(
         Dictionary<string, double> fromWeights,
         Dictionary<string, double> toWeights,
         double transitionWeight)
@@ -491,7 +491,7 @@ public class EnsembleMetaLearner
         }
     }
 
-    private double CalculatePerformanceScore(ModelPerformance performance)
+    private static double CalculatePerformanceScore(ModelPerformance performance)
     {
         // Combine multiple metrics into a single performance score
         var brierScore = Math.Max(0, 0.25 - performance.BrierScore) / 0.25; // 0-1 scale
@@ -645,7 +645,7 @@ public class RegimeBlendHead
     /// <summary>
     /// Asynchronously calculate validation score with proper I/O operations
     /// </summary>
-    private async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
+    private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
         await Task.Yield();
