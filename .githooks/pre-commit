@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Production Enforcement Pre-Commit Hook - Zero Tolerance for Non-Production Patterns
+# This hook scans for ANY hardcoded values, mock/fake/stub patterns, and development-only code
+# Based on requirements from the problem statement
+
+set -e
+
+echo "🔍 Running Production Enforcement Checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Error counter
+VIOLATIONS=0
+
+# Function to report violations
+report_violation() {
+    echo -e "${RED}❌ PRODUCTION VIOLATION:${NC} $1"
+    VIOLATIONS=$((VIOLATIONS + 1))
+}
+
+# Function to report pattern matches
+check_pattern() {
+    local pattern="$1"
+    local description="$2"
+    local files="$3"
+    
+    if [ -z "$files" ]; then
+        files="src/**/*.cs"
+    fi
+    
+    local matches
+    matches=$(find . -path "./src/*" -name "*.cs" -not -path "*/bin/*" -not -path "*/obj/*" -not -path "*/Test*" -not -path "*/test*" -not -path "*/Mock*" -not -path "*/Fake*" -not -path "*/Sample*" -not -path "*/Demo*" -exec grep -l -E "$pattern" {} \; 2>/dev/null || true)
+    
+    if [ -n "$matches" ]; then
+        report_violation "$description"
+        echo "Files containing violations:"
+        echo "$matches" | sed 's/^/  /'
+        echo
+    fi
+}
+
+echo "Checking for hardcoded numeric literals in business logic..."
+check_pattern "return\s+[0-9]+(\.[0-9]+)?[^0-9f]|=\s*[0-9]+(\.[0-9]+)?[^0-9f]" "Hardcoded numeric literals detected in business logic"
+
+echo "Checking for placeholder/mock/stub patterns..."
+check_pattern "\b(PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE)\b" "Placeholder/Mock/Stub patterns detected"
+
+echo "Checking for fixed-size arrays..."
+check_pattern "new\s+(byte|int|double|float|decimal)\[\s*[0-9]+\s*\]" "Fixed-size data arrays detected"
+
+echo "Checking for empty async placeholders..."
+check_pattern "Task\.Yield\(\)|Task\.Delay\([0-9]+\)|throw\s+new\s+NotImplementedException|return\s+Task\.CompletedTask\s*;" "Empty/placeholder async implementations detected"
+
+echo "Checking for development-only comments..."
+check_pattern "//\s*(for\s+testing|debug\s+only|temporary|remove\s+this|TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|BUG|NOTE|REVIEW|REFACTOR|OPTIMIZE)" "Development/testing-only code comments detected"
+
+echo "Checking for weak random generation..."
+check_pattern "new\s+Random\s*\(|Random\.Shared" "Weak random number generation detected"
+
+echo "Checking for specific problematic business values..."
+check_pattern "\b(0\.7|0\.8|0\.5|0\.3|0\.4|0\.25|2\.5|1\.25|4125\.25|4125\.00|4125\.50)\b" "Known problematic hardcoded business values detected"
+
+echo "Checking for class/method names with non-production patterns..."
+check_pattern "(class|interface|struct|method)\s+\w*(Mock|Fake|Stub|Test|Demo|Sample|Placeholder|Temp|Dummy)\w*" "Non-production patterns in class/method names"
+
+echo "Checking for commented-out code..."
+check_pattern "^\s*//.*[{};]|^\s*/\*.*[{};].*\*/" "Commented-out code blocks detected"
+
+echo "Checking for literal decimals in trading calculations..."
+check_pattern "decimal\s+\w+\s*=\s*[0-9]+\.[0-9]+[^f]|price\s*=\s*[0-9]+\.[0-9]+|quantity\s*=\s*[0-9]+\.[0-9]+" "Literal decimals in trading calculations"
+
+echo "Checking for magic numbers in business logic contexts..."
+check_pattern "(position|confidence|regime|size|threshold|ratio|factor|weight|probability|risk|reward|volatility|correlation|alpha|beta|sharpe|drawdown|var|cvar)\s*[=:]\s*[0-9]+(\.[0-9]+)?" "Magic numbers in business logic contexts"
+
+echo "Checking for hardcoded timeouts and delays..."
+check_pattern "Thread\.Sleep\([0-9]+\)|Task\.Delay\([0-9]+\)|TimeSpan\.FromMilliseconds\([0-9]+\)" "Hardcoded timeouts and delays"
+
+echo "Checking for hardcoded connection strings and URLs..."
+check_pattern "(connectionString|baseUrl|endpoint)\s*[=:]\s*[\"'][^\"']+[\"']" "Hardcoded connection strings or URLs"
+
+echo "Checking for hardcoded array sizes and collection capacities..."
+check_pattern "new\s+\w+\[[0-9]+\]|Capacity\s*=\s*[0-9]+|new\s+List<\w+>\([0-9]+\)" "Hardcoded array sizes or collection capacities"
+
+echo "Checking for ML/RL specific hardcoded values..."
+check_pattern "(learningRate|batchSize|epochs|hiddenSize|dropout|momentum|decay|temperature|epsilon|tau|gamma)\s*[=:]\s*[0-9]+(\.[0-9]+)?" "ML/RL hardcoded hyperparameters"
+
+echo "Checking for performance and optimization hardcoded values..."
+check_pattern "(bufferSize|cacheSize|poolSize|maxRetries|timeoutMs|intervalMs|windowSize|chunkSize)\s*[=:]\s*[0-9]+" "Hardcoded performance optimization values"
+
+# Run the actual build to catch analyzer violations
+echo "Running build with analyzer checks..."
+if ! dotnet build --verbosity quiet --no-restore 2>/dev/null; then
+    report_violation "Build failed with analyzer violations"
+fi
+
+# Final result
+if [ $VIOLATIONS -eq 0 ]; then
+    echo -e "${GREEN}✅ All production enforcement checks passed!${NC}"
+    exit 0
+else
+    echo -e "${RED}❌ Found $VIOLATIONS production violations. Commit blocked.${NC}"
+    echo -e "${YELLOW}All violations must be fixed before committing. Use configuration-driven values instead of hardcoded literals.${NC}"
+    exit 1
+fi

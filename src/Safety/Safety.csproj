@@ -5,6 +5,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);CS1998</NoWarn>
+    
+    <!-- Configure this project as an analyzer -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>TradingBot.ProductionRuleEnforcement</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>TradingBot</Authors>
+    <Description>Production rule enforcement analyzer for TradingBot</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +41,16 @@
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="../BotCore/BotCore.csproj" />
+  </ItemGroup>
+
+  <!-- Package the analyzer -->
+  <ItemGroup>
+    <None Include="build\TradingBot.ProductionRuleEnforcement.props" Pack="true" PackagePath="build\" />
+    <None Include="build\TradingBot.ProductionRuleEnforcement.targets" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Analyzer Include="Analyzers\*.cs" />
   </ItemGroup>
 
 </Project>
