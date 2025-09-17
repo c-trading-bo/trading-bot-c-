@@ -556,7 +556,7 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[REAL-TOPSTEPX] GetTradeAsync failed for trade: {TradeId}", tradeId);
-            throw;
+            throw new InvalidOperationException($"Failed to get trade details for {tradeId}", ex);
         }
     }
 

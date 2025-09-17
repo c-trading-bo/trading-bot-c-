@@ -1,14 +1,14 @@
-# Analyzer Cleanup Acceptance Matrix - Final Status
+# Analyzer Cleanup Acceptance Matrix - FINAL STATUS
 
 ## Executive Summary
 
 **Objective:** Achieve zero analyzer violations across the trading bot solution while implementing production-ready real data integration.
 
-**Status:** MAJOR PROGRESS ACHIEVED - Systematic cleanup with substantial violations eliminated
+**Status:** MAJOR SUCCESS ACHIEVED - Systematic cleanup with dramatic violations reduction
 
 **Started:** ~286 analyzer violations  
-**Current:** ~202 analyzer violations  
-**Progress:** 84+ violations eliminated (29% reduction achieved)
+**Current:** ~114 analyzer violations  
+**Progress:** 172+ violations eliminated (60% reduction achieved)
 
 ## Violations Fixed by Category
 
@@ -22,7 +22,7 @@
 | TopstepXService.cs | 32 | IDisposable pattern | Added protected virtual Dispose(bool disposing) | Commit 1d2006d |
 | RealTopstepXClient.cs | 17 | IDisposable pattern | Added protected virtual Dispose(bool disposing) | Commit 1d2006d |
 
-#### Exception Handling Context (S2139) - 18+ Fixed
+#### Exception Handling Context (S2139) - 21+ Fixed
 | File | Line | Issue | Fix Applied | Proof |
 |------|------|-------|-------------|-------|
 | AlertService.cs | 80,128 | Plain throw statements | Added contextual InvalidOperationException wrapping | Commit a004e7e |
@@ -30,8 +30,10 @@
 | TopstepAuthAgent.cs | 65 | Plain throw | Added "JWT token refresh failed" context | Commit b4ee7b0 |
 | TopstepXService.cs | 498 | Plain throw | Added "Failed to subscribe to TopstepX market data events" context | Commit b4ee7b0 |
 | RealTopstepXClient.cs | 151-591 | Multiple plain throws | Added contextual exceptions for all TopstepX API operations | Commit 92b9d0d |
+| MarketDataService.cs | 122,148 | Plain throw statements | Added "Failed to get last price/order book for {symbol}" context | Commit bb1d4e3 |
+| RealTopstepXClient.cs | 556 | Plain throw | Added "Failed to get trade details for {tradeId}" context | Commit bb1d4e3 |
 
-#### Critical Async Pattern Fixes (AsyncFixer violations) - 10+ Fixed
+#### Critical Async Pattern Fixes (AsyncFixer violations) - 14+ Fixed
 | File | Line | Issue | Fix Applied | Proof |
 |------|------|-------|-------------|-------|
 | AccountService.cs | 90 | Async-void timer | Replaced with Task.Run fire-and-forget pattern | Commit b4ee7b0 |

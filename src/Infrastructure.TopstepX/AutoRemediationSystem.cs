@@ -697,7 +697,7 @@ public class AutoRemediationSystem
             // Check for hardcoded credentials in environment
             if (File.Exists(".env"))
             {
-                var envContent = File.ReadAllText(".env");
+                var envContent = await File.ReadAllTextAsync(".env");
                 if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
                 {
                     issues.Add("Potential hardcoded credentials found in .env file");
@@ -711,9 +711,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Remediate credential security issues
     /// </summary>
-    private async Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
+    private Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
     {
-        await Task.Run(() =>
+        return Task.Run(async () =>
         {
             foreach (var issue in issues)
             {
@@ -734,7 +734,7 @@ public class AutoRemediationSystem
                 if (issue.Contains("hardcoded"))
                 {
                     // Log security warning for manual review
-                    File.AppendAllText("security_warnings.log", 
+                    await File.AppendAllTextAsync("security_warnings.log", 
                         $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - {issue}\n");
                 }
             }
@@ -819,9 +819,9 @@ public class AutoRemediationSystem
     /// <summary>
     /// Analyze performance optimization opportunities
     /// </summary>
-    private async Task AnalyzeAndApplyPerformanceOptimizations()
+    private Task AnalyzeAndApplyPerformanceOptimizations()
     {
-        await Task.Run(async () =>
+        return Task.Run(async () =>
         {
             // CPU optimization
             var cpuUsage = await GetCurrentCpuUsageAsync();

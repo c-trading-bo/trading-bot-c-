@@ -229,9 +229,9 @@ public class SacAlgorithmWrapper : IRLAlgorithm
         _sac = sac;
     }
 
-    public async Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
+    public Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
     {
-        return await _sac.SelectActionAsync(state, isTraining);
+        return _sac.SelectActionAsync(state, isTraining);
     }
 
     public void StoreExperience(double[] state, double[] action, double reward, double[] nextState, bool done)

@@ -122,7 +122,7 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MARKET] Failed to get last price for {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Failed to get last price for {symbol}", ex);
         }
     }
 
@@ -148,7 +148,7 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
         catch (Exception ex)
         {
             _logger.LogError(ex, "[MARKET] Failed to get order book for {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Failed to get order book for {symbol}", ex);
         }
     }
 
