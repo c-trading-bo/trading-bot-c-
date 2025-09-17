@@ -50,7 +50,7 @@ public class ProductionGateSystem
 
             // Gate 1: Pre-flight Environment Validation
             _logger.LogInformation("🛫 Gate 1: Pre-flight Environment Validation");
-            result.PreflightValidation = await ExecutePreflightValidation(cancellationToken);
+            result.PreflightValidation = await ExecutePreflightValidation();
 
             // Gate 2: Comprehensive Testing Suite
             _logger.LogInformation("🧪 Gate 2: Comprehensive Testing Suite");
@@ -62,7 +62,7 @@ public class ProductionGateSystem
 
             // Gate 4: Security and Compliance Validation
             _logger.LogInformation("🔒 Gate 4: Security and Compliance Validation");
-            result.SecurityValidation = await ExecuteSecurityValidation(result.TestSuiteExecution);
+            result.SecurityValidation = await ExecuteSecurityValidation();
 
             // Gate 5: Auto-remediation and Issue Resolution
             _logger.LogInformation("🔧 Gate 5: Auto-remediation and Issue Resolution");
@@ -95,7 +95,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<PreflightValidationResult> ExecutePreflightValidation(CancellationToken cancellationToken)
+    private async Task<PreflightValidationResult> ExecutePreflightValidation()
     {
         var result = new PreflightValidationResult();
 
@@ -183,7 +183,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<SecurityValidationResult> ExecuteSecurityValidation(TestSuiteResult testResults)
+    private async Task<SecurityValidationResult> ExecuteSecurityValidation()
     {
         var result = new SecurityValidationResult();
 
