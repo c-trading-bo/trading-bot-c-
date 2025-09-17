@@ -524,7 +524,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Get default sentinel value for missing features
     /// </summary>
-    private double GetDefaultSentinelValue(string featureName)
+    private static double GetDefaultSentinelValue(string featureName)
     {
         return featureName.ToLower() switch
         {
@@ -542,7 +542,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Bound feature values to prevent extreme outliers
     /// </summary>
-    private double BoundFeatureValue(double value, string featureName)
+    private static double BoundFeatureValue(double value, string featureName)
     {
         var bounds = featureName.ToLower() switch
         {
@@ -558,7 +558,7 @@ public class FeatureEngineering : IDisposable
     }
 
     // Helper calculation methods
-    private double CalculateReturn(double current, double previous)
+    private static double CalculateReturn(double current, double previous)
     {
         return previous > 0 ? (current - previous) / previous : 0.0;
     }
@@ -578,7 +578,7 @@ public class FeatureEngineering : IDisposable
         return Math.Sqrt(variance);
     }
 
-    private double CalculateTrend(double[] values)
+    private static double CalculateTrend(double[] values)
     {
         if (values.Length < 2) return 0.0;
         
@@ -596,7 +596,7 @@ public class FeatureEngineering : IDisposable
         return slope;
     }
 
-    private double CalculateRSI(MarketData[] buffer, MarketData current)
+    private static double CalculateRSI(MarketData[] buffer, MarketData current)
     {
         var allData = buffer.Append(current).ToArray();
         if (allData.Length < 15) return 50.0; // Default neutral RSI
@@ -628,7 +628,7 @@ public class FeatureEngineering : IDisposable
         return 100.0 - (100.0 / (1.0 + rs));
     }
 
-    private double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
+    private static double CalculateBollingerPosition(MarketData[] buffer, MarketData current)
     {
         var prices = buffer.Select(d => d.Close).Append(current.Close).ToArray();
         if (prices.Length < 20) return 0.5; // Default middle position
@@ -645,7 +645,7 @@ public class FeatureEngineering : IDisposable
         return (current.Close - lowerBand) / (upperBand - lowerBand);
     }
 
-    private double CalculateATR(MarketData[] buffer, MarketData current)
+    private static double CalculateATR(MarketData[] buffer, MarketData current)
     {
         var allData = buffer.Append(current).ToArray();
         if (allData.Length < 2) return 0.0;
@@ -680,7 +680,7 @@ public class FeatureEngineering : IDisposable
         return (macd, signal);
     }
 
-    private double CalculateEMA(double[] prices, int period)
+    private static double CalculateEMA(double[] prices, int period)
     {
         if (prices.Length < period) return prices.LastOrDefault();
         
@@ -695,7 +695,7 @@ public class FeatureEngineering : IDisposable
         return ema;
     }
 
-    private int GetTickDirection(CircularBuffer<MarketData> buffer, MarketData current)
+    private static int GetTickDirection(CircularBuffer<MarketData> buffer, MarketData current)
     {
         if (buffer.Count == 0) return 0;
         
@@ -705,7 +705,7 @@ public class FeatureEngineering : IDisposable
         return current.Close > last.Close ? 1 : (current.Close < last.Close ? -1 : 0);
     }
 
-    private double CalculateOrderFlowImbalance(MarketData[] buffer, int currentTickDirection)
+    private static double CalculateOrderFlowImbalance(MarketData[] buffer, int currentTickDirection)
     {
         if (buffer.Length < 2) return 0.0;
         
@@ -766,7 +766,7 @@ public class FeatureEngineering : IDisposable
         return (currentDirection * alpha) + (prevEma * decay);
     }
 
-    private string GetFeatureKey(string symbol, string strategy, RegimeType regime)
+    private static string GetFeatureKey(string symbol, string strategy, RegimeType regime)
     {
         return $"{symbol}_{strategy}_{regime}";
     }

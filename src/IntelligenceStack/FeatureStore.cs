@@ -326,7 +326,7 @@ public class FeatureStore : IFeatureStore
         return Convert.ToHexString(hash)[..16]; // First 16 chars
     }
 
-    private bool IsFileInTimeRange(string filePath, DateTime fromTime, DateTime toTime)
+    private static bool IsFileInTimeRange(string filePath, DateTime fromTime, DateTime toTime)
     {
         var fileName = Path.GetFileNameWithoutExtension(filePath);
         if (DateTime.TryParseExact(fileName, "yyyy-MM-dd_HH-mm-ss", null, System.Globalization.DateTimeStyles.None, out var fileTime))

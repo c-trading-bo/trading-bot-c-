@@ -568,7 +568,7 @@ public class CVaRPPO : IDisposable
         };
     }
 
-    private double[] SoftmaxActivation(double[] logits)
+    private static double[] SoftmaxActivation(double[] logits)
     {
         var maxLogit = logits.Max();
         var exps = logits.Select(x => Math.Exp(x - maxLogit)).ToArray();
@@ -576,7 +576,7 @@ public class CVaRPPO : IDisposable
         return exps.Select(x => x / sum).ToArray();
     }
 
-    private int SampleFromDistribution(double[] probabilities)
+    private static int SampleFromDistribution(double[] probabilities)
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         var bytes = new byte[8];

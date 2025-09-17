@@ -451,7 +451,7 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Calculate correlation coefficient between two series
     /// </summary>
-    private double CalculateCorrelation(List<double> x, List<double> y)
+    private static double CalculateCorrelation(List<double> x, List<double> y)
     {
         if (x.Count != y.Count || x.Count < 2)
         {
