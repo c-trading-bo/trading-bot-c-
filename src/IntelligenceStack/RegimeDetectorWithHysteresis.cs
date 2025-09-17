@@ -152,7 +152,6 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         
         // Apply hysteresis logic based on current state
         var inThresholds = GetInThresholds();
-        var outThresholds = GetOutThresholds();
         
         // Determine regime with hysteresis
         if (volRatio >= inThresholds.VolHigh)
@@ -187,10 +186,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         if (IsInDwellPeriod(current))
             return false;
             
-        // Use out thresholds for exiting current regime
-        var outThresholds = GetOutThresholds();
-        var indicators = proposed.Indicators;
-        
+        // High confidence required for transition 
         return proposed.Confidence > 0.7; // High confidence required for transition
     }
 
