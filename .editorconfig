@@ -13,7 +13,7 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 4
 
-# PRODUCTION ENFORCEMENT: Block all non-production patterns
+# PRODUCTION ENFORCEMENT: Block all non-production patterns - ZERO TOLERANCE
 # These rules will cause build failures for any TODO/FIXME/HACK/STUB/placeholder patterns
 
 # TODO/FIXME/HACK/STUB enforcement - treat as errors
@@ -70,6 +70,24 @@ dotnet_diagnostic.S104.severity = error    # Files should not have too many line
 # Documentation enforcement for public APIs
 dotnet_diagnostic.S1591.severity = suggestion  # Missing XML documentation (suggestion only for internal APIs)
 
-# Specific patterns that indicate non-production code
-# These will be caught by custom analyzers and comment patterns
+# GENERALIZED PRODUCTION PATTERN ENFORCEMENT
+# These patterns catch ANY hardcoded business values, not just specific ones
 dotnet_diagnostic.S1135.severity = error   # TODO tags should be handled
+dotnet_diagnostic.S2068.severity = error   # Hardcoded strings that look like passwords
+dotnet_diagnostic.S4507.severity = error   # Delivering code in production with debug features activated
+
+# Magic number detection (ANY numeric literals in business logic)
+dotnet_diagnostic.S109.severity = error    # Magic numbers should not be used
+dotnet_diagnostic.S2479.severity = error   # Whitespace and control characters should not be used in string literals
+
+# COMPREHENSIVE Non-production pattern enforcement
+dotnet_diagnostic.S1186.severity = error   # Methods should not be empty
+dotnet_diagnostic.S1116.severity = error   # Empty statements should be removed
+dotnet_diagnostic.S1118.severity = error   # Utility classes should not have public constructors
+dotnet_diagnostic.S1168.severity = error   # Empty arrays and collections should be returned instead of null
+
+# Additional security and production readiness
+dotnet_diagnostic.S2583.severity = error   # Conditionally executed code should be reachable
+dotnet_diagnostic.S2589.severity = error   # Boolean expressions should not be gratuitous
+dotnet_diagnostic.S2681.severity = error   # Multiline blocks should be enclosed in curly braces
+dotnet_diagnostic.S3010.severity = error   # Static fields should not be updated in constructors
