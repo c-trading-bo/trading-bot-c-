@@ -703,7 +703,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private string GenerateDecisionId()
     {
-        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Random.Shared.Next(1000, 9999)}";
+        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999)}";
     }
 
     private bool ShouldPerformNightlyMaintenance()

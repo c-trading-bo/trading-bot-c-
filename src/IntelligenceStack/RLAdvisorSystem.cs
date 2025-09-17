@@ -574,7 +574,7 @@ public class RLAdvisorSystem
         // For production, this would integrate with historical data providers
         var dataPoints = new List<RLMarketDataPoint>();
         var current = startDate;
-        var random = new Random(symbol.GetHashCode()); // Deterministic seed for consistency
+        var seed = symbol.GetHashCode(); // Deterministic seed for consistency
         
         while (current <= endDate)
         {
@@ -582,9 +582,9 @@ public class RLAdvisorSystem
             {
                 Timestamp = current,
                 Symbol = symbol,
-                Price = 4000 + random.NextDouble() * 200, // ES price range
-                Volume = random.Next(100, 1000),
-                Volatility = 0.01 + random.NextDouble() * 0.02
+                Price = 4000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
+                Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100, 1000),
+                Volatility = 0.01 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 20) / 1000.0)
             });
             current = current.AddMinutes(1); // 1-minute bars
         }
@@ -784,7 +784,6 @@ public class RLAgent
     public double ExplorationRate { get; private set; } = 0.1;
 
     private readonly Dictionary<string, double> _qTable = new();
-    private readonly Random _random = new();
 
     public RLAgent(ILogger logger, RLAgentType agentType, string agentKey, AdvisorConfig config)
     {
@@ -806,10 +805,10 @@ public class RLAgent
         int actionType;
         double confidence;
         
-        if (_random.NextDouble() < ExplorationRate)
+        if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < ExplorationRate * 100)
         {
             // Exploration
-            actionType = _random.Next(4);
+            actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 4);
             confidence = _config.ExplorationConfidence;
         }
         else

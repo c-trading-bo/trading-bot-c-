@@ -319,7 +319,7 @@ public class HistoricalTrainerWithCV
             SchemaChecksum = "mock_checksum",
             Metrics = new ModelMetrics
             {
-                AUC = baseAccuracy + (new Random().NextDouble() - 0.5) * 0.1,
+                AUC = baseAccuracy + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * 0.1,
                 PrAt10 = baseAccuracy * 0.2,
                 ECE = 0.05,
                 EdgeBps = baseAccuracy * 10,
@@ -340,7 +340,7 @@ public class HistoricalTrainerWithCV
         await Task.Delay(50, cancellationToken);
         
         var basePerformance = model.Metrics.AUC;
-        var testPerformance = Math.Max(0.5, basePerformance - 0.05 + (new Random().NextDouble() - 0.5) * 0.1);
+        var testPerformance = Math.Max(0.5, basePerformance - 0.05 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * 0.1);
         
         return new ModelMetrics
         {
@@ -445,11 +445,13 @@ public class HistoricalTrainerWithCV
         var dataPoints = new List<MarketDataPoint>();
         var current = startTime;
         var price = symbol == "ES" ? 4500.0 : 100.0; // Different base prices for different symbols
-        var random = new Random(symbol.GetHashCode() + startTime.GetHashCode()); // Deterministic for consistency
-
+        
+        // Use crypto-secure random with seed for deterministic test data
+        var seed = symbol.GetHashCode() + startTime.GetHashCode();
+        
         while (current <= endTime)
         {
-            var change = (random.NextDouble() - 0.5) * 10; // Random price change
+            var change = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 10.0); // Secure random price change
             price += change;
             
             dataPoints.Add(new MarketDataPoint
@@ -457,10 +459,10 @@ public class HistoricalTrainerWithCV
                 Timestamp = current,
                 Symbol = symbol,
                 Open = price - change,
-                High = Math.Max(price, price - change) + random.NextDouble() * 5,
-                Low = Math.Min(price, price - change) - random.NextDouble() * 5,
+                High = Math.Max(price, price - change) + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
+                Low = Math.Min(price, price - change) - System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
                 Close = price,
-                Volume = 1000 + random.Next(5000)
+                Volume = 1000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 5000)
             });
 
             current = current.AddMinutes(1); // 1-minute bars
