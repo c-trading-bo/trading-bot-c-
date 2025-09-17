@@ -28,9 +28,6 @@ public class SoftActorCritic
     // Experience replay buffer
     private readonly ExperienceReplayBuffer _replayBuffer;
     
-    // Random number generator for exploration
-    private readonly Random _random = new();
-    
     // Training statistics
     private int _totalSteps = 0;
     private double _averageReward = 0.0;

@@ -443,8 +443,7 @@ public class CVaRPPO : IDisposable
         var advantages = new double[experiences.Count];
         var cvarTargets = new double[experiences.Count];
         
-        // Calculate returns and advantages using GAE (Generalized Advantage Estimation)
-        var returns = CalculateReturns(experiences);
+        // Calculate values for GAE (Generalized Advantage Estimation)
         var values = experiences.Select(e => _valueNetwork.Forward(e.State)[0]).ToArray();
         
         // GAE calculation
@@ -776,8 +775,6 @@ public class PolicyNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[,] _weights2 = null!;
     private double[] _bias2 = null!;
-    private bool _disposed = false;
-
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
     {
         _stateSize = stateSize;
@@ -882,7 +879,6 @@ public class PolicyNetwork : IDisposable
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         var json = await File.ReadAllTextAsync(path, cancellationToken);
-        var data = JsonSerializer.Deserialize<JsonElement>(json);
         
         // Load weights (simplified - in practice would handle proper deserialization)
         InitializeWeights(); // Reset to defaults for now
@@ -905,8 +901,6 @@ public class ValueNetwork : IDisposable
     private double[] _bias1 = null!;
     private double[] _weights2 = null!;
     private double _bias2;
-    private bool _disposed = false;
-
     public ValueNetwork(int stateSize, int hiddenSize)
     {
         _stateSize = stateSize;
@@ -997,7 +991,6 @@ public class ValueNetwork : IDisposable
     public async Task LoadAsync(string path, CancellationToken cancellationToken = default)
     {
         var json = await File.ReadAllTextAsync(path, cancellationToken);
-        var data = JsonSerializer.Deserialize<JsonElement>(json);
         
         InitializeWeights(); // Reset for now
     }

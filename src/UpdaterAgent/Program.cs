@@ -191,7 +191,16 @@ while (true)
         try
         {
             var list = rawLog.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                              .Select(l => { var parts = l.Split('|', 4); return new { commit = parts.ElementAtOrDefault(0) ?? "", date = parts.ElementAtOrDefault(1) ?? "", author = parts.ElementAtOrDefault(2) ?? "", subject = parts.ElementAtOrDefault(3) ?? "" }; });
+                              .Select(l => 
+                              {
+                                  var parts = l.Split('|', 4); 
+                                  return new { 
+                                      commit = parts.ElementAtOrDefault(0) ?? "", 
+                                      date = parts.ElementAtOrDefault(1) ?? "", 
+                                      author = parts.ElementAtOrDefault(2) ?? "", 
+                                      subject = parts.ElementAtOrDefault(3) ?? "" 
+                                  }; 
+                              });
             await File.WriteAllTextAsync(PendingPath, JsonSerializer.Serialize(list, new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception ex)

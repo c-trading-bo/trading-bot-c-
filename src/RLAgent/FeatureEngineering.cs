@@ -82,7 +82,7 @@ public class FeatureEngineering : IDisposable
             await AddMicrostructureFeatures(features, featureNames, featureKey, currentData, profile);
             
             // Regime features
-            await AddRegimeFeatures(features, featureNames, regime, currentData);
+            await AddRegimeFeatures(features, featureNames, regime);
             
             // Time-based features
             await AddTimeFeatures(features, featureNames, currentData);
@@ -429,8 +429,7 @@ public class FeatureEngineering : IDisposable
     private async Task AddRegimeFeatures(
         List<double> features,
         List<string> featureNames,
-        RegimeType regime,
-        MarketData currentData)
+        RegimeType regime)
     {
         // Brief yield to allow task scheduling for feature calculations
         await Task.Yield();

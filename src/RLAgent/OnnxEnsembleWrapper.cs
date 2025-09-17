@@ -88,7 +88,7 @@ public class OnnxEnsembleWrapper : IDisposable
             };
 
             // Validate model inputs/outputs
-            await ValidateModelAsync(modelSession, cancellationToken);
+            await ValidateModelAsync(modelSession);
 
             _modelSessions.TryAdd(modelName, modelSession);
             _logger.LogInformation("[RL-ENSEMBLE] Model loaded: {ModelName} with confidence {Confidence:F2}", modelName, confidence);
@@ -382,7 +382,7 @@ public class OnnxEnsembleWrapper : IDisposable
         var predictions = new ModelPrediction[batchSize];
         for (int i = 0; i < batchSize; i++)
         {
-            var confidence = CalculateConfidence(outputTensor, i, modelSession);
+            var confidence = CalculateConfidence(outputTensor, i);
             predictions[i] = new ModelPrediction
             {
                 Value = outputTensor[i, 0],
@@ -447,7 +447,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return sessionOptions;
     }
 
-    private async Task ValidateModelAsync(ModelSession modelSession, CancellationToken cancellationToken)
+    private async Task ValidateModelAsync(ModelSession modelSession)
     {
         // Brief yield for async context
         await Task.Yield();
@@ -494,7 +494,7 @@ public class OnnxEnsembleWrapper : IDisposable
         return new List<List<InferenceRequest>> { batch };
     }
 
-    private double CalculateConfidence(Tensor<float> outputTensor, int batchIndex, ModelSession modelSession)
+    private double CalculateConfidence(Tensor<float> outputTensor, int batchIndex)
     {
         // Simple confidence calculation - could be enhanced based on model type
         var value = Math.Abs(outputTensor[batchIndex, 0]);

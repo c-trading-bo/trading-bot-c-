@@ -363,13 +363,13 @@ public class MetaLearner
         history.AdaptationCount++;
         history.LastAdaptation = DateTime.UtcNow;
         history.AverageSupportSetSize = (history.AverageSupportSetSize * (history.AdaptationCount - 1) + supportSetSize) / history.AdaptationCount;
-        history.LastPerformance = EvaluatePolicyPerformance(adaptedPolicy);
+        history.LastPerformance = EvaluatePolicyPerformance();
     }
 
     /// <summary>
     /// Evaluate policy performance (simplified)
     /// </summary>
-    private double EvaluatePolicyPerformance(PolicyNetwork policy)
+    private double EvaluatePolicyPerformance()
     {
         // Simplified performance metric
         // In practice, this would evaluate on held-out data
