@@ -604,7 +604,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Apply comprehensive security hardening
     /// </summary>
-    private Task ApplySecurityHardeningAsync()
+    private static Task ApplySecurityHardeningAsync()
     {
         return Task.Run(() =>
         {
@@ -668,42 +668,39 @@ public class AutoRemediationSystem
     /// <summary>
     /// Validate credential security
     /// </summary>
-    private async Task<List<string>> ValidateCredentialSecurityAsync()
+    private static async Task<List<string>> ValidateCredentialSecurityAsync()
     {
         var issues = new List<string>();
         
-        await Task.Run(() =>
+        // Check for insecure credential storage
+        var sensitiveVars = new[] { "TOPSTEPX_API_KEY", "GITHUB_TOKEN", "PASSWORD", "SECRET" };
+        
+        foreach (var varName in sensitiveVars)
         {
-            // Check for insecure credential storage
-            var sensitiveVars = new[] { "TOPSTEPX_API_KEY", "GITHUB_TOKEN", "PASSWORD", "SECRET" };
-            
-            foreach (var varName in sensitiveVars)
+            var value = Environment.GetEnvironmentVariable(varName);
+            if (!string.IsNullOrEmpty(value))
             {
-                var value = Environment.GetEnvironmentVariable(varName);
-                if (!string.IsNullOrEmpty(value))
+                if (value.Length < 10)
                 {
-                    if (value.Length < 10)
-                    {
-                        issues.Add($"{varName} appears to be too short or placeholder");
-                    }
-                    
-                    if (value.Contains("demo") || value.Contains("test") || value.Contains("placeholder"))
-                    {
-                        issues.Add($"{varName} contains placeholder text");
-                    }
+                    issues.Add($"{varName} appears to be too short or placeholder");
+                }
+                
+                if (value.Contains("demo") || value.Contains("test") || value.Contains("placeholder"))
+                {
+                    issues.Add($"{varName} contains placeholder text");
                 }
             }
-            
-            // Check for hardcoded credentials in environment
-            if (File.Exists(".env"))
+        }
+        
+        // Check for hardcoded credentials in environment
+        if (File.Exists(".env"))
+        {
+            var envContent = await File.ReadAllTextAsync(".env");
+            if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
             {
-                var envContent = await File.ReadAllTextAsync(".env");
-                if (envContent.Contains("=") && !envContent.Contains("YOUR_") && !envContent.Contains("PLACEHOLDER"))
-                {
-                    issues.Add("Potential hardcoded credentials found in .env file");
-                }
+                issues.Add("Potential hardcoded credentials found in .env file");
             }
-        });
+        }
         
         return issues;
     }
@@ -711,7 +708,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Remediate credential security issues
     /// </summary>
-    private Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
+    private static Task RemediateCredentialSecurityIssuesAsync(List<string> issues)
     {
         return Task.Run(async () =>
         {
@@ -744,14 +741,17 @@ public class AutoRemediationSystem
     /// <summary>
     /// Real network optimization implementation
     /// </summary>
-    private async Task OptimizeNetworkConnectionsAsync()
+    private static async Task OptimizeNetworkConnectionsAsync()
     {
         // Test connection to TopstepX APIs and optimize settings
         using var httpClient = new HttpClient();
+        var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+        var rtcBase = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
+        
         var testUrls = new[]
         {
-            "https://api.topstepx.com/health",
-            "https://rtc.topstepx.com/health"
+            $"{apiBase}/health",
+            $"{rtcBase}/health"
         };
 
         var connectionTimes = new List<double>();
@@ -784,12 +784,13 @@ public class AutoRemediationSystem
     /// <summary>
     /// Calculate optimal timeout based on actual network performance
     /// </summary>
-    private async Task<int> CalculateOptimalTimeoutAsync()
+    private static async Task<int> CalculateOptimalTimeoutAsync()
     {
         using var httpClient = new HttpClient();
         httpClient.Timeout = TimeSpan.FromSeconds(5);
         
-        var testUrl = "https://api.topstepx.com/health";
+        var apiBase = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+        var testUrl = $"{apiBase}/health";
         var measurements = new List<double>();
         
         for (int i = 0; i < 3; i++)
@@ -819,7 +820,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Analyze performance optimization opportunities
     /// </summary>
-    private Task AnalyzeAndApplyPerformanceOptimizations()
+    private static Task AnalyzeAndApplyPerformanceOptimizations()
     {
         return Task.Run(async () =>
         {
@@ -847,38 +848,35 @@ public class AutoRemediationSystem
     /// </summary>
     private static async Task AnalyzeSystemLogs()
     {
-        await Task.Run(() =>
+        // Analyze recent log files for error patterns
+        var logPath = "logs";
+        if (Directory.Exists(logPath))
         {
-            // Analyze recent log files for error patterns
-            var logPath = "logs";
-            if (Directory.Exists(logPath))
+            var recentLogs = Directory.GetFiles(logPath, "*.log")
+                .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-1))
+                .Take(10);
+
+            foreach (var logFile in recentLogs)
             {
-                var recentLogs = Directory.GetFiles(logPath, "*.log")
-                    .Where(f => File.GetLastWriteTime(f) > DateTime.Now.AddHours(-1))
-                    .Take(10);
-
-                foreach (var logFile in recentLogs)
+                try
                 {
-                    try
-                    {
-                        var logContent = File.ReadAllText(logFile);
-                        var errorCount = logContent.Split("ERROR").Length - 1;
-                        var warningCount = logContent.Split("WARN").Length - 1;
+                    var logContent = await File.ReadAllTextAsync(logFile);
+                    var errorCount = logContent.Split("ERROR").Length - 1;
+                    var warningCount = logContent.Split("WARN").Length - 1;
 
-                        if (errorCount > 10 || warningCount > 50)
-                        {
-                            // Log pattern analysis results
-                            File.AppendAllText("log_analysis.txt", 
-                                $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
-                        }
-                    }
-                    catch
+                    if (errorCount > 10 || warningCount > 50)
                     {
-                        // Ignore log analysis failures
+                        // Log pattern analysis results
+                        await File.AppendAllTextAsync("log_analysis.txt", 
+                            $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - High error/warning count in {logFile}: {errorCount} errors, {warningCount} warnings\n");
                     }
                 }
+                catch
+                {
+                    // Ignore log analysis failures
+                }
             }
-        });
+        }
     }
 
     /// <summary>
@@ -886,45 +884,42 @@ public class AutoRemediationSystem
     /// </summary>
     private static async Task ValidateSystemConfiguration()
     {
-        await Task.Run(() =>
+        // Check critical configuration values
+        var criticalConfigs = new Dictionary<string, string>
         {
-            // Check critical configuration values
-            var criticalConfigs = new Dictionary<string, string>
-            {
-                ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
-                ["BOT_MODE"] = "staging",
-                ["DRY_RUN"] = "true"
-            };
+            ["TOPSTEPX_API_BASE"] = "https://api.topstepx.com",
+            ["BOT_MODE"] = "staging",
+            ["DRY_RUN"] = "true"
+        };
 
-            var configIssues = new List<string>();
-            
-            foreach (var config in criticalConfigs)
+        var configIssues = new List<string>();
+        
+        foreach (var (key, defaultValue) in criticalConfigs)
+        {
+            var value = Environment.GetEnvironmentVariable(key);
+            if (string.IsNullOrEmpty(value))
             {
-                var value = Environment.GetEnvironmentVariable(config.Key);
-                if (string.IsNullOrEmpty(value))
-                {
-                    configIssues.Add($"Missing configuration: {config.Key}");
-                }
-                else if (config.Key == "TOPSTEPX_API_BASE" && !value.StartsWith("https://"))
-                {
-                    configIssues.Add($"Insecure API base URL: {config.Key}");
-                }
+                configIssues.Add($"Missing configuration: {key}");
             }
+            else if (key == "TOPSTEPX_API_BASE" && !value.StartsWith("https://"))
+            {
+                configIssues.Add($"Insecure API base URL: {key}");
+            }
+        }
 
-            if (configIssues.Any())
-            {
-                File.AppendAllText("config_validation.txt", 
-                    $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
-            }
-        });
+        if (configIssues.Any())
+        {
+            await File.AppendAllTextAsync("config_validation.txt", 
+                $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} - Configuration issues: {string.Join(", ", configIssues)}\n");
+        }
     }
 
     /// <summary>
     /// Analyze resource utilization patterns
     /// </summary>
-    private async Task AnalyzeResourceUtilization()
+    private Task AnalyzeResourceUtilization()
     {
-        await Task.Run(() =>
+        return Task.Run(async () =>
         {
             // Analyze current resource usage
             var process = Process.GetCurrentProcess();
@@ -946,17 +941,16 @@ public class AutoRemediationSystem
 
             // Log resource analysis for trending
             var resourceLog = JsonSerializer.Serialize(resourceAnalysis);
-            File.AppendAllText("resource_analysis.log", resourceLog + "\n");
+            await File.AppendAllTextAsync("resource_analysis.log", resourceLog + "\n");
         });
     }
 
     /// <summary>
     /// Intelligent memory cleanup implementation without forced GC
     /// </summary>
-    private static async Task CleanupMemoryIntensiveComponentsAsync()
+    private static Task CleanupMemoryIntensiveComponentsAsync()
     {
-        // Clean up specific components that may be holding memory
-        await Task.Run(() =>
+        return Task.Run(() =>
         {
             // Clean up any cached data that can be regenerated using smart approaches
             GC.GetTotalMemory(false);
@@ -992,8 +986,9 @@ public class AutoRemediationSystem
             
             if (memoryUsageGB > 1.5) // Only if using more than 1.5GB
             {
-                // Gentle suggestion to runtime - not forced
-                GC.Collect(0, GCCollectionMode.Optimized, false);
+                // Use memory pressure hints instead of forced collection
+                GC.AddMemoryPressure(1024 * 1024 * 100); // 100MB pressure
+                // Let runtime handle collection naturally
             }
         });
     }
