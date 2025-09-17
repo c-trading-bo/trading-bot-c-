@@ -43,6 +43,9 @@
     <!-- Additional quality analyzers -->
     <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
+    
+    <!-- Custom production rule enforcement analyzer -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)src/Safety/bin/$(Configuration)/net8.0/Safety.dll" Condition="Exists('$(MSBuildThisFileDirectory)src/Safety/bin/$(Configuration)/net8.0/Safety.dll')" />
   </ItemGroup>
 
   <!-- PRODUCTION ENFORCEMENT: ZERO-TOLERANCE GENERALIZED DETECTION FOR ALL NON-PRODUCTION PATTERNS -->
