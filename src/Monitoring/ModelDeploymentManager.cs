@@ -13,6 +13,11 @@ namespace TradingBot.Monitoring
     /// </summary>
     public class ModelDeploymentManager : IModelDeploymentManager
     {
+        // Deployment timing constants
+        private const int DeploymentSimulationDelayMs = 1000;
+        private const int CanaryRolloutDelayMs = 500;
+        private const int RollbackDelayMs = 800;
+        
         private readonly ILogger<ModelDeploymentManager> _logger;
         private readonly IAlertService _alertService;
         private readonly Dictionary<string, ModelDeployment> _activeDeployments = new();
@@ -35,7 +40,7 @@ namespace TradingBot.Monitoring
                     modelName, modelVersion);
 
                 // Simulate promotion logic
-                await Task.Delay(1000, cancellationToken); // Simulate deployment time
+                await Task.Delay(DeploymentSimulationDelayMs, cancellationToken); // Simulate deployment time
                 
                 lock (_lockObject)
                 {
@@ -75,7 +80,7 @@ namespace TradingBot.Monitoring
                     modelName, modelVersion, trafficPercentage);
 
                 // Simulate canary rollout logic
-                await Task.Delay(500, cancellationToken);
+                await Task.Delay(CanaryRolloutDelayMs, cancellationToken);
                 
                 lock (_lockObject)
                 {
@@ -151,7 +156,7 @@ namespace TradingBot.Monitoring
                     modelName, reason);
 
                 // Simulate rollback logic
-                await Task.Delay(800, cancellationToken);
+                await Task.Delay(RollbackDelayMs, cancellationToken);
                 
                 lock (_lockObject)
                 {

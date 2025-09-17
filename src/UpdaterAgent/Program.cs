@@ -18,6 +18,10 @@ public static class Program
 
 public class UpdaterAgent
 {
+    // Configuration constants to eliminate magic numbers
+    private const int DefaultShadowPort = 5001;
+    private const int MaxUpdateIterations = 1000;
+
     private readonly string _repoPath;
     private readonly string _projPath;
     private readonly int _shadowPort;
@@ -40,7 +44,7 @@ public class UpdaterAgent
         _repoPath = cfg["Updater:RepoPath"] ?? Environment.CurrentDirectory;
         string projRel = cfg["Updater:Project"] ?? "src\\OrchestratorAgent\\OrchestratorAgent.csproj";
         _projPath = Path.Combine(_repoPath, projRel);
-        _shadowPort = int.TryParse(cfg["Updater:ShadowPort"], out var sp) ? sp : 5001;
+        _shadowPort = int.TryParse(cfg["Updater:ShadowPort"], out var sp) ? sp : DefaultShadowPort;
         _publishDir = Path.Combine(_repoPath, cfg["Updater:PublishDir"] ?? "releases");
         Directory.CreateDirectory(_publishDir);
 
@@ -72,7 +76,7 @@ public class UpdaterAgent
     private async Task RunUpdateLoop()
     {
         var iterationCount = 0;
-        while (iterationCount < 1000) // Add a reasonable limit to prevent infinite recursion
+        while (iterationCount < MaxUpdateIterations) // Add a reasonable limit to prevent infinite recursion
         {
             try
             {

@@ -14,6 +14,15 @@ namespace TradingBot.Monitoring
     /// </summary>
     public class ModelHealthMonitor : IModelHealthMonitor
     {
+        // Model monitoring constants
+        private const int MaxRecentPredictions = 100;
+        private const int BaselineCalculationCount = 20;
+        private const double FeatureDeviationThreshold = 0.1; // 10% deviation threshold
+        private const int MinConfidenceCount = 10;
+        private const int RecentSampleSize = 20;
+        private const int MinFeatureSampleSize = 30;
+        private const double FeatureDriftThreshold = 0.2; // 20% change threshold
+        
         private readonly ILogger<ModelHealthMonitor> _logger;
         private readonly IAlertService _alertService;
         private readonly double _confidenceDriftThreshold;
@@ -49,19 +58,19 @@ namespace TradingBot.Monitoring
             {
                 // Track confidence values
                 _recentConfidences.Enqueue(confidence);
-                if (_recentConfidences.Count > 100) // Keep last 100 predictions
+                if (_recentConfidences.Count > MaxRecentPredictions) // Keep last 100 predictions
                     _recentConfidences.Dequeue();
 
                 // Calculate and track Brier score for this prediction
                 var brierScore = Math.Pow(confidence - actualOutcome, 2);
                 _recentBrierScores.Enqueue(brierScore);
-                if (_recentBrierScores.Count > 100)
+                if (_recentBrierScores.Count > MaxRecentPredictions)
                     _recentBrierScores.Dequeue();
 
                 // Set baseline from first 20 predictions
-                if (!_hasBaseline && _recentConfidences.Count >= 20)
+                if (!_hasBaseline && _recentConfidences.Count >= BaselineCalculationCount)
                 {
-                    _baselineConfidence = _recentConfidences.Take(20).Average();
+                    _baselineConfidence = _recentConfidences.Take(BaselineCalculationCount).Average();
                     _hasBaseline = true;
                     _logger.LogInformation("[MODEL_HEALTH] Baseline confidence established: {Baseline:F3}", _baselineConfidence);
                 }
@@ -75,7 +84,7 @@ namespace TradingBot.Monitoring
                             _featureValues[featureName] = new Queue<double>();
 
                         _featureValues[featureName].Enqueue(value);
-                        if (_featureValues[featureName].Count > 100)
+                        if (_featureValues[featureName].Count > MaxRecentPredictions)
                             _featureValues[featureName].Dequeue();
                     }
                 }
@@ -152,7 +161,7 @@ namespace TradingBot.Monitoring
                     var currentAverage = recentValues.Average();
                     var deviation = Math.Abs(currentAverage - expectedValue) / expectedValue;
                     
-                    if (deviation > 0.1) // 10% deviation threshold
+                    if (deviation > FeatureDeviationThreshold) // 10% deviation threshold
                     {
                         failedFeatures.Add($"{featureName} (deviation: {deviation:P1})");
                     }
@@ -206,10 +215,10 @@ namespace TradingBot.Monitoring
 
         private double CalculateConfidenceDrift()
         {
-            if (!_hasBaseline || _recentConfidences.Count < 10)
+            if (!_hasBaseline || _recentConfidences.Count < MinConfidenceCount)
                 return 0;
 
-            var recentAverage = _recentConfidences.TakeLast(20).Average();
+            var recentAverage = _recentConfidences.TakeLast(RecentSampleSize).Average();
             return Math.Abs(recentAverage - _baselineConfidence);
         }
 
@@ -218,17 +227,17 @@ namespace TradingBot.Monitoring
             // Simple drift detection: check if any feature's recent values have high variance
             foreach (var (_, values) in _featureValues)
             {
-                if (values.Count < 30) continue;
+                if (values.Count < MinFeatureSampleSize) continue;
 
-                var recent = values.TakeLast(20).ToArray();
-                var older = values.Take(20).ToArray();
+                var recent = values.TakeLast(RecentSampleSize).ToArray();
+                var older = values.Take(RecentSampleSize).ToArray();
                 
                 if (recent.Length == 0 || older.Length == 0) continue;
 
                 var recentMean = recent.Average();
                 var olderMean = older.Average();
                 
-                if (Math.Abs(olderMean) > double.Epsilon && Math.Abs(recentMean - olderMean) / Math.Abs(olderMean) > 0.2) // 20% change threshold
+                if (Math.Abs(olderMean) > double.Epsilon && Math.Abs(recentMean - olderMean) / Math.Abs(olderMean) > FeatureDriftThreshold) // 20% change threshold
                 {
                     return true;
                 }

@@ -35,6 +35,30 @@ public interface IOnnxModelWrapper
 
 public class OnnxModelWrapper : IOnnxModelWrapper
 {
+    // Feature normalization constants
+    private const double VixMaxValue = 100.0;
+    private const double VolumeRatioMaxValue = 10.0;
+    private const double RsiMaxValue = 100.0;
+    private const double MomentumScaleFactor = 0.05;
+    private const double VolatilityMaxValue = 5.0;
+    private const int HoursPerDay = 24;
+    private const int DaysPerWeek = 7;
+    
+    // Confidence level constants
+    private const double LowConfidenceThreshold = 0.1;
+    private const double MediumConfidenceThreshold = 0.15;
+    private const double HighConfidenceThreshold = 0.2;
+    private const double NeutralConfidenceLevel = 0.4;
+    private const double StandardConfidenceLevel = 0.5;
+    private const double HighConfidenceLevel = 0.9;
+    
+    // Feature analysis constants
+    private const double VixNeutralLevel = 0.3;
+    private const double VixImpactFactor = 0.3;
+    private const double VolumeImpactFactor = 0.2;
+    private const double MomentumImpactFactor = 0.25;
+    private const double NoiseAmplitude = 0.05;
+    
     private readonly ILogger<OnnxModelWrapper> _logger;
     private readonly bool _isModelLoaded;
     
@@ -138,13 +162,13 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     {
         return featureName switch
         {
-            "vix_level" => Math.Max(0, Math.Min(100, value)) / 100.0,
-            "volume_ratio" => Math.Max(0, Math.Min(10, value)) / 10.0,
-            "rsi" => Math.Max(0, Math.Min(100, value)) / 100.0,
-            "momentum" or "price_change" => Math.Tanh(value / 0.05),
-            "volatility" => Math.Max(0, Math.Min(5, value)) / 5.0,
-            "time_of_day" => (value % 24) / 24.0,
-            "day_of_week" => (value % 7) / 7.0,
+            "vix_level" => Math.Max(0, Math.Min(VixMaxValue, value)) / VixMaxValue,
+            "volume_ratio" => Math.Max(0, Math.Min(VolumeRatioMaxValue, value)) / VolumeRatioMaxValue,
+            "rsi" => Math.Max(0, Math.Min(RsiMaxValue, value)) / RsiMaxValue,
+            "momentum" or "price_change" => Math.Tanh(value / MomentumScaleFactor),
+            "volatility" => Math.Max(0, Math.Min(VolatilityMaxValue, value)) / VolatilityMaxValue,
+            "time_of_day" => (value % HoursPerDay) / HoursPerDay,
+            "day_of_week" => (value % DaysPerWeek) / DaysPerWeek,
             _ => Math.Tanh(value) // Default normalization
         };
     }
@@ -153,11 +177,11 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     {
         return featureName switch
         {
-            "vix_level" => 0.2,  // 20 VIX normalized
-            "volume_ratio" => 0.5,  // Average volume
-            "rsi" => 0.5,  // Neutral RSI
-            "time_of_day" => 0.5,  // Mid-day
-            "day_of_week" => 0.4,  // Wednesday
+            "vix_level" => HighConfidenceThreshold,  // 20 VIX normalized
+            "volume_ratio" => StandardConfidenceLevel,  // Average volume
+            "rsi" => StandardConfidenceLevel,  // Neutral RSI
+            "time_of_day" => StandardConfidenceLevel,  // Mid-day
+            "day_of_week" => NeutralConfidenceLevel,  // Wednesday
             _ => 0.0
         };
     }
@@ -229,40 +253,40 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         await Task.Delay(1); // Simulate async work
         
         // This is a sophisticated fallback that creates reasonable confidence based on features
-        var vix = features.GetValueOrDefault("vix_level", 0.2);
-        var volume = features.GetValueOrDefault("volume_ratio", 0.5);
+        var vix = features.GetValueOrDefault("vix_level", HighConfidenceThreshold);
+        var volume = features.GetValueOrDefault("volume_ratio", StandardConfidenceLevel);
         var momentum = features.GetValueOrDefault("momentum", 0.0);
-        var rsi = features.GetValueOrDefault("rsi", 0.5);
-        var volatility = features.GetValueOrDefault("volatility", 0.3);
+        var rsi = features.GetValueOrDefault("rsi", StandardConfidenceLevel);
+        var volatility = features.GetValueOrDefault("volatility", VixNeutralLevel);
         
-        var baseConfidence = 0.5;
+        var baseConfidence = StandardConfidenceLevel;
         
         // VIX impact (higher VIX = lower confidence for directional strategies)
-        baseConfidence += (0.3 - vix) * 0.3;
+        baseConfidence += (VixNeutralLevel - vix) * VixImpactFactor;
         
         // Volume impact (higher volume = higher confidence)
-        baseConfidence += (volume - 0.5) * 0.2;
+        baseConfidence += (volume - StandardConfidenceLevel) * VolumeImpactFactor;
         
         // Momentum impact (stronger momentum = higher confidence)
-        baseConfidence += Math.Abs(momentum) * 0.25;
+        baseConfidence += Math.Abs(momentum) * MomentumImpactFactor;
         
         // RSI impact (extreme values = higher confidence)
-        var rsiBias = Math.Abs(rsi - 0.5);
-        baseConfidence += rsiBias * 0.15;
+        var rsiBias = Math.Abs(rsi - StandardConfidenceLevel);
+        baseConfidence += rsiBias * MediumConfidenceThreshold;
         
         // Volatility impact (moderate volatility is optimal)
-        var volBias = 1.0 - Math.Abs(volatility - 0.3);
-        baseConfidence += volBias * 0.1;
+        var volBias = 1.0 - Math.Abs(volatility - VixNeutralLevel);
+        baseConfidence += volBias * LowConfidenceThreshold;
         
         // Add small amount of realistic variation using cryptographically secure random
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         var randomBytes = new byte[4];
         rng.GetBytes(randomBytes);
         var randomValue = BitConverter.ToUInt32(randomBytes, 0) / (double)uint.MaxValue;
-        var noise = (randomValue - 0.5) * 0.05;
+        var noise = (randomValue - StandardConfidenceLevel) * NoiseAmplitude;
         baseConfidence += noise;
         
-        return Math.Max(0.1, Math.Min(0.9, baseConfidence));
+        return Math.Max(LowConfidenceThreshold, Math.Min(HighConfidenceLevel, baseConfidence));
     }
 
     private const double DefaultConfidence = 0.3; // Conservative default

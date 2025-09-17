@@ -12,6 +12,9 @@ namespace TradingBot.Abstractions;
 /// </summary>
 public static class SecurityHelpers
 {
+    // Security constants for masking sensitive data
+    private const int HashPrefixLength = 8;
+    
     private static readonly Regex AccountIdPattern = new(@"\b\d{5,12}\b", RegexOptions.Compiled);
     
     /// <summary>
@@ -47,7 +50,7 @@ public static class SecurityHelpers
         var hashString = Convert.ToHexString(hashBytes);
         
         // Return first 8 characters of hash for log correlation while maintaining security
-        return $"acc_{hashString[..8].ToLowerInvariant()}";
+        return $"acc_{hashString[..HashPrefixLength].ToLowerInvariant()}";
     }
     
     /// <summary>
@@ -74,7 +77,7 @@ public static class SecurityHelpers
         var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(orderId + "ORDER_SALT"));
         var hashString = Convert.ToHexString(hashBytes);
         
-        return $"ord_{hashString[..8].ToLowerInvariant()}";
+        return $"ord_{hashString[..HashPrefixLength].ToLowerInvariant()}";
     }
     
     /// <summary>

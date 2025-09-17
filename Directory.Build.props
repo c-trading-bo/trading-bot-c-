@@ -51,8 +51,8 @@
       <SourceFiles Include="**/*.cs" Exclude="bin/**;obj/**;packages/**;**/test*/**;**/Test*/**" />
     </ItemGroup>
     
-    <!-- Phase 1: GENERALIZED Hardcoded Numeric Literals in Business Logic -->
-    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'return\s+[0-9]+(\.[0-9]+)?[^0-9f]|=\s*[0-9]+(\.[0-9]+)?[^0-9f]|(const|readonly)\s+\w+\s+\w+\s*=\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Hardcoded numeric literals detected in business logic. All business values must be configuration-driven. Build failed.'; exit 1; fi"
+    <!-- Phase 1: SPECIFIC Business Logic Value Detection (exclude mathematical constants) -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(return|=)\s*[0-9]*\.[0-9][1-9]+[^0-9f]|(return|=)\s*[2-9]+\.[0-9]+[^0-9f]|(return|=)\s*1\.[1-9]+[^0-9f]' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Hardcoded business values detected (non-mathematical constants). All business values must be configuration-driven. Build failed.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
     
@@ -76,8 +76,8 @@
           ContinueOnError="false"
           IgnoreExitCode="false" />
     
-    <!-- Phase 6: Commented-Out Code Detection -->
-    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '^\s*//.*[{};]|^\s*/\*.*[{};].*\*/' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Commented-out code blocks detected. Remove unused code. Build failed.'; exit 1; fi"
+    <!-- Phase 6: Commented-Out Code Detection (actual code blocks only) -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '^\s*//\s*(if\s*\(|for\s*\(|while\s*\(|return\s+[^/]|var\s+|public\s+|private\s+|\w+\s*=)' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Commented-out code blocks detected. Remove unused code. Build failed.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
     

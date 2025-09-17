@@ -15,6 +15,12 @@ namespace TradingBot.Monitoring
     /// </summary>
     public class LatencyMonitor : ILatencyMonitor
     {
+        // Monitoring constants
+        private const int MaxMeasurementHistory = 100;
+        private const double MedianPercentile = 0.5;
+        private const double P95Percentile = 0.95;
+        private const double P99Percentile = 0.99;
+        
         private readonly ILogger<LatencyMonitor> _logger;
         private readonly IAlertService _alertService;
         private readonly double _decisionLatencyThreshold;
@@ -53,7 +59,7 @@ namespace TradingBot.Monitoring
                 };
 
                 _decisionLatencies.Enqueue(measurement);
-                if (_decisionLatencies.Count > 100) // Keep last 100 measurements
+                if (_decisionLatencies.Count > MaxMeasurementHistory) // Keep last 100 measurements
                     _decisionLatencies.Dequeue();
 
                 // Check for threshold violation
@@ -89,7 +95,7 @@ namespace TradingBot.Monitoring
                 };
 
                 _orderLatencies.Enqueue(measurement);
-                if (_orderLatencies.Count > 100) // Keep last 100 measurements
+                if (_orderLatencies.Count > MaxMeasurementHistory) // Keep last 100 measurements
                     _orderLatencies.Dequeue();
 
                 // Check for threshold violation
@@ -182,9 +188,9 @@ namespace TradingBot.Monitoring
                 Component = component,
                 Count = latencies.Length,
                 Average = latencies.Average(),
-                P50 = GetPercentile(latencies, 0.5),
-                P95 = GetPercentile(latencies, 0.95),
-                P99 = GetPercentile(latencies, 0.99),
+                P50 = GetPercentile(latencies, MedianPercentile),
+                P95 = GetPercentile(latencies, P95Percentile),
+                P99 = GetPercentile(latencies, P99Percentile),
                 Max = latencies.Max(),
                 Min = latencies.Min()
             };

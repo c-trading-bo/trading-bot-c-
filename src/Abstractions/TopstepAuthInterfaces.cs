@@ -18,6 +18,9 @@ public interface ITopstepAuth
 /// </summary>
 public class TopstepXCredentials
 {
+    // Default credential expiration hours
+    private const int DefaultExpirationHours = 24;
+    
     public string Username { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
     public string? JwtToken { get; set; }
@@ -25,7 +28,7 @@ public class TopstepXCredentials
     public DateTime? LastUpdated { get; set; } = DateTime.UtcNow;
     public string Source { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24);
+    public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(DefaultExpirationHours);
     public string EnvironmentName { get; set; } = string.Empty;
     public bool IsValid => !string.IsNullOrEmpty(Username) && !string.IsNullOrEmpty(ApiKey);
 }
