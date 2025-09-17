@@ -474,7 +474,7 @@ public class NightlyParameterTuner
         var dropScore = dropoutRate > 0.3 ? -0.02 : (dropoutRate < 0.05 ? -0.01 : 0.01);
         
         var finalScore = Math.Max(0.5, Math.Min(0.85, baseScore + lrScore + hsScore + dropScore + 
-            (new Random().NextDouble() - 0.5) * 0.05)); // Add some noise
+            (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-25, 25) / 500.0))); // Add some noise
         
         await Task.Delay(100, cancellationToken); // Simulate evaluation time
         
@@ -493,14 +493,13 @@ public class NightlyParameterTuner
     {
         // Simplified Bayesian optimization - in production would use Gaussian Processes
         var candidate = new Dictionary<string, double>();
-        var random = new Random();
         
         foreach (var (paramName, range) in session.ParameterSpace)
         {
             if (trial < 5)
             {
                 // Exploration phase - sample randomly
-                candidate[paramName] = SampleFromRange(range, random);
+                candidate[paramName] = SampleFromRange(range);
             }
             else
             {
@@ -513,12 +512,13 @@ public class NightlyParameterTuner
                 if (bestTrials.Any())
                 {
                     var bestParam = bestTrials.First().Parameters.GetValueOrDefault(paramName, range.Min);
-                    var noise = (random.NextDouble() - 0.5) * (range.Max - range.Min) * 0.1;
+                    var noiseRange = (range.Max - range.Min) * 0.1;
+                    var noise = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * noiseRange;
                     candidate[paramName] = Math.Max(range.Min, Math.Min(range.Max, bestParam + noise));
                 }
                 else
                 {
-                    candidate[paramName] = SampleFromRange(range, random);
+                    candidate[paramName] = SampleFromRange(range);
                 }
             }
         }
@@ -532,7 +532,6 @@ public class NightlyParameterTuner
         CancellationToken cancellationToken)
     {
         var population = new List<Individual>();
-        var random = new Random();
         var paramSpace = GetParameterSpace(modelFamily);
         
         for (int i = 0; i < populationSize; i++)
@@ -540,7 +539,7 @@ public class NightlyParameterTuner
             var parameters = new Dictionary<string, double>();
             foreach (var (paramName, range) in paramSpace)
             {
-                parameters[paramName] = SampleFromRange(range, random);
+                parameters[paramName] = SampleFromRange(range);
             }
             
             var metrics = await EvaluateParametersAsync(modelFamily, parameters, cancellationToken);
@@ -561,7 +560,6 @@ public class NightlyParameterTuner
         CancellationToken cancellationToken)
     {
         var newPopulation = new List<Individual>();
-        var random = new Random();
         
         // Keep top 20% (elitism) - processed asynchronously for large populations
         var eliteTask = Task.Run(() => 
@@ -576,11 +574,11 @@ public class NightlyParameterTuner
         {
             var offspringTask = Task.Run(() =>
             {
-                var parent1 = TournamentSelection(population, random);
-                var parent2 = TournamentSelection(population, random);
+                var parent1 = TournamentSelection(population);
+                var parent2 = TournamentSelection(population);
                 
-                var offspring = Crossover(parent1, parent2, random);
-                offspring = Mutate(offspring, random);
+                var offspring = Crossover(parent1, parent2);
+                offspring = Mutate(offspring);
                 
                 return offspring;
             }, cancellationToken);
@@ -595,13 +593,13 @@ public class NightlyParameterTuner
         return newPopulation;
     }
 
-    private double SampleFromRange(ParameterRange range, Random random)
+    private double SampleFromRange(ParameterRange range)
     {
         return range.Type switch
         {
-            ParameterType.Uniform => range.Min + random.NextDouble() * (range.Max - range.Min),
-            ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + random.NextDouble() * (Math.Log(range.Max) - Math.Log(range.Min))),
-            ParameterType.Categorical => range.Categories![random.Next(range.Categories.Length)],
+            ParameterType.Uniform => range.Min + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (range.Max - range.Min),
+            ParameterType.LogUniform => Math.Exp(Math.Log(range.Min) + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 10000) / 10000.0) * (Math.Log(range.Max) - Math.Log(range.Min))),
+            ParameterType.Categorical => range.Categories![System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, range.Categories.Length)],
             _ => range.Min
         };
     }
@@ -612,14 +610,14 @@ public class NightlyParameterTuner
         return metrics.AUC * 0.5 + (metrics.PrAt10 / 0.2) * 0.3 + (metrics.EdgeBps / 10.0) * 0.2;
     }
 
-    private Individual TournamentSelection(List<Individual> population, Random random)
+    private Individual TournamentSelection(List<Individual> population)
     {
         var tournamentSize = Math.Min(3, population.Count);
-        var tournament = population.OrderBy(x => random.Next()).Take(tournamentSize);
+        var tournament = population.OrderBy(x => System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, int.MaxValue)).Take(tournamentSize);
         return tournament.OrderByDescending(ind => ind.Fitness).First();
     }
 
-    private Individual Crossover(Individual parent1, Individual parent2, Random random)
+    private Individual Crossover(Individual parent1, Individual parent2)
     {
         var offspring = new Individual { Parameters = new Dictionary<string, double>() };
         
@@ -630,7 +628,7 @@ public class NightlyParameterTuner
             var value1 = parent1.Parameters[paramName];
             var value2 = parent2.Parameters[paramName];
             
-            offspring.Parameters[paramName] = random.NextDouble() < 0.5 ? 
+            offspring.Parameters[paramName] = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < 50 ? 
                 value1 + alpha * (value2 - value1) : 
                 value2 + alpha * (value1 - value2);
         }
@@ -638,7 +636,7 @@ public class NightlyParameterTuner
         return offspring;
     }
 
-    private Individual Mutate(Individual individual, Random random)
+    private Individual Mutate(Individual individual)
     {
         var mutationRate = 0.1;
         var mutated = new Individual 
@@ -648,15 +646,23 @@ public class NightlyParameterTuner
         
         foreach (var paramName in mutated.Parameters.Keys.ToList())
         {
-            if (random.NextDouble() < mutationRate)
+            if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < mutationRate * 100)
             {
-                // Add Gaussian noise
-                var noise = random.NextGaussian() * 0.1;
+                // Add Gaussian-like noise using secure random
+                var noise = NextGaussian() * 0.1;
                 mutated.Parameters[paramName] += noise;
             }
         }
         
         return mutated;
+    }
+
+    private static double NextGaussian(double mean = 0, double stdDev = 1)
+    {
+        var u1 = 1.0 - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10000) / 10000.0);
+        var u2 = 1.0 - (System.Security.Cryptography.RandomNumberGenerator.GetInt32(1, 10000) / 10000.0);
+        var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+        return mean + stdDev * randStdNormal;
     }
 
     private bool IsBetterMetrics(ModelMetrics candidate, ModelMetrics baseline)
@@ -888,17 +894,7 @@ public class NightlyParameterTuner
     }
 }
 
-// Extension method for Gaussian random numbers
-public static class RandomExtensions
-{
-    public static double NextGaussian(this Random random, double mean = 0, double stdDev = 1)
-    {
-        var u1 = 1.0 - random.NextDouble();
-        var u2 = 1.0 - random.NextDouble();
-        var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-        return mean + stdDev * randStdNormal;
-    }
-}
+// Removed RandomExtensions class - replaced with secure static method
 
 #region Supporting Classes
 
