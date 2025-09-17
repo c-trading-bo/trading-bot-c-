@@ -218,7 +218,7 @@ public class ProductionGateSystem
         return result;
     }
 
-    private async Task<AutoRemediationResult> ExecuteAutoRemediation(TestSuiteResult testResults)
+    private static async Task<AutoRemediationResult> ExecuteAutoRemediation(TestSuiteResult testResults)
     {
         // Generate a basic comprehensive report for auto-remediation
         var basicReport = new ComprehensiveReport
@@ -317,7 +317,7 @@ public class ProductionGateSystem
     /// <summary>
     /// Validate performance metrics against production baselines
     /// </summary>
-    private async Task<bool> ValidatePerformanceMetricsAsync(PerformanceValidationResult performance)
+    private static async Task<bool> ValidatePerformanceMetricsAsync(PerformanceValidationResult performance)
     {
         await Task.Yield();
         

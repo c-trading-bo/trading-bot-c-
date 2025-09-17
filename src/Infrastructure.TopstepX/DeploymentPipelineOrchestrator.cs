@@ -207,7 +207,7 @@ public class DeploymentPipelineOrchestrator
     /// <summary>
     /// Generate troubleshooting guide when no credentials are found
     /// </summary>
-    private async Task GenerateCredentialTroubleshootingGuide(CredentialDetectionResult result)
+    private static async Task GenerateCredentialTroubleshootingGuide(CredentialDetectionResult result)
     {
         await Task.Yield();
         

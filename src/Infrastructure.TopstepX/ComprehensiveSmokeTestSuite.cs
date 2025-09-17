@@ -105,7 +105,7 @@ public class ComprehensiveSmokeTestSuite
         // Test 2: File System Access
         result.AddTest("File System Access", async () =>
         {
-            var tempFile = Path.GetTempFileName();
+            var tempFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             try
             {
                 await File.WriteAllTextAsync(tempFile, "test");
@@ -124,7 +124,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
-                var response = await client.GetAsync("https://httpbin.org/status/200", cancellationToken);
+                var testUrl = Environment.GetEnvironmentVariable("TEST_HTTP_URL") ?? "https://httpbin.org/status/200";
+                var response = await client.GetAsync(testUrl, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -194,7 +195,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteIntegrationTests(CancellationToken cancellationToken)
+    private static async Task<TestCategoryResult> ExecuteIntegrationTests(CancellationToken cancellationToken)
     {
         var result = new TestCategoryResult("Integration");
 
@@ -205,7 +206,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                await client.GetAsync("https://api.topstepx.com", cancellationToken);
+                var apiBaseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+                await client.GetAsync(apiBaseUrl, cancellationToken);
                 // Any response (including 401 unauthorized) means the endpoint is reachable
                 return true;
             }
@@ -222,7 +224,8 @@ public class ComprehensiveSmokeTestSuite
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(10);
-                await client.GetAsync("https://rtc.topstepx.com", cancellationToken);
+                var rtcBaseUrl = Environment.GetEnvironmentVariable("TOPSTEPX_RTC_BASE") ?? "https://rtc.topstepx.com";
+                await client.GetAsync(rtcBaseUrl, cancellationToken);
                 return true; // Any response means endpoint exists
             }
             catch
