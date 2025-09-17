@@ -43,40 +43,6 @@
     branches:
       - main
 
-  # 🚨 AUTO-RESPONSE: Triggers when ANY workflow fails
-  workflow_run:
-    workflows:
-      - "Ultimate ML+RL Training Pipeline"
-      - "Ultimate Data Collection Pipeline"
-      - "Ultimate News Sentiment Pipeline"
-      - "Ultimate Options Flow Pipeline"
-      - "Ultimate Regime Detection Pipeline"
-      - "Ultimate Testing & QA Pipeline"
-      - "Ultimate ML+RL Intel System"
-      - "Ultimate Build CI Pipeline"
-      - "Daily Consolidated"
-      - "Portfolio Heat"
-      - "Volatility Surface Analysis"
-      - "ES/NQ Correlation Matrix"
-      - "ES/NQ Critical Trading"
-      - "Intermarket Correlations"
-      - "Seasonality Patterns Analysis"
-      - "Microstructure"
-      - "Fed Liquidity"
-      - "MM Positioning"
-      - "Social Momentum"
-      - "Congressional Trades"
-      - "COT Report"
-      - "Failed Patterns"
-      - "Zones Identifier"
-      - "ML Model Training"
-      - "Data Collection"
-      - "Options Flow"
-    types:
-      - completed
-    branches:
-      - main
-
 
   workflow_dispatch:
     inputs:
@@ -133,18 +99,71 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: "🔍 Session Existence Check & Deduplication"
+        id: session_check
+        run: |
+          echo "🔍 Checking for existing agent sessions and event deduplication..."
+          
+          # Use shared session deduplicator script
+          python .github/scripts/session_deduplicator.py check \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'scheduled' }}" \
+            "${{ github.sha }}" \
+            "${{ github.run_id }}"
+
+      - name: "📝 Register Session (if not skipping)"
+        if: steps.session_check.outputs.skip_execution != 'true'
+        run: |
+          echo "📝 Registering new session..."
+          
+          # Register session using shared script
+          python .github/scripts/session_deduplicator.py register \
+            "${{ steps.session_check.outputs.session_key }}" \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'scheduled' }}" \
+            "${{ github.run_id }}" \
+            "${{ github.sha }}"
+
       - name: "Setup Python Environment"
+        if: steps.session_check.outputs.skip_execution != 'true'
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
 
       - name: "Install Dependencies"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           pip install --upgrade pip
           pip install requests pandas numpy pyyaml gitpython
           pip install openai anthropic
+
+      - name: "🚫 Duplicate Session Prevention Notice"
+        if: steps.session_check.outputs.skip_execution == 'true'
+        run: |
+          echo "🚫 ============================================"
+          echo "🚫 DUPLICATE SESSION PREVENTION ACTIVATED"
+          echo "=============================================="
+          echo ""
+          echo "✅ PREMIUM SESSION SAVED!"
+          echo "🔍 Session Key: ${{ steps.session_check.outputs.session_key }}"
+          echo "⏰ Event Type: ${{ github.event_name }}"
+          echo "🏗️ Workflow: ${{ github.event.workflow_run.name || 'scheduled' }}"
+          echo ""
+          echo "🛡️ DEDUPLICATION REASONS:"
+          echo "   • Active session found within 5-minute window"
+          echo "   • OR Push+PR double trigger detected"
+          echo "   • OR Retry logic blocked due to existing session"
+          echo ""
+          echo "💰 COST SAVINGS:"
+          echo "   • Premium agent session NOT launched"
+          echo "   • Duplicate execution prevented"
+          echo "   • Audit trail preserved"
+          echo ""
+          echo "✅ This is the intended behavior to prevent waste!"
+          echo "=============================================="
       - name: "🚀 Execute Ultimate AI Cloud Mechanic"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           echo "🔥 Launching Ultimate AI Cloud Mechanic with full features..."
           if [ -f "Intelligence/mechanic/cloud/cloud_mechanic_core.py" ]; then
@@ -162,6 +181,7 @@ jobs:
 
 
       - name: "Initialize AI Defense Brain"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           echo "Initializing Ultimate AI Defense Brain..."
           python -c "
@@ -189,6 +209,7 @@ jobs:
           "
 
       - name: "Detect Workflow Failures"
+        if: steps.session_check.outputs.skip_execution != 'true'
         id: failure_detection
         run: |
           echo "Checking for workflow failures..."
@@ -218,7 +239,7 @@ jobs:
           fi
 
       - name: "Enhanced Error Analysis & Emergency Auto-Fix"
-        if: steps.failure_detection.outputs.failure_detected == 'true'
+        if: steps.session_check.outputs.skip_execution != 'true' && steps.failure_detection.outputs.failure_detected == 'true'
         id: error_analysis
         run: |
           echo "EMERGENCY MODE ACTIVATED - Analyzing workflow failure..."
@@ -295,7 +316,7 @@ jobs:
           "
 
       - name: "Routine Health Monitoring (Scheduled Only)"
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        if: steps.session_check.outputs.skip_execution != 'true' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         id: health_analysis
         run: |
           echo "SCHEDULED MONITORING - Checking workflow health (no auto-fixes)"
@@ -392,7 +413,7 @@ jobs:
           "
 
       - name: "Emergency Auto-Fix Engine (Failure Response Only)"
-        if: steps.failure_detection.outputs.emergency_mode == 'true'
+        if: steps.session_check.outputs.skip_execution != 'true' && steps.failure_detection.outputs.emergency_mode == 'true'
         run: |
           echo "EMERGENCY AUTO-FIX - Responding to actual workflow failure!"
           echo "Failed Workflow: ${{ steps.failure_detection.outputs.failed_workflow }}"
@@ -577,6 +598,7 @@ jobs:
           echo "Defense dashboard generated"
 
       - name: "Commit Defense System Data"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           git config user.name "Ultimate AI Bot Mechanic"
           git config user.email "ai-mechanic@enterprise.com"
@@ -585,3 +607,34 @@ jobs:
           git add .github/copilot_mechanic/
           git diff --quiet || git commit -m "Ultimate AI Defense System: Complete monitoring cycle $(date -u +%Y%m%d_%H%M%S)"
           git push || echo "No changes to push"
+
+      - name: "🧹 Session Cleanup & Audit Log"
+        if: always()
+        run: |
+          echo "🧹 Cleaning up session tracking and creating audit log..."
+          
+          SESSION_KEY="${{ steps.session_check.outputs.session_key }}"
+          SKIP_EXECUTION="${{ steps.session_check.outputs.skip_execution }}"
+          
+          # Create audit entry using shared script
+          python .github/scripts/session_deduplicator.py audit \
+            "${SESSION_KEY}" \
+            "${{ github.event_name }}" \
+            "${{ github.event.workflow_run.name || 'scheduled' }}" \
+            "${{ github.run_id }}" \
+            "${{ github.sha }}" \
+            "$([ "${SKIP_EXECUTION}" = "true" ] && echo "false" || echo "true")" \
+            "${{ job.status }}"
+          
+          # Clean up session file using shared script
+          python .github/scripts/session_deduplicator.py cleanup "${SESSION_KEY}"
+          
+          # Summary
+          if [ "${SKIP_EXECUTION}" = "true" ]; then
+            echo "✅ DUPLICATE PREVENTION SUCCESSFUL - Premium session saved!"
+          else
+            echo "✅ Session executed normally - Single launch confirmed"
+          fi
+          
+          echo "📋 Session Key: ${SESSION_KEY}"
+          echo "🏁 Final Status: $([ \"${SKIP_EXECUTION}\" = \"true\" ] && echo \"PREVENTED_DUPLICATE\" || echo \"EXECUTED_ONCE\")"
