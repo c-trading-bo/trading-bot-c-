@@ -20,12 +20,11 @@
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     
-    <!-- PRODUCTION ENFORCEMENT: Block build for any non-production patterns -->
-    <!-- PRODUCTION ENFORCEMENT: Critical issues that block production -->
-    <!-- Allow other analyzer issues temporarily while core production enforcement is active -->
-    <WarningsNotAsErrors>S1541;S138;S101;S3881;S2325;S2139;S6667;S1854;S2933;S6612;S4136;S1066;S6608;S3267;S3358;S1244;S1172;S1144;S1481;S4487;S1068;S125;S1135;S1134;S108;AsyncFixer01;AsyncFixer02;AsyncFixer03;SCS0005;S6605;S2589;S6580;S6602;S3923;S2681</WarningsNotAsErrors>
-    <!-- Keep the production enforcement target but allow warnings for now -->
-    <WarningsAsErrors>$(WarningsAsErrors)</WarningsAsErrors>
+    <!-- PRODUCTION ENFORCEMENT: ALL WARNINGS ARE ERRORS - NO SUPPRESSIONS ALLOWED -->
+    <!-- Every single analyzer warning must be fixed, not suppressed -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,10 +47,9 @@
       <SourceFiles Include="**/*.cs" Exclude="bin/**;obj/**;packages/**" />
     </ItemGroup>
     
-    <Exec Command="powershell -Command &quot;$files = Get-ChildItem -Path '$(MSBuildProjectDirectory)' -Recurse -Include '*.cs' | Where-Object { $_.FullName -notmatch '\\(bin|obj|packages)\\' }; $found = $false; foreach($file in $files) { $content = Get-Content $file.FullName -Raw; if($content -match '(?i)(TODO|FIXME|HACK|STUB|PLACEHOLDER|\s+//[^/].*(?:not implemented|temporary|quick fix|workaround))') { Write-Host 'PRODUCTION VIOLATION in' $file.FullName; $found = $true } }; if($found) { Write-Host 'BUILD FAILED: Non-production code patterns detected. All TODO/FIXME/HACK/STUB/PLACEHOLDER patterns must be removed before building.'; exit 1 }&quot;"
+    <Exec Command="if find $(MSBuildProjectDirectory) -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' -not -path '*/packages/*' -exec grep -l -E '//\s*(TODO|FIXME|HACK):|^\s*/\*\s*(TODO|FIXME|HACK):' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: TODO/FIXME/HACK comments found. Build failed.'; exit 1; fi"
           ContinueOnError="false"
-          IgnoreExitCode="false" 
-          Condition="'$(Configuration)' == 'Release' OR '$(PRODUCTION_ENFORCEMENT)' == 'true'" />
+          IgnoreExitCode="false" />
   </Target>
 
 </Project>
