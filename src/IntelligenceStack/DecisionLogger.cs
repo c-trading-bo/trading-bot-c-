@@ -226,7 +226,6 @@ public class DriftMonitor
     private readonly ILogger<DriftMonitor> _logger;
     private readonly DriftMonitoringConfig _config;
     private readonly Dictionary<string, FeatureBaseline> _baselines = new();
-    private readonly object _lock = new();
 
     public DriftMonitor(ILogger<DriftMonitor> logger, DriftMonitoringConfig config)
     {

@@ -23,7 +23,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     private readonly Queue<double> _atrHistory = new();
     private readonly Queue<double> _priceHistory = new();
     private double _medianAtr = 0;
-    private double _spreadMedian = 0;
+    private readonly double _spreadMedian = 0;
 
     public RegimeDetectorWithHysteresis(
         ILogger<RegimeDetectorWithHysteresis> logger,

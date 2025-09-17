@@ -14,7 +14,7 @@ namespace TradingBot.IntelligenceStack;
 /// Calibration manager with nightly hot-swap capability
 /// Fits Platt and isotonic calibration, chooses best by Brier/LogLoss
 /// </summary>
-public class CalibrationManager : ICalibrationManager
+public class CalibrationManager : ICalibrationManager, IDisposable
 {
     private readonly ILogger<CalibrationManager> _logger;
     private readonly string _basePath;
@@ -383,6 +383,15 @@ public class CalibrationManager : ICalibrationManager
 
     public void Dispose()
     {
-        _nightlyTimer?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _nightlyTimer?.Dispose();
+        }
     }
 }

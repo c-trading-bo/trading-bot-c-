@@ -107,7 +107,7 @@ public static class IntelligenceStackServiceExtensions
         services.AddSingleton<EnsembleMetaLearner>();
         services.AddSingleton<ModelQuarantineManager>();
         services.AddSingleton<HistoricalTrainerWithCV>();
-        services.AddSingleton<MAMLLiveIntegration>();
+        services.AddSingleton<MamlLiveIntegration>();
         services.AddSingleton<NightlyParameterTuner>();
         services.AddSingleton<RLAdvisorSystem>();
         services.AddSingleton<ObservabilityDashboard>();

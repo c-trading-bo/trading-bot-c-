@@ -19,7 +19,6 @@ public class EnsembleMetaLearner
     private readonly ILogger<EnsembleMetaLearner> _logger;
     private readonly EnsembleConfig _config;
     private readonly IRegimeDetector _regimeDetector;
-    private readonly IModelRegistry _modelRegistry;
     private readonly IOnlineLearningSystem _onlineLearning;
     private readonly string _statePath;
     
@@ -36,14 +35,12 @@ public class EnsembleMetaLearner
         ILogger<EnsembleMetaLearner> logger,
         EnsembleConfig config,
         IRegimeDetector regimeDetector,
-        IModelRegistry modelRegistry,
         IOnlineLearningSystem onlineLearning,
         string statePath = "data/ensemble")
     {
         _logger = logger;
         _config = config;
         _regimeDetector = regimeDetector;
-        _modelRegistry = modelRegistry;
         _onlineLearning = onlineLearning;
         _statePath = statePath;
         
@@ -661,19 +658,6 @@ public class RegimeBlendHead
         
         // Simulate async validation processing
         await Task.Delay(1, cancellationToken);
-        
-        var correctPredictions = exampleList.Count(e => 
-            (e.PredictedDirection > 0 && e.ActualOutcome > 0) ||
-            (e.PredictedDirection < 0 && e.ActualOutcome < 0));
-            
-        return (double)correctPredictions / exampleList.Count;
-    }
-
-    private double CalculateValidationScore(IEnumerable<TrainingExample> examples)
-    {
-        // Simplified validation score calculation
-        var exampleList = examples.ToList();
-        if (exampleList.Count == 0) return 0.0;
         
         var correctPredictions = exampleList.Count(e => 
             (e.PredictedDirection > 0 && e.ActualOutcome > 0) ||
