@@ -151,7 +151,7 @@ public class ComprehensiveReportingSystem
         return metrics;
     }
 
-    private async Task<LatencyMetrics> MeasureSystemLatency()
+    private static async Task<LatencyMetrics> MeasureSystemLatency()
     {
         var metrics = new LatencyMetrics();
 
@@ -296,7 +296,7 @@ public class ComprehensiveReportingSystem
         return totalCoverage / allFeatures.Count;
     }
 
-    private async Task<SystemHealthStatus> CollectSystemHealthStatus()
+    private static async Task<SystemHealthStatus> CollectSystemHealthStatus()
     {
         var status = new SystemHealthStatus();
 
@@ -388,7 +388,7 @@ public class ComprehensiveReportingSystem
         return compliance;
     }
 
-    private double AnalyzeCredentialSecurity()
+    private static double AnalyzeCredentialSecurity()
     {
         var score = 0.0;
 

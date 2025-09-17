@@ -48,7 +48,7 @@ public class ComprehensiveSmokeTestSuite
 
             // Phase 2: Credential and Environment Tests  
             _logger.LogInformation("📋 Phase 2: Credential and Environment Validation");
-            result.CredentialTests = await ExecuteCredentialTests(cancellationToken);
+            result.CredentialTests = await ExecuteCredentialTests();
 
             // Phase 3: TopstepX Integration Tests
             _logger.LogInformation("📋 Phase 3: TopstepX Integration Tests");
@@ -56,19 +56,19 @@ public class ComprehensiveSmokeTestSuite
 
             // Phase 4: Trading System Component Tests
             _logger.LogInformation("📋 Phase 4: Trading System Component Tests");
-            result.ComponentTests = await ExecuteComponentTests(cancellationToken);
+            result.ComponentTests = await ExecuteComponentTests();
 
             // Phase 5: End-to-End Simulation Tests
             _logger.LogInformation("📋 Phase 5: End-to-End Simulation Tests");
-            result.EndToEndTests = await ExecuteEndToEndTests(cancellationToken);
+            result.EndToEndTests = await ExecuteEndToEndTests();
 
             // Phase 6: Performance and Load Tests
             _logger.LogInformation("📋 Phase 6: Performance and Load Tests");
-            result.PerformanceTests = await ExecutePerformanceTests(cancellationToken);
+            result.PerformanceTests = await ExecutePerformanceTests();
 
             // Phase 7: Safety and Risk Management Tests
             _logger.LogInformation("📋 Phase 7: Safety and Risk Management Tests");
-            result.SafetyTests = await ExecuteSafetyTests(cancellationToken);
+            result.SafetyTests = await ExecuteSafetyTests();
 
             overallStopwatch.Stop();
             result.EndTime = DateTime.UtcNow;
@@ -146,7 +146,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteCredentialTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteCredentialTests()
     {
         var result = new TestCategoryResult("Credentials");
 
@@ -243,7 +243,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteComponentTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteComponentTests()
     {
         var result = new TestCategoryResult("Components");
 
@@ -288,7 +288,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteEndToEndTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteEndToEndTests()
     {
         var result = new TestCategoryResult("End-to-End");
 
@@ -332,7 +332,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecutePerformanceTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecutePerformanceTests()
     {
         var result = new TestCategoryResult("Performance");
 
@@ -382,7 +382,7 @@ public class ComprehensiveSmokeTestSuite
         return result;
     }
 
-    private async Task<TestCategoryResult> ExecuteSafetyTests(CancellationToken cancellationToken)
+    private async Task<TestCategoryResult> ExecuteSafetyTests()
     {
         var result = new TestCategoryResult("Safety");
 

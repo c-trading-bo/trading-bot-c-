@@ -845,7 +845,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Analyze system logs for patterns and issues
     /// </summary>
-    private async Task AnalyzeSystemLogs()
+    private static async Task AnalyzeSystemLogs()
     {
         await Task.Run(() =>
         {
@@ -884,7 +884,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Validate system configuration
     /// </summary>
-    private async Task ValidateSystemConfiguration()
+    private static async Task ValidateSystemConfiguration()
     {
         await Task.Run(() =>
         {
@@ -953,7 +953,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Intelligent memory cleanup implementation without forced GC
     /// </summary>
-    private async Task CleanupMemoryIntensiveComponentsAsync()
+    private static async Task CleanupMemoryIntensiveComponentsAsync()
     {
         // Clean up specific components that may be holding memory
         await Task.Run(() =>
@@ -1001,7 +1001,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Get current CPU usage
     /// </summary>
-    private async Task<double> GetCurrentCpuUsageAsync()
+    private static async Task<double> GetCurrentCpuUsageAsync()
     {
         using var process = Process.GetCurrentProcess();
         var startTime = DateTime.UtcNow;
@@ -1022,7 +1022,7 @@ public class AutoRemediationSystem
     /// <summary>
     /// Optimize CPU workload
     /// </summary>
-    private async Task OptimizeCpuWorkloadAsync()
+    private static async Task OptimizeCpuWorkloadAsync()
     {
         await Task.Run(() =>
         {
