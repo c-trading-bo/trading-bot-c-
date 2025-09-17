@@ -409,7 +409,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private double AnalyzeEnvironmentSecurity()
+    private static double AnalyzeEnvironmentSecurity()
     {
         var score = 0.0;
 
@@ -434,7 +434,7 @@ public class ComprehensiveReportingSystem
         return Math.Min(score, 100);
     }
 
-    private async Task<double> AnalyzeNetworkSecurity()
+    private static async Task<double> AnalyzeNetworkSecurity()
     {
         var score = 0.0;
 
@@ -543,7 +543,7 @@ public class ComprehensiveReportingSystem
         _logger.LogInformation("📄 Report saved to: {Filepath}", filepath);
     }
 
-    private string GenerateSummaryText(ComprehensiveReport report)
+    private static string GenerateSummaryText(ComprehensiveReport report)
     {
         var summary = $@"
 === COMPREHENSIVE SYSTEM REPORT ===

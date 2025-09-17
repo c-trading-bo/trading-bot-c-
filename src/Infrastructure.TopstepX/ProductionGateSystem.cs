@@ -277,7 +277,7 @@ public class ProductionGateSystem
                                          assessment.NoBlockingIssues;
 
             assessment.ReadinessScore = CalculateReadinessScore(assessment);
-            assessment.Recommendations = GenerateProductionRecommendations(assessment, gateResult);
+            assessment.Recommendations = GenerateProductionRecommendations(assessment);
 
             // Generate AI-powered recommendations
             assessment.Recommendations = await GenerateIntelligentRecommendationsAsync(assessment);
@@ -607,8 +607,7 @@ public class ProductionGateSystem
     }
 
     private List<string> GenerateProductionRecommendations(
-        ProductionReadinessAssessment assessment,
-        ProductionGateResult gateResult)
+        ProductionReadinessAssessment assessment)
     {
         var recommendations = new List<string>();
 

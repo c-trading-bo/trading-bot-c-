@@ -181,7 +181,7 @@ public class PositionSizing
     /// <summary>
     /// Blend Kelly and SAC fractions based on regime and confidence
     /// </summary>
-    private double BlendKellyAndSAC(double kellyFraction, double sacFraction, RegimeType regime)
+    private static double BlendKellyAndSAC(double kellyFraction, double sacFraction, RegimeType regime)
     {
         // Regime-specific blending weights
         var kellyWeight = regime switch
@@ -276,7 +276,7 @@ public class PositionSizing
     /// <summary>
     /// Create market features for SAC input
     /// </summary>
-    private double[] CreateMarketFeatures(PositionSizeRequest request)
+    private static double[] CreateMarketFeatures(PositionSizeRequest request)
     {
         return new double[]
         {
@@ -293,7 +293,7 @@ public class PositionSizing
     /// <summary>
     /// Generate reasoning for position sizing decision
     /// </summary>
-    private string GenerateReasoning(
+    private static string GenerateReasoning(
         double kellyFraction,
         double sacFraction,
         double regimeClip,
@@ -323,7 +323,7 @@ public class PositionSizing
     /// <summary>
     /// Get symbol key for state tracking
     /// </summary>
-    private string GetSymbolKey(string symbol, string strategy)
+    private static string GetSymbolKey(string symbol, string strategy)
     {
         return $"{symbol}_{strategy}";
     }

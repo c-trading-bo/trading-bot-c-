@@ -215,7 +215,7 @@ public class ModelHotReloadManager : IDisposable
     /// <summary>
     /// Get current model name for a given file pattern
     /// </summary>
-    private string GetCurrentModelName(string fileName)
+    private static string GetCurrentModelName(string fileName)
     {
         // Implementation would depend on naming convention
         // For now, use a simple pattern based on filename
