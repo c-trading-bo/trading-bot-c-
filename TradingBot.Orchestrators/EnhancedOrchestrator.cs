@@ -36,10 +36,6 @@ namespace TradingBot.Orchestrators
         {
             try
             {
-                // OLD STUB CODE (DELETED):
-                // await Task.Delay(50);
-                // Console.WriteLine("ES/NQ analyzed");
-                
                 // NEW REAL CODE:
                 var analysis = await _connector.AnalyzeESNQFuturesReal();
                 
@@ -66,10 +62,6 @@ namespace TradingBot.Orchestrators
         {
             try
             {
-                // OLD STUB CODE (DELETED):
-                // await Task.Delay(100);
-                // Console.WriteLine("ML models executed");
-                
                 // NEW REAL CODE:
                 var marketData = await _connector.GetRealMarketData();
                 var prediction = await _connector.GetRealMLPrediction(marketData);
@@ -103,10 +95,6 @@ namespace TradingBot.Orchestrators
         {
             try
             {
-                // OLD STUB CODE (DELETED):
-                // await Task.Delay(50);
-                // Console.WriteLine("Trades executed");
-                
                 // NEW REAL CODE:
                 var pendingSignals = await GetPendingSignals();
                 
@@ -147,10 +135,6 @@ namespace TradingBot.Orchestrators
         {
             try
             {
-                // OLD STUB CODE (DELETED):
-                // await Task.Delay(50);
-                // Console.WriteLine("Signals checked");
-                
                 // NEW REAL CODE:
                 var marketData = await _connector.GetRealMarketData();
                 var allSignals = await _connector.RunAllRealStrategies(marketData);

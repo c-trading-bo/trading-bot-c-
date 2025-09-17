@@ -108,8 +108,8 @@ public class ComprehensiveSmokeTestSuite
             var tempFile = Path.GetTempFileName();
             try
             {
-                File.WriteAllText(tempFile, "test");
-                return File.ReadAllText(tempFile) == "test";
+                await File.WriteAllTextAsync(tempFile, "test");
+                return await File.ReadAllTextAsync(tempFile) == "test";
             }
             finally
             {
