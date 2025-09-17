@@ -231,7 +231,7 @@ Configure these secrets in **Settings → Secrets and variables → Actions**:
 |-------------|-------|-------------|
 | `SONAR_HOST_URL` | `https://sonarcloud.io` | SonarCloud server URL |
 | `SONAR_ORG_KEY` | `c-trading-bo` | SonarCloud organization key |
-| `SONAR_PROJECT_KEY` | `c-trading-bo` | SonarCloud project key |
+| `SONAR_PROJECT_KEY` | `trading-bot-c-` | SonarCloud project key |
 | `SONAR_TOKEN` | `a1ae0cc69eb6ecb1a8d8ca19582480aa21f6af35` | SonarCloud authentication token |
 
 ### **Quality Gate Enforcement**
@@ -241,10 +241,10 @@ Configure these secrets in **Settings → Secrets and variables → Actions**:
 - **Full visibility** - All quality issues are logged and visible in CI output
 
 ### **Workflow Integration**
-SonarCloud is integrated into the `ci.yml` workflow:
+SonarCloud is integrated into the existing `ultimate_build_ci_pipeline.yml` workflow:
 
 ```yaml
-- name: SonarCloud Scan (Fail if Gate Fails)
+- name: "🔍 Advanced Code Analysis (SonarCloud with Quality Gate)"
   run: |
     dotnet sonarscanner begin \
       /k:"${{ secrets.SONAR_PROJECT_KEY }}" \
@@ -258,7 +258,8 @@ SonarCloud is integrated into the `ci.yml` workflow:
 ```
 
 ### **Benefits**
-- ✅ **Unified Quality Gate** - Analyzers + SonarCloud + Runtime Proof in one job
+- ✅ **Unified Quality Gate** - Analyzers + SonarCloud + Runtime Proof in existing workflow
 - ✅ **Fail Fast** - Quality gate failures immediately visible
 - ✅ **Policy Compliant** - Runtime proof uses mock TopstepX client for CI
 - ✅ **No Bypass** - Agent must fix issues before build turns green
+- ✅ **Single Pipeline** - No separate workflow files to maintain

@@ -317,42 +317,46 @@ jobs:
           echo "📊 Test projects detected: ${{ steps.analysis.outputs.test_projects }}"
           echo "💡 Consider adding unit tests to improve code quality"
 
-      - name: "🔍 Advanced Code Analysis (SonarQube)"
-        if: env.CODE_ANALYSIS == 'true' && github.event_name != 'pull_request'
+      - name: "🔍 Advanced Code Analysis (SonarCloud with Quality Gate)"
+        if: env.CODE_ANALYSIS == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          echo "🔍 Running advanced code analysis..."
+          echo "🔍 Running SonarCloud analysis with quality gate enforcement..."
           
           # Only run if SONAR_TOKEN is available
           if [ -n "${SONAR_TOKEN}" ]; then
-            echo "🔍 SonarQube analysis enabled"
+            echo "🔍 SonarCloud analysis enabled"
             
             # Install SonarScanner if needed
             dotnet tool list -g | grep -q dotnet-sonarscanner || dotnet tool install -g dotnet-sonarscanner
             
-            # Run SonarQube analysis
+            # Run SonarCloud analysis with quality gate enforcement
             dotnet sonarscanner begin \
-              /k:"trading-bot-c-" \
-              /o:"kevinsuero072897-collab" \
-              /d:sonar.host.url="https://sonarcloud.io" \
-              /d:sonar.login="${SONAR_TOKEN}" \
-              /d:sonar.cs.vscoveragexml.reportsPaths="**/coverage.xml" || echo "⚠️ SonarQube begin failed"
+              /k:"${{ secrets.SONAR_PROJECT_KEY }}" \
+              /o:"${{ secrets.SONAR_ORG_KEY }}" \
+              /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+              /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+              /d:sonar.qualitygate.wait=true \
+              /d:sonar.cs.vscoveragexml.reportsPaths="**/coverage.xml"
             
-            # Build for analysis
+            # Build for analysis with warnings as errors
             if [ "${{ steps.analysis.outputs.solution_exists }}" = "true" ]; then
-              dotnet build "${{ env.SOLUTION_FILE }}" --configuration ${{ env.BUILD_CONFIGURATION }} || echo "⚠️ Analysis build failed"
+              dotnet build "${{ env.SOLUTION_FILE }}" --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -warnaserror
             else
-              dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} || echo "⚠️ Analysis build failed"
+              dotnet build --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore -warnaserror
             fi
             
-            # End analysis
-            dotnet sonarscanner end /d:sonar.login="${SONAR_TOKEN}" || echo "⚠️ SonarQube end failed"
+            # Run tests for coverage
+            dotnet test --no-build --verbosity normal
             
-            echo "✅ SonarQube analysis completed"
+            # End analysis with quality gate enforcement
+            dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+            
+            echo "✅ SonarCloud analysis completed with quality gate enforcement"
           else
-            echo "⚠️ SonarQube token not available, skipping analysis"
+            echo "⚠️ SonarCloud token not available, skipping analysis"
           fi
 
       # 🛡️ INTEGRATED QUALITY GATE - Full-Stack Static Analysis
