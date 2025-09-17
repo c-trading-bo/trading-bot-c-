@@ -375,269 +375,92 @@ jobs:
           
           echo "✅ Analyzer compliance verified - zero violations achieved"
 
-      - name: "🛡️ Quality Gate: Guardrail Enforcement"
+      # Guardrails – placeholders
+      - name: Scan for placeholders
         if: env.CODE_ANALYSIS == 'true'
         run: |
-          echo "🛡️ Running Full-Stack Quality Gate - Guardrail Enforcement..."
-          
-          # 1️⃣ Scan for TODO/STUB/PLACEHOLDER violations
           echo "🔍 Checking for TODO/STUB/PLACEHOLDER/NotImplementedException..."
-          VIOLATIONS=0
-          
-          # Check for TODO comments that are not in documentation
-          if find ./src -name "*.cs" \
-             -exec grep -HnE "^[[:space:]]*//[[:space:]]*TODO[[:space:]]*:" {} \; | head -1; then
-            echo "❌ Found TODO comment in source code"
-            VIOLATIONS=$((VIOLATIONS + 1))
-          fi
-          
-          # Check for NotImplementedException
-          if find ./src -name "*.cs" \
-             -exec grep -HnE "throw new NotImplementedException" {} \; | head -1; then
-            echo "❌ Found NotImplementedException in source code" 
-            VIOLATIONS=$((VIOLATIONS + 1))
-          fi
-          
-          # Check for STUB/PLACEHOLDER markers (but not in strings)
-          if find ./src -name "*.cs" \
-             -exec grep -HnE "^[[:space:]]*//[[:space:]]*(STUB|PLACEHOLDER)[[:space:]]*:" {} \; | head -1; then
-            echo "❌ Found STUB/PLACEHOLDER comment in source code"
-            VIOLATIONS=$((VIOLATIONS + 1))
-          fi
-          
-          if [ $VIOLATIONS -gt 0 ]; then
-            echo "❌ Found $VIOLATIONS placeholder violations — remove before committing."
+          if grep -RInE "TODO|STUB|PLACEHOLDER|NotImplementedException" --exclude-dir={.git,.github} .; then
+            echo "❌ Found placeholders — remove before committing."
             exit 1
           fi
-          
-          echo "✅ No placeholder violations found in source code"
-          
-          # 2️⃣ Scan for commented-out code
+
+      # Guardrails – commented-out code (ignore XML docs)
+      - name: Scan for commented-out code
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
           echo "🔍 Checking for commented-out code..."
-          if find . -name "*.cs" \
-             -not -path "./.git/*" \
-             -not -path "./bin/*" \
-             -not -path "./obj/*" \
-             -exec grep -HnE "^[[:space:]]*//[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*[(].*[)].*;" {} \; \
-             | grep -v "Copyright" \
-             | grep -v "License" \
-             | head -5; then
+          if grep -RInE "^[[:space:]]*//[[:space:]]*[A-Za-z0-9_]+" --exclude-dir={.git,.github} --include=\*.cs . \
+             | grep -v "^[[:space:]]*///"; then
             echo "❌ Found commented-out code — remove or restore before committing."
             exit 1
           fi
-          echo "✅ No commented-out code found"
-          
-          # 3️⃣ Scan for hardcoded credentials
+
+      # Guardrails – hardcoded credentials
+      - name: Scan for hardcoded credentials
+        if: env.CODE_ANALYSIS == 'true'
+        run: |
           echo "🔍 Checking for hardcoded credentials..."
           if grep -RInE "(api[_-]?key|secret|token|password)[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9_\-]{16,}['\"]" \
-             --exclude-dir={.git,.github,bin,obj,packages,node_modules} \
-             --exclude="*.md" \
-             . | grep -v "PLACEHOLDER" | grep -v "YOUR_"; then
+             --exclude-dir={.git,.github} .; then
             echo "❌ Found possible hardcoded credentials — move to secure secrets storage."
             exit 1
           fi
-          echo "✅ No hardcoded credentials found"
-          
-          echo "✅ Guardrail enforcement completed successfully"
 
-      - name: "🛡️ Quality Gate: Security Pattern Scanning"
+      # Guardrails – security patterns
+      - name: Scan for insecure patterns
         if: env.CODE_ANALYSIS == 'true'
         run: |
-          echo "🛡️ Running Full-Stack Quality Gate - Security Pattern Scanning..."
-          
-          # Check for dangerous security patterns
-          SECURITY_ISSUES=0
-          
-          # Check for hardcoded localhost or development URLs in production code
-          if find ./src -name "*.cs" -exec grep -l "localhost\|127.0.0.1" {} \; | head -1; then
-            echo "⚠️ Found localhost references in src/ code"
-            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
-          fi
-          
-          # Check for disabled SSL/TLS validation
-          if find ./src -name "*.cs" -exec grep -l "IgnoreSSL\|IgnoreCertificate\|AcceptAllCertificates" {} \; | head -1; then
-            echo "❌ Found disabled SSL/TLS certificate validation"
-            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
-          fi
-          
-          # Check for SQL injection patterns
-          if find ./src -name "*.cs" -exec grep -l "\".*SELECT.*\".*+.*" {} \; | head -1; then
-            echo "❌ Found potential SQL injection pattern"
-            SECURITY_ISSUES=$((SECURITY_ISSUES + 1))
-          fi
-          
-          # Check for hardcoded URLs that should be environment-driven
-          echo "🔍 Checking for hardcoded URLs and configuration..."
-          if find . -name "*.cs" \
-             -not -path "./.git/*" \
-             -not -path "./bin/*" \
-             -not -path "./obj/*" \
-             -exec grep -HnE "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" {} \; \
-             | grep -v "GetEnvironmentVariable" \
-             | grep -v "example.com" \
-             | grep -v "localhost" \
-             | head -5; then
-            echo "⚠️ Found hardcoded URLs — consider making them environment-configurable."
-            # Don't fail for this, just warn
-          fi
-          
-          if [ $SECURITY_ISSUES -gt 0 ]; then
-            echo "❌ Security issues found - address before committing"
+          echo "🔍 Checking for insecure patterns..."
+          if grep -RInE "ServicePointManager\.ServerCertificateValidationCallback|SELECT \* FROM|http://" \
+             --exclude-dir={.git,.github} .; then
+            echo "❌ Found insecure patterns — fix before committing."
             exit 1
           fi
-          
-          echo "✅ No security anti-patterns found"
 
-      - name: "🛡️ Quality Gate: Dead Code Detection Framework"
+      # Dead-code detection (CodeQL)
+      - name: Dead code scan
         if: env.CODE_ANALYSIS == 'true'
         run: |
-          echo "🛡️ Running Dead Code Detection Framework..."
+          echo "🔍 Running dead-code detection..."
           
-          # Dead code detection - functional implementation
-          DEAD_CODE_VIOLATIONS=0
-          
-          echo "🔍 Scanning for dead code patterns..."
-          
-          # 1️⃣ Check for unused private methods (basic pattern)
-          echo "📋 Checking for potentially unused private methods..."
-          UNUSED_PRIVATE_METHODS=$(find ./src -name "*.cs" -exec grep -l "private.*void\|private.*Task\|private.*string\|private.*int\|private.*bool" {} \; | \
-            xargs -I {} sh -c 'echo "=== {} ==="; grep -n "private.*[a-zA-Z][a-zA-Z0-9]*(" "$1" | head -5' -- {} | \
-            grep -E "private.*(void|Task|string|int|bool).*[a-zA-Z][a-zA-Z0-9]*\(" | wc -l)
-          
-          if [ "$UNUSED_PRIVATE_METHODS" -gt 50 ]; then
-            echo "⚠️ Found $UNUSED_PRIVATE_METHODS potential unused private methods (threshold: 50)"
-            echo "💡 Consider reviewing private method usage in the codebase"
-            # Don't fail for this as it requires more sophisticated analysis
-          fi
-          
-          # 2️⃣ Check for actual unit test classes in src/ (definite violation)
-          echo "📋 Checking for misplaced unit test classes..."
-          TEST_CLASSES_IN_SRC=$(find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | wc -l)
-          
-          if [ "$TEST_CLASSES_IN_SRC" -gt 0 ]; then
-            echo "❌ Found $TEST_CLASSES_IN_SRC actual unit test classes in src/ directory"
-            find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | head -5
-            echo "❌ Unit test classes should be in tests/ directory, not src/"
-            DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + TEST_CLASSES_IN_SRC))
-          fi
-          
-          # 3️⃣ Check for obvious dead code patterns
-          echo "📋 Checking for obvious dead code patterns..."
-          
-          # Check for empty classes (no methods, properties, or fields)
-          EMPTY_CLASSES=$(find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | wc -l)
-          if [ "$EMPTY_CLASSES" -gt 0 ]; then
-            echo "❌ Found $EMPTY_CLASSES empty classes"
-            find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | head -3
-            DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + EMPTY_CLASSES))
-          fi
-          
-          # Check for unused using statements (basic check)
-          echo "📋 Checking for potentially unused using statements..."
-          EXCESSIVE_USINGS=$(find ./src -name "*.cs" -exec grep -c "^using " {} \; | awk '$1 > 15 {count++} END {print count+0}')
-          if [ "$EXCESSIVE_USINGS" -gt 10 ]; then
-            echo "⚠️ Found $EXCESSIVE_USINGS files with excessive using statements (>15 each)"
-            echo "💡 Consider removing unused using statements"
-          fi
-          
-          # 4️⃣ Check for potentially unreferenced files and dead code patterns
-          echo "📋 Checking for dead code patterns and unreferenced files..."
-          
-          DEAD_CODE_PATTERNS=0
-          
-          # Check for files with only imports/usings and empty classes/interfaces
-          MINIMAL_FILES=$(find ./src -name "*.cs" -exec sh -c '
-            file="$1"
-            if file "$file" | grep -q "text"; then
-              lines=$(grep -v "^[[:space:]]*$\|^[[:space:]]*//\|^[[:space:]]*using\|^[[:space:]]*namespace\|^[[:space:]]*{\|^[[:space:]]*}" "$file" 2>/dev/null | wc -l)
-              if [ "$lines" -lt 3 ]; then
-                echo "$file"
-              fi
+          # Check if CodeQL is available
+          if command -v codeql &> /dev/null; then
+            echo "📋 CodeQL available - running comprehensive dead code analysis..."
+            codeql database create db --language=csharp --source-root .
+            codeql database analyze db .github/codeql/dead-code.ql --format=sarif-latest --output=deadcode.sarif
+            if grep -q "result" deadcode.sarif; then
+              echo "❌ Dead code detected — remove or wire into orchestrator."
+              exit 1
             fi
-          ' _ {} \; | wc -l)
-          
-          if [ "$MINIMAL_FILES" -gt 0 ]; then
-            echo "⚠️ Found $MINIMAL_FILES files with minimal content (potential dead code)"
-            DEAD_CODE_PATTERNS=$((DEAD_CODE_PATTERNS + MINIMAL_FILES))
-          fi
-          
-          # Check for unused private methods (methods declared but never called within the same file)
-          echo "📋 Checking for potentially unused private methods..."
-          UNUSED_PRIVATE_COUNT=0
-          
-          # Simple heuristic: find private methods and check if they're called in the same file
-          for cs_file in $(find ./src -name "*.cs" -type f | head -10); do
-            private_methods=$(grep -n "private.*[a-zA-Z][a-zA-Z0-9]*(" "$cs_file" | grep -v "get\|set" | head -5)
-            if [ -n "$private_methods" ]; then
-              while IFS= read -r method_line; do
-                method_name=$(echo "$method_line" | sed -n 's/.*private.*\([a-zA-Z][a-zA-Z0-9]*\)(.*/\1/p')
-                if [ -n "$method_name" ] && [ "$method_name" != "get" ] && [ "$method_name" != "set" ]; then
-                  # Check if method is called elsewhere in the same file
-                  if ! grep -q "$method_name(" "$cs_file" | grep -v "private.*$method_name("; then
-                    UNUSED_PRIVATE_COUNT=$((UNUSED_PRIVATE_COUNT + 1))
-                  fi
-                fi
-              done <<< "$private_methods"
-            fi
-          done
-          
-          if [ "$UNUSED_PRIVATE_COUNT" -gt 20 ]; then
-            echo "⚠️ Found $UNUSED_PRIVATE_COUNT potentially unused private methods"
-            echo "💡 Consider reviewing private method usage (sampled from first 10 files)"
-          fi
-          
-          # Check for duplicate or very similar file names (potential dead code)
-          echo "📋 Checking for duplicate file patterns..."
-          DUPLICATE_PATTERNS=$(find ./src -name "*.cs" -type f | sed 's/.*\///' | sort | uniq -d | wc -l)
-          
-          if [ "$DUPLICATE_PATTERNS" -gt 0 ]; then
-            echo "⚠️ Found $DUPLICATE_PATTERNS files with duplicate names in different directories"
-            find ./src -name "*.cs" -type f | sed 's/.*\///' | sort | uniq -d | head -3
-            echo "💡 Check if these are intentional or potential dead code"
-          fi
-          
-          # 5️⃣ Summary and decision
-          TOTAL_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + (DEAD_CODE_PATTERNS > 10 ? 1 : 0)))
-          
-          echo ""
-          echo "📊 Dead Code Detection Summary:"
-          echo "   • Unit test classes in src/: $TEST_CLASSES_IN_SRC"
-          echo "   • Empty classes: $EMPTY_CLASSES"
-          echo "   • Minimal content files: $MINIMAL_FILES"
-          echo "   • Unused private methods (sampled): $UNUSED_PRIVATE_COUNT"
-          echo "   • Duplicate file patterns: $DUPLICATE_PATTERNS"
-          echo "   • Critical violations: $DEAD_CODE_VIOLATIONS"
-          echo "   • Pattern warnings: $DEAD_CODE_PATTERNS"
-          echo "   • Total score: $TOTAL_VIOLATIONS"
-          echo ""
-          echo "🔧 CodeQL Integration Status:"
-          echo "   • CodeQL query ready: .github/codeql/dead-code.ql"
-          echo "   • Entry point analysis: Orchestrator-based architecture supported"
-          echo "   • Advanced analysis: Enable CodeQL in repository settings for comprehensive detection"
-          
-          # Fail build if significant dead code violations found
-          if [ "$TOTAL_VIOLATIONS" -gt 2 ]; then
-            echo ""
-            echo "❌ Critical dead code violations found ($TOTAL_VIOLATIONS > 2)"
-            echo "💡 Please clean up dead code before committing:"
-            echo "   • Move unit test classes from src/ to tests/"
-            echo "   • Remove empty classes and minimal content files"
-            echo "   • Review and remove unused private methods"
-            echo "   • Enable CodeQL for advanced dead code detection"
-            exit 1
-          elif [ "$TOTAL_VIOLATIONS" -gt 0 ] || [ "$DEAD_CODE_PATTERNS" -gt 20 ]; then
-            echo ""
-            echo "⚠️ Dead code issues detected (violations: $TOTAL_VIOLATIONS, patterns: $DEAD_CODE_PATTERNS)"
-            echo "💡 Consider addressing these issues to improve code quality"
-            echo "   • Review unused private methods and minimal files"
-            echo "   • Consider enabling CodeQL for comprehensive analysis"
-            echo "   • Current patterns are within acceptable limits for a large codebase"
+            echo "✅ No dead code detected by CodeQL analysis"
           else
-            echo ""
-            echo "✅ No significant dead code violations detected"
+            echo "📋 CodeQL not available - running fallback dead code detection..."
+            
+            # Fallback: Basic dead code detection without CodeQL
+            DEAD_CODE_VIOLATIONS=0
+            
+            # Check for actual unit test classes in src/
+            TEST_CLASSES_IN_SRC=$(find ./src -name "*.cs" -exec grep -l "\[Test\]\|\[TestMethod\]\|\[Fact\]\|\[TestCase\]" {} \; 2>/dev/null | wc -l)
+            if [ "$TEST_CLASSES_IN_SRC" -gt 0 ]; then
+              echo "❌ Found $TEST_CLASSES_IN_SRC unit test classes in src/ directory"
+              DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + TEST_CLASSES_IN_SRC))
+            fi
+            
+            # Check for empty classes
+            EMPTY_CLASSES=$(find ./src -name "*.cs" -exec grep -l "class.*{[[:space:]]*}" {} \; 2>/dev/null | wc -l)
+            if [ "$EMPTY_CLASSES" -gt 0 ]; then
+              echo "❌ Found $EMPTY_CLASSES empty classes"
+              DEAD_CODE_VIOLATIONS=$((DEAD_CODE_VIOLATIONS + EMPTY_CLASSES))
+            fi
+            
+            if [ "$DEAD_CODE_VIOLATIONS" -gt 0 ]; then
+              echo "❌ Dead code violations found ($DEAD_CODE_VIOLATIONS) — remove before committing."
+              exit 1
+            fi
+            
+            echo "✅ No critical dead code violations detected"
           fi
-          
-          echo "✅ Dead code detection completed successfully"
 
       - name: "🛡️ Quality Gate Summary"
         if: env.CODE_ANALYSIS == 'true'
@@ -650,8 +473,8 @@ jobs:
           echo "✅ STATIC ANALYSIS COMPLETED:"
           echo "   🏗️ Analyzer compliance - Zero violations"
           echo "   🚧 Guardrail enforcement - No placeholders/commented code/credentials"
-          echo "   🔒 Security patterns - No anti-patterns detected"
-          echo "   💀 Dead code detection - Active with violation enforcement"
+          echo "   🔒 Security patterns - No insecure patterns detected"
+          echo "   💀 Dead code detection - Active with comprehensive analysis"
           echo ""
           echo "🎯 QUALITY STANDARDS ENFORCED:"
           echo "   • Production-ready code only"
@@ -659,6 +482,7 @@ jobs:
           echo "   • No hardcoded credentials or URLs"
           echo "   • Security-compliant patterns"
           echo "   • Zero analyzer violations"
+          echo "   • Dead code elimination active"
           echo ""
           echo "✅ Repository meets enterprise production standards!"
           echo "=============================================="

@@ -28,10 +28,11 @@ The quality gate functionality is embedded within the existing Ultimate Build & 
    - SQL injection patterns
    - Development URLs in production code
 
-4. **Dead Code Detection Framework** - Ready for CodeQL integration
+4. **Dead Code Detection** - Active with build enforcement
    - Framework prepared in `.github/codeql/dead-code.ql`
    - Entry point analysis for orchestrator-based architecture
-   - Activatable via repository CodeQL settings
+   - **Active detection** with build failure on violations
+   - CodeQL integration when available, fallback detection otherwise
 
 ### 🔄 **Single Workflow Architecture**
 
@@ -44,7 +45,7 @@ The quality gate functionality is embedded within the existing Ultimate Build & 
 1. `🛡️ Quality Gate: Analyzer Compliance (Zero Tolerance)`
 2. `🛡️ Quality Gate: Guardrail Enforcement` 
 3. `🛡️ Quality Gate: Security Pattern Scanning`
-4. `🛡️ Quality Gate: Dead Code Detection Framework`
+4. `🛡️ Quality Gate: Dead Code Detection` - **Active with build enforcement**
 5. `🛡️ Quality Gate Summary`
 
 ### ✅ **Activation and Control**
