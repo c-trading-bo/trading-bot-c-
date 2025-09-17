@@ -281,16 +281,23 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
         StopRenewalTimer();
         
         var renewalInterval = TimeSpan.FromSeconds(_config.RenewSeconds);
-        _renewalTimer = new Timer(async _ =>
+        _renewalTimer = new Timer(_ =>
         {
-            try
+            _ = Task.Run(async () =>
             {
-                await RenewLeadershipAsync(CancellationToken.None);
+                try
+                {
+                    await RenewLeadershipAsync(CancellationToken.None);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[LEADER] Renewal timer error");
-            }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[LEADER] Failed to renew leadership");
+                }
+            });
         }, null, renewalInterval, renewalInterval);
         
         _logger.LogDebug("[LEADER] Started renewal timer (interval: {Interval}s)", _config.RenewSeconds);

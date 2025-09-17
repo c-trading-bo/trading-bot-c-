@@ -369,9 +369,19 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
         var delay = scheduled - now;
         
-        _nightlyTimer = new Timer(async _ =>
+        _nightlyTimer = new Timer(_ =>
         {
-            await PerformNightlyCalibrationAsync(CancellationToken.None);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await PerformNightlyCalibrationAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[CALIBRATION] Nightly calibration failed");
+                }
+            });
             
             // Reschedule for next day
             _nightlyTimer?.Change(TimeSpan.FromDays(1), Timeout.InfiniteTimeSpan);

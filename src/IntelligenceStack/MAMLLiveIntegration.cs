@@ -203,11 +203,13 @@ public class MamlLiveIntegration
         }
     }
 
-    private async void PerformPeriodicUpdate(object? state)
+    private void PerformPeriodicUpdate(object? state)
     {
-        try
+        _ = Task.Run(async () =>
         {
-            _logger.LogDebug("[MAML_LIVE] Performing periodic MAML update");
+            try
+            {
+                _logger.LogDebug("[MAML_LIVE] Performing periodic MAML update");
             
             // Update for each regime that has recent activity
             var ensembleStatus = _ensemble.GetCurrentStatus();
@@ -235,11 +237,12 @@ public class MamlLiveIntegration
             }
             
             _lastUpdate = DateTime.UtcNow;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[MAML_LIVE] Periodic update failed");
-        }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[MAML_LIVE] Periodic update failed");
+            }
+        });
     }
 
     private MamlModelState GetOrCreateModelState(string regimeKey)

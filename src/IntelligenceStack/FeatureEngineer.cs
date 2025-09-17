@@ -476,32 +476,35 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Periodic update of feature weights
     /// </summary>
-    private async void PerformScheduledUpdate(object? state)
+    private void PerformScheduledUpdate(object? state)
     {
-        try
+        _ = Task.Run(async () =>
         {
-            foreach (var (strategyId, tracker) in _importanceTrackers)
+            try
             {
-                if (tracker.HasSufficientData())
+                foreach (var (strategyId, tracker) in _importanceTrackers)
                 {
-                    var recentFeatures = tracker.GetRecentFeatures();
-                    var recentPredictions = tracker.GetRecentPredictions();
-                    var recentOutcomes = tracker.GetRecentOutcomes();
-
-                    if (recentFeatures != null)
+                    if (tracker.HasSufficientData())
                     {
-                        var shapValues = await CalculateRollingSHAPAsync(
-                            strategyId, recentFeatures, recentPredictions, recentOutcomes);
-                        
-                        await UpdateFeatureWeightsAsync(strategyId, recentFeatures, shapValues);
+                        var recentFeatures = tracker.GetRecentFeatures();
+                        var recentPredictions = tracker.GetRecentPredictions();
+                        var recentOutcomes = tracker.GetRecentOutcomes();
+
+                        if (recentFeatures != null)
+                        {
+                            var shapValues = await CalculateRollingSHAPAsync(
+                                strategyId, recentFeatures, recentPredictions, recentOutcomes);
+                            
+                            await UpdateFeatureWeightsAsync(strategyId, recentFeatures, shapValues);
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Error during scheduled feature weight update");
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[FEATURE_ENGINEER] Error during scheduled feature weight update");
+            }
+        });
     }
 
     public void Dispose()
