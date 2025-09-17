@@ -1,38 +1,83 @@
 {
-  "timestamp": "2025-09-17T12:48:44.812508",
+  "timestamp": "2025-09-17T15:27:32.276546",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "workflow_run": "68",
+  "market_session": "regular",
+  "workflow_run": "69",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-17T12:43:56.483798",
+    "timestamp": "2025-09-17T15:22:45.047859",
     "analysis_mode": "comprehensive",
-    "market_session": "extended",
-    "total_articles_processed": 14,
+    "market_session": "regular",
+    "total_articles_processed": 12,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.11666666666666665,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Stock market today: Dow rises, S&P 500 and Nasdaq steady as Wall Street braces for Fed decision",
+            "sentiment": 0.11666666666666665,
+            "textblob_score": 0.16666666666666666,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-rises-sp-500-and-nasdaq-steady-as-wall-street-braces-for-fed-decision-230515767.html",
+            "published": "2025-09-16T23:05:15Z",
+            "relevance_keywords": [
+              "S&P"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "NQ": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.11666666666666665,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Stock market today: Dow rises, S&P 500 and Nasdaq steady as Wall Street braces for Fed decision",
+            "sentiment": 0.11666666666666665,
+            "textblob_score": 0.16666666666666666,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/live/stock-market-today-dow-rises-sp-500-and-nasdaq-steady-as-wall-street-braces-for-fed-decision-230515767.html",
+            "published": "2025-09-16T23:05:15Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "yahoo_finance"
+        ]
       },
       "SPY": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+        "sentiment_score": 0.075,
+        "article_count": 1,
+        "articles": [
+          {
+            "title": "Harbor Human Capital Factor US Large Cap ETF",
+            "sentiment": 0.075,
+            "textblob_score": 0.10714285714285714,
+            "keyword_score": 0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4823704-harbor-human-capital-factor-us-large-cap-etf?source=feed_all_articles",
+            "published": "Wed, 17 Sep 2025 10:45:00 -0400",
+            "relevance_keywords": [
+              "large cap"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.1,
+        "sources": [
+          "seeking_alpha"
+        ]
       },
       "QQQ": {
         "sentiment_score": 0.0,
@@ -43,141 +88,129 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": -0.01575,
+        "sentiment_score": 0.3292424242424242,
         "article_count": 2,
         "articles": [
           {
-            "title": "UK regulator proposes exempting crypto firms from 'integrity' and other rules",
-            "sentiment": -0.0875,
-            "textblob_score": -0.125,
-            "keyword_score": 0,
+            "title": "MARA Holdings (MARA) Soars 7.9% as Crypto Stakeholders Work on 1-Million Bitcoin Purchase",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/uk-regulator-proposes-exempting-crypto-122534107.html",
-            "published": "2025-09-17T12:25:34Z",
+            "url": "https://finance.yahoo.com/news/mara-holdings-mara-soars-7-145909531.html",
+            "published": "2025-09-17T14:59:09Z",
             "relevance_keywords": [
+              "Bitcoin",
               "crypto"
             ]
           },
           {
-            "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
+            "title": "Wall Street Turns Crypto Bet Loved by Hedge Funds Into ETF Bait",
+            "sentiment": 0.35848484848484846,
+            "textblob_score": 0.5121212121212121,
             "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 12:00:00 GMT",
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-17/wall-street-turns-crypto-bet-loved-by-hedge-funds-into-etf-bait",
+            "published": "Wed, 17 Sep 2025 15:04:26 GMT",
             "relevance_keywords": [
-              "Bitcoin"
+              "crypto"
             ]
           }
         ],
-        "signal": "NEUTRAL",
+        "signal": "BULLISH",
         "confidence": 0.2,
         "sources": [
           "yahoo_finance",
-          "marketwatch"
+          "bloomberg"
         ]
       },
       "TSLA": {
-        "sentiment_score": 0.05738888888888888,
-        "article_count": 6,
+        "sentiment_score": 0.2238888888888889,
+        "article_count": 4,
         "articles": [
           {
-            "title": "How Stocks Reacted After Previous Fed Rate Cuts",
-            "sentiment": -0.11666666666666665,
-            "textblob_score": -0.16666666666666666,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.wsj.com/livecoverage/fed-interest-rate-decision-live-09-17-2025/card/how-stocks-reacted-after-previous-fed-rate-cuts-6mtlzZfVFX2U14Yzcz5g?siteid=yhoof2&yptr=yahoo",
-            "published": "2025-09-17T12:30:03Z",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Tesla Settles Two More Autopilot Lawsuits. Investors Shrug.",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://www.investors.com/news/tesla-stock-settles-two-autopilot-cases/?src=A00220&yptr=yahoo",
-            "published": "2025-09-17T12:12:03Z",
-            "relevance_keywords": [
-              "Tesla"
-            ]
-          },
-          {
-            "title": "ECB Keeping All Options Open on Rates, Guindos Says",
-            "sentiment": 0.105,
-            "textblob_score": 0.15,
-            "keyword_score": 0,
+            "title": "Mike Mayo\u2019s Big Bank Optimism Climbs on Deal-Making Rebound",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/current-rate-level-is-appropriate-ecb-s-de-guindos-tells-welt",
-            "published": "Wed, 17 Sep 2025 06:10:43 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-17/mike-mayo-s-big-bank-optimism-climbs-on-deal-making-rebound",
+            "published": "Wed, 17 Sep 2025 14:37:23 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Why the Fed\u2019s rate cut might not boost the economy",
+            "title": "It\u2019s the hottest chip stock you\u2019ve probably never heard of \u2014 and it just soared 30% in a week",
             "sentiment": 0.3,
             "textblob_score": 0.0,
             "keyword_score": 1.0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/why-the-feds-rate-cut-might-not-boost-the-economy-b764c0e6?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 11:20:00 GMT",
+            "url": "https://www.marketwatch.com/story/its-the-hottest-chip-stock-youve-probably-never-heard-of-and-it-just-soared-30-in-a-week-bbd4f7a4?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 14:46:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
+            "title": "Should Gen Z and millennials even bother including Social Security in their retirement plans anymore?",
+            "sentiment": -0.05444444444444444,
+            "textblob_score": -0.07777777777777778,
             "keyword_score": 0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 10:30:00 GMT",
+            "url": "https://www.marketwatch.com/story/should-gen-z-and-millennials-even-bother-including-social-security-in-their-retirement-plans-anymore-1d9fd1ff?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 14:00:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Cloudflare: Triple The Revenue, Still Too Expensive",
-            "sentiment": -0.35,
-            "textblob_score": -0.5,
+            "title": "Arhaus: I Need More Clarity On Revenue And Profits",
+            "sentiment": 0.35,
+            "textblob_score": 0.5,
             "keyword_score": 0,
             "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823633-cloudflare-triple-the-revenue-still-too-expensive?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 08:27:26 -0400",
+            "url": "https://seekingalpha.com/article/4823705-arhaus-i-need-more-clarity-on-revenue-and-profits?source=feed_all_articles",
+            "published": "Wed, 17 Sep 2025 10:47:21 -0400",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
         "signal": "NEUTRAL",
-        "confidence": 0.6,
+        "confidence": 0.4,
         "sources": [
-          "yahoo_finance",
           "bloomberg",
           "marketwatch",
           "seeking_alpha"
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.26611111111111113,
+        "sentiment_score": -0.18148148148148147,
         "article_count": 3,
         "articles": [
           {
-            "title": "Markets Await Chair Powell; President Trump Visits the UK | Bloomberg Brief 9/17/2025",
-            "sentiment": 0.35833333333333334,
-            "textblob_score": 0.08333333333333333,
-            "keyword_score": 1.0,
+            "title": "BlackRock\u2019s $185 Billion Model Makers Are Amping Up Stock Bets",
+            "sentiment": -0.2644444444444444,
+            "textblob_score": -0.37777777777777777,
+            "keyword_score": 0.0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-17/bloomberg-brief-9-17-2025-video",
-            "published": "Wed, 17 Sep 2025 10:42:46 GMT",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-17/blackrock-s-185-billion-model-makers-are-amping-up-stock-bets",
+            "published": "Wed, 17 Sep 2025 14:09:25 GMT",
             "relevance_keywords": [
-              "Nvidia"
+              "artificial intelligence"
+            ]
+          },
+          {
+            "title": "Oracle Sparks Bubble Talk With Stock Price in Dot-Com Territory",
+            "sentiment": -0.42,
+            "textblob_score": -0.6,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-17/oracle-sparks-bubble-talk-with-stock-price-in-dot-com-territory",
+            "published": "Wed, 17 Sep 2025 09:53:06 GMT",
+            "relevance_keywords": [
+              "artificial intelligence"
             ]
           },
           {
@@ -187,19 +220,7 @@
             "keyword_score": 0,
             "source": "marketwatch",
             "url": "https://www.marketwatch.com/story/nvidia-shares-slip-to-one-week-low-a-report-says-china-has-banned-its-chips-e45c70cc?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 12:28:00 GMT",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "NVIDIA: Why I'm Changing My Recommendation From \"Buy\" To \"Hold\"",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823638-nvidia-why-im-changing-my-recommendation-from-buy-to-hold?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 08:34:30 -0400",
+            "published": "Wed, 17 Sep 2025 13:27:00 GMT",
             "relevance_keywords": [
               "Nvidia"
             ]
@@ -209,57 +230,16 @@
         "confidence": 0.3,
         "sources": [
           "bloomberg",
-          "marketwatch",
-          "seeking_alpha"
+          "marketwatch"
         ]
       },
       "AAPL": {
-        "sentiment_score": 0.3286868686868687,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "Seqens Creditors Tap Paul Weiss as Cash Hits \u2018Critical Point\u2019",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-17/seqens-creditors-tap-paul-weiss-as-cash-hits-critical-point",
-            "published": "Wed, 17 Sep 2025 12:02:45 GMT",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          },
-          {
-            "title": "Markets Await Chair Powell; President Trump Visits the UK | Bloomberg Brief 9/17/2025",
-            "sentiment": 0.35833333333333334,
-            "textblob_score": 0.08333333333333333,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-17/bloomberg-brief-9-17-2025-video",
-            "published": "Wed, 17 Sep 2025 10:42:46 GMT",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          },
-          {
-            "title": "Welcome To The Macro Bermuda Triangle And Its New Currents",
-            "sentiment": 0.3277272727272727,
-            "textblob_score": 0.4681818181818182,
-            "keyword_score": 0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823451-welcome-to-macro-bermuda-triangle-and-its-new-currents?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 08:30:00 -0400",
-            "relevance_keywords": [
-              "Mac"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.3,
-        "sources": [
-          "bloomberg",
-          "seeking_alpha"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       }
     },
     "sources_used": [
@@ -272,8 +252,8 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-17T12:48:44.643629",
-    "market_session": "extended",
+    "timestamp": "2025-09-17T15:27:32.138638",
+    "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
       "sentiment": 0.0,
@@ -294,7 +274,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-17T12:43:54.431077",
+    "timestamp": "2025-09-17T15:22:43.131562",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -409,7 +389,7 @@
       }
     ]
   },
-  "overall_market_sentiment": "NEUTRAL",
+  "overall_market_sentiment": "BULLISH",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
