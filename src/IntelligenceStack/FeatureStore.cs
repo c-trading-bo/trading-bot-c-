@@ -90,8 +90,9 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to get features for {Symbol}", symbol);
-            throw;
+            _logger.LogError(ex, "[FEATURES] Failed to get features for {Symbol} from {FromTime} to {ToTime}", 
+                symbol, fromTime, toTime);
+            throw new InvalidOperationException($"Feature retrieval failed for symbol {symbol}", ex);
         }
     }
 
@@ -127,8 +128,9 @@ public class FeatureStore : IFeatureStore
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[FEATURES] Failed to save features for {Symbol}", features.Symbol);
-            throw;
+            _logger.LogError(ex, "[FEATURES] Failed to save features for {Symbol} at {Timestamp}", 
+                features.Symbol, features.Timestamp);
+            throw new InvalidOperationException($"Feature saving failed for symbol {features.Symbol}", ex);
         }
     }
 
@@ -228,7 +230,7 @@ public class FeatureStore : IFeatureStore
         catch (Exception ex)
         {
             _logger.LogError(ex, "[FEATURES] Failed to save schema: {Version}", schema.Version);
-            throw;
+            throw new InvalidOperationException($"Schema save failed for version {schema.Version}", ex);
         }
     }
 
@@ -308,7 +310,7 @@ public class FeatureStore : IFeatureStore
         };
     }
 
-    private string CalculateChecksum(FeatureSet features)
+    private static string CalculateChecksum(FeatureSet features)
     {
         var content = JsonSerializer.Serialize(features.Features);
         using var sha = SHA256.Create();
@@ -316,7 +318,7 @@ public class FeatureStore : IFeatureStore
         return Convert.ToHexString(hash)[..16]; // First 16 chars
     }
 
-    private string CalculateSchemaChecksum(FeatureSchema schema)
+    private static string CalculateSchemaChecksum(FeatureSchema schema)
     {
         var content = JsonSerializer.Serialize(schema.Features);
         using var sha = SHA256.Create();

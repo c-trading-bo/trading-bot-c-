@@ -211,7 +211,7 @@ public class RealTradingMetricsService : BackgroundService
         var baselineMean = baselineFeatures.Average(f => f.Value);
         var baselineStd = Math.Sqrt(baselineFeatures.Select(f => Math.Pow(f.Value - baselineMean, 2)).Average());
         
-        if (baselineStd == 0) return 0.0;
+        if (Math.Abs(baselineStd) < 1e-10) return 0.0;
         
         return Math.Abs(recentMean - baselineMean) / baselineStd;
     }
@@ -284,7 +284,7 @@ public class RealTradingMetricsService : BackgroundService
         var averageReturn = returns.Average();
         var returnStdDev = Math.Sqrt(returns.Select(r => Math.Pow(r - averageReturn, 2)).Average());
         
-        if (returnStdDev == 0) return 0.0;
+        if (Math.Abs(returnStdDev) < 1e-10) return 0.0;
         
         // Assuming risk-free rate of 0 for simplicity
         return averageReturn / returnStdDev;

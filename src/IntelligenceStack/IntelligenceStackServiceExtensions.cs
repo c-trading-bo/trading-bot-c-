@@ -306,7 +306,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogInformation("🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> No test model found (expected): {Message}", ex.Message);
+                    _logger.LogInformation(ex, "🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> No test model found (expected): {Message}", ex.Message);
                 }
             }
 

@@ -64,7 +64,7 @@ public class StreamingFeatureEngineering : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to process market data for feature engineering");
-            throw;
+            throw new InvalidOperationException("Feature engineering processing failed for market data", ex);
         }
     }
 
@@ -143,11 +143,11 @@ public class StreamingFeatureEngineering : IDisposable
         features["volume"] = currentData.Volume;
 
         // Moving averages (streaming calculation)
-        features["sma_5"] = await aggregator.GetSMAAsync(5, cancellationToken);
-        features["sma_20"] = await aggregator.GetSMAAsync(20, cancellationToken);
-        features["sma_50"] = await aggregator.GetSMAAsync(50, cancellationToken);
-        features["ema_12"] = await aggregator.GetEMAAsync(12, cancellationToken);
-        features["ema_26"] = await aggregator.GetEMAAsync(26, cancellationToken);
+        features["sma_5"] = aggregator.GetSMA(5);
+        features["sma_20"] = aggregator.GetSMA(20);
+        features["sma_50"] = aggregator.GetSMA(50);
+        features["ema_12"] = aggregator.GetEMA(12);
+        features["ema_26"] = aggregator.GetEMA(26);
 
         // Volatility features
         features["volatility_10"] = await aggregator.GetVolatilityAsync(10, cancellationToken);
@@ -318,32 +318,26 @@ public class StreamingAggregator
         }
     }
 
-    public async Task<double> GetSMAAsync(int period, CancellationToken cancellationToken)
+    public double GetSMA(int period)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                var data = _dataWindow.TakeLast(period).ToList();
-                return data.Count > 0 ? data.Average(d => d.Close) : 0.0;
-            }
-        }, cancellationToken);
+            var data = _dataWindow.TakeLast(period).ToList();
+            return data.Count > 0 ? data.Average(d => d.Close) : 0.0;
+        }
     }
 
-    public async Task<double> GetEMAAsync(int period, CancellationToken cancellationToken)
+    public double GetEMA(int period)
     {
-        return await Task.Run(() =>
+        lock (_lock)
         {
-            lock (_lock)
+            return period switch
             {
-                return period switch
-                {
-                    12 => _ema12,
-                    26 => _ema26,
-                    _ => CalculateEMA(period)
-                };
-            }
-        }, cancellationToken);
+                12 => _ema12,
+                26 => _ema26,
+                _ => CalculateEMA(period)
+            };
+        }
     }
 
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
@@ -443,7 +437,7 @@ public class StreamingAggregator
                 var avgGain = gains.Average();
                 var avgLoss = losses.Average();
 
-                if (avgLoss == 0) return 100.0;
+                if (Math.Abs(avgLoss) < 1e-10) return 100.0;
                 
                 var rs = avgGain / avgLoss;
                 return 100.0 - (100.0 / (1.0 + rs));

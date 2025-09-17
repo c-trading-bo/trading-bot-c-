@@ -89,10 +89,12 @@ public class FeatureEngineer : IDisposable
 
             // Get or create importance tracker for this strategy
             var tracker = _importanceTrackers.GetOrAdd(strategyId, 
-                _ => new FeatureImportanceTracker(strategyId, _rollingWindowSize));
+                id => new FeatureImportanceTracker(id, _rollingWindowSize));
 
             // Update tracker with new data
-            await tracker.UpdateAsync(features, predictions.Last(), outcomes.Last(), cancellationToken);
+            var lastPrediction = predictions[predictions.Count - 1];
+            var lastOutcome = outcomes[outcomes.Count - 1];
+            await tracker.UpdateAsync(features, lastPrediction, lastOutcome, cancellationToken);
 
             // Calculate SHAP approximation using marginal contributions
             foreach (var (featureName, featureValue) in features.Features)
@@ -285,9 +287,6 @@ public class FeatureEngineer : IDisposable
                 return;
             }
 
-            // Calculate current prediction
-            var prediction = await predictionFunction(features);
-
             // Get recent predictions and outcomes for SHAP calculation
             var recentPredictions = tracker.GetRecentPredictions();
             var recentOutcomes = tracker.GetRecentOutcomes();
@@ -356,7 +355,7 @@ public class FeatureEngineer : IDisposable
         try
         {
             // Step 1: Perform async calculation of correlation sum
-            var correlationResult = await Task.Run(async () =>
+            await Task.Run(async () =>
             {
                 // Simulate async statistical computation
                 await Task.Delay(1, cancellationToken);
@@ -466,7 +465,7 @@ public class FeatureEngineer : IDisposable
         var denomX = Math.Sqrt(x.Sum(xi => Math.Pow(xi - meanX, 2)));
         var denomY = Math.Sqrt(y.Sum(yi => Math.Pow(yi - meanY, 2)));
         
-        if (denomX == 0 || denomY == 0)
+        if (Math.Abs(denomX) < 1e-10 || Math.Abs(denomY) < 1e-10)
         {
             return 0.0;
         }
@@ -477,32 +476,35 @@ public class FeatureEngineer : IDisposable
     /// <summary>
     /// Periodic update of feature weights
     /// </summary>
-    private async void PerformScheduledUpdate(object? state)
+    private void PerformScheduledUpdate(object? state)
     {
-        try
+        _ = Task.Run(async () =>
         {
-            foreach (var (strategyId, tracker) in _importanceTrackers)
+            try
             {
-                if (tracker.HasSufficientData())
+                foreach (var (strategyId, tracker) in _importanceTrackers)
                 {
-                    var recentFeatures = tracker.GetRecentFeatures();
-                    var recentPredictions = tracker.GetRecentPredictions();
-                    var recentOutcomes = tracker.GetRecentOutcomes();
-
-                    if (recentFeatures != null)
+                    if (tracker.HasSufficientData())
                     {
-                        var shapValues = await CalculateRollingSHAPAsync(
-                            strategyId, recentFeatures, recentPredictions, recentOutcomes);
-                        
-                        await UpdateFeatureWeightsAsync(strategyId, recentFeatures, shapValues);
+                        var recentFeatures = tracker.GetRecentFeatures();
+                        var recentPredictions = tracker.GetRecentPredictions();
+                        var recentOutcomes = tracker.GetRecentOutcomes();
+
+                        if (recentFeatures != null)
+                        {
+                            var shapValues = await CalculateRollingSHAPAsync(
+                                strategyId, recentFeatures, recentPredictions, recentOutcomes);
+                            
+                            await UpdateFeatureWeightsAsync(strategyId, recentFeatures, shapValues);
+                        }
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[FEATURE_ENGINEER] Error during scheduled feature weight update");
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[FEATURE_ENGINEER] Error during scheduled feature weight update");
+            }
+        });
     }
 
     public void Dispose()

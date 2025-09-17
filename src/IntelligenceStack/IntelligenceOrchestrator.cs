@@ -168,7 +168,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             // 4. Make raw prediction
-            var rawConfidence = await MakePredictionAsync(model, features, cancellationToken);
+            var rawConfidence = await MakePredictionAsync(features, cancellationToken);
             
             // 5. Apply calibration
             var calibratedConfidence = await _calibrationManager.CalibrateConfidenceAsync(
@@ -181,7 +181,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             }
 
             // 7. Calculate position size with Kelly criterion
-            var positionSize = CalculatePositionSize(calibratedConfidence, context);
+            var positionSize = CalculatePositionSize(calibratedConfidence);
 
             // 8. Create trading decision
             var decision = CreateTradingDecision(
@@ -357,9 +357,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     
                     _logger.LogDebug("[INTELLIGENCE] Loaded model for {Regime}: {ModelId}", regimeType, model.Id);
                 }
-                catch (FileNotFoundException)
+                catch (FileNotFoundException ex)
                 {
-                    _logger.LogWarning("[INTELLIGENCE] No model found for regime: {Regime}", regimeType);
+                    _logger.LogWarning(ex, "[INTELLIGENCE] No model found for regime: {Regime}", regimeType);
                 }
             }
 
@@ -386,9 +386,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             return await _modelRegistry.GetModelAsync("default", "latest", cancellationToken);
         }
-        catch (FileNotFoundException)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogWarning("[INTELLIGENCE] No fallback model available");
+            _logger.LogWarning(ex, "[INTELLIGENCE] No fallback model available");
             return null;
         }
     }
@@ -420,7 +420,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         };
     }
 
-    private async Task<double> MakePredictionAsync(ModelArtifact model, FeatureSet features, CancellationToken cancellationToken)
+    private async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
     {
         // Perform async prediction with model inference
         return await Task.Run(async () =>
@@ -491,11 +491,19 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             {
                 Symbol = symbol,
                 Confidence = confidence,
-                Direction = confidence > 0.55 ? "BUY" : confidence < 0.45 ? "SELL" : "HOLD",
+                Direction = GetDirectionFromConfidence(confidence),
                 ModelId = model.Id,
                 Timestamp = DateTime.UtcNow,
                 IsValid = true
             };
+            
+            // Helper method
+            string GetDirectionFromConfidence(double conf)
+            {
+                if (conf > 0.55) return "BUY";
+                if (conf < 0.45) return "SELL";
+                return "HOLD";
+            }
 
             _logger.LogDebug("[INTELLIGENCE] Generated prediction for {Symbol}: {Direction} (confidence: {Confidence:F3})", 
                 symbol, prediction.Direction, confidence);
@@ -564,13 +572,20 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 {
                     var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken);
                     
+                    string direction;
+                    if (ensemblePrediction.EnsembleResult > 0.55f)
+                        direction = "BUY";
+                    else if (ensemblePrediction.EnsembleResult < 0.45f)
+                        direction = "SELL";
+                    else
+                        direction = "HOLD";
+                    
                     // Convert EnsemblePrediction to MLPrediction
                     var prediction = new MLPrediction
                     {
                         Symbol = symbol,
                         Confidence = ensemblePrediction.Confidence,
-                        Direction = ensemblePrediction.EnsembleResult > 0.55f ? "BUY" : 
-                                   ensemblePrediction.EnsembleResult < 0.45f ? "SELL" : "HOLD",
+                        Direction = direction,
                         ModelId = $"ensemble_{strategyId}",
                         Timestamp = DateTime.UtcNow,
                         IsValid = !ensemblePrediction.IsAnomaly,
@@ -622,7 +637,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         return await GetOnlinePredictionAsync(symbol, strategyId, cancellationToken);
     }
 
-    private double CalculatePositionSize(double confidence, MarketContext context)
+    private double CalculatePositionSize(double confidence)
     {
         // Apply Kelly criterion with clip using configurable parameters
         var edge = (confidence - _config.ML.Confidence.EdgeConversionOffset) * _config.ML.Confidence.EdgeConversionMultiplier; // Convert to [-1, 1] range
@@ -703,7 +718,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
 
     private string GenerateDecisionId()
     {
-        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{Random.Shared.Next(1000, 9999)}";
+        return $"D{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_{System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999)}";
     }
 
     private bool ShouldPerformNightlyMaintenance()

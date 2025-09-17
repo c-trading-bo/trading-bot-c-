@@ -121,7 +121,7 @@ public class DecisionLogger : IDecisionLogger
         return decisions;
     }
 
-    private void EnrichDecision(IntelligenceDecision decision)
+    private static void EnrichDecision(IntelligenceDecision decision)
     {
         // Ensure decision has an ID
         if (string.IsNullOrEmpty(decision.DecisionId))
@@ -188,10 +188,10 @@ public class DecisionLogger : IDecisionLogger
         await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
     }
 
-    private string GenerateDecisionId()
+    private static string GenerateDecisionId()
     {
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var random = Random.Shared.Next(1000, 9999);
+        var random = System.Security.Cryptography.RandomNumberGenerator.GetInt32(1000, 9999);
         return $"D{timestamp}_{random}";
     }
 
@@ -261,13 +261,20 @@ public class DriftMonitor
             var hasWarning = psi > _config.PsiWarn;
             var hasBlock = psi > _config.PsiBlock;
 
+            string message;
+            if (hasBlock)
+                message = "Feature drift detected - blocking";
+            else if (hasWarning)
+                message = "Feature drift warning";
+            else
+                message = "No drift detected";
+                
             var result = new DriftDetectionResult
             {
                 HasDrift = hasWarning,
                 ShouldBlock = hasBlock,
                 PSI = psi,
-                Message = hasBlock ? "Feature drift detected - blocking" : 
-                         hasWarning ? "Feature drift warning" : "No drift detected"
+                Message = message
             };
 
             if (hasWarning)
@@ -298,10 +305,9 @@ public class DriftMonitor
         };
     }
 
-    private double CalculatePSI(Dictionary<string, double> baseline, Dictionary<string, double> current)
+    private static double CalculatePSI(Dictionary<string, double> baseline, Dictionary<string, double> current)
     {
         var psi = 0.0;
-        var totalFeatures = baseline.Count;
 
         foreach (var feature in baseline.Keys)
         {

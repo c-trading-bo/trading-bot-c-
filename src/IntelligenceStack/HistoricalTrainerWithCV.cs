@@ -124,8 +124,9 @@ public class HistoricalTrainerWithCV
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}", modelFamily);
-            throw;
+            _logger.LogError(ex, "[HISTORICAL_CV] Walk-forward CV failed for {ModelFamily}", 
+                modelFamily);
+            throw new InvalidOperationException($"Cross-validation failed for model family {modelFamily}", ex);
         }
     }
 
@@ -173,7 +174,7 @@ public class HistoricalTrainerWithCV
         catch (Exception ex)
         {
             _logger.LogError(ex, "[LEAK_SAFE_LABELING] Failed to generate leak-safe labels for {Symbol}", symbol);
-            throw;
+            throw new InvalidOperationException($"Leak-safe label generation failed for {symbol}", ex);
         }
     }
 
@@ -269,11 +270,8 @@ public class HistoricalTrainerWithCV
         TimeSeriesSplit split,
         CancellationToken cancellationToken)
     {
-        // Generate training data with proper purging around the split
-        var trainingData = new List<TrainingExample>();
-        
         // Get features for training period
-        var features = await _featureStore.GetFeaturesAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);
+        await _featureStore.GetFeaturesAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);
         
         // Generate leak-safe labels
         var examples = await GenerateLeakSafeLabelsAsync("ES", split.TrainStart, split.TrainEnd, cancellationToken);
@@ -321,7 +319,7 @@ public class HistoricalTrainerWithCV
             SchemaChecksum = "mock_checksum",
             Metrics = new ModelMetrics
             {
-                AUC = baseAccuracy + (new Random().NextDouble() - 0.5) * 0.1,
+                AUC = baseAccuracy + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * 0.1,
                 PrAt10 = baseAccuracy * 0.2,
                 ECE = 0.05,
                 EdgeBps = baseAccuracy * 10,
@@ -342,7 +340,7 @@ public class HistoricalTrainerWithCV
         await Task.Delay(50, cancellationToken);
         
         var basePerformance = model.Metrics.AUC;
-        var testPerformance = Math.Max(0.5, basePerformance - 0.05 + (new Random().NextDouble() - 0.5) * 0.1);
+        var testPerformance = Math.Max(0.5, basePerformance - 0.05 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 100.0) * 0.1);
         
         return new ModelMetrics
         {
@@ -404,7 +402,7 @@ public class HistoricalTrainerWithCV
             // Step 1: Load historical data from multiple sources asynchronously
             var primaryDataTask = LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
             var backupDataTask = LoadBackupMarketDataAsync(symbol, startTime, endTime, cancellationToken);
-            var volumeDataTask = LoadVolumeDataAsync(symbol, startTime, endTime, cancellationToken);
+            var volumeDataTask = LoadVolumeDataAsync(cancellationToken);
             
             try
             {
@@ -447,11 +445,10 @@ public class HistoricalTrainerWithCV
         var dataPoints = new List<MarketDataPoint>();
         var current = startTime;
         var price = symbol == "ES" ? 4500.0 : 100.0; // Different base prices for different symbols
-        var random = new Random(symbol.GetHashCode() + startTime.GetHashCode()); // Deterministic for consistency
-
+        
         while (current <= endTime)
         {
-            var change = (random.NextDouble() - 0.5) * 10; // Random price change
+            var change = (System.Security.Cryptography.RandomNumberGenerator.GetInt32(-50, 50) / 10.0); // Secure random price change
             price += change;
             
             dataPoints.Add(new MarketDataPoint
@@ -459,10 +456,10 @@ public class HistoricalTrainerWithCV
                 Timestamp = current,
                 Symbol = symbol,
                 Open = price - change,
-                High = Math.Max(price, price - change) + random.NextDouble() * 5,
-                Low = Math.Min(price, price - change) - random.NextDouble() * 5,
+                High = Math.Max(price, price - change) + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
+                Low = Math.Min(price, price - change) - System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 50) / 10.0,
                 Close = price,
-                Volume = 1000 + random.Next(5000)
+                Volume = 1000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 5000)
             });
 
             current = current.AddMinutes(1); // 1-minute bars
@@ -478,7 +475,7 @@ public class HistoricalTrainerWithCV
         return await LoadPrimaryMarketDataAsync(symbol, startTime, endTime, cancellationToken);
     }
     
-    private async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(string symbol, DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
+    private static async Task<Dictionary<DateTime, long>> LoadVolumeDataAsync(CancellationToken cancellationToken)
     {
         // Simulate loading enhanced volume data
         await Task.Delay(50, cancellationToken);

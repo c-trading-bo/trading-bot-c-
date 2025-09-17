@@ -94,7 +94,7 @@ public class RLAdvisorSystem
             await LogRLDecisionAsync(agentKey, recommendation, context, cancellationToken);
 
             // Increment shadow decision count
-            await IncrementShadowDecisionCountAsync(agentKey, cancellationToken);
+            await IncrementShadowDecisionCountAsync(agentKey);
 
             _logger.LogDebug("[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})", 
                 context.Symbol, recommendation.Action, recommendation.Confidence);
@@ -399,7 +399,7 @@ public class RLAdvisorSystem
         await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken);
     }
 
-    private async Task IncrementShadowDecisionCountAsync(string agentKey, CancellationToken cancellationToken)
+    private async Task IncrementShadowDecisionCountAsync(string agentKey)
     {
         // Brief yield for async context
         await Task.Yield();
@@ -445,7 +445,6 @@ public class RLAdvisorSystem
 
     private async Task UpdatePerformanceTrackingAsync(
         string agentKey,
-        RLDecision decision,
         ExitOutcome outcome,
         CancellationToken cancellationToken)
     {
@@ -574,7 +573,7 @@ public class RLAdvisorSystem
         // For production, this would integrate with historical data providers
         var dataPoints = new List<RLMarketDataPoint>();
         var current = startDate;
-        var random = new Random(symbol.GetHashCode()); // Deterministic seed for consistency
+        var seed = symbol.GetHashCode(); // Deterministic seed for consistency
         
         while (current <= endDate)
         {
@@ -582,9 +581,9 @@ public class RLAdvisorSystem
             {
                 Timestamp = current,
                 Symbol = symbol,
-                Price = 4000 + random.NextDouble() * 200, // ES price range
-                Volume = random.Next(100, 1000),
-                Volatility = 0.01 + random.NextDouble() * 0.02
+                Price = 4000 + System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 200), // ES price range
+                Volume = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100, 1000),
+                Volatility = 0.01 + (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 20) / 1000.0)
             });
             current = current.AddMinutes(1); // 1-minute bars
         }
@@ -603,7 +602,6 @@ public class RLAdvisorSystem
         return await Task.Run(() =>
         {
             var windows = new List<EpisodeWindow>();
-            var windowSize = TimeSpan.FromHours(4); // 4-hour episodes
             
             for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
@@ -675,7 +673,14 @@ public class RLAdvisorSystem
     private RLActionResult DetermineOptimalAction(RLMarketDataPoint current, RLMarketDataPoint next)
     {
         var priceChange = next.Price - current.Price;
-        var actionType = priceChange > 0 ? 1 : (priceChange < 0 ? 2 : 0); // Buy, Sell, Hold
+        int actionType;
+        if (priceChange > 0)
+            actionType = 1; // Buy
+        else if (priceChange < 0)
+            actionType = 2; // Sell
+        else
+            actionType = 0; // Hold
+            
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
         return new RLActionResult
@@ -785,7 +790,6 @@ public class RLAgent
     public double ExplorationRate { get; private set; } = 0.1;
 
     private readonly Dictionary<string, double> _qTable = new();
-    private readonly Random _random = new();
 
     public RLAgent(ILogger logger, RLAgentType agentType, string agentKey, AdvisorConfig config)
     {
@@ -807,10 +811,10 @@ public class RLAgent
         int actionType;
         double confidence;
         
-        if (_random.NextDouble() < ExplorationRate)
+        if (System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 100) < ExplorationRate * 100)
         {
             // Exploration
-            actionType = _random.Next(4);
+            actionType = System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 4);
             confidence = _config.ExplorationConfidence;
         }
         else

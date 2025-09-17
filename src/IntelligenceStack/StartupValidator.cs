@@ -173,7 +173,7 @@ public class StartupValidator : IStartupValidator
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("[DI] Failed to resolve {ServiceType}: {Error}", serviceType.Name, ex.Message);
+                    _logger.LogWarning(ex, "[DI] Failed to resolve {ServiceType}: {Error}", serviceType.Name, ex.Message);
                     missingServices.Add(serviceType.Name);
                 }
             }
@@ -244,7 +244,7 @@ public class StartupValidator : IStartupValidator
             // Load active artifacts
             try
             {
-                var testModel = await _modelRegistry.GetModelAsync("test_family", "latest", cancellationToken);
+                await _modelRegistry.GetModelAsync("test_family", "latest", cancellationToken);
                 // It's OK if no model exists yet, just test the retrieval mechanism
             }
             catch (FileNotFoundException)
@@ -253,7 +253,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Verify we can compute metrics
-            var sampleMetrics = await _modelRegistry.GetModelMetricsAsync("test_model_123", cancellationToken);
+            await _modelRegistry.GetModelMetricsAsync("test_model_123", cancellationToken);
             
             _logger.LogDebug("[REGISTRY] Model registry access validated");
             return true;
@@ -353,7 +353,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Test that we can check kill switch status
-            var isActive = await killSwitch.IsKillSwitchActiveAsync();
+            await killSwitch.IsKillSwitchActiveAsync();
             
             // Simulate halt test (should complete in < 3 seconds)
             var stopwatch = Stopwatch.StartNew();
@@ -371,9 +371,9 @@ public class StartupValidator : IStartupValidator
                     return false;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                _logger.LogError("[KILL_SWITCH] Kill switch test timed out");
+                _logger.LogError(ex, "[KILL_SWITCH] Kill switch test timed out");
                 return false;
             }
 
@@ -400,7 +400,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Test that we can check leadership status
-            var isLeader = await _leaderElectionService.IsLeaderAsync(cancellationToken);
+            await _leaderElectionService.IsLeaderAsync(cancellationToken);
             
             if (acquired)
             {
