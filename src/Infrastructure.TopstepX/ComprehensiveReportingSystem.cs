@@ -185,7 +185,8 @@ public class ComprehensiveReportingSystem
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(5);
-            await client.GetAsync("https://api.topstepx.com");
+            var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? "https://api.topstepx.com";
+            await client.GetAsync(apiUrl);
         }
         catch { /* Ignore errors for latency measurement */ }
         netStopwatch.Stop();

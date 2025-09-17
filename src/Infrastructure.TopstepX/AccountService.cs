@@ -75,6 +75,7 @@ public class AccountService : IAccountService, IDisposable
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
     private readonly Timer _refreshTimer;
+    private bool _disposed = false;
     
     public event Action<AccountInfo>? OnAccountUpdated;
 
@@ -201,6 +202,30 @@ public class AccountService : IAccountService, IDisposable
         return accountInfo.Balance;
     }
 
+    public async Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var accountInfo = await GetAccountInfoAsync();
+            if (accountInfo.AccountId == accountId)
+            {
+                return new BalanceInfo(
+                    accountInfo.Balance,
+                    accountInfo.BuyingPower,
+                    accountInfo.BuyingPower,
+                    accountInfo.DayPnL,
+                    accountInfo.UnrealizedPnL
+                );
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[ACCOUNT] Failed to get balance for account {AccountId}", accountId);
+            return null;
+        }
+    }
+
     public async Task StartPeriodicRefreshAsync(TimeSpan interval)
     {
         _logger.LogInformation("[ACCOUNT] Starting periodic refresh every {Interval}", interval);
@@ -242,7 +267,20 @@ public class AccountService : IAccountService, IDisposable
 
     public void Dispose()
     {
-        _refreshTimer?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _refreshTimer?.Dispose();
+            }
+            _disposed = true;
+        }
     }
 
     /// <summary>
@@ -277,9 +315,9 @@ public class AccountService : IAccountService, IDisposable
                     _logger.LogWarning("[ACCOUNT] API health check returned: {StatusCode}", response.StatusCode);
                 }
             }
-            catch (TaskCanceledException)
+            catch (TaskCanceledException ex)
             {
-                _logger.LogWarning("[ACCOUNT] API connectivity test timed out");
+                _logger.LogWarning(ex, "[ACCOUNT] API connectivity test timed out");
             }
             catch (HttpRequestException ex)
             {
@@ -307,30 +345,6 @@ public class AccountService : IAccountService, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ACCOUNT] Failed to get account {AccountId}", accountId);
-            return null;
-        }
-    }
-    
-    public async Task<BalanceInfo?> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var accountInfo = await GetAccountInfoAsync();
-            if (accountInfo.AccountId == accountId)
-            {
-                return new BalanceInfo(
-                    accountInfo.Balance,
-                    accountInfo.BuyingPower,
-                    accountInfo.BuyingPower,
-                    accountInfo.DayPnL,
-                    accountInfo.UnrealizedPnL
-                );
-            }
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "[ACCOUNT] Failed to get balance for account {AccountId}", accountId);
             return null;
         }
     }

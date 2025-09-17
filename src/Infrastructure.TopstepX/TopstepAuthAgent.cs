@@ -73,7 +73,7 @@ public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
                     sanitized_message = SanitizeErrorMessage(ex.Message)
                 };
 
-                _logger.LogError("JWT refresh failed: {ErrorData}", System.Text.Json.JsonSerializer.Serialize(errorData));
+                _logger.LogError(ex, "JWT refresh failed: {ErrorData}", System.Text.Json.JsonSerializer.Serialize(errorData));
                 throw;
             }
             finally

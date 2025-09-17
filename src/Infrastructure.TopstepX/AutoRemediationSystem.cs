@@ -52,22 +52,22 @@ public class AutoRemediationSystem
 
             // Phase 1: Environment and Configuration Issues
             _logger.LogInformation("📋 Phase 1: Environment and Configuration Remediation");
-            var envRemediationResult = await RemediateEnvironmentIssues(testResults, systemReport);
+            var envRemediationResult = await RemediateEnvironmentIssues(systemReport);
             result.EnvironmentRemediations.AddRange(envRemediationResult);
 
             // Phase 2: Credential and Authentication Issues
             _logger.LogInformation("📋 Phase 2: Credential and Authentication Remediation");
-            var credRemediationResult = await RemediateCredentialIssues(testResults, systemReport);
+            var credRemediationResult = await RemediateCredentialIssues(systemReport);
             result.CredentialRemediations.AddRange(credRemediationResult);
 
             // Phase 3: Performance and Latency Issues
             _logger.LogInformation("📋 Phase 3: Performance and Latency Remediation");
-            var perfRemediationResult = await RemediatePerformanceIssues(testResults, systemReport);
+            var perfRemediationResult = await RemediatePerformanceIssues(systemReport);
             result.PerformanceRemediations.AddRange(perfRemediationResult);
 
             // Phase 4: Security and Compliance Issues
             _logger.LogInformation("📋 Phase 4: Security and Compliance Remediation");
-            var secRemediationResult = await RemediateSecurityIssues(testResults, systemReport);
+            var secRemediationResult = await RemediateSecurityIssues(systemReport);
             result.SecurityRemediations.AddRange(secRemediationResult);
 
             // Phase 5: Test Failures and System Health Issues
@@ -101,7 +101,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateEnvironmentIssues(
-        TestSuiteResult testResults, 
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -205,7 +204,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateCredentialIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -260,7 +258,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediatePerformanceIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();
@@ -352,7 +349,6 @@ public class AutoRemediationSystem
     }
 
     private async Task<List<RemediationAction>> RemediateSecurityIssues(
-        TestSuiteResult testResults,
         ComprehensiveReport systemReport)
     {
         var actions = new List<RemediationAction>();

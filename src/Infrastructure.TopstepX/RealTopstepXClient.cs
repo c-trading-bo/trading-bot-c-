@@ -844,9 +844,19 @@ public class RealTopstepXClient : ITopstepXClient, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-        
-        _logger.LogInformation("[REAL-TOPSTEPX] Client disposed");
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _logger.LogInformation("[REAL-TOPSTEPX] Client disposed");
+            }
+            _disposed = true;
+        }
     }
 }

@@ -28,6 +28,7 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
     private readonly HttpClient _httpClient;
     private HubConnection? _hubConnection;
     private bool _isConnected = false;
+    private bool _disposed = false;
     
     public event Action<MarketTick>? OnMarketTick;
 
@@ -177,21 +178,43 @@ public class MarketDataService : IMarketDataService, IAsyncDisposable, IDisposab
 
     public async ValueTask DisposeAsync()
     {
-        try
+        await DisposeAsyncCore();
+        
+        Dispose(false);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual async ValueTask DisposeAsyncCore()
+    {
+        if (_hubConnection != null)
         {
-            if (_hubConnection != null)
+            try
             {
-                await _hubConnection.DisposeAsync();
+                await _hubConnection.DisposeAsync().ConfigureAwait(false);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[MARKET] Error disposing hub connection");
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[MARKET] Error disposing hub connection");
+            }
         }
     }
 
     public void Dispose()
     {
-        DisposeAsync().AsTask().GetAwaiter().GetResult();
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                _hubConnection?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            }
+            _disposed = true;
+        }
     }
 }
