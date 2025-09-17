@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-17T09:23:04.934400",
+  "timestamp": "2025-09-17T12:43:56.483798",
   "analysis_mode": "comprehensive",
   "market_session": "extended",
-  "total_articles_processed": 10,
+  "total_articles_processed": 14,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -14,40 +14,12 @@
       "sources": []
     },
     "NQ": {
-      "sentiment_score": 0.3012,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "China Tech Stocks Jump as AI Boom Pushes Index to Four-Year High",
-          "sentiment": 0.2524,
-          "textblob_score": -0.06799999999999999,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-17/china-tech-stocks-surge-to-2021-level-as-investors-bet-on-ai",
-          "published": "Wed, 17 Sep 2025 02:45:55 GMT",
-          "relevance_keywords": [
-            "tech stocks"
-          ]
-        },
-        {
-          "title": "Top 6 Tech Stocks For Q4",
-          "sentiment": 0.35,
-          "textblob_score": 0.5,
-          "keyword_score": 0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823460-top-6-tech-stocks-for-q4?source=feed_all_articles",
-          "published": "Wed, 17 Sep 2025 05:00:00 -0400",
-          "relevance_keywords": [
-            "tech stocks"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.2,
-      "sources": [
-        "bloomberg",
-        "seeking_alpha"
-      ]
+      "sentiment_score": 0.0,
+      "article_count": 0,
+      "articles": [],
+      "signal": "NEUTRAL",
+      "confidence": 0.0,
+      "sources": []
     },
     "SPY": {
       "sentiment_score": 0.0,
@@ -66,9 +38,21 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.055999999999999994,
-      "article_count": 1,
+      "sentiment_score": -0.01575,
+      "article_count": 2,
       "articles": [
+        {
+          "title": "UK regulator proposes exempting crypto firms from 'integrity' and other rules",
+          "sentiment": -0.0875,
+          "textblob_score": -0.125,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/uk-regulator-proposes-exempting-crypto-122534107.html",
+          "published": "2025-09-17T12:25:34Z",
+          "relevance_keywords": [
+            "crypto"
+          ]
+        },
         {
           "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
           "sentiment": 0.055999999999999994,
@@ -76,32 +60,45 @@
           "keyword_score": 0,
           "source": "marketwatch",
           "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
-          "published": "Tue, 16 Sep 2025 23:24:00 GMT",
+          "published": "Wed, 17 Sep 2025 12:00:00 GMT",
           "relevance_keywords": [
             "Bitcoin"
           ]
         }
       ],
       "signal": "NEUTRAL",
-      "confidence": 0.1,
+      "confidence": 0.2,
       "sources": [
+        "yahoo_finance",
         "marketwatch"
       ]
     },
     "TSLA": {
-      "sentiment_score": 0.4533333333333333,
-      "article_count": 4,
+      "sentiment_score": 0.05738888888888888,
+      "article_count": 6,
       "articles": [
         {
-          "title": "Pets Best pet insurance review 2025",
-          "sentiment": 0.7,
-          "textblob_score": 1.0,
+          "title": "How Stocks Reacted After Previous Fed Rate Cuts",
+          "sentiment": -0.11666666666666665,
+          "textblob_score": -0.16666666666666666,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/personal-finance/insurance/review/pets-best-pet-insurance-review-154347749.html",
-          "published": "2025-05-14T15:43:47Z",
+          "url": "https://www.wsj.com/livecoverage/fed-interest-rate-decision-live-09-17-2025/card/how-stocks-reacted-after-previous-fed-rate-cuts-6mtlzZfVFX2U14Yzcz5g?siteid=yhoof2&yptr=yahoo",
+          "published": "2025-09-17T12:30:03Z",
           "relevance_keywords": [
             "EV"
+          ]
+        },
+        {
+          "title": "Tesla Settles Two More Autopilot Lawsuits. Investors Shrug.",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://www.investors.com/news/tesla-stock-settles-two-autopilot-cases/?src=A00220&yptr=yahoo",
+          "published": "2025-09-17T12:12:03Z",
+          "relevance_keywords": [
+            "Tesla"
           ]
         },
         {
@@ -117,80 +114,93 @@
           ]
         },
         {
-          "title": "Snowboarding champ Shaun White splits with actress Nina Dobrev 2 years after buying $4.3 million L.A. home",
-          "sentiment": 0.35833333333333334,
-          "textblob_score": 0.08333333333333333,
+          "title": "Why the Fed\u2019s rate cut might not boost the economy",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
           "keyword_score": 1.0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/snowboarding-champ-shaun-white-splits-with-actress-nina-dobrev-2-years-after-buying-4-3-million-l-a-home-32611e9e?mod=mw_rss_topstories",
-          "published": "Wed, 17 Sep 2025 09:06:00 GMT",
+          "url": "https://www.marketwatch.com/story/why-the-feds-rate-cut-might-not-boost-the-economy-b764c0e6?mod=mw_rss_topstories",
+          "published": "Wed, 17 Sep 2025 11:20:00 GMT",
           "relevance_keywords": [
             "EV"
           ]
         },
         {
-          "title": "Bloom Energy\u2019s stock is surging \u2014 and could ride Oracle\u2019s growth to even more gains",
-          "sentiment": 0.6499999999999999,
-          "textblob_score": 0.5,
-          "keyword_score": 1.0,
+          "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
+          "sentiment": 0.055999999999999994,
+          "textblob_score": 0.08,
+          "keyword_score": 0,
           "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/bloom-energys-stock-is-surging-and-could-ride-oracles-growth-to-even-more-gains-25c30ff3?mod=mw_rss_topstories",
-          "published": "Wed, 17 Sep 2025 01:39:00 GMT",
+          "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
+          "published": "Wed, 17 Sep 2025 10:30:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Cloudflare: Triple The Revenue, Still Too Expensive",
+          "sentiment": -0.35,
+          "textblob_score": -0.5,
+          "keyword_score": 0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4823633-cloudflare-triple-the-revenue-still-too-expensive?source=feed_all_articles",
+          "published": "Wed, 17 Sep 2025 08:27:26 -0400",
           "relevance_keywords": [
             "EV"
           ]
         }
       ],
-      "signal": "BULLISH",
-      "confidence": 0.4,
+      "signal": "NEUTRAL",
+      "confidence": 0.6,
       "sources": [
         "yahoo_finance",
         "bloomberg",
-        "marketwatch"
+        "marketwatch",
+        "seeking_alpha"
       ]
     },
     "NVDA": {
-      "sentiment_score": 0.3179111111111111,
+      "sentiment_score": 0.26611111111111113,
       "article_count": 3,
       "articles": [
         {
-          "title": "China Tech Stocks Jump as AI Boom Pushes Index to Four-Year High",
-          "sentiment": 0.2524,
-          "textblob_score": -0.06799999999999999,
+          "title": "Markets Await Chair Powell; President Trump Visits the UK | Bloomberg Brief 9/17/2025",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
           "keyword_score": 1.0,
           "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-17/china-tech-stocks-surge-to-2021-level-as-investors-bet-on-ai",
-          "published": "Wed, 17 Sep 2025 02:45:55 GMT",
-          "relevance_keywords": [
-            "artificial intelligence"
-          ]
-        },
-        {
-          "title": "This investor bought Netflix, Alphabet and Nvidia on the cheap. Where he\u2019s looking now.",
-          "sentiment": 0.35133333333333333,
-          "textblob_score": 0.07333333333333335,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/this-investor-bought-netflix-alphabet-and-nvidia-on-the-cheap-where-hes-looking-now-45138727?mod=mw_rss_topstories",
-          "published": "Wed, 17 Sep 2025 08:54:00 GMT",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-17/bloomberg-brief-9-17-2025-video",
+          "published": "Wed, 17 Sep 2025 10:42:46 GMT",
           "relevance_keywords": [
             "Nvidia"
           ]
         },
         {
-          "title": "NVYY Provides An Appealing Income Component On Nvidia Shares",
-          "sentiment": 0.35,
-          "textblob_score": 0.5,
+          "title": "Nvidia shares slip to one-week low. A report says China has banned its chips.",
+          "sentiment": 0.13999999999999999,
+          "textblob_score": 0.19999999999999998,
           "keyword_score": 0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/nvidia-shares-slip-to-one-week-low-a-report-says-china-has-banned-its-chips-e45c70cc?mod=mw_rss_topstories",
+          "published": "Wed, 17 Sep 2025 12:28:00 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "NVIDIA: Why I'm Changing My Recommendation From \"Buy\" To \"Hold\"",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
           "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823579-nvyy-provides-an-appealing-income-component-on-nvda-shares?source=feed_all_articles",
-          "published": "Wed, 17 Sep 2025 05:08:59 -0400",
+          "url": "https://seekingalpha.com/article/4823638-nvidia-why-im-changing-my-recommendation-from-buy-to-hold?source=feed_all_articles",
+          "published": "Wed, 17 Sep 2025 08:34:30 -0400",
           "relevance_keywords": [
             "Nvidia"
           ]
         }
       ],
-      "signal": "BULLISH",
+      "signal": "NEUTRAL",
       "confidence": 0.3,
       "sources": [
         "bloomberg",
@@ -199,12 +209,52 @@
       ]
     },
     "AAPL": {
-      "sentiment_score": 0.0,
-      "article_count": 0,
-      "articles": [],
-      "signal": "NEUTRAL",
-      "confidence": 0.0,
-      "sources": []
+      "sentiment_score": 0.3286868686868687,
+      "article_count": 3,
+      "articles": [
+        {
+          "title": "Seqens Creditors Tap Paul Weiss as Cash Hits \u2018Critical Point\u2019",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-17/seqens-creditors-tap-paul-weiss-as-cash-hits-critical-point",
+          "published": "Wed, 17 Sep 2025 12:02:45 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Markets Await Chair Powell; President Trump Visits the UK | Bloomberg Brief 9/17/2025",
+          "sentiment": 0.35833333333333334,
+          "textblob_score": 0.08333333333333333,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-17/bloomberg-brief-9-17-2025-video",
+          "published": "Wed, 17 Sep 2025 10:42:46 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        },
+        {
+          "title": "Welcome To The Macro Bermuda Triangle And Its New Currents",
+          "sentiment": 0.3277272727272727,
+          "textblob_score": 0.4681818181818182,
+          "keyword_score": 0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4823451-welcome-to-macro-bermuda-triangle-and-its-new-currents?source=feed_all_articles",
+          "published": "Wed, 17 Sep 2025 08:30:00 -0400",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.3,
+      "sources": [
+        "bloomberg",
+        "seeking_alpha"
+      ]
     }
   },
   "sources_used": [
