@@ -486,10 +486,21 @@ public class WorkflowSchedule
 
     private string? GetCoreMarketSchedule(int hour)
     {
-        // Core market hours (traditional market hours for more frequent activity)
-        if (hour >= 9 && hour <= 16 && !string.IsNullOrEmpty(MarketHours)) 
+        // Check standard market hours first
+        if (IsStandardMarketHour(hour))
             return MarketHours;
             
+        // Check special trading periods
+        return GetSpecialTradingPeriod(hour);
+    }
+
+    private bool IsStandardMarketHour(int hour)
+    {
+        return hour >= 9 && hour <= 16 && !string.IsNullOrEmpty(MarketHours);
+    }
+
+    private string? GetSpecialTradingPeriod(int hour)
+    {
         // First hour of traditional market
         if (hour >= 9 && hour <= 10 && !string.IsNullOrEmpty(FirstHour)) 
             return FirstHour;
@@ -499,10 +510,15 @@ public class WorkflowSchedule
             return LastHour;
             
         // Core hours (morning and afternoon peaks)
-        if (((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16)) && !string.IsNullOrEmpty(CoreHours)) 
+        if (IsCoreHour(hour) && !string.IsNullOrEmpty(CoreHours)) 
             return CoreHours;
             
         return null;
+    }
+
+    private static bool IsCoreHour(int hour)
+    {
+        return (hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16);
     }
 
     private string? GetExtendedHoursSchedule(int hour)
