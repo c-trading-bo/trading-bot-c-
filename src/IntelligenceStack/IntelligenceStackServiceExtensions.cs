@@ -119,7 +119,7 @@ public static class IntelligenceStackServiceExtensions
             provider.GetRequiredService<IntelligenceOrchestrator>());
 
         // Register monitoring services - PRODUCTION IMPLEMENTATIONS
-        services.AddSingleton<SLOMonitor>();
+        services.AddSingleton<SloMonitor>();
 
         // ================================================================================
         // PRODUCTION VERIFICATION SERVICE

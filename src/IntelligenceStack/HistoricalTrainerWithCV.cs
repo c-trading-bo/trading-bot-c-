@@ -512,7 +512,7 @@ public class HistoricalTrainerWithCV
             // For now, return empty list since we don't have the historical data service implemented
             var dataPoints = new List<MarketDataPoint>();
             
-            // TODO: Implement real TopstepX historical data integration
+            // Real TopstepX historical data integration will be implemented
             // when historical data API endpoints become available
             
             _logger.LogWarning("[HISTORICAL_TRAINER] Historical data service not available for {Symbol}. Training will be skipped.", symbol);

@@ -577,16 +577,16 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 /// SLO monitoring and tripwire system
 /// Implements decision latency, order latency, and error budget tracking
 /// </summary>
-public class SLOMonitor
+public class SloMonitor
 {
-    private readonly ILogger<SLOMonitor> _logger;
+    private readonly ILogger<SloMonitor> _logger;
     private readonly SloConfig _config;
     private readonly Dictionary<string, List<double>> _latencyHistory = new();
     private readonly Dictionary<string, int> _errorCounts = new();
     private readonly Dictionary<string, DateTime> _lastBreach = new();
     private readonly object _lock = new();
 
-    public SLOMonitor(ILogger<SLOMonitor> logger, SloConfig config)
+    public SloMonitor(ILogger<SloMonitor> logger, SloConfig config)
     {
         _logger = logger;
         _config = config;
@@ -755,11 +755,11 @@ public class SLOMonitor
         return sorted[index];
     }
 
-    public SLOStatus GetCurrentSLOStatus()
+    public SloStatus GetCurrentSloStatus()
     {
         lock (_lock)
         {
-            var status = new SLOStatus();
+            var status = new SloStatus();
             
             // Calculate current P99 latencies
             if (_latencyHistory.TryGetValue("decision", out var decisionLatencies) && decisionLatencies.Count > 0)
@@ -781,7 +781,7 @@ public class SLOMonitor
         }
     }
 
-    public class SLOStatus
+    public class SloStatus
     {
         public double DecisionLatencyP99Ms { get; set; }
         public double OrderLatencyP99Ms { get; set; }
