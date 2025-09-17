@@ -357,9 +357,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                     
                     _logger.LogDebug("[INTELLIGENCE] Loaded model for {Regime}: {ModelId}", regimeType, model.Id);
                 }
-                catch (FileNotFoundException)
+                catch (FileNotFoundException ex)
                 {
-                    _logger.LogWarning("[INTELLIGENCE] No model found for regime: {Regime}", regimeType);
+                    _logger.LogWarning(ex, "[INTELLIGENCE] No model found for regime: {Regime}", regimeType);
                 }
             }
 
@@ -386,9 +386,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         {
             return await _modelRegistry.GetModelAsync("default", "latest", cancellationToken);
         }
-        catch (FileNotFoundException)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogWarning("[INTELLIGENCE] No fallback model available");
+            _logger.LogWarning(ex, "[INTELLIGENCE] No fallback model available");
             return null;
         }
     }
@@ -572,24 +572,24 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 {
                     var ensemblePrediction = await onnxEnsemble.PredictAsync(featureArray, cancellationToken);
                     
+                    string direction;
+                    if (ensemblePrediction.EnsembleResult > 0.55f)
+                        direction = "BUY";
+                    else if (ensemblePrediction.EnsembleResult < 0.45f)
+                        direction = "SELL";
+                    else
+                        direction = "HOLD";
+                    
                     // Convert EnsemblePrediction to MLPrediction
                     var prediction = new MLPrediction
                     {
                         Symbol = symbol,
                         Confidence = ensemblePrediction.Confidence,
-                        Direction = GetEnsembleDirection(ensemblePrediction.EnsembleResult),
+                        Direction = direction,
                         ModelId = $"ensemble_{strategyId}",
                         Timestamp = DateTime.UtcNow,
                         IsValid = !ensemblePrediction.IsAnomaly,
                         Metadata = new Dictionary<string, object>
-                        
-            // Helper method
-            string GetEnsembleDirection(float result)
-            {
-                if (result > 0.55f) return "BUY";
-                if (result < 0.45f) return "SELL";
-                return "HOLD";
-            }
                         {
                             ["ensemble_result"] = ensemblePrediction.EnsembleResult,
                             ["latency_ms"] = ensemblePrediction.LatencyMs,

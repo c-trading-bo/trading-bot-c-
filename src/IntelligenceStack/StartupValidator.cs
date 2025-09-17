@@ -173,7 +173,7 @@ public class StartupValidator : IStartupValidator
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("[DI] Failed to resolve {ServiceType}: {Error}", serviceType.Name, ex.Message);
+                    _logger.LogWarning(ex, "[DI] Failed to resolve {ServiceType}: {Error}", serviceType.Name, ex.Message);
                     missingServices.Add(serviceType.Name);
                 }
             }
@@ -371,9 +371,9 @@ public class StartupValidator : IStartupValidator
                     return false;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                _logger.LogError("[KILL_SWITCH] Kill switch test timed out");
+                _logger.LogError(ex, "[KILL_SWITCH] Kill switch test timed out");
                 return false;
             }
 
