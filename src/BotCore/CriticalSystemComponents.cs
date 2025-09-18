@@ -14,7 +14,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
-using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using System.Data.SQLite;
 using Microsoft.Extensions.Logging;

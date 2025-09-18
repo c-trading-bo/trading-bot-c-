@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.Abstractions;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -97,23 +98,21 @@ public class DataFlowMonitoringService : BackgroundService
     {
         try
         {
-            var signalRManager = scope.ServiceProvider.GetService<ISignalRConnectionManager>();
-            if (signalRManager == null)
+            var topstepXAdapter = scope.ServiceProvider.GetService<ITopstepXAdapterService>();
+            if (topstepXAdapter == null)
             {
-                RecordConnectionHealth("SignalRManager", false, "Service not available");
+                RecordConnectionHealth("TopstepXAdapter", false, "Service not available");
                 return;
             }
 
-            var isUserHubConnected = signalRManager.IsUserHubConnected;
-            var isMarketHubConnected = signalRManager.IsMarketHubConnected;
+            var isConnected = topstepXAdapter.IsConnected;
+            var health = topstepXAdapter.ConnectionHealth;
             
-            RecordConnectionHealth("UserHub", isUserHubConnected, 
-                isUserHubConnected ? "Connected" : "Disconnected");
-            RecordConnectionHealth("MarketHub", isMarketHubConnected, 
-                isMarketHubConnected ? "Connected" : "Disconnected - Check live data reception");
+            RecordConnectionHealth("TopstepXAdapter", isConnected && health >= 80, 
+                $"Connected: {isConnected}, Health: {health}%");
             
-            // If market hub is connected but we're not receiving data, this indicates the subscription issue
-            if (isMarketHubConnected)
+            // If adapter is connected but we're not receiving data, this indicates a data flow issue
+            if (isConnected)
             {
                 var timeSinceLastData = DateTime.UtcNow - _lastLiveDataReceived;
                 if (timeSinceLastData > TimeSpan.FromMinutes(5) && _lastLiveDataReceived != DateTime.MinValue)

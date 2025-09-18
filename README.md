@@ -39,8 +39,8 @@ dotnet run
 
 ### 📡 **TopstepX Integration**
 - **REST API**: https://api.topstepx.com order placement and verification
-- **User Hub**: SignalR connection for order/trade updates  
-- **Market Hub**: SignalR connection for real-time market data
+- **SDK Adapter**: Python bridge for order/trade updates  
+- **Market Data**: TopstepX SDK for real-time market data
 - **Authentication**: Bearer token security with environment variables
 
 ## Quick Start
@@ -111,7 +111,7 @@ decimal rMultiple = (isLong ? target - entry : entry - target) / risk;
 ### Order Flow Requirements
 1. **Unique Order ID**: S11L-YYYYMMDD-HHMMSS-{guid}
 2. **API Confirmation**: OrderId returned from REST call
-3. **SignalR Verification**: GatewayUserTrade event received
+3. **SDK Verification**: Trade execution via TopstepX adapter
 4. **Position Update**: Real-time P&L calculation
 
 ## Monitoring

@@ -2,7 +2,6 @@ using System;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 
 namespace BotCore
 {

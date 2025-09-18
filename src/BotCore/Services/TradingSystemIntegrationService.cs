@@ -8,7 +8,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,6 +22,7 @@ using BotCore.Services;
 using BotCore.ML;
 using BotCore.Brain;
 using TradingBot.RLAgent;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -40,15 +40,13 @@ namespace TopstepX.Bot.Core.Services
         private OrderFillConfirmationSystem? _orderConfirmation;
         private readonly ErrorHandlingMonitoringSystem _errorMonitoring;
         private readonly HttpClient _httpClient;
-        private HubConnection? _userHubConnection;
-        private HubConnection? _marketHubConnection;
         
         // ML/RL Strategy Components - Production Ready Integration
         private readonly TimeOptimizedStrategyManager _timeOptimizedStrategyManager;
         private readonly FeatureEngineering _featureEngineering;
         private readonly StrategyMlModelManager _strategyMlModelManager;
         private readonly UnifiedTradingBrain _unifiedTradingBrain;
-        private readonly ISignalRConnectionManager _signalRConnectionManager;
+        private readonly ITopstepXAdapterService _topstepXAdapter;
         
         // Account/contract selection fields
         private string[] _chosenContracts = Array.Empty<string>();
@@ -146,7 +144,7 @@ namespace TopstepX.Bot.Core.Services
             FeatureEngineering featureEngineering,
             StrategyMlModelManager strategyMlModelManager,
             UnifiedTradingBrain unifiedTradingBrain,
-            ISignalRConnectionManager signalRConnectionManager,
+            ITopstepXAdapterService topstepXAdapter,
             IHistoricalDataBridgeService historicalBridge,
             IEnhancedMarketDataFlowService marketDataFlow,
             IOptions<TradingReadinessConfiguration> readinessConfig)
@@ -164,17 +162,12 @@ namespace TopstepX.Bot.Core.Services
             _featureEngineering = featureEngineering;
             _strategyMlModelManager = strategyMlModelManager;
             _unifiedTradingBrain = unifiedTradingBrain;
-            _signalRConnectionManager = signalRConnectionManager;
+            _topstepXAdapter = topstepXAdapter;
             
             // Initialize Production Readiness Components - NEW
             _historicalBridge = historicalBridge;
             _marketDataFlow = marketDataFlow;
             _readinessConfig = readinessConfig.Value;
-            
-            // Wire up SignalR data reception handlers to complete the connection state machine
-            _signalRConnectionManager.OnMarketDataReceived += (data) => _ = OnMarketDataReceived(data);
-            _signalRConnectionManager.OnContractQuotesReceived += (data) => _ = OnMarketDataReceived(data); // Use same handler for both
-            _signalRConnectionManager.OnGatewayUserOrderReceived += OnGatewayUserOrderReceived;
             _signalRConnectionManager.OnGatewayUserTradeReceived += OnGatewayUserTradeReceived;
             _signalRConnectionManager.OnFillUpdateReceived += (data) => _ = OnFillConfirmed(data);
             _signalRConnectionManager.OnOrderUpdateReceived += OnOrderUpdateReceived;
@@ -223,11 +216,11 @@ namespace TopstepX.Bot.Core.Services
                 
                 try
                 {
-                    await SetupSignalRConnectionsAsync(combinedCts.Token);
+                    await SetupTopstepXAdapterAsync(combinedCts.Token);
                 }
                 catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
                 {
-                    _logger.LogWarning("⚠️ SignalR setup timed out after 2 minutes, continuing without live connections");
+                    _logger.LogWarning("⚠️ TopstepX adapter setup timed out after 2 minutes, continuing with degraded functionality");
                 }
                 
                 // Setup event handlers
@@ -1093,14 +1086,14 @@ namespace TopstepX.Bot.Core.Services
                 return Task.FromResult(false);
             }
 
-            // Check hub connections using SignalRConnectionManager
-            var userHubConnected = _signalRConnectionManager.IsUserHubConnected;
-            var marketHubConnected = _signalRConnectionManager.IsMarketHubConnected;
+            // Check adapter connection using TopstepX adapter
+            var adapterConnected = _topstepXAdapter.IsConnected;
+            var adapterHealth = _topstepXAdapter.ConnectionHealth;
             
-            if (!userHubConnected || !marketHubConnected)
+            if (!adapterConnected || adapterHealth < 80)
             {
-                _logger.LogDebug("[PRECHECK] Failed - hubs not connected. User: {UserHub}, Market: {MarketHub}",
-                    userHubConnected, marketHubConnected);
+                _logger.LogDebug("[PRECHECK] Failed - adapter not ready. Connected: {Connected}, Health: {Health}%",
+                    adapterConnected, adapterHealth);
                 return Task.FromResult(false);
             }
 
@@ -1734,54 +1727,53 @@ namespace TopstepX.Bot.Core.Services
             }
         }
 
-        private async Task SetupSignalRConnectionsAsync(CancellationToken cancellationToken)
+        private async Task SetupTopstepXAdapterAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("📡 Setting up SignalR connections with production-ready connection manager...");
+            _logger.LogInformation("🚀 Setting up TopstepX SDK adapter...");
             
             try
             {
-                // Use the robust SignalR Connection Manager instead of manual connection setup
-                _userHubConnection = await _signalRConnectionManager.GetUserHubConnectionAsync();
-                _marketHubConnection = await _signalRConnectionManager.GetMarketHubConnectionAsync();
+                // Initialize the TopstepX adapter service
+                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken);
                 
-                // Subscribe to user events for the configured account
-                if (!string.IsNullOrEmpty(_config.AccountId))
+                if (initialized)
                 {
-                    var userSubscribed = await _signalRConnectionManager.SubscribeToUserEventsAsync(_config.AccountId);
-                    _logger.LogInformation("📊 User events subscription: {Status}", userSubscribed ? "SUCCESS" : "FAILED");
+                    _logger.LogInformation("✅ TopstepX adapter initialized successfully");
+                    
+                    // Check adapter health
+                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+                    _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}% - Status: {Status}", 
+                        healthScore.HealthScore, healthScore.Status);
                 }
-                
-                // Subscribe to market events using contract IDs instead of symbols
-                var marketSubscribed = await _signalRConnectionManager.SubscribeToAllMarketsAsync();
-                _logger.LogInformation("📈 Market events subscription for ES/NQ/MES/MNQ: {Status}", 
-                    marketSubscribed ? "SUCCESS" : "FAILED");
-
-                _logger.LogInformation("✅ SignalR connections established with production-ready state machine");
+                else
+                {
+                    _logger.LogError("❌ Failed to initialize TopstepX adapter");
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Failed to setup SignalR connections");
+                _logger.LogError(ex, "❌ Exception during TopstepX adapter setup");
                 throw;
             }
         }
 
         private void SetupEventHandlers()
         {
-            // Event handlers are now automatically wired through SignalRConnectionManager
-            // in the constructor - this ensures proper connection state machine
-            _logger.LogInformation("📡 Event handlers are wired through SignalRConnectionManager for robust state management");
+            // Event handlers now use TopstepX SDK adapter for real-time data
+            // SDK provides built-in event handling and connection management
+            _logger.LogInformation("📡 Using TopstepX SDK adapter for real-time data and event handling");
         }
 
         private Task PerformSystemReadinessChecksAsync()
         {
             _logger.LogInformation("🔍 Performing system readiness checks...");
             
-            // Check connections using SignalRConnectionManager
-            var userHubReady = _signalRConnectionManager.IsUserHubConnected;
-            var marketHubReady = _signalRConnectionManager.IsMarketHubConnected;
+            // Check connections using TopstepX adapter
+            var adapterConnected = _topstepXAdapter.IsConnected;
+            var adapterHealth = _topstepXAdapter.ConnectionHealth;
             
-            _logger.LogInformation("📊 System Status - UserHub: {UserHub}, MarketHub: {MarketHub}, BarsSeen: {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})",
-                userHubReady, marketHubReady, _barsSeen + _seededBars, _barsSeen, _seededBars);
+            _logger.LogInformation("📊 System Status - TopstepX Adapter Connected: {Connected}, Health: {Health}%, BarsSeen: {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})",
+                adapterConnected, adapterHealth, _barsSeen + _seededBars, _barsSeen, _seededBars);
                 
             return Task.CompletedTask;
         }
@@ -1803,9 +1795,9 @@ namespace TopstepX.Bot.Core.Services
         {
             var score = 1.0;
             
-            // Reduce score for disconnected hubs using SignalRConnectionManager
-            if (!_signalRConnectionManager.IsUserHubConnected) score -= 0.3;
-            if (!_signalRConnectionManager.IsMarketHubConnected) score -= 0.3;
+            // Reduce score for poor adapter health
+            if (!_topstepXAdapter.IsConnected) score -= 0.3;
+            if (_topstepXAdapter.ConnectionHealth < 80) score -= 0.3;
             
             // Reduce score for stale data
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;

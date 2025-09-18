@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 using BotCore.Models;
 
 namespace BotCore

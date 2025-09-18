@@ -16,7 +16,7 @@ public interface ITopstepXClient
     // ====================================================================
     
     /// <summary>
-    /// Connect to TopstepX services (SignalR, REST API)
+    /// Connect to TopstepX services (REST API, Python SDK adapter)
     /// </summary>
     Task<bool> ConnectAsync(CancellationToken cancellationToken = default);
     

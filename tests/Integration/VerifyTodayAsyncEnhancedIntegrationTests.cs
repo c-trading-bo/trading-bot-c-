@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Moq.Protected;

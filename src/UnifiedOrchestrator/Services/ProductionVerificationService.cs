@@ -276,7 +276,7 @@ public class ProductionVerificationService : IHostedService
             var monitoringServices = new[]
             {
                 typeof(ITradingLogger),
-                typeof(ISignalRConnectionManager),
+                typeof(ITopstepXAdapterService),
                 typeof(IPerformanceMonitor)
             };
 

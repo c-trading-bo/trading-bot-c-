@@ -5,7 +5,6 @@ using System;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http.Connections;

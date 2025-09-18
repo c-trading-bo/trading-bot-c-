@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.Abstractions;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -292,17 +293,17 @@ public class AutomaticDataSchedulerService : BackgroundService
                 }
             }
             
-            // Check SignalR connections  
-            var signalRManager = scope.ServiceProvider.GetService<ISignalRConnectionManager>();
-            if (signalRManager != null)
+            // Check TopstepX adapter connections  
+            var topstepXAdapter = scope.ServiceProvider.GetService<ITopstepXAdapterService>();
+            if (topstepXAdapter != null)
             {
-                var isUserHubConnected = signalRManager.IsUserHubConnected;
-                var isMarketHubConnected = signalRManager.IsMarketHubConnected;
+                var isConnected = topstepXAdapter.IsConnected;
+                var health = topstepXAdapter.ConnectionHealth;
                 
-                if (!isUserHubConnected || !isMarketHubConnected)
+                if (!isConnected || health < 80)
                 {
-                    _logger.LogWarning("[AUTO-SCHEDULER] ⚠️ SignalR hubs not fully connected - User: {User}, Market: {Market}", 
-                        isUserHubConnected, isMarketHubConnected);
+                    _logger.LogWarning("[AUTO-SCHEDULER] ⚠️ TopstepX adapter not fully connected - Connected: {Connected}, Health: {Health}%", 
+                        isConnected, health);
                 }
             }
         }
