@@ -4,6 +4,7 @@ Comprehensive decision brain that wraps existing strategies with:
 - Regime detection → ML blend → UCB → SAC sizing → risk caps
 - Professional trade management (partials, BE, trailing, exits)
 - Online learning and cloud model integration
+- SDK-based market data and order execution
 """
 
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
@@ -30,8 +31,10 @@ for path in [ROOT, PYTHON_ROOT]:
     if path not in sys.path:
         sys.path.append(path)
 
-# Import existing UCB integration
+# Import existing UCB integration with SDK bridge
 from ucb.neural_ucb_topstep import UCBIntegration
+# Import SDK bridge for direct access
+from sdk_bridge import SDKBridge
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -127,16 +130,17 @@ class DecisionService:
         logger.info(f"🧠 Decision Service initialized with config: {len(config.symbols)} symbols, {len(config.strategies)} strategies")
     
     async def initialize(self):
-        """Initialize all components"""
+        """Initialize all components with SDK bridge"""
         try:
-            # Initialize UCB integration
-            weights_path = os.getenv("UCB_WEIGHTS_PATH", "neural_ucb_topstep.pth")
-            persistence_path = os.getenv("UCB_PERSISTENCE_PATH", "ucb_state.pkl")
+            # Initialize UCB integration with SDK bridge
+            logger.info(f"🚀 Initializing UCB integration with SDK bridge...")
+            self.ucb = UCBIntegration(instruments=self.config.symbols)
             
-            logger.info(f"🚀 Initializing UCB integration...")
-            self.ucb = UCBIntegration(weights_path=weights_path, persistence_path=persistence_path)
+            # Initialize the SDK bridge connection
+            if not await self.ucb.initialize():
+                logger.warning("UCB SDK bridge initialization failed - using simulation mode")
             
-            logger.info(f"✅ Decision Service ready!")
+            logger.info(f"✅ Decision Service ready with {len(self.config.symbols)} instruments!")
             return True
             
         except Exception as e:
@@ -403,27 +407,50 @@ class DecisionService:
         }
     
     async def _ucb_recommendation(self, strategy_id: str, confidence: float) -> Dict:
-        """Get UCB recommendation using existing integration"""
+        """Get UCB recommendation using SDK-based integration with live market data"""
         try:
             if not self.ucb:
                 # Fallback UCB calculation
                 ucb_score = confidence + 0.1  # Simple fallback
                 return {"ucb_score": ucb_score, "source": "fallback"}
             
-            # Use existing UCB integration
-            ucb_request = {
-                "strategy": strategy_id,
-                "confidence": confidence,
-                "timestamp": datetime.now().isoformat()
-            }
-            
-            rec_json = self.ucb.get_recommendation(json.dumps(ucb_request))
-            rec_data = json.loads(rec_json)
-            
-            # Extract UCB score from recommendation
-            ucb_score = rec_data.get("confidence", confidence) * 1.2  # Scale up slightly
-            
-            return {"ucb_score": ucb_score, "source": "ucb_integration"}
+            # Use SDK-based UCB integration with live market data
+            try:
+                # Get live strategy recommendation using SDK bridge
+                available_strategies = self.config.strategies
+                recommendation = await self.ucb.get_strategy_recommendation_live(available_strategies)
+                
+                if recommendation.get('trade', False):
+                    ucb_score = recommendation.get('confidence', confidence) * 1.2
+                    return {
+                        "ucb_score": ucb_score,
+                        "source": "sdk_ucb_integration",
+                        "recommended_strategy": recommendation.get('strategy'),
+                        "position_size": recommendation.get('position_size', 0),
+                        "market_features": recommendation.get('market_features', {})
+                    }
+                else:
+                    # No trade recommendation
+                    return {
+                        "ucb_score": 0.0,
+                        "source": "sdk_ucb_integration", 
+                        "reason": recommendation.get('reason', 'No trade signal'),
+                        "market_features": recommendation.get('market_features', {})
+                    }
+                    
+            except Exception as e:
+                logger.warning(f"SDK UCB integration failed, using fallback: {e}")
+                # Fall back to legacy method if SDK fails
+                ucb_request = {
+                    "strategy": strategy_id,
+                    "confidence": confidence,
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                # Note: This would need the legacy get_recommendation method
+                # For now, return a simple calculation
+                ucb_score = confidence + 0.1
+                return {"ucb_score": ucb_score, "source": "fallback_after_sdk_failure"}
             
         except Exception as e:
             logger.warning(f"⚠️ UCB recommendation failed, using fallback: {e}")

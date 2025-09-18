@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Diagnostics;
 
 namespace TradingBot.ML.HistoricalTrainer;
 
@@ -116,7 +117,7 @@ public class HistoricalTrainer
     }
 
     /// <summary>
-    /// Load historical bar data from /data/historical/ directory
+    /// Load historical bar data from SDK adapter or fallback to /data/historical/ directory
     /// </summary>
     private async Task<Dictionary<string, List<Bar>>> LoadHistoricalDataAsync(
         List<string> symbols, 
@@ -130,6 +131,28 @@ public class HistoricalTrainer
         {
             try
             {
+                // PRIMARY: Try to get historical data via SDK adapter
+                var sdkBars = await TryGetHistoricalDataViaSdkAsync(symbol, startDate, endDate, cancellationToken);
+                if (sdkBars.Any())
+                {
+                    // Convert BotCore.Models.Bar to the Bar type used by ML trainer
+                    var mlBars = sdkBars.Select(bar => new Bar
+                    {
+                        Start = bar.Ts,
+                        Open = (double)bar.Open,
+                        High = (double)bar.High,
+                        Low = (double)bar.Low,
+                        Close = (double)bar.Close,
+                        Volume = bar.Volume
+                    }).ToList();
+                    
+                    historicalBars[symbol] = mlBars;
+                    _logger.LogInformation("[HISTORICAL_TRAINER] Loaded {BarCount} bars for {Symbol} via SDK adapter", 
+                        mlBars.Count, symbol);
+                    continue;
+                }
+
+                // FALLBACK: Load from file system
                 var symbolPath = Path.Combine(_historicalDataPath, $"{symbol.ToUpperInvariant()}_bars.json");
                 if (!File.Exists(symbolPath))
                 {
@@ -147,7 +170,7 @@ public class HistoricalTrainer
                     .ToList();
 
                 historicalBars[symbol] = filteredBars;
-                _logger.LogDebug("[HISTORICAL_TRAINER] Loaded {BarCount} bars for {Symbol} from {StartDate} to {EndDate}", 
+                _logger.LogDebug("[HISTORICAL_TRAINER] Loaded {BarCount} bars for {Symbol} from file system ({StartDate} to {EndDate})", 
                     filteredBars.Count, symbol, startDate.ToShortDateString(), endDate.ToShortDateString());
             }
             catch (Exception ex)
@@ -157,6 +180,102 @@ public class HistoricalTrainer
         }
 
         return historicalBars;
+    }
+
+    /// <summary>
+    /// Try to get historical data via SDK bridge
+    /// </summary>
+    private async Task<List<BotCore.Models.Bar>> TryGetHistoricalDataViaSdkAsync(
+        string symbol, 
+        DateTime startDate, 
+        DateTime endDate, 
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Calculate number of bars needed (assuming 1-minute bars for now)
+            var timespan = endDate - startDate;
+            var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // Estimate for 5-min bars
+            
+            // Call Python SDK bridge to get historical bars
+            var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
+            if (!File.Exists(pythonScript))
+            {
+                _logger.LogDebug("[HISTORICAL_TRAINER] SDK bridge script not found at {Path}", pythonScript);
+                return new List<BotCore.Models.Bar>();
+            }
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "python3",
+                Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                _logger.LogWarning("[HISTORICAL_TRAINER] Failed to start SDK bridge process");
+                return new List<BotCore.Models.Bar>();
+            }
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogDebug("[HISTORICAL_TRAINER] SDK bridge returned exit code {ExitCode}: {Error}", process.ExitCode, error);
+                return new List<BotCore.Models.Bar>();
+            }
+
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                _logger.LogDebug("[HISTORICAL_TRAINER] SDK bridge returned empty output");
+                return new List<BotCore.Models.Bar>();
+            }
+
+            // Parse JSON response from SDK bridge
+            var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
+            var bars = new List<BotCore.Models.Bar>();
+
+            foreach (var bar in barData)
+            {
+                try
+                {
+                    var botBar = new BotCore.Models.Bar
+                    {
+                        ContractId = symbol,
+                        Open = Convert.ToDecimal(bar["open"]),
+                        High = Convert.ToDecimal(bar["high"]),
+                        Low = Convert.ToDecimal(bar["low"]),
+                        Close = Convert.ToDecimal(bar["close"]),
+                        Volume = Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
+                        Ts = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow
+                    };
+                    
+                    // Filter by date range
+                    if (botBar.Ts >= startDate && botBar.Ts <= endDate)
+                    {
+                        bars.Add(botBar);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("[HISTORICAL_TRAINER] Failed to parse bar data: {Error}", ex.Message);
+                }
+            }
+
+            return bars.OrderBy(b => b.Ts).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("[HISTORICAL_TRAINER] SDK adapter historical data fetch failed for {Symbol}: {Error}", symbol, ex.Message);
+            return new List<BotCore.Models.Bar>();
+        }
     }
 
     /// <summary>

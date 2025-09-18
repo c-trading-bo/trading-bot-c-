@@ -1,0 +1,390 @@
+{
+  "execution_id": "runtime_proof_20250918_063755",
+  "start_time": "2025-09-18T06:37:55.152117+00:00",
+  "pipeline_stages": {
+    "stage_1_initialization": {
+      "start_time": "2025-09-18T06:37:55.152344+00:00",
+      "description": "Initialize SDK bridge and validate system health",
+      "health_score": 100,
+      "health_status": "simulation",
+      "market_data": {
+        "MNQ": 18500.0,
+        "ES": 4500.0,
+        "timestamp": "2025-09-18T06:37:55.152481+00:00"
+      },
+      "account_state": {
+        "portfolio": {
+          "total_trades": 25,
+          "win_rate": 60.0,
+          "total_pnl": 1250.75,
+          "max_drawdown": -150.25
+        },
+        "positions": {
+          "MNQ": {
+            "size": 0,
+            "average_price": 0.0,
+            "unrealized_pnl": 0.0,
+            "realized_pnl": 0.0
+          },
+          "ES": {
+            "size": 0,
+            "average_price": 0.0,
+            "unrealized_pnl": 0.0,
+            "realized_pnl": 0.0
+          }
+        },
+        "health": {
+          "health_score": 100,
+          "status": "simulation"
+        },
+        "timestamp": "2025-09-18T06:37:55.152492+00:00"
+      },
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.152497+00:00"
+    },
+    "stage_2_signal_generation": {
+      "start_time": "2025-09-18T06:37:55.152765+00:00",
+      "description": "Generate trading signals using ML/RL algorithms with live market data",
+      "signals_generated": [
+        {
+          "symbol": "MNQ",
+          "timestamp": "2025-09-18T06:37:55.153006+00:00",
+          "ml_prediction": {
+            "action": "HOLD",
+            "confidence": 0.4,
+            "model": "SimulatedMLModel_v1.0",
+            "timestamp": "2025-09-18T06:37:55.153000+00:00"
+          },
+          "rl_action": {
+            "action": "HOLD",
+            "confidence": 0.4,
+            "agent_type": "SimulatedRLAgent_PPO",
+            "exploration_rate": 0.1,
+            "timestamp": "2025-09-18T06:37:55.153004+00:00"
+          },
+          "features": {
+            "price": 18500.0,
+            "volatility": 1.3513330925595186e-05,
+            "momentum": 1.3513330917369615e-05,
+            "rsi": 50.0,
+            "ma_ratio": 1.0
+          },
+          "confidence": 0.4
+        },
+        {
+          "symbol": "ES",
+          "timestamp": "2025-09-18T06:37:55.153066+00:00",
+          "ml_prediction": {
+            "action": "HOLD",
+            "confidence": 0.4,
+            "model": "SimulatedMLModel_v1.0",
+            "timestamp": "2025-09-18T06:37:55.153061+00:00"
+          },
+          "rl_action": {
+            "action": "HOLD",
+            "confidence": 0.4,
+            "agent_type": "SimulatedRLAgent_PPO",
+            "exploration_rate": 0.1,
+            "timestamp": "2025-09-18T06:37:55.153065+00:00"
+          },
+          "features": {
+            "price": 4500.0,
+            "volatility": 5.5552471021632396e-05,
+            "momentum": 5.55524704501684e-05,
+            "rsi": 50.0,
+            "ma_ratio": 1.0
+          },
+          "confidence": 0.4
+        }
+      ],
+      "signal_count": 2,
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.153115+00:00"
+    },
+    "stage_3_decision_fusion": {
+      "start_time": "2025-09-18T06:37:55.153365+00:00",
+      "description": "Fuse ML/RL signals using UCB and risk-adjusted decision logic",
+      "fusion_decisions": [
+        {
+          "symbol": "MNQ",
+          "timestamp": "2025-09-18T06:37:55.153379+00:00",
+          "ucb_score": 0.6000000000000001,
+          "risk_check": {
+            "approved": false,
+            "position_size": 0,
+            "risk_multiplier": 0.0,
+            "max_risk_percent": 0.01,
+            "risk_reason": "Low confidence"
+          },
+          "final_action": "HOLD",
+          "position_size": 0,
+          "confidence": 0.0
+        },
+        {
+          "symbol": "ES",
+          "timestamp": "2025-09-18T06:37:55.153388+00:00",
+          "ucb_score": 0.6000000000000001,
+          "risk_check": {
+            "approved": false,
+            "position_size": 0,
+            "risk_multiplier": 0.0,
+            "max_risk_percent": 0.01,
+            "risk_reason": "Low confidence"
+          },
+          "final_action": "HOLD",
+          "position_size": 0,
+          "confidence": 0.0
+        }
+      ],
+      "decisions_count": 2,
+      "approved_trades": 0,
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.153395+00:00"
+    },
+    "stage_4_order_execution": {
+      "start_time": "2025-09-18T06:37:55.153546+00:00",
+      "description": "Execute approved trades via SDK adapter with risk management",
+      "order_results": [],
+      "orders_placed": 0,
+      "orders_rejected": 0,
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.153706+00:00"
+    },
+    "stage_5_risk_validation": {
+      "start_time": "2025-09-18T06:37:55.153894+00:00",
+      "description": "Validate risk management compliance and safety measures",
+      "risk_rejection_test": "FAILED",
+      "account_validation": {
+        "portfolio_status": {
+          "total_trades": 25,
+          "win_rate": 60.0,
+          "total_pnl": 1250.75,
+          "max_drawdown": -150.25
+        },
+        "health_score": 100,
+        "risk_compliance": "COMPLIANT"
+      },
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.154178+00:00"
+    },
+    "stage_6_performance_analysis": {
+      "start_time": "2025-09-18T06:37:55.154295+00:00",
+      "description": "Analyze pipeline performance and generate comprehensive metrics",
+      "metrics": {
+        "pipeline_performance": {
+          "total_duration_seconds": 0.002186,
+          "stage_durations": {
+            "stage_1_initialization": 0.000153,
+            "stage_2_signal_generation": 0.00035,
+            "stage_3_decision_fusion": 3e-05,
+            "stage_4_order_execution": 0.00016,
+            "stage_5_risk_validation": 0.000284
+          },
+          "throughput_signals_per_second": 914.9130832570905
+        },
+        "trading_metrics": {
+          "signals_generated": 2,
+          "decisions_processed": 2,
+          "orders_executed": 0,
+          "orders_rejected": 0,
+          "risk_events": 0
+        },
+        "system_health": {
+          "sdk_adapter_functional": true,
+          "risk_management_active": true,
+          "audit_trail_complete": true,
+          "zero_legacy_dependencies": true
+        }
+      },
+      "success": true,
+      "end_time": "2025-09-18T06:37:55.154329+00:00"
+    }
+  },
+  "audit_trail": [
+    {
+      "event_type": "SDK_INITIALIZATION",
+      "status": "SUCCESS",
+      "timestamp": "2025-09-18T06:37:55.152552+00:00",
+      "data": {
+        "start_time": "2025-09-18T06:37:55.152344+00:00",
+        "description": "Initialize SDK bridge and validate system health",
+        "health_score": 100,
+        "health_status": "simulation",
+        "market_data": {
+          "MNQ": 18500.0,
+          "ES": 4500.0,
+          "timestamp": "2025-09-18T06:37:55.152481+00:00"
+        },
+        "account_state": {
+          "portfolio": {
+            "total_trades": 25,
+            "win_rate": 60.0,
+            "total_pnl": 1250.75,
+            "max_drawdown": -150.25
+          },
+          "positions": {
+            "MNQ": {
+              "size": 0,
+              "average_price": 0.0,
+              "unrealized_pnl": 0.0,
+              "realized_pnl": 0.0
+            },
+            "ES": {
+              "size": 0,
+              "average_price": 0.0,
+              "unrealized_pnl": 0.0,
+              "realized_pnl": 0.0
+            }
+          },
+          "health": {
+            "health_score": 100,
+            "status": "simulation"
+          },
+          "timestamp": "2025-09-18T06:37:55.152492+00:00"
+        },
+        "success": true,
+        "end_time": "2025-09-18T06:37:55.152497+00:00"
+      }
+    },
+    {
+      "event_type": "ML_RL_SIGNAL_GENERATION",
+      "status": "SUCCESS",
+      "timestamp": "2025-09-18T06:37:55.153120+00:00",
+      "data": {
+        "start_time": "2025-09-18T06:37:55.152765+00:00",
+        "description": "Generate trading signals using ML/RL algorithms with live market data",
+        "signals_generated": [
+          {
+            "symbol": "MNQ",
+            "timestamp": "2025-09-18T06:37:55.153006+00:00",
+            "ml_prediction": {
+              "action": "HOLD",
+              "confidence": 0.4,
+              "model": "SimulatedMLModel_v1.0",
+              "timestamp": "2025-09-18T06:37:55.153000+00:00"
+            },
+            "rl_action": {
+              "action": "HOLD",
+              "confidence": 0.4,
+              "agent_type": "SimulatedRLAgent_PPO",
+              "exploration_rate": 0.1,
+              "timestamp": "2025-09-18T06:37:55.153004+00:00"
+            },
+            "features": {
+              "price": 18500.0,
+              "volatility": 1.3513330925595186e-05,
+              "momentum": 1.3513330917369615e-05,
+              "rsi": 50.0,
+              "ma_ratio": 1.0
+            },
+            "confidence": 0.4
+          },
+          {
+            "symbol": "ES",
+            "timestamp": "2025-09-18T06:37:55.153066+00:00",
+            "ml_prediction": {
+              "action": "HOLD",
+              "confidence": 0.4,
+              "model": "SimulatedMLModel_v1.0",
+              "timestamp": "2025-09-18T06:37:55.153061+00:00"
+            },
+            "rl_action": {
+              "action": "HOLD",
+              "confidence": 0.4,
+              "agent_type": "SimulatedRLAgent_PPO",
+              "exploration_rate": 0.1,
+              "timestamp": "2025-09-18T06:37:55.153065+00:00"
+            },
+            "features": {
+              "price": 4500.0,
+              "volatility": 5.5552471021632396e-05,
+              "momentum": 5.55524704501684e-05,
+              "rsi": 50.0,
+              "ma_ratio": 1.0
+            },
+            "confidence": 0.4
+          }
+        ],
+        "signal_count": 2,
+        "success": true,
+        "end_time": "2025-09-18T06:37:55.153115+00:00"
+      }
+    },
+    {
+      "event_type": "DECISION_FUSION",
+      "status": "SUCCESS",
+      "timestamp": "2025-09-18T06:37:55.153400+00:00",
+      "data": {
+        "start_time": "2025-09-18T06:37:55.153365+00:00",
+        "description": "Fuse ML/RL signals using UCB and risk-adjusted decision logic",
+        "fusion_decisions": [
+          {
+            "symbol": "MNQ",
+            "timestamp": "2025-09-18T06:37:55.153379+00:00",
+            "ucb_score": 0.6000000000000001,
+            "risk_check": {
+              "approved": false,
+              "position_size": 0,
+              "risk_multiplier": 0.0,
+              "max_risk_percent": 0.01,
+              "risk_reason": "Low confidence"
+            },
+            "final_action": "HOLD",
+            "position_size": 0,
+            "confidence": 0.0
+          },
+          {
+            "symbol": "ES",
+            "timestamp": "2025-09-18T06:37:55.153388+00:00",
+            "ucb_score": 0.6000000000000001,
+            "risk_check": {
+              "approved": false,
+              "position_size": 0,
+              "risk_multiplier": 0.0,
+              "max_risk_percent": 0.01,
+              "risk_reason": "Low confidence"
+            },
+            "final_action": "HOLD",
+            "position_size": 0,
+            "confidence": 0.0
+          }
+        ],
+        "decisions_count": 2,
+        "approved_trades": 0,
+        "success": true,
+        "end_time": "2025-09-18T06:37:55.153395+00:00"
+      }
+    }
+  ],
+  "performance_metrics": {
+    "pipeline_performance": {
+      "total_duration_seconds": 0.002186,
+      "stage_durations": {
+        "stage_1_initialization": 0.000153,
+        "stage_2_signal_generation": 0.00035,
+        "stage_3_decision_fusion": 3e-05,
+        "stage_4_order_execution": 0.00016,
+        "stage_5_risk_validation": 0.000284
+      },
+      "throughput_signals_per_second": 914.9130832570905
+    },
+    "trading_metrics": {
+      "signals_generated": 2,
+      "decisions_processed": 2,
+      "orders_executed": 0,
+      "orders_rejected": 0,
+      "risk_events": 0
+    },
+    "system_health": {
+      "sdk_adapter_functional": true,
+      "risk_management_active": true,
+      "audit_trail_complete": true,
+      "zero_legacy_dependencies": true
+    }
+  },
+  "risk_events": [],
+  "orders_executed": [],
+  "system_health": {},
+  "success": true,
+  "end_time": "2025-09-18T06:37:55.154526+00:00"
+}

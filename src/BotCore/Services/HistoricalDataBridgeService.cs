@@ -9,6 +9,8 @@ using BotCore.Models;
 using System.Text.Json;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.IO;
+using System.Diagnostics;
 
 namespace BotCore.Services
 {
@@ -117,22 +119,31 @@ namespace BotCore.Services
         }
 
         /// <summary>
-        /// Get recent historical bars from TopstepX API or fallback sources
+        /// Get recent historical bars from SDK adapter or fallback sources
         /// </summary>
         public async Task<List<BotCore.Models.Bar>> GetRecentHistoricalBarsAsync(string contractId, int barCount = 20)
         {
             try
             {
-                // Primary: Try TopstepX historical API
+                // PRIMARY: Try SDK adapter for historical data
+                var sdkAdapterBars = await TryGetSdkAdapterBarsAsync(contractId, barCount);
+                if (sdkAdapterBars.Any())
+                {
+                    _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from SDK adapter for {ContractId}", 
+                        sdkAdapterBars.Count, contractId);
+                    return sdkAdapterBars;
+                }
+
+                // FALLBACK 1: Try TopstepX historical API
                 var topstepXBars = await TryGetTopstepXBarsAsync(contractId, barCount);
                 if (topstepXBars.Any())
                 {
-                    _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from TopstepX for {ContractId}", 
+                    _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from TopstepX API for {ContractId}", 
                         topstepXBars.Count, contractId);
                     return topstepXBars;
                 }
 
-                // Fallback: Use correlation manager's data sources
+                // FALLBACK 2: Use correlation manager's data sources
                 var correlationBars = await TryGetCorrelationManagerBarsAsync(contractId, barCount);
                 if (correlationBars.Any())
                 {
@@ -183,6 +194,96 @@ namespace BotCore.Services
         }
 
         #region Private Helper Methods
+
+        /// <summary>
+        /// Try to get historical bars using the SDK adapter (preferred method)
+        /// </summary>
+        private async Task<List<BotCore.Models.Bar>> TryGetSdkAdapterBarsAsync(string contractId, int barCount)
+        {
+            try
+            {
+                _logger.LogDebug("[HISTORICAL-BRIDGE] Attempting to get historical data via SDK adapter for {ContractId}", contractId);
+
+                // Call Python SDK bridge to get historical bars
+                var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
+                if (!File.Exists(pythonScript))
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] SDK bridge script not found at {Path}", pythonScript);
+                    return new List<BotCore.Models.Bar>();
+                }
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "python3",
+                    Arguments = $"\"{pythonScript}\" get_historical_bars \"{contractId}\" \"1m\" {Math.Max(barCount, 100)}",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null)
+                {
+                    _logger.LogError("[HISTORICAL-BRIDGE] Failed to start SDK bridge process");
+                    return new List<BotCore.Models.Bar>();
+                }
+
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] SDK bridge failed with exit code {ExitCode}: {Error}", process.ExitCode, error);
+                    return new List<BotCore.Models.Bar>();
+                }
+
+                if (string.IsNullOrWhiteSpace(output))
+                {
+                    _logger.LogWarning("[HISTORICAL-BRIDGE] SDK bridge returned empty output");
+                    return new List<BotCore.Models.Bar>();
+                }
+
+                // Parse JSON response from SDK bridge
+                var barData = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
+                var bars = new List<BotCore.Models.Bar>();
+
+                foreach (var bar in barData)
+                {
+                    try
+                    {
+                        var botBar = new BotCore.Models.Bar
+                        {
+                            ContractId = contractId,
+                            Open = Convert.ToDecimal(bar["open"]),
+                            High = Convert.ToDecimal(bar["high"]),
+                            Low = Convert.ToDecimal(bar["low"]),
+                            Close = Convert.ToDecimal(bar["close"]),
+                            Volume = Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
+                            Ts = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow
+                        };
+                        bars.Add(botBar);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("[HISTORICAL-BRIDGE] Failed to parse bar data: {Error}", ex.Message);
+                    }
+                }
+
+                _logger.LogInformation("[HISTORICAL-BRIDGE] Retrieved {Count} bars via SDK adapter for {ContractId}", bars.Count, contractId);
+                return bars;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[HISTORICAL-BRIDGE] SDK adapter bars failed for {ContractId}: {Error}", contractId, ex.Message);
+                return new List<BotCore.Models.Bar>();
+            }
+        }
+
+        /// <summary>
+        /// Try to get historical bars from TopstepX API (fallback method)
+        /// </summary>
 
         private async Task<List<BotCore.Models.Bar>> TryGetTopstepXBarsAsync(string contractId, int barCount)
         {
