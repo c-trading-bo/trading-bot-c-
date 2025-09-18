@@ -8,6 +8,7 @@ namespace TradingBot.RLAgent;
 /// CVaR-PPO Implementation with training loop, experience buffer, and model versioning
 /// Implements requirement 2.1: Training loop (policy, value, CVaR head), experience buffer, advantage/CVaR estimation, model save/restore
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S101:Types should be named in PascalCase", Justification = "CVaR (Conditional Value at Risk) and PPO (Proximal Policy Optimization) are standard financial/ML acronyms")]
 public class CVaRPPO : IDisposable
 {
     private readonly ILogger<CVaRPPO> _logger;
@@ -476,19 +477,7 @@ public class CVaRPPO : IDisposable
         return (advantages, cvarTargets);
     }
 
-    private double[] CalculateReturns(List<Experience> experiences)
-    {
-        var returns = new double[experiences.Count];
-        var runningReturn = 0.0;
-        
-        for (int i = experiences.Count - 1; i >= 0; i--)
-        {
-            runningReturn = experiences[i].Reward + _config.Gamma * runningReturn;
-            returns[i] = runningReturn;
-        }
-        
-        return returns;
-    }
+    // Method CalculateReturns removed - was unused (S1144)
 
     private double CalculateCVaRTarget(List<Experience> experiences, int index)
     {
@@ -617,14 +606,24 @@ public class CVaRPPO : IDisposable
 
     public void Dispose()
     {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+    
+    protected virtual void Dispose(bool disposing)
+    {
         if (!_disposed)
         {
-            _policyNetwork?.Dispose();
-            _valueNetwork?.Dispose();
-            _cvarNetwork?.Dispose();
+            if (disposing)
+            {
+                _policyNetwork?.Dispose();
+                _valueNetwork?.Dispose();
+                _cvarNetwork?.Dispose();
+                
+                _logger.LogInformation("[CVAR_PPO] Disposed successfully");
+            }
             
             _disposed = true;
-            _logger.LogInformation("[CVAR_PPO] Disposed successfully");
         }
     }
 }
@@ -634,6 +633,7 @@ public class CVaRPPO : IDisposable
 /// <summary>
 /// CVaR-PPO configuration
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("SonarAnalyzer.CSharp", "S101:Types should be named in PascalCase", Justification = "CVaR (Conditional Value at Risk) and PPO (Proximal Policy Optimization) are standard financial/ML acronyms")]
 public class CVaRPPOConfig
 {
     public int StateSize { get; set; } = 50;
@@ -979,7 +979,7 @@ public class ValueNetwork : IDisposable
         }
     }
 
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    public Task SaveAsync(string path, CancellationToken cancellationToken = default)
     {
         var data = new
         {
@@ -990,7 +990,7 @@ public class ValueNetwork : IDisposable
         };
         
         var json = JsonSerializer.Serialize(data);
-        await File.WriteAllTextAsync(path, json, cancellationToken);
+        return File.WriteAllTextAsync(path, json, cancellationToken);
     }
 
     public Task LoadAsync(string path, CancellationToken cancellationToken = default)
