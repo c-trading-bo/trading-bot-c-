@@ -232,7 +232,7 @@ namespace TradingBot.Monitoring
 
     public interface ILatencyTracker : IDisposable
     {
-        void Stop();
+        void StopTracking();
     }
 
     public class LatencyTracker : ILatencyTracker
@@ -251,7 +251,7 @@ namespace TradingBot.Monitoring
             _stopwatch = Stopwatch.StartNew();
         }
 
-        public void Stop()
+        public void StopTracking()
         {
             if (_stopped) return;
             
@@ -285,7 +285,7 @@ namespace TradingBot.Monitoring
             {
                 if (disposing)
                 {
-                    Stop();
+                    StopTracking();
                 }
                 _disposed = true;
             }
