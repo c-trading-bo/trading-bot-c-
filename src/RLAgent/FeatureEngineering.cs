@@ -708,8 +708,8 @@ public class FeatureEngineering : IDisposable
     {
         if (buffer.Length < 2) return 0.0;
         
-        var upTicks;
-        var downTicks;
+        var upTicks = 0;
+        var downTicks = 0;
         
         for (int i = 1; i < buffer.Length; i++)
         {

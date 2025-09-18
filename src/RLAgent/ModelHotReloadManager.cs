@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -81,7 +82,7 @@ public class ModelHotReloadManager : IDisposable
     {
         if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token))
         {
-            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath).ConfigureAwait(false);
+            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
             return;
         }
 

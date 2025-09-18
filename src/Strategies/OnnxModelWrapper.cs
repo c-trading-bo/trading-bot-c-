@@ -6,6 +6,7 @@ using System.IO;
 using System.Security;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using TradingBot.BotCore.Services;
 
 namespace Trading.Strategies;
 
@@ -46,14 +47,6 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     private const int HoursPerDay = 24;
     private const int DaysPerWeek = 7;
     
-    // Confidence level constants
-    private const double LowConfidenceThreshold = 0.1;
-    private const double MediumConfidenceThreshold = 0.15;
-    private const double HighConfidenceThreshold = 0.2;
-    private const double NeutralConfidenceLevel = 0.4;
-    private const double StandardConfidenceLevel = 0.5;
-    private const double HighConfidenceLevel = 0.9;
-    
     // Feature analysis constants
     private const double VixNeutralLevel = 0.3;
     private const double VixImpactFactor = 0.3;
@@ -62,7 +55,16 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     private const double NoiseAmplitude = 0.05;
     
     private readonly ILogger<OnnxModelWrapper> _logger;
+    private readonly MLConfigurationService _configurationService;
     private readonly bool _isModelLoaded;
+    
+    // Configuration-driven confidence levels
+    private double LowConfidenceThreshold => _configurationService.GetMinimumConfidence();
+    private double MediumConfidenceThreshold => (LowConfidenceThreshold + StandardConfidenceLevel) / 2.0;
+    private double HighConfidenceThreshold => StandardConfidenceLevel * 0.8; // Portion of standard threshold
+    private double NeutralConfidenceLevel => (LowConfidenceThreshold + StandardConfidenceLevel) / 1.5;
+    private double StandardConfidenceLevel => _configurationService.GetAIConfidenceThreshold();
+    private double HighConfidenceLevel => Math.Min(0.95, StandardConfidenceLevel * 1.2); // Capped high confidence
     
     // LoggerMessage delegates for performance (CA1848)
     private static readonly Action<ILogger, Exception?> LogModelNotLoaded =
@@ -160,9 +162,10 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         "DAY_OF_WEEK"
     };
 
-    public OnnxModelWrapper(ILogger<OnnxModelWrapper> logger)
+    public OnnxModelWrapper(ILogger<OnnxModelWrapper> logger, MLConfigurationService configurationService)
     {
         _logger = logger;
+        _configurationService = configurationService;
         
         // Initialize ONNX model loading
         _isModelLoaded = InitializeOnnxModel();
@@ -406,7 +409,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         return Math.Max(LowConfidenceThreshold, Math.Min(HighConfidenceLevel, baseConfidence));
     }
 
-    private const double DefaultConfidenceLevel = NeutralConfidenceLevel; // Conservative default aligned with existing constants
+    private double DefaultConfidenceLevel => NeutralConfidenceLevel; // Conservative default aligned with configuration
 }
 
 /// <summary>
