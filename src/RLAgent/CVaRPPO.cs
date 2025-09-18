@@ -917,7 +917,6 @@ public class ValueNetwork : IDisposable
     private void InitializeWeights()
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-using System.Globalization;
         
         _weights1 = new double[_stateSize, _hiddenSize];
         _bias1 = new double[_hiddenSize];

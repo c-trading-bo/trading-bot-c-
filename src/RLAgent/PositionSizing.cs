@@ -28,7 +28,7 @@ public class PositionSizing
     private const int TREND_REGIME_VALUE = 1;
     private const int RANGE_REGIME_VALUE = 2;
     private const int HIGH_VOL_REGIME_VALUE = 3;
-    private const int DEFAULT_REGIME_VALUE;
+    private const int DEFAULT_REGIME_VALUE = 0;
     
     #endregion
     

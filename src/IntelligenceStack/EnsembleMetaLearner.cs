@@ -593,7 +593,7 @@ public class RegimeBlendHead
     private readonly RegimeType _regime;
     
     public DateTime LastTrainingTime { get; private set; } = DateTime.MinValue;
-    public int TrainingExampleCount { get; private set; };
+    public int TrainingExampleCount { get; private set; }
     public double LastValidationScore { get; private set; } = 0.0;
 
     public RegimeBlendHead(ILogger logger, RegimeType regime)

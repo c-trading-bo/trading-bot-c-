@@ -480,7 +480,6 @@ public class LineageTrackingSystem
         
         var inputJson = JsonSerializer.Serialize(inputData);
         using var sha = SHA256.Create();
-using System.Globalization;
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
         return Convert.ToHexString(hash)[..16];
     }
