@@ -404,21 +404,22 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         }, cancellationToken);
         
         // Simple feature extraction - in production would be more sophisticated
-        return new FeatureSet
+        var featureSet = new FeatureSet
         {
             Symbol = context.Symbol,
             Timestamp = context.Timestamp,
-            Version = "v1",
-            Features = new Dictionary<string, double>
-            {
-                ["price"] = context.Price,
-                ["volume"] = context.Volume,
-                ["bid"] = context.Bid,
-                ["ask"] = context.Ask,
-                ["spread"] = context.Ask - context.Bid,
-                ["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * 10000 : 0
-            }
+            Version = "v1"
         };
+        
+        // Populate read-only Features collection
+        featureSet.Features["price"] = context.Price;
+        featureSet.Features["volume"] = context.Volume;
+        featureSet.Features["bid"] = context.Bid;
+        featureSet.Features["ask"] = context.Ask;
+        featureSet.Features["spread"] = context.Ask - context.Bid;
+        featureSet.Features["spread_bps"] = context.Price > 0 ? ((context.Ask - context.Bid) / context.Price) * 10000 : 0;
+        
+        return featureSet;
     }
 
     private async Task<double> MakePredictionAsync(FeatureSet features, CancellationToken cancellationToken)
@@ -446,7 +447,10 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private async Task<MLPrediction> CalculateRealPredictionAsync(FeatureSet features, MarketData data, CancellationToken cancellationToken)
     {
         // Real ensemble prediction using active models and regime detection
-        var regimeScore = _regimeDetector?.GetLatestRegimeScore() ?? 0.5;
+        var regimeState = _regimeDetector != null ? 
+            await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken) : 
+            new RegimeState { Type = RegimeType.Range, Confidence = 0.5 };
+        var regimeScore = regimeState.Confidence;
         var confidence = await MakePredictionAsync(features, cancellationToken);
         
         // Adjust confidence based on regime detection
@@ -697,7 +701,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         else
             action = TradingAction.Hold;
 
-        return new TradingDecision
+        var decision = new TradingDecision
         {
             DecisionId = decisionId,
             Signal = new TradingSignal
@@ -715,20 +719,21 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             MaxPositionSize = (decimal)Math.Abs(size),
             MarketRegime = regime.Type.ToString(),
             RegimeConfidence = (decimal)regime.Confidence,
-            Timestamp = DateTime.UtcNow,
-            Reasoning = new Dictionary<string, object>
-            {
-                ["model_id"] = model.Id,
-                ["regime"] = regime.Type.ToString(),
-                ["latency_ms"] = latencyMs,
-                ["kelly_size"] = size
-            }
+            Timestamp = DateTime.UtcNow
         };
+        
+        // Populate read-only Reasoning collection
+        decision.Reasoning["model_id"] = model.Id;
+        decision.Reasoning["regime"] = regime.Type.ToString();
+        decision.Reasoning["latency_ms"] = latencyMs;
+        decision.Reasoning["kelly_size"] = size;
+        
+        return decision;
     }
 
     private TradingDecision CreateSafeDecision(string reason)
     {
-        return new TradingDecision
+        var decision = new TradingDecision
         {
             DecisionId = GenerateDecisionId(),
             Signal = new TradingSignal
@@ -739,14 +744,18 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 Timestamp = DateTime.UtcNow
             },
             Action = TradingAction.Hold,
-            Confidence = 0m,
-            Reasoning = new Dictionary<string, object> { ["reason"] = reason }
+            Confidence = 0m
         };
+        
+        // Populate read-only Reasoning collection
+        decision.Reasoning["reason"] = reason;
+        
+        return decision;
     }
 
     private IntelligenceDecision ConvertToIntelligenceDecision(TradingDecision decision, FeatureSet features)
     {
-        return new IntelligenceDecision
+        var intelligenceDecision = new IntelligenceDecision
         {
             DecisionId = decision.DecisionId,
             Timestamp = decision.Timestamp,
@@ -754,9 +763,16 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Confidence = (double)decision.Confidence,
             Action = decision.Action.ToString(),
             FeaturesVersion = features.Version,
-            FeaturesHash = features.SchemaChecksum,
-            Metadata = decision.Reasoning
+            FeaturesHash = features.SchemaChecksum
         };
+        
+        // Populate read-only Metadata collection
+        foreach (var kvp in decision.Reasoning)
+        {
+            intelligenceDecision.Metadata[kvp.Key] = kvp.Value;
+        }
+        
+        return intelligenceDecision;
     }
 
     private string GenerateDecisionId()
@@ -801,10 +817,14 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             Symbol = originalFeatures.Symbol,
             Timestamp = originalFeatures.Timestamp,
             Version = originalFeatures.Version,
-            SchemaChecksum = originalFeatures.SchemaChecksum,
-            Features = new Dictionary<string, double>(),
-            Metadata = new Dictionary<string, object>(originalFeatures.Metadata)
+            SchemaChecksum = originalFeatures.SchemaChecksum
         };
+
+        // Copy original metadata to read-only collection
+        foreach (var kvp in originalFeatures.Metadata)
+        {
+            weightedFeatures.Metadata[kvp.Key] = kvp.Value;
+        }
 
         // Apply weights to each feature
         foreach (var (featureName, featureValue) in originalFeatures.Features)
@@ -832,7 +852,9 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             var marketContext = ExtractMarketContextFromWorkflow(context);
             var decision = await MakeDecisionAsync(marketContext, cancellationToken);
             
-            return new WorkflowExecutionResult { Success = true, Results = new Dictionary<string, object> { ["decision"] = decision } };
+            var result = new WorkflowExecutionResult { Success = true };
+            result.Results["decision"] = decision;
+            return result;
         }
         catch (Exception ex)
         {

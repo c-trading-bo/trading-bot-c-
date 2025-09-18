@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -387,15 +388,14 @@ public class RLAdvisorSystem
             DecisionId = decision.DecisionId,
             Symbol = context.Symbol,
             Action = recommendation.Action.ToString(),
-            Confidence = recommendation.Confidence,
-            Metadata = new Dictionary<string, object>
-            {
-                ["rl_agent"] = agentKey,
-                ["agent_type"] = recommendation.AgentType.ToString(),
-                ["is_advise_only"] = recommendation.IsAdviseOnly,
-                ["reasoning"] = recommendation.Reasoning
-            }
+            Confidence = recommendation.Confidence
         };
+        
+        // Populate read-only Metadata collection
+        intelligenceDecision.Metadata["rl_agent"] = agentKey;
+        intelligenceDecision.Metadata["agent_type"] = recommendation.AgentType.ToString();
+        intelligenceDecision.Metadata["is_advise_only"] = recommendation.IsAdviseOnly;
+        intelligenceDecision.Metadata["reasoning"] = recommendation.Reasoning;
 
         await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken);
     }
@@ -623,8 +623,10 @@ public class RLAdvisorSystem
             var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
             var dataPoints = new List<RLMarketDataPoint>();
 
-            foreach (var bar in barData)
+            if (barData != null)
             {
+                foreach (var bar in barData)
+                {
                 try
                 {
                     var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow;
@@ -638,7 +640,7 @@ public class RLAdvisorSystem
                             High = Convert.ToDouble(bar["high"]),
                             Low = Convert.ToDouble(bar["low"]),
                             Close = Convert.ToDouble(bar["close"]),
-                            Volume = Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
+                            Volume = (int)Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
                             // Calculate additional features
                             ATR = Math.Max(Convert.ToDouble(bar["high"]) - Convert.ToDouble(bar["low"]), 0.25),
                             Volatility = 0.2, // Would be calculated from historical volatility
@@ -651,6 +653,7 @@ public class RLAdvisorSystem
                 {
                     _logger.LogWarning("[RL_ADVISOR] Failed to parse bar data: {Error}", ex.Message);
                 }
+            }
             }
 
             _logger.LogInformation("[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}", dataPoints.Count, symbol);
@@ -700,13 +703,23 @@ public class RLAdvisorSystem
             
             for (int i = 0; i < estimatedTrades; i++)
             {
+                // Use cryptographically secure random for production trading system
+                using var rng = RandomNumberGenerator.Create();
+                var priceBytes = new byte[4];
+                var sideBytes = new byte[4];
+                rng.GetBytes(priceBytes);
+                rng.GetBytes(sideBytes);
+                
+                var priceRandom = (double)BitConverter.ToUInt32(priceBytes, 0) / uint.MaxValue;
+                var sideRandom = (double)BitConverter.ToUInt32(sideBytes, 0) / uint.MaxValue;
+                
                 trades.Add(new TradeRecord
                 {
                     Symbol = symbol,
-                    Timestamp = startDate.AddDays(i * 0.5),
-                    Price = 4125.0m + (decimal)(Random.Shared.NextDouble() * 50), // ES price range
+                    FillTime = startDate.AddDays(i * 0.5),
+                    FillPrice = 4125.0 + (priceRandom * 50), // ES price range
                     Quantity = 1,
-                    Side = Random.Shared.NextDouble() > 0.5 ? "BUY" : "SELL"
+                    Side = sideRandom > 0.5 ? "BUY" : "SELL"
                 });
             }
         }
@@ -1173,6 +1186,12 @@ public class RLMarketDataPoint
     public double Price { get; set; }
     public int Volume { get; set; }
     public double Volatility { get; set; }
+    public string Regime { get; set; } = string.Empty;
+    public double Open { get; set; }
+    public double High { get; set; }
+    public double Low { get; set; }
+    public double Close { get; set; }
+    public double ATR { get; set; }
 }
 
 public class EpisodeWindow

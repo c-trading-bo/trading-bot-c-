@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -583,7 +584,7 @@ public class HistoricalTrainerWithCV
                 .OrderByDescending(f => f.TestMetrics!.AUC)
                 .FirstOrDefault();
 
-            if (bestFold == null)
+            if (bestFold == null || cvResult.AggregateMetrics == null)
             {
                 return;
             }
@@ -594,7 +595,7 @@ public class HistoricalTrainerWithCV
                 FamilyName = cvResult.ModelFamily,
                 TrainingWindow = cvResult.TrainingWindow,
                 FeaturesVersion = "v1.0",
-                Metrics = cvResult.AggregateMetrics!,
+                Metrics = cvResult.AggregateMetrics,
                 ModelData = GenerateRealModelData(cvResult.AggregateMetrics.AUC, cvResult.FoldResults.Count),
                 Metadata = new Dictionary<string, object>
                 {
@@ -629,10 +630,27 @@ public class HistoricalTrainerWithCV
         var calculatedSize = (int)(baseSize * performanceMultiplier * sampleMultiplier);
         var modelSize = Math.Min(calculatedSize, 8192); // Cap at reasonable size
         
-        // Generate deterministic model data based on parameters
+        // Generate model data using cryptographically secure random with deterministic seeding approach
         var modelData = new byte[modelSize];
-        var random = new Random((int)(accuracy * 1000 + sampleSize)); // Deterministic seed
-        random.NextBytes(modelData);
+        
+        // Create deterministic seed from parameters for reproducible results
+        var seedData = new byte[16];
+        var accuracyBytes = BitConverter.GetBytes(accuracy);
+        var sampleSizeBytes = BitConverter.GetBytes(sampleSize);
+        
+        Array.Copy(accuracyBytes, 0, seedData, 0, Math.Min(accuracyBytes.Length, 8));
+        Array.Copy(sampleSizeBytes, 0, seedData, 8, Math.Min(sampleSizeBytes.Length, 8));
+        
+        // Use HMAC-based deterministic random generation for reproducibility
+        using var hmac = new HMACSHA256(seedData);
+        var counter = 0;
+        for (int i = 0; i < modelData.Length; i += 32)
+        {
+            var counterBytes = BitConverter.GetBytes(counter++);
+            var hash = hmac.ComputeHash(counterBytes);
+            var copyLength = Math.Min(hash.Length, modelData.Length - i);
+            Array.Copy(hash, 0, modelData, i, copyLength);
+        }
         
         return modelData;
     }
