@@ -132,9 +132,10 @@ class SessionDeduplicator:
         return cleaned
     
     def create_audit_entry(self, session_key, event_type, workflow_name, run_id, commit_sha, executed, job_status, duplicate_prevented):
-        """Create audit log entry"""
+        """Create audit log entry with retry suppression tracking"""
         audit_file = self.audit_dir / f"session_audit_{datetime.now().strftime('%Y%m%d')}.json"
         
+        # Enhanced audit entry with retry suppression status
         entry = {
             "session_key": session_key,
             "timestamp": datetime.now(UTC).isoformat(),
@@ -144,7 +145,18 @@ class SessionDeduplicator:
             "commit_sha": commit_sha,
             "executed": executed,
             "job_status": job_status,
-            "duplicate_prevented": duplicate_prevented
+            "duplicate_prevented": duplicate_prevented,
+            "retry_suppression": {
+                "enabled": True,
+                "status": "suppressed" if duplicate_prevented else "single_execution",
+                "early_gating": True,
+                "cost_optimization": duplicate_prevented
+            },
+            "session_management": {
+                "early_exit": duplicate_prevented,
+                "single_launch_enforced": True,
+                "premium_session_saved": duplicate_prevented
+            }
         }
         
         # Append to audit log
@@ -210,9 +222,12 @@ def main():
         
         should_skip = is_active or is_duplicate
         
+        # Enhanced output with retry suppression details
         print(f"SESSION_KEY={session_key}")
         print(f"SKIP_EXECUTION={'true' if should_skip else 'false'}")
         print(f"REASON={reason if is_active else dup_reason if is_duplicate else 'No conflicts detected'}")
+        print(f"RETRY_SUPPRESSION={'ENFORCED' if should_skip else 'ACTIVE'}")
+        print(f"EARLY_GATING={'SUCCESS' if should_skip else 'PROCEEDING'}")
         
         # Set GitHub Actions output if available
         if os.getenv('GITHUB_OUTPUT'):
@@ -220,6 +235,8 @@ def main():
                 f.write(f"session_key={session_key}\n")
                 f.write(f"skip_execution={'true' if should_skip else 'false'}\n")
                 f.write(f"reason={reason if is_active else dup_reason if is_duplicate else 'No conflicts detected'}\n")
+                f.write(f"retry_suppression={'ENFORCED' if should_skip else 'ACTIVE'}\n")
+                f.write(f"early_gating={'SUCCESS' if should_skip else 'PROCEEDING'}\n")
         
         sys.exit(0 if not should_skip else 1)
     
