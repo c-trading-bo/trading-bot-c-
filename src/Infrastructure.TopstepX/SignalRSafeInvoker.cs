@@ -7,6 +7,17 @@ using Microsoft.AspNetCore.SignalR.Client;
 namespace TradingBot.Infrastructure.TopstepX
 {
     /// <summary>
+    /// Production-grade constants for SignalR safe invoker
+    /// </summary>
+    internal static class SignalRSafeInvokerConstants
+    {
+        public const int DEFAULT_WAIT_TIMEOUT_MS = 30000; // 30 seconds default timeout
+        public const int RECONNECT_POLL_INTERVAL_MS = 300; // 300ms polling interval
+        public const int DEFAULT_CONNECTION_TIMEOUT_SECONDS = 30; // 30 seconds connection timeout
+        public const int DEFAULT_MAX_ATTEMPTS = 12; // Maximum retry attempts
+    }
+
+    /// <summary>
     /// Utility for safe SignalR hub invocation with automatic reconnect and retry logic.
     /// This is a copy of BotCore.HubSafe to avoid circular dependencies.
     /// </summary>
@@ -18,9 +29,9 @@ namespace TradingBot.Infrastructure.TopstepX
             ILogger log,
             CancellationToken ct,
             int maxAttempts = 12,
-            int waitMs = 30000)
+            int waitMs = SignalRSafeInvokerConstants.DEFAULT_WAIT_TIMEOUT_MS)
         {
-            await WaitForConnected(hub, TimeSpan.FromSeconds(30), ct, log);
+            await WaitForConnected(hub, TimeSpan.FromSeconds(SignalRSafeInvokerConstants.DEFAULT_CONNECTION_TIMEOUT_SECONDS), ct, log);
 
             for (int attempt = 1; attempt <= maxAttempts; attempt++)
             {
@@ -109,7 +120,7 @@ namespace TradingBot.Infrastructure.TopstepX
                     throw new TimeoutException($"Hub stayed {hub.State} for {timeout.TotalSeconds:N0}s.");
 
                 // Do not force StartAsync during reconnect; rely on automatic reconnect policy
-                await Task.Delay(300, ct);
+                await Task.Delay(SignalRSafeInvokerConstants.RECONNECT_POLL_INTERVAL_MS, ct);
             }
             log.LogDebug("Hub is Connected (ConnectionId={Id}).", hub.ConnectionId);
         }

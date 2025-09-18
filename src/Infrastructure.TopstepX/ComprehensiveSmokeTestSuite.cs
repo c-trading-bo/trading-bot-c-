@@ -16,6 +16,13 @@ internal static class SmokeTestConstants
     public const double MINIMUM_SIGNAL_CONFIDENCE = 0.7;
     public const decimal MAXIMUM_ES_RISK_LIMIT = 25.00m; // ES tick size consideration
     public const double OVERALL_SUCCESS_PASS_RATE = 0.9; // 90% pass rate required
+    
+    // Performance test constants
+    public const int SAMPLE_VOLUME = 1000; // Sample trading volume
+    public const int FAST_OPERATION_MAX_MS = 1000; // Fast operations should complete in 1 second
+    public const int STANDARD_OPERATION_MAX_MS = 5000; // Standard operations should complete in 5 seconds
+    public const long MAX_MEMORY_BYTES = 10000000; // 10MB memory limit
+    public const int STRESS_TEST_ITERATIONS = 1000; // Number of stress test iterations
 }
 
 /// <summary>
@@ -294,7 +301,7 @@ public class ComprehensiveSmokeTestSuite
         result.AddTest("Market Data Handling", () =>
         {
             // Test market data structure handling
-            var sampleData = new { Symbol = "ES", Price = 4500.00m, Volume = 1000 };
+            var sampleData = new { Symbol = "ES", Price = 4500.00m, Volume = SmokeTestConstants.SAMPLE_VOLUME };
             return sampleData.Price > 0 && sampleData.Symbol == "ES";
         });
 
@@ -356,7 +363,7 @@ public class ComprehensiveSmokeTestSuite
             var stopwatch = Stopwatch.StartNew();
             _credentialManager.DiscoverAllCredentialSources();
             stopwatch.Stop();
-            return stopwatch.ElapsedMilliseconds < 1000; // Should be fast
+            return stopwatch.ElapsedMilliseconds < SmokeTestConstants.FAST_OPERATION_MAX_MS; // Should be fast
         });
 
         // Test 2: Environment Setup Performance
@@ -367,7 +374,7 @@ public class ComprehensiveSmokeTestSuite
             {
                 await _stagingManager.ConfigureStagingEnvironmentAsync();
                 stopwatch.Stop();
-                return stopwatch.ElapsedMilliseconds < 5000; // Should complete in 5 seconds
+                return stopwatch.ElapsedMilliseconds < SmokeTestConstants.STANDARD_OPERATION_MAX_MS; // Should complete in 5 seconds
             }
             catch
             {
@@ -381,7 +388,7 @@ public class ComprehensiveSmokeTestSuite
             var beforeMemory = GC.GetTotalMemory(false);
             
             // Perform some operations
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < SmokeTestConstants.STRESS_TEST_ITERATIONS; i++)
             {
                 _ = new { Index = i, Data = $"Test data {i}" };
             }
@@ -389,7 +396,7 @@ public class ComprehensiveSmokeTestSuite
             var afterMemory = GC.GetTotalMemory(false);
             var memoryIncrease = afterMemory - beforeMemory;
             
-            return memoryIncrease < 10_000_000; // Less than 10MB increase
+            return memoryIncrease < SmokeTestConstants.MAX_MEMORY_BYTES; // Less than 10MB increase
         });
 
         await result.ExecuteAllTests();

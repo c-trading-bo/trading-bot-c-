@@ -394,7 +394,7 @@ public class AutoRemediationSystem
         var actions = new List<RemediationAction>();
 
         // Issue 1: Low security score
-        if (systemReport.SecurityCompliance.OverallSecurityScore < 80)
+        if (systemReport.SecurityCompliance.OverallSecurityScore < AutoRemediationConstants.SUCCESS_THRESHOLD_PERCENT)
         {
             var action = new RemediationAction
             {
@@ -576,7 +576,7 @@ public class AutoRemediationSystem
         }
 
         // High technical debt
-        if (systemReport.TechnicalDebtAnalysis.TodoItems.Count > 10)
+        if (systemReport.TechnicalDebtAnalysis.TodoItems.Count > AutoRemediationConstants.MIN_SAMPLE_SIZE)
         {
             manualItems.Add(new ManualReviewItem
             {
@@ -651,7 +651,7 @@ public class AutoRemediationSystem
             ServicePointManager.ServerCertificateValidationCallback = null; // Use default validation
             
             // Set secure connection limits
-            ServicePointManager.DefaultConnectionLimit = 10;
+            ServicePointManager.DefaultConnectionLimit = AutoRemediationConstants.MIN_SAMPLE_SIZE;
             ServicePointManager.Expect100Continue = false;
             ServicePointManager.UseNagleAlgorithm = false;
         });
@@ -1039,7 +1039,7 @@ public class AutoRemediationSystem
         var startTime = DateTime.UtcNow;
         var startCpuUsage = process.TotalProcessorTime;
         
-        await Task.Delay(1000); // Measure over 1 second
+        await Task.Delay(AutoRemediationConstants.HEALTH_CHECK_INTERVAL_MS); // Measure over 1 second
         
         var endTime = DateTime.UtcNow;
         var endCpuUsage = process.TotalProcessorTime;

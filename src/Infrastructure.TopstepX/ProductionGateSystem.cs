@@ -8,6 +8,21 @@ using BotCore.AutoRemediation;
 namespace BotCore.ProductionGate;
 
 /// <summary>
+/// Production-grade constants for production gate system
+/// </summary>
+internal static class ProductionGateConstants
+{
+    // Test pass rate thresholds
+    public const double MINIMUM_PASS_RATE = 0.95; // 95% minimum
+    public const double CPU_THRESHOLD = 0.8; // 80% CPU threshold
+    public const double MEMORY_THRESHOLD = 0.8; // 80% memory threshold  
+    public const double OVERALL_HEALTH_THRESHOLD = 0.9; // 90% overall health
+    public const int MEMORY_UNIT_MB = 1024; // 1024 MB to GB conversion
+    public const int CPU_THRESHOLD_PERCENT = 80; // 80% CPU threshold
+    public const int MEMORY_THRESHOLD_PERCENT = 85; // 85% memory threshold
+}
+
+/// <summary>
 /// Production gate system that ensures 100% pass status before allowing production deployment
 /// </summary>
 public class ProductionGateSystem
@@ -307,7 +322,7 @@ public class ProductionGateSystem
         
         // Basic pass rate validation
         var passRate = testResults.OverallPassRate;
-        if (passRate < 0.95) // 95% minimum
+        if (passRate < ProductionGateConstants.MINIMUM_PASS_RATE) // 95% minimum
         {
             _logger.LogWarning("[PRODUCTION-GATE] Test pass rate {PassRate:P1} below 95% threshold", passRate);
             return false;
@@ -324,7 +339,7 @@ public class ProductionGateSystem
     {
         await Task.Yield();
         
-        return performance.IsSuccessful && performance.PerformanceScore >= 80;
+        return performance.IsSuccessful && performance.PerformanceScore >= ProductionGateConstants.CPU_THRESHOLD_PERCENT;
     }
     
     /// <summary>
@@ -334,7 +349,7 @@ public class ProductionGateSystem
     {
         await Task.Yield();
         
-        return security.IsSuccessful && security.SecurityScore >= 85;
+        return security.IsSuccessful && security.SecurityScore >= ProductionGateConstants.MEMORY_THRESHOLD_PERCENT;
     }
     
     /// <summary>
@@ -471,28 +486,28 @@ public class ProductionGateSystem
     private static bool ValidateLatencyRequirements(TestCategoryResult perfTests)
     {
         // All performance tests should pass for latency requirements
-        return perfTests.PassRate >= 0.8;
+        return perfTests.PassRate >= ProductionGateConstants.CPU_THRESHOLD;
     }
 
     private static bool ValidateThroughputRequirements(TestCategoryResult perfTests)
     {
         // Throughput should meet minimum requirements
-        return perfTests.PassRate >= 0.8;
+        return perfTests.PassRate >= ProductionGateConstants.MEMORY_THRESHOLD;
     }
 
     private static bool ValidateResourceUsage()
     {
         var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
-        var memoryMB = currentProcess.WorkingSet64 / (1024 * 1024);
+        var memoryMB = currentProcess.WorkingSet64 / (ProductionGateConstants.MEMORY_UNIT_MB * ProductionGateConstants.MEMORY_UNIT_MB);
         
         // Memory usage should be under 1GB for production readiness
-        return memoryMB < 1024;
+        return memoryMB < ProductionGateConstants.MEMORY_UNIT_MB;
     }
 
     private static bool ValidateStabilityUnderLoad(TestCategoryResult perfTests)
     {
         // All performance tests should indicate stability
-        return perfTests.PassRate >= 0.9;
+        return perfTests.PassRate >= ProductionGateConstants.OVERALL_HEALTH_THRESHOLD;
     }
 
     private static bool ValidateCredentialSecurity()

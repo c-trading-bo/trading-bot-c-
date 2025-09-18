@@ -20,6 +20,16 @@ public class PositionSizing
     private const double HIGH_VOL_REGIME_CLIP = 0.3;
     private const double VOLATILITY_REGIME_CLIP = 0.4;
     
+    // ML prediction defaults
+    private const double DEFAULT_ML_CONFIDENCE = 0.5;
+    private const double DEFAULT_ML_EXPECTED_RETURN = 0.0;
+    
+    // Regime mapping constants
+    private const int TREND_REGIME_VALUE = 1;
+    private const int RANGE_REGIME_VALUE = 2;
+    private const int HIGH_VOL_REGIME_VALUE = 3;
+    private const int DEFAULT_REGIME_VALUE = 0;
+    
     #endregion
     
     private readonly ILogger<PositionSizing> _logger;
@@ -292,9 +302,14 @@ public class PositionSizing
     {
         return new double[]
         {
-            request.MLPrediction?.Confidence ?? 0.5,
-            request.MLPrediction?.Expected_Return ?? 0.0,
-            (double)(request.Regime switch { RegimeType.Trend => 1, RegimeType.Range => 2, RegimeType.HighVol => 3, _ => 0 }),
+            request.MLPrediction?.Confidence ?? DEFAULT_ML_CONFIDENCE,
+            request.MLPrediction?.Expected_Return ?? DEFAULT_ML_EXPECTED_RETURN,
+            (double)(request.Regime switch { 
+                RegimeType.Trend => TREND_REGIME_VALUE, 
+                RegimeType.Range => RANGE_REGIME_VALUE, 
+                RegimeType.HighVol => HIGH_VOL_REGIME_VALUE, 
+                _ => DEFAULT_REGIME_VALUE 
+            }),
             request.CurrentVolatility,
             request.CurrentPosition?.UnrealizedPnL ?? 0.0,
             request.TimeInPosition.TotalHours,
