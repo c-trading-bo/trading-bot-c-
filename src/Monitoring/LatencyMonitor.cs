@@ -28,6 +28,18 @@ namespace TradingBot.Monitoring
                 LogLevel.Information,
                 new EventId(1, nameof(LogMonitorStarted)),
                 "[LATENCY] Monitor started - Decision threshold: {DecThreshold}ms, Order threshold: {OrderThreshold}ms, Consecutive: {Consecutive}");
+
+        private static readonly Action<ILogger, int, double, double, string, Exception?> LogDecisionLatencyViolation =
+            LoggerMessage.Define<int, double, double, string>(
+                LogLevel.Warning,
+                new EventId(2, nameof(LogDecisionLatencyViolation)),
+                "[LATENCY] Decision latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}");
+
+        private static readonly Action<ILogger, int, double, double, string, Exception?> LogOrderLatencyViolation =
+            LoggerMessage.Define<int, double, double, string>(
+                LogLevel.Warning,
+                new EventId(3, nameof(LogOrderLatencyViolation)),
+                "[LATENCY] Order latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}");
         
         private readonly ILogger<LatencyMonitor> _logger;
         private readonly IAlertService _alertService;
@@ -73,13 +85,12 @@ namespace TradingBot.Monitoring
                 if (latencyMs > _decisionLatencyThreshold)
                 {
                     _consecutiveDecisionViolations++;
-                    _logger.LogWarning("[LATENCY] Decision latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}",
-                        _consecutiveDecisionViolations, latencyMs, _decisionLatencyThreshold, context ?? "N/A");
+                    LogDecisionLatencyViolation(_logger, _consecutiveDecisionViolations, latencyMs, _decisionLatencyThreshold, context ?? "N/A", null);
 
                     if (_consecutiveDecisionViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Decision Processing", latencyMs, _decisionLatencyThreshold)).ConfigureAwait(false);
+                            "Decision Processing", latencyMs, _decisionLatencyThreshold).ConfigureAwait(false)).ConfigureAwait(false);
                         _consecutiveDecisionViolations = 0; // Reset to avoid spam
                     }
                 }
@@ -109,13 +120,12 @@ namespace TradingBot.Monitoring
                 if (latencyMs > _orderLatencyThreshold)
                 {
                     _consecutiveOrderViolations++;
-                    _logger.LogWarning("[LATENCY] Order latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}",
-                        _consecutiveOrderViolations, latencyMs, _orderLatencyThreshold, context ?? "N/A");
+                    LogOrderLatencyViolation(_logger, _consecutiveOrderViolations, latencyMs, _orderLatencyThreshold, context ?? "N/A", null);
 
                     if (_consecutiveOrderViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Order Processing", latencyMs, _orderLatencyThreshold)).ConfigureAwait(false);
+                            "Order Processing", latencyMs, _orderLatencyThreshold).ConfigureAwait(false)).ConfigureAwait(false);
                         _consecutiveOrderViolations = 0; // Reset to avoid spam
                     }
                 }
@@ -171,9 +181,9 @@ namespace TradingBot.Monitoring
             }
         }
 
-        private LatencyStats CalculateStats(Queue<LatencyMeasurement> measurements, string component)
+        private static LatencyStats CalculateStats(Queue<LatencyMeasurement> measurements, string component)
         {
-            if (!measurements.Any())
+            if (measurements.Count == 0)
             {
                 return new LatencyStats
                 {
