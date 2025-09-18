@@ -172,6 +172,43 @@ namespace TradingBot.Safety.Analyzers
             isEnabledByDefault: true,
             description: "Legacy Infrastructure.TopstepX namespaces are not allowed in production code - use TopstepX SDK adapter instead.");
 
+        // New: Build Error Prevention Diagnostics
+        public static readonly DiagnosticDescriptor ReadOnlyPropertyAssignment = new DiagnosticDescriptor(
+            "PRE018",
+            "Read-only property assignment detected",
+            "Attempting to assign to read-only property '{0}'. Use proper collection population pattern.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Read-only properties cannot be assigned directly. Use collection initialization patterns.");
+
+        public static readonly DiagnosticDescriptor MissingInterfaceMethod = new DiagnosticDescriptor(
+            "PRE019", 
+            "Missing interface method detected",
+            "Interface method '{0}' is missing or has incorrect signature.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "All interface methods must be properly implemented.");
+
+        public static readonly DiagnosticDescriptor TypeMismatchDetected = new DiagnosticDescriptor(
+            "PRE020",
+            "Type mismatch detected",
+            "Type mismatch found: {0}. Ensure proper type compatibility.",
+            "Production", 
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Type mismatches must be resolved for production code.");
+
+        public static readonly DiagnosticDescriptor CompilationErrorDetected = new DiagnosticDescriptor(
+            "PRE021",
+            "Compilation error intercepted",
+            "Build error intercepted: {0}",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Compilation errors caught by analyzer before build failure.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 SuppressMessageWithoutProof,
@@ -189,12 +226,19 @@ namespace TradingBot.Safety.Analyzers
                 ShortMethodWithoutAttributes,
                 PythonPassStatementDetected,
                 UnusedParameterOrMemberDetected,
-                MockPatternInProduction);
+                MockPatternInProduction,
+                LegacyNamespaceDetected,
+                ReadOnlyPropertyAssignment,
+                MissingInterfaceMethod,
+                TypeMismatchDetected,
+                CompilationErrorDetected);
 
         public override void Initialize(AnalysisContext context)
         {
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
+            
+            // Original analysis actions
             context.RegisterSyntaxNodeAction(AnalyzeSuppressMessageAttribute, SyntaxKind.Attribute);
             context.RegisterSyntaxNodeAction(AnalyzePragmaWarningDirective, SyntaxKind.PragmaWarningDirectiveTrivia);
             context.RegisterSyntaxNodeAction(AnalyzeReturnStatement, SyntaxKind.ReturnStatement);
@@ -209,6 +253,15 @@ namespace TradingBot.Safety.Analyzers
             context.RegisterSyntaxNodeAction(AnalyzeArrayCreationExpression, SyntaxKind.ArrayCreationExpression);
             context.RegisterSyntaxNodeAction(AnalyzeThrowStatement, SyntaxKind.ThrowStatement);
             context.RegisterSyntaxTreeAction(AnalyzeSourceFile);
+            
+            // 1. SYNTAX TREE ANALYSIS - Runs before semantic analysis
+            context.RegisterSyntaxTreeAction(AnalyzeSyntaxTreeForErrors);
+            
+            // 2. TEXT-BASED SCANNING - Direct source file analysis with regex
+            context.RegisterSyntaxTreeAction(AnalyzeTextForInterfaceMismatches);
+            
+            // 3. COMPILATION CALLBACK - Intercept compilation errors
+            context.RegisterCompilationAction(AnalyzeCompilationErrors);
         }
 
         private static void AnalyzeSuppressMessageAttribute(SyntaxNodeAnalysisContext context)
@@ -858,6 +911,187 @@ namespace TradingBot.Safety.Analyzers
                     context.Tree.FilePath);
                 context.ReportDiagnostic(diagnostic);
             }
+        }
+
+        // ===============================================
+        // NEW: Enhanced Build Error Detection Capabilities
+        // ===============================================
+
+        /// <summary>
+        /// 1. SYNTAX TREE ANALYSIS - Catches parse/syntax issues before semantic analysis
+        /// Finds: Missing methods, wrong types, structural problems
+        /// </summary>
+        private static void AnalyzeSyntaxTreeForErrors(SyntaxTreeAnalysisContext context)
+        {
+            if (!IsInProductionCode(context.Tree.FilePath))
+                return;
+
+            var root = context.Tree.GetRoot();
+            
+            // Check for read-only property assignments (CS0200)
+            var assignments = root.DescendantNodes().OfType<AssignmentExpressionSyntax>();
+            foreach (var assignment in assignments)
+            {
+                var left = assignment.Left.ToString();
+                
+                // Detect common read-only property assignment patterns
+                if (left.Contains(".Features") && left.Contains("=") ||
+                    left.Contains(".Metadata") && left.Contains("=") ||
+                    left.Contains(".Indicators") && left.Contains("=") ||
+                    left.Contains(".Results") && left.Contains("="))
+                {
+                    var diagnostic = Diagnostic.Create(ReadOnlyPropertyAssignment,
+                        assignment.GetLocation(),
+                        left);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+
+            // Check for missing interface implementations
+            var classDeclarations = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+            foreach (var classDecl in classDeclarations)
+            {
+                // Look for interface implementation issues
+                if (classDecl.BaseList != null)
+                {
+                    foreach (var baseType in classDecl.BaseList.Types)
+                    {
+                        var typeName = baseType.Type.ToString();
+                        if (typeName.StartsWith("I") && char.IsUpper(typeName[1])) // Interface pattern
+                        {
+                            // Check if class has methods matching interface requirements
+                            CheckInterfaceImplementation(context, classDecl, typeName);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 2. TEXT-BASED SCANNING - Direct source file analysis with regex patterns
+        /// Scans: Source files directly using regex
+        /// Detects: Interface mismatches, type issues, pattern violations
+        /// </summary>
+        private static void AnalyzeTextForInterfaceMismatches(SyntaxTreeAnalysisContext context)
+        {
+            if (!IsInProductionCode(context.Tree.FilePath))
+                return;
+
+            var text = context.Tree.GetText().ToString();
+            
+            // Pattern 1: Missing interface methods
+            var interfaceMismatches = new[]
+            {
+                @"\.GetLatestRegimeScore\(\)",  // Should be DetectCurrentRegimeAsync
+                @"\.Timestamp\s*=",            // Should be FillTime
+                @"\.Price\s*=",                // Should be FillPrice
+                @"RegimeType\.Ranging",        // Should be RegimeType.Range
+                @"new\s+Random\s*\(",          // Should use cryptographically secure
+            };
+
+            foreach (var pattern in interfaceMismatches)
+            {
+                var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                var matches = regex.Matches(text);
+                
+                foreach (Match match in matches)
+                {
+                    var diagnostic = Diagnostic.Create(MissingInterfaceMethod,
+                        Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
+                        match.Value);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+
+            // Pattern 2: Type conversion issues
+            var typeIssues = new[]
+            {
+                @"Convert\.ToInt64\([^)]+\)\s*(?=\s*;|\s*,|\s*\))",  // long to int conversion issues
+                @"Convert\.ToDouble\([^)]+\)\s*(?=Volume\s*=)",     // Volume type issues
+            };
+
+            foreach (var pattern in typeIssues)
+            {
+                var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                var matches = regex.Matches(text);
+                
+                foreach (Match match in matches)
+                {
+                    var diagnostic = Diagnostic.Create(TypeMismatchDetected,
+                        Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
+                        match.Value);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 3. COMPILATION CALLBACK - Intercepts CS error codes and converts to PRE diagnostics
+        /// Intercepts: Compilation errors before build fails
+        /// Converts: CS errors to PRE diagnostics for better reporting
+        /// </summary>
+        private static void AnalyzeCompilationErrors(CompilationAnalysisContext context)
+        {
+            // Get all diagnostics from compilation
+            var diagnostics = context.Compilation.GetDiagnostics();
+            
+            foreach (var diagnostic in diagnostics)
+            {
+                if (diagnostic.Severity == DiagnosticSeverity.Error)
+                {
+                    // Convert common CS errors to PRE diagnostics for better tracking
+                    string errorCode = diagnostic.Id;
+                    string message = diagnostic.GetMessage();
+                    
+                    // Map CS errors to production concerns
+                    if (ShouldInterceptError(errorCode))
+                    {
+                        var preDiagnostic = Diagnostic.Create(CompilationErrorDetected,
+                            diagnostic.Location,
+                            $"{errorCode}: {message}");
+                        context.ReportDiagnostic(preDiagnostic);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Helper: Check if interface implementation is complete
+        /// </summary>
+        private static void CheckInterfaceImplementation(SyntaxTreeAnalysisContext context, 
+            ClassDeclarationSyntax classDecl, string interfaceName)
+        {
+            // Check for common interface implementation issues
+            if (interfaceName.Contains("IRegimeDetector"))
+            {
+                var methods = classDecl.DescendantNodes().OfType<MethodDeclarationSyntax>();
+                bool hasCorrectMethod = methods.Any(m => 
+                    m.Identifier.Text.Contains("DetectCurrentRegimeAsync"));
+                
+                if (!hasCorrectMethod)
+                {
+                    var diagnostic = Diagnostic.Create(MissingInterfaceMethod,
+                        classDecl.Identifier.GetLocation(),
+                        $"{interfaceName}.DetectCurrentRegimeAsync");
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Helper: Determine if compilation error should be intercepted
+        /// </summary>
+        private static bool ShouldInterceptError(string errorCode)
+        {
+            return errorCode switch
+            {
+                "CS0200" => true,  // Read-only property assignment
+                "CS0117" => true,  // Missing member
+                "CS1061" => true,  // Missing method
+                "CS0266" => true,  // Type conversion
+                "CS8602" => true,  // Null reference
+                _ => false
+            };
         }
     }
 }

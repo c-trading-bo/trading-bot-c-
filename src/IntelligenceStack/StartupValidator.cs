@@ -211,14 +211,13 @@ public class StartupValidator : IStartupValidator
             {
                 Symbol = "TEST",
                 Version = "test_v1",
-                Timestamp = DateTime.UtcNow,
-                Features = new Dictionary<string, double>
-                {
-                    ["price"] = 100.0,
-                    ["volume"] = 1000.0,
-                    ["volatility"] = 0.15
-                }
+                Timestamp = DateTime.UtcNow
             };
+            
+            // Populate read-only Features collection
+            sampleFeatures.Features["price"] = 100.0;
+            sampleFeatures.Features["volume"] = 1000.0;
+            sampleFeatures.Features["volatility"] = 0.15;
 
             var isValid = await _featureStore.ValidateSchemaAsync(sampleFeatures, cancellationToken);
             if (!isValid)

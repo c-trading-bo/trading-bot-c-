@@ -78,10 +78,18 @@ public class FeatureStore : IFeatureStore
                 Symbol = symbol,
                 Timestamp = fromTime,
                 Version = version ?? "unknown",
-                SchemaChecksum = checksum ?? "unknown",
-                Features = features,
-                Metadata = metadata
+                SchemaChecksum = checksum ?? "unknown"
             };
+            
+            // Populate read-only collections
+            foreach (var kvp in features)
+            {
+                result.Features[kvp.Key] = kvp.Value;
+            }
+            foreach (var kvp in metadata)
+            {
+                result.Metadata[kvp.Key] = kvp.Value;
+            }
 
             _logger.LogDebug("[FEATURES] Retrieved {Count} features for {Symbol} ({From} to {To})", 
                 features.Count, symbol, fromTime, toTime);

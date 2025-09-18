@@ -15,7 +15,7 @@ public class RiskViolationEventArgs : EventArgs
 {
     public string Symbol { get; set; } = string.Empty;
     public string ViolationType { get; set; } = string.Empty;
-    public List<string> Violations { get; set; } = new();
+    public List<string> Violations { get; } = new();
     public object? Position { get; set; } // Generic position object
     public DateTime Timestamp { get; set; }
 }

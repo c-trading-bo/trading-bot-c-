@@ -152,10 +152,18 @@ public class FeatureEngineer : IDisposable
                     Symbol = features.Symbol,
                     Timestamp = features.Timestamp,
                     Version = features.Version,
-                    SchemaChecksum = features.SchemaChecksum,
-                    Features = new Dictionary<string, double>(features.Features),
-                    Metadata = new Dictionary<string, object>(features.Metadata)
+                    SchemaChecksum = features.SchemaChecksum
                 };
+                
+                // Copy original features and metadata to read-only collections
+                foreach (var kvp in features.Features)
+                {
+                    permutedFeatures.Features[kvp.Key] = kvp.Value;
+                }
+                foreach (var kvp in features.Metadata)
+                {
+                    permutedFeatures.Metadata[kvp.Key] = kvp.Value;
+                }
 
                 // Permute this feature (use median of recent values)
                 var tracker = _importanceTrackers.GetOrAdd(strategyId,
@@ -433,14 +441,21 @@ public class FeatureEngineer : IDisposable
                 ["volume_log"] = Math.Log(Math.Max(marketData.Volume, 1))
             };
 
-            return new FeatureSet
+            var featureSet = new FeatureSet
             {
                 Symbol = marketData.Symbol,
                 Timestamp = marketData.Timestamp,
                 Version = "v1.0",
-                SchemaChecksum = "ohlc_market_data_features",
-                Features = features
+                SchemaChecksum = "ohlc_market_data_features"
             };
+            
+            // Populate read-only Features collection
+            foreach (var kvp in features)
+            {
+                featureSet.Features[kvp.Key] = kvp.Value;
+            }
+            
+            return featureSet;
         }
         catch
         {

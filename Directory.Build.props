@@ -4,27 +4,88 @@
     <LangVersion>latest</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     
-    <!-- Basic compiler settings -->
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <WarningsAsErrors>CS0162;CS0168;CS0219;CS0414;CS0649;CS0693;CS1717;CS8602;CS8604;CS8618;CS8625;CS1998</WarningsAsErrors>
+    <!-- PRODUCTION HARDENING: ZERO TOLERANCE FOR ANY VIOLATIONS -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- ALL warnings are errors - no exceptions, no suppressions -->
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
     
-    <!-- Enable nullable reference types -->
+    <!-- Enable nullable reference types solution-wide -->
     <Nullable>enable</Nullable>
     
-    <!-- Enable basic code analysis -->
+    <!-- Enable static code analysis with MAXIMUM enforcement -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
-    <AnalysisMode>Default</AnalysisMode>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <AnalysisLevel>latest</AnalysisLevel>
-    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
     
-    <!-- Basic analyzers -->
+    <!-- Security and reliability analyzers -->
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
-    <RunCodeAnalysis>false</RunCodeAnalysis>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    
+    <!-- ENHANCED BUSINESS LOGIC ENFORCEMENT -->
+    <EnforceBusinessLogicValidation>true</EnforceBusinessLogicValidation>
+    <FailBuildOnProductionViolations>true</FailBuildOnProductionViolations>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Core Microsoft analyzers only -->
+    <!-- Microsoft Code Analysis analyzers - Essential for production -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
+    
+    <!-- Security analyzers - Critical for production -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="SecurityCodeScan.VS2019" Version="5.6.7" PrivateAssets="all" />
+    
+    <!-- Performance and async analyzers - FULLY ENABLED -->
+    <PackageReference Include="AsyncFixer" Version="1.6.0" PrivateAssets="all" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- PRODUCTION ENFORCEMENT: Business Logic Validation Targets -->
+  <Target Name="TradingBotBusinessLogicValidation" BeforeTargets="Build">
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(PositionSize|positionSize|Position|position).*[=:]\s*(2\.5)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded position sizing value 2.5 detected. Use MLConfigurationService.GetPositionSizeMultiplier() instead.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(Confidence|confidence).*[=:]\s*(0\.7)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded AI confidence value 0.7 detected. Use MLConfigurationService.GetAIConfidenceThreshold() instead.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -not -path './Mock*/*' -not -path './simulation*/*' -not -path './Simulation*/*' -exec grep -l -E '(Regime|regime).*[=:]\s*(1\.0)[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: Hardcoded regime detection value 1.0 detected. Use MLConfigurationService.GetRegimeDetectionThreshold() instead.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(Confidence|confidence)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded AI confidence detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(PositionSize|positionSize|Position|position)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded position sizing detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+          
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(Threshold|threshold|Limit|limit)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded thresholds or limits detected. Live trading forbidden.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+
+  <!-- PRODUCTION ENFORCEMENT: Zero-tolerance mock/placeholder detection -->
+  <Target Name="ProductionReadinessCheck" BeforeTargets="Build">
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'PLACEHOLDER|TEMP|DUMMY|MOCK|FAKE|STUB|HARDCODED|SAMPLE|placeholder|stub|fake|temporary|demo|example' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock/placeholder/stub patterns detected. All code must be production-ready.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'Task\.Yield\(\)|Task\.Delay\([0-9]+\)|throw\s+new\s+NotImplementedException|return\s+Task\.CompletedTask\s*;' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Empty/placeholder async implementations detected.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '//\s*(TODO|FIXME|HACK|XXX|STUB|PLACEHOLDER|BUG|NOTE|REVIEW|REFACTOR|OPTIMIZE|for\s+testing|debug\s+only|temporary|remove\s+this|implementation\s+needed|production\s+replacement|real\s+data\s+needed|configuration\s+required)' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Development/testing comments detected.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+          
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E 'new\s+Random\(\)|Random\.Shared|_random\.Next|\.NextDouble\(\)' {} \; | grep -q .; then echo 'CRITICAL: Weak random number generation detected. Security violation.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
 
 </Project>

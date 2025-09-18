@@ -71,5 +71,5 @@ public class IntelligenceEventArgs : EventArgs
     public string EventType { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, object> Data { get; set; } = new();
+    public Dictionary<string, object> Data { get; } = new();
 }

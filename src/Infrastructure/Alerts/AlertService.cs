@@ -29,6 +29,49 @@ namespace TradingBot.Infrastructure.Alerts
         private readonly string? _emailFrom;
         private readonly string? _emailTo;
 
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, bool, bool, string?, int, bool, Exception?> LogServiceInitialized =
+            LoggerMessage.Define<bool, bool, string?, int, bool>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogServiceInitialized)),
+                "[ALERT] AlertService initialized - Email: {EmailEnabled}, Slack: {SlackEnabled}, SMTP: {SmtpServer}:{SmtpPort}, TLS: {UseTls}");
+
+        private static readonly Action<ILogger, string, Exception?> LogSlackWebhookMissing =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(2, nameof(LogSlackWebhookMissing)),
+                "[ALERT] Slack webhook not configured for alert: {AlertType}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogSlackAlertSent =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Information,
+                new EventId(3, nameof(LogSlackAlertSent)),
+                "[ALERT] Slack alert sent - Type: {AlertType}, Message: {Message}");
+
+        private static readonly Action<ILogger, string, Exception?> LogSlackAlertFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(4, nameof(LogSlackAlertFailed)),
+                "[ALERT] Failed to send Slack alert for: {AlertType}");
+
+        private static readonly Action<ILogger, string, Exception?> LogEmailConfigMissing =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(5, nameof(LogEmailConfigMissing)),
+                "[ALERT] Email configuration missing for alert: {AlertType}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogEmailAlertSent =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Information,
+                new EventId(6, nameof(LogEmailAlertSent)),
+                "[ALERT] Email alert sent - Type: {AlertType}, Subject: {Subject}, To: {EmailTo}");
+
+        private static readonly Action<ILogger, string, Exception?> LogEmailAlertFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(7, nameof(LogEmailAlertFailed)),
+                "[ALERT] Failed to send email alert for: {AlertType}");
+
         public AlertService(ILogger<AlertService> logger, HttpClient httpClient)
         {
             _logger = logger;
@@ -44,8 +87,7 @@ namespace TradingBot.Infrastructure.Alerts
             _emailFrom = Environment.GetEnvironmentVariable("ALERT_EMAIL_FROM");
             _emailTo = Environment.GetEnvironmentVariable("ALERT_EMAIL_TO");
             
-            _logger.LogInformation("[ALERT] AlertService initialized - Email: {EmailEnabled}, Slack: {SlackEnabled}, SMTP: {SmtpServer}:{SmtpPort}, TLS: {UseTls}",
-                !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_slackWebhook), _smtpServer, _smtpPort, _useTls);
+            LogServiceInitialized(_logger, !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_slackWebhook), _smtpServer, _smtpPort, _useTls, null);
         }
 
         public async Task SendEmailAsync(string subject, string body, AlertSeverity severity = AlertSeverity.Info)

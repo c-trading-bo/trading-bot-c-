@@ -101,14 +101,21 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
         var indicators = CalculateRegimeIndicators();
         var regime = ClassifyRegime(indicators);
         
-        return new RegimeState
+        var result = new RegimeState
         {
             Type = regime.Type,
             Confidence = regime.Confidence,
             DetectedAt = DateTime.UtcNow,
-            DwellTime = DateTime.UtcNow - _lastTransitionTime,
-            Indicators = indicators
+            DwellTime = DateTime.UtcNow - _lastTransitionTime
         };
+        
+        // Populate read-only Indicators collection
+        foreach (var kvp in indicators)
+        {
+            result.Indicators[kvp.Key] = kvp.Value;
+        }
+        
+        return result;
     }
 
     private Dictionary<string, double> CalculateRegimeIndicators()
