@@ -13,8 +13,6 @@ using TradingBot.UnifiedOrchestrator.Infrastructure;
 using TradingBot.UnifiedOrchestrator.Configuration;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
-using TradingBot.Infrastructure.TopstepX;
-using Infrastructure.TopstepX;
 using BotCore.Services;
 using BotCore.Extensions;  // Add this for ProductionReadinessServiceExtensions
 using UnifiedOrchestrator.Services;  // Add this for BacktestLearningService
@@ -368,25 +366,8 @@ Stack Trace:
             return new AccountService(logger, appOptions, httpClient);
         });
 
-        // Register TopstepX OrderService for order management
-        services.AddHttpClient<TradingBot.Infrastructure.TopstepX.OrderService>(client =>
-        {
-            client.BaseAddress = new Uri(TopstepXApiBaseUrl);
-            client.DefaultRequestHeaders.Add("User-Agent", TopstepXUserAgent);
-            client.Timeout = TimeSpan.FromSeconds(30);
-        });
-        services.AddSingleton<TradingBot.Infrastructure.TopstepX.IOrderService>(provider =>
-        {
-            var logger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.OrderService>>();
-            var appOptions = provider.GetRequiredService<IOptions<AppOptions>>();
-            var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-            var httpClient = httpClientFactory.CreateClient(nameof(TradingBot.Infrastructure.TopstepX.OrderService));
-            
-            return new TradingBot.Infrastructure.TopstepX.OrderService(logger, appOptions, httpClient);
-        });
-
         // ========================================================================
-        // TOPSTEPX CLIENT - PRODUCTION-ONLY REAL IMPLEMENTATION
+        // TOPSTEPX SDK ADAPTER - PRODUCTION-READY PYTHON SDK INTEGRATION
         // ========================================================================
         
         // Configure TopstepX client configuration for real connections only
@@ -406,35 +387,11 @@ Stack Trace:
         // Register TopstepXService for real client
         services.AddSingleton<BotCore.Services.ITopstepXService, BotCore.Services.TopstepXService>();
         
-        // Conditional TopstepX client registration based on TOPSTEPX_SIMULATION_MODE environment variable
-        // TOPSTEPX_SIMULATION_MODE=true: Use simulation client for CI runtime proof (no real API calls)
-        // TOPSTEPX_SIMULATION_MODE=false or unset: Use real TopstepX client for all trading modes
-        services.AddSingleton<ITopstepXClient>(provider =>
-        {
-            var simulationMode = Environment.GetEnvironmentVariable("TOPSTEPX_SIMULATION_MODE") == "true";
-            
-            if (simulationMode)
-            {
-                var simulationLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.SimulationTopstepXClient>>();
-                simulationLogger.LogInformation("[TOPSTEPX-CLIENT] Using SIMULATION TopstepX client for CI runtime proof");
-                Console.WriteLine("🧪 [TOPSTEPX-CLIENT] SIMULATION MODE ACTIVE - Using simulation TopstepX client for CI/testing");
-                return new TradingBot.Infrastructure.TopstepX.SimulationTopstepXClient(simulationLogger);
-            }
-            else
-            {
-                var realLogger = provider.GetRequiredService<ILogger<TradingBot.Infrastructure.TopstepX.RealTopstepXClient>>();
-                var topstepXService = provider.GetRequiredService<BotCore.Services.ITopstepXService>();
-                var orderService = provider.GetRequiredService<TradingBot.Infrastructure.TopstepX.IOrderService>();
-                var accountService = provider.GetRequiredService<IAccountService>();
-                var httpClientFactory = provider.GetRequiredService<IHttpClientFactory>();
-                var httpClient = httpClientFactory.CreateClient("TopstepX");
-                
-                realLogger.LogInformation("[TOPSTEPX-CLIENT] Using REAL TopstepX client for production trading");
-                Console.WriteLine("🚀 [TOPSTEPX-CLIENT] REAL MODE ACTIVE - Connecting to live TopstepX APIs");
-                return new TradingBot.Infrastructure.TopstepX.RealTopstepXClient(
-                    realLogger, topstepXService, orderService, accountService, httpClient);
-            }
-        });
+        // TopstepX SDK Adapter Service - Production-ready Python SDK integration
+        services.AddSingleton<ITopstepXAdapterService, TopstepXAdapterService>();
+        
+        // TopstepX Integration Test Service for validation
+        services.AddHostedService<TopstepXIntegrationTestService>();
 
         // Configure AppOptions for Safety components
         var appOptions = new AppOptions
@@ -799,10 +756,7 @@ Stack Trace:
         
         // Register services that have interfaces first
         
-        // Register authentication and credential management services from Infrastructure.TopstepX
-        services.AddSingleton<TopstepXCredentialManager>();
-        
-        // NOTE: AutoTopstepXLoginService registration handled elsewhere to avoid duplicates
+        // Legacy authentication removed - now using TopstepX SDK adapter with environment credentials
         
         // Register ALL critical system components that exist in BotCore
         try 

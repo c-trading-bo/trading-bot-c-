@@ -91,6 +91,10 @@ class MockOrders:
         self.symbol = symbol
         
     async def place_bracket_order(self, side, quantity, stop_loss, take_profit):
+        # Implement basic risk checking for validation
+        if quantity > 10:  # Simple risk check for oversized orders
+            raise ValueError(f"Order size {quantity} exceeds maximum allowed size of 10")
+            
         return {
             "id": str(uuid.uuid4()),
             "entry_order_id": str(uuid.uuid4()),
