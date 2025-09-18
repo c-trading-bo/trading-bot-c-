@@ -19,7 +19,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     private readonly string _lockPath;
     private readonly string _nodeId;
     private Timer? _renewalTimer;
-    private bool _isLeader = false;
+    private bool _isLeader;
     private readonly object _lock = new();
 
     public event EventHandler<LeadershipChangedEventArgs>? LeadershipChanged;
@@ -127,7 +127,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
             lock (_lock)
             {
-                _isLeader = false;
+                _isLeader;
             }
 
             OnLeadershipChanged(false, "Released leadership");
@@ -179,7 +179,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 // Lost leadership
                 lock (_lock)
                 {
-                    _isLeader = false;
+                    _isLeader;
                 }
                 
                 StopRenewalTimer();
@@ -196,7 +196,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             // Assume lost leadership on error
             lock (_lock)
             {
-                _isLeader = false;
+                _isLeader;
             }
             
             StopRenewalTimer();
@@ -427,7 +427,7 @@ public class QuarantineManager : IQuarantineManager
                     status.Reason = reason;
                     status.QuarantinedAt = DateTime.UtcNow;
                     status.BlendWeight = 0.0;
-                    status.ShadowDecisionCount = 0;
+                    status.ShadowDecisionCount;
                 }
 
                 _logger.LogWarning("[QUARANTINE] Model quarantined: {ModelId} (reason: {Reason})", modelId, reason);
@@ -465,7 +465,7 @@ public class QuarantineManager : IQuarantineManager
                         status.BlendWeight = 1.0;
                         status.QuarantinedAt = null;
                         status.Reason = null;
-                        status.ShadowDecisionCount = 0;
+                        status.ShadowDecisionCount;
 
                         _logger.LogInformation("[QUARANTINE] Model restored from quarantine: {ModelId}", modelId);
                         return true;

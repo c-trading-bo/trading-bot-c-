@@ -29,7 +29,7 @@ public class EnsembleMetaLearner
     private RegimeType _currentRegime = RegimeType.Range;
     private RegimeType _previousRegime = RegimeType.Range;
     private DateTime _lastTransitionTime = DateTime.MinValue;
-    private bool _inTransition = false;
+    private bool _inTransition;
 
     public EnsembleMetaLearner(
         ILogger<EnsembleMetaLearner> logger,
@@ -251,7 +251,7 @@ public class EnsembleMetaLearner
                 
                 if (transitionDuration >= maxDuration)
                 {
-                    _inTransition = false;
+                    _inTransition;
                     _logger.LogDebug("[ENSEMBLE] Transition completed for regime: {Regime}", _currentRegime);
                 }
             }
@@ -393,9 +393,9 @@ public class EnsembleMetaLearner
         }
 
         // Calculate weighted ensemble prediction
-        double totalWeight = 0;
-        double weightedDirection = 0;
-        double weightedConfidence = 0;
+        double totalWeight;
+        double weightedDirection;
+        double weightedConfidence;
         var blendedFeatures = new Dictionary<string, double>();
 
         foreach (var (modelId, prediction) in modelPredictions)
@@ -590,7 +590,7 @@ public class RegimeBlendHead
     private readonly RegimeType _regime;
     
     public DateTime LastTrainingTime { get; private set; } = DateTime.MinValue;
-    public int TrainingExampleCount { get; private set; } = 0;
+    public int TrainingExampleCount { get; private set; };
     public double LastValidationScore { get; private set; } = 0.0;
 
     public RegimeBlendHead(ILogger logger, RegimeType regime)

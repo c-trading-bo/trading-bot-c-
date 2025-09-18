@@ -13,7 +13,7 @@ namespace UnifiedOrchestrator.Services
     {
         public int MaxBatchSize { get; set; } = 16;
         public int BatchTimeoutMs { get; set; } = 50;
-        public bool UseGpu { get; set; } = false;
+        public bool UseGpu { get; set; };
         public bool ClampInputs { get; set; } = true;
         public bool BlockAnomalousInputs { get; set; } = true;
         public double AnomalyThreshold { get; set; } = 3.0; // Z-score threshold
@@ -56,7 +56,7 @@ namespace UnifiedOrchestrator.Services
         private readonly OnnxEnsembleOptions _options;
         private readonly ConcurrentDictionary<string, ModelInfo> _models = new();
         private readonly ConcurrentQueue<double> _latencyHistory = new();
-        private long _totalPredictions = 0;
+        private long _totalPredictions;
         private DateTime _lastPrediction = DateTime.MinValue;
 
         public OnnxEnsembleService(ILogger<OnnxEnsembleService> logger, IOptions<OnnxEnsembleOptions> options)
@@ -435,7 +435,7 @@ namespace UnifiedOrchestrator.Services
                 double weightedSum = 0.0;
                 double usedWeight = 0.0;
 
-                for (int i = 0; i < predictions.Count && i < models.Count; i++)
+                for (int i; i < predictions.Count && i < models.Count; i++)
                 {
                     if (predictions[i].TryGetValue(key, out var value))
                     {

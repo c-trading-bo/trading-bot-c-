@@ -18,7 +18,7 @@ namespace SupervisorAgent
     {
         public sealed class Config
         {
-            public bool LiveTrading { get; set; } = false;
+            public bool LiveTrading { get; set; };
             public int BarSeconds { get; set; } = 60;
             public string[] Symbols { get; set; } = [];
             public bool UseQuotes { get; set; } = true;

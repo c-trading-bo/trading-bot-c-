@@ -54,14 +54,14 @@ namespace TopstepX.Bot.Core.Services
         
         // Trading system state
         private readonly TradingSystemConfiguration _config;
-        private volatile bool _isSystemReady = false;
-        private volatile bool _isTradingEnabled = false;
+        private volatile bool _isSystemReady;
+        private volatile bool _isTradingEnabled;
         
         // Market Data Cache - ENHANCED IMPLEMENTATION
         private readonly ConcurrentDictionary<string, MarketData> _priceCache = new();
-        private volatile int _barsSeen = 0;
-        private volatile int _seededBars = 0;
-        private volatile int _liveTicks = 0;
+        private volatile int _barsSeen;
+        private volatile int _seededBars;
+        private volatile int _liveTicks;
         private DateTime _lastMarketDataUpdate = DateTime.MinValue;
         
         // Bar Data Storage for Strategy Evaluation - ENHANCED
@@ -70,11 +70,11 @@ namespace TopstepX.Bot.Core.Services
         
         // ML/RL Enhanced Trading Loop state - PRODUCTION READY
         private readonly Timer _tradingEvaluationTimer;
-        private volatile bool _isEvaluationRunning = false;
+        private volatile bool _isEvaluationRunning;
         
         // ML/RL Feature and Signal Processing
         private readonly ConcurrentDictionary<string, DateTime> _lastFeatureUpdate = new();
-        private volatile bool _mlRlSystemReady = false;
+        private volatile bool _mlRlSystemReady;
 
         // Production Readiness Components - NEW
         private readonly IHistoricalDataBridgeService _historicalBridge;
@@ -94,7 +94,7 @@ namespace TopstepX.Bot.Core.Services
             public string MarketHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/market";
             public string AccountId { get; set; } = string.Empty;
             public bool EnableDryRunMode { get; set; } = true;
-            public bool EnableAutoExecution { get; set; } = false;
+            public bool EnableAutoExecution { get; set; };
             public decimal MaxDailyLoss { get; set; } = -1000m;
             public decimal MaxPositionSize { get; set; } = 5m;
             public string ApiToken { get; set; } = string.Empty;
@@ -493,7 +493,7 @@ using System.Globalization;
             }
             finally
             {
-                _isEvaluationRunning = false;
+                _isEvaluationRunning;
             }
         }
 
@@ -1050,7 +1050,7 @@ using System.Globalization;
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [ML/RL] Failed to initialize ML/RL components");
-                _mlRlSystemReady = false;
+                _mlRlSystemReady;
             }
         }
 
@@ -1812,7 +1812,7 @@ using System.Globalization;
         private void OnEmergencyStopTriggered(object? sender, EmergencyStopEventArgs e)
         {
             _logger.LogCritical("🚨 EMERGENCY STOP TRIGGERED - All trading halted. Reason: {Reason}", e.Reason);
-            _isTradingEnabled = false;
+            _isTradingEnabled;
         }
 
         private async Task CleanupAsync()
@@ -1889,7 +1889,7 @@ using System.Globalization;
         private void SetupLiveMarketDataTracking()
         {
             // Track when live data starts flowing
-            var isLiveDataStarted = false;
+            var isLiveDataStarted;
             
             // Monitor for first live tick to start live counting
             _marketDataFlow.OnMarketDataReceived += (type, data) =>
@@ -2043,7 +2043,7 @@ using System.Globalization;
             // Additional validations
             if (context.TimeSinceLastData.TotalSeconds > _readinessConfig.MarketDataTimeoutSeconds)
             {
-                result.IsReady = false;
+                result.IsReady;
                 result.Reason += " (stale data)";
                 score *= 0.5;
                 recommendations.Add("Check market data flow");
@@ -2051,7 +2051,7 @@ using System.Globalization;
 
             if (!context.HubsConnected)
             {
-                result.IsReady = false;
+                result.IsReady;
                 result.Reason += " (hubs disconnected)";
                 score *= 0.3;
                 recommendations.Add("Check SignalR connections");

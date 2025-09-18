@@ -133,8 +133,8 @@ public class CloudModelSynchronizationService : BackgroundService
             // Get completed workflow runs
             var workflowRuns = await GetCompletedWorkflowRunsAsync(cancellationToken).ConfigureAwait(false);
             
-            var syncedCount = 0;
-            var newModelCount = 0;
+            var syncedCount;
+            var newModelCount;
             
             foreach (var run in workflowRuns)
             {
@@ -266,7 +266,7 @@ public class CloudModelSynchronizationService : BackgroundService
             using var zipStream = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             using var archive = new ZipArchive(zipStream, ZipArchiveMode.Read);
             
-            var extracted = false;
+            var extracted;
             foreach (var entry in archive.Entries)
             {
                 if (entry.Name.EndsWith(".onnx") || entry.Name.EndsWith(".pkl") || entry.Name.EndsWith(".json"))

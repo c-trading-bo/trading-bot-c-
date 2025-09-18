@@ -245,9 +245,9 @@ public class FeatureStore : IFeatureStore
     private ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
     {
         var totalFeatures = schema.Features.Count;
-        var missingCount = 0;
-        var outOfRangeCount = 0;
-        var typeErrorCount = 0;
+        var missingCount;
+        var outOfRangeCount;
+        var typeErrorCount;
 
         foreach (var schemaFeature in schema.Features.Values)
         {

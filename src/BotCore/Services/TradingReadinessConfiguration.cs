@@ -97,7 +97,7 @@ namespace BotCore.Services
         public int MinBarsSeen { get; set; } = 10;
         public int MinSeededBars { get; set; } = 12;
         public int MinLiveTicks { get; set; } = 2;
-        public bool AllowMockData { get; set; } = false;
+        public bool AllowMockData { get; set; };
     }
 
     /// <summary>

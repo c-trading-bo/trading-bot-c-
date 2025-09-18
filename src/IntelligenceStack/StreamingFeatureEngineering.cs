@@ -264,10 +264,10 @@ public class StreamingAggregator
     private readonly object _lock = new();
     private readonly int _maxWindowSize = 200; // Keep last 200 data points
 
-    private double _ema12 = 0;
-    private double _ema26 = 0;
-    private double _macdSignal = 0;
-    private bool _initialized = false;
+    private double _ema12;
+    private double _ema26;
+    private double _macdSignal;
+    private bool _initialized;
 
     public StreamingAggregator(string symbol, ILogger logger)
     {
@@ -299,7 +299,7 @@ public class StreamingAggregator
         {
             _ema12 = price;
             _ema26 = price;
-            _macdSignal = 0;
+            _macdSignal;
             _initialized = true;
         }
         else

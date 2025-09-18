@@ -97,7 +97,7 @@ public class UpdaterAgent
 
     private async Task RunUpdateLoop()
     {
-        var iterationCount = 0;
+        var iterationCount;
         while (iterationCount < MaxUpdateIterations) // Add a reasonable limit to prevent infinite recursion
         {
             try
@@ -283,7 +283,7 @@ public class UpdaterAgent
         p.StartInfo.FileName = exe;
         p.StartInfo.Arguments = args;
         p.StartInfo.WorkingDirectory = cwd ?? Environment.CurrentDirectory;
-        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.UseShellExecute;
         p.StartInfo.RedirectStandardOutput = true;
         p.StartInfo.RedirectStandardError = true;
         if (env != null)
@@ -308,7 +308,7 @@ public class UpdaterAgent
         p.StartInfo.FileName = "git";
         p.StartInfo.Arguments = args;
         p.StartInfo.WorkingDirectory = _repoPath;
-        p.StartInfo.UseShellExecute = false;
+        p.StartInfo.UseShellExecute;
         p.StartInfo.RedirectStandardOutput = true;
         p.Start();
         var output = p.StandardOutput.ReadToEnd();

@@ -220,10 +220,10 @@ public sealed class MLSystemConsolidationService
         // Remove the MLMemoryManager class from Enhanced/MLRLSystem.cs
         var lines = content.Split('\n').ToList();
         var mlMemoryManagerStart = -1;
-        var braceCount = 0;
-        var inMLMemoryManager = false;
+        var braceCount;
+        var inMLMemoryManager;
 
-        for (int i = 0; i < lines.Count; i++)
+        for (int i; i < lines.Count; i++)
         {
             var line = lines[i];
             
@@ -231,7 +231,7 @@ public sealed class MLSystemConsolidationService
             {
                 mlMemoryManagerStart = i;
                 inMLMemoryManager = true;
-                braceCount = 0;
+                braceCount;
             }
 
             if (inMLMemoryManager)

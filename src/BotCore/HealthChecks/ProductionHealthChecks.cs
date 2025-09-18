@@ -504,8 +504,8 @@ public class MLModelHealthCheck : IHealthCheck
         try
         {
             var modelDirectory = Path.Combine(Directory.GetCurrentDirectory(), "models");
-            var modelsFound = 0;
-            var modelsLoaded = 0;
+            var modelsFound;
+            var modelsLoaded;
 
             var data = new Dictionary<string, object>
             {
@@ -680,7 +680,7 @@ public class SecurityHealthCheck : IHealthCheck
 
             // Check file permissions on sensitive files
             var sensitiveFiles = new[] { "appsettings.json", "appsettings.Production.json", ".env" };
-            var secureFiles = 0;
+            var secureFiles;
             
             foreach (var file in sensitiveFiles)
             {

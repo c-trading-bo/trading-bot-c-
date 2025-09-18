@@ -40,7 +40,7 @@ public static class Analytics
         var sumSquareX = 0.0;
         var sumSquareY = 0.0;
         
-        for (int i = 0; i < arrayX.Length; i++)
+        for (int i; i < arrayX.Length; i++)
         {
             var deviationX = arrayX[i] - meanX;
             var deviationY = arrayY[i] - meanY;

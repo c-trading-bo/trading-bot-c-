@@ -90,7 +90,7 @@ public class RollbackDrillService : IRollbackDrillService
         }
         catch (Exception ex)
         {
-            result.Success = false;
+            result.Success;
             result.ErrorMessage = ex.Message;
             result.EndTime = DateTime.UtcNow;
             result.TotalDurationMs = stopwatch.Elapsed.TotalMilliseconds;
@@ -134,7 +134,7 @@ public class RollbackDrillService : IRollbackDrillService
         await _brainAdapter.RollbackToChampionAsync(cancellationToken).ConfigureAwait(false);
         
         // Generate baseline decisions
-        for (int i = 0; i < 20; i++)
+        for (int i; i < 20; i++)
         {
             var context = CreateTestTradingContext(i);
             var decisionStart = DateTime.UtcNow;
@@ -204,7 +204,7 @@ public class RollbackDrillService : IRollbackDrillService
             .ContinueWith(_ => loadCancellation.Cancel(), TaskScheduler.Default);
 
         // Generate concurrent load
-        for (int worker = 0; worker < Environment.ProcessorCount; worker++)
+        for (int worker; worker < Environment.ProcessorCount; worker++)
         {
             tasks.Add(GenerateWorkerLoad(worker, config.DecisionsPerSecond / Environment.ProcessorCount, 
                 decisions, loadCancellation.Token));
@@ -296,7 +296,7 @@ public class RollbackDrillService : IRollbackDrillService
         var postRollbackDecisions = new List<(DateTime, AbstractionsTradingDecision, double)>();
 
         // Generate post-rollback decisions to verify stability
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             var context = CreateTestTradingContext(i + 1000);
             var decisionStart = DateTime.UtcNow;
@@ -343,7 +343,7 @@ public class RollbackDrillService : IRollbackDrillService
     private async Task GenerateWorkerLoad(int workerId, int decisionsPerSecond, ConcurrentBag<(DateTime, double, bool)> decisions, CancellationToken cancellationToken)
     {
         var delayMs = Math.Max(1, 1000 / decisionsPerSecond);
-        var decisionCounter = 0;
+        var decisionCounter;
 
         while (!cancellationToken.IsCancellationRequested)
         {

@@ -137,7 +137,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             }
 
             var modelFiles = Directory.GetFiles(modelsDir, "*.json");
-            var updated = 0;
+            var updated;
 
             foreach (var modelFile in modelFiles)
             {
@@ -211,7 +211,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         const int numBins = 10;
         var binSize = sortedPoints.Count / numBins;
         
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             var binStart = i * binSize;
             var binEnd = Math.Min((i + 1) * binSize, sortedPoints.Count);
@@ -262,10 +262,10 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private static double ApplyIsotonicCalibration(double rawConfidence, Dictionary<string, double> parameters)
     {
         // Find appropriate bin
-        var bestBin = 0;
+        var bestBin;
         var minDiff = double.MaxValue;
         
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             if (parameters.TryGetValue($"threshold_{i}", out var threshold))
             {

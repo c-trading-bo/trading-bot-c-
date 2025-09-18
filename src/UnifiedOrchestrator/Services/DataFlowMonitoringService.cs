@@ -28,8 +28,8 @@ public class DataFlowMonitoringService : BackgroundService
     
     private DateTime _lastLiveDataReceived = DateTime.MinValue;
     private DateTime _lastHistoricalDataProcessed = DateTime.MinValue;
-    private int _totalLiveDataEvents = 0;
-    private int _totalHistoricalDataEvents = 0;
+    private int _totalLiveDataEvents;
+    private int _totalHistoricalDataEvents;
 
     public DataFlowMonitoringService(
         ILogger<DataFlowMonitoringService> logger,

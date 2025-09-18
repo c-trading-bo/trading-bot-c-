@@ -17,8 +17,8 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
     private readonly ILogger<KillSwitchWatcher> _logger;
     private readonly AppOptions _config;
     private readonly FileSystemWatcher _fileWatcher;
-    private bool _isActive = false;
-    private bool _disposed = false;
+    private bool _isActive;
+    private bool _disposed;
 
     /// <summary>
     /// Raised when the kill switch is toggled. The bool parameter indicates whether it is now active (true) or inactive (false).

@@ -192,8 +192,8 @@ namespace OrchestratorAgent.ML
 
                 // Load ONNX model
                 var sessionOptions = new SessionOptions();
-                sessionOptions.EnableMemoryPattern = false; // Reduce memory usage
-                sessionOptions.EnableCpuMemArena = false;
+                sessionOptions.EnableMemoryPattern; // Reduce memory usage
+                sessionOptions.EnableCpuMemArena;
 
                 _session = new InferenceSession(_modelPath, sessionOptions);
                 _modelLastWrite = File.GetLastWriteTimeUtc(_modelPath);
@@ -297,7 +297,7 @@ using System.Globalization;
 
         private int GreedyAction(float[] logits)
         {
-            int maxIndex = 0;
+            int maxIndex;
             for (int i = 1; i < logits.Length; i++)
             {
                 if (logits[i] > logits[maxIndex])
@@ -315,22 +315,22 @@ using System.Globalization;
                 if (v > max) max = v;
             }
 
-            double sum = 0;
+            double sum;
             var probs = new double[logits.Length];
-            for (int i = 0; i < logits.Length; i++)
+            for (int i; i < logits.Length; i++)
             {
                 probs[i] = Math.Exp(logits[i] - max);
                 sum += probs[i];
             }
 
-            for (int i = 0; i < probs.Length; i++)
+            for (int i; i < probs.Length; i++)
             {
                 probs[i] /= sum;
             }
 
             double u = _rng.NextDouble();
-            double acc = 0;
-            for (int i = 0; i < probs.Length; i++)
+            double acc;
+            for (int i; i < probs.Length; i++)
             {
                 acc += probs[i];
                 if (u <= acc) return i;

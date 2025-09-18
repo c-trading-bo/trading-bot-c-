@@ -98,7 +98,7 @@ namespace BotCore
                 }
 
                 // Invoke only the documented ProjectX methods with a single string contractId
-                bool anySucceeded = false;
+                bool anySucceeded;
 
                 async Task Call(string method, string cid)
                 {
@@ -292,7 +292,7 @@ namespace BotCore
 
             _conn.Reconnecting += ex =>
             {
-                _subscribed = false;
+                _subscribed;
                 var reconnectData = new
                 {
                     timestamp = DateTime.UtcNow,
@@ -345,7 +345,7 @@ namespace BotCore
 
             _conn.Closed += async ex =>
             {
-                _subscribed = false;
+                _subscribed;
                 var now = DateTime.UtcNow;
                 if (!Concise())
                 {

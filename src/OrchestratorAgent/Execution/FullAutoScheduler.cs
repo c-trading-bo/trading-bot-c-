@@ -89,7 +89,7 @@ namespace OrchestratorAgent.Execution
                 
                 // Simulate walk-forward analysis
                 var folds = lookbackDays / testDays;
-                for (int fold = 0; fold < folds && !ct.IsCancellationRequested; fold++)
+                for (int fold; fold < folds && !ct.IsCancellationRequested; fold++)
                 {
                     _log.LogDebug("[AUTO] Processing fold {Fold}/{TotalFolds}", fold + 1, folds);
                     await Task.Delay(100, ct).ConfigureAwait(false); // Simulate processing time

@@ -126,7 +126,7 @@ namespace BotCore.Services
             {
                 var windows = new List<ValidationWindow>();
                 var currentDate = startDate;
-                var windowIndex = 0;
+                var windowIndex;
 
                 while (currentDate.AddDays(_config.ValidationWindowDays) <= endDate)
                 {

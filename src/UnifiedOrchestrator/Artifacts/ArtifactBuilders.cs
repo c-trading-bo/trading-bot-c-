@@ -452,7 +452,7 @@ public class UcbSerializer : IArtifactBuilder
             var arms = GetPropertyValue(ucbModel, "arms", Array.Empty<object>()) as object[];
             if (arms != null)
             {
-                for (int i = 0; i < arms.Length; i++)
+                for (int i; i < arms.Length; i++)
                 {
                     var arm = arms[i];
                     var armName = GetPropertyValue(arm, "name", $"arm_{i}").ToString() ?? $"arm_{i}";

@@ -67,7 +67,7 @@ public class TradingConfiguration
     public decimal DrawdownLimit { get; set; } = -2000m;
 
     [Required]
-    public bool EnableAutoExecution { get; set; } = false;
+    public bool EnableAutoExecution { get; set; };
 
     [Required]
     public bool EnableDryRun { get; set; } = true;

@@ -473,7 +473,7 @@ public class AutomatedPromotionService : BackgroundService
             }
 
             // Check 3: No recent emergency stops or critical alerts
-            var hasRecentEmergencyStop = false; // Mock check
+            var hasRecentEmergencyStop; // Mock check
             if (hasRecentEmergencyStop)
             {
                 _logger.LogWarning("[AUTO-PROMOTION] Safety check failed: recent emergency stop detected");
@@ -616,7 +616,7 @@ public class AutomatedPromotionService : BackgroundService
                     
                     if (trendDegrading)
                     {
-                        healthCheck.IsHealthy = false;
+                        healthCheck.IsHealthy;
                         healthCheck.Issues.Add("Health trend degrading over last 3 measurements");
                     }
                 }

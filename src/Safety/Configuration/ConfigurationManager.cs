@@ -360,7 +360,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             {
                 _logger.LogCritical("[CONFIG_MANAGER] Configuration validation FAILED: {CriticalIssues} critical, {Warnings} warnings [CorrelationId: {CorrelationId}]",
                     criticalIssueCount, warningIssueCount, correlationId);
-                result.IsValid = false;
+                result.IsValid;
             }
             else if (warningIssueCount > 0)
             {
@@ -379,7 +379,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CONFIG_MANAGER] Error during configuration validation [CorrelationId: {CorrelationId}]", correlationId);
-            result.IsValid = false;
+            result.IsValid;
             result.Issues.Add(new ValidationIssue
             {
                 Key = "VALIDATION_ERROR",

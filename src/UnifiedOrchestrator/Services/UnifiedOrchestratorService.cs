@@ -28,8 +28,8 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     private readonly object? _intelligenceOrchestrator;
     private readonly object? _dataOrchestrator;
     private readonly DateTime _startTime;
-    private bool _isConnectedToTopstep = false;
-    private bool _adapterInitialized = false;
+    private bool _isConnectedToTopstep;
+    private bool _adapterInitialized;
     
     // Workflow tracking for real stats
     private readonly Dictionary<string, UnifiedWorkflow> _registeredWorkflows = new();
@@ -127,7 +127,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ TopstepX SDK adapter initialization failed");
-            _adapterInitialized = false;
+            _adapterInitialized;
         }
         
         // Initialize all subsystems
@@ -153,7 +153,7 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "TopstepX connection check failed - running in offline mode");
-            _isConnectedToTopstep = false;
+            _isConnectedToTopstep;
         }
         
         await Task.CompletedTask.ConfigureAwait(false);

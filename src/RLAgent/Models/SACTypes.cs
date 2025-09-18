@@ -115,7 +115,7 @@ public class SacTrainingResult
     
     public SacTrainingResult()
     {
-        Success = false;
+        Success;
         Message = "Training not completed";
     }
     

@@ -91,7 +91,7 @@ namespace BotCore
 
         private async Task<int> GetTotalTrainingSampleCountAsync()
         {
-            var count = 0;
+            var count;
 
             // Count from enhanced training data service
             count += await _trainingDataService.GetTrainingSampleCountAsync().ConfigureAwait(false);

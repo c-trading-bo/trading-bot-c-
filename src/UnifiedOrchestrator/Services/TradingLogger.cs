@@ -36,12 +36,12 @@ public class TradingLogger : ITradingLogger, IDisposable
     private readonly PerformanceMetrics _performanceMetrics = new();
     
     // Market data sampling
-    private int _marketDataCounter = 0;
-    private int _mlPredictionCounter = 0;
+    private int _marketDataCounter;
+    private int _mlPredictionCounter;
     private readonly object _samplingLock = new();
     
-    private bool _disposed = false;
-    private int _pendingCount = 0;
+    private bool _disposed;
+    private int _pendingCount;
 
     public TradingLogger(ILogger<TradingLogger> logger, IOptions<TradingLoggerOptions> options)
     {
@@ -189,7 +189,7 @@ public class TradingLogger : ITradingLogger, IDisposable
                 {
                     return; // Skip logging until we reach aggregation count
                 }
-                _mlPredictionCounter = 0; // Reset counter
+                _mlPredictionCounter; // Reset counter
             }
         }
 
@@ -379,7 +379,7 @@ public class TradingLogger : ITradingLogger, IDisposable
         });
         
         // Reset size tracking
-        _currentFileSizes[category] = 0;
+        _currentFileSizes[category];
         
         // Add a small delay to make this method async-worthy
         await Task.Delay(1).ConfigureAwait(false);
@@ -528,7 +528,7 @@ public class PerformanceMetrics
     private readonly ConcurrentDictionary<TradingLogLevel, long> _levelCounts = new();
     private readonly object _lockObject = new();
     private DateTime _startTime = DateTime.UtcNow;
-    private long _totalEntries = 0;
+    private long _totalEntries;
 
     public void RecordLogEntry(TradingLogCategory category, TradingLogLevel level)
     {

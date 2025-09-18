@@ -165,7 +165,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
                         Commission = updateEvent.Commission ?? 0m
                     });
                     evidence.TotalFilled += updateEvent.FilledQuantity;
-                    evidence.RemainingQuantity = 0;
+                    evidence.RemainingQuantity;
                     evidence.Status = OrderEvidenceStatus.FullyFilled;
                     evidence.CompletedAt = updateEvent.Timestamp;
                     evidence.LastFillAt = updateEvent.Timestamp;

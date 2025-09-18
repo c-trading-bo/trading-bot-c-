@@ -24,7 +24,7 @@ namespace BotCore
         private readonly string? _pythonScriptDir;
         private bool _disposed;
         private DateTime _lastTrainingAttempt = DateTime.MinValue;
-        private int _consecutiveFailures = 0;
+        private int _consecutiveFailures;
 
         private const int MaxConsecutiveFailures = 3;
         private const int MinTrainingDays = 7;
@@ -72,7 +72,7 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
                 await RunTrainingPipelineAsync().ConfigureAwait(false);
 
-                _consecutiveFailures = 0;
+                _consecutiveFailures;
                 _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
             }
             catch (Exception ex)
@@ -143,7 +143,7 @@ namespace BotCore
                     MultiStrategyRlCollector.StrategyType.Momentum
                 };
 
-                bool hasData = false;
+                bool hasData;
                 foreach (var strategy in strategies)
                 {
                     try

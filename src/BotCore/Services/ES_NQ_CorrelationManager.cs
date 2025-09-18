@@ -73,7 +73,7 @@ namespace BotCore.Services
                     // Trade the laggard
                     if (instrument == correlation.Leader)
                     {
-                        filter.Allow = false;
+                        filter.Allow;
                         filter.Reason = $"{instrument} leading, wait for {GetOther(instrument)}";
                     }
                     else
@@ -95,7 +95,7 @@ namespace BotCore.Services
                     var otherPosition = await GetCurrentPositionAsync(GetOther(instrument)).ConfigureAwait(false);
                     if (otherPosition != null && OppositeDirection(signal, otherPosition))
                     {
-                        filter.Allow = false;
+                        filter.Allow;
                         filter.Reason = "Would create opposing ES/NQ positions";
                     }
                 }
@@ -176,7 +176,7 @@ namespace BotCore.Services
                 var bars = new List<decimal>();
                 var basePrice = GetCurrentMarketPriceOrFallback(symbol);
                 
-                for (int i = 0; i < count; i++)
+                for (int i; i < count; i++)
                 {
                     // Use your sophisticated market algorithms instead of Random()
                     var timeBasedMovement = GetTimeBasedPriceMovement(symbol, i);

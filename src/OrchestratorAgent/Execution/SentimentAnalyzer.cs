@@ -37,7 +37,7 @@ namespace OrchestratorAgent.Execution
             var negative = new[] { "bearish", "crash", "fall", "losses", "weak", "decline" };
 
             var lowerText = text.ToLowerInvariant();
-            int posCount = 0, negCount = 0;
+            int posCount = 0, negCount;
 
             foreach (var word in positive)
                 if (lowerText.Contains(word)) posCount++;

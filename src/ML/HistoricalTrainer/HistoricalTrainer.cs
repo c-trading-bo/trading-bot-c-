@@ -503,7 +503,7 @@ public class HistoricalWalkForwardTrainer
         var foldCount = config.WalkForwardFolds;
         var samplesPerFold = dataset.Samples.Count / foldCount;
 
-        for (int fold = 0; fold < foldCount; fold++)
+        for (int fold; fold < foldCount; fold++)
         {
             try
             {

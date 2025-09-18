@@ -215,8 +215,8 @@ public class TradeJournal : ITradeJournal
     public async Task ValidateIntegrityAsync()
     {
         var journalFiles = Directory.GetFiles(_journalDirectory, "trade_journal_*.json");
-        var totalEntries = 0;
-        var corruptedEntries = 0;
+        var totalEntries;
+        var corruptedEntries;
 
         foreach (var file in journalFiles)
         {

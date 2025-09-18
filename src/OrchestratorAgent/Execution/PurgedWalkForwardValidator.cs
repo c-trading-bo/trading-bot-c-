@@ -134,14 +134,14 @@ namespace OrchestratorAgent.Execution
 
             if (trainingTrades.Count < MinTrainingTrades)
             {
-                fold.IsValid = false;
+                fold.IsValid;
                 fold.ValidationMessage = $"Insufficient training data: {trainingTrades.Count} < {MinTrainingTrades}";
                 return fold;
             }
 
             if (testTrades.Count == 0)
             {
-                fold.IsValid = false;
+                fold.IsValid;
                 fold.ValidationMessage = "No test trades found";
                 return fold;
             }

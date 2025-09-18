@@ -99,7 +99,7 @@ public class StrategySignalHealthCheck : IHealthCheck
             }
 
             // Validate each strategy config
-            var validConfigs = 0;
+            var validConfigs;
             var totalConfigs = configFiles.Length;
 
             foreach (var configFile in configFiles)

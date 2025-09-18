@@ -108,7 +108,7 @@ namespace OrchestratorAgent.Health
                             else if (path.Equals("/promote", StringComparison.OrdinalIgnoreCase) && mode != null)
                             {
                                 mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
-                                if (state != null) state.DrainMode = false;
+                                if (state != null) state.DrainMode;
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;

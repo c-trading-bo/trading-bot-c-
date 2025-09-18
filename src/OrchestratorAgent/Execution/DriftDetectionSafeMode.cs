@@ -139,7 +139,7 @@ namespace OrchestratorAgent.Execution
         {
             if (_safeModeStates.ContainsKey(context))
             {
-                _safeModeStates[context].IsInSafeMode = false;
+                _safeModeStates[context].IsInSafeMode;
                 _safeModeStates[context].ExitTime = DateTime.Now;
                 Console.WriteLine($"[SAFE-MODE] Forced exit for {context}: {reason}");
             }
@@ -166,7 +166,7 @@ namespace OrchestratorAgent.Execution
 
                 foreach (var expired in expiredStates)
                 {
-                    _safeModeStates[expired.Key].IsInSafeMode = false;
+                    _safeModeStates[expired.Key].IsInSafeMode;
                     Console.WriteLine($"[SAFE-MODE] Expired safe mode for {expired.Key}");
                 }
 
@@ -228,7 +228,7 @@ namespace OrchestratorAgent.Execution
             // Auto-exit if time expired
             if (state.IsInSafeMode && DateTime.Now > state.ExitTime)
             {
-                state.IsInSafeMode = false;
+                state.IsInSafeMode;
                 Console.WriteLine($"[SAFE-MODE] Auto-exit for {context} (time expired)");
             }
 
@@ -328,7 +328,7 @@ namespace OrchestratorAgent.Execution
 
     public class SafeModeState
     {
-        public bool IsInSafeMode { get; set; } = false;
+        public bool IsInSafeMode { get; set; };
         public DateTime EntryTime { get; set; }
         public DateTime ExitTime { get; set; }
         public double TriggerSignificance { get; set; }

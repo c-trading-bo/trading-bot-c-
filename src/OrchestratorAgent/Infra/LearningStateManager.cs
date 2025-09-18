@@ -44,15 +44,15 @@ public static class LearningStateManager
 public class LearningState
 {
     public DateTime LastPracticeUtc { get; set; } = DateTime.MinValue;
-    public int CycleCount { get; set; } = 0;
+    public int CycleCount { get; set; };
     public string LastVersion { get; set; } = "1.0";
     public DateTime StateUpdatedUtc { get; set; } = DateTime.UtcNow;
 
     // Track learning metrics
     public double LastAccuracy { get; set; } = 0.0;
     public string LastRegime { get; set; } = "Unknown";
-    public int ConsecutiveSuccesses { get; set; } = 0;
-    public int TotalLearningCycles { get; set; } = 0;
+    public int ConsecutiveSuccesses { get; set; };
+    public int TotalLearningCycles { get; set; };
 
     public TimeSpan TimeSinceLastPractice()
     {

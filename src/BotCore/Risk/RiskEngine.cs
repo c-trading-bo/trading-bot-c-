@@ -109,9 +109,9 @@ namespace BotCore.Risk
         private readonly ConcurrentDictionary<string, DrawdownTracker> _trackers = new();
         private readonly Timer _drawdownMonitor;
         private decimal _dailyStartBalance;
-        private int _consecutiveLosses = 0;
+        private int _consecutiveLosses;
         private decimal _peakBalance;
-        private bool _tradingHalted = false;
+        private bool _tradingHalted;
         private decimal _positionSizeMultiplier = 1.0m;
         
         public class DrawdownTracker
@@ -218,7 +218,7 @@ namespace BotCore.Risk
                 tracker.PeakValue = currentBalance;
                 tracker.PeakTime = DateTime.UtcNow;
                 _peakBalance = currentBalance;
-                _consecutiveLosses = 0; // Reset on new peak
+                _consecutiveLosses; // Reset on new peak
                 _positionSizeMultiplier = 1.0m; // Reset position sizing
             }
             
@@ -240,7 +240,7 @@ namespace BotCore.Risk
             }
             else if (lastTrade != null && lastTrade.PnL > 0)
             {
-                _consecutiveLosses = 0;
+                _consecutiveLosses;
                 tracker.LossSequence.Clear();
             }
             

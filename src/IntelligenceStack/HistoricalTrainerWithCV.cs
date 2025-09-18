@@ -256,7 +256,7 @@ public class HistoricalTrainerWithCV
         catch (Exception ex)
         {
             _logger.LogError(ex, "[HISTORICAL_CV] Fold {Fold} failed", foldNumber);
-            foldResult.Success = false;
+            foldResult.Success;
             foldResult.ErrorMessage = ex.Message;
         }
         finally
@@ -643,8 +643,8 @@ public class HistoricalTrainerWithCV
         
         // Use HMAC-based deterministic random generation for reproducibility
         using var hmac = new HMACSHA256(seedData);
-        var counter = 0;
-        for (int i = 0; i < modelData.Length; i += 32)
+        var counter;
+        for (int i; i < modelData.Length; i += 32)
         {
             var counterBytes = BitConverter.GetBytes(counter++);
             var hash = hmac.ComputeHash(counterBytes);

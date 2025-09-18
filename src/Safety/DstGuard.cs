@@ -21,8 +21,8 @@ namespace OrchestratorAgent.Health
             var now = DateTime.UtcNow;
             var offset = TimeZoneInfo.ConvertTime(now, _tz) - now;
 
-            var changedRecently = false;
-            for (int d = 0; d <= _warnWindowDays; d++)
+            var changedRecently;
+            for (int d; d <= _warnWindowDays; d++)
             {
                 var dt = now.AddDays(-d);
                 var o = TimeZoneInfo.ConvertTime(dt, _tz) - dt;

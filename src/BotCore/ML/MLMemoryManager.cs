@@ -21,7 +21,7 @@ public class MLMemoryManager : IMLMemoryManager
     
     private const long MAX_MEMORY_BYTES = 8L * 1024 * 1024 * 1024; // 8GB
     private const int MAX_MODEL_VERSIONS = 3;
-    private bool _disposed = false;
+    private bool _disposed;
 
     public class ModelVersion
     {
@@ -389,7 +389,7 @@ public class MLMemoryManager : IMLMemoryManager
             };
             
             // Calculate ML memory usage
-            long mlMemory = 0;
+            long mlMemory;
             foreach (var model in _activeModels.Values)
             {
                 snapshot.ModelMemory[model.ModelId] = model.MemoryFootprint;
@@ -538,7 +538,7 @@ public class MLMemoryManager : IMLMemoryManager
             MemoryLeaks = new List<string>()
         };
         
-        long mlMemory = 0;
+        long mlMemory;
         foreach (var model in _activeModels.Values)
         {
             snapshot.ModelMemory[model.ModelId] = model.MemoryFootprint;

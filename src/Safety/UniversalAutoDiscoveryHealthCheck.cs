@@ -28,7 +28,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, ComponentInfo> _discoveredComponents = new();
     private readonly object _discoveryLock = new object();
-    private bool _hasPerformedDiscovery = false;
+    private bool _hasPerformedDiscovery;
 
     // Parameterless constructor for auto-discovery
     public UniversalAutoDiscoveryHealthCheck() : this(null, null) { }

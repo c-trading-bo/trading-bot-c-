@@ -156,7 +156,7 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
         try
         {
             var snap = _pos.Snapshot();
-            decimal sum = 0m;
+            decimal sum;
             foreach (var kv in snap)
             {
                 try

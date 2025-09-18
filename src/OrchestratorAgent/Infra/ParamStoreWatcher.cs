@@ -106,7 +106,7 @@ public sealed class ParamStoreWatcher : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        try { _fsw.EnableRaisingEvents = false; } catch { }
+        try { _fsw.EnableRaisingEvents; } catch { }
         _fsw.Changed -= OnFsEvent;
         _fsw.Created -= OnFsEvent;
         _fsw.Renamed -= OnFsEvent;

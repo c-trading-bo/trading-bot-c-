@@ -140,7 +140,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
     {
         var featureImportance = new Dictionary<string, decimal>();
-        var totalWeight = 0m;
+        var totalWeight;
 
         foreach (var arm in _arms.Values.ToList())
         {
@@ -153,7 +153,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
             foreach (var kvp in armImportance)
             {
                 if (!featureImportance.ContainsKey(kvp.Key))
-                    featureImportance[kvp.Key] = 0m;
+                    featureImportance[kvp.Key];
 
                 featureImportance[kvp.Key] += kvp.Value * armWeight;
             }
@@ -274,11 +274,11 @@ internal class NeuralUcbArm
             var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct).ConfigureAwait(false);
 
             var featureKeys = context.Features.Keys.OrderBy(k => k).ToList();
-            for (int i = 0; i < Math.Min(gradients.Length, featureKeys.Count); i++)
+            for (int i; i < Math.Min(gradients.Length, featureKeys.Count); i++)
             {
                 var featureName = featureKeys[i];
                 if (!importance.ContainsKey(featureName))
-                    importance[featureName] = 0m;
+                    importance[featureName];
 
                 importance[featureName] += Math.Abs(gradients[i]);
             }
@@ -306,7 +306,7 @@ internal class NeuralUcbArm
         // Estimate uncertainty using ensemble prediction variance
         var predictions = new List<decimal>();
 
-        for (int i = 0; i < _config.UncertaintyEstimationSamples; i++)
+        for (int i; i < _config.UncertaintyEstimationSamples; i++)
         {
             var features = context.ToArray(_config.InputDimension);
             var prediction = await _network.PredictWithDropoutAsync(features, ct).ConfigureAwait(false);
@@ -438,7 +438,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private InferenceSession? _session;
     private readonly string _modelPath;
     private readonly Random _random = new();
-    private bool _isInitialized = false;
+    private bool _isInitialized;
 
     public OnnxNeuralNetwork(OnnxModelLoader onnxLoader, ILogger<OnnxNeuralNetwork> logger, string modelPath = "models/neural_ucb_model.onnx")
     {
@@ -525,7 +525,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         var epsilon = 0.001m;
         var basePrediction = await PredictAsync(features).ConfigureAwait(false);
         
-        for (int i = 0; i < features.Length; i++)
+        for (int i; i < features.Length; i++)
         {
             var perturbedFeatures = features.ToArray();
             perturbedFeatures[i] += epsilon;
@@ -556,10 +556,10 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private static decimal PredictFallback(decimal[] features)
     {
         // Sophisticated fallback using feature analysis
-        var weighted_sum = 0m;
+        var weighted_sum;
         var weights = new decimal[] { 0.3m, 0.2m, 0.15m, 0.1m, 0.1m, 0.05m, 0.05m, 0.03m, 0.01m, 0.01m };
         
-        for (int i = 0; i < Math.Min(features.Length, weights.Length); i++)
+        for (int i; i < Math.Min(features.Length, weights.Length); i++)
         {
             weighted_sum += features[i] * weights[i];
         }
@@ -607,7 +607,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             _session.Dispose();
             _session = null;
         }
-        _isInitialized = false;
+        _isInitialized;
     }
 }
 

@@ -76,7 +76,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         _logger = logger;
         _config = config.Value;
         _instruments = new[] { "MNQ", "ES" }; // Support MNQ and ES as specified
-        _isInitialized = false;
+        _isInitialized;
         _connectionHealth = 0.0;
     }
 
@@ -380,7 +380,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
             var command = new { action = "disconnect" };
             await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
-            _isInitialized = false;
+            _isInitialized;
             _connectionHealth = 0.0;
             
             lock (_processLock)

@@ -15,9 +15,9 @@ public class TradingBrainState
     public List<string> ConnectedComponents { get; } = new();
     public List<string> ActiveStrategies { get; } = new();
     public Dictionary<string, decimal> ActivePositions { get; } = new();
-    public decimal DailyPnL { get; set; } = 0m;
+    public decimal DailyPnL { get; set; };
     public string MarketRegime { get; set; } = "UNKNOWN";
-    public decimal RiskLevel { get; set; } = 0m;
+    public decimal RiskLevel { get; set; };
     public Dictionary<string, object> ComponentStates { get; } = new();
     
     // Intelligence system state
@@ -60,13 +60,13 @@ public class TradingBrainState
 /// </summary>
 public class MLSystemState
 {
-    public bool IsActive { get; set; } = false;
+    public bool IsActive { get; set; };
     public DateTime LastTraining { get; set; } = DateTime.MinValue;
     public Dictionary<string, decimal> ModelConfidences { get; } = new();
     public string ActiveModel { get; set; } = "NEURAL_BANDIT";
     public Dictionary<string, decimal> FeatureImportance { get; } = new();
     public string LastPrediction { get; set; } = string.Empty;
-    public decimal PredictionConfidence { get; set; } = 0m;
+    public decimal PredictionConfidence { get; set; };
     public List<string> ActiveFeatures { get; } = new();
     
     public MLSystemState Clone()
@@ -97,10 +97,10 @@ public class MLSystemState
 /// </summary>
 public class RiskSystemState
 {
-    public bool IsActive { get; set; } = false;
-    public decimal CurrentRisk { get; set; } = 0m;
+    public bool IsActive { get; set; };
+    public decimal CurrentRisk { get; set; };
     public decimal MaxDailyRisk { get; set; } = 1000m;
-    public decimal RiskUtilization { get; set; } = 0m;
+    public decimal RiskUtilization { get; set; };
     public Dictionary<string, decimal> PositionRisks { get; } = new();
     public List<string> RiskWarnings { get; } = new();
     public DateTime LastRiskCheck { get; set; } = DateTime.MinValue;
@@ -161,10 +161,10 @@ public class TradingSystemState
 /// </summary>
 public class DataSystemState
 {
-    public bool IsActive { get; set; } = false;
+    public bool IsActive { get; set; };
     public DateTime LastDataUpdate { get; set; } = DateTime.MinValue;
     public Dictionary<string, DateTime> LastSymbolUpdate { get; } = new();
-    public int TotalDataPoints { get; set; } = 0;
+    public int TotalDataPoints { get; set; };
     public string DataQuality { get; set; } = "UNKNOWN";
     public List<string> DataSources { get; } = new();
     
@@ -202,11 +202,11 @@ public class TradingSignal
 {
     public string Symbol { get; set; } = string.Empty;
     public string Direction { get; set; } = string.Empty; // LONG/SHORT
-    public decimal Strength { get; set; } = 0m; // 0-1
+    public decimal Strength { get; set; }; // 0-1
     public string Strategy { get; set; } = string.Empty;
-    public decimal EntryPrice { get; set; } = 0m;
-    public decimal StopLoss { get; set; } = 0m;
-    public decimal TakeProfit { get; set; } = 0m;
+    public decimal EntryPrice { get; set; };
+    public decimal StopLoss { get; set; };
+    public decimal TakeProfit { get; set; };
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Metadata { get; } = new();
 }
@@ -219,17 +219,17 @@ public class TradingDecision
     public string DecisionId { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
     public TradeSide Side { get; set; } = TradeSide.Hold;
-    public decimal Quantity { get; set; } = 0m;
-    public decimal Price { get; set; } = 0m;
+    public decimal Quantity { get; set; };
+    public decimal Price { get; set; };
     public TradingSignal Signal { get; set; } = new();
     public TradingAction Action { get; set; } = TradingAction.Hold;
-    public decimal Confidence { get; set; } = 0m;
-    public decimal MLConfidence { get; set; } = 0m;
+    public decimal Confidence { get; set; };
+    public decimal MLConfidence { get; set; };
     public string MLStrategy { get; set; } = string.Empty;
-    public decimal RiskScore { get; set; } = 0m;
-    public decimal MaxPositionSize { get; set; } = 0m;
+    public decimal RiskScore { get; set; };
+    public decimal MaxPositionSize { get; set; };
     public string MarketRegime { get; set; } = string.Empty;
-    public decimal RegimeConfidence { get; set; } = 0m;
+    public decimal RegimeConfidence { get; set; };
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Reasoning { get; } = new();
 }
@@ -264,10 +264,10 @@ public enum TradingAction
 /// </summary>
 public class RiskAssessment
 {
-    public decimal RiskScore { get; set; } = 0m; // 0-1
-    public decimal MaxPositionSize { get; set; } = 0m;
-    public decimal CurrentExposure { get; set; } = 0m;
-    public decimal VaR { get; set; } = 0m; // Value at Risk
+    public decimal RiskScore { get; set; }; // 0-1
+    public decimal MaxPositionSize { get; set; };
+    public decimal CurrentExposure { get; set; };
+    public decimal VaR { get; set; }; // Value at Risk
     public string RiskLevel { get; set; } = "LOW"; // LOW/MEDIUM/HIGH
     public List<string> Warnings { get; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -279,10 +279,10 @@ public class RiskAssessment
 public class MarketRegime
 {
     public string CurrentRegime { get; set; } = "UNKNOWN"; // TRENDING/RANGING/CHOPPY/VOLATILE
-    public decimal Confidence { get; set; } = 0m;
+    public decimal Confidence { get; set; };
     public Dictionary<string, decimal> RegimeScores { get; } = new();
     public string Trend { get; set; } = "SIDEWAYS"; // UP/DOWN/SIDEWAYS
-    public decimal Volatility { get; set; } = 0m;
+    public decimal Volatility { get; set; };
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
@@ -348,7 +348,7 @@ public class UnifiedWorkflow
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int Priority { get; set; } = 3; // 1=Critical, 2=High, 3=Normal
-    public int BudgetAllocation { get; set; } = 0; // Minutes per month
+    public int BudgetAllocation { get; set; }; // Minutes per month
     public WorkflowSchedule Schedule { get; set; } = new();
     public string[] Actions { get; set; } = Array.Empty<string>();
     public WorkflowType Type { get; set; } = WorkflowType.Standard;
@@ -594,9 +594,9 @@ public enum WorkflowType
 /// </summary>
 public class WorkflowMetrics
 {
-    public int ExecutionCount { get; set; } = 0;
-    public int SuccessCount { get; set; } = 0;
-    public int FailureCount { get; set; } = 0;
+    public int ExecutionCount { get; set; };
+    public int SuccessCount { get; set; };
+    public int FailureCount { get; set; };
     public TimeSpan TotalExecutionTime { get; set; } = TimeSpan.Zero;
     public DateTime LastExecution { get; set; } = DateTime.MinValue;
     public DateTime LastSuccess { get; set; } = DateTime.MinValue;

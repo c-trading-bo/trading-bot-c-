@@ -23,8 +23,8 @@ public class SystemHealthMonitoringService : IHostedService
     private readonly Timer _performanceTimer;
     private readonly Process _currentProcess;
 
-    private long _lastGcCollectionCount = 0;
-    private long _lastWorkingSet = 0;
+    private long _lastGcCollectionCount;
+    private long _lastWorkingSet;
 
     public SystemHealthMonitoringService(
         ILogger<SystemHealthMonitoringService> logger,

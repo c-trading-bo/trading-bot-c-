@@ -33,7 +33,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     
     private string? _currentToken;
     private DateTime _tokenExpiry = DateTime.MinValue;
-    private volatile bool _isRefreshing = false;
+    private volatile bool _isRefreshing;
     private AutoTopstepXLoginService? _autoLoginService;
 
     public event Action<string>? TokenRefreshed;
@@ -229,7 +229,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
         }
         finally
         {
-            _isRefreshing = false;
+            _isRefreshing;
             _refreshLock.Release();
         }
     }

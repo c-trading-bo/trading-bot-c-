@@ -132,7 +132,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
         lock (_lock)
         {
             var featureImportance = new Dictionary<string, decimal>();
-            var totalWeight = 0m;
+            var totalWeight;
 
             foreach (var arm in _arms.Values)
             {
@@ -142,11 +142,11 @@ public class LinUcbBandit : IFunctionApproximationBandit
                 var armWeight = (decimal)arm.UpdateCount;
                 totalWeight += armWeight;
 
-                for (int i = 0; i < weights.Length && i < _config.ContextDimension; i++)
+                for (int i; i < weights.Length && i < _config.ContextDimension; i++)
                 {
                     var featureName = $"feature_{i}";
                     if (!featureImportance.ContainsKey(featureName))
-                        featureImportance[featureName] = 0m;
+                        featureImportance[featureName];
 
                     featureImportance[featureName] += Math.Abs(weights[i]) * armWeight;
                 }
@@ -196,7 +196,7 @@ internal class LinUcbArm
         _b = new decimal[dimension];
 
         // Initialize A as identity matrix
-        for (int i = 0; i < dimension; i++)
+        for (int i; i < dimension; i++)
         {
             _A[i, i] = 1m;
         }
@@ -235,16 +235,16 @@ internal class LinUcbArm
         var x = context.ToArray(_dimension);
 
         // Update A = A + x * x^T
-        for (int i = 0; i < _dimension; i++)
+        for (int i; i < _dimension; i++)
         {
-            for (int j = 0; j < _dimension; j++)
+            for (int j; j < _dimension; j++)
             {
                 _A[i, j] += x[i] * x[j];
             }
         }
 
         // Update b = b + reward * x
-        for (int i = 0; i < _dimension; i++)
+        for (int i; i < _dimension; i++)
         {
             _b[i] += reward * x[i];
         }
@@ -281,8 +281,8 @@ internal class LinUcbArm
 
         if (_AInverse == null) return 1m;
 
-        var trace = 0m;
-        for (int i = 0; i < _dimension; i++)
+        var trace;
+        for (int i; i < _dimension; i++)
         {
             trace += _AInverse[i, i];
         }
@@ -310,13 +310,13 @@ internal class LinUcbArm
         try
         {
             _AInverse = InvertMatrix(_A);
-            _inverseNeedsUpdate = false;
+            _inverseNeedsUpdate;
         }
         catch
         {
             // Matrix inversion failed - use identity as fallback
             _AInverse = new decimal[_dimension, _dimension];
-            for (int i = 0; i < _dimension; i++)
+            for (int i; i < _dimension; i++)
             {
                 _AInverse[i, i] = 1m;
             }
@@ -329,9 +329,9 @@ internal class LinUcbArm
         var augmented = new decimal[n, 2 * n];
 
         // Create augmented matrix [A | I]
-        for (int i = 0; i < n; i++)
+        for (int i; i < n; i++)
         {
-            for (int j = 0; j < n; j++)
+            for (int j; j < n; j++)
             {
                 augmented[i, j] = matrix[i, j];
                 augmented[i, j + n] = i == j ? 1m : 0m;
@@ -339,7 +339,7 @@ internal class LinUcbArm
         }
 
         // Gaussian elimination
-        for (int i = 0; i < n; i++)
+        for (int i; i < n; i++)
         {
             // Find pivot
             var maxRow = i;
@@ -354,7 +354,7 @@ internal class LinUcbArm
             // Swap rows
             if (maxRow != i)
             {
-                for (int j = 0; j < 2 * n; j++)
+                for (int j; j < 2 * n; j++)
                 {
                     (augmented[i, j], augmented[maxRow, j]) = (augmented[maxRow, j], augmented[i, j]);
                 }
@@ -368,18 +368,18 @@ internal class LinUcbArm
 
             // Scale pivot row
             var pivot = augmented[i, i];
-            for (int j = 0; j < 2 * n; j++)
+            for (int j; j < 2 * n; j++)
             {
                 augmented[i, j] /= pivot;
             }
 
             // Eliminate column
-            for (int k = 0; k < n; k++)
+            for (int k; k < n; k++)
             {
                 if (k != i)
                 {
                     var factor = augmented[k, i];
-                    for (int j = 0; j < 2 * n; j++)
+                    for (int j; j < 2 * n; j++)
                     {
                         augmented[k, j] -= factor * augmented[i, j];
                     }
@@ -389,9 +389,9 @@ internal class LinUcbArm
 
         // Extract inverse matrix
         var inverse = new decimal[n, n];
-        for (int i = 0; i < n; i++)
+        for (int i; i < n; i++)
         {
-            for (int j = 0; j < n; j++)
+            for (int j; j < n; j++)
             {
                 inverse[i, j] = augmented[i, j + n];
             }
@@ -406,9 +406,9 @@ internal class LinUcbArm
         var cols = matrix.GetLength(1);
         var result = new decimal[rows];
 
-        for (int i = 0; i < rows; i++)
+        for (int i; i < rows; i++)
         {
-            for (int j = 0; j < cols && j < vector.Length; j++)
+            for (int j; j < cols && j < vector.Length; j++)
             {
                 result[i] += matrix[i, j] * vector[j];
             }
@@ -419,10 +419,10 @@ internal class LinUcbArm
 
     private static decimal VectorDotProduct(decimal[] a, decimal[] b)
     {
-        var result = 0m;
+        var result;
         var length = Math.Min(a.Length, b.Length);
 
-        for (int i = 0; i < length; i++)
+        for (int i; i < length; i++)
         {
             result += a[i] * b[i];
         }
@@ -455,7 +455,7 @@ public class ContextVector
         var array = new decimal[dimension];
         var featureKeys = Features.Keys.OrderBy(k => k).ToList();
 
-        for (int i = 0; i < Math.Min(dimension, featureKeys.Count); i++)
+        for (int i; i < Math.Min(dimension, featureKeys.Count); i++)
         {
             array[i] = Features[featureKeys[i]];
         }

@@ -179,15 +179,15 @@ public sealed class PresetSelector(ILogger log, Func<string, IReadOnlyList<Bar>>
         else if (std > 0.0012m) tags.Add("high_vol");
         else tags.Add("mid_vol");
         // simple trend detection: slope of linear fit by time index
-        decimal slope = 0m;
+        decimal slope;
         if (seg.Count > 5)
         {
             int m = seg.Count;
             var xs = Enumerable.Range(0, m).Select(i => (decimal)i).ToArray();
             var ys = seg.Select(b => b.Close).ToArray();
             var xMean = xs.Average(); var yMean = ys.Average();
-            var num = 0m; var den = 0m;
-            for (int i = 0; i < m; i++) { var dx = xs[i] - xMean; num += dx * (ys[i] - yMean); den += dx * dx; }
+            var num; var den;
+            for (int i; i < m; i++) { var dx = xs[i] - xMean; num += dx * (ys[i] - yMean); den += dx * dx; }
             slope = den != 0 ? num / den : 0m;
         }
         if (Math.Abs(slope) > 0.25m) tags.Add("trend"); else tags.Add("range");

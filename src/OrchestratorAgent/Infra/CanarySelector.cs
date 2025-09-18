@@ -356,7 +356,7 @@ public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> ge
         try
         {
             var snap = _pos.Snapshot();
-            decimal sum = 0m;
+            decimal sum;
             foreach (var kv in snap)
             {
                 var r = OrchestratorAgent.SymbolMeta.RootFromName(kv.Key);

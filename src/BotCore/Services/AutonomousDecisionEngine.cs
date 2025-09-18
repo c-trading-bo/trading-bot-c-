@@ -73,9 +73,9 @@ public class AutonomousDecisionEngine : BackgroundService
     private string _currentStrategy = "S11";
     private decimal _currentRiskPerTrade = 0.005m; // Start conservative at 0.5%
     private decimal _currentAccountBalance = 50000m;
-    private int _consecutiveWins = 0;
-    private int _consecutiveLosses = 0;
-    private decimal _todayPnL = 0m;
+    private int _consecutiveWins;
+    private int _consecutiveLosses;
+    private decimal _todayPnL;
     private DateTime _lastTradeTime = DateTime.MinValue;
     private AutonomousMarketRegime _currentAutonomousMarketRegime = AutonomousMarketRegime.Unknown;
     
@@ -493,8 +493,8 @@ public class AutonomousDecisionEngine : BackgroundService
             };
             
             // Try to get real market data, use defaults if unavailable
-            double currentPrice = 0;
-            double currentVolume = 0;
+            double currentPrice;
+            double currentVolume;
             
             try
             {
@@ -1357,7 +1357,7 @@ public class AutonomousDecisionEngine : BackgroundService
         var random = new Random();
         var tradesCount = Math.Min(20, performance.TotalTrades); // Last 20 trades or total if less
         
-        for (int i = 0; i < tradesCount; i++)
+        for (int i; i < tradesCount; i++)
         {
             var isWin = random.NextDouble() < (double)performance.WinRate;
             var pnl = isWin ? 
@@ -1661,7 +1661,7 @@ public class AutonomousDecisionEngine : BackgroundService
             if (position.UnrealizedPnL < 0)
             {
                 _consecutiveLosses++;
-                _consecutiveWins = 0;
+                _consecutiveWins;
             }
             
             // Update today's P&L
@@ -1797,16 +1797,16 @@ public class AutonomousStrategyMetrics
 /// </summary>
 public class AutonomousConfig
 {
-    public bool IsEnabled { get; set; } = false;
-    public bool Enabled { get; set; } = false; // Legacy property for compatibility
+    public bool IsEnabled { get; set; };
+    public bool Enabled { get; set; }; // Legacy property for compatibility
     public bool AutoStrategySelection { get; set; } = true;
     public bool AutoPositionSizing { get; set; } = true;
     public decimal DailyProfitTarget { get; set; } = 300m;
     public decimal MaxDailyLoss { get; set; } = -1000m;
     public decimal MaxDrawdown { get; set; } = -2000m; // Add back for compatibility
-    public bool TradeDuringLunch { get; set; } = false;
-    public bool TradeOvernight { get; set; } = false;
-    public bool TradePreMarket { get; set; } = false;
+    public bool TradeDuringLunch { get; set; };
+    public bool TradeOvernight { get; set; };
+    public bool TradePreMarket { get; set; };
     public int MaxContractsPerTrade { get; set; } = 5;
     public decimal MinRiskPerTrade { get; set; } = 0.005m;
     public decimal MaxRiskPerTrade { get; set; } = 0.015m;

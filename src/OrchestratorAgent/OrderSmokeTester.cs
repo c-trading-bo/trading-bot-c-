@@ -48,7 +48,7 @@ namespace OrchestratorAgent
                     return;
                 }
 
-                long orderId = 0;
+                long orderId;
                 try
                 {
                     using var doc = JsonDocument.Parse(placeText);

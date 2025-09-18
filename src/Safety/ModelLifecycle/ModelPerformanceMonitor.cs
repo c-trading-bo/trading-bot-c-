@@ -228,8 +228,8 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
     
     private bool ShouldRecommendRollback(Dictionary<string, ModelMetricComparison> comparisons)
     {
-        var significantDegradations = 0;
-        var significantImprovements = 0;
+        var significantDegradations;
+        var significantImprovements;
         
         foreach (var comparison in comparisons.Values)
         {

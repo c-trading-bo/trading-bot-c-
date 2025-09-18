@@ -75,7 +75,7 @@ public class RedundantDataFeedManager : IDisposable
     private IDataFeed? _primaryFeed;
     private readonly Timer _healthCheckTimer;
     private readonly Timer _consistencyCheckTimer;
-    private bool _disposed = false;
+    private bool _disposed;
 
     public event EventHandler<MarketData>? OnConsolidatedData;
     public event EventHandler<string>? OnFeedFailover;
@@ -219,7 +219,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
         {
-            health.IsHealthy = false;
+            health.IsHealthy;
             health.ErrorCount++;
             
             _logger.LogError(ex, "[DataFeed] Feed {FeedName} failed (Error count: {ErrorCount})", 
@@ -294,7 +294,7 @@ public class RedundantDataFeedManager : IDisposable
                     {
                         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
                         {
-                            health.IsHealthy = false;
+                            health.IsHealthy;
                             health.ErrorCount++;
                         }
                         

@@ -44,10 +44,10 @@ namespace BotCore.Services
         private readonly ConcurrentDictionary<string, DataFlowMetrics> _flowMetrics = new();
         private readonly Timer _healthCheckTimer;
         private readonly Timer _heartbeatTimer;
-        private volatile bool _isHealthy = false;
-        private volatile bool _isMonitoring = false;
+        private volatile bool _isHealthy;
+        private volatile bool _isMonitoring;
         private readonly object _recoveryLock = new object();
-        private int _recoveryAttempts = 0;
+        private int _recoveryAttempts;
 
         public event Action<string, object>? OnMarketDataReceived;
         public event Action<string>? OnDataFlowRestored;
@@ -124,7 +124,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-DATA-FLOW] ❌ Failed to initialize enhanced market data flow");
-                _isHealthy = false;
+                _isHealthy;
                 return Task.FromResult(false);
             }
         }
@@ -137,7 +137,7 @@ namespace BotCore.Services
             try
             {
                 var currentTime = DateTime.UtcNow;
-                var healthySymbols = 0;
+                var healthySymbols;
                 var totalSymbols = _flowMetrics.Count;
                 var issues = new List<string>();
 
@@ -205,7 +205,7 @@ namespace BotCore.Services
                 if (healthStatus.IsHealthy)
                 {
                     _logger.LogDebug("[DATA-FLOW-RECOVERY] Data flow is healthy ({HealthPercentage:P1})", healthStatus.HealthPercentage);
-                    _recoveryAttempts = 0; // Reset recovery attempts
+                    _recoveryAttempts; // Reset recovery attempts
                     return;
                 }
 
@@ -324,7 +324,7 @@ namespace BotCore.Services
             }
             finally
             {
-                _isMonitoring = false;
+                _isMonitoring;
             }
         }
 
@@ -524,7 +524,7 @@ namespace BotCore.Services
                 if (healthStatusAfterRecovery.IsHealthy)
                 {
                     _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
-                    _recoveryAttempts = 0; // Reset attempts on success
+                    _recoveryAttempts; // Reset attempts on success
                     
                     // Notify recovery
                     foreach (var symbol in unhealthySymbols)
@@ -616,7 +616,7 @@ namespace BotCore.Services
 
         #region IDisposable
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         public void Dispose()
         {
@@ -624,7 +624,7 @@ namespace BotCore.Services
             {
                 _healthCheckTimer?.Dispose();
                 _heartbeatTimer?.Dispose();
-                _isMonitoring = false;
+                _isMonitoring;
                 _disposed = true;
             }
         }

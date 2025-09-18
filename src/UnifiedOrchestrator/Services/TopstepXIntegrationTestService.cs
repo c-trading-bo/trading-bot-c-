@@ -20,7 +20,7 @@ public class TopstepXIntegrationTestService : BackgroundService
     private readonly ILogger<TopstepXIntegrationTestService> _logger;
     private readonly ITopstepXAdapterService _adapterService;
     private readonly bool _runTests;
-    private bool _testsCompleted = false;
+    private bool _testsCompleted;
 
     public TopstepXIntegrationTestService(
         ILogger<TopstepXIntegrationTestService> logger,

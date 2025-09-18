@@ -205,9 +205,9 @@ public class ShadowTester : IShadowTester
         var sessions = shadowTest.Config.MinSessions;
         var tradesPerSession = Math.Max(10, shadowTest.Config.MinTrades / sessions);
 
-        for (int session = 0; session < sessions && !cancellationToken.IsCancellationRequested; session++)
+        for (int session; session < sessions && !cancellationToken.IsCancellationRequested; session++)
         {
-            for (int trade = 0; trade < tradesPerSession; trade++)
+            for (int trade; trade < tradesPerSession; trade++)
             {
                 // Simulate market context
                 var context = CreateMockTradingContext(random);
@@ -317,13 +317,13 @@ public class ShadowTester : IShadowTester
 
         if (championDecisions.Count != challengerDecisions.Count)
         {
-            report.DecisionAlignment = 0;
+            report.DecisionAlignment;
             return;
         }
 
         // Calculate decision alignment
-        var sameDecisions = 0;
-        for (int i = 0; i < championDecisions.Count; i++)
+        var sameDecisions;
+        for (int i; i < championDecisions.Count; i++)
         {
             if (championDecisions[i].Action == challengerDecisions[i].Action)
             {
@@ -510,10 +510,10 @@ public class ShadowTester : IShadowTester
             return 0.0;
 
         // Calculate agreement based on similar decisions at similar times
-        var agreements = 0;
+        var agreements;
         var total = Math.Min(test.ChampionDecisions.Count, test.ChallengerDecisions.Count);
 
-        for (int i = 0; i < total; i++)
+        for (int i; i < total; i++)
         {
             var champDecision = test.ChampionDecisions[i];
             var challDecision = test.ChallengerDecisions[i];

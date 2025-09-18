@@ -35,12 +35,12 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     private readonly List<DecisionComparison> _recentComparisons = new();
     private readonly object _comparisonLock = new object();
     private DateTime _lastPromotionCheck = DateTime.MinValue;
-    private bool _useInferenceBrainPrimary = false; // Start with UnifiedTradingBrain as primary
+    private bool _useInferenceBrainPrimary; // Start with UnifiedTradingBrain as primary
     
     // Performance tracking
-    private int _totalDecisions = 0;
-    private int _agreementCount = 0;
-    private int _disagreementCount = 0;
+    private int _totalDecisions;
+    private int _agreementCount;
+    private int _disagreementCount;
     private double _agreementRate => _totalDecisions > 0 ? (double)_agreementCount / _totalDecisions : 0.0;
     
     public TradingBrainAdapter(
@@ -253,7 +253,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     {
         // Determine action based on PriceDirection and OptimalPositionMultiplier
         string actionString = "HOLD";
-        decimal size = 0;
+        decimal size;
         
         if (brainDecision.OptimalPositionMultiplier > 0)
         {
@@ -462,7 +462,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             _logger.LogWarning("[ADAPTER] Rollback to UnifiedTradingBrain requested");
             
             // Perform rollback with atomic swap
-            _useInferenceBrainPrimary = false;
+            _useInferenceBrainPrimary;
             
             _logger.LogWarning("[ADAPTER] Rolled back to UnifiedTradingBrain as primary decision maker");
             return true;

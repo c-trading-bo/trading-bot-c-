@@ -403,7 +403,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         UnifiedHistoricalReplayContext replayContext,
         CancellationToken cancellationToken)
     {
-        for (int i = 0; i < dailyBars.Count; i++)
+        for (int i; i < dailyBars.Count; i++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -761,7 +761,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         }
         else
         {
-            state.UnrealizedPnL = 0;
+            state.UnrealizedPnL;
         }
         
         // Update capital to reflect current total value
@@ -783,7 +783,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         // Calculate REAL performance metrics from actual trading decisions and results
         var returns = new List<decimal>();
-        var cumulativePnL = 0m;
+        var cumulativePnL;
         var dailyReturns = new List<decimal>();
         
         // Group decisions by day to calculate daily returns
@@ -794,7 +794,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         foreach (var dayGroup in decisionsByDay)
         {
-            var dayPnL = 0m;
+            var dayPnL;
             
             foreach (var decision in dayGroup)
             {
@@ -898,7 +898,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         var endDate = DateTime.UtcNow.Date.AddDays(-1); // Yesterday
         
-        for (int i = 0; i < configCount; i++)
+        for (int i; i < configCount; i++)
         {
             var daysBack = 30 + (i * 30); // 30, 60, 90, etc. days
             var startDate = endDate.AddDays(-daysBack);
@@ -1389,7 +1389,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         var tradeValue = tradeSize * executionPrice;
         
         // Calculate PnL for position changes
-        var pnl = 0m;
+        var pnl;
         if (decision.Action == "BUY")
         {
             pnl = (state.Position < 0) ? Math.Abs(state.Position) * (state.AverageEntryPrice - executionPrice) : 0;
@@ -1534,9 +1534,9 @@ public class EnhancedBacktestLearningService : BackgroundService
     {
         if (!returns.Any()) return 0;
         
-        var peak = 0m;
-        var maxDrawdown = 0m;
-        var cumulative = 0m;
+        var peak;
+        var maxDrawdown;
+        var cumulative;
         
         foreach (var ret in returns)
         {

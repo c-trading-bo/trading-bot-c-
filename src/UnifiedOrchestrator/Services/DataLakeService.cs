@@ -242,7 +242,7 @@ using System.Globalization;
 
                 // Simple statistical drift detection
                 double totalDrift = 0.0;
-                int numericFeatureCount = 0;
+                int numericFeatureCount;
 
                 foreach (var feature in currentFeatures)
                 {
@@ -318,7 +318,7 @@ using System.Globalization;
                 return 0.0;
 
             double totalDrift = 0.0;
-            int comparisons = 0;
+            int comparisons;
 
             for (int i = 1; i < featureSets.Count; i++)
             {

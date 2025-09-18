@@ -20,8 +20,8 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
     private readonly Timer _eventMonitor;
     private readonly Timer _restrictionUpdater;
     private readonly object _lockObject = new();
-    private bool _disposed = false;
-    private bool _initialized = false;
+    private bool _disposed;
+    private bool _initialized;
 
     // Configuration
     private static readonly TimeSpan DEFAULT_LOOKHEAD = TimeSpan.FromHours(2);
@@ -170,7 +170,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             await _eventMonitor.DisposeAsync().ConfigureAwait(false);
             await _restrictionUpdater.DisposeAsync().ConfigureAwait(false);
 
-            _initialized = false;
+            _initialized;
             _logger.LogInformation("[EconomicEventManager] Economic event monitoring stopped");
         }
         catch (Exception ex)
@@ -283,7 +283,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             new { Name = "Retail Sales", Impact = EventImpact.Medium, Currency = "USD", Category = "Consumer Spending" }
         };
 
-        for (int i = 0; i < eventTemplates.Length; i++)
+        for (int i; i < eventTemplates.Length; i++)
         {
             var template = eventTemplates[i];
             var eventTime = now.AddHours(2 + i * 6); // Space events 6 hours apart

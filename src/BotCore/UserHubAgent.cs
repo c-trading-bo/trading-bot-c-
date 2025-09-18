@@ -344,8 +344,8 @@ namespace BotCore
 
                 string? orderId = null;
                 string? customTag = null;
-                decimal fillPrice = 0m;
-                int quantity = 0;
+                decimal fillPrice;
+                int quantity;
 
                 if (data.TryGetProperty("orderId", out var orderIdProp)) orderId = orderIdProp.GetString();
                 if (data.TryGetProperty("id", out var idProp)) orderId ??= idProp.GetString();

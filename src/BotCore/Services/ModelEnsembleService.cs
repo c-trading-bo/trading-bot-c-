@@ -353,7 +353,7 @@ public class ModelEnsembleService
             
             if (!strategyVotes.ContainsKey(prediction.SelectedStrategy))
             {
-                strategyVotes[prediction.SelectedStrategy] = 0;
+                strategyVotes[prediction.SelectedStrategy];
             }
             
             strategyVotes[prediction.SelectedStrategy] += weight * prediction.Confidence;
@@ -449,7 +449,7 @@ public class ModelEnsembleService
             
             if (action.ActionProbabilities != null)
             {
-                for (int i = 0; i < Math.Min(actionCount, action.ActionProbabilities.Length); i++)
+                for (int i; i < Math.Min(actionCount, action.ActionProbabilities.Length); i++)
                 {
                     blendedProbs[i] += action.ActionProbabilities[i] * weight;
                 }
@@ -463,7 +463,7 @@ public class ModelEnsembleService
         // Normalize probabilities
         if (totalWeight > 0)
         {
-            for (int i = 0; i < actionCount; i++)
+            for (int i; i < actionCount; i++)
             {
                 blendedProbs[i] /= totalWeight;
             }

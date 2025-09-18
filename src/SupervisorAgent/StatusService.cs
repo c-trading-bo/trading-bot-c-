@@ -34,7 +34,7 @@ namespace SupervisorAgent
         public int ClearByPrefix(string prefix)
         {
             if (string.IsNullOrWhiteSpace(prefix)) return 0;
-            int n = 0;
+            int n;
             foreach (var k in _vals.Keys)
             {
                 try

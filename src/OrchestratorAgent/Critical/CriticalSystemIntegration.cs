@@ -25,7 +25,7 @@ namespace OrchestratorAgent.Critical
         private DisasterRecoverySystem? _disasterRecoverySystem;
         private CorrelationProtectionSystem? _correlationProtectionSystem;
         private HubConnection? _userHubConnection;
-        private bool _isInitialized = false;
+        private bool _isInitialized;
 
         public CriticalSystemManager(ILogger<CriticalSystemManager> logger)
         {

@@ -30,12 +30,12 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
     private readonly Dictionary<string, DateTime> _loginAttempts = new();
     private readonly Timer _healthCheckTimer;
     
-    private volatile bool _isLoginCompleted = false;
-    private volatile bool _isDisposed = false;
+    private volatile bool _isLoginCompleted;
+    private volatile bool _isDisposed;
     private DateTime _loginStartTime = DateTime.MinValue;
     private DateTime _loginCompletedTime = DateTime.MinValue;
     private string _loginSessionId = string.Empty;
-    private int _loginAttemptCount = 0;
+    private int _loginAttemptCount;
     
     // Production-grade configuration
     private readonly TimeSpan _loginTimeout = TimeSpan.FromMinutes(5);
@@ -198,7 +198,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
         {
             _logger.LogWarning("[LOGIN-STATE] Forcing state reset for session {SessionId}", _loginSessionId);
             
-            _isLoginCompleted = false;
+            _isLoginCompleted;
             _loginStartTime = DateTime.MinValue;
             _loginCompletedTime = DateTime.MinValue;
             _loginSessionId = Guid.NewGuid().ToString("N")[..8];

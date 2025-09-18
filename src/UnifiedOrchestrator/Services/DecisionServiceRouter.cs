@@ -28,7 +28,7 @@ public class DecisionServiceRouter
     private readonly IServiceProvider _serviceProvider;
     
     // Service health tracking
-    private bool _pythonServiceHealthy = false;
+    private bool _pythonServiceHealthy;
     private DateTime _lastHealthCheck = DateTime.MinValue;
     private readonly TimeSpan _healthCheckInterval = TimeSpan.FromSeconds(30);
     
@@ -143,7 +143,7 @@ public class DecisionServiceRouter
         {
             if (!_options.Enabled)
             {
-                _pythonServiceHealthy = false;
+                _pythonServiceHealthy;
                 return;
             }
             
@@ -165,7 +165,7 @@ public class DecisionServiceRouter
         }
         catch (Exception ex)
         {
-            _pythonServiceHealthy = false;
+            _pythonServiceHealthy;
             _lastHealthCheck = DateTime.UtcNow;
             _logger.LogWarning(ex, "⚠️ [PYTHON-SERVICE-HEALTH] Python decision service health check failed");
         }

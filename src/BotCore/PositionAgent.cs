@@ -33,7 +33,7 @@ namespace BotCore
         public decimal GetTotalPnL()
         {
             // Example: sum PnL from all positions
-            decimal total = 0m;
+            decimal total;
             foreach (var pos in _positions)
             {
                 total += pos.Close - pos.Open;

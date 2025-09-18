@@ -35,11 +35,11 @@ public class TopStepComplianceManager
     private readonly string[] ApprovedContracts = { "ES", "NQ" };
     
     // Account state tracking
-    private decimal _currentDrawdown = 0m;
-    private decimal _todayPnL = 0m;
+    private decimal _currentDrawdown;
+    private decimal _todayPnL;
     private decimal _accountBalance = 50000m; // Starting balance
     private DateTime _lastResetDate = DateTime.Today;
-    private int _tradingDaysCompleted = 0;
+    private int _tradingDaysCompleted;
     private readonly object _stateLock = new();
     
     public TopStepComplianceManager(ILogger logger, IOptions<AutonomousConfig> config)
@@ -132,7 +132,7 @@ public class TopStepComplianceManager
             var remainingRisk = Math.Min(remainingDailyRisk, remainingDrawdownRisk);
             
             // Calculate maximum position size based on stop distance
-            decimal maxPositionSize = 0m;
+            decimal maxPositionSize;
             if (stopDistance > 0)
             {
                 maxPositionSize = remainingRisk / stopDistance;
@@ -168,7 +168,7 @@ public class TopStepComplianceManager
             if (tradeTime.Date != _lastResetDate)
             {
                 // New trading day - reset daily P&L
-                _todayPnL = 0m;
+                _todayPnL;
                 _lastResetDate = tradeTime.Date;
                 _tradingDaysCompleted++;
                 
@@ -281,7 +281,7 @@ public class TopStepComplianceManager
         var today = DateTime.Today;
         if (_lastResetDate != today)
         {
-            _todayPnL = 0m;
+            _todayPnL;
             _lastResetDate = today;
             _tradingDaysCompleted++;
             

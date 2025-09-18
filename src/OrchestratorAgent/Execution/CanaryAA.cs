@@ -8,7 +8,7 @@ namespace OrchestratorAgent.Execution
         readonly Random _rng = new();
         readonly double _ratio;  // 0.10
         readonly double _pmax;   // 0.10
-        int _nA = 0, _nB = 0, _wA = 0, _wB = 0;
+        int _nA = 0, _nB = 0, _wA = 0, _wB;
 
         public CanaryAA(double ratio = 0.10, double pmax = 0.10)
         {
@@ -50,7 +50,7 @@ namespace OrchestratorAgent.Execution
 
         public void Reset()
         {
-            _nA = _nB = _wA = _wB = 0;
+            _nA = _nB = _wA = _wB;
         }
 
         public (double winRateA, double winRateB, int samplesA, int samplesB) GetStats()

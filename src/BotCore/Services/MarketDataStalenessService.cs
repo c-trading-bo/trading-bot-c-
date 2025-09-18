@@ -33,8 +33,8 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
     private readonly Timer _stalenessCheckTimer;
     private readonly object _pauseLock = new();
     
-    private volatile bool _isRoutingPaused = false;
-    private volatile bool _isMonitoring = false;
+    private volatile bool _isRoutingPaused;
+    private volatile bool _isMonitoring;
     private readonly int _stalenessThresholdSeconds;
     private readonly int _checkIntervalMs;
 
@@ -136,7 +136,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
         if (!_isMonitoring)
             return;
 
-        _isMonitoring = false;
+        _isMonitoring;
         _stalenessCheckTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
         var stopData = new
@@ -246,7 +246,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
 
         // Check if all tracked symbols are now fresh
         var now = DateTime.UtcNow;
-        var hasStaleData = false;
+        var hasStaleData;
 
         foreach (var kvp in _lastTickTimes)
         {
@@ -271,7 +271,7 @@ public class MarketDataStalenessService : IMarketDataStalenessService, IDisposab
             if (!_isRoutingPaused)
                 return;
 
-            _isRoutingPaused = false;
+            _isRoutingPaused;
 
             var resumeData = new
             {

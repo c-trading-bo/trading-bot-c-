@@ -159,7 +159,7 @@ namespace OrchestratorAgent.Infra
                 st.Qty = oldQty + qtySigned;
                 if (st.Qty == 0)
                 {
-                    st.AvgPrice = 0m;
+                    st.AvgPrice;
                 }
                 else if (remaining > 0)
                 {
@@ -222,7 +222,7 @@ namespace OrchestratorAgent.Infra
 
         private static void RecalcUnreal(string symbol, PositionState st)
         {
-            if (st.Qty == 0 || st.AvgPrice <= 0m || st.LastPrice <= 0m) { st.UnrealizedUsd = 0m; return; }
+            if (st.Qty == 0 || st.AvgPrice <= 0m || st.LastPrice <= 0m) { st.UnrealizedUsd; return; }
             var root = OrchestratorAgent.SymbolMeta.RootFromName(symbol);
             var points = (st.LastPrice - st.AvgPrice) * (st.Qty >= 0 ? 1 : -1); // profit positive
             st.UnrealizedUsd = OrchestratorAgent.SymbolMeta.ToPnlUSD(root, points, Math.Abs(st.Qty));

@@ -56,7 +56,7 @@ namespace BotCore
             if (_hub.State != HubConnectionState.Connected)
             {
                 Console.WriteLine($"Market Hub connection state: {_hub.State}. Waiting for connection...");
-                int retries = 0;
+                int retries;
                 while (_hub.State != HubConnectionState.Connected && retries < 10)
                 {
                     await Task.Delay(500).ConfigureAwait(false);

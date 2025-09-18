@@ -511,7 +511,7 @@ namespace TradingBot.Critical
         private readonly ConcurrentDictionary<string, Position> _activePositions = new();
         private readonly object _stateLock = new();
         private DateTime _lastHeartbeat;
-        private bool _emergencyModeActive = false;
+        private bool _emergencyModeActive;
         private readonly ILogger<DisasterRecoverySystem> _logger;
         private readonly SQLiteConnection? _database;
         

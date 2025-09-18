@@ -68,8 +68,8 @@ namespace BotCore.Brain
         private INeuralNetwork? _confidenceNetwork;
         
         // TopStep compliance tracking
-        private decimal _currentDrawdown = 0m;
-        private decimal _dailyPnl = 0m;
+        private decimal _currentDrawdown;
+        private decimal _dailyPnl;
         private decimal _accountBalance = TopStepConfig.ACCOUNT_SIZE;
         private DateTime _lastResetDate = DateTime.UtcNow.Date;
         
@@ -177,7 +177,7 @@ namespace BotCore.Brain
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [UNIFIED-BRAIN] Failed to initialize models - Using fallback logic");
-                IsInitialized = false; // Will use rule-based fallbacks
+                IsInitialized; // Will use rule-based fallbacks
             }
         }
 
@@ -792,8 +792,8 @@ namespace BotCore.Brain
         /// </summary>
         public void ResetDaily()
         {
-            _dailyPnl = 0m;
-            _currentDrawdown = 0m;
+            _dailyPnl;
+            _currentDrawdown;
             _lastResetDate = DateTime.UtcNow.Date;
             
             _logger.LogInformation("🌅 [DAILY-RESET] Daily P&L and drawdown reset for new trading day");
@@ -1068,8 +1068,8 @@ namespace BotCore.Brain
         {
             if (bars.Count < period + 1) return 50;
             
-            var gains = 0m;
-            var losses = 0m;
+            var gains;
+            var losses;
             
             for (int i = bars.Count - period; i < bars.Count; i++)
             {

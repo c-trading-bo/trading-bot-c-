@@ -22,7 +22,7 @@ public class ModelHotReloadManager : IDisposable
     private readonly FileSystemWatcher _fileWatcher;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
-    private bool _disposed = false;
+    private bool _disposed;
 
     public ModelHotReloadManager(
         ILogger<ModelHotReloadManager> logger,
@@ -146,7 +146,7 @@ public class ModelHotReloadManager : IDisposable
             // Generate deterministic golden inputs for testing
             var goldenInputs = GenerateGoldenInputs();
             
-            for (int i = 0; i < _options.SmokeTestIterations; i++)
+            for (int i; i < _options.SmokeTestIterations; i++)
             {
                 foreach (var input in goldenInputs)
                 {
@@ -193,7 +193,7 @@ public class ModelHotReloadManager : IDisposable
         
         // Add deterministic test vectors based on expected model input shape
         // These should be representative of normal trading features
-        for (int i = 0; i < _options.GoldenInputCount; i++)
+        for (int i; i < _options.GoldenInputCount; i++)
         {
             var features = new float[_options.ExpectedFeatureCount];
             
@@ -202,7 +202,7 @@ public class ModelHotReloadManager : IDisposable
             using var rng = RandomNumberGenerator.Create();
 using System.Globalization;
             
-            for (int j = 0; j < features.Length; j++)
+            for (int j; j < features.Length; j++)
             {
                 // Generate normalized features in reasonable trading ranges using secure random
                 var randomBytes = new byte[4];
@@ -313,5 +313,5 @@ public class ModelHotReloadOptions
     public int SmokeTestIterations { get; set; } = 3;
     public int GoldenInputCount { get; set; } = 5;
     public int ExpectedFeatureCount { get; set; } = 10;
-    public bool FailOnAnomalies { get; set; } = false;
+    public bool FailOnAnomalies { get; set; };
 }

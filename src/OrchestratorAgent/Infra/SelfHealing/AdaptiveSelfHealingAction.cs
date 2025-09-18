@@ -406,7 +406,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
                 
                 if (!actionResult.Contains("success", StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Success = false;
+                    result.Success;
                     return result;
                 }
             }
@@ -416,7 +416,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         }
         catch (Exception ex)
         {
-            result.Success = false;
+            result.Success;
             result.ActionsPerformed.Add($"Strategy execution failed: {ex.Message}");
             return result;
         }
@@ -446,7 +446,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     private string CreateMissingDirectories()
     {
         var directories = new[] { "state", "models", "training_data", "logs", "config" };
-        var created = 0;
+        var created;
         
         foreach (var dir in directories)
         {
@@ -464,7 +464,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     private string ClearTempFiles()
     {
         var tempDirs = new[] { "temp", "cache", ".tmp" };
-        var filesDeleted = 0;
+        var filesDeleted;
         
         foreach (var tempDir in tempDirs)
         {

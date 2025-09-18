@@ -25,8 +25,8 @@ namespace BotCore.Infra
         private DateTime _lastDataCollection = DateTime.MinValue;
         private DateTime _lastModelUpdate = DateTime.MinValue;
         private DateTime _lastTrainingAttempt = DateTime.MinValue;
-        private int _consecutiveDataCollectionFailures = 0;
-        private int _consecutiveTrainingFailures = 0;
+        private int _consecutiveDataCollectionFailures;
+        private int _consecutiveTrainingFailures;
         private bool _lastHealthCheckPassed = true;
 
         // Thresholds
@@ -85,7 +85,7 @@ namespace BotCore.Infra
             // Report results
             if (issues.Any())
             {
-                _lastHealthCheckPassed = false;
+                _lastHealthCheckPassed;
                 _log.LogError("[ML-Health] ❌ Pipeline health check failed with {Count} critical issues: {Issues}",
                     issues.Count, string.Join("; ", issues));
 
@@ -129,7 +129,7 @@ namespace BotCore.Infra
                 }
                 else
                 {
-                    _consecutiveDataCollectionFailures = 0;
+                    _consecutiveDataCollectionFailures;
                     _lastDataCollection = recentFiles.Max(f => File.GetLastWriteTime(f));
 
                     // Check data quality

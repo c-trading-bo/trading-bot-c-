@@ -391,16 +391,16 @@ public class TrainingBrain : ITrainingBrain
         var weights = new double[4, 3]; // 4 features, 3 actions
         
         // Generate normalized weights that sum to 1.0 for each feature
-        for (int i = 0; i < 4; i++)
+        for (int i; i < 4; i++)
         {
             var rawWeights = new double[3];
-            for (int j = 0; j < 3; j++)
+            for (int j; j < 3; j++)
             {
                 rawWeights[j] = random.NextDouble();
             }
             
             var sum = rawWeights.Sum();
-            for (int j = 0; j < 3; j++)
+            for (int j; j < 3; j++)
             {
                 weights[i, j] = Math.Round(rawWeights[j] / sum, 3);
             }

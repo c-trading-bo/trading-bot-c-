@@ -210,11 +210,11 @@ public class ProductionValidationService : IValidationService
         }
 
         var totalDecisions = champion.Count;
-        var agreementCount = 0;
-        var majorDisagreements = 0;
+        var agreementCount;
+        var majorDisagreements;
         var confidenceDifferences = new List<double>();
 
-        for (int i = 0; i < totalDecisions; i++)
+        for (int i; i < totalDecisions; i++)
         {
             var champDecision = champion[i].Decision;
             var challDecision = challenger[i].Decision;
@@ -407,7 +407,7 @@ public class ProductionValidationService : IValidationService
         var aligned2 = new List<ShadowTestResult>();
         
         var minCount = Math.Min(champion.Count, challenger.Count);
-        for (int i = 0; i < minCount; i++)
+        for (int i; i < minCount; i++)
         {
             aligned1.Add(champion[i]);
             aligned2.Add(challenger[i]);
@@ -421,7 +421,7 @@ public class ProductionValidationService : IValidationService
         var random = new Random(algorithm.GetHashCode()); // Deterministic for algorithm
         var results = new List<ShadowTestResult>();
         
-        for (int i = 0; i < count; i++)
+        for (int i; i < count; i++)
         {
             var ret = avgReturn + volatility * (random.NextDouble() - 0.5) * 2;
             var decision = ret > 0 ? TradingAction.Buy : (ret < -0.05 ? TradingAction.Sell : TradingAction.Hold);

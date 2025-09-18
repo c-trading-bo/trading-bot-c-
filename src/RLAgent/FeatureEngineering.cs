@@ -23,7 +23,7 @@ public class FeatureEngineering : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     
     private readonly Timer _dailyReportTimer;
-    private bool _disposed = false;
+    private bool _disposed;
 
     public FeatureEngineering(
         ILogger<FeatureEngineering> logger,
@@ -487,7 +487,7 @@ public class FeatureEngineering : IDisposable
     {
         var cleanedFeatures = new List<double>();
         
-        for (int i = 0; i < features.Count; i++)
+        for (int i; i < features.Count; i++)
         {
             var feature = features[i];
             var featureName = i < featureNames.Count ? featureNames[i] : $"feature_{i}";
@@ -708,8 +708,8 @@ public class FeatureEngineering : IDisposable
     {
         if (buffer.Length < 2) return 0.0;
         
-        var upTicks = 0;
-        var downTicks = 0;
+        var upTicks;
+        var downTicks;
         
         for (int i = 1; i < buffer.Length; i++)
         {
@@ -948,7 +948,7 @@ public class FeatureImportanceTracker
     {
         lock (_lock)
         {
-            for (int i = 0; i < Math.Min(featureNames.Length, importanceScores.Length); i++)
+            for (int i; i < Math.Min(featureNames.Length, importanceScores.Length); i++)
             {
                 var featureName = featureNames[i];
                 var importance = importanceScores[i];
@@ -1031,7 +1031,7 @@ public class StreamingSymbolAggregator : IDisposable
     private readonly MicrostructureCalculator _microstructureCalc;
     private readonly object _lock = new();
     private StreamingFeatures _currentFeatures = new();
-    private bool _disposed = false;
+    private bool _disposed;
 
     public DateTime LastUpdateTime { get; private set; } = DateTime.UtcNow;
 
@@ -1130,7 +1130,7 @@ public class TimeWindowAggregator : IDisposable
     private readonly TimeSpan _window;
     private readonly List<MarketTick> _ticks = new();
     private readonly object _lock = new();
-    private bool _disposed = false;
+    private bool _disposed;
 
     public TimeWindowAggregator(TimeSpan window)
     {
@@ -1232,7 +1232,7 @@ public class MicrostructureCalculator : IDisposable
     private readonly TimeSpan _window;
     private readonly List<MarketTick> _ticks = new();
     private readonly object _lock = new();
-    private bool _disposed = false;
+    private bool _disposed;
 
     public MicrostructureCalculator(TimeSpan window)
     {

@@ -12,7 +12,7 @@ namespace UnifiedOrchestrator.Services
 {
     public class CloudFlowOptions
     {
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; };
         public string CloudEndpoint { get; set; } = "";
         public string InstanceId { get; set; } = "";
         public int TimeoutSeconds { get; set; } = 30;

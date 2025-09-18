@@ -370,9 +370,9 @@ public class FeatureEngineer : IDisposable
                 
                 // Calculate correlation between feature value and prediction accuracy
                 double correlationSum = 0.0;
-                int validPairs = 0;
+                int validPairs;
                 
-                for (int i = 0; i < Math.Min(predictions.Count, outcomes.Count); i++)
+                for (int i; i < Math.Min(predictions.Count, outcomes.Count); i++)
                 {
                     var predictionError = Math.Abs(predictions[i] - outcomes[i]);
                     var featureContribution = featureValue * (1.0 - predictionError);

@@ -38,8 +38,8 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
     private readonly JsonSerializerOptions _jsonOptions;
     
     // State tracking
-    private bool _isInitialized = false;
-    private bool _isTradingEnabled = false;
+    private bool _isInitialized;
+    private bool _isTradingEnabled;
     private DateTime _lastNightlyMaintenance = DateTime.MinValue;
     private readonly Dictionary<string, ModelArtifact> _activeModels = new();
     private readonly object _lock = new();
@@ -114,7 +114,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
             if (!validationResult.AllTestsPassed)
             {
                 _logger.LogCritical("[INTELLIGENCE] Startup validation failed - trading disabled!");
-                _isTradingEnabled = false;
+                _isTradingEnabled;
                 return false;
             }
 
@@ -134,7 +134,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         catch (Exception ex)
         {
             _logger.LogError(ex, "[INTELLIGENCE] Failed to initialize intelligence stack");
-            _isTradingEnabled = false;
+            _isTradingEnabled;
             return false;
         }
     }
@@ -592,7 +592,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 
                 // Convert weighted features to float array for ONNX input
                 var featureArray = new float[weightedFeatures.Features.Count];
-                int i = 0;
+                int i;
                 foreach (var feature in weightedFeatures.Features.Values)
                 {
                     featureArray[i++] = (float)feature;
@@ -1054,7 +1054,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
         const int maxRetries = 3;
         var baseDelay = TimeSpan.FromSeconds(1);
 
-        for (int attempt = 0; attempt < maxRetries; attempt++)
+        for (int attempt; attempt < maxRetries; attempt++)
         {
             try
             {

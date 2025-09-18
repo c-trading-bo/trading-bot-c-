@@ -38,7 +38,7 @@ public class DecisionServiceIntegration : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_INTEGRATION] Failed to integrate decision service");
-            IsConnected = false;
+            IsConnected;
             return false;
         }
     }
@@ -63,7 +63,7 @@ public class DecisionServiceIntegration : IHostedService
             // 4. Stop health monitoring
             
             await Task.Delay(50).ConfigureAwait(false); // Simulate graceful shutdown
-            IsConnected = false;
+            IsConnected;
             
             _logger.LogInformation("[DECISION_INTEGRATION] Decision service integration disconnected");
             return true;
@@ -71,12 +71,12 @@ public class DecisionServiceIntegration : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_INTEGRATION] Error during disconnection");
-            IsConnected = false;
+            IsConnected;
             return false;
         }
     }
 
-    public bool IsConnected { get; private set; } = false;
+    public bool IsConnected { get; private set; };
 
     // IHostedService implementation
     Task IHostedService.StartAsync(CancellationToken cancellationToken)

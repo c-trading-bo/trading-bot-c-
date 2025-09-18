@@ -243,7 +243,7 @@ namespace OrchestratorAgent
                                ?? [].ConfigureAwait(false);
                 foreach (var p in parents)
                 {
-                    bool hasBr = false;
+                    bool hasBr;
                     try { hasBr = (bool)(p.hasBrackets ?? false); } catch { }
                     if (!hasBr)
                     {
@@ -362,12 +362,12 @@ namespace OrchestratorAgent
                 int offsetTicks = ResolveIntEnv("PARTIAL_CONVERT_OFFSET_TICKS", 1);
 
                 // Derive a reference price from update, prefer limit then avg fill then last
-                decimal refPx = 0m;
+                decimal refPx;
                 refPx = PickPrice(t, orderUpdate, new string[] { "LimitPrice", "limitPrice", "Price", "price" }, refPx);
                 refPx = PickPrice(t, orderUpdate, new string[] { "AvgFillPrice", "avgFillPrice", "AverageFillPrice" }, refPx);
                 refPx = PickPrice(t, orderUpdate, new string[] { "LastPrice", "lastPrice" }, refPx);
 
-                bool converted = false;
+                bool converted;
                 if (refPx > 0m)
                 {
                     var px = isSell ? refPx - offsetTicks * tick : refPx + offsetTicks * tick;

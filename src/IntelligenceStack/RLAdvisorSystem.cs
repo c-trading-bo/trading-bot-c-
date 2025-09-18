@@ -28,7 +28,7 @@ public class RLAdvisorSystem
     private readonly Dictionary<string, PerformanceTracker> _performanceTrackers = new();
     private readonly object _lock = new();
     
-    private bool _orderInfluenceEnabled = false;
+    private bool _orderInfluenceEnabled;
     private DateTime _lastUpliftCheck = DateTime.MinValue;
 
     public RLAdvisorSystem(
@@ -490,7 +490,7 @@ public class RLAdvisorSystem
                 _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence").ConfigureAwait(false);
                 
                 var totalEdgeBps = 0.0;
-                var validAgents = 0;
+                var validAgents;
                 
                 foreach (var (agentKey, tracker) in _performanceTrackers)
                 {
@@ -515,7 +515,7 @@ public class RLAdvisorSystem
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
-                        _orderInfluenceEnabled = false;
+                        _orderInfluenceEnabled;
                         _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
                             averageEdgeBps);
                     }
@@ -701,7 +701,7 @@ public class RLAdvisorSystem
             var timePeriod = endDate - startDate;
             var estimatedTrades = (int)(timePeriod.TotalDays * 2); // Approx 2 trades per day
             
-            for (int i = 0; i < estimatedTrades; i++)
+            for (int i; i < estimatedTrades; i++)
             {
                 // Use cryptographically secure random for production trading system
                 using var rng = RandomNumberGenerator.Create();
@@ -738,7 +738,7 @@ public class RLAdvisorSystem
         {
             var windows = new List<EpisodeWindow>().ConfigureAwait(false);
             
-            for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
+            for (int i; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
                 var startIndex = i;
                 var endIndex = Math.Min(i + 240, marketData.Count - 1); // 4 hours of 1-min data
@@ -813,7 +813,7 @@ public class RLAdvisorSystem
         else if (priceChange < 0)
             actionType = 2; // Sell
         else
-            actionType = 0; // Hold
+            actionType; // Hold
             
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
@@ -848,7 +848,7 @@ public class RLAdvisorSystem
         };
         
         var totalReward = 0.0;
-        var processedEpisodes = 0;
+        var processedEpisodes;
         
         foreach (var episode in episodes)
         {
@@ -954,10 +954,10 @@ public class RLAgent
         else
         {
             // Exploitation - choose best action
-            var bestAction = 0;
+            var bestAction;
             var bestValue = double.MinValue;
             
-            for (int i = 0; i < 4; i++)
+            for (int i; i < 4; i++)
             {
                 var actionKey = $"{stateKey}_{i}";
                 var value = _qTable.GetValueOrDefault(actionKey, 0.0);
@@ -1005,7 +1005,7 @@ public class RLAgent
         var nextStateKey = string.Join(",", nextState.Select(s => Math.Round(s, 2)));
         var maxNextQ = 0.0;
         
-        for (int i = 0; i < 4; i++)
+        for (int i; i < 4; i++)
         {
             var nextActionKey = $"{nextStateKey}_{i}";
             maxNextQ = Math.Max(maxNextQ, _qTable.GetValueOrDefault(nextActionKey, 0.0));

@@ -162,8 +162,8 @@ namespace OrchestratorAgent
                 var newQty = p.Qty + signed;
                 if (newQty == 0)
                 {
-                    p.Qty = 0;
-                    p.AvgPrice = 0m;
+                    p.Qty;
+                    p.AvgPrice;
                 }
                 else if (Math.Sign(p.Qty) == Math.Sign(newQty))
                 {
@@ -176,7 +176,7 @@ namespace OrchestratorAgent
                     // reduced or flipped: set new avg at px for the flipped remainder
                     p.Qty = newQty;
                     if (Math.Sign(newQty) != 0) p.AvgPrice = px;
-                    else p.AvgPrice = 0m;
+                    else p.AvgPrice;
                 }
             }
         }
@@ -305,7 +305,7 @@ namespace OrchestratorAgent
                 .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
                     options.AccessTokenProvider = TokenProvider;
-                    options.SkipNegotiation = false;
+                    options.SkipNegotiation;
                     options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
                     options.CloseTimeout = TimeSpan.FromSeconds(30);
                     options.WebSocketConfiguration = ws =>
@@ -352,7 +352,7 @@ namespace OrchestratorAgent
             _conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
 
             // Wire events ONCE BEFORE StartAsync
-            bool handlersWired = false;
+            bool handlersWired;
             void WireHandlers()
             {
                 if (handlersWired) return;

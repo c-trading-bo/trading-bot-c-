@@ -45,21 +45,21 @@ public class AutonomousPerformanceTracker
     private readonly object _trackingLock = new();
     
     // Current performance state
-    private decimal _totalPnL = 0m;
-    private decimal _todayPnL = 0m;
-    private decimal _weekPnL = 0m;
-    private decimal _monthPnL = 0m;
-    private int _totalTrades = 0;
-    private int _winningTrades = 0;
-    private int _losingTrades = 0;
-    private decimal _largestWin = 0m;
-    private decimal _largestLoss = 0m;
-    private decimal _avgWin = 0m;
-    private decimal _avgLoss = 0m;
-    private decimal _winRate = 0m;
-    private decimal _profitFactor = 0m;
-    private decimal _sharpeRatio = 0m;
-    private decimal _maxDrawdown = 0m;
+    private decimal _totalPnL;
+    private decimal _todayPnL;
+    private decimal _weekPnL;
+    private decimal _monthPnL;
+    private int _totalTrades;
+    private int _winningTrades;
+    private int _losingTrades;
+    private decimal _largestWin;
+    private decimal _largestLoss;
+    private decimal _avgWin;
+    private decimal _avgLoss;
+    private decimal _winRate;
+    private decimal _profitFactor;
+    private decimal _sharpeRatio;
+    private decimal _maxDrawdown;
     private DateTime _lastUpdateTime = DateTime.MinValue;
     
     // Learning and optimization
@@ -103,7 +103,7 @@ public class AutonomousPerformanceTracker
             var tradeDate = trade.EntryTime.Date;
             if (!_dailyPnL.ContainsKey(tradeDate))
             {
-                _dailyPnL[tradeDate] = 0m;
+                _dailyPnL[tradeDate];
             }
             _dailyPnL[tradeDate] += trade.PnL;
             
@@ -407,9 +407,9 @@ public class AutonomousPerformanceTracker
     {
         if (_allTrades.Count == 0) return 0m;
         
-        var runningPnL = 0m;
-        var peak = 0m;
-        var maxDrawdown = 0m;
+        var runningPnL;
+        var peak;
+        var maxDrawdown;
         
         foreach (var trade in _allTrades.OrderBy(t => t.EntryTime))
         {

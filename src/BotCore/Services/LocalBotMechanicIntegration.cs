@@ -92,19 +92,19 @@ namespace TopstepX.Bot.Intelligence
                 
                 var lastScan = data.TryGetProperty("last_scan", out var scanElement) ? scanElement : new JsonElement();
                 
-                var issuesCount = 0;
+                var issuesCount;
                 if (lastScan.TryGetProperty("issues_found", out var issuesElement) && issuesElement.ValueKind == JsonValueKind.Array)
                 {
                     issuesCount = issuesElement.GetArrayLength();
                 }
                 
-                var autoFixed = 0;
+                var autoFixed;
                 if (lastScan.TryGetProperty("auto_fixed", out var fixedElement) && fixedElement.ValueKind == JsonValueKind.Array)
                 {
                     autoFixed = fixedElement.GetArrayLength();
                 }
                 
-                var filesCount = 0;
+                var filesCount;
                 if (data.TryGetProperty("files", out var filesElement) && filesElement.ValueKind == JsonValueKind.Object)
                 {
                     filesCount = filesElement.EnumerateObject().Count();

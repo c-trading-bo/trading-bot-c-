@@ -86,7 +86,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_regimePerformance[trade.AnalyzerMarketRegime].ContainsKey(strategy))
                 {
-                    _regimePerformance[trade.AnalyzerMarketRegime][strategy] = 0m;
+                    _regimePerformance[trade.AnalyzerMarketRegime][strategy];
                 }
                 _regimePerformance[trade.AnalyzerMarketRegime][strategy] += trade.PnL;
                 
@@ -98,7 +98,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_timeBasedPerformance[timeKey].ContainsKey(strategy))
                 {
-                    _timeBasedPerformance[timeKey][strategy] = 0m;
+                    _timeBasedPerformance[timeKey][strategy];
                 }
                 _timeBasedPerformance[timeKey][strategy] += trade.PnL;
             }
@@ -441,9 +441,9 @@ public class StrategyPerformanceAnalyzer
     {
         if (trades.Count == 0) return 0m;
         
-        var runningPnL = 0m;
-        var peak = 0m;
-        var maxDrawdown = 0m;
+        var runningPnL;
+        var peak;
+        var maxDrawdown;
         
         foreach (var trade in trades.OrderBy(t => t.EntryTime))
         {

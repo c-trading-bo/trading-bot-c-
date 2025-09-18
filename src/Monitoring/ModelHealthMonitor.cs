@@ -109,19 +109,19 @@ namespace TradingBot.Monitoring
                 // Check health conditions
                 if (status.ConfidenceDrift > _confidenceDriftThreshold)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add($"Confidence drift ({status.ConfidenceDrift:F3}) exceeds threshold ({_confidenceDriftThreshold})");
                 }
 
                 if (status.AverageBrierScore > _brierScoreThreshold)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add($"Brier score ({status.AverageBrierScore:F3}) exceeds threshold ({_brierScoreThreshold})");
                 }
 
                 if (status.HasFeatureDrift)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add("Feature drift detected in one or more features");
                 }
 
@@ -246,7 +246,7 @@ namespace TradingBot.Monitoring
             return false;
         }
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         public void Dispose()
         {

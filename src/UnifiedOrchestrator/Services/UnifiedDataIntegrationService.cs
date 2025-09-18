@@ -23,8 +23,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     private readonly List<DataFlowEvent> _dataFlowEvents = new();
     private DateTime _lastHistoricalDataSync = DateTime.MinValue;
     private DateTime _lastLiveDataReceived = DateTime.MinValue;
-    private bool _isHistoricalDataConnected = false;
-    private bool _isLiveDataConnected = false;
+    private bool _isHistoricalDataConnected;
+    private bool _isLiveDataConnected;
     
     public UnifiedDataIntegrationService(
         ILogger<UnifiedDataIntegrationService> logger,
@@ -228,7 +228,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 "models/training_data",
             };
             
-            var connectedSources = 0;
+            var connectedSources;
             foreach (var path in historicalDataPaths)
             {
                 if (Directory.Exists(path) || File.Exists($"{path}.csv"))
@@ -255,7 +255,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DATA-INTEGRATION] Failed to connect historical data");
-            _isHistoricalDataConnected = false;
+            _isHistoricalDataConnected;
         }
     }
 
@@ -311,7 +311,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DATA-INTEGRATION] Failed to connect live TopStep data");
-            _isLiveDataConnected = false;
+            _isLiveDataConnected;
         }
     }
 
@@ -776,7 +776,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             var data = new List<MarketDataPoint>();
             var baseTime = DateTime.UtcNow.AddDays(-1);
             
-            for (int i = 0; i < 5; i++)
+            for (int i; i < 5; i++)
             {
                 data.Add(new MarketDataPoint
                 {

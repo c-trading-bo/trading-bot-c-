@@ -81,7 +81,7 @@ public class EnumMappingValidationService
                     }
                     catch (Exception ex)
                     {
-                        testCase.TestPassed = false;
+                        testCase.TestPassed;
                         testCase.ErrorMessage = ex.Message;
                         _logger.LogWarning("❌ [ENUM-TEST] {Direction} x {Multiplier} failed: {Error}", 
                             direction, multiplier, ex.Message);
@@ -183,7 +183,7 @@ public class EnumMappingValidationService
             }
             catch (Exception ex)
             {
-                testCase.TestPassed = false;
+                testCase.TestPassed;
                 testCase.ErrorMessage = ex.Message;
                 _logger.LogWarning("❌ [EDGE-CASE] {Direction} x {Multiplier} failed: {Error}", 
                     direction, multiplier, ex.Message);

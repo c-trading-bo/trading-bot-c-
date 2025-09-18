@@ -156,7 +156,7 @@ public static class TuningRunner
 
         // 4) Run trials
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var cfg in grids)
         {
             trialIndex++;
@@ -171,7 +171,7 @@ public static class TuningRunner
             // Backtest loop: single open trade at a time
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
 
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
@@ -337,9 +337,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         foreach (var b in bars)
         {
@@ -453,7 +453,7 @@ public static class TuningRunner
 
         // 4) Run trials
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var cfg in grids)
         {
             trialIndex++;
@@ -467,7 +467,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -617,9 +617,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         // Optional per-guard diagnostics
         var dbg = Environment.GetEnvironmentVariable("S3_DEBUG_REASONS");
@@ -712,7 +712,7 @@ public static class TuningRunner
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
@@ -728,7 +728,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -798,7 +798,7 @@ public static class TuningRunner
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
@@ -814,7 +814,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -890,9 +890,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         foreach (var b in bars)
         {
@@ -1055,20 +1055,20 @@ using System.Globalization;
 
     private static bool TryExit(ref Trade? tr, Bar b, string root, out decimal pnlUsd, out bool won)
     {
-        pnlUsd = 0m; won = false; if (tr == null) return false;
+        pnlUsd; won; if (tr == null) return false;
         var pv = InstrumentMeta.PointValue(root);
         // Conservative: stop-first within the bar
         if (string.Equals(tr.Side, "BUY", StringComparison.OrdinalIgnoreCase))
         {
             if (b.Low <= tr.Stop)
-            { pnlUsd = (tr.Stop - tr.Entry) * pv * tr.Size; won = false; tr = null; return true; }
+            { pnlUsd = (tr.Stop - tr.Entry) * pv * tr.Size; won; tr = null; return true; }
             if (b.High >= tr.Target)
             { pnlUsd = (tr.Target - tr.Entry) * pv * tr.Size; won = true; tr = null; return true; }
         }
         else
         {
             if (b.High >= tr.Stop)
-            { pnlUsd = (tr.Entry - tr.Stop) * pv * tr.Size; won = false; tr = null; return true; }
+            { pnlUsd = (tr.Entry - tr.Stop) * pv * tr.Size; won; tr = null; return true; }
             if (b.Low <= tr.Target)
             { pnlUsd = (tr.Entry - tr.Target) * pv * tr.Size; won = true; tr = null; return true; }
         }
@@ -1077,7 +1077,7 @@ using System.Globalization;
 
     private static decimal MaxDrawdown(List<decimal> eq)
     {
-        decimal peak = 0m, dd = 0m;
+        decimal peak = 0m, dd;
         foreach (var x in eq)
         {
             if (x > peak) peak = x;

@@ -55,7 +55,7 @@ using System.Globalization; // Could be made configurable via NetworkConfig.Retr
             var initialDelay = TimeSpan.FromMilliseconds(250);
             var maxDelay = TimeSpan.FromSeconds(30);
             
-            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            for (int attempt; attempt <= maxRetries; attempt++)
             {
                 try
                 {

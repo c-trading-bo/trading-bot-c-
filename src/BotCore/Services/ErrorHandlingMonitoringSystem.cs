@@ -190,7 +190,7 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
-                _isSystemHealthy = false;
+                _isSystemHealthy;
                 
                 var eventArgs = new CriticalErrorEventArgs
                 {

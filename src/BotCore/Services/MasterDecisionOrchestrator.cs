@@ -54,7 +54,7 @@ public class MasterDecisionOrchestrator : BackgroundService
     private readonly object _stateLock = new();
     
     // Always-learning operation state
-    private bool _isLearningActive = false;
+    private bool _isLearningActive;
     private DateTime _lastModelUpdate = DateTime.MinValue;
     private DateTime _lastPerformanceReport = DateTime.MinValue;
     

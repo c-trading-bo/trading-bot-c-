@@ -106,7 +106,7 @@ public sealed class OnnxModelValidationService
             
             if (!result.IsValid)
             {
-                allValid = false;
+                allValid;
                 _logger.LogError("[ONNX-Validation] Model validation FAILED: {ModelPath} - {Error}", 
                     result.ModelPath, result.ErrorMessage);
             }
@@ -166,34 +166,34 @@ public sealed class OnnxModelValidationService
                 // Additional validation checks
                 if (result.InputCount == 0)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = "Model has no inputs";
                 }
                 else if (result.OutputCount == 0)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = "Model has no outputs";
                 }
                 else if (result.LoadTime.TotalSeconds > 30)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = $"Model load time too slow: {result.LoadTime.TotalSeconds:F1}s";
                 }
                 else if (result.MemoryUsage > 2L * 1024 * 1024 * 1024) // 2GB limit per model
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = $"Model memory usage too high: {result.MemoryUsage / 1024 / 1024}MB";
                 }
             }
             else
             {
-                result.IsValid = false;
+                result.IsValid;
                 result.ErrorMessage = "Failed to load model";
             }
         }
         catch (Exception ex)
         {
-            result.IsValid = false;
+            result.IsValid;
             result.ErrorMessage = ex.Message;
             _logger.LogError(ex, "[ONNX-Validation] Exception validating model: {ModelPath}", modelPath);
         }

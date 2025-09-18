@@ -23,7 +23,7 @@ namespace OrchestratorAgent.Execution
         readonly CanaryAA _canary;
         readonly Dictionary<string, double> _strategyWeights = new();
 
-        bool _driftSafeMode = false;
+        bool _driftSafeMode;
 
         public SuperRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live, object? partialExit = null)
         {
@@ -62,7 +62,7 @@ namespace OrchestratorAgent.Execution
 
         // Entry control methods with real implementation
         public void DisableAllEntries() { 
-            _entriesEnabled = false;
+            _entriesEnabled;
             _log.LogInformation("All entries DISABLED - new signals will be rejected");
         }
         
@@ -378,7 +378,7 @@ namespace OrchestratorAgent.Execution
                     // Zero out all strategy weights
                     foreach (var key in _strategyWeights.Keys.ToList())
                     {
-                        _strategyWeights[key] = 0;
+                        _strategyWeights[key];
                     }
                     _log.LogWarning("[SuperRouter] Drift action: Pausing all strategies");
                     break;
@@ -387,7 +387,7 @@ namespace OrchestratorAgent.Execution
 
         public void ResetDriftMode()
         {
-            _driftSafeMode = false;
+            _driftSafeMode;
             _driftDetector.Reset();
             _log.LogInformation("[SuperRouter] Drift safe mode reset");
         }

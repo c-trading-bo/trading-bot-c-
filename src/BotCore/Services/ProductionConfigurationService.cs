@@ -126,7 +126,7 @@ public class ProductionConfigurationService : IValidateOptions<ProductionTrading
         if (environment == "Development")
         {
             config.Ensemble.EnableFallback = true;
-            config.Security.EnableEncryption = false;
+            config.Security.EnableEncryption;
             config.ModelLifecycle.SyncIntervalMinutes = 1; // Faster sync in dev
         }
     }

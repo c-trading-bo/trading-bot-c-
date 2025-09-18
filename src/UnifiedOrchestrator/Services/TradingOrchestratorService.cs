@@ -47,9 +47,9 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     private readonly UnifiedDataIntegrationService? _dataIntegration;
     
     // Performance tracking
-    private int _decisionsToday = 0;
-    private int _successfulTrades = 0;
-    private decimal _totalPnL = 0m;
+    private int _decisionsToday;
+    private int _successfulTrades;
+    private decimal _totalPnL;
 
     public TradingOrchestratorService(
         ILogger<TradingOrchestratorService> logger,

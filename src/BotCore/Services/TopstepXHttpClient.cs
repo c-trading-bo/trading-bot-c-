@@ -165,7 +165,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
     {
         const int maxRetries = 3;
         
-        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        for (int attempt; attempt <= maxRetries; attempt++)
         {
             try
             {

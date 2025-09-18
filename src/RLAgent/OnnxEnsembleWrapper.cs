@@ -29,7 +29,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Task _batchProcessingTask;
     private readonly AnomalyDetector _anomalyDetector;
-    private bool _disposed = false;
+    private bool _disposed;
 
     public OnnxEnsembleWrapper(
         ILogger<OnnxEnsembleWrapper> logger,
@@ -269,7 +269,7 @@ public class OnnxEnsembleWrapper : IDisposable
             {
                 var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false);
                 
-                for (int i = 0; i < group.Count; i++)
+                for (int i; i < group.Count; i++)
                 {
                     var request = group[i];
                     var prediction = predictions[i];
@@ -313,7 +313,7 @@ public class OnnxEnsembleWrapper : IDisposable
         var results = new EnsemblePrediction[batchSize];
 
         // Initialize results
-        for (int i = 0; i < batchSize; i++)
+        for (int i; i < batchSize; i++)
         {
             results[i] = new EnsemblePrediction
             {
@@ -329,7 +329,7 @@ public class OnnxEnsembleWrapper : IDisposable
             {
                 var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures).ConfigureAwait(false);
                 
-                for (int i = 0; i < batchSize; i++)
+                for (int i; i < batchSize; i++)
                 {
                     results[i].Predictions[modelSession.Name] = modelPredictions[i];
                 }
@@ -346,7 +346,7 @@ public class OnnxEnsembleWrapper : IDisposable
         await Task.WhenAll(modelTasks).ConfigureAwait(false);
 
         // Compute ensemble results
-        for (int i = 0; i < batchSize; i++)
+        for (int i; i < batchSize; i++)
         {
             results[i] = ComputeEnsembleResult(results[i]);
         }
@@ -366,7 +366,7 @@ public class OnnxEnsembleWrapper : IDisposable
         var inputShape = new int[] { batchSize, featureCount };
         var inputData = new float[batchSize * featureCount];
         
-        for (int i = 0; i < batchSize; i++)
+        for (int i; i < batchSize; i++)
         {
             Array.Copy(batchFeatures[i], 0, inputData, i * featureCount, featureCount);
         }
@@ -380,7 +380,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
         // Extract predictions
         var predictions = new ModelPrediction[batchSize];
-        for (int i = 0; i < batchSize; i++)
+        for (int i; i < batchSize; i++)
         {
             var confidence = CalculateConfidence(outputTensor, i);
             predictions[i] = new ModelPrediction
@@ -473,7 +473,7 @@ public class OnnxEnsembleWrapper : IDisposable
             return features;
 
         var clampedFeatures = new float[features.Length];
-        for (int i = 0; i < features.Length; i++)
+        for (int i; i < features.Length; i++)
         {
             if (i < _options.InputBounds.Count)
             {
@@ -647,9 +647,9 @@ public class AnomalyDetector
 
     public bool IsAnomaly(float[] features)
     {
-        bool isAnomaly = false;
+        bool isAnomaly;
 
-        for (int i = 0; i < features.Length; i++)
+        for (int i; i < features.Length; i++)
         {
             var value = features[i];
             

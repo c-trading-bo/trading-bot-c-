@@ -587,7 +587,7 @@ public class ObservabilityDashboard : IDisposable
         
         var histogram = new Dictionary<string, int>();
         
-        for (int i = 0; i < bins; i++)
+        for (int i; i < bins; i++)
         {
             var binStart = min + i * binWidth;
             var binEnd = binStart + binWidth;

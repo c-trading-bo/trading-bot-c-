@@ -66,8 +66,8 @@ namespace BotCore.Services
                 var hour = result.EntryTime.Hour;
                 if (!metrics.TradesByHour.ContainsKey(hour))
                 {
-                    metrics.TradesByHour[hour] = 0;
-                    metrics.WinsByHour[hour] = 0;
+                    metrics.TradesByHour[hour];
+                    metrics.WinsByHour[hour];
                 }
 
                 metrics.TradesByHour[hour]++;

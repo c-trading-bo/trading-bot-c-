@@ -474,8 +474,8 @@ using System.Globalization;
         {
             if (bars.Count < period + 1) return 50m;
 
-            var gains = 0m;
-            var losses = 0m;
+            var gains;
+            var losses;
 
             for (int i = bars.Count - period; i < bars.Count; i++)
             {

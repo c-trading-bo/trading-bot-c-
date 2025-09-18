@@ -121,7 +121,7 @@ public class ProductionDemonstrationRunner
             _logger.LogError(ex, "❌ [PRODUCTION-DEMO] Demo failed");
             result.EndTime = DateTime.UtcNow;
             result.Duration = result.EndTime - result.StartTime;
-            result.Success = false;
+            result.Success;
             result.ErrorMessage = ex.Message;
             return result;
         }
@@ -141,7 +141,7 @@ public class ProductionDemonstrationRunner
 
         // Make several decisions to show consistency
         var decisions = new List<object>();
-        for (int i = 0; i < 5; i++)
+        for (int i; i < 5; i++)
         {
             testContext.CurrentPrice += (decimal)(new Random().NextDouble() - 0.5) * 2;
             var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false);

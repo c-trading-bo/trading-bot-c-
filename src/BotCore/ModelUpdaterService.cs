@@ -30,11 +30,11 @@ namespace BotCore
 
         private string _currentManifestHash = "";
         private DateTime _lastSuccessfulCheck = DateTime.MinValue;
-        private int _consecutiveFailures = 0;
+        private int _consecutiveFailures;
 
         private readonly Timer _updateTimer;
         private readonly object _updateLock = new();
-        private bool _isRunning = false;
+        private bool _isRunning;
 
         public ModelUpdaterService(
             ILogger<ModelUpdaterService> logger,
@@ -75,7 +75,7 @@ namespace BotCore
 
         public void Stop()
         {
-            _isRunning = false;
+            _isRunning;
             _updateTimer?.Dispose();
             _log.LogInformation("[ModelUpdater] Service stopped");
         }
@@ -94,7 +94,7 @@ namespace BotCore
             try
             {
                 await CheckForModelUpdates(CancellationToken.None).ConfigureAwait(false);
-                _consecutiveFailures = 0;
+                _consecutiveFailures;
                 _lastSuccessfulCheck = DateTime.UtcNow;
             }
             catch (Exception ex)
@@ -271,7 +271,7 @@ namespace BotCore
                     var success = await UpdateSingleModelAsync(modelName, modelInfo, cancellationToken).ConfigureAwait(false);
                     if (!success)
                     {
-                        allSuccessful = false;
+                        allSuccessful;
                         _log.LogError("[ModelUpdater] Failed to update model: {ModelName}", modelName);
                     }
                     else
@@ -283,7 +283,7 @@ namespace BotCore
                 catch (Exception ex)
                 {
                     _log.LogError(ex, "[ModelUpdater] Error updating model {ModelName}", modelName);
-                    allSuccessful = false;
+                    allSuccessful;
                 }
             }
 

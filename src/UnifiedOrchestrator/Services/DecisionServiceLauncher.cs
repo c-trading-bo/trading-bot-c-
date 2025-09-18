@@ -39,7 +39,7 @@ public class DecisionServiceLauncher : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_SERVICE] Failed to launch decision service");
-            IsRunning = false;
+            IsRunning;
             return false;
         }
     }
@@ -64,7 +64,7 @@ public class DecisionServiceLauncher : IHostedService
             // 4. Clean up resources and monitoring
             
             await Task.Delay(50).ConfigureAwait(false); // Simulate graceful shutdown
-            IsRunning = false;
+            IsRunning;
             
             _logger.LogInformation("[DECISION_SERVICE] Decision service stopped successfully");
             return true;
@@ -72,12 +72,12 @@ public class DecisionServiceLauncher : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_SERVICE] Error stopping decision service");
-            IsRunning = false;
+            IsRunning;
             return false;
         }
     }
 
-    public bool IsRunning { get; private set; } = false;
+    public bool IsRunning { get; private set; };
 
     // IHostedService implementation
     Task IHostedService.StartAsync(CancellationToken cancellationToken)

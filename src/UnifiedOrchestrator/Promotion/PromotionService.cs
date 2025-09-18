@@ -66,7 +66,7 @@ public class PromotionService : IPromotionService
             var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null)
             {
-                decision.ShouldPromote = false;
+                decision.ShouldPromote;
                 decision.Reason = "Challenger model not found";
                 decision.ValidationErrors.Add($"Challenger version {challengerVersionId} does not exist");
                 return decision;
@@ -76,7 +76,7 @@ public class PromotionService : IPromotionService
             var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
             if (champion == null)
             {
-                decision.ShouldPromote = false;
+                decision.ShouldPromote;
                 decision.Reason = "No current champion to replace";
                 decision.ValidationErrors.Add($"No champion found for algorithm {algorithm}");
                 return decision;
@@ -85,7 +85,7 @@ public class PromotionService : IPromotionService
             // 3. Check if challenger has passed validation
             if (!challenger.IsValidated)
             {
-                decision.ShouldPromote = false;
+                decision.ShouldPromote;
                 decision.Reason = "Challenger has not passed validation";
                 decision.ValidationErrors.Add("Challenger must pass shadow testing before promotion");
                 return decision;
@@ -126,7 +126,7 @@ public class PromotionService : IPromotionService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error evaluating promotion for {Algorithm}", algorithm);
-            decision.ShouldPromote = false;
+            decision.ShouldPromote;
             decision.Reason = $"Evaluation error: {ex.Message}";
             decision.ValidationErrors.Add(ex.Message);
             return decision;

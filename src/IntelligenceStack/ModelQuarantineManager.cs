@@ -108,7 +108,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 healthState.LastChecked = DateTime.UtcNow;
 
                 // Reset shadow decision count
-                _shadowDecisionCounts[modelId] = 0;
+                _shadowDecisionCounts[modelId];
 
                 _logger.LogWarning("[QUARANTINE] 🚫 Model quarantined: {ModelId} (reason: {Reason}, previous: {PreviousState})", 
                     modelId, reason, previousState);
@@ -246,7 +246,7 @@ public class ModelQuarantineManager : IQuarantineManager
     {
         try
         {
-            bool shouldQuarantine = false;
+            bool shouldQuarantine;
             lock (_lock)
             {
                 if (!_modelHealth.TryGetValue(modelId, out var healthState))
@@ -567,7 +567,7 @@ public class ModelHealthState
     public DateTime? QuarantinedAt { get; set; }
     public DateTime? RestoredAt { get; set; }
     public DateTime LastChecked { get; set; } = DateTime.UtcNow;
-    public int ExceptionCount { get; set; } = 0;
+    public int ExceptionCount { get; set; };
     public string? LastException { get; set; }
     public DateTime? LastExceptionTime { get; set; }
 }

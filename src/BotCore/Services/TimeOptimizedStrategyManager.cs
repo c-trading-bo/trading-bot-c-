@@ -760,8 +760,8 @@ namespace BotCore.Services
             var period = Math.Min(50, bars.Count);
             var recentBars = bars.TakeLast(period).ToList();
             
-            decimal totalVolume = 0;
-            decimal volumeWeightedSum = 0;
+            decimal totalVolume;
+            decimal volumeWeightedSum;
             
             foreach (var bar in recentBars)
             {

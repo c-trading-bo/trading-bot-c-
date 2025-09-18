@@ -190,7 +190,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
 
         if (!shrinkageTargets.Any())
         {
-            localPosterior.ShrinkageFactor = 0m;
+            localPosterior.ShrinkageFactor;
             return localPosterior;
         }
 

@@ -29,7 +29,7 @@ namespace OrchestratorAgent
         private readonly SemaphoreSlim _routeLock = new(1, 1);
         public sealed class Config
         {
-            public bool LiveTrading { get; set; } = false;
+            public bool LiveTrading { get; set; };
             public int BarSeconds { get; set; } = 60;
             public string[] Symbols { get; set; } = [];
             public bool UseQuotes { get; set; } = true;
@@ -65,7 +65,7 @@ namespace OrchestratorAgent
         private readonly BotCore.Supervisor.StateStore _stateStore = new();
         private readonly Notifier _notifier = new();
         private readonly List<LastSignal> _recentSignals = [];
-        private int _barsSeen = 0; // Counter for AUTO_EXECUTE gating
+        private int _barsSeen; // Counter for AUTO_EXECUTE gating
         private DateTime _lastVerify = default; // Track last verification time for debounce
         private sealed record LastSignal(string Strategy, string Symbol, string Side, decimal Sp, decimal Tp, decimal Sl);
 
@@ -105,13 +105,13 @@ namespace OrchestratorAgent
             var _recentCidBuffer = new System.Collections.Concurrent.ConcurrentQueue<string>();
             var maxTradesEnv = Environment.GetEnvironmentVariable("MAX_TRADES_PER_DAY");
             int maxTradesPerDay = int.TryParse(maxTradesEnv, out var mt) && mt > 0 ? mt : int.MaxValue;
-            int tradesToday = 0;
+            int tradesToday;
             var tradeDay = DateTime.UtcNow.Date;
             // Daily PnL breaker setup
             var mdlEnv = Environment.GetEnvironmentVariable("EVAL_MAX_DAILY_LOSS") ?? Environment.GetEnvironmentVariable("MAX_DAILY_LOSS");
             decimal maxDailyLoss = decimal.TryParse(mdlEnv, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var mdlVal) ? mdlVal : 1000m;
             DateTime lastPnlFetch = DateTime.MinValue;
-            decimal netPnlCache = 0m;
+            decimal netPnlCache;
 
             // track a heartbeat-able snapshot
             DateTimeOffset lastQuote = default, lastTrade = default, lastBar = default;
@@ -457,7 +457,7 @@ namespace OrchestratorAgent
                     var signals = BotCore.Strategy.AllStrategies.generate_signals(
                         symbol, env, levels, list, risk, _accountId, contractId);
 
-                    int routed = 0;
+                    int routed;
 
                     // Pause sends if market data stale
                     var lastQ = _status.Get<DateTimeOffset?>("last.quote") ?? DateTimeOffset.MinValue;
@@ -467,7 +467,7 @@ namespace OrchestratorAgent
                     _status.Set("route.paused", !tradable);
 
                     // Reset trade counter on new UTC day
-                    if (DateTime.UtcNow.Date != tradeDay) { tradeDay = DateTime.UtcNow.Date; tradesToday = 0; }
+                    if (DateTime.UtcNow.Date != tradeDay) { tradeDay = DateTime.UtcNow.Date; tradesToday; }
 
                     // Daily PnL breaker (cached fetch every 60s)
                     try

@@ -119,7 +119,7 @@ namespace OrchestratorAgent
                 // Check stop/target hits within bar range
                 if (ps.Qty != 0 && ps.Stop.HasValue && ps.Target.HasValue)
                 {
-                    bool hitTarget = false, hitStop = false;
+                    bool hitTarget = false, hitStop;
                     if (ps.Qty > 0)
                     {
                         if (bar.High >= ps.Target.Value) hitTarget = true;
@@ -143,11 +143,11 @@ namespace OrchestratorAgent
                             sideTxt.ToUpper(), qty, exitPx, Math.Abs(pnlPts));
                         _log.LogInformation("OCO        Cancelled remaining targets/stops (paper)");
                         // Flat position
-                        ps.Qty = 0;
-                        ps.Avg = 0m;
+                        ps.Qty;
+                        ps.Avg;
                         ps.Stop = null!;
                         ps.Target = null!;
-                        ps.UnrealizedPnl = 0m;
+                        ps.UnrealizedPnl;
                         UpdateStatus(sym, ps);
                         return;
                     }

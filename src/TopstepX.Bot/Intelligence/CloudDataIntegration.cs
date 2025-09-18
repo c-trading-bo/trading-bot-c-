@@ -314,7 +314,7 @@ namespace TopstepX.Bot.Intelligence
                     if (!File.Exists(filePath))
                     {
                         status.Issues.Add($"Missing {dataType} data file");
-                        status.IsHealthy = false;
+                        status.IsHealthy;
                         continue;
                     }
                     
@@ -327,7 +327,7 @@ namespace TopstepX.Bot.Intelligence
                         status.Issues.Add($"{dataType} data is stale ({age.TotalMinutes:F0} minutes old)");
                         if (age.TotalHours > 4) // Critical if over 4 hours
                         {
-                            status.IsHealthy = false;
+                            status.IsHealthy;
                         }
                     }
                 }
@@ -339,7 +339,7 @@ namespace TopstepX.Bot.Intelligence
                     signals?.DataAvailability?.News == false)
                 {
                     status.Issues.Add("No data sources available in combined signals");
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                 }
                 
                 status.AvailableDataSources = new Dictionary<string, bool>
@@ -366,7 +366,7 @@ namespace TopstepX.Bot.Intelligence
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error checking cloud data status");
-                status.IsHealthy = false;
+                status.IsHealthy;
                 status.Issues.Add($"Status check failed: {ex.Message}");
                 return status;
             }

@@ -72,7 +72,7 @@ public class LogRetentionService : IHostedService
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
                 "Starting log cleanup process").ConfigureAwait(false);
 
-            var totalFilesRemoved = 0;
+            var totalFilesRemoved;
             var totalSizeFreed = 0L;
 
             // Clean up trading logs (30 days retention)
@@ -127,7 +127,7 @@ public class LogRetentionService : IHostedService
             .Where(f => File.GetCreationTimeUtc(f) < cutoffDate)
             .ToArray();
 
-        var removedCount = 0;
+        var removedCount;
         foreach (var file in files)
         {
             try

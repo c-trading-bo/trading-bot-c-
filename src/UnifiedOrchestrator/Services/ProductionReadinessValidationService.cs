@@ -131,7 +131,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
             _logger.LogError(ex, "[PRODUCTION-VALIDATION] Validation failed");
             report.EndTime = DateTime.UtcNow;
             report.Duration = report.EndTime - report.StartTime;
-            report.Success = false;
+            report.Success;
             report.ErrorMessage = ex.Message;
             return report;
         }
@@ -161,7 +161,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
 
         // Test 3: Test multiple decisions and track consistency
         var decisions = new List<TradingBot.Abstractions.TradingDecision>();
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false);
             decisions.Add(ConvertToAbstractionsDecision(testDecision));
@@ -274,7 +274,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         }
         catch (Exception ex)
         {
-            result.HistoricalDataStatus.IsConnected = false;
+            result.HistoricalDataStatus.IsConnected;
             result.HistoricalDataStatus.ErrorMessage = ex.Message;
         }
 
@@ -293,7 +293,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         }
         catch (Exception ex)
         {
-            result.LiveDataStatus.IsConnected = false;
+            result.LiveDataStatus.IsConnected;
             result.LiveDataStatus.ErrorMessage = ex.Message;
         }
 

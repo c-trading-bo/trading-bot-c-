@@ -297,7 +297,7 @@ public class EnhancedTradingBrainIntegration
     /// </summary>
     private decimal EnhanceRiskLevel(decimal originalRisk, double cvarEstimate, EnsemblePrediction pricePrediction)
     {
-        var riskAdjustment = 0m;
+        var riskAdjustment;
         
         // Adjust based on CVaR
         if (cvarEstimate < -0.2)
@@ -468,7 +468,7 @@ public class EnhancedTradingBrainIntegration
             _logger.LogError(ex, "🧠 [ENHANCED-BRAIN] Error initializing enhanced trading brain");
             
             // Disable enhancement on initialization failure
-            _isEnhancementActive = false;
+            _isEnhancementActive;
             _logger.LogWarning("🧠 [ENHANCED-BRAIN] Enhancement disabled due to initialization failure");
         }
     }
@@ -597,7 +597,7 @@ public class EnhancedTradingBrainIntegration
         var basePrice = 4500.0m;
         var currentTime = DateTime.UtcNow;
         
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             var variation = (decimal)(Random.Shared.NextDouble() - 0.5) * 5;
             var openPrice = basePrice + variation;

@@ -47,7 +47,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
     private bool _isHealthy = true;
     private bool _tradingAllowed = true;
     private DateTime _lastHealthCheck = DateTime.UtcNow;
-    private int _reconnectAttempts = 0;
+    private int _reconnectAttempts;
 
     public event Action<TradingBot.Abstractions.HealthStatus>? OnHealthChanged;
     public event Action<TradingBot.Abstractions.HealthStatus>? HealthStatusChanged;
@@ -164,7 +164,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             var previouslyAllowedTrading = _tradingAllowed;
 
             // Check hub connections
-            var connectedHubs = 0;
+            var connectedHubs;
             var totalHubs = _hubConnections.Count;
             foreach (var connection in _hubConnections.Values)
             {
@@ -225,7 +225,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             }
             else
             {
-                _reconnectAttempts = 0; // Reset on recovery
+                _reconnectAttempts; // Reset on recovery
             }
 
             _lastHealthCheck = DateTime.UtcNow;

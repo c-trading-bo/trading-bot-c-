@@ -36,11 +36,11 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
 {
     private readonly ILogger<RiskManager> _logger;
     private readonly AppOptions _config;
-    private decimal _dailyPnL = 0;
-    private decimal _peakPnL = 0;
-    private decimal _maxDrawdown = 0;
-    private decimal _largestPosition = 0;
-    private bool _isBreached = false;
+    private decimal _dailyPnL;
+    private decimal _peakPnL;
+    private decimal _maxDrawdown;
+    private decimal _largestPosition;
+    private bool _isBreached;
 
     public event Action<TradingBot.Abstractions.RiskBreach>? OnRiskBreach;
     public event Action<TradingBot.Abstractions.RiskBreach>? RiskBreachDetected;

@@ -49,8 +49,8 @@ public class MarketConditionAnalyzer
     // Current market state
     private TradingMarketRegime _currentRegime = TradingMarketRegime.Unknown;
     private MarketVolatility _currentVolatility = MarketVolatility.Normal;
-    private decimal _currentTrend = 0m;
-    private decimal _currentVolatilityValue = 0m;
+    private decimal _currentTrend;
+    private decimal _currentVolatilityValue;
     private DateTime _lastAnalysis = DateTime.MinValue;
     
     public MarketConditionAnalyzer(ILogger<MarketConditionAnalyzer> logger)

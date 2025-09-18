@@ -25,7 +25,7 @@ public sealed class OnnxModelLoader : IDisposable
     private readonly ModelRegistryOptions _registryOptions;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _registryPath;
-    private bool _disposed = false;
+    private bool _disposed;
 
     // Model versioning pattern: {family}.{symbol}.{strategy}.{regime}.v{semver}+{sha}.onnx
     private static readonly Regex ModelVersionPattern = new(
@@ -682,7 +682,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new float[totalElements];
                 
                 // Fill with realistic canned trading features
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i switch
                     {
@@ -709,7 +709,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new long[totalElements];
                 
                 // Fill with appropriate integer values
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i % 3; // Values 0, 1, 2 for typical categorical features
                 }
@@ -723,7 +723,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var totalElements = shape.Aggregate(1, (a, b) => a * b);
                 var data = new int[totalElements];
                 
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i % 3;
                 }
@@ -769,7 +769,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         var modelKey = GetModelKey(modelPathOrKey);
         
-        var unloaded = false;
+        var unloaded;
         if (_loadedSessions.TryRemove(modelKey, out var session))
         {
             session.Dispose();
@@ -1045,7 +1045,7 @@ public sealed class OnnxModelLoader : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX-Registry] Failed to perform health check");
-            report.IsHealthy = false;
+            report.IsHealthy;
         }
 
         return report;

@@ -11,8 +11,8 @@ public class CircularBuffer<T>
 {
     private readonly T[] _buffer;
     private readonly int _size;
-    private int _head = 0;
-    private int _count = 0;
+    private int _head;
+    private int _count;
 
     public CircularBuffer(int size)
     {
@@ -42,7 +42,7 @@ public class CircularBuffer<T>
         count = Math.Min(count, _count);
         var result = new T[count];
         
-        for (int i = 0; i < count; i++)
+        for (int i; i < count; i++)
         {
             var item = GetFromEnd(i);
             if (item != null)
@@ -55,7 +55,7 @@ public class CircularBuffer<T>
     public T[] GetAll()
     {
         var result = new T[_count];
-        for (int i = 0; i < _count; i++)
+        for (int i; i < _count; i++)
         {
             var index = (_head - _count + i + _size) % _size;
             result[i] = _buffer[index];

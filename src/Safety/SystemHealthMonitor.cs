@@ -505,7 +505,7 @@ public class SystemHealthMonitor
 
             var configText = File.ReadAllText(configPath);
             var expectedStrategies = new[] { "S2", "S3", "S6", "S11" };
-            var enabledCount = 0;
+            var enabledCount;
 
             foreach (var strategy in expectedStrategies)
             {

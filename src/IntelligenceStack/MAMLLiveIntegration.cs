@@ -410,7 +410,7 @@ public class MamlLiveIntegration
             {
                 // Reset to baseline weights
                 modelState.CurrentWeights = new Dictionary<string, double>(modelState.BaselineWeights).ConfigureAwait(false);
-                modelState.IsStable = false;
+                modelState.IsStable;
                 modelState.LastRollback = DateTime.UtcNow;
             }
 
@@ -479,7 +479,7 @@ public class MamlLiveIntegration
         if (examples.Count == 0) return 0.0;
         
         // Simplified performance calculation - in production would use actual model evaluation
-        var correctPredictions = 0;
+        var correctPredictions;
         
         foreach (var example in examples)
         {

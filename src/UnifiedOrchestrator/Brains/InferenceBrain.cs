@@ -25,9 +25,9 @@ public class InferenceBrain : IInferenceBrain
     private readonly IModelRouter<object> _lstmRouter;
     
     // Statistics tracking
-    private int _totalDecisions = 0;
-    private int _decisionsToday = 0;
-    private int _errorCount = 0;
+    private int _totalDecisions;
+    private int _decisionsToday;
+    private int _errorCount;
     private readonly List<double> _processingTimes = new();
     private readonly DateTime _startTime = DateTime.UtcNow;
     private DateTime _lastDecisionTime = DateTime.MinValue;
@@ -62,7 +62,7 @@ public class InferenceBrain : IInferenceBrain
             // Reset daily counters if new day
             if (DateTime.UtcNow.Date > _lastResetDate)
             {
-                _decisionsToday = 0;
+                _decisionsToday;
                 _lastResetDate = DateTime.UtcNow.Date;
             }
 
@@ -280,14 +280,14 @@ public class InferenceBrain : IInferenceBrain
         if (context.DailyPnL <= context.DailyLossLimit)
         {
             warnings.Add($"CRITICAL: Daily loss limit exceeded: {context.DailyPnL:C} <= {context.DailyLossLimit:C}");
-            passed = false;
+            passed;
         }
         
         // Max drawdown check
         if (context.UnrealizedPnL <= -Math.Abs(context.MaxDrawdown))
         {
             warnings.Add($"CRITICAL: Max drawdown exceeded: {context.UnrealizedPnL:C} <= {-Math.Abs(context.MaxDrawdown):C}");
-            passed = false;
+            passed;
         }
         
         // Position size sanity check
@@ -311,7 +311,7 @@ public class InferenceBrain : IInferenceBrain
             
             // PPO decision based on policy gradient and market momentum
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // Trend-following logic with momentum analysis
@@ -377,7 +377,7 @@ public class InferenceBrain : IInferenceBrain
             
             // UCB explores vs exploits based on confidence intervals
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // UCB arms: BUY, SELL, HOLD with confidence bounds
@@ -439,7 +439,7 @@ public class InferenceBrain : IInferenceBrain
             
             // LSTM decision based on sequential pattern recognition
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // Pattern-based decision making
@@ -516,12 +516,12 @@ public class InferenceBrain : IInferenceBrain
         var lstmWeight = regimeWeights["LSTM"];
         
         // Calculate weighted action scores
-        var buyScore = 0m;
-        var sellScore = 0m;
-        var holdScore = 0m;
-        var totalWeight = 0m;
-        var totalSize = 0m;
-        var avgConfidence = 0m;
+        var buyScore;
+        var sellScore;
+        var holdScore;
+        var totalWeight;
+        var totalSize;
+        var avgConfidence;
         var participatingStrategies = new List<string>();
         
         if (ppoDecision != null)
@@ -598,7 +598,7 @@ public class InferenceBrain : IInferenceBrain
         else
         {
             finalAction = "HOLD";
-            totalSize = 0;
+            totalSize;
             ensembleMethod = $"WEIGHTED_HOLD_{holdScore:F2}";
         }
         
@@ -607,7 +607,7 @@ public class InferenceBrain : IInferenceBrain
         if (actionConflict > 0.4m && (buyScore > 0.3m && sellScore > 0.3m))
         {
             finalAction = "HOLD";
-            totalSize = 0;
+            totalSize;
             finalConfidence *= 0.5m; // Reduce confidence due to conflict
             ensembleMethod = $"CONFLICT_RESOLUTION_HOLD_{actionConflict:F2}";
         }

@@ -271,7 +271,7 @@ namespace TradingBot.Safety.Analyzers
             // Check if this is a SuppressMessage attribute
             if (attribute.Name.ToString().Contains("SuppressMessage"))
             {
-                var hasRuntimeProof = false;
+                var hasRuntimeProof;
                 
                 // Look for RuntimeProof justification in the attribute arguments
                 if (attribute.ArgumentList?.Arguments != null)
