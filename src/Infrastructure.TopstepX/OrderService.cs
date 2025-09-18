@@ -34,6 +34,17 @@ public record OrderStatus(string OrderId, string Status, string Reason, DateTime
 public class OrderService : IOrderService
 {
     private const string JsonContentType = "application/json";
+    
+    // Order retry configuration constants
+    private const int MaxRetryAttempts = 3;
+    private const int BaseRetryDelaySeconds = 2;
+    
+    // OrderType constants for TopstepX API
+    private const int LimitOrderType = 1;
+    private const int MarketOrderType = 2;
+    private const int StopOrderType = 4;
+    private const int TrailingStopOrderType = 5;
+    
     private readonly ILogger<OrderService> _logger;
     private readonly AppOptions _config;
     private readonly HttpClient _httpClient;
@@ -120,17 +131,17 @@ public class OrderService : IOrderService
                     else
                     {
                         // Retry 5xx errors
-                        _logger.LogWarning("[ORDER] Attempt {Attempt}/3 failed: {Status}", attempt, response.StatusCode);
-                        if (attempt < 3)
+                        _logger.LogWarning("[ORDER] Attempt {Attempt}/{Max} failed: {Status}", attempt, MaxRetryAttempts, response.StatusCode);
+                        if (attempt < MaxRetryAttempts)
                         {
-                            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt))); // Exponential backoff
+                            await Task.Delay(TimeSpan.FromSeconds(Math.Pow(BaseRetryDelaySeconds, attempt))); // Exponential backoff
                         }
                     }
                 }
-                catch (HttpRequestException ex) when (attempt < 3)
+                catch (HttpRequestException ex) when (attempt < MaxRetryAttempts)
                 {
-                    _logger.LogWarning(ex, "[ORDER] Network error on attempt {Attempt}/3", attempt);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    _logger.LogWarning(ex, "[ORDER] Network error on attempt {Attempt}/{Max}", attempt, MaxRetryAttempts);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(BaseRetryDelaySeconds, attempt)));
                 }
             }
 
@@ -151,11 +162,11 @@ public class OrderService : IOrderService
     {
         return orderType.ToUpper() switch
         {
-            "LIMIT" => 1,
-            "MARKET" => 2,
-            "STOP" => 4,
-            "TRAILING_STOP" => 5,
-            _ => 1 // Default to limit
+            "LIMIT" => LimitOrderType,
+            "MARKET" => MarketOrderType,
+            "STOP" => StopOrderType,
+            "TRAILING_STOP" => TrailingStopOrderType,
+            _ => LimitOrderType // Default to limit
         };
     }
 

@@ -116,6 +116,7 @@ class TopstepXAdapter:
             )
             
             # Verify connection to each instrument
+            connection_failures = []
             for instrument in self.instruments:
                 try:
                     # Test data access
@@ -123,17 +124,28 @@ class TopstepXAdapter:
                     self.logger.info(f"✅ {instrument} connected - Current price: ${current_price:.2f}")
                 except Exception as e:
                     self.logger.error(f"❌ Failed to connect to {instrument}: {e}")
-                    raise RuntimeError(f"Failed to initialize {instrument}") from e
+                    connection_failures.append(f"{instrument}: {str(e)}")
+            
+            # Allow partial initialization if some instruments fail (for testing/demo)
+            if connection_failures:
+                self.logger.warning(f"Some instruments failed to connect: {connection_failures}")
+                if len(connection_failures) == len(self.instruments):
+                    raise RuntimeError(f"All instruments failed to initialize: {connection_failures}")
             
             # Test risk management system
-            risk_stats = await self.suite.get_stats()
-            self.logger.info(f"SDK connected successfully - Stats: {risk_stats}")
+            try:
+                risk_stats = await self.suite.get_stats()
+                self.logger.info(f"SDK connected successfully - Stats: {risk_stats}")
+            except Exception as e:
+                self.logger.warning(f"Could not retrieve initial stats: {e}")
             
             self._is_initialized = True
-            self._connection_health = 100.0
+            # Calculate health based on successful connections
+            success_rate = (len(self.instruments) - len(connection_failures)) / len(self.instruments)
+            self._connection_health = success_rate * 100.0
             self._last_health_check = datetime.now(timezone.utc)
             
-            self.logger.info("🚀 TopstepX SDK adapter initialized successfully")
+            self.logger.info(f"🚀 TopstepX SDK adapter initialized successfully (Health: {self._connection_health:.1f}%)")
             
         except Exception as e:
             self.logger.error(f"Failed to initialize TopstepX adapter: {e}")
@@ -227,11 +239,9 @@ class TopstepXAdapter:
             async with self.suite.managed_trade(max_risk_percent=max_risk_percent):
                 # Place bracket order through SDK
                 side = 'buy' if size > 0 else 'sell'
-                order_result = await self.suite.orders.place_order(
-                    symbol=symbol,
+                order_result = await self.suite[symbol].orders.place_bracket_order(
                     side=side,
                     quantity=abs(size),
-                    order_type='market',
                     stop_loss=stop_loss,
                     take_profit=take_profit
                 )
@@ -339,24 +349,36 @@ class TopstepXAdapter:
             raise RuntimeError("Adapter not initialized")
             
         try:
-            portfolio = await self.suite.positions()
+            # Get portfolio data from TradingSuite
+            suite_stats = await self.suite.get_stats()
             
             positions = {}
             for instrument in self.instruments:
                 try:
-                    # Get position info for each instrument  
-                    positions[instrument] = {
-                        'size': 0,  # Default to no position
-                        'average_price': 0.0,
-                        'unrealized_pnl': 0.0,
-                        'realized_pnl': 0.0
-                    }
+                    # Get position info for each instrument from the suite
+                    instrument_obj = self.suite[instrument]
+                    position_data = getattr(instrument_obj, 'positions', None)
+                    
+                    if position_data:
+                        positions[instrument] = {
+                            'size': getattr(position_data, 'quantity', 0),
+                            'average_price': getattr(position_data, 'avg_price', 0.0),
+                            'unrealized_pnl': getattr(position_data, 'unrealized_pnl', 0.0),
+                            'realized_pnl': getattr(position_data, 'realized_pnl', 0.0)
+                        }
+                    else:
+                        positions[instrument] = {
+                            'size': 0,
+                            'average_price': 0.0,
+                            'unrealized_pnl': 0.0,
+                            'realized_pnl': 0.0
+                        }
                 except Exception as e:
                     self.logger.warning(f"Failed to get position for {instrument}: {e}")
                     positions[instrument] = {'error': str(e)}
                     
             return {
-                'portfolio': portfolio,
+                'portfolio': suite_stats,
                 'positions': positions,
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }

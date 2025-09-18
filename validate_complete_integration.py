@@ -35,15 +35,21 @@ class MockTradingSuite:
         return instance
         
     def __getitem__(self, instrument):
+        async def get_price():
+            return 15500.25 if instrument == 'MNQ' else 4450.75
+            
+        async def place_order(**kwargs):
+            return {
+                'id': 'test-order-123',
+                'status': 'filled'
+            }
+            
         return type('MockInstrument', (), {
             'data': type('MockData', (), {
-                'get_current_price': lambda: asyncio.create_task(asyncio.coroutine(lambda: 15500.25 if instrument == 'MNQ' else 4450.75)())
+                'get_current_price': lambda self=None: get_price()
             })(),
             'orders': type('MockOrders', (), {
-                'place_bracket_order': lambda **kwargs: asyncio.create_task(asyncio.coroutine(lambda: {
-                    'order_id': 'test-order-123',
-                    'status': 'filled'
-                })())
+                'place_bracket_order': lambda self=None, **kwargs: place_order(**kwargs)
             })()
         })()
         
@@ -57,9 +63,15 @@ class MockTradingSuite:
         pass
         
     def managed_trade(self, max_risk_percent=0.01):
+        async def aenter():
+            return self
+            
+        async def aexit(*args):
+            return None
+            
         return type('MockContext', (), {
-            '__aenter__': lambda self: asyncio.create_task(asyncio.coroutine(lambda: self)()),
-            '__aexit__': lambda self, *args: asyncio.create_task(asyncio.coroutine(lambda: None)())
+            '__aenter__': lambda self: aenter(),
+            '__aexit__': lambda self, *args: aexit(*args)
         })()
 
 sys.modules['project_x_py'] = type('MockModule', (), {
@@ -145,13 +157,17 @@ async def validate_requirements():
     # Requirement 6: Production-ready implementation
     print("\n📋 Requirement 6: Production-ready implementation")
     
+    # Re-read the adapter file for production readiness checks
+    with open('src/adapters/topstep_x_adapter.py', 'r') as f:
+        adapter_content = f.read()
+    
     # Check for proper error handling
-    assert 'try:' in content and 'except' in content, "Error handling missing"
-    assert 'logging' in content or 'logger' in content, "Logging missing"
-    assert 'async def' in content, "Async implementation missing"
+    assert 'try:' in adapter_content and 'except' in adapter_content, "Error handling missing"
+    assert 'logging' in adapter_content or 'logger' in adapter_content, "Logging missing"
+    assert 'async def' in adapter_content, "Async implementation missing"
     
     # Check for resource cleanup
-    assert 'disconnect' in content or 'cleanup' in content, "Resource cleanup missing"
+    assert 'disconnect' in adapter_content or 'cleanup' in adapter_content, "Resource cleanup missing"
     
     print("✅ Production-ready implementation - VERIFIED")
     

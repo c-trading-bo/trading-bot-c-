@@ -21,6 +21,12 @@ public interface IEnvironmentValidator
 
 public class EnvironmentValidator : IEnvironmentValidator
 {
+    // Time sync validation constants
+    private const int MaxAcceptableClockDriftSeconds = 30;
+    private const int WarningClockDriftSeconds = 5;
+    private const int NetworkTimeoutMs = 5000;
+    private const int NtpPort = 123;
+    
     private readonly ILogger<EnvironmentValidator> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly HttpClient _httpClient;
@@ -74,13 +80,13 @@ public class EnvironmentValidator : IEnvironmentValidator
             {
                 var drift = Math.Abs((systemTime - ntpTime.Value).TotalSeconds);
                 
-                if (drift > 30) // More than 30 seconds drift
+                if (drift > MaxAcceptableClockDriftSeconds) // More than acceptable seconds drift
                 {
                     await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "EnvironmentValidator",
                         $"⚠️ Clock drift detected: {drift:F1} seconds. System: {systemTime:HH:mm:ss}, NTP: {ntpTime.Value:HH:mm:ss}");
                     return false;
                 }
-                else if (drift > 5) // More than 5 seconds drift but less than 30
+                else if (drift > WarningClockDriftSeconds) // More than warning threshold but less than max
                 {
                     await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "EnvironmentValidator",
                         $"Minor clock drift: {drift:F1} seconds. Consider syncing system clock.");
@@ -115,7 +121,7 @@ public class EnvironmentValidator : IEnvironmentValidator
         {
             // Check basic internet connectivity by pinging Google DNS
             var ping = new Ping();
-            var reply = await ping.SendPingAsync("8.8.8.8", 5000);
+            var reply = await ping.SendPingAsync("8.8.8.8", NetworkTimeoutMs);
             
             if (reply.Status == IPStatus.Success)
             {
@@ -204,8 +210,8 @@ public class EnvironmentValidator : IEnvironmentValidator
 
             using var udpClient = new System.Net.Sockets.UdpClient();
             
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            await udpClient.SendAsync(ntpData, ntpData.Length, ntpServer, 123);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(WarningClockDriftSeconds));
+            await udpClient.SendAsync(ntpData, ntpData.Length, ntpServer, NtpPort);
             
             var response = await udpClient.ReceiveAsync();
             var responseData = response.Buffer;

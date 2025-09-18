@@ -85,10 +85,10 @@ class MockOrders:
     def __init__(self, symbol):
         self.symbol = symbol
         
-    async def place_bracket_order(self, entry_price, stop_loss_price, take_profit_price, size, side):
+    async def place_bracket_order(self, side, quantity, stop_loss, take_profit):
         import uuid
         return {
-            "order_id": str(uuid.uuid4()),
+            "id": str(uuid.uuid4()),
             "entry_order_id": str(uuid.uuid4()),
             "stop_order_id": str(uuid.uuid4()),
             "target_order_id": str(uuid.uuid4()),
