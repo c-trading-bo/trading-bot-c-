@@ -9,35 +9,39 @@
   # Optimized schedule for 20,000 minute budget
   schedule:
     - cron: '0 */6 * * *'
-  # 🚨 AUTO-RESPONSE: Triggers when ANY workflow fails
+  # 🚨 AUTO-RESPONSE: Triggers when ANY workflow fails - CORRECTED NAMES & DEDUPLICATED
   workflow_run:
     workflows:
-      - "Ultimate ML+RL Training Pipeline"
-      - "Ultimate Data Collection Pipeline"
-      - "Ultimate News Sentiment Pipeline"
-      - "Ultimate Options Flow Pipeline"
-      - "Ultimate Regime Detection Pipeline"
-      - "Ultimate Testing & QA Pipeline"
-      - "Ultimate ML+RL Intel System"
-      - "Ultimate Build CI Pipeline"
-      - "Daily Consolidated"
-      - "Portfolio Heat"
-      - "Volatility Surface Analysis"
-      - "ES/NQ Correlation Matrix"
-      - "ES/NQ Critical Trading"
+      # ULTIMATE Mega-System Workflows (exact names for proper triggering)
+      - "🚀🧠 ULTIMATE ML/RL Training Pipeline (Mega-System)"
+      - "📊🔄 ULTIMATE Data Collection Pipeline (Mega-System)"
+      - "📰🎯 ULTIMATE News & Sentiment Analysis Pipeline (Mega-System)"
+      - "📈💎 ULTIMATE Options Flow Analysis Pipeline (Mega-System)"
+      - "🔍📊 ULTIMATE Market Regime Detection Pipeline (Mega-System)"
+      - "🔨⚡ ULTIMATE Build & CI Pipeline (Mega-System)"
+      - "Ultimate ML/RL/Intel System (Team Optimized)"
+      # Team & Analysis Workflows
+      - "Daily Consolidated Tasks (Team)"
+      - "Portfolio Heat Management (Team)"
+      - "ES/NQ Critical Trading (Team)"
+      - "ES/NQ Correlation Matrix Analysis"
       - "Intermarket Correlations"
       - "Seasonality Patterns Analysis"
-      - "Microstructure"
-      - "Fed Liquidity"
-      - "MM Positioning"
-      - "Social Momentum"
-      - "Congressional Trades"
-      - "COT Report"
-      - "Failed Patterns"
-      - "Zones Identifier"
-      - "ML Model Training"
-      - "Data Collection"
-      - "Options Flow"
+      - "Microstructure Analysis"
+      - "Fed Liquidity Analysis"
+      - "Market Maker Positioning"
+      - "Failed Patterns Detection"
+      - "Options Flow Analysis"
+      - "ML/RL Training Pipeline"
+      - "Monthly ML Training Pipeline"
+      - "Volatility Surface Analysis"
+      - "Supply Demand Zones Identifier"
+      - "Intelligence - Daily Report"
+      - "Intelligence - Market Data ⚡ (OPTIMIZED)"
+      - "Intelligence - ML Trainer ⚡ (OPTIMIZED)"
+      - "Build and Test"
+      - "OPEX Calendar Tracking"
+      - "Overnight Session Analysis"
     types:
       - completed
     branches:
@@ -85,6 +89,11 @@ permissions:
   actions: write
   pull-requests: write
   id-token: write
+
+# CRITICAL: Prevent double sessions by enforcing single concurrent execution
+concurrency:
+  group: cloud-bot-mechanic-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   ultimate-defense-system:

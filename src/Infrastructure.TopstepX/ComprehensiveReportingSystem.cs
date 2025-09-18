@@ -18,6 +18,14 @@ internal static class ReportingConstants
     public const int MINIMUM_SECURITY_SCORE = 80;
     public const double PERCENTAGE_SCALE_FACTOR = 100.0;
     public const double PRODUCTION_READINESS_THRESHOLD = 0.85;
+    
+    // Memory conversion constants
+    public const int BYTES_TO_KB = 1024;
+    public const int BYTES_TO_MB = 1024 * 1024;
+    public const int KILOBYTES_TO_BYTES = 1000;
+    
+    // Time constants
+    public const int PERFORMANCE_TEST_DURATION_MS = 1000; // 1 second
 }
 
 /// <summary>
@@ -219,7 +227,7 @@ public class ComprehensiveReportingSystem
         var credLogger3 = loggerFactory3.CreateLogger<TopstepXCredentialManager>();
         var credManager3 = new TopstepXCredentialManager(credLogger3);
 
-        while (credStopwatch.ElapsedMilliseconds < 1000) // Run for 1 second
+        while (credStopwatch.ElapsedMilliseconds < ReportingConstants.PERFORMANCE_TEST_DURATION_MS) // Run for 1 second
         {
             credManager3.DiscoverAllCredentialSources();
             credOperations++;
@@ -232,7 +240,7 @@ public class ComprehensiveReportingSystem
         var jsonOperations = 0;
         var testObj = new { Name = "Test", Value = 123, Data = new[] { 1, 2, 3, 4, 5 } };
 
-        while (jsonStopwatch.ElapsedMilliseconds < 1000) // Run for 1 second
+        while (jsonStopwatch.ElapsedMilliseconds < ReportingConstants.PERFORMANCE_TEST_DURATION_MS) // Run for 1 second
         {
             JsonSerializer.Serialize(testObj);
             jsonOperations++;
@@ -250,11 +258,11 @@ public class ComprehensiveReportingSystem
         
         return new ResourceUsage
         {
-            MemoryUsageMB = currentProcess.WorkingSet64 / (1024 * 1024),
+            MemoryUsageMB = currentProcess.WorkingSet64 / ReportingConstants.BYTES_TO_MB,
             CpuTimeSeconds = currentProcess.TotalProcessorTime.TotalSeconds,
             HandleCount = currentProcess.HandleCount,
             ThreadCount = currentProcess.Threads.Count,
-            GCTotalMemoryMB = GC.GetTotalMemory(false) / (1024 * 1024)
+            GCTotalMemoryMB = GC.GetTotalMemory(false) / ReportingConstants.BYTES_TO_MB
         };
     }
 

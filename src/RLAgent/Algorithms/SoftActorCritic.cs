@@ -116,12 +116,12 @@ public class SoftActorCritic
     /// <summary>
     /// Train the SAC agent using experience replay
     /// </summary>
-    public async Task<SACTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
+    public async Task<SacTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
             await Task.CompletedTask; // Ensure async pattern compliance
-            return new SACTrainingResult
+            return new SacTrainingResult
             {
                 Success = false,
                 Message = $"Insufficient experience: {_replayBuffer.Count} < {_config.MinBufferSize}"
@@ -156,7 +156,7 @@ public class SoftActorCritic
             // Soft update target networks
             SoftUpdateTargetNetworks();
             
-            var result = new SACTrainingResult
+            var result = new SacTrainingResult
             {
                 Success = true,
                 ActorLoss = actorLoss,
@@ -177,7 +177,7 @@ public class SoftActorCritic
         catch (Exception ex)
         {
             _logger.LogError(ex, "[SAC] Training failed");
-            return new SACTrainingResult
+            return new SacTrainingResult
             {
                 Success = false,
                 Message = ex.Message

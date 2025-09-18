@@ -13,6 +13,9 @@ namespace BotCore.Testing;
 internal static class SmokeTestConstants
 {
     public const double MINIMUM_CATEGORY_PASS_RATE = 0.8;
+    public const double MINIMUM_SIGNAL_CONFIDENCE = 0.7;
+    public const decimal MAXIMUM_ES_RISK_LIMIT = 25.00m; // ES tick size consideration
+    public const double OVERALL_SUCCESS_PASS_RATE = 0.9; // 90% pass rate required
 }
 
 /// <summary>
@@ -327,7 +330,7 @@ public class ComprehensiveSmokeTestSuite
         {
             // Simulate signal processing without actual orders
             var signal = new { Symbol = "ES", Action = "BUY", Confidence = 0.85 };
-            return signal.Confidence > 0.7;
+            return signal.Confidence > SmokeTestConstants.MINIMUM_SIGNAL_CONFIDENCE;
         });
 
         // Test 3: Risk Management Integration
@@ -336,7 +339,7 @@ public class ComprehensiveSmokeTestSuite
             // Test risk management calculations
             var position = new { Symbol = "ES", Size = 1, Entry = 4500.00m, Stop = 4490.00m };
             var risk = position.Entry - position.Stop;
-            return risk > 0 && risk <= 25.00m; // ES tick size consideration
+            return risk > 0 && risk <= SmokeTestConstants.MAXIMUM_ES_RISK_LIMIT; // ES tick size consideration
         });
 
         await result.ExecuteAllTests();
@@ -462,7 +465,7 @@ public class TestSuiteResult
         var passedTests = allCategories.Sum(c => c.PassedTests);
         
         OverallPassRate = totalTests > 0 ? (double)passedTests / totalTests : 0;
-        IsOverallSuccess = OverallPassRate >= 0.9 && string.IsNullOrEmpty(CriticalError); // 90% pass rate required
+        IsOverallSuccess = OverallPassRate >= SmokeTestConstants.OVERALL_SUCCESS_PASS_RATE && string.IsNullOrEmpty(CriticalError); // 90% pass rate required
     }
 
     public Dictionary<string, object> GetSummaryReport()
