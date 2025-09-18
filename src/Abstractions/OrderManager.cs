@@ -37,6 +37,78 @@ namespace TradingBot.Abstractions
                 new EventId(3, nameof(LogCancellingOrder)),
                 "[OrderManager] Cancelling order {OrderId} via {Broker}: {Reason}");
 
+        private static readonly Action<ILogger, string, string, Exception?> LogAttemptingCancel =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Debug,
+                new EventId(4, nameof(LogAttemptingCancel)),
+                "[OrderManager] Attempting cancel via {Broker} for order {OrderId}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogOrderCancelledSuccessfully =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Information,
+                new EventId(5, nameof(LogOrderCancelledSuccessfully)),
+                "[OrderManager] ✅ Order {OrderId} cancelled successfully via {Broker}: {Reason}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogInvalidOperationDuringCancel =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Debug,
+                new EventId(6, nameof(LogInvalidOperationDuringCancel)),
+                "[OrderManager] Invalid operation during cancel via {Broker} for order {OrderId}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogTimeoutDuringCancel =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Debug,
+                new EventId(7, nameof(LogTimeoutDuringCancel)),
+                "[OrderManager] Timeout during cancel via {Broker} for order {OrderId}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogCancelAttemptFailed =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Debug,
+                new EventId(8, nameof(LogCancelAttemptFailed)),
+                "[OrderManager] Cancel attempt failed via {Broker} for order {OrderId}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogFailedCancelViaAnyAdapter =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(9, nameof(LogFailedCancelViaAnyAdapter)),
+                "[OrderManager] ❌ Failed to cancel order {OrderId} via any broker adapter: {Reason}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogUnknownBrokerAdapter =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Error,
+                new EventId(10, nameof(LogUnknownBrokerAdapter)),
+                "[OrderManager] ❌ Unknown broker adapter: {Broker} for order {OrderId}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogOrderCancelFailed =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Warning,
+                new EventId(11, nameof(LogOrderCancelFailed)),
+                "[OrderManager] ❌ Failed to cancel order {OrderId} via {Broker}: {Reason}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogInvalidArgumentCancelling =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Error,
+                new EventId(12, nameof(LogInvalidArgumentCancelling)),
+                "[OrderManager] ❌ Invalid argument cancelling order {OrderId} via {Broker}: {Reason}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogInvalidOperationCancelling =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Error,
+                new EventId(13, nameof(LogInvalidOperationCancelling)),
+                "[OrderManager] ❌ Invalid operation cancelling order {OrderId} via {Broker}: {Reason}");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogExceptionCancelling =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Error,
+                new EventId(14, nameof(LogExceptionCancelling)),
+                "[OrderManager] ❌ Exception cancelling order {OrderId} via {Broker}: {Reason}");
+
+        private static readonly Action<ILogger, int, int, Exception?> LogBatchCancelCompleted =
+            LoggerMessage.Define<int, int>(
+                LogLevel.Information,
+                new EventId(15, nameof(LogBatchCancelCompleted)),
+                "[OrderManager] Batch cancel completed: {Success}/{Total} orders cancelled");
+
         public OrderManager(ILogger<OrderManager> logger, IEnumerable<IBrokerAdapter> brokerAdapters)
         {
             ArgumentNullException.ThrowIfNull(logger);
@@ -76,44 +148,37 @@ namespace TradingBot.Abstractions
                 {
                     try
                     {
-                        _logger.LogDebug("[OrderManager] Attempting cancel via {Broker} for order {OrderId}", 
-                            adapter.BrokerName, orderId);
+                        LogAttemptingCancel(_logger, adapter.BrokerName, orderId, null);
                         
                         var result = await adapter.CancelOrderAsync(orderId, cancellationToken).ConfigureAwait(false);
                         if (result)
                         {
-                            _logger.LogInformation("[OrderManager] ✅ Order {OrderId} cancelled successfully via {Broker}: {Reason}", 
-                                orderId, adapter.BrokerName, reason);
+                            LogOrderCancelledSuccessfully(_logger, orderId, adapter.BrokerName, reason, null);
                             return true;
                         }
                     }
                     catch (InvalidOperationException ex)
                     {
-                        _logger.LogDebug(ex, "[OrderManager] Invalid operation during cancel via {Broker} for order {OrderId}", 
-                            adapter.BrokerName, orderId);
+                        LogInvalidOperationDuringCancel(_logger, adapter.BrokerName, orderId, ex);
                     }
                     catch (TimeoutException ex)
                     {
-                        _logger.LogDebug(ex, "[OrderManager] Timeout during cancel via {Broker} for order {OrderId}", 
-                            adapter.BrokerName, orderId);
+                        LogTimeoutDuringCancel(_logger, adapter.BrokerName, orderId, ex);
                     }
                     catch (Exception ex) when (!ex.IsFatal())
                     {
-                        _logger.LogDebug(ex, "[OrderManager] Cancel attempt failed via {Broker} for order {OrderId}", 
-                            adapter.BrokerName, orderId);
+                        LogCancelAttemptFailed(_logger, adapter.BrokerName, orderId, ex);
                     }
                 }
                 
-                _logger.LogWarning("[OrderManager] ❌ Failed to cancel order {OrderId} via any broker adapter: {Reason}", 
-                    orderId, reason);
+                LogFailedCancelViaAnyAdapter(_logger, orderId, reason, null);
                 return false;
             }
 
             // Use specific broker adapter
             if (!_brokerAdapters.TryGetValue(brokerName, out var brokerAdapter))
             {
-                _logger.LogError("[OrderManager] ❌ Unknown broker adapter: {Broker} for order {OrderId}", 
-                    brokerName, orderId);
+                LogUnknownBrokerAdapter(_logger, brokerName, orderId, null);
                 return false;
             }
 
@@ -123,33 +188,28 @@ namespace TradingBot.Abstractions
                 
                 if (result)
                 {
-                    _logger.LogInformation("[OrderManager] ✅ Order {OrderId} cancelled successfully via {Broker}: {Reason}", 
-                        orderId, brokerName, reason);
+                    LogOrderCancelledSuccessfully(_logger, orderId, brokerName, reason, null);
                 }
                 else
                 {
-                    _logger.LogWarning("[OrderManager] ❌ Failed to cancel order {OrderId} via {Broker}: {Reason}", 
-                        orderId, brokerName, reason);
+                    LogOrderCancelFailed(_logger, orderId, brokerName, reason, null);
                 }
                 
                 return result;
             }
             catch (ArgumentException ex)
             {
-                _logger.LogError(ex, "[OrderManager] ❌ Invalid argument cancelling order {OrderId} via {Broker}: {Reason}", 
-                    orderId, brokerName, reason);
+                LogInvalidArgumentCancelling(_logger, orderId, brokerName, reason, ex);
                 return false;
             }
             catch (InvalidOperationException ex)
             {
-                _logger.LogError(ex, "[OrderManager] ❌ Invalid operation cancelling order {OrderId} via {Broker}: {Reason}", 
-                    orderId, brokerName, reason);
+                LogInvalidOperationCancelling(_logger, orderId, brokerName, reason, ex);
                 return false;
             }
             catch (Exception ex) when (!ex.IsFatal())
             {
-                _logger.LogError(ex, "[OrderManager] ❌ Exception cancelling order {OrderId} via {Broker}: {Reason}", 
-                    orderId, brokerName, reason);
+                LogExceptionCancelling(_logger, orderId, brokerName, reason, ex);
                 return false;
             }
         }
@@ -167,8 +227,7 @@ namespace TradingBot.Abstractions
             }
             
             var successCount = results.Values.Count(r => r);
-            _logger.LogInformation("[OrderManager] Batch cancel completed: {Success}/{Total} orders cancelled", 
-                successCount, results.Count);
+            LogBatchCancelCompleted(_logger, successCount, results.Count, null);
             
             return results;
         }

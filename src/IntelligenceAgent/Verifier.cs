@@ -24,6 +24,73 @@ public class Verifier : IVerifier
     private readonly HttpClient _httpClient;
     private readonly ILogger<Verifier> _logger;
 
+    // LoggerMessage delegates for performance (CA1848)
+    private static readonly Action<ILogger, DateTime, DateTime, Exception?> LogStartingTodayVerification =
+        LoggerMessage.Define<DateTime, DateTime>(
+            LogLevel.Information,
+            new EventId(1, nameof(LogStartingTodayVerification)),
+            "Starting trade verification for UTC today: {UtcToday} to {UtcNow}");
+
+    private static readonly Action<ILogger, Exception?> LogTradeVerificationFailed =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(2, nameof(LogTradeVerificationFailed)),
+            "Trade verification failed");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationError =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(3, nameof(LogVerificationError)),
+            "VERIFICATION_ERROR: {ErrorData}");
+
+    private static readonly Action<ILogger, HttpStatusCode, string, Exception?> LogOrderSearchStatusCode =
+        LoggerMessage.Define<HttpStatusCode, string>(
+            LogLevel.Warning,
+            new EventId(4, nameof(LogOrderSearchStatusCode)),
+            "Order search returned {StatusCode}: {ReasonPhrase}");
+
+    private static readonly Action<ILogger, string, Exception?> LogOrderQueryCompleted =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(5, nameof(LogOrderQueryCompleted)),
+            "Order query completed: {OrderCounts}");
+
+    private static readonly Action<ILogger, Exception?> LogFailedToQueryOrders =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(6, nameof(LogFailedToQueryOrders)),
+            "Failed to query orders");
+
+    private static readonly Action<ILogger, HttpStatusCode, string, Exception?> LogTradeSearchStatusCode =
+        LoggerMessage.Define<HttpStatusCode, string>(
+            LogLevel.Warning,
+            new EventId(7, nameof(LogTradeSearchStatusCode)),
+            "Trade search returned {StatusCode}: {ReasonPhrase}");
+
+    private static readonly Action<ILogger, string, Exception?> LogTradeQueryCompleted =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(8, nameof(LogTradeQueryCompleted)),
+            "Trade query completed: {TradeCounts}");
+
+    private static readonly Action<ILogger, Exception?> LogFailedToQueryTrades =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(9, nameof(LogFailedToQueryTrades)),
+            "Failed to query trades");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationSummary =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(10, nameof(LogVerificationSummary)),
+            "{Summary}");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationResult =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(11, nameof(LogVerificationResult)),
+            "VERIFICATION_RESULT: {StructuredData}");
+
     public Verifier(HttpClient httpClient, ILogger<Verifier> logger)
     {
         _httpClient = httpClient;
@@ -37,8 +104,7 @@ public class Verifier : IVerifier
             var utcToday = DateTime.UtcNow.Date;
             var utcNow = DateTime.UtcNow;
 
-            _logger.LogInformation("Starting trade verification for UTC today: {UtcToday} to {UtcNow}", 
-                utcToday, utcNow);
+            LogStartingTodayVerification(_logger, utcToday, utcNow, null);
 
             // Query orders for today
             var orderStats = await QueryOrdersAsync(utcToday, utcNow, cancellationToken)
