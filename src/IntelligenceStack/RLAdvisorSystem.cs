@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -544,8 +545,8 @@ public class RLAdvisorSystem
         {
             var episodes = new List<TrainingEpisode>();
             
-            // Step 1: Load historical market data asynchronously
-            var marketDataTask = Task.Run(() => LoadHistoricalMarketData(symbol, startDate, endDate), cancellationToken);
+            // Step 1: Load historical market data asynchronously via SDK adapter
+            var marketDataTask = LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate);
             var tradeDataTask = Task.Run(() => LoadHistoricalTradeData(symbol, startDate, endDate), cancellationToken);
             
             var marketData = await marketDataTask;
@@ -567,7 +568,102 @@ public class RLAdvisorSystem
         }, cancellationToken);
     }
     
-    private List<RLMarketDataPoint> LoadHistoricalMarketData(string symbol, DateTime startDate, DateTime endDate)
+    private async Task<List<RLMarketDataPoint>> LoadHistoricalMarketDataViaSdkAsync(string symbol, DateTime startDate, DateTime endDate)
+    {
+        try
+        {
+            _logger.LogDebug("[RL_ADVISOR] Loading historical data via SDK adapter for {Symbol}", symbol);
+
+            // Call Python SDK bridge to get historical data
+            var pythonScript = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python", "sdk_bridge.py");
+            if (!File.Exists(pythonScript))
+            {
+                _logger.LogWarning("[RL_ADVISOR] SDK bridge script not found, using fallback data");
+                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+            }
+
+            // Calculate estimated number of bars needed
+            var timespan = endDate - startDate;
+            var estimatedBars = Math.Max(100, (int)(timespan.TotalMinutes / 5)); // 5-minute bars
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "python3",
+                Arguments = $"\"{pythonScript}\" get_historical_bars \"{symbol}\" \"5m\" {estimatedBars}",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+            {
+                _logger.LogWarning("[RL_ADVISOR] Failed to start SDK bridge process");
+                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+            }
+
+            var output = await process.StandardOutput.ReadToEndAsync();
+            var error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                _logger.LogDebug("[RL_ADVISOR] SDK bridge returned exit code {ExitCode}: {Error}", process.ExitCode, error);
+                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+            }
+
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                _logger.LogDebug("[RL_ADVISOR] SDK bridge returned empty output");
+                return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+            }
+
+            // Parse JSON response and convert to RL market data points
+            var barData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(output);
+            var dataPoints = new List<RLMarketDataPoint>();
+
+            foreach (var bar in barData)
+            {
+                try
+                {
+                    var timestamp = DateTime.TryParse(bar["timestamp"].ToString(), out var ts) ? ts : DateTime.UtcNow;
+                    if (timestamp >= startDate && timestamp <= endDate)
+                    {
+                        var dataPoint = new RLMarketDataPoint
+                        {
+                            Timestamp = timestamp,
+                            Symbol = symbol,
+                            Open = Convert.ToDouble(bar["open"]),
+                            High = Convert.ToDouble(bar["high"]),
+                            Low = Convert.ToDouble(bar["low"]),
+                            Close = Convert.ToDouble(bar["close"]),
+                            Volume = Convert.ToInt64(bar.GetValueOrDefault("volume", 0)),
+                            // Calculate additional features
+                            ATR = Math.Max(Convert.ToDouble(bar["high"]) - Convert.ToDouble(bar["low"]), 0.25),
+                            Volatility = 0.2, // Would be calculated from historical volatility
+                            Regime = "Normal"
+                        };
+                        dataPoints.Add(dataPoint);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("[RL_ADVISOR] Failed to parse bar data: {Error}", ex.Message);
+                }
+            }
+
+            _logger.LogInformation("[RL_ADVISOR] Loaded {Count} data points via SDK adapter for {Symbol}", dataPoints.Count, symbol);
+            return dataPoints.OrderBy(dp => dp.Timestamp).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RL_ADVISOR] Failed to load historical data via SDK adapter for {Symbol}", symbol);
+            return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
+        }
+    }
+
+    private List<RLMarketDataPoint> LoadHistoricalMarketDataFallback(string symbol, DateTime startDate, DateTime endDate)
     {
         // Load historical market data from data store
         // For production, this would integrate with historical data providers
