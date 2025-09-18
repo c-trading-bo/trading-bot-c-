@@ -11,6 +11,13 @@ namespace Trading.Strategies;
 /// </summary>
 public static class StrategyIds
 {
+    // Cached JsonSerializerOptions for performance (CA1869)
+    private static readonly JsonSerializerOptions ConfigHashingOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = false,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
     /// <summary>
     /// Generates a deterministic strategy ID based on strategy name and current date
     /// Format: StrategyName_YYYYMMDD
@@ -66,18 +73,10 @@ public static class StrategyIds
         ArgumentNullException.ThrowIfNull(configuration);
             
         // Serialize configuration to JSON for consistent hashing
-        var jsonOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-        
-        var configJson = JsonSerializer.Serialize(configuration, jsonOptions);
+        var configJson = JsonSerializer.Serialize(configuration, ConfigHashingOptions);
         
         // Generate SHA256 hash and take first 8 characters
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(configJson));
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(configJson));
         var fullHash = Convert.ToHexString(hashBytes);
         
         // Defensive bounds checking to prevent ArgumentOutOfRangeException

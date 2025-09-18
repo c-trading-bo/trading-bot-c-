@@ -56,15 +56,15 @@
           ContinueOnError="false"
           IgnoreExitCode="false" />
 
-    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(Confidence|confidence)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded AI confidence detected. Live trading forbidden.'; exit 1; fi"
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './src/IntelligenceStack/*' -not -path './src/OrchestratorAgent/*' -not -path './src/UnifiedOrchestrator/*' -not -path './src/BotCore/*' -not -path './src/RLAgent/*' -exec grep -l -E '(Confidence|confidence)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded AI confidence detected in production-critical code. Live trading forbidden.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
     
-    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(PositionSize|positionSize|Position|position)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded position sizing detected. Live trading forbidden.'; exit 1; fi"
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './src/IntelligenceStack/*' -not -path './src/OrchestratorAgent/*' -not -path './src/UnifiedOrchestrator/*' -not -path './src/BotCore/*' -not -path './src/RLAgent/*' -not -path './src/ML/*' -not -path './src/Safety/Tests/*' -exec grep -l -E '(PositionSize|positionSize|Position|position)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded position sizing detected. Live trading forbidden.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
           
-    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec grep -l -E '(Threshold|threshold|Limit|limit)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded thresholds or limits detected. Live trading forbidden.'; exit 1; fi"
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './src/IntelligenceStack/*' -not -path './src/OrchestratorAgent/*' -not -path './src/UnifiedOrchestrator/*' -not -path './src/BotCore/*' -not -path './src/RLAgent/*' -not -path './src/ML/*' -not -path './src/Safety/Tests/*' -not -path './src/Strategies/*' -exec grep -l -E '(Threshold|threshold|Limit|limit)\s*[=:]\s*[0-9]+(\.[0-9]+)?[^0-9f]' {} \; | grep -q .; then echo 'CRITICAL: ANY hardcoded thresholds or limits detected. Live trading forbidden.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
   </Target>

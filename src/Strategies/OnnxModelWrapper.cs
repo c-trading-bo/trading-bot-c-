@@ -186,7 +186,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         if (!_isModelLoaded)
         {
             LogModelNotAvailable(_logger, null);
-            return DefaultConfidence;
+            return DefaultConfidenceLevel;
         }
 
         try
@@ -208,17 +208,17 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         catch (ArgumentException ex)
         {
             LogErrorDuringPrediction(_logger, ex);
-            return DefaultConfidence;
+            return DefaultConfidenceLevel;
         }
         catch (InvalidOperationException ex)
         {
             LogErrorDuringPrediction(_logger, ex);
-            return DefaultConfidence;
+            return DefaultConfidenceLevel;
         }
         catch (Exception ex) when (!ex.IsFatal())
         {
             LogErrorDuringPrediction(_logger, ex);
-            return DefaultConfidence;
+            return DefaultConfidenceLevel;
         }
     }
 
@@ -406,7 +406,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         return Math.Max(LowConfidenceThreshold, Math.Min(HighConfidenceLevel, baseConfidence));
     }
 
-    private const double DefaultConfidence = 0.3; // Conservative default
+    private const double DefaultConfidenceLevel = NeutralConfidenceLevel; // Conservative default aligned with existing constants
 }
 
 /// <summary>
@@ -414,7 +414,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
 /// </summary>
 public static class ConfidenceHelper
 {
-    private static readonly IOnnxModelWrapper _defaultWrapper = 
+    private static readonly OnnxModelWrapper _defaultWrapper = 
         new OnnxModelWrapper(Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelWrapper>.Instance);
 
     /// <summary>

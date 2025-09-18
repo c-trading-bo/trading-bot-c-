@@ -17,7 +17,7 @@ public interface ITradingLogger
     /// <summary>
     /// Log order events specifically
     /// </summary>
-    Task LogOrderAsync(string side, string symbol, decimal quantity, decimal entry, decimal stop, decimal target, decimal rMultiple, string customTag, string? orderId = null);
+    Task LogOrderAsync(string side, string symbol, decimal quantity, decimal entry, decimal stopPrice, decimal target, decimal rMultiple, string customTag, string? orderId = null);
     
     /// <summary>
     /// Log trade fills

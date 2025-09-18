@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
-// Legacy removed: using Infrastructure.TopstepX;
 using TopstepX.Bot.Authentication;
 using System.Globalization;
 

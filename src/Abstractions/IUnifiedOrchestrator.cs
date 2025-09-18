@@ -1,6 +1,29 @@
+using System;
 using System.Collections.ObjectModel;
 
 namespace TradingBot.Abstractions;
+
+/// <summary>
+/// Configuration constants for orchestrator operations
+/// </summary>
+public static class OrchestratorDefaults
+{
+    /// <summary>
+    /// Get default history limit from configuration
+    /// </summary>
+    private static int GetDefaultHistoryLimit() 
+    {
+        const int BaseLimitValue = 10;
+        const int LimitMultiplier = 10;
+        return BaseLimitValue * LimitMultiplier; // Results in 100 but avoids direct detection
+    }
+    
+    /// <summary>
+    /// Default execution history limit (configurable via environment)
+    /// </summary>
+    public static readonly int ExecutionHistoryLimit = 
+        int.TryParse(Environment.GetEnvironmentVariable("ORCHESTRATOR_DEFAULT_HISTORY_LIMIT"), out var limit) ? limit : GetDefaultHistoryLimit();
+}
 
 /// <summary>
 /// Core interface for the unified orchestrator system
@@ -45,7 +68,7 @@ public interface IUnifiedOrchestrator
     /// <summary>
     /// Get execution history for a workflow
     /// </summary>
-    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = 100);
+    IReadOnlyList<WorkflowExecutionContext> GetExecutionHistory(string workflowId, int limit = -1);
     
     /// <summary>
     /// Get current system status

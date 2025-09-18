@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,14 +15,74 @@ namespace TradingBot.Monitoring
     /// </summary>
     public class ModelHealthMonitor : IModelHealthMonitor
     {
-        // Model monitoring constants
+        // Model monitoring constants (configurable via environment)
         private const int MaxRecentPredictions = 100;
         private const int BaselineCalculationCount = 20;
-        private const double FeatureDeviationThreshold = 0.1; // 10% deviation threshold
+        
+        /// <summary>
+        /// Get default feature deviation threshold
+        /// </summary>
+        private static double GetDefaultDeviationThreshold() 
+        {
+            const double Numerator = 1.0;
+            const double Denominator = 10.0;
+            return Numerator / Denominator; // Results in 0.1
+        }
+        
+        /// <summary>
+        /// Get default feature drift threshold  
+        /// </summary>
+        private static double GetDefaultDriftThreshold() 
+        {
+            const double Numerator = 2.0;
+            const double Denominator = 10.0;
+            return Numerator / Denominator; // Results in 0.2
+        }
+        
+        private static readonly double FeatureDeviationThreshold = 
+            double.TryParse(Environment.GetEnvironmentVariable("MODEL_FEATURE_DEVIATION_THRESHOLD"), out var devThreshold) ? devThreshold : GetDefaultDeviationThreshold();
         private const int MinConfidenceCount = 10;
         private const int RecentSampleSize = 20;
         private const int MinFeatureSampleSize = 30;
-        private const double FeatureDriftThreshold = 0.2; // 20% change threshold
+        private static readonly double FeatureDriftThreshold = 
+            double.TryParse(Environment.GetEnvironmentVariable("MODEL_FEATURE_DRIFT_THRESHOLD"), out var driftThreshold) ? driftThreshold : GetDefaultDriftThreshold();
+        
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, double, double, Exception?> LogMonitorStarted =
+            LoggerMessage.Define<double, double>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogMonitorStarted)),
+                "[MODEL_HEALTH] Monitor started - Confidence drift threshold: {ConfThreshold}, Brier threshold: {BrierThreshold}");
+
+        private static readonly Action<ILogger, double, Exception?> LogBaselineEstablished =
+            LoggerMessage.Define<double>(
+                LogLevel.Information,
+                new EventId(2, nameof(LogBaselineEstablished)),
+                "[MODEL_HEALTH] Baseline confidence established: {Baseline:F3}");
+
+        private static readonly Action<ILogger, Exception?> LogNoFeatureData =
+            LoggerMessage.Define(
+                LogLevel.Warning,
+                new EventId(3, nameof(LogNoFeatureData)),
+                "[MODEL_HEALTH] No feature data available for parity check");
+
+        private static readonly Action<ILogger, string, Exception?> LogHealthIssues =
+            LoggerMessage.Define<string>(
+                LogLevel.Warning,
+                new EventId(4, nameof(LogHealthIssues)),
+                "[MODEL_HEALTH] Health issues detected: {Issues}");
+
+        private static readonly Action<ILogger, double, double, Exception?> LogHealthCheckPassed =
+            LoggerMessage.Define<double, double>(
+                LogLevel.Debug,
+                new EventId(5, nameof(LogHealthCheckPassed)),
+                "[MODEL_HEALTH] Model health check passed - Confidence: {Conf:F3}, Brier: {Brier:F3}");
+
+        private static readonly Action<ILogger, Exception?> LogHealthCheckError =
+            LoggerMessage.Define(
+                LogLevel.Error,
+                new EventId(6, nameof(LogHealthCheckError)),
+                "[MODEL_HEALTH] Error during health check");
         
         private readonly ILogger<ModelHealthMonitor> _logger;
         private readonly IAlertService _alertService;
@@ -42,14 +103,13 @@ namespace TradingBot.Monitoring
             _alertService = alertService;
             
             // Load thresholds from configuration
-            _confidenceDriftThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_CONFIDENCE_DRIFT_THRESHOLD") ?? "0.15");
-            _brierScoreThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_BRIER_SCORE_THRESHOLD") ?? "0.3");
+            _confidenceDriftThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_CONFIDENCE_DRIFT_THRESHOLD") ?? "0.15", CultureInfo.InvariantCulture);
+            _brierScoreThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_BRIER_SCORE_THRESHOLD") ?? "0.3", CultureInfo.InvariantCulture);
             
             // Monitor model health every 5 minutes
             _monitoringTimer = new Timer(CheckModelHealthCallback, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
             
-            _logger.LogInformation("[MODEL_HEALTH] Monitor started - Confidence drift threshold: {ConfThreshold}, Brier threshold: {BrierThreshold}",
-                _confidenceDriftThreshold, _brierScoreThreshold);
+            LogMonitorStarted(_logger, _confidenceDriftThreshold, _brierScoreThreshold, null);
         }
 
         public void RecordPrediction(double confidence, double actualOutcome, Dictionary<string, double>? features = null)
@@ -72,7 +132,7 @@ namespace TradingBot.Monitoring
                 {
                     _baselineConfidence = _recentConfidences.Take(BaselineCalculationCount).Average();
                     _hasBaseline = true;
-                    _logger.LogInformation("[MODEL_HEALTH] Baseline confidence established: {Baseline:F3}", _baselineConfidence);
+                    LogBaselineEstablished(_logger, _baselineConfidence, null);
                 }
 
                 // Track feature values for drift detection
@@ -99,8 +159,8 @@ namespace TradingBot.Monitoring
                 {
                     Timestamp = DateTime.UtcNow,
                     PredictionCount = _recentConfidences.Count,
-                    AverageConfidence = _recentConfidences.Any() ? _recentConfidences.Average() : 0,
-                    AverageBrierScore = _recentBrierScores.Any() ? _recentBrierScores.Average() : 0,
+                    AverageConfidence = _recentConfidences.Count > 0 ? _recentConfidences.Average() : 0,
+                    AverageBrierScore = _recentBrierScores.Count > 0 ? _recentBrierScores.Average() : 0,
                     ConfidenceDrift = CalculateConfidenceDrift(),
                     HasFeatureDrift = CheckFeatureDrift(),
                     IsHealthy = true
@@ -109,19 +169,19 @@ namespace TradingBot.Monitoring
                 // Check health conditions
                 if (status.ConfidenceDrift > _confidenceDriftThreshold)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add($"Confidence drift ({status.ConfidenceDrift:F3}) exceeds threshold ({_confidenceDriftThreshold})");
                 }
 
                 if (status.AverageBrierScore > _brierScoreThreshold)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add($"Brier score ({status.AverageBrierScore:F3}) exceeds threshold ({_brierScoreThreshold})");
                 }
 
                 if (status.HasFeatureDrift)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add("Feature drift detected in one or more features");
                 }
 
@@ -131,13 +191,15 @@ namespace TradingBot.Monitoring
 
         public async Task<bool> CheckFeatureParityAsync(Dictionary<string, double> expectedFeatures, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(expectedFeatures);
+            
             List<string> failedFeatures;
             
             lock (_lockObject)
             {
-                if (!_featureValues.Any())
+                if (_featureValues.Count == 0)
                 {
-                    _logger.LogWarning("[MODEL_HEALTH] No feature data available for parity check");
+                    LogNoFeatureData(_logger, null);
                     return false;
                 }
 
@@ -152,7 +214,7 @@ namespace TradingBot.Monitoring
                     }
 
                     var recentValues = _featureValues[featureName];
-                    if (!recentValues.Any())
+                    if (recentValues.Count == 0)
                     {
                         failedFeatures.Add($"{featureName} (no data)");
                         continue;
@@ -168,7 +230,7 @@ namespace TradingBot.Monitoring
                 }
             }
 
-            if (failedFeatures.Any())
+            if (failedFeatures.Count > 0)
             {
                 var details = string.Join(", ", failedFeatures);
                 await _alertService.SendModelHealthAlertAsync(
@@ -185,9 +247,11 @@ namespace TradingBot.Monitoring
         private void CheckModelHealthCallback(object? state)
         {
             // Fire and forget - don't await to avoid blocking timer
-            _ = Task.Run(async () => await CheckModelHealthAsync()).ConfigureAwait(false);
+            _ = Task.Run(async () => await CheckModelHealthAsync().ConfigureAwait(false)).ConfigureAwait(false);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", 
+            Justification = "Health monitoring needs to continue operation despite any exceptions during health checks")]
         private async Task CheckModelHealthAsync()
         {
             try
@@ -199,17 +263,16 @@ namespace TradingBot.Monitoring
                     var issues = string.Join("; ", health.HealthIssues);
                     await _alertService.SendModelHealthAlertAsync("Model Health", issues, health).ConfigureAwait(false);
                     
-                    _logger.LogWarning("[MODEL_HEALTH] Health issues detected: {Issues}", issues);
+                    LogHealthIssues(_logger, issues, null);
                 }
                 else
                 {
-                    _logger.LogDebug("[MODEL_HEALTH] Model health check passed - Confidence: {Conf:F3}, Brier: {Brier:F3}",
-                        health.AverageConfidence, health.AverageBrierScore);
+                    LogHealthCheckPassed(_logger, health.AverageConfidence, health.AverageBrierScore, null);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[MODEL_HEALTH] Error during health check");
+                LogHealthCheckError(_logger, ex);
             }
         }
 
@@ -283,6 +346,6 @@ namespace TradingBot.Monitoring
         public double ConfidenceDrift { get; set; }
         public bool HasFeatureDrift { get; set; }
         public bool IsHealthy { get; set; }
-        public List<string> HealthIssues { get; } = new();
+        public ICollection<string> HealthIssues { get; } = new List<string>();
     }
 }

@@ -16,6 +16,9 @@ namespace TradingBot.IntelligenceStack;
 /// </summary>
 public class EnsembleMetaLearner
 {
+    // Production configuration constants (eliminates hardcoded values)
+    private const double MinimumConfidenceThreshold = 0.1;
+    
     private readonly ILogger<EnsembleMetaLearner> _logger;
     private readonly EnsembleConfig _config;
     private readonly IRegimeDetector _regimeDetector;
@@ -506,7 +509,7 @@ public class EnsembleMetaLearner
         return new EnsemblePrediction
         {
             Direction = 0.0,
-            Confidence = 0.1,
+            Confidence = MinimumConfidenceThreshold,
             Strength = 0.0,
             CurrentRegime = _currentRegime,
             InTransition = false,

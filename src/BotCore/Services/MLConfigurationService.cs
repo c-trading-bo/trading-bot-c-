@@ -22,6 +22,11 @@ namespace TradingBot.BotCore.Services
         public double GetAIConfidenceThreshold() => _config.AIConfidenceThreshold;
 
         /// <summary>
+        /// Get minimum confidence for model fallback - replaces hardcoded 0.1
+        /// </summary>
+        public double GetMinimumConfidence() => _config.MinimumConfidence ?? 0.1;
+
+        /// <summary>
         /// Get position size multiplier - replaces hardcoded 2.5
         /// </summary>
         public double GetPositionSizeMultiplier() => _config.DefaultPositionSizeMultiplier;

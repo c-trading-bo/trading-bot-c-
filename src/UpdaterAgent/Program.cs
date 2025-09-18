@@ -13,12 +13,12 @@ public static class Program
 {
     public static Task<int> Main(string[] args)
     {
-        var updater = new UpdaterAgent();
+        var updater = new UpdaterService();
         return updater.RunAsync();
     }
 }
 
-public class UpdaterAgent
+public class UpdaterService
 {
     // Configuration constants to eliminate magic numbers
     private const int DefaultShadowPort = 5001;
@@ -34,7 +34,7 @@ public class UpdaterAgent
     private readonly string _deployLogPath;
     private readonly string _pendingPath;
 
-    public UpdaterAgent()
+    public UpdaterService()
     {
         var cfg = new ConfigurationBuilder()
             .AddJsonFile("appsettings.json", optional: true)
@@ -86,12 +86,7 @@ public class UpdaterAgent
         catch (Exception ex) when (ex.IsFatal())
         {
             Log.Fatal(ex, "Fatal error in UpdaterAgent - terminating");
-            throw; // Rethrow fatal exceptions
-        }
-        catch (InvalidOperationException ex)
-        {
-            Log.Error(ex, "Invalid operation in UpdaterAgent - returning error code");
-            return 1;
+            throw new InvalidOperationException("UpdaterAgent terminated due to fatal error", ex);
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -135,7 +130,7 @@ public class UpdaterAgent
             catch (Exception ex) when (ex.IsFatal())
             {
                 Log.Fatal(ex, "Fatal error in update cycle");
-                throw; // Rethrow fatal exceptions
+                throw new InvalidOperationException("Update cycle terminated due to fatal error", ex);
             }
             catch (InvalidOperationException ex)
             {
@@ -184,7 +179,7 @@ public class UpdaterAgent
     private async Task<bool> BuildProject(string outDir)
     {
         Directory.CreateDirectory(outDir);
-        var pubCode = Run("dotnet", $"publish \"{_projPath}\" -c Release -o \"{outDir}\"", _repoPath);
+        var pubCode = await RunAsync("dotnet", $"publish \"{_projPath}\" -c Release -o \"{outDir}\"", _repoPath).ConfigureAwait(false);
         if (pubCode != 0)
         {
             await LogBuildFailure().ConfigureAwait(false);
@@ -208,7 +203,7 @@ public class UpdaterAgent
 
     private async Task<bool> RunTests()
     {
-        var testCode = Run("dotnet", "test --logger console;verbosity=minimal", _repoPath);
+        var testCode = await RunAsync("dotnet", "test --logger console;verbosity=minimal", _repoPath).ConfigureAwait(false);
         if (testCode != 0)
         {
             await LogTestFailure().ConfigureAwait(false);
@@ -326,7 +321,7 @@ public class UpdaterAgent
         }
     }
 
-    private static int Run(string exe, string args, string? cwd = null, IDictionary<string, string?>? env = null)
+    private static async Task<int> RunAsync(string exe, string args, string? cwd = null, IDictionary<string, string?>? env = null)
     {
         var p = new Process();
         p.StartInfo.FileName = exe;
@@ -345,7 +340,7 @@ public class UpdaterAgent
         p.Start();
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
-        p.WaitForExit();
+        await p.WaitForExitAsync().ConfigureAwait(false);
         return p.ExitCode;
     }
 

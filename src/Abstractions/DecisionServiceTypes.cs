@@ -20,7 +20,7 @@ public class DecisionServiceStatus
 /// </summary>
 public class DecisionServiceOptions
 {
-    public string BaseUrl { get; set; } = string.Empty;
+    public Uri? BaseUrl { get; set; }
     public int TimeoutMs { get; set; } = 5000;
     public bool Enabled { get; set; } = true;
     public int MaxRetries { get; set; } = 3;

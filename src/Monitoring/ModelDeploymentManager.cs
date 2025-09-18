@@ -18,6 +18,79 @@ namespace TradingBot.Monitoring
         private const int CanaryRolloutDelayMs = 500;
         private const int RollbackDelayMs = 800;
         
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, Exception?> LogManagerInitialized =
+            LoggerMessage.Define(
+                LogLevel.Information,
+                new EventId(1, nameof(LogManagerInitialized)),
+                "[DEPLOYMENT] ModelDeploymentManager initialized");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogPromotingModel =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Information,
+                new EventId(2, nameof(LogPromotingModel)),
+                "[DEPLOYMENT] Promoting model to production - Model: {ModelName}, Version: {Version}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogModelPromoted =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Information,
+                new EventId(3, nameof(LogModelPromoted)),
+                "[DEPLOYMENT] Model successfully promoted to production - Model: {ModelName}, Version: {Version}");
+
+        private static readonly Action<ILogger, string, Exception?> LogPromotionFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(4, nameof(LogPromotionFailed)),
+                "[DEPLOYMENT] Failed to promote model to production - Model: {ModelName}");
+
+        private static readonly Action<ILogger, string, string, double, Exception?> LogStartingCanary =
+            LoggerMessage.Define<string, string, double>(
+                LogLevel.Information,
+                new EventId(5, nameof(LogStartingCanary)),
+                "[DEPLOYMENT] Starting canary rollout - Model: {ModelName}, Version: {Version}, Traffic: {Traffic:P1}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogCanaryStarted =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Information,
+                new EventId(6, nameof(LogCanaryStarted)),
+                "[DEPLOYMENT] Canary rollout started successfully - Model: {ModelName}, Version: {Version}");
+
+        private static readonly Action<ILogger, string, Exception?> LogCanaryFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(7, nameof(LogCanaryFailed)),
+                "[DEPLOYMENT] Failed to start canary rollout - Model: {ModelName}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogCanaryFailure =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(8, nameof(LogCanaryFailure)),
+                "[DEPLOYMENT] Canary rollout failed - Model: {ModelName}, Reason: {Reason}");
+
+        private static readonly Action<ILogger, string, Exception?> LogCanaryHandleFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(9, nameof(LogCanaryHandleFailed)),
+                "[DEPLOYMENT] Failed to handle canary failure - Model: {ModelName}");
+
+        private static readonly Action<ILogger, string, string, Exception?> LogRollingBack =
+            LoggerMessage.Define<string, string>(
+                LogLevel.Warning,
+                new EventId(10, nameof(LogRollingBack)),
+                "[DEPLOYMENT] Rolling back model - Model: {ModelName}, Reason: {Reason}");
+
+        private static readonly Action<ILogger, string, Exception?> LogRollbackCompleted =
+            LoggerMessage.Define<string>(
+                LogLevel.Information,
+                new EventId(11, nameof(LogRollbackCompleted)),
+                "[DEPLOYMENT] Model rollback completed - Model: {ModelName}");
+
+        private static readonly Action<ILogger, string, Exception?> LogRollbackFailed =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(12, nameof(LogRollbackFailed)),
+                "[DEPLOYMENT] Failed to rollback model - Model: {ModelName}");
+        
         private readonly ILogger<ModelDeploymentManager> _logger;
         private readonly IAlertService _alertService;
         private readonly Dictionary<string, ModelDeployment> _activeDeployments = new();
@@ -28,16 +101,17 @@ namespace TradingBot.Monitoring
             _logger = logger;
             _alertService = alertService;
             
-            _logger.LogInformation("[DEPLOYMENT] ModelDeploymentManager initialized");
+            LogManagerInitialized(_logger, null);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", 
+            Justification = "Deployment operations need to handle all possible failures gracefully for production stability")]
         public async Task<bool> PromoteModelToProductionAsync(string modelName, string modelVersion, 
             CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("[DEPLOYMENT] Promoting model to production - Model: {ModelName}, Version: {Version}",
-                    modelName, modelVersion);
+                LogPromotingModel(_logger, modelName, modelVersion, null);
 
                 // Simulate promotion logic
                 await Task.Delay(DeploymentSimulationDelayMs, cancellationToken).ConfigureAwait(false); // Simulate deployment time
@@ -58,26 +132,26 @@ namespace TradingBot.Monitoring
 
                 await _alertService.SendDeploymentAlertAsync("Model Promoted to Production", modelName, true).ConfigureAwait(false);
                 
-                _logger.LogInformation("[DEPLOYMENT] Model successfully promoted to production - Model: {ModelName}, Version: {Version}",
-                    modelName, modelVersion);
+                LogModelPromoted(_logger, modelName, modelVersion, null);
                 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DEPLOYMENT] Failed to promote model to production - Model: {ModelName}", modelName);
+                LogPromotionFailed(_logger, modelName, ex);
                 await _alertService.SendDeploymentAlertAsync("Model Promotion Failed", modelName, false).ConfigureAwait(false);
                 return false;
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", 
+            Justification = "Canary rollout operations need to handle all possible failures gracefully for production stability")]
         public async Task<bool> StartCanaryRolloutAsync(string modelName, string modelVersion, 
             double trafficPercentage = 0.1, CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogInformation("[DEPLOYMENT] Starting canary rollout - Model: {ModelName}, Version: {Version}, Traffic: {Traffic:P1}",
-                    modelName, modelVersion, trafficPercentage);
+                LogStartingCanary(_logger, modelName, modelVersion, trafficPercentage, null);
 
                 // Simulate canary rollout logic
                 await Task.Delay(CanaryRolloutDelayMs, cancellationToken).ConfigureAwait(false);
@@ -99,35 +173,35 @@ namespace TradingBot.Monitoring
 
                 await _alertService.SendDeploymentAlertAsync($"Canary Rollout Started ({trafficPercentage:P1} traffic)", modelName, true).ConfigureAwait(false);
                 
-                _logger.LogInformation("[DEPLOYMENT] Canary rollout started successfully - Model: {ModelName}, Version: {Version}",
-                    modelName, modelVersion);
+                LogCanaryStarted(_logger, modelName, modelVersion, null);
                 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DEPLOYMENT] Failed to start canary rollout - Model: {ModelName}", modelName);
+                LogCanaryFailed(_logger, modelName, ex);
                 await _alertService.SendDeploymentAlertAsync("Canary Rollout Failed", modelName, false).ConfigureAwait(false);
                 return false;
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", 
+            Justification = "Canary failure handling needs to capture all possible failures for comprehensive rollback")]
         public async Task<bool> FailCanaryRolloutAsync(string modelName, string reason, 
             CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogWarning("[DEPLOYMENT] Canary rollout failed - Model: {ModelName}, Reason: {Reason}",
-                    modelName, reason);
+                LogCanaryFailure(_logger, modelName, reason, null);
 
                 lock (_lockObject)
                 {
                     var key = $"{modelName}_canary";
-                    if (_activeDeployments.ContainsKey(key))
+                    if (_activeDeployments.TryGetValue(key, out var deployment))
                     {
-                        _activeDeployments[key].Status = DeploymentStatus.Failed;
-                        _activeDeployments[key].EndTime = DateTime.UtcNow;
-                        _activeDeployments[key].FailureReason = reason;
+                        deployment.Status = DeploymentStatus.Failed;
+                        deployment.EndTime = DateTime.UtcNow;
+                        deployment.FailureReason = reason;
                     }
                 }
 
@@ -142,18 +216,19 @@ namespace TradingBot.Monitoring
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DEPLOYMENT] Failed to handle canary failure - Model: {ModelName}", modelName);
+                LogCanaryHandleFailed(_logger, modelName, ex);
                 return false;
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", 
+            Justification = "Model rollback operations need to handle all possible failures gracefully for production stability")]
         public async Task<bool> RollbackModelAsync(string modelName, string reason, 
             CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogWarning("[DEPLOYMENT] Rolling back model - Model: {ModelName}, Reason: {Reason}",
-                    modelName, reason);
+                LogRollingBack(_logger, modelName, reason, null);
 
                 // Simulate rollback logic
                 await Task.Delay(RollbackDelayMs, cancellationToken).ConfigureAwait(false);
@@ -176,13 +251,13 @@ namespace TradingBot.Monitoring
                     "Model Rollback Triggered",
                     $"Model: {modelName}\nReason: {reason}\nStatus: Rollback completed").ConfigureAwait(false);
                 
-                _logger.LogInformation("[DEPLOYMENT] Model rollback completed - Model: {ModelName}", modelName);
+                LogRollbackCompleted(_logger, modelName, null);
                 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[DEPLOYMENT] Failed to rollback model - Model: {ModelName}", modelName);
+                LogRollbackFailed(_logger, modelName, ex);
                 await _alertService.SendCriticalAlertAsync(
                     "Rollback Failed",
                     $"Model: {modelName}\nReason: {reason}\nError: {ex.Message}").ConfigureAwait(false);
@@ -190,19 +265,21 @@ namespace TradingBot.Monitoring
             }
         }
 
-        public List<ModelDeployment> GetActiveDeployments()
+        public IReadOnlyList<ModelDeployment> GetActiveDeployments()
         {
             lock (_lockObject)
             {
-                return new List<ModelDeployment>(_activeDeployments.Values);
+                return _activeDeployments.Values.ToList().AsReadOnly();
             }
         }
 
         public ModelDeployment? GetDeployment(string modelName, string environment)
         {
+            ArgumentNullException.ThrowIfNull(environment);
+            
             lock (_lockObject)
             {
-                var key = $"{modelName}_{environment.ToLower()}";
+                var key = $"{modelName}_{environment.ToUpperInvariant()}";
                 return _activeDeployments.TryGetValue(key, out var deployment) ? deployment : null;
             }
         }
@@ -221,7 +298,7 @@ namespace TradingBot.Monitoring
                 CanaryDeployments = deployments.Count(d => d.Status == DeploymentStatus.Canary),
                 FailedDeployments = deployments.Count(d => d.Status == DeploymentStatus.Failed),
                 RolledBackDeployments = deployments.Count(d => d.Status == DeploymentStatus.RolledBack),
-                IsHealthy = deployments.TrueForAll(d => d.Status == DeploymentStatus.Active || d.Status == DeploymentStatus.Canary)
+                IsHealthy = deployments.All(d => d.Status == DeploymentStatus.Active || d.Status == DeploymentStatus.Canary)
             };
 
             return status;
@@ -234,7 +311,7 @@ namespace TradingBot.Monitoring
         Task<bool> StartCanaryRolloutAsync(string modelName, string modelVersion, double trafficPercentage = 0.1, CancellationToken cancellationToken = default);
         Task<bool> FailCanaryRolloutAsync(string modelName, string reason, CancellationToken cancellationToken = default);
         Task<bool> RollbackModelAsync(string modelName, string reason, CancellationToken cancellationToken = default);
-        List<ModelDeployment> GetActiveDeployments();
+        IReadOnlyList<ModelDeployment> GetActiveDeployments();
         ModelDeployment? GetDeployment(string modelName, string environment);
         Task<DeploymentHealthStatus> GetDeploymentHealthAsync(CancellationToken cancellationToken = default);
     }

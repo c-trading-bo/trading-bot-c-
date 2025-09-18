@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TopstepX.Bot.Abstractions;
 using TradingBot.Abstractions;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using BotCore.Models;
 using BotCore.Strategy;
 using BotCore.Risk;

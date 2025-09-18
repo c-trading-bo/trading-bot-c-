@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,25 @@ namespace TradingBot.Monitoring
         private const double P95Percentile = 0.95;
         private const double P99Percentile = 0.99;
         
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, double, double, int, Exception?> LogMonitorStarted =
+            LoggerMessage.Define<double, double, int>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogMonitorStarted)),
+                "[LATENCY] Monitor started - Decision threshold: {DecThreshold}ms, Order threshold: {OrderThreshold}ms, Consecutive: {Consecutive}");
+
+        private static readonly Action<ILogger, int, double, double, string, Exception?> LogDecisionLatencyViolation =
+            LoggerMessage.Define<int, double, double, string>(
+                LogLevel.Warning,
+                new EventId(2, nameof(LogDecisionLatencyViolation)),
+                "[LATENCY] Decision latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}");
+
+        private static readonly Action<ILogger, int, double, double, string, Exception?> LogOrderLatencyViolation =
+            LoggerMessage.Define<int, double, double, string>(
+                LogLevel.Warning,
+                new EventId(3, nameof(LogOrderLatencyViolation)),
+                "[LATENCY] Order latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}");
+        
         private readonly ILogger<LatencyMonitor> _logger;
         private readonly IAlertService _alertService;
         private readonly double _decisionLatencyThreshold;
@@ -39,12 +59,11 @@ namespace TradingBot.Monitoring
             _alertService = alertService;
             
             // Load thresholds from configuration
-            _decisionLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_DECISION_LATENCY_THRESHOLD_MS") ?? "5000");
-            _orderLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_ORDER_LATENCY_THRESHOLD_MS") ?? "2000");
-            _consecutiveThresholdCount = int.Parse(Environment.GetEnvironmentVariable("ALERT_CONSECUTIVE_THRESHOLD_COUNT") ?? "3");
+            _decisionLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_DECISION_LATENCY_THRESHOLD_MS") ?? "5000", CultureInfo.InvariantCulture);
+            _orderLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_ORDER_LATENCY_THRESHOLD_MS") ?? "2000", CultureInfo.InvariantCulture);
+            _consecutiveThresholdCount = int.Parse(Environment.GetEnvironmentVariable("ALERT_CONSECUTIVE_THRESHOLD_COUNT") ?? "3", CultureInfo.InvariantCulture);
             
-            _logger.LogInformation("[LATENCY] Monitor started - Decision threshold: {DecThreshold}ms, Order threshold: {OrderThreshold}ms, Consecutive: {Consecutive}",
-                _decisionLatencyThreshold, _orderLatencyThreshold, _consecutiveThresholdCount);
+            LogMonitorStarted(_logger, _decisionLatencyThreshold, _orderLatencyThreshold, _consecutiveThresholdCount, null);
         }
 
         public void RecordDecisionLatency(double latencyMs, string? context = null)
@@ -66,19 +85,18 @@ namespace TradingBot.Monitoring
                 if (latencyMs > _decisionLatencyThreshold)
                 {
                     _consecutiveDecisionViolations++;
-                    _logger.LogWarning("[LATENCY] Decision latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}",
-                        _consecutiveDecisionViolations, latencyMs, _decisionLatencyThreshold, context ?? "N/A");
+                    LogDecisionLatencyViolation(_logger, _consecutiveDecisionViolations, latencyMs, _decisionLatencyThreshold, context ?? "N/A", null);
 
                     if (_consecutiveDecisionViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Decision Processing", latencyMs, _decisionLatencyThreshold)).ConfigureAwait(false);
-                        _consecutiveDecisionViolations; // Reset to avoid spam
+                            "Decision Processing", latencyMs, _decisionLatencyThreshold).ConfigureAwait(false)).ConfigureAwait(false);
+                        _consecutiveDecisionViolations = 0; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveDecisionViolations; // Reset on good latency
+                    _consecutiveDecisionViolations = 0; // Reset on good latency
                 }
             }
         }
@@ -102,19 +120,18 @@ namespace TradingBot.Monitoring
                 if (latencyMs > _orderLatencyThreshold)
                 {
                     _consecutiveOrderViolations++;
-                    _logger.LogWarning("[LATENCY] Order latency violation #{Count}: {Latency:F2}ms (threshold: {Threshold}ms) - {Context}",
-                        _consecutiveOrderViolations, latencyMs, _orderLatencyThreshold, context ?? "N/A");
+                    LogOrderLatencyViolation(_logger, _consecutiveOrderViolations, latencyMs, _orderLatencyThreshold, context ?? "N/A", null);
 
                     if (_consecutiveOrderViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Order Processing", latencyMs, _orderLatencyThreshold)).ConfigureAwait(false);
-                        _consecutiveOrderViolations; // Reset to avoid spam
+                            "Order Processing", latencyMs, _orderLatencyThreshold).ConfigureAwait(false)).ConfigureAwait(false);
+                        _consecutiveOrderViolations = 0; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveOrderViolations; // Reset on good latency
+                    _consecutiveOrderViolations = 0; // Reset on good latency
                 }
             }
         }
@@ -164,9 +181,9 @@ namespace TradingBot.Monitoring
             }
         }
 
-        private LatencyStats CalculateStats(Queue<LatencyMeasurement> measurements, string component)
+        private static LatencyStats CalculateStats(Queue<LatencyMeasurement> measurements, string component)
         {
-            if (!measurements.Any())
+            if (measurements.Count == 0)
             {
                 return new LatencyStats
                 {
@@ -225,7 +242,7 @@ namespace TradingBot.Monitoring
 
     public interface ILatencyTracker : IDisposable
     {
-        void Stop();
+        void StopTracking();
     }
 
     public class LatencyTracker : ILatencyTracker
@@ -244,7 +261,7 @@ namespace TradingBot.Monitoring
             _stopwatch = Stopwatch.StartNew();
         }
 
-        public void Stop()
+        public void StopTracking()
         {
             if (_stopped) return;
             
@@ -278,7 +295,7 @@ namespace TradingBot.Monitoring
             {
                 if (disposing)
                 {
-                    Stop();
+                    StopTracking();
                 }
                 _disposed = true;
             }

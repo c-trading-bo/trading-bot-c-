@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using BotCore.Configuration;
 using BotCore.Models;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace BotCore.Risk
 {

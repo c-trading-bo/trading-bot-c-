@@ -109,6 +109,8 @@ public class ModelArtifact
     public string CalibrationMapId { get; set; } = string.Empty;
     public string RuntimeSignature { get; set; } = string.Empty;
     public string Checksum { get; set; } = string.Empty;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", 
+        Justification = "Binary model data requires byte array for serialization efficiency")]
     public byte[]? ModelData { get; set; }
 }
 
@@ -118,6 +120,8 @@ public class ModelRegistration
     public TimeSpan TrainingWindow { get; set; }
     public string FeaturesVersion { get; set; } = string.Empty;
     public ModelMetrics Metrics { get; set; } = new();
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", 
+        Justification = "Binary model data requires byte array for serialization and ML framework compatibility")]
     public byte[] ModelData { get; set; } = Array.Empty<byte>();
     public Dictionary<string, object> Metadata { get; } = new();
 }

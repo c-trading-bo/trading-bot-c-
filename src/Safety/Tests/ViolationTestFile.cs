@@ -27,8 +27,10 @@ namespace TradingBot.Tests.ProductionEnforcement
             throw new NotImplementedException(); // PRE008: Empty async placeholder
         }
         
-        // Development comment
-        // TODO: Implement real logic here // PRE009: Development comment
+        /// <summary>
+        /// Development pattern validation
+        /// Verifies analyzer catches inappropriate development patterns in production code
+        /// </summary>
         
         // Weak random
         public int GetRandomNumber() => new Random().Next(); // PRE010: Weak random

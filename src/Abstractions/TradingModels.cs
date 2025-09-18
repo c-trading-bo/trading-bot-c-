@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace TradingBot.Abstractions;
@@ -373,7 +374,7 @@ public class UnifiedWorkflow
     public int Priority { get; set; } = 3; // 1=Critical, 2=High, 3=Normal
     public int BudgetAllocation { get; set; } // Minutes per month
     public WorkflowSchedule Schedule { get; set; } = new();
-    public string[] Actions { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<string> Actions { get; set; } = Array.Empty<string>();
     public WorkflowType Type { get; set; } = WorkflowType.Standard;
     public bool Enabled { get; set; } = true;
     public Dictionary<string, object> Configuration { get; } = new();
@@ -383,6 +384,8 @@ public class UnifiedWorkflow
 /// <summary>
 /// Trading session types - expanded to support all trading hours
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", 
+    Justification = "SessionType represents mutually exclusive states, not combinable flags")]
 public enum SessionType
 {
     Regular,    // Regular Trading Hours (9:30 AM - 4:00 PM ET)

@@ -17,6 +17,13 @@ public static class SecurityHelpers
     
     private static readonly Regex AccountIdPattern = new(@"\b\d{5,12}\b", RegexOptions.Compiled);
     
+    // LoggerMessage delegate for performance (CA1848)
+    private static readonly Action<ILogger, Exception?> LogApiOperationError =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(1, nameof(LogApiOperationError)),
+            "An error occurred during API operation");
+    
     /// <summary>
     /// Masks account IDs in log messages for security
     /// </summary>
@@ -45,12 +52,11 @@ public static class SecurityHelpers
         if (string.IsNullOrEmpty(accountId))
             return "[REDACTED]";
 
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(accountId + "TRADING_BOT_SALT"));
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(accountId + "TRADING_BOT_SALT"));
         var hashString = Convert.ToHexString(hashBytes);
         
         // Return first 8 characters of hash for log correlation while maintaining security
-        return $"acc_{hashString[..HashPrefixLength].ToLowerInvariant()}";
+        return $"acc_{hashString[..HashPrefixLength].ToUpperInvariant()}";
     }
     
     /// <summary>
@@ -73,11 +79,10 @@ public static class SecurityHelpers
         if (string.IsNullOrEmpty(orderId))
             return "[REDACTED]";
 
-        using var sha256 = SHA256.Create();
-        var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(orderId + "ORDER_SALT"));
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(orderId + "ORDER_SALT"));
         var hashString = Convert.ToHexString(hashBytes);
         
-        return $"ord_{hashString[..HashPrefixLength].ToLowerInvariant()}";
+        return $"ord_{hashString[..HashPrefixLength].ToUpperInvariant()}";
     }
     
     /// <summary>
@@ -138,7 +143,10 @@ public static class SecurityHelpers
     public static string GetGenericErrorMessage(Exception ex, Microsoft.Extensions.Logging.ILogger? logger = null)
     {
         // Log the full exception details server-side for debugging
-        logger?.LogError(ex, "An error occurred during API operation");
+        if (logger != null)
+        {
+            LogApiOperationError(logger, ex);
+        }
         
         // Return a generic message that doesn't expose internal details
         return "An internal error occurred. Please try again or contact support if the issue persists.";
