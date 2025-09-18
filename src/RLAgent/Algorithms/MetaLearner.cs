@@ -108,7 +108,7 @@ public class MetaLearner
             _taskPolicies[taskId] = adaptedPolicy;
             
             // Update adaptation history
-            UpdateAdaptationHistory(taskId, supportSet.Count, adaptedPolicy);
+            UpdateAdaptationHistory(taskId, supportSet.Count);
             
             return Task.FromResult(adaptedPolicy);
         }
@@ -365,7 +365,7 @@ public class MetaLearner
     /// <summary>
     /// Update adaptation history for a task
     /// </summary>
-    private void UpdateAdaptationHistory(string taskId, int supportSetSize, PolicyNetwork adaptedPolicy)
+    private void UpdateAdaptationHistory(string taskId, int supportSetSize)
     {
         if (!_adaptationHistory.TryGetValue(taskId, out var history))
         {
@@ -481,7 +481,7 @@ public class MetaTrainingResult
     public double MetaLoss { get; set; }
     public int TasksUsed { get; set; }
     public int MetaUpdates { get; set; }
-    public Dictionary<string, AdaptationSummary>? AdaptationHistory { get; set; }
+    public Dictionary<string, AdaptationSummary>? AdaptationHistory { get; }
 }
 
 /// <summary>

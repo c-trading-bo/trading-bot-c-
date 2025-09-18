@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Text.Json;
 
 namespace TradingBot.RLAgent;
@@ -525,15 +526,15 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double GetDefaultSentinelValue(string featureName)
     {
-        return featureName.ToLower() switch
+        return featureName.ToLowerInvariant() switch
         {
-            var name when name.Contains("return") => 0.0,
-            var name when name.Contains("ratio") => 1.0,
-            var name when name.Contains("volatility") => 0.15,
-            var name when name.Contains("rsi") => 0.5,
-            var name when name.Contains("bollinger") => 0.5,
-            var name when name.Contains("regime") => 0.0,
-            var name when name.Contains("spread") => 1.0,
+            var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => 0.0,
+            var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => 1.0,
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => 0.15,
+            var name when name.Contains("rsi", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("bollinger", StringComparison.OrdinalIgnoreCase) => 0.5,
+            var name when name.Contains("regime", StringComparison.OrdinalIgnoreCase) => 0.0,
+            var name when name.Contains("spread", StringComparison.OrdinalIgnoreCase) => 1.0,
             _ => 0.0
         };
     }
@@ -543,13 +544,13 @@ public class FeatureEngineering : IDisposable
     /// </summary>
     private static double BoundFeatureValue(double value, string featureName)
     {
-        var bounds = featureName.ToLower() switch
+        var bounds = featureName.ToLowerInvariant() switch
         {
-            var name when name.Contains("return") => (-0.1, 0.1),    // ±10% max return
-            var name when name.Contains("ratio") => (0.01, 100.0),   // Volume ratio bounds
-            var name when name.Contains("volatility") => (0.0, 2.0), // 0-200% volatility
-            var name when name.Contains("zscore") => (-5.0, 5.0),    // Z-score bounds
-            var name when name.Contains("spread_bps") => (0.0, 100.0), // 0-100 bps spread
+            var name when name.Contains("return", StringComparison.OrdinalIgnoreCase) => (-0.1, 0.1),    // ±10% max return
+            var name when name.Contains("ratio", StringComparison.OrdinalIgnoreCase) => (0.01, 100.0),   // Volume ratio bounds
+            var name when name.Contains("volatility", StringComparison.OrdinalIgnoreCase) => (0.0, 2.0), // 0-200% volatility
+            var name when name.Contains("zscore", StringComparison.OrdinalIgnoreCase) => (-5.0, 5.0),    // Z-score bounds
+            var name when name.Contains("spread_bps", StringComparison.OrdinalIgnoreCase) => (0.0, 100.0), // 0-100 bps spread
             _ => (double.MinValue, double.MaxValue)
         };
         
@@ -795,7 +796,7 @@ public class FeatureEngineering : IDisposable
         {
             try
             {
-                await GenerateDailyFeatureReportAsync(state).ConfigureAwait(false);
+                await GenerateDailyFeatureReportAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -807,7 +808,7 @@ public class FeatureEngineering : IDisposable
     /// <summary>
     /// Generate daily feature importance report
     /// </summary>
-    private async Task GenerateDailyFeatureReportAsync(object? state)
+    private async Task GenerateDailyFeatureReportAsync()
     {
         try
         {
@@ -884,7 +885,7 @@ public class FeatureConfig
     // Streaming configuration (merged from StreamingFeatureAggregator)
     public int StreamingStaleThresholdSeconds { get; set; } = 30;
     public int StreamingCleanupAfterMinutes { get; set; } = 30;
-    public List<TimeSpan> StreamingTimeWindows { get; set; } = new() 
+    public Collection<TimeSpan> StreamingTimeWindows { get; } = new() 
     {
         TimeSpan.FromSeconds(10),
         TimeSpan.FromMinutes(1),
@@ -919,8 +920,8 @@ public class FeatureVector
     public string Strategy { get; set; } = string.Empty;
     public RegimeType Regime { get; set; }
     public DateTime Timestamp { get; set; }
-    public double[] Features { get; set; } = Array.Empty<double>();
-    public string[] FeatureNames { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<double> Features { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<string> FeatureNames { get; set; } = Array.Empty<string>();
     public int FeatureCount { get; set; }
     public bool HasMissingValues { get; set; }
 }

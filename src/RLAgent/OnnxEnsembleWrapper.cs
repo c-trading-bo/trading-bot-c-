@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -559,7 +560,7 @@ public class OnnxEnsembleOptions
     public bool ClampInputs { get; set; } = true;
     public bool BlockAnomalousInputs { get; set; } = true;
     public double AnomalyThreshold { get; set; } = 3.0;
-    public List<InputBounds>? InputBounds { get; set; }
+    public Collection<InputBounds>? InputBounds { get; }
 }
 
 /// <summary>

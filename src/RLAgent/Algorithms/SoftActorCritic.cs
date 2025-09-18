@@ -367,10 +367,10 @@ public class SacConfig
 /// </summary>
 public class Experience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
-    public double[] Action { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Action { get; set; } = Array.Empty<double>();
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
 }
 

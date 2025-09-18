@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using TradingBot.Abstractions;
 
 namespace TradingBot.RLAgent.Models;
@@ -36,7 +37,7 @@ public class SacConfig
 /// </summary>
 public class SacState
 {
-    public double[] Features { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Features { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public double Price { get; set; }
@@ -146,7 +147,7 @@ public class SacStatistics
     public TimeSpan TotalTrainingTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
     public Dictionary<string, double> NetworkLosses { get; } = new();
-    public List<double> RewardHistory { get; } = new();
+    public Collection<double> RewardHistory { get; } = new();
     
     public SacStatistics()
     {
