@@ -11,104 +11,33 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, Any
 
-# Mock project_x_py for testing without actual SDK installation
-class MockTradingSuite:
-    def __init__(self, instruments, **kwargs):
-        self.instruments = instruments
-        self._connected = True
-        
-    @classmethod
-    async def create(cls, instruments, **kwargs):
-        return cls(instruments, **kwargs)
-        
-    def __getitem__(self, instrument):
-        return MockInstrument(instrument)
-        
-    async def get_stats(self):
-        return {
-            "total_trades": 42,
-            "win_rate": 65.5,
-            "total_pnl": 1250.75,
-            "max_drawdown": -150.25
-        }
-        
-    async def get_risk_metrics(self):
-        return {
-            "max_risk_percent": 1.0,
-            "current_risk": 0.15,
-            "available_buying_power": 50000.0
-        }
-        
-    async def get_portfolio_status(self):
-        return {
-            "account_value": 50000.0,
-            "buying_power": 45000.0,
-            "day_pnl": 125.50
-        }
-        
-    async def disconnect(self):
-        self._connected = False
-        
-    def managed_trade(self, max_risk_percent=0.01):
-        return MockManagedTradeContext(max_risk_percent)
+#!/usr/bin/env python3
+"""
+Test script for TopstepX SDK integration validation
+This script validates the adapter implementation using the test mock module
+"""
 
-class MockInstrument:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        self.data = MockData(symbol)
-        self.orders = MockOrders(symbol)
-        
-    async def get_position(self):
-        return {
-            "size": 0,
-            "average_price": 0.0,
-            "unrealized_pnl": 0.0,
-            "realized_pnl": 0.0
-        }
+import os
+import sys
+import asyncio
+import json
+from datetime import datetime, timezone
+from typing import Dict, Any
 
-class MockData:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        
-    async def get_current_price(self):
-        # Return realistic mock prices
-        prices = {
-            "MNQ": 15500.25,
-            "ES": 4450.75,
-            "NQ": 15500.25,
-            "RTY": 2000.50,
-            "YM": 34500.00
-        }
-        return prices.get(self.symbol, 1000.0)
+# Add the tests directory to the path to import mocks
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tests'))
 
-class MockOrders:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        
-    async def place_bracket_order(self, side, quantity, stop_loss, take_profit):
-        import uuid
-        return {
-            "id": str(uuid.uuid4()),
-            "entry_order_id": str(uuid.uuid4()),
-            "stop_order_id": str(uuid.uuid4()),
-            "target_order_id": str(uuid.uuid4()),
-            "status": "accepted"
-        }
-
-class MockManagedTradeContext:
-    def __init__(self, max_risk_percent):
-        self.max_risk_percent = max_risk_percent
-        
-    async def __aenter__(self):
-        return self
-        
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        pass
+# Import mock for testing
+from mocks.topstep_x_mock import MockTradingSuite
 
 # Mock the project_x_py module
 sys.modules['project_x_py'] = type('MockModule', (), {
     'TradingSuite': MockTradingSuite
 })()
+
+# Set test credentials to enable adapter to work
+os.environ['PROJECT_X_API_KEY'] = 'test_api_key_12345'
+os.environ['PROJECT_X_USERNAME'] = 'test_user'
 
 # Now import our adapter
 from src.adapters.topstep_x_adapter import TopstepXAdapter

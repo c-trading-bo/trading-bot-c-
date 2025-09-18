@@ -235,7 +235,7 @@ namespace BotCore
                     // Parse and format fillPrice to ensure 2 decimals
                     if (decimal.TryParse(fillPrice, out var fillPriceDecimal))
                     {
-                        fillPrice = TradingBot.Infrastructure.TopstepX.Px.F2(fillPriceDecimal);
+                        fillPrice = fillPriceDecimal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
                     }
                     
                     _log.LogInformation("TRADE account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time} tag={CustomTag}", 

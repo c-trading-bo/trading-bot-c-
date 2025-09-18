@@ -32,7 +32,6 @@
     <ProjectReference Include="..\TopstepAuthAgent\TopstepAuthAgent.csproj" />
     <ProjectReference Include="..\Safety\Safety.csproj" />
     <ProjectReference Include="..\BotCore\BotCore.csproj" />
-    <ProjectReference Include="..\Infrastructure.TopstepX\Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="..\Abstractions\Abstractions.csproj" />
     <ProjectReference Include="..\IntelligenceStack\IntelligenceStack.csproj" />
     <ProjectReference Include="..\OrchestratorAgent\OrchestratorAgent.csproj" />

@@ -6,7 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using TradingBot.Infrastructure.TopstepX;
+// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.IntelligenceAgent;
 

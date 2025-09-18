@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
-using Infrastructure.TopstepX;
+// Legacy removed: using Infrastructure.TopstepX;
 using TopstepX.Bot.Authentication;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
@@ -17,14 +17,14 @@ public class EnhancedAuthenticationService : IHostedService
     private readonly ILogger<EnhancedAuthenticationService> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly ITokenProvider _tokenProvider;
-    private readonly TopstepXCredentialManager _credentialManager;
+    private readonly /* Legacy removed: TopstepXCredentialManager */object _credentialManager;
     private readonly TopstepAuthAgent _authAgent;
     
     public EnhancedAuthenticationService(
         ILogger<EnhancedAuthenticationService> logger,
         ITradingLogger tradingLogger,
         ITokenProvider tokenProvider,
-        TopstepXCredentialManager credentialManager,
+        /* Legacy removed: TopstepXCredentialManager */object credentialManager,
         TopstepAuthAgent authAgent)
     {
         _logger = logger;

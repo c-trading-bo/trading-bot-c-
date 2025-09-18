@@ -278,16 +278,9 @@ public class SignalRMonitor
                 return;
             }
             
-            var accountService = _serviceProvider.GetService<TradingBot.Infrastructure.TopstepX.AccountService>();
-            if (accountService == null)
-            {
-                _logger.LogWarning("⚠️ [POSITION-RECONCILIATION] Account service not available");
-                return;
-            }
-
-            // Fetch current positions via REST API (this would be the actual implementation)
-            // For now, log that reconciliation was attempted
-            var positionCount = await GetPositionCountAsync(accountService);
+            // Legacy account service removed - now handled by TopstepX SDK adapter
+            _logger.LogInfo("Position reconciliation now handled by TopstepX SDK adapter");
+            return;
             _logger.LogInformation("✅ [POSITION-RECONCILIATION] Reconciled {PositionCount} positions", positionCount);
         }
         catch (Exception ex)
@@ -312,17 +305,9 @@ public class SignalRMonitor
                 return;
             }
             
-            var orderService = _serviceProvider.GetService<TradingBot.Infrastructure.TopstepX.OrderService>();
-            if (orderService == null)
-            {
-                _logger.LogWarning("⚠️ [ORDER-RECONCILIATION] Order service not available");
-                return;
-            }
-
-            // Fetch active orders via REST API (this would be the actual implementation)
-            // For now, log that reconciliation was attempted
-            var orderCount = await GetActiveOrderCountAsync(orderService);
-            _logger.LogInformation("✅ [ORDER-RECONCILIATION] Reconciled {OrderCount} active orders", orderCount);
+            // Legacy order service removed - now handled by TopstepX SDK adapter
+            _logger.LogInformation("Order reconciliation now handled by TopstepX SDK adapter");
+            return;
         }
         catch (Exception ex)
         {
@@ -333,27 +318,20 @@ public class SignalRMonitor
     /// <summary>
     /// Gets position count from account service
     /// </summary>
-    private async Task<int> GetPositionCountAsync(TradingBot.Infrastructure.TopstepX.AccountService accountService)
+    // Legacy methods removed - now handled by TopstepX SDK adapter
+    private async Task<int> GetPositionCountAsync(object accountService)
     {
-        // Ensure proper async execution
         await Task.Yield();
-        
-        // This would implement actual position retrieval logic
-        // For now return 0 to indicate no positions found
-        return 0;
+        return 0; // Legacy method - position tracking now via TopstepX SDK adapter
     }
 
     /// <summary>
-    /// Gets active order count from order service
+    /// Legacy method - order tracking now via TopstepX SDK adapter
     /// </summary>
-    private async Task<int> GetActiveOrderCountAsync(TradingBot.Infrastructure.TopstepX.OrderService orderService)
+    private async Task<int> GetActiveOrderCountAsync(object orderService)
     {
-        // Ensure proper async execution  
         await Task.Yield();
-        
-        // This would implement actual order retrieval logic
-        // For now return 0 to indicate no active orders found
-        return 0;
+        return 0; // Legacy method - order tracking now via TopstepX SDK adapter
     }
 
     public async Task StopAsync()

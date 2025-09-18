@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using TradingBot.Abstractions;
-using TradingBot.Infrastructure.TopstepX;
+// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 

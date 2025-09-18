@@ -28,6 +28,13 @@ dotnet_diagnostic.S1144.severity = error  # Remove unused private methods
 dotnet_diagnostic.S1172.severity = error  # Remove unused method parameters
 dotnet_diagnostic.S4487.severity = error  # Remove unread private fields
 
+# STUB DETECTION: CA rules for NotImplementedException and unused code patterns
+dotnet_diagnostic.CA1065.severity = error  # Do not raise exceptions in unexpected locations
+dotnet_diagnostic.CA2201.severity = error  # Do not raise reserved exceptions (catches NotImplementedException)
+dotnet_diagnostic.IDE0060.severity = error # Remove unused parameters
+dotnet_diagnostic.IDE0051.severity = error # Remove unused private members
+dotnet_diagnostic.IDE0052.severity = error # Remove unused private fields
+
 # Code quality enforcement (zero tolerance)
 dotnet_diagnostic.S2325.severity = error  # Make methods static when possible
 dotnet_diagnostic.S3881.severity = error  # Fix IDisposable implementations

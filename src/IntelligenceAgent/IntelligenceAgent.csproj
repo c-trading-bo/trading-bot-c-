@@ -12,7 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
   </ItemGroup>
 
 </Project>

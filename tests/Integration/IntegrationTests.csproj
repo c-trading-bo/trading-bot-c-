@@ -29,7 +29,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../../src/Safety/Safety.csproj" />
-    <ProjectReference Include="../../src/Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="../../src/IntelligenceAgent/IntelligenceAgent.csproj" />
     <ProjectReference Include="../../src/IntelligenceStack/IntelligenceStack.csproj" />
     <ProjectReference Include="../../src/BotCore/BotCore.csproj" />

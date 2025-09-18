@@ -25,7 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
     <ProjectReference Include="../RLAgent/RLAgent.csproj" />
-    <ProjectReference Include="../Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
   </ItemGroup>
 
 </Project>

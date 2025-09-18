@@ -14,11 +14,14 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
+# Import the real project-x-py SDK - fail hard if not available
 try:
     from project_x_py import TradingSuite
-except ImportError:
-    print("ERROR: project-x-py SDK not installed. Run: pip install 'project-x-py[all]'")
-    sys.exit(1)
+except ImportError as e:
+    raise RuntimeError(
+        "project-x-py SDK is required for production use. "
+        "Install with: pip install 'project-x-py[all]'"
+    ) from e
 
 
 class TopstepXAdapter:
@@ -39,7 +42,20 @@ class TopstepXAdapter:
         
         Args:
             instruments: List of instrument symbols (e.g., ['MNQ', 'ES'])
+        
+        Raises:
+            RuntimeError: If required credentials are not found in environment
         """
+        # Validate credentials are available immediately - fail hard if not
+        api_key = os.getenv('PROJECT_X_API_KEY')
+        username = os.getenv('PROJECT_X_USERNAME')
+        
+        if not api_key or not username:
+            raise RuntimeError(
+                "Missing required ProjectX credentials in environment. "
+                "Set PROJECT_X_API_KEY and PROJECT_X_USERNAME environment variables."
+            )
+        
         self.instruments = instruments
         self.suite: Optional[TradingSuite] = None
         self.logger = self._setup_logging()
@@ -67,20 +83,6 @@ class TopstepXAdapter:
         
     def _validate_configuration(self) -> None:
         """Validate SDK configuration and credentials."""
-        # Check for credentials in environment
-        api_key = os.getenv('PROJECT_X_API_KEY')
-        username = os.getenv('PROJECT_X_USERNAME')
-        
-        if not api_key or not username:
-            # Check for config file
-            config_path = os.path.expanduser("~/.config/projectx/config.json")
-            if not os.path.exists(config_path):
-                raise ValueError(
-                    "TopstepX credentials not found. Set PROJECT_X_API_KEY and "
-                    "PROJECT_X_USERNAME environment variables or create config file at "
-                    f"{config_path}"
-                )
-        
         # Validate instruments
         if not self.instruments:
             raise ValueError("At least one instrument must be specified")
@@ -109,11 +111,13 @@ class TopstepXAdapter:
         try:
             self.logger.info(f"Initializing TradingSuite with instruments: {self.instruments}")
             
-            # Create TradingSuite with the instruments
+            # Initialize with real TopstepX SDK only
+            self.logger.info("Initializing production TopstepX SDK...")
             self.suite = await TradingSuite.create(
                 instruments=self.instruments,
-                timeframes=["5min"]  # Standard timeframe for futures
+                timeframes=["5min"]
             )
+            self.logger.info("✅ TopstepX SDK initialized successfully")
             
             # Verify connection to each instrument
             connection_failures = []

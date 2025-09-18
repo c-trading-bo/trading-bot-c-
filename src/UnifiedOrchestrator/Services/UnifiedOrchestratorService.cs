@@ -23,7 +23,6 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 {
     private readonly ILogger<UnifiedOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
-    private readonly ISignalRConnectionManager _signalRManager;
     private readonly ITopstepXAdapterService _topstepXAdapter;
     private readonly object? _tradingOrchestrator;
     private readonly object? _intelligenceOrchestrator;
@@ -45,12 +44,10 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
         ICentralMessageBus messageBus,
-        ISignalRConnectionManager signalRManager,
         ITopstepXAdapterService topstepXAdapter)
     {
         _logger = logger;
         _messageBus = messageBus;
-        _signalRManager = signalRManager;
         _topstepXAdapter = topstepXAdapter;
         _tradingOrchestrator = null!; // Will be resolved later
         _intelligenceOrchestrator = null!; // Will be resolved later

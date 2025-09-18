@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
-using Infrastructure.TopstepX;
+// Legacy removed: using Infrastructure.TopstepX;
 using BotCore.Services;
 using TopstepX.Bot.Authentication;
 
