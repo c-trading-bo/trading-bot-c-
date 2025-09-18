@@ -251,7 +251,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             var delayMs = Math.Min(1000 * Math.Pow(2, _reconnectAttempts - 1), 30000);
             await Task.Delay(TimeSpan.FromMilliseconds(delayMs));
             
-            // Trigger reconnection logic for SignalR hubs
+            // Trigger reconnection logic for TopstepX adapter
             await TriggerHubReconnectionAsync();
         }
         else
@@ -378,7 +378,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             // 4. Notify monitoring systems
             
             // For now, this provides the infrastructure for hub management
-            // The actual SignalR connection management should subscribe to these events
+            // The actual TopstepX adapter connection management should subscribe to these events
             await Task.Delay(50); // Simulate async notification
         }
         catch (Exception ex)

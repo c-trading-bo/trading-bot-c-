@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.SignalR.Client;
 
 using Microsoft.Extensions.Logging;
 using Trading.Safety;

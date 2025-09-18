@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using BotCore;
 using SupervisorAgent;
-using Microsoft.AspNetCore.SignalR.Client;
 using System.Text.Json;
 using BotCore.Models;
 using BotCore.Risk;

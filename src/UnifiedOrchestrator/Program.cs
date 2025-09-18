@@ -4,7 +4,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
-using Microsoft.AspNetCore.SignalR.Client;
 using System.Runtime.InteropServices;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Services;
