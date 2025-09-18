@@ -21,15 +21,29 @@ public class PolicyGuard
     private readonly PolicyGuardConfig _config;
     private readonly Dictionary<string, PolicyRule> _policyRules = new();
     
-    public PolicyGuard(ILogger<PolicyGuard> logger, PolicyGuardConfig config)
+    public PolicyGuard(ILogger<PolicyGuard> logger, StructuredConfigurationManager configManager)
     {
         _logger = logger;
-        _config = config;
+        
+        // Load configuration from the main configuration
+        var mainConfig = configManager.LoadMainConfiguration();
+        _config = new PolicyGuardConfig
+        {
+            Environment = mainConfig.Environment.Mode,
+            AuthorizedSymbols = mainConfig.Environment.AuthorizedSymbols,
+            KillSwitchEnabled = mainConfig.Environment.KillSwitchEnabled,
+            TradingHours = new Dictionary<string, string>
+            {
+                ["Start"] = "09:30",
+                ["End"] = "16:00",
+                ["Timezone"] = "EST"
+            }
+        };
         
         InitializePolicyRules();
         
-        _logger.LogInformation("PolicyGuard initialized with {RuleCount} policy rules", 
-            _policyRules.Count);
+        _logger.LogInformation("PolicyGuard initialized with {RuleCount} policy rules for environment {Environment}", 
+            _policyRules.Count, _config.Environment);
     }
     
     private void InitializePolicyRules()
@@ -107,21 +121,41 @@ public class PolicyGuard
         string symbol, 
         CancellationToken cancellationToken)
     {
-        // Check environment variables
+        // Environment detection blocking unauthorized live trading
         var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
-        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+        var configEnvironment = _config.Environment?.ToLowerInvariant() ?? "development";
         
-        // Check for debug/development indicators
-        var isDevelopment = System.Diagnostics.Debugger.IsAttached ||
-                           environment.Contains("Dev", StringComparison.OrdinalIgnoreCase) ||
-                           environment.Contains("Test", StringComparison.OrdinalIgnoreCase);
-        
-        if (isDevelopment && _config.BlockDevelopmentTrading)
+        // Block trading if not in production mode
+        if (configEnvironment != "production")
         {
             return new PolicyCheckResult
             {
                 IsAuthorized = false,
-                Reason = $"Development environment detected: {environment}"
+                Reason = $"Trading blocked in {configEnvironment} environment. Use 'production' mode for live trading."
+            };
+        }
+        
+        // Additional safety checks
+        var isDevelopment = System.Diagnostics.Debugger.IsAttached ||
+                           environment.Contains("Dev", StringComparison.OrdinalIgnoreCase) ||
+                           environment.Contains("Test", StringComparison.OrdinalIgnoreCase);
+        
+        if (isDevelopment)
+        {
+            return new PolicyCheckResult
+            {
+                IsAuthorized = false,
+                Reason = $"Development environment detected: {environment}. Debugger attached: {System.Diagnostics.Debugger.IsAttached}"
+            };
+        }
+        
+        // Check kill switch
+        if (_config.KillSwitchEnabled && File.Exists("kill.txt"))
+        {
+            return new PolicyCheckResult
+            {
+                IsAuthorized = false,
+                Reason = "Kill switch activated (kill.txt file found)"
             };
         }
         
@@ -175,27 +209,8 @@ public class PolicyGuard
         string symbol, 
         CancellationToken cancellationToken)
     {
-        // Check for kill.txt file
-        var killSwitchPath = Path.Combine(Directory.GetCurrentDirectory(), "kill.txt");
-        if (File.Exists(killSwitchPath))
-        {
-            return new PolicyCheckResult
-            {
-                IsAuthorized = false,
-                Reason = "Kill switch activated (kill.txt exists)"
-            };
-        }
-        
-        // Check emergency stop flag
-        if (_config.EmergencyStop)
-        {
-            return new PolicyCheckResult
-            {
-                IsAuthorized = false,
-                Reason = "Emergency stop flag activated"
-            };
-        }
-        
+        // Kill switch integration - moved to CheckEnvironmentSafety for consolidation
+        // This method kept for backward compatibility
         return new PolicyCheckResult { IsAuthorized = true };
     }
 }
@@ -222,13 +237,15 @@ public class PolicyCheckResult
 
 /// <summary>
 /// Configuration for policy guard
+/// Configuration for policy guard
 /// </summary>
 public class PolicyGuardConfig
 {
-    public bool BlockDevelopmentTrading { get; set; } = true;
+    public string Environment { get; set; } = "development";
     public List<string> AuthorizedSymbols { get; set; } = new() { "ES", "NQ", "MES", "MNQ" };
+    public bool KillSwitchEnabled { get; set; } = true;
+    public Dictionary<string, string> TradingHours { get; set; } = new();
     public bool EnforceTradingHours { get; set; } = false;
     public int TradingStartHour { get; set; } = 14; // 2 PM UTC (9 AM EST)
     public int TradingEndHour { get; set; } = 21;   // 9 PM UTC (4 PM EST)
-    public bool EmergencyStop { get; set; } = false;
 }

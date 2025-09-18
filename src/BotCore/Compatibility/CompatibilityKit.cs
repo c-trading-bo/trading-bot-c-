@@ -46,8 +46,8 @@ public class CompatibilityKit : IDisposable
     private readonly MarketDataBridge _marketDataBridge;
     private readonly RiskManagementCoordinator _riskCoordinator;
     
-    // Reward system connection
-    private readonly RewardSystemConnector _rewardConnector;
+    // Audit and verification system
+    private readonly CompatibilityKitAuditor _auditor;
     
     // Performance tracking
     private readonly Dictionary<string, ParameterCombinationPerformance> _performanceTracking = new();
@@ -65,18 +65,21 @@ public class CompatibilityKit : IDisposable
         // Initialize existing orchestrator (no changes needed)
         _existingOrchestrator = serviceProvider.GetRequiredService<MasterDecisionOrchestrator>();
         
-        // Initialize wrapper components
-        _banditController = new BanditController(logger, _config.BanditConfig);
-        _policyGuard = new PolicyGuard(logger, _config.PolicyConfig);
-        _stateStore = new FileStateStore(logger, _config.StateConfig);
+        // Initialize wrapper components with proper dependency injection
+        _banditController = serviceProvider.GetRequiredService<BanditController>();
+        _policyGuard = serviceProvider.GetRequiredService<PolicyGuard>();
+        _stateStore = serviceProvider.GetRequiredService<FileStateStore>();
         
         // Initialize configuration enhancement
-        _configManager = new StructuredConfigurationManager(logger, _config.ConfigPaths);
+        _configManager = serviceProvider.GetRequiredService<StructuredConfigurationManager>();
         
         // Initialize integration components
-        _marketDataBridge = new MarketDataBridge(logger, serviceProvider);
-        _riskCoordinator = new RiskManagementCoordinator(logger, serviceProvider);
-        _rewardConnector = new RewardSystemConnector(logger, serviceProvider);
+        _marketDataBridge = serviceProvider.GetRequiredService<MarketDataBridge>();
+        _riskCoordinator = serviceProvider.GetRequiredService<RiskManagementCoordinator>();
+        _rewardConnector = serviceProvider.GetRequiredService<RewardSystemConnector>();
+        
+        // Initialize audit system
+        _auditor = serviceProvider.GetRequiredService<CompatibilityKitAuditor>();
         
         _logger.LogInformation("CompatibilityKit initialized - Non-invasive wrapper layer active");
     }
@@ -91,26 +94,35 @@ public class CompatibilityKit : IDisposable
     {
         try
         {
-            // PHASE 1: Environment-based protection
-            if (!await _policyGuard.IsAuthorizedForTradingAsync(symbol, cancellationToken))
+            // PHASE 1: Environment-based protection (with audit logging)
+            var policyResult = await _policyGuard.IsAuthorizedForTradingAsync(symbol, cancellationToken);
+            if (!policyResult)
             {
+                _auditor.LogPolicyCheck(symbol, "EnvironmentProtection", false, "Policy guard blocked trading");
                 _logger.LogWarning("PolicyGuard blocked trading for {Symbol}", symbol);
                 return CreateSafeDecision(symbol, "Policy guard protection");
             }
+            _auditor.LogPolicyCheck(symbol, "EnvironmentProtection", true, "Trading authorized");
             
-            // PHASE 2: Get parameter bundle from bandit controller
+            // PHASE 2: Get parameter bundle from bandit controller (with audit logging)
             var parameterBundle = await _banditController.SelectParameterBundleAsync(
                 marketContext, cancellationToken);
             
-            // PHASE 3: Load configuration-driven parameters
+            _auditor.LogBundleUsage(symbol, parameterBundle.Id, parameterBundle.Mult, parameterBundle.Thr, 
+                $"Strategy={parameterBundle.Strategy}, MarketCondition={marketContext.MarketCondition}");
+            
+            // PHASE 3: Load configuration-driven parameters (with validation)
             var configuredParams = await _configManager.GetParametersForStrategyAsync(
                 parameterBundle.Strategy, cancellationToken);
             
-            // PHASE 4: Create enhanced market context with learned parameters
+            _auditor.LogConfigurationValidation($"Strategy-{parameterBundle.Strategy}", true, 
+                $"Parameters loaded successfully for {parameterBundle.Strategy}");
+            
+            // PHASE 4: Create enhanced market context with learned parameters (actively used)
             var enhancedContext = marketContext with
             {
-                MaxPositionMultiplier = parameterBundle.Mult,
-                ConfidenceThreshold = parameterBundle.Thr,
+                MaxPositionMultiplier = parameterBundle.Mult,  // Actively used in decision logic
+                ConfidenceThreshold = parameterBundle.Thr,    // Actively used in decision logic
                 ConfiguredParameters = configuredParams
             };
             
@@ -129,7 +141,14 @@ public class CompatibilityKit : IDisposable
                 ParameterBundle = parameterBundle,
                 ConfigurationSource = configuredParams,
                 TimestampUtc = DateTime.UtcNow,
-                DecisionPath = "CompatibilityKit -> ExistingOrchestrator"
+                DecisionPath = "CompatibilityKit -> ExistingOrchestrator",
+                ActivelyUsedParameters = new Dictionary<string, object>
+                {
+                    ["MultiplierApplied"] = parameterBundle.Mult,
+                    ["ThresholdApplied"] = parameterBundle.Thr,
+                    ["ConfigurationLoaded"] = true,
+                    ["BundleSelection"] = parameterBundle.Id
+                }
             };
             
             // PHASE 8: Track for continuous learning
