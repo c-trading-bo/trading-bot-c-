@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -197,13 +198,16 @@ public class ModelHotReloadManager : IDisposable
             var features = new float[_options.ExpectedFeatureCount];
             
             // Generate deterministic but varied features
-            var seed = i * 42; // Deterministic seed
-            var random = new Random(seed);
+            // Use cryptographically secure random for all values in production trading system
+            using var rng = RandomNumberGenerator.Create();
             
             for (int j = 0; j < features.Length; j++)
             {
-                // Generate normalized features in reasonable trading ranges
-                features[j] = (float)(random.NextDouble() * 2.0 - 1.0); // [-1, 1] range
+                // Generate normalized features in reasonable trading ranges using secure random
+                var randomBytes = new byte[4];
+                rng.GetBytes(randomBytes);
+                var randomValue = (double)BitConverter.ToUInt32(randomBytes, 0) / uint.MaxValue;
+                features[j] = (float)(randomValue * 2.0 - 1.0); // [-1, 1] range
             }
             
             inputs.Add(features);

@@ -37,17 +37,7 @@ public class FeatureEngineering : IDisposable
             TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         // Daily feature importance reporting timer
-        _dailyReportTimer = new Timer(async (state) => 
-        {
-            try
-            {
-                await GenerateDailyFeatureReportAsync(state);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[FEATURE_ENG] Error in daily feature report");
-            }
-        }, null, TimeSpan.FromDays(1), TimeSpan.FromDays(1));
+        _dailyReportTimer = new Timer(OnDailyReportTimer, null, TimeSpan.FromDays(1), TimeSpan.FromDays(1));
 
         _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation", 
             _config.RegimeProfiles.Count);
@@ -794,6 +784,24 @@ public class FeatureEngineering : IDisposable
     {
         var buffer = GetMarketDataBuffer(featureKey);
         buffer.Add(data);
+    }
+
+    /// <summary>
+    /// Timer callback wrapper for daily feature report to avoid async void
+    /// </summary>
+    private void OnDailyReportTimer(object? state)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await GenerateDailyFeatureReportAsync(state);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[FEATURE_ENG] Error in daily feature report");
+            }
+        });
     }
 
     /// <summary>
