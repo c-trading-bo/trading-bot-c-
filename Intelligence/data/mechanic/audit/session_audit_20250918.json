@@ -31,5 +31,16 @@
     "executed": true,
     "job_status": "success",
     "duplicate_prevented": false
+  },
+  {
+    "session_key": "verification-test-push-abc123",
+    "timestamp": "2025-09-18T00:10:10.564730+00:00",
+    "event_type": "push",
+    "workflow": "verification-test",
+    "run_id": "run999",
+    "commit_sha": "abc123",
+    "executed": true,
+    "job_status": "success",
+    "duplicate_prevented": false
   }
 ]
