@@ -105,7 +105,7 @@ public class OrderService : IOrderService
                 System.Text.Encoding.UTF8, JsonContentType);
 
             // Retry logic for transient failures
-            for (int attempt = 1; attempt <= 3; attempt++)
+            for (int attempt = 1; attempt <= MaxRetryAttempts; attempt++)
             {
                 try
                 {

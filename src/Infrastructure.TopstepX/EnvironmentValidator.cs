@@ -205,8 +205,10 @@ public class EnvironmentValidator : IEnvironmentValidator
         {
             // Simple NTP client implementation
             var ntpServer = "pool.ntp.org";
-            var ntpData = new byte[48];
-            ntpData[0] = 0x1B; // LI, VN, Mode
+            const int NtpPacketSize = 48;
+            const byte NtpClientMode = 0x1B; // LI, VN, Mode
+            var ntpData = new byte[NtpPacketSize];
+            ntpData[0] = NtpClientMode;
 
             using var udpClient = new System.Net.Sockets.UdpClient();
             
