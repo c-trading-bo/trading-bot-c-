@@ -47,6 +47,7 @@ internal static class AutoRemediationConstants
     public const int TEST_DELAY_MS = 100;
     public const int FAILED_CONNECTION_TIMEOUT_MS = 5000;
     public const double SUCCESS_HEALTH_SCORE_THRESHOLD = 0.8;
+    public const int MEMORY_PRESSURE_MB = 1;  // 1MB memory pressure for GC triggering
 }
 
 /// <summary>
@@ -334,7 +335,7 @@ public class AutoRemediationSystem
         }
 
         // Issue 2: High memory usage - Use proper memory management instead of forced GC
-        if (systemReport.PerformanceMetrics.ResourceUsage.MemoryUsageMB > 500)
+        if (systemReport.PerformanceMetrics.ResourceUsage.MemoryUsageMB > AutoRemediationConstants.HIGH_MEMORY_THRESHOLD_MB)
         {
             var action = new RemediationAction
             {
@@ -360,12 +361,13 @@ public class AutoRemediationSystem
                     // Request garbage collection without forcing it
                     GC.WaitForPendingFinalizers();
                     // Monitor memory and let runtime decide optimal collection timing
-                    GC.AddMemoryPressure(1024 * 1024); // Add 1MB pressure to trigger natural collection
-                    GC.RemoveMemoryPressure(1024 * 1024); // Remove the pressure immediately
+                    var pressureBytes = AutoRemediationConstants.MEMORY_PRESSURE_MB * AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT;
+                    GC.AddMemoryPressure(pressureBytes); // Add 1MB pressure to trigger natural collection
+                    GC.RemoveMemoryPressure(pressureBytes); // Remove the pressure immediately
                 }
 
                 var memoryAfter = GC.GetTotalMemory(false);
-                var freedMB = (memoryBefore - memoryAfter) / (1024 * 1024);
+                var freedMB = (memoryBefore - memoryAfter) / (AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT);
                 
                 action.Success = true;
                 action.Result = $"Memory optimization completed, freed {freedMB}MB";
