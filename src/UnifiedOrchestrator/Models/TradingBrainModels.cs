@@ -23,7 +23,7 @@ using MarketRegime = TradingBot.Abstractions.MarketRegime;
 public class MLRecommendation
 {
     public string RecommendedStrategy { get; set; } = string.Empty;
-    public decimal Confidence { get; set; };
+    public decimal Confidence { get; set; }
     public Dictionary<string, decimal> StrategyScores { get; } = new();
     public string[] Features { get; set; } = Array.Empty<string>();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -35,12 +35,12 @@ public class MLRecommendation
 public class StrategyPerformance
 {
     public string StrategyName { get; set; } = string.Empty;
-    public decimal Returns { get; set; };
-    public decimal Sharpe { get; set; };
-    public decimal MaxDrawdown { get; set; };
-    public int TotalTrades { get; set; };
-    public decimal WinRate { get; set; };
-    public bool IsActive { get; set; };
+    public decimal Returns { get; set; }
+    public decimal Sharpe { get; set; }
+    public decimal MaxDrawdown { get; set; }
+    public int TotalTrades { get; set; }
+    public decimal WinRate { get; set; }
+    public bool IsActive { get; set; }
     public DateTime LastTrade { get; set; } = DateTime.MinValue;
 }
 
@@ -50,7 +50,7 @@ public class StrategyPerformance
 public class ComponentHealth
 {
     public string ComponentName { get; set; } = string.Empty;
-    public bool IsHealthy { get; set; };
+    public bool IsHealthy { get; set; }
     public string Status { get; set; } = "UNKNOWN";
     public Dictionary<string, object> Metrics { get; } = new();
     public List<string> Errors { get; } = new();
@@ -206,7 +206,7 @@ public class TradingContext
     // Required properties per production specification
     public decimal RealizedPnL { get; set; }
     public decimal MaxPositionSize { get; set; } = 1000000m;
-    public bool IsBacktest { get; set; };
+    public bool IsBacktest { get; set; }
     
     // Risk context (from both versions)
     public decimal MaxDrawdown { get; set; }

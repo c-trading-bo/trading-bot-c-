@@ -26,5 +26,18 @@ public interface IAccountResolver
     /// <summary>
     /// Event fired when the active account changes
     /// </summary>
-    event System.Action<ActiveAccount?>? AccountChanged;
+    event EventHandler<AccountChangedEventArgs>? AccountChanged;
+}
+
+/// <summary>
+/// Event arguments for account change events
+/// </summary>
+public class AccountChangedEventArgs : EventArgs
+{
+    public ActiveAccount? Account { get; }
+
+    public AccountChangedEventArgs(ActiveAccount? account)
+    {
+        Account = account;
+    }
 }

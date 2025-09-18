@@ -5,8 +5,8 @@ public interface IKillSwitchWatcher
 {
     Task<bool> IsKillSwitchActiveAsync();
     bool IsKillSwitchActive { get; }
-    event Action<bool> KillSwitchToggled;
-    event Action OnKillSwitchActivated;
+    event EventHandler<KillSwitchToggledEventArgs> KillSwitchToggled;
+    event EventHandler? OnKillSwitchActivated;
     Task StartWatchingAsync();
 }
 
@@ -15,8 +15,8 @@ public interface IRiskManager
 {
     Task<RiskAssessment> AssessRiskAsync(TradingDecision decision);
     bool IsRiskBreached { get; }
-    event Action<RiskBreach> RiskBreachDetected;
-    event Action<RiskBreach> OnRiskBreach;
+    event EventHandler<RiskBreachEventArgs> RiskBreachDetected;
+    event EventHandler<RiskBreachEventArgs> OnRiskBreach;
 }
 
 // Health Monitoring Interface
@@ -24,8 +24,8 @@ public interface IHealthMonitor
 {
     Task<HealthStatus> GetHealthStatusAsync(string componentName);
     bool IsTradingAllowed { get; }
-    event Action<HealthStatus> HealthStatusChanged;
-    event Action<HealthStatus> OnHealthChanged;
+    event EventHandler<HealthStatusChangedEventArgs> HealthStatusChanged;
+    event EventHandler<HealthStatusChangedEventArgs> OnHealthChanged;
     Task StartMonitoringAsync();
 }
 
@@ -72,4 +72,43 @@ public class IntelligenceEventArgs : EventArgs
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Data { get; } = new();
+}
+
+/// <summary>
+/// Event arguments for kill switch toggle events
+/// </summary>
+public class KillSwitchToggledEventArgs : EventArgs
+{
+    public bool IsActive { get; }
+
+    public KillSwitchToggledEventArgs(bool isActive)
+    {
+        IsActive = isActive;
+    }
+}
+
+/// <summary>
+/// Event arguments for risk breach events
+/// </summary>
+public class RiskBreachEventArgs : EventArgs
+{
+    public RiskBreach RiskBreach { get; }
+
+    public RiskBreachEventArgs(RiskBreach riskBreach)
+    {
+        RiskBreach = riskBreach;
+    }
+}
+
+/// <summary>
+/// Event arguments for health status change events
+/// </summary>
+public class HealthStatusChangedEventArgs : EventArgs
+{
+    public HealthStatus HealthStatus { get; }
+
+    public HealthStatusChangedEventArgs(HealthStatus healthStatus)
+    {
+        HealthStatus = healthStatus;
+    }
 }

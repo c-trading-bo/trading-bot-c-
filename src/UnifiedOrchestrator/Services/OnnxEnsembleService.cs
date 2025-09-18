@@ -13,7 +13,7 @@ namespace UnifiedOrchestrator.Services
     {
         public int MaxBatchSize { get; set; } = 16;
         public int BatchTimeoutMs { get; set; } = 50;
-        public bool UseGpu { get; set; };
+        public bool UseGpu { get; set; }
         public bool ClampInputs { get; set; } = true;
         public bool BlockAnomalousInputs { get; set; } = true;
         public double AnomalyThreshold { get; set; } = 3.0; // Z-score threshold

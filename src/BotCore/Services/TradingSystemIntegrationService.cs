@@ -94,7 +94,7 @@ namespace TopstepX.Bot.Core.Services
             public string MarketHubUrl { get; set; } = "https://rtc.topstepx.com/hubs/market";
             public string AccountId { get; set; } = string.Empty;
             public bool EnableDryRunMode { get; set; } = true;
-            public bool EnableAutoExecution { get; set; };
+            public bool EnableAutoExecution { get; set; }
             public decimal MaxDailyLoss { get; set; } = -1000m;
             public decimal MaxPositionSize { get; set; } = 5m;
             public string ApiToken { get; set; } = string.Empty;

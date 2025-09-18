@@ -567,7 +567,7 @@ public class ModelHealthState
     public DateTime? QuarantinedAt { get; set; }
     public DateTime? RestoredAt { get; set; }
     public DateTime LastChecked { get; set; } = DateTime.UtcNow;
-    public int ExceptionCount { get; set; };
+    public int ExceptionCount { get; set; }
     public string? LastException { get; set; }
     public DateTime? LastExceptionTime { get; set; }
 }

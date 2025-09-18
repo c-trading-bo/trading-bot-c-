@@ -1797,16 +1797,16 @@ public class AutonomousStrategyMetrics
 /// </summary>
 public class AutonomousConfig
 {
-    public bool IsEnabled { get; set; };
-    public bool Enabled { get; set; }; // Legacy property for compatibility
+    public bool IsEnabled { get; set; }
+    public bool Enabled { get; set; } // Legacy property for compatibility
     public bool AutoStrategySelection { get; set; } = true;
     public bool AutoPositionSizing { get; set; } = true;
     public decimal DailyProfitTarget { get; set; } = 300m;
     public decimal MaxDailyLoss { get; set; } = -1000m;
     public decimal MaxDrawdown { get; set; } = -2000m; // Add back for compatibility
-    public bool TradeDuringLunch { get; set; };
-    public bool TradeOvernight { get; set; };
-    public bool TradePreMarket { get; set; };
+    public bool TradeDuringLunch { get; set; }
+    public bool TradeOvernight { get; set; }
+    public bool TradePreMarket { get; set; }
     public int MaxContractsPerTrade { get; set; } = 5;
     public decimal MinRiskPerTrade { get; set; } = 0.005m;
     public decimal MaxRiskPerTrade { get; set; } = 0.015m;

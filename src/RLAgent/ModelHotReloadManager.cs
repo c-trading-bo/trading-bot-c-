@@ -313,5 +313,5 @@ public class ModelHotReloadOptions
     public int SmokeTestIterations { get; set; } = 3;
     public int GoldenInputCount { get; set; } = 5;
     public int ExpectedFeatureCount { get; set; } = 10;
-    public bool FailOnAnomalies { get; set; };
+    public bool FailOnAnomalies { get; set; }
 }

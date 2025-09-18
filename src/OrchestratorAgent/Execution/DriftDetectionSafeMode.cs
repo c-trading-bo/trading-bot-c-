@@ -328,7 +328,7 @@ namespace OrchestratorAgent.Execution
 
     public class SafeModeState
     {
-        public bool IsInSafeMode { get; set; };
+        public bool IsInSafeMode { get; set; }
         public DateTime EntryTime { get; set; }
         public DateTime ExitTime { get; set; }
         public double TriggerSignificance { get; set; }

@@ -82,7 +82,7 @@ public class DecisionServiceLauncherOptions
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 8080;
     public bool EnableLogging { get; set; } = true;
-    public bool Enabled { get; set; };
+    public bool Enabled { get; set; }
     public bool AutoRestart { get; set; } = true;
     public Dictionary<string, string> Environment { get; } = new();
 }
@@ -99,7 +99,7 @@ public class DecisionServiceOptions
     public int TimeoutMs { get; set; } = 30000;
     public int MaxRetries { get; set; } = 3;
     public bool EnableHealthChecks { get; set; } = true;
-    public bool Enabled { get; set; };
+    public bool Enabled { get; set; }
 }
 
 /// <summary>
@@ -110,11 +110,11 @@ public class DecisionServiceIntegrationOptions
     public string IntegrationEndpoint { get; set; } = "http://localhost:8080/integration";
     public string WebhookUrl { get; set; } = string.Empty;
     public int SyncIntervalSeconds { get; set; } = 60;
-    public bool EnableRealTimeSync { get; set; };
-    public bool Enabled { get; set; };
+    public bool EnableRealTimeSync { get; set; }
+    public bool Enabled { get; set; }
     public int HealthCheckIntervalSeconds { get; set; } = 30;
     public bool LogDecisionLines { get; set; } = true;
-    public bool EnableTradeManagement { get; set; };
+    public bool EnableTradeManagement { get; set; }
     public Dictionary<string, object> CustomSettings { get; } = new();
 }
 
