@@ -9,7 +9,7 @@ import os
 import sys
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 
 class SessionDeduplicator:
@@ -83,7 +83,7 @@ class SessionDeduplicator:
         
         session_data = {
             "session_key": session_key,
-            "start_time": datetime.utcnow().isoformat() + "Z",
+            "start_time": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             "workflow": workflow_name,
             "run_id": run_id,
@@ -137,7 +137,7 @@ class SessionDeduplicator:
         
         entry = {
             "session_key": session_key,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             "workflow": workflow_name,
             "run_id": run_id,
