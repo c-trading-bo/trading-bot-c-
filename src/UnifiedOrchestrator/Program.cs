@@ -255,10 +255,7 @@ Stack Trace:
         });
         services.AddSingleton<ITradingLogger, Services.TradingLogger>();
 
-        // Register centralized token provider for authentication management
-        services.AddSingleton<ITokenProvider, CentralizedTokenProvider>();
-        services.AddHostedService<CentralizedTokenProvider>(provider => 
-            (CentralizedTokenProvider)provider.GetRequiredService<ITokenProvider>());
+        // Legacy authentication services removed - using environment credentials with TopstepX SDK adapter
 
         // Register enhanced JWT lifecycle manager for token refresh coordination
         services.AddSingleton<IJwtLifecycleManager, JwtLifecycleManager>();
@@ -271,10 +268,7 @@ Stack Trace:
         // Register snapshot manager for state reconciliation
         services.AddSingleton<ISnapshotManager, SnapshotManager>();
 
-        // Register SignalR connection manager for stable hub connections  
-        services.AddSingleton<ISignalRConnectionManager, SignalRConnectionManager>();
-        services.AddHostedService<SignalRConnectionManager>(provider => 
-            (SignalRConnectionManager)provider.GetRequiredService<ISignalRConnectionManager>());
+        // Legacy SignalR connection manager removed - using TopstepX SDK adapter for connections
 
         // Register platform-aware Python path resolver
         services.AddSingleton<IPythonPathResolver, PlatformAwarePythonPathResolver>();
@@ -282,11 +276,7 @@ Stack Trace:
         // Register monitoring integration for metrics and log querying
         services.AddHostedService<MonitoringIntegrationService>();
 
-        // Register enhanced authentication service for comprehensive auth logging
-        services.AddHostedService<EnhancedAuthenticationService>();
-
-        // Register AutoTopstepXLoginService to handle login completion signaling
-        services.AddHostedService<AutoTopstepXLoginService>();
+        // Legacy authentication and login services removed - using TopstepX SDK adapter
 
         // Register system health monitoring service
         services.AddHostedService<SystemHealthMonitoringService>();

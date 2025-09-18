@@ -163,6 +163,15 @@ namespace TradingBot.Safety.Analyzers
             isEnabledByDefault: true,
             description: "Mock classes, methods, or variables are not allowed in production code - move to tests/ directory.");
 
+        public static readonly DiagnosticDescriptor LegacyNamespaceDetected = new DiagnosticDescriptor(
+            "PRE017",
+            "Legacy namespace detected in production code",
+            "Legacy namespace found: {0}. Remove legacy Infrastructure.TopstepX references.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Legacy Infrastructure.TopstepX namespaces are not allowed in production code - use TopstepX SDK adapter instead.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 SuppressMessageWithoutProof,
@@ -701,6 +710,37 @@ namespace TradingBot.Safety.Analyzers
             
             // Check for Mock patterns specifically
             CheckMockPatterns(context, text);
+            
+            // Check for legacy namespaces
+            CheckLegacyNamespaces(context, text);
+        }
+        
+        private static void CheckLegacyNamespaces(SyntaxTreeAnalysisContext context, string text)
+        {
+            // Check for legacy Infrastructure.TopstepX namespace usage
+            var legacyPatterns = new[]
+            {
+                @"using\s+.*Infrastructure\.TopstepX", // using statements
+                @"TradingBot\.Infrastructure\.TopstepX", // full namespace references
+                @"Infrastructure\.TopstepX\.", // namespace qualifiers
+                @"RealTopstepXClient", // legacy client classes
+                @"SimulationTopstepXClient", // legacy client classes
+                @"TopstepXCredentialManager", // legacy credential classes
+            };
+            
+            foreach (var pattern in legacyPatterns)
+            {
+                var regex = new Regex(pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                var matches = regex.Matches(text);
+                
+                foreach (Match match in matches)
+                {
+                    var diagnostic = Diagnostic.Create(LegacyNamespaceDetected,
+                        Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
+                        match.Value.Trim());
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
         }
         
         private static void CheckMockPatterns(SyntaxTreeAnalysisContext context, string text)

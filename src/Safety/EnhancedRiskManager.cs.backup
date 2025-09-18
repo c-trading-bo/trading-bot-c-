@@ -268,11 +268,16 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         }
     }
 
-    // Legacy method - replaced with TopstepX SDK adapter validation
-    public Task<bool> ValidateOrderAsync(object order)
+    // Implement base interface methods by delegating to base manager
+    public Task<bool> ValidateOrderAsync(TradingBot.Infrastructure.TopstepX.PlaceOrderRequest order)
     {
-        // Legacy order validation removed - now handled by TopstepX SDK adapter
-        _logger.LogWarning("Legacy ValidateOrderAsync called - use TopstepX SDK adapter instead");
+        // First check enhanced limits
+        var orderValue = Math.Abs(order.Quantity * order.Price);
+        if (!IsWithinRiskLimitsAsync(orderValue, 1).Result)
+        {
+            return Task.FromResult(false);
+        }
+        
         return Task.FromResult(true);
     }
     
