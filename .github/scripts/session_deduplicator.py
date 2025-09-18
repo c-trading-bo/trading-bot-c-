@@ -222,6 +222,18 @@ def main():
         
         should_skip = is_active or is_duplicate
         
+        # Enhanced logging when duplicates are skipped
+        if should_skip:
+            print(f"🚫 DUPLICATE DETECTED - Skipping execution to prevent redundant CI runs")
+            print(f"📊 Session Key: {session_key}")
+            print(f"🔍 Duplicate Reason: {reason if is_active else dup_reason}")
+            print(f"⚡ Cost Optimization: Prevented redundant workflow execution")
+            print(f"🛡️ Session Deduplication: ENFORCED")
+        else:
+            print(f"✅ NO DUPLICATES DETECTED - Proceeding with execution")
+            print(f"📊 Session Key: {session_key}")
+            print(f"🚀 Workflow Execution: AUTHORIZED")
+        
         # Enhanced output with retry suppression details
         print(f"SESSION_KEY={session_key}")
         print(f"SKIP_EXECUTION={'true' if should_skip else 'false'}")
