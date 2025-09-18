@@ -39,7 +39,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
-    <ProjectReference Include="../BotCore/BotCore.csproj" />
+    <!-- Temporarily removing BotCore dependency due to compilation errors -->
+    <!-- <ProjectReference Include="../BotCore/BotCore.csproj" /> -->
   </ItemGroup>
 
   <!-- Package the analyzer -->

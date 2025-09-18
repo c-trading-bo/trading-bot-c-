@@ -291,7 +291,7 @@ public class IntelligenceOrchestrator : IIntelligenceOrchestrator
                 "processMarketData" => await ProcessMarketDataWorkflowAsync(context, cancellationToken),
                 "performMaintenance" => await PerformMaintenanceWorkflowAsync(context, cancellationToken),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unknown action: {action}" }
-            }.ConfigureAwait(false);
+            };
 
             return result;
         }

@@ -24,7 +24,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
-    <ProjectReference Include="../RLAgent/RLAgent.csproj" />
+    <!-- Temporarily removing RLAgent dependency due to compilation errors -->
+    <!-- <ProjectReference Include="../RLAgent/RLAgent.csproj" /> -->
   </ItemGroup>
 
 </Project>

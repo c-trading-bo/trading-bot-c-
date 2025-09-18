@@ -200,9 +200,8 @@ public class ModelHotReloadManager : IDisposable
             // Generate deterministic but varied features
             // Use cryptographically secure random for all values in production trading system
             using var rng = RandomNumberGenerator.Create();
-using System.Globalization;
             
-            for (int j; j < features.Length; j++)
+            for (int j = 0; j < features.Length; j++)
             {
                 // Generate normalized features in reasonable trading ranges using secure random
                 var randomBytes = new byte[4];
