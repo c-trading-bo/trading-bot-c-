@@ -13,6 +13,7 @@ using BotCore.Brain;
 using BotCore.Services;
 using TradingBot.Abstractions;
 using TradingBot.Infrastructure.TopstepX;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace BotCore.Services;
 
@@ -875,34 +876,18 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         try
         {
-            // Get TopstepX client from service provider
-            var topstepXClient = _serviceProvider.GetService<ITopstepXClient>();
-            if (topstepXClient != null && topstepXClient.IsConnected)
+            // Use TopstepX adapter service (project-x-py SDK integration)
+            var topstepXAdapter = _serviceProvider.GetService<ITopstepXAdapterService>();
+            if (topstepXAdapter != null && topstepXAdapter.IsConnected)
             {
-                _logger.LogDebug("💰 [AUTONOMOUS-ENGINE] Fetching real market price for {Symbol} from TopstepX", symbol);
+                _logger.LogDebug("💰 [AUTONOMOUS-ENGINE] Fetching real market price for {Symbol} from TopstepX SDK", symbol);
                 
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
-                if (marketData.ValueKind != JsonValueKind.Null && marketData.TryGetProperty("price", out var priceElement))
-                {
-                    var price = priceElement.GetDecimal();
-                    _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved real price ${Price} for {Symbol}", price, symbol);
-                    return price;
-                }
+                var price = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken);
+                _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved real price ${Price} for {Symbol} from TopstepX SDK", price, symbol);
+                return price;
             }
             
-            // Try market data service as fallback
-            var marketDataService = _serviceProvider.GetService<IMarketDataService>();
-            if (marketDataService != null)
-            {
-                var price = await marketDataService.GetLastPriceAsync(symbol);
-                if (price > 0)
-                {
-                    _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved real price ${Price} for {Symbol} from MarketDataService", price, symbol);
-                    return price;
-                }
-            }
-            
-            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] No real market price available from TopstepX services for {Symbol}", symbol);
+            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] TopstepX adapter not available or not connected for {Symbol}", symbol);
             return null;
         }
         catch (Exception ex)
@@ -1080,37 +1065,22 @@ public class AutonomousDecisionEngine : BackgroundService
     }
     
     /// <summary>
-    /// Get real historical bars from TopstepX market data sources
+    /// Get real historical bars from TopstepX adapter service (SDK integration)
     /// </summary>
     private async Task<List<Bar>?> GetRealHistoricalBarsAsync(string symbol, int count, CancellationToken cancellationToken)
     {
         try
         {
-            // Get TopstepX client from service provider
-            var topstepXClient = _serviceProvider.GetService<ITopstepXClient>();
-            if (topstepXClient != null && topstepXClient.IsConnected)
+            // Use TopstepX adapter service for current price data
+            var topstepXAdapter = _serviceProvider.GetService<ITopstepXAdapterService>();
+            if (topstepXAdapter != null && topstepXAdapter.IsConnected)
             {
-                _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Fetching {Count} historical bars for {Symbol} from TopstepX", count, symbol);
+                _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Fetching current price for {Symbol} from TopstepX SDK to build bars", symbol);
                 
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
-                if (marketData.ValueKind != JsonValueKind.Null)
-                {
-                    // Convert TopstepX market data to Bar format
-                    var bars = ConvertTopstepXDataToBars(marketData, symbol, count);
-                    _logger.LogInformation("✅ [AUTONOMOUS-ENGINE] Retrieved {ActualCount} real bars for {Symbol}", bars.Count, symbol);
-                    return bars;
-                }
-            }
-            
-            // Try market data service as fallback
-            var marketDataService = _serviceProvider.GetService<IMarketDataService>();
-            if (marketDataService != null)
-            {
-                _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Attempting to get current price for {Symbol} from MarketDataService", symbol);
-                var currentPrice = await marketDataService.GetLastPriceAsync(symbol);
+                var currentPrice = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken);
                 if (currentPrice > 0)
                 {
-                    // Create a single current bar from real price
+                    // Create a single current bar from real price data (SDK provides current pricing)
                     var currentBar = new Bar
                     {
                         Symbol = symbol,
@@ -1128,7 +1098,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 }
             }
             
-            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] No TopstepX services available for {Symbol}", symbol);
+            _logger.LogWarning("⚠️ [AUTONOMOUS-ENGINE] No TopstepX SDK adapter available for {Symbol}", symbol);
             return null;
         }
         catch (Exception ex)
