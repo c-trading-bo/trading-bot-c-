@@ -1,11 +1,16 @@
+using System;
+
 namespace TradingBot.Abstractions;
 
 public sealed class AppOptions
 {
-    // Default risk management constants
-    private const decimal DefaultMaxDailyLoss = -1000m;
-    private const int DefaultMaxPositionSize = 5;
-    private const decimal DefaultDrawdownLimit = -2000m;
+    // Default risk management constants (configurable via environment)
+    private static readonly decimal DefaultMaxDailyLoss = 
+        decimal.TryParse(Environment.GetEnvironmentVariable("DEFAULT_MAX_DAILY_LOSS"), out var maxLoss) ? maxLoss : -1000m;
+    private static readonly int DefaultMaxPositionSize = 
+        int.TryParse(Environment.GetEnvironmentVariable("DEFAULT_MAX_POSITION_SIZE"), out var maxPos) ? maxPos : 5;
+    private static readonly decimal DefaultDrawdownLimit = 
+        decimal.TryParse(Environment.GetEnvironmentVariable("DEFAULT_DRAWDOWN_LIMIT"), out var drawdown) ? drawdown : -2000m;
     
     public string ApiBase { get; init; } = "https://api.topstepx.com";
     public string AuthToken { get; init; } = "";

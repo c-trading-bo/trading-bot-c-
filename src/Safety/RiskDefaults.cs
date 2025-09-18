@@ -14,14 +14,16 @@ namespace TradingBot.Safety
         public static readonly decimal DefaultMaxDailyLoss = 1000m;
 
         /// <summary>
-        /// Default maximum position size
+        /// Default maximum position size (configurable via environment)
         /// </summary>
-        public static readonly decimal DefaultMaxPositionSize = 10000m;
+        public static readonly decimal DefaultMaxPositionSize = 
+            decimal.TryParse(Environment.GetEnvironmentVariable("RISK_MAX_POSITION_SIZE"), out var maxPos) ? maxPos : 10000m;
 
         /// <summary>
-        /// Default drawdown limit
+        /// Default drawdown limit (configurable via environment)
         /// </summary>
-        public static readonly decimal DefaultDrawdownLimit = 2000m;
+        public static readonly decimal DefaultDrawdownLimit = 
+            decimal.TryParse(Environment.GetEnvironmentVariable("RISK_DRAWDOWN_LIMIT"), out var drawdown) ? drawdown : 2000m;
 
         /// <summary>
         /// Default maximum risk per trade as percentage
@@ -84,7 +86,8 @@ namespace TradingBot.Safety
         /// </summary>
         public static class MachineLearning
         {
-            public static readonly decimal MinConfidenceThreshold = 0.6m;
+            public static readonly decimal MinConfidenceThreshold = 
+                decimal.TryParse(Environment.GetEnvironmentVariable("ML_MIN_CONFIDENCE_THRESHOLD"), out var minConf) ? minConf : 0.6m;
             public static readonly decimal MaxModelRiskPercent = 0.005m; // 0.5%
             public static readonly int MinHistoricalBarsRequired = 100;
             public static readonly TimeSpan ModelUpdateInterval = TimeSpan.FromHours(24);
@@ -96,7 +99,8 @@ namespace TradingBot.Safety
         public static class Ucb
         {
             public static readonly decimal ExplorationBonus = 0.3m;
-            public static readonly decimal ConfidenceThreshold = 0.65m;
+            public static readonly decimal ConfidenceThreshold = 
+                decimal.TryParse(Environment.GetEnvironmentVariable("UCB_CONFIDENCE_THRESHOLD"), out var ucbConf) ? ucbConf : 0.65m;
             public static readonly int MinDecisionsBeforeLive = 100;
             public static readonly decimal MaxUcbRiskPercent = 0.008m; // 0.8%
         }
@@ -128,9 +132,9 @@ namespace TradingBot.Safety
                 },
                 "DEVELOPMENT" or "DEV" => new RiskConfiguration
                 {
-                    MaxDailyLoss = 100m,
-                    MaxPositionSize = 1000m,
-                    DrawdownLimit = 200m,
+                    MaxDailyLoss = decimal.TryParse(Environment.GetEnvironmentVariable("DEV_MAX_DAILY_LOSS"), out var devLoss) ? devLoss : 100m,
+                    MaxPositionSize = decimal.TryParse(Environment.GetEnvironmentVariable("DEV_MAX_POSITION_SIZE"), out var devPos) ? devPos : 1000m,
+                    DrawdownLimit = decimal.TryParse(Environment.GetEnvironmentVariable("DEV_DRAWDOWN_LIMIT"), out var devDraw) ? devDraw : 200m,
                     MaxRiskPerTradePercent = 0.001m, // 0.1%
                     MaxDailyTrades = 10,
                     IsProduction = false

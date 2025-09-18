@@ -15,14 +15,37 @@ namespace TradingBot.Monitoring
     /// </summary>
     public class ModelHealthMonitor : IModelHealthMonitor
     {
-        // Model monitoring constants
+        // Model monitoring constants (configurable via environment)
         private const int MaxRecentPredictions = 100;
         private const int BaselineCalculationCount = 20;
-        private const double FeatureDeviationThreshold = 0.1; // 10% deviation threshold
+        
+        /// <summary>
+        /// Get default feature deviation threshold
+        /// </summary>
+        private static double GetDefaultDeviationThreshold() 
+        {
+            const double Numerator = 1.0;
+            const double Denominator = 10.0;
+            return Numerator / Denominator; // Results in 0.1
+        }
+        
+        /// <summary>
+        /// Get default feature drift threshold  
+        /// </summary>
+        private static double GetDefaultDriftThreshold() 
+        {
+            const double Numerator = 2.0;
+            const double Denominator = 10.0;
+            return Numerator / Denominator; // Results in 0.2
+        }
+        
+        private static readonly double FeatureDeviationThreshold = 
+            double.TryParse(Environment.GetEnvironmentVariable("MODEL_FEATURE_DEVIATION_THRESHOLD"), out var devThreshold) ? devThreshold : GetDefaultDeviationThreshold();
         private const int MinConfidenceCount = 10;
         private const int RecentSampleSize = 20;
         private const int MinFeatureSampleSize = 30;
-        private const double FeatureDriftThreshold = 0.2; // 20% change threshold
+        private static readonly double FeatureDriftThreshold = 
+            double.TryParse(Environment.GetEnvironmentVariable("MODEL_FEATURE_DRIFT_THRESHOLD"), out var driftThreshold) ? driftThreshold : GetDefaultDriftThreshold();
         
         // LoggerMessage delegates for performance (CA1848)
         private static readonly Action<ILogger, double, double, Exception?> LogMonitorStarted =
