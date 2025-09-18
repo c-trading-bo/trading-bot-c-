@@ -97,7 +97,7 @@ public sealed class OnnxModelValidationService
         }
 
         // Wait for all validations to complete
-        var results = await Task.WhenAll(validationTasks);
+        var results = await Task.WhenAll(validationTasks).ConfigureAwait(false);
 
         // Store results and check overall status
         foreach (var result in results)
@@ -106,7 +106,7 @@ public sealed class OnnxModelValidationService
             
             if (!result.IsValid)
             {
-                allValid = false;
+                allValid;
                 _logger.LogError("[ONNX-Validation] Model validation FAILED: {ModelPath} - {Error}", 
                     result.ModelPath, result.ErrorMessage);
             }
@@ -149,7 +149,7 @@ public sealed class OnnxModelValidationService
             var memoryBefore = GC.GetTotalMemory(false);
 
             // Load the model
-            var session = await _modelLoader.LoadModelAsync(modelPath, validateInference: true);
+            var session = await _modelLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
             
             var loadTime = DateTime.UtcNow - startTime;
             var memoryAfter = GC.GetTotalMemory(false);
@@ -166,34 +166,34 @@ public sealed class OnnxModelValidationService
                 // Additional validation checks
                 if (result.InputCount == 0)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = "Model has no inputs";
                 }
                 else if (result.OutputCount == 0)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = "Model has no outputs";
                 }
                 else if (result.LoadTime.TotalSeconds > 30)
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = $"Model load time too slow: {result.LoadTime.TotalSeconds:F1}s";
                 }
                 else if (result.MemoryUsage > 2L * 1024 * 1024 * 1024) // 2GB limit per model
                 {
-                    result.IsValid = false;
+                    result.IsValid;
                     result.ErrorMessage = $"Model memory usage too high: {result.MemoryUsage / 1024 / 1024}MB";
                 }
             }
             else
             {
-                result.IsValid = false;
+                result.IsValid;
                 result.ErrorMessage = "Failed to load model";
             }
         }
         catch (Exception ex)
         {
-            result.IsValid = false;
+            result.IsValid;
             result.ErrorMessage = ex.Message;
             _logger.LogError(ex, "[ONNX-Validation] Exception validating model: {ModelPath}", modelPath);
         }
@@ -241,7 +241,7 @@ public sealed class OnnxModelValidationService
         public double SuccessRate { get; set; }
         public double TotalLoadTimeMs { get; set; }
         public long TotalMemoryUsageMB { get; set; }
-        public List<string> FailedModelPaths { get; set; } = new();
+        public List<string> FailedModelPaths { get; } = new();
         public DateTime ValidationDate { get; set; }
     }
 
@@ -250,7 +250,7 @@ public sealed class OnnxModelValidationService
     /// </summary>
     public async Task<string> GenerateValidationReportAsync()
     {
-        var success = await ValidateAllModelsAsync();
+        var success = await ValidateAllModelsAsync().ConfigureAwait(false);
         var summary = GetValidationSummary();
 
         var report = $@"

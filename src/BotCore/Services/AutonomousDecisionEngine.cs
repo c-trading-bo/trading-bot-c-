@@ -14,6 +14,7 @@ using BotCore.Services;
 using TradingBot.Abstractions;
 // Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using TradingBot.UnifiedOrchestrator.Services;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -72,9 +73,9 @@ public class AutonomousDecisionEngine : BackgroundService
     private string _currentStrategy = "S11";
     private decimal _currentRiskPerTrade = 0.005m; // Start conservative at 0.5%
     private decimal _currentAccountBalance = 50000m;
-    private int _consecutiveWins = 0;
-    private int _consecutiveLosses = 0;
-    private decimal _todayPnL = 0m;
+    private int _consecutiveWins;
+    private int _consecutiveLosses;
+    private decimal _todayPnL;
     private DateTime _lastTradeTime = DateTime.MinValue;
     private AutonomousMarketRegime _currentAutonomousMarketRegime = AutonomousMarketRegime.Unknown;
     
@@ -124,10 +125,10 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Initialize autonomous systems
-            await InitializeAutonomousSystemsAsync(stoppingToken);
+            await InitializeAutonomousSystemsAsync(stoppingToken).ConfigureAwait(false);
             
             // Start main autonomous loop
-            await RunAutonomousMainLoopAsync(stoppingToken);
+            await RunAutonomousMainLoopAsync(stoppingToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -141,16 +142,16 @@ public class AutonomousDecisionEngine : BackgroundService
         _logger.LogInformation("🔧 [AUTONOMOUS-ENGINE] Initializing autonomous systems...");
         
         // Load historical performance data
-        await LoadHistoricalPerformanceAsync(cancellationToken);
+        await LoadHistoricalPerformanceAsync(cancellationToken).ConfigureAwait(false);
         
         // Initialize strategy metrics
-        await UpdateStrategyMetricsAsync(cancellationToken);
+        await UpdateStrategyMetricsAsync(cancellationToken).ConfigureAwait(false);
         
         // Analyze current market conditions
-        await AnalyzeMarketConditionsAsync(cancellationToken);
+        await AnalyzeMarketConditionsAsync(cancellationToken).ConfigureAwait(false);
         
         // Select initial strategy
-        await SelectOptimalStrategyAsync(cancellationToken);
+        await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("✅ [AUTONOMOUS-ENGINE] Autonomous systems initialized successfully");
     }
@@ -164,22 +165,22 @@ public class AutonomousDecisionEngine : BackgroundService
             try
             {
                 // Check if we should be trading at this time
-                var shouldTrade = await ShouldTradeNowAsync(cancellationToken);
+                var shouldTrade = await ShouldTradeNowAsync(cancellationToken).ConfigureAwait(false);
                 if (!shouldTrade)
                 {
-                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
                     continue;
                 }
                 
                 // Main autonomous decision cycle
-                await ExecuteAutonomousDecisionCycleAsync(cancellationToken);
+                await ExecuteAutonomousDecisionCycleAsync(cancellationToken).ConfigureAwait(false);
                 
                 // Update performance and learning
-                await UpdatePerformanceAndLearningAsync(cancellationToken);
+                await UpdatePerformanceAndLearningAsync(cancellationToken).ConfigureAwait(false);
                 
                 // Adaptive delay based on market conditions
-                var delay = await GetAdaptiveDelayAsync(cancellationToken);
-                await Task.Delay(delay, cancellationToken);
+                var delay = await GetAdaptiveDelayAsync(cancellationToken).ConfigureAwait(false);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -188,7 +189,7 @@ public class AutonomousDecisionEngine : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "⚠️ [AUTONOMOUS-ENGINE] Error in autonomous cycle, continuing...");
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
             }
         }
         
@@ -200,18 +201,18 @@ public class AutonomousDecisionEngine : BackgroundService
         // Check compliance limits first
         if (!await _complianceManager.CanTradeAsync(_todayPnL, _currentAccountBalance, cancellationToken))
         {
-            return false;
+            return false.ConfigureAwait(false);
         }
         
         // Check market hours and optimal trading times
-        var isMarketOpen = await _marketHours.IsMarketOpenAsync(cancellationToken);
+        var isMarketOpen = await _marketHours.IsMarketOpenAsync(cancellationToken).ConfigureAwait(false);
         if (!isMarketOpen)
         {
             return false;
         }
         
         // Check if we're in an optimal trading period
-        var currentSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken);
+        var currentSession = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false);
         var isOptimalTime = IsOptimalTradingTime(currentSession);
         
         return isOptimalTime;
@@ -237,31 +238,31 @@ public class AutonomousDecisionEngine : BackgroundService
         _logger.LogDebug("🎯 [AUTONOMOUS-ENGINE] Executing autonomous decision cycle...");
         
         // 1. Analyze current market conditions
-        await AnalyzeMarketConditionsAsync(cancellationToken);
+        await AnalyzeMarketConditionsAsync(cancellationToken).ConfigureAwait(false);
         
         // 2. Update strategy selection based on conditions
-        await UpdateStrategySelectionAsync(cancellationToken);
+        await UpdateStrategySelectionAsync(cancellationToken).ConfigureAwait(false);
         
         // 3. Calculate optimal position sizing
-        var positionSize = await CalculateOptimalPositionSizeAsync(cancellationToken);
+        var positionSize = await CalculateOptimalPositionSizeAsync(cancellationToken).ConfigureAwait(false);
         
         // 4. Check for trading opportunities
-        var tradingOpportunity = await IdentifyTradingOpportunityAsync(cancellationToken);
+        var tradingOpportunity = await IdentifyTradingOpportunityAsync(cancellationToken).ConfigureAwait(false);
         
         // 5. Execute trade if opportunity exists
         if (tradingOpportunity != null && positionSize > 0)
         {
-            await ExecuteAutonomousTradeAsync(tradingOpportunity, positionSize, cancellationToken);
+            await ExecuteAutonomousTradeAsync(tradingOpportunity, positionSize, cancellationToken).ConfigureAwait(false);
         }
         
         // 6. Manage existing positions
-        await ManageExistingPositionsAsync(cancellationToken);
+        await ManageExistingPositionsAsync(cancellationToken).ConfigureAwait(false);
     }
     
     private async Task AnalyzeMarketConditionsAsync(CancellationToken cancellationToken)
     {
         var previousRegime = _currentAutonomousMarketRegime;
-        var tradingRegime = await _marketAnalyzer.DetermineMarketRegimeAsync(cancellationToken);
+        var tradingRegime = await _marketAnalyzer.DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false);
         _currentAutonomousMarketRegime = MapTradingRegimeToAutonomous(tradingRegime);
         
         if (_currentAutonomousMarketRegime != previousRegime)
@@ -270,13 +271,13 @@ public class AutonomousDecisionEngine : BackgroundService
                 previousRegime, _currentAutonomousMarketRegime);
             
             // Trigger strategy re-evaluation when market regime changes
-            await SelectOptimalStrategyAsync(cancellationToken);
+            await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
         }
     }
     
     private async Task UpdateStrategySelectionAsync(CancellationToken cancellationToken)
     {
-        var optimalStrategy = await SelectOptimalStrategyAsync(cancellationToken);
+        var optimalStrategy = await SelectOptimalStrategyAsync(cancellationToken).ConfigureAwait(false);
         
         if (optimalStrategy != _currentStrategy)
         {
@@ -286,7 +287,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _currentStrategy = optimalStrategy;
             
             // Update risk parameters for new strategy
-            await UpdateRiskParametersAsync(cancellationToken);
+            await UpdateRiskParametersAsync(cancellationToken).ConfigureAwait(false);
         }
     }
     
@@ -308,7 +309,7 @@ public class AutonomousDecisionEngine : BackgroundService
             string.Join(", ", strategyScores.Select(kvp => $"{kvp.Key}:{kvp.Value:F3}")),
             bestStrategy.Key);
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return bestStrategy.Key;
     }
     
@@ -408,10 +409,10 @@ public class AutonomousDecisionEngine : BackgroundService
         var performanceMultiplier = CalculatePerformanceMultiplier();
         
         // Adjust risk based on market volatility
-        var volatilityMultiplier = await CalculateVolatilityMultiplierAsync(cancellationToken);
+        var volatilityMultiplier = await CalculateVolatilityMultiplierAsync(cancellationToken).ConfigureAwait(false);
         
         // Adjust risk based on time of day
-        var timeMultiplier = await CalculateTimeMultiplierAsync(cancellationToken);
+        var timeMultiplier = await CalculateTimeMultiplierAsync(cancellationToken).ConfigureAwait(false);
         
         // Combined risk calculation
         var adjustedRisk = baseRisk * performanceMultiplier * volatilityMultiplier * timeMultiplier;
@@ -445,7 +446,7 @@ public class AutonomousDecisionEngine : BackgroundService
     
     private async Task<decimal> CalculateVolatilityMultiplierAsync(CancellationToken cancellationToken)
     {
-        var volatility = await _marketAnalyzer.GetCurrentVolatilityAsync(cancellationToken);
+        var volatility = await _marketAnalyzer.GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false);
         
         // Reduce position size in high volatility, increase in low volatility
         return volatility switch
@@ -461,7 +462,7 @@ public class AutonomousDecisionEngine : BackgroundService
     
     private async Task<decimal> CalculateTimeMultiplierAsync(CancellationToken cancellationToken)
     {
-        var session = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken);
+        var session = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false);
         
         // Increase position size during high-probability periods
         return session switch
@@ -492,17 +493,17 @@ public class AutonomousDecisionEngine : BackgroundService
             };
             
             // Try to get real market data, use defaults if unavailable
-            double currentPrice = 0;
-            double currentVolume = 0;
+            double currentPrice;
+            double currentVolume;
             
             try
             {
                 // Attempt to get current market data
-                var priceDecimal = await GetCurrentMarketPriceAsync("ES", cancellationToken);
-                var volumeLong = await GetCurrentVolumeAsync("ES", cancellationToken);
+                var priceDecimal = await GetCurrentMarketPriceAsync("ES", cancellationToken).ConfigureAwait(false);
+                var volumeLong = await GetCurrentVolumeAsync("ES", cancellationToken).ConfigureAwait(false);
                 currentPrice = (double)priceDecimal;
                 currentVolume = (double)volumeLong;
-                technicalIndicators = await CalculateTechnicalIndicatorsAsync("ES", cancellationToken);
+                technicalIndicators = await CalculateTechnicalIndicatorsAsync("ES", cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -518,7 +519,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 TechnicalIndicators = technicalIndicators
             };
             
-            var decision = await _decisionRouter.RouteDecisionAsync("ES", marketContext, cancellationToken);
+            var decision = await _decisionRouter.RouteDecisionAsync("ES", marketContext, cancellationToken).ConfigureAwait(false);
             
             if (decision?.Action != null && decision.Action != TradingAction.Hold)
             {
@@ -556,7 +557,7 @@ public class AutonomousDecisionEngine : BackgroundService
             var contractSize = CalculateContractSize(opportunity.Symbol, positionSize, opportunity.EntryPrice);
             
             // Execute trade through the trading system
-            var tradeResult = await ExecuteTradeAsync(opportunity, contractSize, cancellationToken);
+            var tradeResult = await ExecuteTradeAsync(opportunity, contractSize, cancellationToken).ConfigureAwait(false);
             
             if (tradeResult.Success)
             {
@@ -606,7 +607,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 tradingAction, opportunity.Symbol, contractSize);
             
             // Simulate successful execution for autonomous operation
-            var executedPrice = opportunity.EntryPrice ?? (await GetCurrentMarketPriceAsync(opportunity.Symbol, cancellationToken));
+            var executedPrice = opportunity.EntryPrice ?? (await GetCurrentMarketPriceAsync(opportunity.Symbol, cancellationToken)).ConfigureAwait(false);
             
             return new TradeExecutionResult
             {
@@ -671,11 +672,11 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Get all open positions from the position tracker
-            var openPositions = await GetOpenPositionsAsync(cancellationToken);
+            var openPositions = await GetOpenPositionsAsync(cancellationToken).ConfigureAwait(false);
             
             foreach (var position in openPositions)
             {
-                await ManageIndividualPositionAsync(position, cancellationToken);
+                await ManageIndividualPositionAsync(position, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -684,22 +685,22 @@ public class AutonomousDecisionEngine : BackgroundService
         }
         // - Scale into winning positions with additional contracts
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private async Task UpdatePerformanceAndLearningAsync(CancellationToken cancellationToken)
     {
         // Update performance metrics
-        await _performanceTracker.UpdateMetricsAsync(_recentTrades.ToArray(), cancellationToken);
+        await _performanceTracker.UpdateMetricsAsync(_recentTrades.ToArray(), cancellationToken).ConfigureAwait(false);
         
         // Update strategy metrics
-        await UpdateStrategyMetricsAsync(cancellationToken);
+        await UpdateStrategyMetricsAsync(cancellationToken).ConfigureAwait(false);
         
         // Update risk parameters based on performance
-        await UpdateRiskParametersAsync(cancellationToken);
+        await UpdateRiskParametersAsync(cancellationToken).ConfigureAwait(false);
         
         // Generate periodic reports
-        await GeneratePerformanceReportIfNeededAsync(cancellationToken);
+        await GeneratePerformanceReportIfNeededAsync(cancellationToken).ConfigureAwait(false);
     }
     
     private async Task UpdateRiskParametersAsync(CancellationToken cancellationToken)
@@ -722,13 +723,13 @@ public class AutonomousDecisionEngine : BackgroundService
         _logger.LogDebug("⚖️ [AUTONOMOUS-ENGINE] Risk updated: {Risk:P} (PnL: ${PnL:F0}, WinRate: {WinRate:P})",
             _currentRiskPerTrade, recentPnL, recentWinRate);
             
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private async Task<TimeSpan> GetAdaptiveDelayAsync(CancellationToken cancellationToken)
     {
         // Adaptive delay based on market conditions and strategy
-        var session = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken);
+        var session = await _marketHours.GetCurrentMarketSessionAsync(cancellationToken).ConfigureAwait(false);
         
         return session switch
         {
@@ -762,17 +763,17 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Load recent performance data for all strategies
-            var performanceData = await LoadHistoricalPerformanceDataAsync(cancellationToken);
+            var performanceData = await LoadHistoricalPerformanceDataAsync(cancellationToken).ConfigureAwait(false);
             
             // Initialize strategy performance metrics
-            await InitializeStrategyMetricsAsync(performanceData, cancellationToken);
+            await InitializeStrategyMetricsAsync(performanceData, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [AUTONOMOUS-ENGINE] Historical performance data loaded successfully");
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "⚠️ [AUTONOMOUS-ENGINE] Failed to load historical data, using default metrics");
-            await InitializeDefaultMetricsAsync(cancellationToken);
+            await InitializeDefaultMetricsAsync(cancellationToken).ConfigureAwait(false);
         }
     }
     
@@ -794,7 +795,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 metrics.RecentTrades = strategyTrades.TakeLast(20).ToList();
             }
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private async Task GeneratePerformanceReportIfNeededAsync(CancellationToken cancellationToken)
@@ -803,27 +804,27 @@ public class AutonomousDecisionEngine : BackgroundService
         var now = DateTime.UtcNow;
         if (now.Hour == 17 && now.Minute < 5 && _lastPerformanceReport.Date != now.Date) // 5 PM ET
         {
-            await GenerateDailyPerformanceReportAsync(cancellationToken);
+            await GenerateDailyPerformanceReportAsync(cancellationToken).ConfigureAwait(false);
             _lastPerformanceReport = now;
         }
     }
     
     private async Task GenerateDailyPerformanceReportAsync(CancellationToken cancellationToken)
     {
-        var report = await _performanceTracker.GenerateDailyReportAsync(cancellationToken);
+        var report = await _performanceTracker.GenerateDailyReportAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("📈 [DAILY-REPORT] {Date} | P&L: ${PnL:F2} | Trades: {Trades} | Win Rate: {WinRate:P} | Best Strategy: {Strategy}",
-            DateTime.Today.ToString("yyyy-MM-dd"),
+            DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             report.DailyPnL,
             report.TotalTrades,
             report.WinRate,
             report.BestStrategy);
         
         // Send performance metrics to monitoring system
-        await SendPerformanceMetricsAsync(report, cancellationToken);
+        await SendPerformanceMetricsAsync(report, cancellationToken).ConfigureAwait(false);
         
         // Check for alerts and notifications
-        await CheckPerformanceAlertsAsync(report, cancellationToken);
+        await CheckPerformanceAlertsAsync(report, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -852,7 +853,7 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Get real market price from TopstepX or market data service
-            var realPrice = await GetRealMarketPriceAsync(symbol, cancellationToken);
+            var realPrice = await GetRealMarketPriceAsync(symbol, cancellationToken).ConfigureAwait(false);
             if (realPrice.HasValue && realPrice.Value > 0)
             {
                 _logger.LogDebug("Retrieved real market price for {Symbol}: ${Price}", symbol, realPrice.Value);
@@ -882,7 +883,7 @@ public class AutonomousDecisionEngine : BackgroundService
             {
                 _logger.LogDebug("💰 [AUTONOMOUS-ENGINE] Fetching real market price for {Symbol} from TopstepX SDK", symbol);
                 
-                var price = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken);
+                var price = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken).ConfigureAwait(false);
                 _logger.LogDebug("✅ [AUTONOMOUS-ENGINE] Retrieved real price ${Price} for {Symbol} from TopstepX SDK", price, symbol);
                 return price;
             }
@@ -945,7 +946,7 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Get real volume from actual market data
-            var realVolume = await GetRealVolumeAsync(symbol, cancellationToken);
+            var realVolume = await GetRealVolumeAsync(symbol, cancellationToken).ConfigureAwait(false);
             if (realVolume.HasValue && realVolume.Value > 0)
             {
                 _logger.LogDebug("Retrieved real volume for {Symbol}: {Volume}", symbol, realVolume.Value);
@@ -975,7 +976,7 @@ public class AutonomousDecisionEngine : BackgroundService
             {
                 _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Fetching real volume for {Symbol} from TopstepX", symbol);
                 
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false);
                 if (marketData.ValueKind != JsonValueKind.Null && marketData.TryGetProperty("volume", out var volumeElement))
                 {
                     var volume = volumeElement.GetInt64();
@@ -988,7 +989,7 @@ public class AutonomousDecisionEngine : BackgroundService
             var marketDataService = _serviceProvider.GetService<IMarketDataService>();
             if (marketDataService != null)
             {
-                var orderBook = await marketDataService.GetOrderBookAsync(symbol);
+                var orderBook = await marketDataService.GetOrderBookAsync(symbol).ConfigureAwait(false);
                 if (orderBook != null)
                 {
                     var volume = orderBook.BidSize + orderBook.AskSize;
@@ -1015,7 +1016,7 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Get recent bars for technical analysis
-            var bars = await GetRecentBarsAsync(symbol, 50, cancellationToken);
+            var bars = await GetRecentBarsAsync(symbol, 50, cancellationToken).ConfigureAwait(false);
             if (bars.Count < 20) return new Dictionary<string, double>();
             
             var indicators = new Dictionary<string, double>();
@@ -1047,7 +1048,7 @@ public class AutonomousDecisionEngine : BackgroundService
         try
         {
             // Get real historical data from TopstepX or other market data provider
-            var realBars = await GetRealHistoricalBarsAsync(symbol, count, cancellationToken);
+            var realBars = await GetRealHistoricalBarsAsync(symbol, count, cancellationToken).ConfigureAwait(false);
             if (realBars != null && realBars.Count > 0)
             {
                 _logger.LogDebug("Retrieved {Count} real historical bars for {Symbol}", realBars.Count, symbol);
@@ -1077,7 +1078,7 @@ public class AutonomousDecisionEngine : BackgroundService
             {
                 _logger.LogDebug("📊 [AUTONOMOUS-ENGINE] Fetching current price for {Symbol} from TopstepX SDK to build bars", symbol);
                 
-                var currentPrice = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken);
+                var currentPrice = await topstepXAdapter.GetPriceAsync(symbol, cancellationToken).ConfigureAwait(false);
                 if (currentPrice > 0)
                 {
                     // Create a single current bar from real price data (SDK provides current pricing)
@@ -1120,7 +1121,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _logger.LogDebug("No open positions found");
             
             // Small delay to simulate async operation
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             return new List<Position>();
         }
@@ -1138,25 +1139,25 @@ public class AutonomousDecisionEngine : BackgroundService
     {
         try
         {
-            var currentPrice = await GetCurrentMarketPriceAsync(position.Symbol, cancellationToken);
+            var currentPrice = await GetCurrentMarketPriceAsync(position.Symbol, cancellationToken).ConfigureAwait(false);
             var currentPnL = CalculatePositionPnL(position, currentPrice);
             
             // Implement trailing stop logic
             if (currentPnL > 0 && ShouldTrailStop(position, currentPrice))
             {
-                await UpdateTrailingStopAsync(position, currentPrice, cancellationToken);
+                await UpdateTrailingStopAsync(position, currentPrice, cancellationToken).ConfigureAwait(false);
             }
             
             // Check for profit target scaling
             if (ShouldScaleOutPosition(position, currentPnL))
             {
-                await ScaleOutPositionAsync(position, cancellationToken);
+                await ScaleOutPositionAsync(position, cancellationToken).ConfigureAwait(false);
             }
             
             // Check for stop loss
             if (ShouldExitPosition(position, currentPnL))
             {
-                await ExitPositionAsync(position, cancellationToken);
+                await ExitPositionAsync(position, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -1194,7 +1195,7 @@ public class AutonomousDecisionEngine : BackgroundService
                 performanceData.Count);
             
             // Small delay to simulate async operation
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             return performanceData;
         }
@@ -1344,7 +1345,7 @@ public class AutonomousDecisionEngine : BackgroundService
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     /// <summary>
@@ -1356,7 +1357,7 @@ public class AutonomousDecisionEngine : BackgroundService
         var random = new Random();
         var tradesCount = Math.Min(20, performance.TotalTrades); // Last 20 trades or total if less
         
-        for (int i = 0; i < tradesCount; i++)
+        for (int i; i < tradesCount; i++)
         {
             var isWin = random.NextDouble() < (double)performance.WinRate;
             var pnl = isWin ? 
@@ -1410,7 +1411,7 @@ public class AutonomousDecisionEngine : BackgroundService
                     strategy, metrics.TotalTrades, baselineData.WinRate);
             }
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     /// <summary>
@@ -1619,7 +1620,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _logger.LogInformation("🔄 [TRAILING-STOP] Updated trailing stop for {PositionId}: {OldStop} → {NewStop}",
                 position.Id, position.StopLoss, newStopLevel);
                 
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1637,7 +1638,7 @@ public class AutonomousDecisionEngine : BackgroundService
             _logger.LogInformation("📈 [SCALE-OUT] Scaling out {Quantity} contracts from position {PositionId}",
                 scaleOutQuantity, position.Id);
                 
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1653,20 +1654,20 @@ public class AutonomousDecisionEngine : BackgroundService
                 position.Id, position.UnrealizedPnL);
             
             // Record trade outcome for learning
-            var exitPrice = await GetCurrentMarketPriceAsync(position.Symbol, cancellationToken);
+            var exitPrice = await GetCurrentMarketPriceAsync(position.Symbol, cancellationToken).ConfigureAwait(false);
             RecordTradeOutcome(position, exitPrice, "StopLoss");
             
             // Update consecutive loss tracking
             if (position.UnrealizedPnL < 0)
             {
                 _consecutiveLosses++;
-                _consecutiveWins = 0;
+                _consecutiveWins;
             }
             
             // Update today's P&L
             _todayPnL += position.UnrealizedPnL;
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1788,7 +1789,7 @@ public class AutonomousStrategyMetrics
     public int LosingTrades { get; set; }
     public decimal TotalProfit { get; set; }
     public decimal TotalLoss { get; set; }
-    public List<AutonomousTradeOutcome> RecentTrades { get; set; } = new();
+    public List<AutonomousTradeOutcome> RecentTrades { get; } = new();
 }
 
 /// <summary>
@@ -1796,16 +1797,16 @@ public class AutonomousStrategyMetrics
 /// </summary>
 public class AutonomousConfig
 {
-    public bool IsEnabled { get; set; } = false;
-    public bool Enabled { get; set; } = false; // Legacy property for compatibility
+    public bool IsEnabled { get; set; }
+    public bool Enabled { get; set; } // Legacy property for compatibility
     public bool AutoStrategySelection { get; set; } = true;
     public bool AutoPositionSizing { get; set; } = true;
     public decimal DailyProfitTarget { get; set; } = 300m;
     public decimal MaxDailyLoss { get; set; } = -1000m;
     public decimal MaxDrawdown { get; set; } = -2000m; // Add back for compatibility
-    public bool TradeDuringLunch { get; set; } = false;
-    public bool TradeOvernight { get; set; } = false;
-    public bool TradePreMarket { get; set; } = false;
+    public bool TradeDuringLunch { get; set; }
+    public bool TradeOvernight { get; set; }
+    public bool TradePreMarket { get; set; }
     public int MaxContractsPerTrade { get; set; } = 5;
     public decimal MinRiskPerTrade { get; set; } = 0.005m;
     public decimal MaxRiskPerTrade { get; set; } = 0.015m;
@@ -1848,7 +1849,7 @@ public class StrategyPerformanceData
     public decimal AverageLoss { get; set; }
     public decimal MaxDrawdown { get; set; }
     public DateTime LastTradeDate { get; set; }
-    public Dictionary<string, decimal> PerformanceMetrics { get; set; } = new();
+    public Dictionary<string, decimal> PerformanceMetrics { get; } = new();
 }
 
 /// <summary>

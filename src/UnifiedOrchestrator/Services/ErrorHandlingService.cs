@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -23,10 +24,10 @@ public class ErrorHandlingService : IHostedService
     private readonly EventLog? _eventLog;
     private readonly Timer _circuitBreakerTimer;
     private volatile bool _fileSystemAvailable = true;
-    private volatile bool _eventLogAvailable = false;
-    private volatile bool _fileLoggingFallbackAvailable = false;
+    private volatile bool _eventLogAvailable;
+    private volatile bool _fileLoggingFallbackAvailable;
     private string? _fallbackLogPath;
-    private int _consecutiveFileErrors = 0;
+    private int _consecutiveFileErrors;
     private readonly object _lockObject = new();
 
     public ErrorHandlingService(
@@ -80,13 +81,13 @@ public class ErrorHandlingService : IHostedService
                 fileSystemAvailable = _fileSystemAvailable,
                 eventLogAvailable = _eventLogAvailable,
                 platform = RuntimeInformation.OSDescription
-            });
+            }).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "ErrorHandler", 
-            "Error handling service stopped");
+            "Error handling service stopped").ConfigureAwait(false);
             
         _circuitBreakerTimer?.Dispose();
         _eventLog?.Dispose();
@@ -103,18 +104,18 @@ public class ErrorHandlingService : IHostedService
             message,
             exception = exception?.Message,
             exceptionType = exception?.GetType().Name,
-            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture)
         };
 
         try
         {
             // Try primary logging first
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, component, message, errorData);
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, component, message, errorData).ConfigureAwait(false);
             
             // Reset error counter on success
             lock (_lockObject)
             {
-                _consecutiveFileErrors = 0;
+                _consecutiveFileErrors;
                 _fileSystemAvailable = true;
             }
         }
@@ -152,7 +153,7 @@ public class ErrorHandlingService : IHostedService
             
             if (_consecutiveFileErrors >= 5)
             {
-                _fileSystemAvailable = false;
+                _fileSystemAvailable;
                 _logger.LogError("File system logging circuit breaker activated after {Errors} consecutive failures", 
                     _consecutiveFileErrors);
             }
@@ -210,7 +211,7 @@ public class ErrorHandlingService : IHostedService
             
             try
             {
-                await File.WriteAllTextAsync(testPath, DateTime.UtcNow.ToString());
+                await File.WriteAllTextAsync(testPath, DateTime.UtcNow.ToString()).ConfigureAwait(false);
                 File.Delete(testPath);
                 
                 // File system is working - reset circuit breaker
@@ -219,7 +220,7 @@ public class ErrorHandlingService : IHostedService
                     if (!_fileSystemAvailable)
                     {
                         _fileSystemAvailable = true;
-                        _consecutiveFileErrors = 0;
+                        _consecutiveFileErrors;
                         _logger.LogInformation("File system logging circuit breaker reset - logging restored");
                     }
                 }
@@ -229,7 +230,7 @@ public class ErrorHandlingService : IHostedService
                 // File system still not available
                 lock (_lockObject)
                 {
-                    _fileSystemAvailable = false;
+                    _fileSystemAvailable;
                 }
             }
         }
@@ -261,7 +262,7 @@ public class ErrorHandlingService : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to setup file logging fallback - error handling will be limited");
-            _fileLoggingFallbackAvailable = false;
+            _fileLoggingFallbackAvailable;
         }
     }
 
@@ -292,7 +293,7 @@ public class ErrorHandlingService : IHostedService
         {
             // If file logging also fails, we can only log to the regular logger
             _logger.LogError(ex, "File logging fallback failed for message: {Message}", message);
-            _fileLoggingFallbackAvailable = false;
+            _fileLoggingFallbackAvailable;
         }
     }
 

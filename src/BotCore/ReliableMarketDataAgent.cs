@@ -89,14 +89,14 @@ namespace BotCore
             if (_contractId is null || _barTf is null) throw new InvalidOperationException("Call StartAsync(contractId, barTf) first.");
             await WaitForConnectedAsync(ct).ConfigureAwait(false);
 
-            await TrySendAsync("SubscribeQuote", [_contractId], ct);
-            await TrySendAsync("SubscribeContractQuotes", [_contractId], ct);
+            await TrySendAsync("SubscribeQuote", [_contractId], ct).ConfigureAwait(false);
+            await TrySendAsync("SubscribeContractQuotes", [_contractId], ct).ConfigureAwait(false);
 
-            await TrySendAsync("SubscribeTrade", [_contractId], ct);
-            await TrySendAsync("SubscribeContractTrades", [_contractId], ct);
+            await TrySendAsync("SubscribeTrade", [_contractId], ct).ConfigureAwait(false);
+            await TrySendAsync("SubscribeContractTrades", [_contractId], ct).ConfigureAwait(false);
 
-            await TrySendAsync("SubscribeBars", [_contractId, _barTf], ct);
-            await TrySendAsync("SubscribeContractBars", [_contractId, _barTf], ct);
+            await TrySendAsync("SubscribeBars", [_contractId, _barTf], ct).ConfigureAwait(false);
+            await TrySendAsync("SubscribeContractBars", [_contractId, _barTf], ct).ConfigureAwait(false);
 
             Console.WriteLine($"[ReliableMarketDataAgent] Subscribed to {_contractId} ({_barTf}).");
         }
@@ -134,7 +134,7 @@ namespace BotCore
         {
             if (_hub is not null)
             {
-                try { await _hub.DisposeAsync(); } catch { }
+                try { await _hub.DisposeAsync().ConfigureAwait(false); } catch { }
             }
         }
 
@@ -143,7 +143,7 @@ namespace BotCore
             if (_hub is not null)
             {
                 try { await _hub.StopAsync(ct).ConfigureAwait(false); } catch { }
-                await DisposeAsync();
+                await DisposeAsync().ConfigureAwait(false);
             }
         }
     }

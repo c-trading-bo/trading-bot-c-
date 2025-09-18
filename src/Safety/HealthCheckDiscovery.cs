@@ -30,7 +30,7 @@ public class HealthCheckDiscovery
     {
         var healthChecks = new List<IHealthCheck>();
         var discoveredTypes = new List<(Type Type, HealthCheckAttribute? Attribute)>();
-        await Task.Delay(1); // Satisfy async requirement
+        await Task.Delay(1).ConfigureAwait(false); // Satisfy async requirement
 
         try
         {
@@ -128,7 +128,7 @@ public class HealthCheckDiscovery
         try
         {
             // Get all current health checks
-            var currentChecks = await DiscoverHealthChecksAsync();
+            var currentChecks = await DiscoverHealthChecksAsync().ConfigureAwait(false);
             var monitoredFeatures = currentChecks.Select(c => c.Name.ToLower()).ToHashSet();
 
             // Scan for potential features that need monitoring
@@ -150,7 +150,7 @@ public class HealthCheckDiscovery
             }
 
             // Perform sophisticated code analysis for health check coverage
-            await PerformAdvancedCodeAnalysis(unmonitored);
+            await PerformAdvancedCodeAnalysis(unmonitored).ConfigureAwait(false);
 
             if (unmonitored.Count > 0)
             {
@@ -170,7 +170,7 @@ public class HealthCheckDiscovery
         {
             try
             {
-                await Task.Delay(50); // Simulate analysis time
+                await Task.Delay(50).ConfigureAwait(false); // Simulate analysis time
                 
                 // Scan for new classes with [Strategy] attributes
                 var strategyClasses = AppDomain.CurrentDomain.GetAssemblies()
@@ -188,7 +188,7 @@ public class HealthCheckDiscovery
                 foreach (var section in configSections)
                 {
                     // Simulate configuration check
-                    await Task.Delay(10);
+                    await Task.Delay(10).ConfigureAwait(false);
                 }
                 
                 _logger.LogDebug("[HEALTH-DISCOVERY] Advanced code analysis completed");

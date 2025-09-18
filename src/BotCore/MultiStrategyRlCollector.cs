@@ -362,7 +362,7 @@ namespace BotCore
             var priceChange = (price - priorPrice) / priorPrice * 100m;
             features.MomentumScore = Math.Abs(priceChange) * (volume / 1000m);
             features.TrendStrength = Math.Min(Math.Abs(rsi - 50m) / 25m, 1m);
-            features.AccelerationDivergence = 0m; // Would need more bars to calculate
+            features.AccelerationDivergence; // Would need more bars to calculate
             features.MomentumSustainability = CalculateMomentumSustainability(priceChange, atr);
 
             return features;
@@ -379,7 +379,7 @@ namespace BotCore
             try
             {
                 // Implement strategy-specific feature selection and export
-                await ExportStrategySpecificFeaturesAsync(strategy, start, outputPath, log);
+                await ExportStrategySpecificFeaturesAsync(strategy, start, outputPath, log).ConfigureAwait(false);
 
                 log.LogInformation("[RL-{Strategy}] Training data exported to {Path}", strategy, outputPath);
                 return outputPath;
@@ -404,7 +404,7 @@ namespace BotCore
                 
                 foreach (var file in inputFiles)
                 {
-                    var lines = await File.ReadAllLinesAsync(file);
+                    var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false);
                     foreach (var line in lines)
                     {
                         if (string.IsNullOrWhiteSpace(line)) continue;
@@ -430,7 +430,7 @@ namespace BotCore
                 {
                     Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                     var json = JsonSerializer.Serialize(allFeatures, new JsonSerializerOptions { WriteIndented = true });
-                    await File.WriteAllTextAsync(outputPath.Replace(".parquet", ".json"), json);
+                    await File.WriteAllTextAsync(outputPath.Replace(".parquet", ".json"), json).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -693,7 +693,7 @@ namespace BotCore
         /// </summary>
         public static int GetTotalTrainingSampleCount()
         {
-            var totalCount = 0;
+            var totalCount;
 
             try
             {

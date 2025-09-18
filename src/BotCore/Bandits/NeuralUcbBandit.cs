@@ -58,7 +58,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
         foreach (var armId in availableArms)
         {
             var arm = _arms[armId];
-            var (prediction, uncertainty) = await arm.PredictWithUncertaintyAsync(context, ct);
+            var (prediction, uncertainty) = await arm.PredictWithUncertaintyAsync(context, ct).ConfigureAwait(false);
             var ucbValue = prediction + _config.ExplorationWeight * uncertainty;
 
             selections.Add((armId, ucbValue, prediction, uncertainty));
@@ -104,7 +104,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
             arm = _arms[selectedArm];
         }
 
-        await arm.UpdateAsync(context, reward, ct);
+        await arm.UpdateAsync(context, reward, ct).ConfigureAwait(false);
 
         Console.WriteLine($"[NEURAL-UCB] Updated {selectedArm}: reward={reward:F3} " +
                         $"updates={arm.UpdateCount}");
@@ -119,7 +119,7 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
 
         foreach (var kvp in _arms.ToList()) // ToList to avoid lock issues
         {
-            var armStats = await kvp.Value.GetStatisticsAsync(ct);
+            var armStats = await kvp.Value.GetStatisticsAsync(ct).ConfigureAwait(false);
             stats[kvp.Key] = new ArmStatistics
             {
                 ArmId = kvp.Key,
@@ -140,20 +140,20 @@ public class NeuralUcbBandit : IFunctionApproximationBandit
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
     {
         var featureImportance = new Dictionary<string, decimal>();
-        var totalWeight = 0m;
+        var totalWeight;
 
         foreach (var arm in _arms.Values.ToList())
         {
             if (arm.UpdateCount == 0) continue;
 
-            var armImportance = await arm.ComputeFeatureImportanceAsync(ct);
+            var armImportance = await arm.ComputeFeatureImportanceAsync(ct).ConfigureAwait(false);
             var armWeight = (decimal)arm.UpdateCount;
             totalWeight += armWeight;
 
             foreach (var kvp in armImportance)
             {
                 if (!featureImportance.ContainsKey(kvp.Key))
-                    featureImportance[kvp.Key] = 0m;
+                    featureImportance[kvp.Key];
 
                 featureImportance[kvp.Key] += kvp.Value * armWeight;
             }
@@ -211,10 +211,10 @@ internal class NeuralUcbArm
 
         // Get network prediction
         var features = context.ToArray(_config.InputDimension);
-        var prediction = await _network.PredictAsync(features, ct);
+        var prediction = await _network.PredictAsync(features, ct).ConfigureAwait(false);
 
         // Estimate uncertainty using ensemble or dropout
-        var uncertainty = await EstimateUncertaintyAsync(context, ct);
+        var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false);
 
         return (Math.Max(0m, Math.Min(1m, prediction)), uncertainty);
     }
@@ -239,13 +239,13 @@ internal class NeuralUcbArm
         // Retrain network periodically
         if (ShouldRetrain())
         {
-            await RetrainNetworkAsync(ct);
+            await RetrainNetworkAsync(ct).ConfigureAwait(false);
         }
     }
 
     public async Task<NeuralArmStatistics> GetStatisticsAsync(CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         return new NeuralArmStatistics
         {
@@ -255,7 +255,7 @@ internal class NeuralUcbArm
             AverageUncertainty = await GetAverageUncertaintyAsync(ct),
             LastUpdated = LastUpdated,
             LastTraining = LastTraining
-        };
+        }.ConfigureAwait(false);
     }
 
     public async Task<Dictionary<string, decimal>> ComputeFeatureImportanceAsync(CancellationToken ct = default)
@@ -271,14 +271,14 @@ internal class NeuralUcbArm
 
         foreach (var context in recentContexts)
         {
-            var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct);
+            var gradients = await _network.ComputeGradientsAsync(context.ToArray(_config.InputDimension), ct).ConfigureAwait(false);
 
             var featureKeys = context.Features.Keys.OrderBy(k => k).ToList();
-            for (int i = 0; i < Math.Min(gradients.Length, featureKeys.Count); i++)
+            for (int i; i < Math.Min(gradients.Length, featureKeys.Count); i++)
             {
                 var featureName = featureKeys[i];
                 if (!importance.ContainsKey(featureName))
-                    importance[featureName] = 0m;
+                    importance[featureName];
 
                 importance[featureName] += Math.Abs(gradients[i]);
             }
@@ -306,10 +306,10 @@ internal class NeuralUcbArm
         // Estimate uncertainty using ensemble prediction variance
         var predictions = new List<decimal>();
 
-        for (int i = 0; i < _config.UncertaintyEstimationSamples; i++)
+        for (int i; i < _config.UncertaintyEstimationSamples; i++)
         {
             var features = context.ToArray(_config.InputDimension);
-            var prediction = await _network.PredictWithDropoutAsync(features, ct);
+            var prediction = await _network.PredictWithDropoutAsync(features, ct).ConfigureAwait(false);
             predictions.Add(prediction);
         }
 
@@ -354,7 +354,7 @@ internal class NeuralUcbArm
             var features = trainingData.Select(d => d.context.ToArray(_config.InputDimension)).ToArray();
             var targets = trainingData.Select(d => d.reward).ToArray();
 
-            await _network.TrainAsync(features, targets, ct);
+            await _network.TrainAsync(features, targets, ct).ConfigureAwait(false);
             LastTraining = DateTime.UtcNow;
 
             Console.WriteLine($"[NEURAL-UCB] Retraining completed");
@@ -379,7 +379,7 @@ internal class NeuralUcbArm
         var uncertainties = new List<decimal>();
         foreach (var context in recentContexts)
         {
-            var uncertainty = await EstimateUncertaintyAsync(context, ct);
+            var uncertainty = await EstimateUncertaintyAsync(context, ct).ConfigureAwait(false);
             uncertainties.Add(uncertainty);
         }
 
@@ -438,7 +438,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private InferenceSession? _session;
     private readonly string _modelPath;
     private readonly Random _random = new();
-    private bool _isInitialized = false;
+    private bool _isInitialized;
 
     public OnnxNeuralNetwork(OnnxModelLoader onnxLoader, ILogger<OnnxNeuralNetwork> logger, string modelPath = "models/neural_ucb_model.onnx")
     {
@@ -453,7 +453,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         
         try
         {
-            _session = await _onnxLoader.LoadModelAsync(_modelPath, validateInference: true);
+            _session = await _onnxLoader.LoadModelAsync(_modelPath, validateInference: true).ConfigureAwait(false);
             if (_session != null)
             {
                 _isInitialized = true;
@@ -472,7 +472,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
     public async Task<decimal> PredictAsync(decimal[] features, CancellationToken ct = default)
     {
-        await EnsureInitializedAsync();
+        await EnsureInitializedAsync().ConfigureAwait(false);
         
         if (_session != null)
         {
@@ -502,7 +502,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         // For ONNX models, dropout is handled during training, not inference
         // For uncertainty estimation, we can add noise to input features
         var noisyFeatures = features.Select(f => f + (decimal)(_random.NextDouble() - 0.5) * 0.01m).ToArray();
-        return await PredictAsync(noisyFeatures, ct);
+        return await PredictAsync(noisyFeatures, ct).ConfigureAwait(false);
     }
 
     public async Task TrainAsync(decimal[][] features, decimal[] targets, CancellationToken ct = default)
@@ -511,10 +511,10 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         _logger.LogInformation("[NEURAL_UCB] Training data received: {Samples} samples", features.Length);
         
         // Store training data for potential model retraining
-        await StoreTrainingDataAsync(features, targets);
+        await StoreTrainingDataAsync(features, targets).ConfigureAwait(false);
         
         // In a full implementation, this would trigger model retraining pipeline
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<decimal[]> ComputeGradientsAsync(decimal[] features, CancellationToken ct = default)
@@ -523,13 +523,13 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
         // For UCB, we can approximate gradients using finite differences
         var gradients = new decimal[features.Length];
         var epsilon = 0.001m;
-        var basePrediction = await PredictAsync(features);
+        var basePrediction = await PredictAsync(features).ConfigureAwait(false);
         
-        for (int i = 0; i < features.Length; i++)
+        for (int i; i < features.Length; i++)
         {
             var perturbedFeatures = features.ToArray();
             perturbedFeatures[i] += epsilon;
-            var perturbedPrediction = await PredictAsync(perturbedFeatures);
+            var perturbedPrediction = await PredictAsync(perturbedFeatures).ConfigureAwait(false);
             gradients[i] = (perturbedPrediction - basePrediction) / epsilon;
         }
         
@@ -538,7 +538,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
 
     public async Task<decimal> GetComplexityAsync(CancellationToken ct = default)
     {
-        await EnsureInitializedAsync();
+        await EnsureInitializedAsync().ConfigureAwait(false);
         
         if (_session?.InputMetadata != null && _session.OutputMetadata != null)
         {
@@ -556,10 +556,10 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
     private static decimal PredictFallback(decimal[] features)
     {
         // Sophisticated fallback using feature analysis
-        var weighted_sum = 0m;
+        var weighted_sum;
         var weights = new decimal[] { 0.3m, 0.2m, 0.15m, 0.1m, 0.1m, 0.05m, 0.05m, 0.03m, 0.01m, 0.01m };
         
-        for (int i = 0; i < Math.Min(features.Length, weights.Length); i++)
+        for (int i; i < Math.Min(features.Length, weights.Length); i++)
         {
             weighted_sum += features[i] * weights[i];
         }
@@ -584,7 +584,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
             
             var json = System.Text.Json.JsonSerializer.Serialize(trainingData);
-            await File.AppendAllTextAsync(dataPath, json + Environment.NewLine);
+            await File.AppendAllTextAsync(dataPath, json + Environment.NewLine).ConfigureAwait(false);
             
             _logger.LogDebug("[NEURAL_UCB] Training data stored for future model updates");
         }
@@ -607,7 +607,7 @@ public class OnnxNeuralNetwork : INeuralNetwork, IDisposable
             _session.Dispose();
             _session = null;
         }
-        _isInitialized = false;
+        _isInitialized;
     }
 }
 

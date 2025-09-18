@@ -8,6 +8,7 @@ using BotCore.Config;
 using BotCore.Models;
 using OrchestratorAgent.Infra;
 using Trading.Safety;
+using System.Globalization;
 
 // NOTE: Not referenced by OrchestratorAgent.Program. The runtime uses SimpleOrderRouter.
 // This richer router remains for future expansion and tooling, but is not on the hot path.
@@ -190,7 +191,7 @@ namespace OrchestratorAgent
             var sw = Stopwatch.StartNew();
             try
             {
-                await _api.PlaceOrderAsync(orderReq, ct);
+                await _api.PlaceOrderAsync(orderReq, ct).ConfigureAwait(false);
                 return true;
             }
             catch (Exception ex)
@@ -239,15 +240,15 @@ namespace OrchestratorAgent
             try
             {
                 var parents = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN&parent=true", ct)
-                               ?? [];
+                               ?? [].ConfigureAwait(false);
                 foreach (var p in parents)
                 {
-                    bool hasBr = false;
+                    bool hasBr;
                     try { hasBr = (bool)(p.hasBrackets ?? false); } catch { }
                     if (!hasBr)
                     {
                         var body = new { parentId = (object?)p.id, takeProfitTicks = 20, stopLossTicks = 12 };
-                        await _api.PostAsync("/orders/brackets", body, ct);
+                        await _api.PostAsync("/orders/brackets", body, ct).ConfigureAwait(false);
                         _ocoRebuilds.Enqueue(DateTime.UtcNow);
                     }
                 }
@@ -286,7 +287,7 @@ namespace OrchestratorAgent
                 string? symbol = null!;
                 try
                 {
-                    var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct);
+                    var parent = await _api.GetAsync<System.Text.Json.JsonElement>($"/orders/{orderId}", ct).ConfigureAwait(false);
                     if (parent.ValueKind == System.Text.Json.JsonValueKind.Object)
                     {
                         if (parent.TryGetProperty("symbol", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.String) symbol = s.GetString();
@@ -304,7 +305,7 @@ namespace OrchestratorAgent
                 var body = new { parentId = (object?)orderId, qty = filledQty, takeProfitTicks = tpTicks, stopLossTicks = slTicks, breakevenAfterTicks = beTicks, trailTicks };
 
                 // Try primary route
-                await _api.PostAsync("/orders/brackets/upsert", body, ct);
+                await _api.PostAsync("/orders/brackets/upsert", body, ct).ConfigureAwait(false);
                 _log.LogInformation("[ROUTER] Upserted brackets for parent {OrderId} (qty={Qty}, tp={Tp}t, sl={Sl}t)", SecurityHelpers.MaskOrderId(orderId), filledQty, tpTicks, slTicks);
             }
             catch (Exception ex1)
@@ -313,7 +314,7 @@ namespace OrchestratorAgent
                 {
                     // Fallback to generic brackets endpoint
                     var body2 = new { parentId = (object?)orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
-                    await _api.PostAsync("/orders/brackets", body2, ct);
+                    await _api.PostAsync("/orders/brackets", body2, ct).ConfigureAwait(false);
                     _log.LogInformation("[ROUTER] Upsert fallback: posted brackets for parent {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                 }
                 catch (Exception ex2)
@@ -322,7 +323,7 @@ namespace OrchestratorAgent
                     {
                         // Legacy API route fallback
                         var body3 = new { orderId, takeProfitTicks = ResolveIntEnv("BRACKET_TP_TICKS", 20), stopLossTicks = ResolveIntEnv("BRACKET_SL_TICKS", 12) };
-                        await _api.PostAsync("/api/Order/brackets/upsert", body3, ct);
+                        await _api.PostAsync("/api/Order/brackets/upsert", body3, ct).ConfigureAwait(false);
                         _log.LogInformation("[ROUTER] Upsert legacy fallback OK for parent {OrderId}", SecurityHelpers.MaskOrderId(orderId));
                     }
                     catch (Exception ex3)
@@ -361,19 +362,19 @@ namespace OrchestratorAgent
                 int offsetTicks = ResolveIntEnv("PARTIAL_CONVERT_OFFSET_TICKS", 1);
 
                 // Derive a reference price from update, prefer limit then avg fill then last
-                decimal refPx = 0m;
+                decimal refPx;
                 refPx = PickPrice(t, orderUpdate, new string[] { "LimitPrice", "limitPrice", "Price", "price" }, refPx);
                 refPx = PickPrice(t, orderUpdate, new string[] { "AvgFillPrice", "avgFillPrice", "AverageFillPrice" }, refPx);
                 refPx = PickPrice(t, orderUpdate, new string[] { "LastPrice", "lastPrice" }, refPx);
 
-                bool converted = false;
+                bool converted;
                 if (refPx > 0m)
                 {
                     var px = isSell ? refPx - offsetTicks * tick : refPx + offsetTicks * tick;
                     var body = new { orderId, toType = "LIMIT", price = px, timeInForce = "IOC" };
                     try
                     {
-                        await _api.PostAsync("/orders/convert", body, ct);
+                        await _api.PostAsync("/orders/convert", body, ct).ConfigureAwait(false);
                         _log.LogInformation("[ROUTER] Converted partial parent to LIMIT IOC at {Px} (order {OrderId})", px, SecurityHelpers.MaskOrderId(orderId));
                         converted = true;
                     }
@@ -381,7 +382,7 @@ namespace OrchestratorAgent
                     {
                         try
                         {
-                            await _api.PostAsync("/api/Order/convert", body, ct);
+                            await _api.PostAsync("/api/Order/convert", body, ct).ConfigureAwait(false);
                             _log.LogInformation("[ROUTER] Converted (legacy) partial parent to LIMIT IOC at {Px} (order {OrderId})", px, SecurityHelpers.MaskOrderId(orderId));
                             converted = true;
                         }
@@ -397,10 +398,10 @@ namespace OrchestratorAgent
                 if (!converted && age.TotalSeconds >= cancelAtSec)
                 {
                     var body = new { orderId };
-                    try { await _api.PostAsync("/orders/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
+                    try { await _api.PostAsync("/orders/cancel", body, ct).ConfigureAwait(false); _log.LogWarning("[ROUTER] Canceled stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
                     catch (Exception ex1)
                     {
-                        try { await _api.PostAsync("/api/Order/cancel", body, ct); _log.LogWarning("[ROUTER] Canceled (legacy) stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
+                        try { await _api.PostAsync("/api/Order/cancel", body, ct).ConfigureAwait(false); _log.LogWarning("[ROUTER] Canceled (legacy) stale partial parent {OrderId}", SecurityHelpers.MaskOrderId(orderId)); }
                         catch (Exception ex2)
                         {
                             _log.LogWarning(ex1, "[ROUTER] Cancel remainder primary failed for {OrderId}", SecurityHelpers.MaskOrderId(orderId));
@@ -419,7 +420,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                await _api.PostAsync($"/orders/cancel_all", new { accountId }, ct);
+                await _api.PostAsync($"/orders/cancel_all", new { accountId }, ct).ConfigureAwait(false);
                 _log.LogWarning("[ROUTER] CancelAllOpen posted for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             }
             catch (Exception ex)
@@ -433,7 +434,7 @@ namespace OrchestratorAgent
             _log.LogError("[ROUTER] PANIC_FLATTEN: flattening all positions for account {Acc}", SecurityHelpers.MaskAccountId(accountId));
             try
             {
-                await _api.PostAsync($"/positions/flatten_all", new { accountId }, ct);
+                await _api.PostAsync($"/positions/flatten_all", new { accountId }, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -445,7 +446,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct);
+                var list = await _api.PostAsync<List<dynamic>>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false);
                 return list ?? [];
             }
             catch (Exception ex)
@@ -459,7 +460,7 @@ namespace OrchestratorAgent
         {
             try
             {
-                var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct);
+                var list = await _api.GetAsync<List<dynamic>>($"/orders?accountId={accountId}&status=OPEN", ct).ConfigureAwait(false);
                 return list ?? [];
             }
             catch (Exception ex)

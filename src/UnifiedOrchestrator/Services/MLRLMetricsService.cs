@@ -29,9 +29,9 @@ namespace UnifiedOrchestrator.Services
     public class MetricsSummary
     {
         public DateTime GeneratedAt { get; set; }
-        public List<ModelMetrics> ModelMetrics { get; set; } = new();
-        public Dictionary<string, double> FeatureDriftScores { get; set; } = new();
-        public Dictionary<string, double> AgentPerformance { get; set; } = new();
+        public List<ModelMetrics> ModelMetrics { get; } = new();
+        public Dictionary<string, double> FeatureDriftScores { get; } = new();
+        public Dictionary<string, double> AgentPerformance { get; } = new();
     }
 
     public class MetricAlert

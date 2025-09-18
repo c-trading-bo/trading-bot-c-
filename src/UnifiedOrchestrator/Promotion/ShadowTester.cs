@@ -44,13 +44,13 @@ public class ShadowTester : IShadowTester
                 testId, algorithm, challengerVersionId);
 
             // Get champion and challenger models
-            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken);
+            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false);
             if (champion == null)
             {
                 throw new InvalidOperationException($"No champion found for algorithm {algorithm}");
             }
 
-            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken);
+            var challenger = await _modelRegistry.GetModelAsync(challengerVersionId, cancellationToken).ConfigureAwait(false);
             if (challenger == null)
             {
                 throw new InvalidOperationException($"Challenger version {challengerVersionId} not found");
@@ -71,7 +71,7 @@ public class ShadowTester : IShadowTester
             _activeTests[testId] = shadowTest;
 
             // Run the shadow test
-            var validationReport = await ExecuteShadowTestAsync(shadowTest, champion, challenger, cancellationToken);
+            var validationReport = await ExecuteShadowTestAsync(shadowTest, champion, challenger, cancellationToken).ConfigureAwait(false);
             
             shadowTest.Status = "COMPLETED";
             shadowTest.EndTime = DateTime.UtcNow;
@@ -100,7 +100,7 @@ public class ShadowTester : IShadowTester
     /// </summary>
     public async Task<ShadowTestStatus> GetTestStatusAsync(string testId, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (!_activeTests.TryGetValue(testId, out var test))
         {
@@ -128,7 +128,7 @@ public class ShadowTester : IShadowTester
     /// </summary>
     public async Task<bool> CancelTestAsync(string testId, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (!_activeTests.TryGetValue(testId, out var test))
         {
@@ -153,8 +153,8 @@ public class ShadowTester : IShadowTester
     private async Task<PromotionTestReport> ExecuteShadowTestAsync(ShadowTest shadowTest, ModelVersion champion, ModelVersion challenger, CancellationToken cancellationToken)
     {
         // Load both models for parallel inference
-        var championModel = await LoadModelAsync(champion, cancellationToken);
-        var challengerModel = await LoadModelAsync(challenger, cancellationToken);
+        var championModel = await LoadModelAsync(champion, cancellationToken).ConfigureAwait(false);
+        var challengerModel = await LoadModelAsync(challenger, cancellationToken).ConfigureAwait(false);
 
         // Create validation report
         var report = new PromotionTestReport
@@ -167,7 +167,7 @@ public class ShadowTester : IShadowTester
         };
 
         // Simulate historical data replay for shadow testing
-        await RunHistoricalReplayAsync(shadowTest, championModel, challengerModel, cancellationToken);
+        await RunHistoricalReplayAsync(shadowTest, championModel, challengerModel, cancellationToken).ConfigureAwait(false);
 
         // Calculate performance metrics
         CalculatePerformanceMetrics(shadowTest, report);
@@ -194,7 +194,7 @@ public class ShadowTester : IShadowTester
     private async Task<object> LoadModelAsync(ModelVersion modelVersion, CancellationToken cancellationToken)
     {
         // In real implementation, this would load the actual model artifacts
-        await Task.Delay(100, cancellationToken); // Simulate loading time
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate loading time
         return new { Version = modelVersion.VersionId, Type = modelVersion.ModelType };
     }
 
@@ -205,23 +205,23 @@ public class ShadowTester : IShadowTester
         var sessions = shadowTest.Config.MinSessions;
         var tradesPerSession = Math.Max(10, shadowTest.Config.MinTrades / sessions);
 
-        for (int session = 0; session < sessions && !cancellationToken.IsCancellationRequested; session++)
+        for (int session; session < sessions && !cancellationToken.IsCancellationRequested; session++)
         {
-            for (int trade = 0; trade < tradesPerSession; trade++)
+            for (int trade; trade < tradesPerSession; trade++)
             {
                 // Simulate market context
                 var context = CreateMockTradingContext(random);
                 
                 // Get decisions from both models
-                var championDecision = await GetModelDecisionAsync(championModel, context, cancellationToken);
-                var challengerDecision = await GetModelDecisionAsync(challengerModel, context, cancellationToken);
+                var championDecision = await GetModelDecisionAsync(championModel, context, cancellationToken).ConfigureAwait(false);
+                var challengerDecision = await GetModelDecisionAsync(challengerModel, context, cancellationToken).ConfigureAwait(false);
 
                 // Record decisions for comparison
                 shadowTest.ChampionDecisions.Add(championDecision);
                 shadowTest.ChallengerDecisions.Add(challengerDecision);
                 
                 // Simulate some processing time
-                await Task.Delay(1, cancellationToken);
+                await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             }
             
             shadowTest.SessionsRecorded++;
@@ -249,7 +249,7 @@ public class ShadowTester : IShadowTester
 
     private async Task<ShadowDecision> GetModelDecisionAsync(object model, Models.TradingContext context, CancellationToken cancellationToken)
     {
-        await Task.Delay(Random.Shared.Next(1, 10), cancellationToken); // Simulate inference time
+        await Task.Delay(Random.Shared.Next(1, 10), cancellationToken).ConfigureAwait(false); // Simulate inference time
         
         // Mock decision based on model and context
         var actions = new[] { "BUY", "SELL", "HOLD" };
@@ -317,13 +317,13 @@ public class ShadowTester : IShadowTester
 
         if (championDecisions.Count != challengerDecisions.Count)
         {
-            report.DecisionAlignment = 0;
+            report.DecisionAlignment;
             return;
         }
 
         // Calculate decision alignment
-        var sameDecisions = 0;
-        for (int i = 0; i < championDecisions.Count; i++)
+        var sameDecisions;
+        for (int i; i < championDecisions.Count; i++)
         {
             if (championDecisions[i].Action == challengerDecisions[i].Action)
             {
@@ -429,7 +429,7 @@ public class ShadowTester : IShadowTester
     /// </summary>
     public async Task RecordDecisionAsync(string algorithm, TradingContext context, TradingBot.Abstractions.TradingDecision decision, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         // Find active test for this algorithm
         var activeTest = _activeTests.Values.FirstOrDefault(t => t.Algorithm == algorithm && t.Status == "RUNNING");
@@ -468,7 +468,7 @@ public class ShadowTester : IShadowTester
     /// </summary>
     public async Task<IReadOnlyList<ShadowTestResult>> GetRecentResultsAsync(string algorithm, TimeSpan timeWindow, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var cutoffTime = DateTime.UtcNow - timeWindow;
         var results = new List<ShadowTestResult>();
@@ -510,10 +510,10 @@ public class ShadowTester : IShadowTester
             return 0.0;
 
         // Calculate agreement based on similar decisions at similar times
-        var agreements = 0;
+        var agreements;
         var total = Math.Min(test.ChampionDecisions.Count, test.ChallengerDecisions.Count);
 
-        for (int i = 0; i < total; i++)
+        for (int i; i < total; i++)
         {
             var champDecision = test.ChampionDecisions[i];
             var challDecision = test.ChallengerDecisions[i];
@@ -555,9 +555,9 @@ internal class ShadowTest
     public DateTime StartTime { get; set; }
     public DateTime? EndTime { get; set; }
     public int SessionsRecorded { get; set; }
-    public List<ShadowDecision> ChampionDecisions { get; set; } = new();
-    public List<ShadowDecision> ChallengerDecisions { get; set; } = new();
-    public Dictionary<string, object> IntermediateResults { get; set; } = new();
+    public List<ShadowDecision> ChampionDecisions { get; } = new();
+    public List<ShadowDecision> ChallengerDecisions { get; } = new();
+    public Dictionary<string, object> IntermediateResults { get; } = new();
     public CancellationTokenSource? CancellationToken { get; set; }
 }
 

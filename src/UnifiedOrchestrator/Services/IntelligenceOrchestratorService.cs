@@ -32,10 +32,10 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             try
             {
                 // Main intelligence processing loop
-                await ProcessIntelligenceOperationsAsync(stoppingToken);
+                await ProcessIntelligenceOperationsAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Wait before next iteration
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -44,7 +44,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in intelligence orchestrator loop");
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -55,7 +55,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     {
         // Process ML/RL intelligence operations
         // This will be implemented based on actual intelligence requirements
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<TradingDecision> GenerateDecisionAsync(MarketContext context, CancellationToken cancellationToken = default)
@@ -65,7 +65,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             _logger.LogInformation("Generating trading decision for {Symbol}", context.Symbol);
             
             // Simulate ML/RL decision making process
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             
             // Generate a more realistic trading decision based on market context
             var confidence = 0.6m + (decimal)(Random.Shared.NextDouble() * 0.3); // 0.6-0.9 range
@@ -144,7 +144,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     public async Task<ModelPerformance> GetModelPerformanceAsync(string modelId, CancellationToken cancellationToken = default)
     {
         // Simulate realistic model performance metrics from training/evaluation
-        await Task.Delay(50, cancellationToken);
+        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
         
         // Generate realistic performance metrics that would come from actual training
         var accuracy = 0.6 + (Random.Shared.NextDouble() * 0.2); // 0.6-0.8 range
@@ -183,7 +183,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
                 "generate_predictions" => await GeneratePredictionsActionAsync(context, cancellationToken),
                 "analyze_correlations" => await AnalyzeCorrelationsActionAsync(context, cancellationToken),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
-            };
+            }.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -207,7 +207,7 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
         };
         IntelligenceEvent?.Invoke(this, eventArgs);
         
-        await Task.Delay(100, cancellationToken); // Simulate ML processing
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate ML processing
         
         // Trigger completion event
         eventArgs = new IntelligenceEventArgs 
@@ -222,25 +222,25 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     public async Task UpdateRLTrainingAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Updating RL training...");
-        await Task.Delay(100, cancellationToken); // Simulate RL training
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate RL training
     }
 
     public async Task GeneratePredictionsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Generating predictions...");
-        await Task.Delay(100, cancellationToken); // Simulate prediction generation
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate prediction generation
     }
 
     public async Task AnalyzeCorrelationsAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Analyzing intermarket correlations...");
-        await Task.Delay(100, cancellationToken); // Simulate correlation analysis
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate correlation analysis
     }
 
     public async Task<bool> InitializeAsync(IntelligenceStackConfig config, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Initializing intelligence stack...");
-        await Task.Delay(100, cancellationToken); // Simulate initialization
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate initialization
         return true;
     }
 
@@ -256,26 +256,26 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
             TechnicalIndicators = context.TechnicalIndicators
         };
         
-        return await GenerateDecisionAsync(localContext, cancellationToken);
+        return await GenerateDecisionAsync(localContext, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<StartupValidationResult> RunStartupValidationAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Running startup validation...");
-        await Task.Delay(100, cancellationToken); // Simulate validation
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate validation
         return new StartupValidationResult { IsValid = true, ValidationErrors = new List<string>() };
     }
 
     public async Task ProcessMarketDataAsync(MarketData data, CancellationToken cancellationToken = default)
     {
         _logger.LogDebug("[INTELLIGENCE] Processing market data for {Symbol}", data.Symbol);
-        await Task.Delay(10, cancellationToken); // Simulate data processing
+        await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate data processing
     }
 
     public async Task PerformNightlyMaintenanceAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[INTELLIGENCE] Performing nightly maintenance...");
-        await Task.Delay(100, cancellationToken); // Simulate maintenance
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate maintenance
     }
 
     public bool IsTradingEnabled { get; private set; } = true;
@@ -285,25 +285,25 @@ public class IntelligenceOrchestratorService : BackgroundService, IIntelligenceO
     // Helper methods for workflow actions
     private async Task<WorkflowExecutionResult> RunMLModelsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await RunMLModelsAsync(context, cancellationToken);
+        await RunMLModelsAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "ML models executed successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> UpdateRLTrainingActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await UpdateRLTrainingAsync(context, cancellationToken);
+        await UpdateRLTrainingAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "RL training updated successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> GeneratePredictionsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await GeneratePredictionsAsync(context, cancellationToken);
+        await GeneratePredictionsAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Predictions generated successfully" } };
     }
 
     private async Task<WorkflowExecutionResult> AnalyzeCorrelationsActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await AnalyzeCorrelationsAsync(context, cancellationToken);
+        await AnalyzeCorrelationsAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Correlation analysis completed" } };
     }
 }

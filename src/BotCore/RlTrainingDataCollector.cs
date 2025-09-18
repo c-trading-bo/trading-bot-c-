@@ -234,7 +234,7 @@ namespace BotCore
                 
                 // Read all .jsonl files in the data directory
                 var dataFiles = Directory.GetFiles(DataPath, "*.jsonl");
-                var recordCount = 0;
+                var recordCount;
                 
                 foreach (var file in dataFiles)
                 {

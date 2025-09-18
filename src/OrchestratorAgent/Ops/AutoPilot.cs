@@ -25,35 +25,35 @@ namespace OrchestratorAgent.Ops
 
         public async Task RunAsync(CancellationToken ct)
         {
-            int okStreak = 0, badStreak = 0;
+            int okStreak = 0, badStreak;
             var startDry = DateTime.UtcNow;
 
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    var (ok, msg) = await _pf.RunAsync(_symbol, ct);
+                    var (ok, msg) = await _pf.RunAsync(_symbol, ct).ConfigureAwait(false);
 
-                    if (ok) { okStreak++; badStreak = 0; } else { badStreak++; okStreak = 0; }
+                    if (ok) { okStreak++; badStreak; } else { badStreak++; okStreak; }
 
                     if (!_mode.IsLive && DateTime.UtcNow - startDry >= _minDryRun && okStreak >= _minHealthy)
                     {
                         _mode.Set(TradeMode.Live);
-                        await _notify.Info($"PROMOTE → LIVE (okStreak={okStreak})");
+                        await _notify.Info($"PROMOTE → LIVE (okStreak={okStreak})").ConfigureAwait(false);
                     }
 
                     if (_mode.IsLive && badStreak >= _demoteOnUnhealthy)
                     {
                         _mode.Set(TradeMode.Shadow);
-                        await _notify.Warn($"DEMOTE → SHADOW (badStreak={badStreak}, last='{msg}')");
+                        await _notify.Warn($"DEMOTE → SHADOW (badStreak={badStreak}, last='{msg}')").ConfigureAwait(false);
                         startDry = DateTime.UtcNow;
-                        okStreak = 0; badStreak = 0;
+                        okStreak; badStreak;
                     }
                 }
                 catch (OperationCanceledException) { }
                 catch { }
 
-                try { await Task.Delay(1000, ct); } catch { }
+                try { await Task.Delay(1000, ct).ConfigureAwait(false); } catch { }
             }
         }
     }

@@ -52,14 +52,14 @@ namespace BotCore
                 TradesSeen++;
                 OnTrade?.Invoke(data);
             });
-            await _hub.StartAsync();
+            await _hub.StartAsync().ConfigureAwait(false);
             if (_hub.State != HubConnectionState.Connected)
             {
                 Console.WriteLine($"Market Hub connection state: {_hub.State}. Waiting for connection...");
-                int retries = 0;
+                int retries;
                 while (_hub.State != HubConnectionState.Connected && retries < 10)
                 {
-                    await Task.Delay(500);
+                    await Task.Delay(500).ConfigureAwait(false);
                     retries++;
                 }
                 if (_hub.State != HubConnectionState.Connected)
@@ -70,19 +70,19 @@ namespace BotCore
             }
             Console.WriteLine("Market Hub connected. Subscribing...");
             // Subscribe using both legacy and Contract* method names for compatibility
-            await _hub.SendAsync("SubscribeQuote", contractId);
-            await _hub.SendAsync("SubscribeContractQuotes", contractId);
+            await _hub.SendAsync("SubscribeQuote", contractId).ConfigureAwait(false);
+            await _hub.SendAsync("SubscribeContractQuotes", contractId).ConfigureAwait(false);
 
-            await _hub.SendAsync("SubscribeTrade", contractId);
-            await _hub.SendAsync("SubscribeContractTrades", contractId);
+            await _hub.SendAsync("SubscribeTrade", contractId).ConfigureAwait(false);
+            await _hub.SendAsync("SubscribeContractTrades", contractId).ConfigureAwait(false);
 
-            await _hub.SendAsync("SubscribeBars", contractId, barTf);
-            await _hub.SendAsync("SubscribeContractBars", contractId, barTf);
+            await _hub.SendAsync("SubscribeBars", contractId, barTf).ConfigureAwait(false);
+            await _hub.SendAsync("SubscribeContractBars", contractId, barTf).ConfigureAwait(false);
         }
 
         public async Task StopAsync()
         {
-            await _hub.DisposeAsync();
+            await _hub.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

@@ -17,9 +17,9 @@ namespace BotCore.Models
         public Levels()
         {
             // Initialize with default values
-            Support1 = Support2 = Support3 = 0m;
-            Resistance1 = Resistance2 = Resistance3 = 0m;
-            VWAP = DailyPivot = WeeklyPivot = MonthlyPivot = 0m;
+            Support1 = Support2 = Support3;
+            Resistance1 = Resistance2 = Resistance3;
+            VWAP = DailyPivot = WeeklyPivot = MonthlyPivot;
         }
         
         public bool IsValidLevel(decimal price)

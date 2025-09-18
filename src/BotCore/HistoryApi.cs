@@ -14,7 +14,7 @@ namespace BotCore
         public async Task<List<Bar>> GetMinuteBarsAsync(string symbol, long sinceUnixMs, long untilUnixMs, CancellationToken ct = default)
         {
             var path = $"/marketdata/bars?symbol={symbol}&tf=1m&since={sinceUnixMs}&until={untilUnixMs}";
-            var list = await _api.GetAsync<List<Bar>>(path, ct);
+            var list = await _api.GetAsync<List<Bar>>(path, ct).ConfigureAwait(false);
             return list ?? [];
         }
     }

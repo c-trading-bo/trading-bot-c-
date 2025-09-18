@@ -28,7 +28,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
     private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, ComponentInfo> _discoveredComponents = new();
     private readonly object _discoveryLock = new object();
-    private bool _hasPerformedDiscovery = false;
+    private bool _hasPerformedDiscovery;
 
     // Parameterless constructor for auto-discovery
     public UniversalAutoDiscoveryHealthCheck() : this(null, null) { }
@@ -53,7 +53,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
             // Perform component discovery if not done yet
             if (!_hasPerformedDiscovery)
             {
-                await PerformUniversalDiscoveryAsync();
+                await PerformUniversalDiscoveryAsync().ConfigureAwait(false);
             }
 
             var healthResults = new List<(string Component, bool IsHealthy, string Message, string Category)>();
@@ -61,7 +61,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
             // Check all discovered components
             foreach (var (componentName, componentInfo) in _discoveredComponents)
             {
-                var healthCheck = await CheckComponentHealthAsync(componentName, componentInfo);
+                var healthCheck = await CheckComponentHealthAsync(componentName, componentInfo).ConfigureAwait(false);
                 healthResults.Add((componentName, healthCheck.IsHealthy, healthCheck.Message, componentInfo.Category));
             }
 
@@ -140,7 +140,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
                 string.Join(", ", components.Keys.Take(10)));
         }
 
-        await Task.Delay(1); // Satisfy async requirement
+        await Task.Delay(1).ConfigureAwait(false); // Satisfy async requirement
     }
 
     private void DiscoverFromAssemblies(Dictionary<string, ComponentInfo> components)
@@ -621,7 +621,7 @@ public class UniversalAutoDiscoveryHealthCheck : IHealthCheck
         {
             if (componentInfo.HealthCheckMethod != null)
             {
-                return await Task.FromResult(componentInfo.HealthCheckMethod.Invoke());
+                return await Task.FromResult(componentInfo.HealthCheckMethod.Invoke()).ConfigureAwait(false);
             }
 
             // Default health check based on component type

@@ -12,7 +12,7 @@ namespace UnifiedOrchestrator.Services
 {
     public class CloudFlowOptions
     {
-        public bool Enabled { get; set; } = false;
+        public bool Enabled { get; set; }
         public string CloudEndpoint { get; set; } = "";
         public string InstanceId { get; set; } = "";
         public int TimeoutSeconds { get; set; } = 30;
@@ -69,7 +69,7 @@ namespace UnifiedOrchestrator.Services
 
                 _logger.LogDebug("Pushing trade record {TradeId} to cloud endpoint", tradeRecord.TradeId);
                 
-                var response = await _httpClient.PostAsync(_options.CloudEndpoint, content, cancellationToken);
+                var response = await _httpClient.PostAsync(_options.CloudEndpoint, content, cancellationToken).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {

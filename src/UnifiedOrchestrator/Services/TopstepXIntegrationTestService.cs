@@ -20,7 +20,7 @@ public class TopstepXIntegrationTestService : BackgroundService
     private readonly ILogger<TopstepXIntegrationTestService> _logger;
     private readonly ITopstepXAdapterService _adapterService;
     private readonly bool _runTests;
-    private bool _testsCompleted = false;
+    private bool _testsCompleted;
 
     public TopstepXIntegrationTestService(
         ILogger<TopstepXIntegrationTestService> logger,
@@ -40,13 +40,13 @@ public class TopstepXIntegrationTestService : BackgroundService
         }
 
         // Wait for system to initialize
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
 
         try
         {
             _logger.LogInformation("🧪 Starting TopstepX SDK Integration Tests...");
             
-            await RunAllIntegrationTestsAsync(stoppingToken);
+            await RunAllIntegrationTestsAsync(stoppingToken).ConfigureAwait(false);
             
             _testsCompleted = true;
             _logger.LogInformation("✅ All TopstepX integration tests completed successfully!");
@@ -63,19 +63,19 @@ public class TopstepXIntegrationTestService : BackgroundService
     private async Task RunAllIntegrationTestsAsync(CancellationToken cancellationToken)
     {
         // Test 1: Connection Test
-        await RunConnectionTestAsync(cancellationToken);
+        await RunConnectionTestAsync(cancellationToken).ConfigureAwait(false);
         
         // Test 2: Order Test  
-        await RunOrderTestAsync(cancellationToken);
+        await RunOrderTestAsync(cancellationToken).ConfigureAwait(false);
         
         // Test 3: Risk Test
-        await RunRiskTestAsync(cancellationToken);
+        await RunRiskTestAsync(cancellationToken).ConfigureAwait(false);
         
         // Test 4: Health Test
-        await RunHealthTestAsync(cancellationToken);
+        await RunHealthTestAsync(cancellationToken).ConfigureAwait(false);
         
         // Test 5: Multi-Instrument Test
-        await RunMultiInstrumentTestAsync(cancellationToken);
+        await RunMultiInstrumentTestAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             
             foreach (var instrument in instruments)
             {
-                var price = await _adapterService.GetPriceAsync(instrument, cancellationToken);
+                var price = await _adapterService.GetPriceAsync(instrument, cancellationToken).ConfigureAwait(false);
                 
                 if (price <= 0)
                 {
@@ -109,7 +109,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             }
             
             // Verify health score
-            var health = await _adapterService.GetHealthScoreAsync(cancellationToken);
+            var health = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             if (health.HealthScore < 80)
             {
                 throw new InvalidOperationException($"Health score too low: {health.HealthScore}%");
@@ -134,7 +134,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         try
         {
             // Get current price for MNQ
-            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken);
+            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
             
             // Place bracket order with proper stop/target levels
             var stopLoss = currentPrice - 10m;
@@ -145,7 +145,7 @@ public class TopstepXIntegrationTestService : BackgroundService
                 size: 1,
                 stopLoss: stopLoss,
                 takeProfit: takeProfit,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
                 
             if (!orderResult.Success)
             {
@@ -187,7 +187,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         
         try
         {
-            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken);
+            var currentPrice = await _adapterService.GetPriceAsync("MNQ", cancellationToken).ConfigureAwait(false);
             
             // Attempt to place an oversized order that should be blocked by risk management
             var oversizeOrder = await _adapterService.PlaceOrderAsync(
@@ -195,7 +195,7 @@ public class TopstepXIntegrationTestService : BackgroundService
                 size: 1000, // Extremely large size to trigger risk limits
                 stopLoss: currentPrice - 10m,
                 takeProfit: currentPrice + 15m,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
                 
             // The order should either fail or be reduced by risk management
             if (oversizeOrder.Success && oversizeOrder.Size == 1000)
@@ -231,7 +231,7 @@ public class TopstepXIntegrationTestService : BackgroundService
         try
         {
             // Get baseline health
-            var initialHealth = await _adapterService.GetHealthScoreAsync(cancellationToken);
+            var initialHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Initial health score: {HealthScore}% - Status: {Status}", 
                 initialHealth.HealthScore, initialHealth.Status);
             
@@ -260,9 +260,9 @@ public class TopstepXIntegrationTestService : BackgroundService
             }
             
             // Monitor health over time
-            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+            await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             
-            var followUpHealth = await _adapterService.GetHealthScoreAsync(cancellationToken);
+            var followUpHealth = await _adapterService.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Follow-up health score: {HealthScore}%", followUpHealth.HealthScore);
             
             _logger.LogInformation("✅ Health Test PASSED - Health monitoring functioning correctly");
@@ -287,7 +287,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             var priceTask1 = _adapterService.GetPriceAsync("MNQ", cancellationToken);
             var priceTask2 = _adapterService.GetPriceAsync("ES", cancellationToken);
             
-            var prices = await Task.WhenAll(priceTask1, priceTask2);
+            var prices = await Task.WhenAll(priceTask1, priceTask2).ConfigureAwait(false);
             var mnqPrice = prices[0];
             var esPrice = prices[1];
             
@@ -299,7 +299,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             var order2Task = _adapterService.PlaceOrderAsync(
                 "ES", 1, esPrice - 5m, esPrice + 10m, cancellationToken);
                 
-            var orders = await Task.WhenAll(order1Task, order2Task);
+            var orders = await Task.WhenAll(order1Task, order2Task).ConfigureAwait(false);
             var mnqOrder = orders[0];
             var esOrder = orders[1];
             
@@ -323,7 +323,7 @@ public class TopstepXIntegrationTestService : BackgroundService
             }
             
             // Test concurrent portfolio status
-            var portfolioStatus = await _adapterService.GetPortfolioStatusAsync(cancellationToken);
+            var portfolioStatus = await _adapterService.GetPortfolioStatusAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Portfolio status retrieved - {PositionCount} positions", portfolioStatus.Positions.Count);
             
             _logger.LogInformation("✅ Multi-Instrument Test PASSED - No thread contention detected");

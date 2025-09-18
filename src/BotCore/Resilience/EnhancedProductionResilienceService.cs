@@ -129,8 +129,8 @@ public class EnhancedProductionResilienceService
         
         return await policy.ExecuteAsync(async (ct) =>
         {
-            _logger.LogDebug("🔧 [RESILIENCE] Executing {Operation} with resilience protection", operationName);
-            return await operation(ct);
+            _logger.LogDebug("🔧 [RESILIENCE] Executing {Operation} with resilience protection", operationName).ConfigureAwait(false);
+            return await operation(ct).ConfigureAwait(false);
         }, cancellationToken);
     }
 
@@ -146,8 +146,8 @@ public class EnhancedProductionResilienceService
         
         return await policy.ExecuteAsync(async (ct) =>
         {
-            _logger.LogDebug("🌐 [RESILIENCE] Executing HTTP {Operation} with full resilience stack", operationName);
-            return await httpOperation(ct);
+            _logger.LogDebug("🌐 [RESILIENCE] Executing HTTP {Operation} with full resilience stack", operationName).ConfigureAwait(false);
+            return await httpOperation(ct).ConfigureAwait(false);
         }, cancellationToken);
     }
 
@@ -327,7 +327,7 @@ public abstract class ResilientBackgroundService : BackgroundService
 
         try
         {
-            await ExecuteServiceAsync(stoppingToken);
+            await ExecuteServiceAsync(stoppingToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -360,7 +360,7 @@ public abstract class ResilientBackgroundService : BackgroundService
     {
         try
         {
-            await operation(cancellationToken);
+            await operation(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

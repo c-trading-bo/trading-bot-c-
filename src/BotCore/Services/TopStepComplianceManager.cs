@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -34,11 +35,11 @@ public class TopStepComplianceManager
     private readonly string[] ApprovedContracts = { "ES", "NQ" };
     
     // Account state tracking
-    private decimal _currentDrawdown = 0m;
-    private decimal _todayPnL = 0m;
+    private decimal _currentDrawdown;
+    private decimal _todayPnL;
     private decimal _accountBalance = 50000m; // Starting balance
     private DateTime _lastResetDate = DateTime.Today;
-    private int _tradingDaysCompleted = 0;
+    private int _tradingDaysCompleted;
     private readonly object _stateLock = new();
     
     public TopStepComplianceManager(ILogger logger, IOptions<AutonomousConfig> config)
@@ -55,7 +56,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task<bool> CanTradeAsync(decimal currentPnL, decimal accountBalance, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_stateLock)
         {
@@ -131,7 +132,7 @@ public class TopStepComplianceManager
             var remainingRisk = Math.Min(remainingDailyRisk, remainingDrawdownRisk);
             
             // Calculate maximum position size based on stop distance
-            decimal maxPositionSize = 0m;
+            decimal maxPositionSize;
             if (stopDistance > 0)
             {
                 maxPositionSize = remainingRisk / stopDistance;
@@ -152,7 +153,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task RecordTradeResultAsync(string symbol, decimal pnl, DateTime tradeTime, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_stateLock)
         {
@@ -167,12 +168,12 @@ public class TopStepComplianceManager
             if (tradeTime.Date != _lastResetDate)
             {
                 // New trading day - reset daily P&L
-                _todayPnL = 0m;
+                _todayPnL;
                 _lastResetDate = tradeTime.Date;
                 _tradingDaysCompleted++;
                 
                 _logger.LogInformation("📅 [TOPSTEP-COMPLIANCE] New trading day: {Date}, Days completed: {Days}",
-                    tradeTime.Date.ToString("yyyy-MM-dd"), _tradingDaysCompleted);
+                    tradeTime.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), _tradingDaysCompleted);
             }
             
             _todayPnL += pnl;
@@ -188,7 +189,7 @@ public class TopStepComplianceManager
         }
         
         // Check for compliance violations outside the lock
-        await CheckComplianceViolationsAsync(cancellationToken);
+        await CheckComplianceViolationsAsync(cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -253,7 +254,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task<ComplianceReport> GenerateComplianceReportAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var status = GetComplianceStatus();
         var profitTarget = GetProfitTarget();
@@ -280,12 +281,12 @@ public class TopStepComplianceManager
         var today = DateTime.Today;
         if (_lastResetDate != today)
         {
-            _todayPnL = 0m;
+            _todayPnL;
             _lastResetDate = today;
             _tradingDaysCompleted++;
             
             _logger.LogInformation("📅 [TOPSTEP-COMPLIANCE] Daily reset: {Date}, Trading days: {Days}",
-                today.ToString("yyyy-MM-dd"), _tradingDaysCompleted);
+                today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), _tradingDaysCompleted);
         }
         
         _todayPnL = currentPnL;
@@ -325,7 +326,7 @@ public class TopStepComplianceManager
                 _currentDrawdown);
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private int GetMinimumTradingDays()
@@ -412,5 +413,5 @@ public class ComplianceReport
     public decimal ProgressToTarget { get; set; }
     public bool IsOnTrack { get; set; }
     public int MinimumDaysRemaining { get; set; }
-    public List<string> Recommendations { get; set; } = new();
+    public List<string> Recommendations { get; } = new();
 }

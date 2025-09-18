@@ -51,9 +51,9 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         _reconciliationTimer = new Timer(PerformReconciliation, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         // Initialize monitoring components
-        await _healthMonitor.InitializeAsync();
-        await _topstepXAdapterMonitor.InitializeAsync(_serviceProvider);
-        await _apiHealthMonitor.InitializeAsync(_serviceProvider);
+        await _healthMonitor.InitializeAsync().ConfigureAwait(false);
+        await _topstepXAdapterMonitor.InitializeAsync(_serviceProvider).ConfigureAwait(false);
+        await _apiHealthMonitor.InitializeAsync(_serviceProvider).ConfigureAwait(false);
 
         _logger.LogInformation("✅ [OBSERVABILITY] Production observability monitoring started");
     }
@@ -65,9 +65,9 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         _monitoringTimer?.Dispose();
         _reconciliationTimer?.Dispose();
 
-        await _healthMonitor.StopAsync();
-        await _signalRMonitor.StopAsync();
-        await _apiHealthMonitor.StopAsync();
+        await _healthMonitor.StopAsync().ConfigureAwait(false);
+        await _signalRMonitor.StopAsync().ConfigureAwait(false);
+        await _apiHealthMonitor.StopAsync().ConfigureAwait(false);
 
         _logger.LogInformation("✅ [OBSERVABILITY] Observability monitoring stopped");
     }
@@ -91,7 +91,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
 
     public async Task<ProductionPerformanceMetrics> GetMetricsAsync()
     {
-        return await _performanceCounter.GetMetricsAsync();
+        return await _performanceCounter.GetMetricsAsync().ConfigureAwait(false);
     }
 
     private async void PerformHealthChecks(object? state)
@@ -101,21 +101,21 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
             _logger.LogDebug("🔍 [HEALTH-CHECK] Performing comprehensive health checks...");
 
             // Check TopstepX adapter health
-            var adapterHealth = await _topstepXAdapterMonitor.CheckHealthAsync();
+            var adapterHealth = await _topstepXAdapterMonitor.CheckHealthAsync().ConfigureAwait(false);
             if (!adapterHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] TopstepX adapter unhealthy: {Reason}", adapterHealth.Reason);
             }
 
             // Check API health
-            var apiHealth = await _apiHealthMonitor.CheckHealthAsync();
+            var apiHealth = await _apiHealthMonitor.CheckHealthAsync().ConfigureAwait(false);
             if (!apiHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] API health check failed: {Reason}", apiHealth.Reason);
             }
 
             // Check system health
-            var systemHealth = await _healthMonitor.CheckSystemHealthAsync();
+            var systemHealth = await _healthMonitor.CheckSystemHealthAsync().ConfigureAwait(false);
             if (!systemHealth.IsHealthy)
             {
                 _logger.LogError("❌ [HEALTH-CHECK] System health check failed: {Reason}", systemHealth.Reason);
@@ -145,7 +145,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
             _logger.LogDebug("🔄 [RECONCILIATION] Performing periodic REST reconciliation...");
 
             // Perform portfolio reconciliation via TopstepX adapter
-            await _topstepXAdapterMonitor.PerformReconciliationAsync();
+            await _topstepXAdapterMonitor.PerformReconciliationAsync().ConfigureAwait(false);
 
             _logger.LogDebug("✅ [RECONCILIATION] Periodic reconciliation completed");
         }
@@ -192,7 +192,7 @@ public class TopstepXAdapterMonitor
             _logger.LogError(ex, "❌ [TOPSTEPX-MONITOR] Failed to initialize TopstepX adapter monitor");
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<HealthStatus> CheckHealthAsync()
@@ -213,7 +213,7 @@ public class TopstepXAdapterMonitor
             }
 
             // Get detailed health metrics from adapter
-            var healthResult = await _topstepXAdapter.GetHealthScoreAsync();
+            var healthResult = await _topstepXAdapter.GetHealthScoreAsync().ConfigureAwait(false);
             
             if (healthResult.HealthScore < 80)
             {
@@ -240,7 +240,7 @@ public class TopstepXAdapterMonitor
             }
 
             // Get portfolio status for reconciliation
-            var portfolioStatus = await _topstepXAdapter.GetPortfolioStatusAsync();
+            var portfolioStatus = await _topstepXAdapter.GetPortfolioStatusAsync().ConfigureAwait(false);
             
             _logger.LogInformation("🔄 [TOPSTEPX-RECONCILIATION] Portfolio reconciliation completed since {LastReconciliation}", 
                 _lastReconciliation);
@@ -312,7 +312,7 @@ public class TopstepXAdapterMonitor
     // Legacy methods removed - now handled by TopstepX SDK adapter
     private async Task<int> GetPositionCountAsync(object accountService)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         return 0; // Legacy method - position tracking now via TopstepX SDK adapter
     }
 
@@ -321,13 +321,13 @@ public class TopstepXAdapterMonitor
     /// </summary>
     private async Task<int> GetActiveOrderCountAsync(object orderService)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         return 0; // Legacy method - order tracking now via TopstepX SDK adapter
     }
 
     public async Task StopAsync()
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public void RecordEvent(string eventType)
@@ -353,7 +353,7 @@ public class ApiHealthMonitor
     public async Task InitializeAsync(IServiceProvider serviceProvider)
     {
         _logger.LogInformation("✅ [API-MONITOR] API health monitor initialized");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<HealthStatus> CheckHealthAsync()
@@ -364,7 +364,7 @@ public class ApiHealthMonitor
             
             // Test API connectivity
             var stopwatch = Stopwatch.StartNew();
-            var response = await _httpClient.GetAsync($"{apiBaseUrl}/health", CancellationToken.None);
+            var response = await _httpClient.GetAsync($"{apiBaseUrl}/health", CancellationToken.None).ConfigureAwait(false);
             stopwatch.Stop();
 
             var isHealthy = response.IsSuccessStatusCode;
@@ -391,7 +391,7 @@ public class ApiHealthMonitor
     public async Task StopAsync()
     {
         _httpClient.Dispose();
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
 
@@ -410,7 +410,7 @@ public class HealthMonitor
     public async Task InitializeAsync()
     {
         _logger.LogInformation("✅ [SYSTEM-MONITOR] System health monitor initialized");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<HealthStatus> CheckSystemHealthAsync()
@@ -418,7 +418,7 @@ public class HealthMonitor
         try
         {
             // Ensure async execution
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
             
             // Check memory usage
             var memoryUsage = GC.GetTotalMemory(false);
@@ -454,7 +454,7 @@ public class HealthMonitor
 
     public async Task StopAsync()
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
 
@@ -493,7 +493,7 @@ public class PerformanceCounter
 
     public async Task<ProductionPerformanceMetrics> GetMetricsAsync()
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
 
         var metrics = new ProductionPerformanceMetrics();
 

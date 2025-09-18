@@ -117,7 +117,7 @@ public class ProductionHealthCheckEndpoint : IHealthCheckEndpoint
     {
         try
         {
-            var report = await _healthCheckService.CheckHealthAsync();
+            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false);
             return new HealthCheckResult(
                 report.Status,
                 $"Overall status: {report.Status}",
@@ -141,7 +141,7 @@ public class ProductionHealthCheckEndpoint : IHealthCheckEndpoint
     {
         try
         {
-            var report = await _healthCheckService.CheckHealthAsync();
+            var report = await _healthCheckService.CheckHealthAsync().ConfigureAwait(false);
             var result = new
             {
                 status = report.Status.ToString(),
@@ -201,7 +201,7 @@ public class TopstepXApiHealthCheck : IHealthCheck
             // Check API endpoint availability
             using var response = await _httpClient.GetAsync(
                 $"{_config.Value.ApiBaseUrl}/api/health", 
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false);
 
             stopwatch.Stop();
 
@@ -271,8 +271,8 @@ public class TopstepXSignalRHealthCheck : IHealthCheck
             using var httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(10);
 
-            var userHubCheck = await CheckEndpoint(httpClient, _config.Value.UserHubUrl, cancellationToken);
-            var marketHubCheck = await CheckEndpoint(httpClient, _config.Value.MarketHubUrl, cancellationToken);
+            var userHubCheck = await CheckEndpoint(httpClient, _config.Value.UserHubUrl, cancellationToken).ConfigureAwait(false);
+            var marketHubCheck = await CheckEndpoint(httpClient, _config.Value.MarketHubUrl, cancellationToken).ConfigureAwait(false);
 
             var data = new Dictionary<string, object>
             {
@@ -307,7 +307,7 @@ public class TopstepXSignalRHealthCheck : IHealthCheck
     {
         try
         {
-            using var response = await httpClient.GetAsync(url, cancellationToken);
+            using var response = await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
             return (response.IsSuccessStatusCode, $"Status: {response.StatusCode}");
         }
         catch (Exception ex)
@@ -352,10 +352,10 @@ public class DatabaseHealthCheck : IHealthCheck
 
                 // Test database connectivity
                 using var connection = new System.Data.SQLite.SQLiteConnection($"Data Source={dbPath}");
-                await connection.OpenAsync(cancellationToken);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
                 using var command = connection.CreateCommand();
                 command.CommandText = "SELECT 1";
-                await command.ExecuteScalarAsync(cancellationToken);
+                await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
 
                 return HealthCheckResult.Healthy("Database accessible", data);
             }
@@ -504,8 +504,8 @@ public class MLModelHealthCheck : IHealthCheck
         try
         {
             var modelDirectory = Path.Combine(Directory.GetCurrentDirectory(), "models");
-            var modelsFound = 0;
-            var modelsLoaded = 0;
+            var modelsFound;
+            var modelsLoaded;
 
             var data = new Dictionary<string, object>
             {
@@ -680,7 +680,7 @@ public class SecurityHealthCheck : IHealthCheck
 
             // Check file permissions on sensitive files
             var sensitiveFiles = new[] { "appsettings.json", "appsettings.Production.json", ".env" };
-            var secureFiles = 0;
+            var secureFiles;
             
             foreach (var file in sensitiveFiles)
             {
@@ -737,7 +737,7 @@ public class HealthCheckPublisherService : BackgroundService
         {
             try
             {
-                var report = await _healthCheckService.CheckHealthAsync(stoppingToken);
+                var report = await _healthCheckService.CheckHealthAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Log health status
                 var status = report.Status switch
@@ -768,7 +768,7 @@ public class HealthCheckPublisherService : BackgroundService
                     }
                 }
 
-                await Task.Delay(_config.Value.IntervalMs, stoppingToken);
+                await Task.Delay(_config.Value.IntervalMs, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -778,7 +778,7 @@ public class HealthCheckPublisherService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [HEALTH] Health check publisher error");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
             }
         }
     }

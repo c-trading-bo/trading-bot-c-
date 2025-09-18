@@ -48,16 +48,16 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             var correlationId = Guid.NewGuid().ToString("N")[..8];
             
             // Check volatility circuit breaker
-            await CheckVolatilityCircuitBreakerAsync(context, correlationId);
+            await CheckVolatilityCircuitBreakerAsync(context, correlationId).ConfigureAwait(false);
             
             // Check gap circuit breaker
-            await CheckGapCircuitBreakerAsync(context, correlationId);
+            await CheckGapCircuitBreakerAsync(context, correlationId).ConfigureAwait(false);
             
             // Check error threshold circuit breaker
-            await CheckErrorThresholdCircuitBreakerAsync(correlationId);
+            await CheckErrorThresholdCircuitBreakerAsync(correlationId).ConfigureAwait(false);
             
             // Check time-based circuit breakers
-            await CheckTimeBasedCircuitBreakersAsync(correlationId);
+            await CheckTimeBasedCircuitBreakersAsync(correlationId).ConfigureAwait(false);
 
             return !IsTradingSuspended;
         }
@@ -65,7 +65,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
         {
             _logger.LogError(ex, "[CIRCUIT_BREAKER] Error checking circuit breakers");
             // Default to safe state - suspend trading on errors
-            await ForceCircuitBreakerAsync("ERROR_CHECKING_CIRCUIT_BREAKERS", TimeSpan.FromMinutes(5));
+            await ForceCircuitBreakerAsync("ERROR_CHECKING_CIRCUIT_BREAKERS", TimeSpan.FromMinutes(5)).ConfigureAwait(false);
             return false;
         }
     }
@@ -98,7 +98,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task ForceCircuitBreakerAsync(string reason, TimeSpan duration)
@@ -132,7 +132,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             reason, duration);
         
         OnCircuitBreakerTriggered.Invoke(triggerEvent);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void InitializeCircuitBreakers()
@@ -164,13 +164,13 @@ public class CircuitBreakerManager : ICircuitBreakerManager
                         ["threshold"] = _config.VolatilityThreshold,
                         ["symbol"] = context.Symbol,
                         ["price"] = context.Price
-                    });
+                    }).ConfigureAwait(false);
             }
         }
         else if (volatilityBreaker.IsTriggered && 
                  DateTime.UtcNow > volatilityBreaker.ResetTime)
         {
-            await ResetCircuitBreakerAsync(volatilityBreaker, "Volatility normalized", correlationId);
+            await ResetCircuitBreakerAsync(volatilityBreaker, "Volatility normalized", correlationId).ConfigureAwait(false);
         }
     }
 
@@ -195,13 +195,13 @@ public class CircuitBreakerManager : ICircuitBreakerManager
                         ["normal_spread"] = normalSpread,
                         ["gap_multiplier"] = _config.GapMultiplier,
                         ["symbol"] = context.Symbol
-                    });
+                    }).ConfigureAwait(false);
             }
         }
         else if (gapBreaker.IsTriggered && 
                  DateTime.UtcNow > gapBreaker.ResetTime)
         {
-            await ResetCircuitBreakerAsync(gapBreaker, "Spread normalized", correlationId);
+            await ResetCircuitBreakerAsync(gapBreaker, "Spread normalized", correlationId).ConfigureAwait(false);
         }
     }
 
@@ -214,7 +214,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
         if (errorBreaker.IsTriggered && 
             DateTime.UtcNow > errorBreaker.ResetTime)
         {
-            await ResetCircuitBreakerAsync(errorBreaker, "Error threshold timeout", correlationId);
+            await ResetCircuitBreakerAsync(errorBreaker, "Error threshold timeout", correlationId).ConfigureAwait(false);
         }
     }
 
@@ -243,12 +243,12 @@ public class CircuitBreakerManager : ICircuitBreakerManager
                         ["market_open"] = marketOpen,
                         ["eastern_time"] = easternTime,
                         ["suspend_period"] = "5_minutes_around_open"
-                    });
+                    }).ConfigureAwait(false);
             }
         }
         else if (marketOpenBreaker.IsTriggered)
         {
-            await ResetCircuitBreakerAsync(marketOpenBreaker, "Market open period ended", correlationId);
+            await ResetCircuitBreakerAsync(marketOpenBreaker, "Market open period ended", correlationId).ConfigureAwait(false);
         }
     }
 
@@ -281,7 +281,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             breaker.Type, reason, correlationId);
         
         OnCircuitBreakerTriggered.Invoke(triggerEvent);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task ResetCircuitBreakerAsync(
@@ -307,7 +307,7 @@ public class CircuitBreakerManager : ICircuitBreakerManager
             breaker.Type, reason, correlationId);
         
         OnCircuitBreakerReset.Invoke(resetEvent);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
 
@@ -322,7 +322,7 @@ public class CircuitBreakerState
 
     public void Reset()
     {
-        IsTriggered = false;
+        IsTriggered;
         ResetTime = DateTime.MinValue;
         LastTriggerReason = string.Empty;
     }
@@ -335,7 +335,7 @@ public class CircuitBreakerEvent
     public string Reason { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class CircuitBreakerConfig

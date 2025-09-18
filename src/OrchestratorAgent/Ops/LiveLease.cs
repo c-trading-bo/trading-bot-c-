@@ -27,8 +27,8 @@ namespace OrchestratorAgent.Ops
                 _stream = new FileStream(_path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 var bytes = Encoding.UTF8.GetBytes(HolderId);
                 _stream.SetLength(0);
-                await _stream.WriteAsync(bytes);
-                await _stream.FlushAsync();
+                await _stream.WriteAsync(bytes).ConfigureAwait(false);
+                await _stream.FlushAsync().ConfigureAwait(false);
                 return true;
             }
             catch (IOException) { return false; } // held by another process
@@ -37,11 +37,11 @@ namespace OrchestratorAgent.Ops
         public async Task ReleaseAsync()
         {
             if (_stream is null) return;
-            try { await _stream.FlushAsync(); } catch { /* ignore */ }
+            try { await _stream.FlushAsync().ConfigureAwait(false); } catch { /* ignore */ }
             _stream.Dispose(); _stream = null!;
             try { File.Delete(_path); } catch { /* ignore */ }
         }
 
-        public async ValueTask DisposeAsync() => await ReleaseAsync();
+        public async ValueTask DisposeAsync() => await ReleaseAsync().ConfigureAwait(false);
     }
 }

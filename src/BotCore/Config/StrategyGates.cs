@@ -33,7 +33,7 @@ public static class StrategyGates
         {
             var dir = Math.Sign(z);
             var bias = Math.Sign((double)snap.Bias);
-            if (dir != 0 && bias != 0 && dir != bias) ok = false;
+            if (dir != 0 && bias != 0 && dir != bias) ok;
         }
         return ok;
     }

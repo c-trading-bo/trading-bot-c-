@@ -175,17 +175,17 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
                 operationName, correlationId);
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<LatencyMetrics> GetLatencyMetricsAsync(string operationName)
     {
         if (_latencyTrackers.TryGetValue(operationName, out var tracker))
         {
-            return await Task.FromResult(tracker.GetMetrics());
+            return await Task.FromResult(tracker.GetMetrics()).ConfigureAwait(false);
         }
 
-        return await Task.FromResult(new LatencyMetrics { OperationName = operationName });
+        return await Task.FromResult(new LatencyMetrics { OperationName = operationName }).ConfigureAwait(false);
     }
 
     public async Task SendToDeadLetterQueueAsync<T>(T item, string reason, string? correlationId = null)
@@ -226,7 +226,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
                 correlationId);
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<List<DeadLetterItem>> GetDeadLetterItemsAsync(string? queueName = null)
@@ -257,7 +257,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
             _logger.LogError(ex, "[OBSERVABILITY] Error retrieving dead letter items for queue: {QueueName}", queueName);
         }
 
-        return await Task.FromResult(items);
+        return await Task.FromResult(items).ConfigureAwait(false);
     }
 
     public async Task ProcessGracefulShutdownAsync(CancellationToken cancellationToken)
@@ -283,7 +283,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
 
             try
             {
-                await Task.WhenAll(shutdownTasks).WaitAsync(timeoutCts.Token);
+                await Task.WhenAll(shutdownTasks).WaitAsync(timeoutCts.Token).ConfigureAwait(false);
                 _logger.LogInformation("[OBSERVABILITY] All shutdown hooks completed successfully [CorrelationId: {CorrelationId}]", correlationId);
             }
             catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested)
@@ -292,7 +292,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
             }
 
             // Final cleanup
-            await FlushPendingOperationsAsync(correlationId);
+            await FlushPendingOperationsAsync(correlationId).ConfigureAwait(false);
             
             _logger.LogInformation("[OBSERVABILITY] Graceful shutdown completed [CorrelationId: {CorrelationId}]", correlationId);
         }
@@ -311,20 +311,20 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         }
         
         _logger.LogDebug("[OBSERVABILITY] Shutdown hook registered: {HookCount} total hooks", _shutdownHooks.Count);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _metricsTimer.Change(TimeSpan.Zero, _config.MetricsCollectionInterval);
         _logger.LogInformation("[OBSERVABILITY] Started with instance ID: {InstanceId}", _instanceId);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _metricsTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        await ProcessGracefulShutdownAsync(cancellationToken);
+        await ProcessGracefulShutdownAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("[OBSERVABILITY] Stopped");
     }
 
@@ -333,7 +333,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         try
         {
             var stopwatch = Stopwatch.StartNew();
-            await hook(cancellationToken);
+            await hook(cancellationToken).ConfigureAwait(false);
             stopwatch.Stop();
             
             _logger.LogDebug("[OBSERVABILITY] Shutdown hook completed in {ElapsedMs}ms [CorrelationId: {CorrelationId}]", 
@@ -353,7 +353,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
             _logger.LogDebug("[OBSERVABILITY] Flushing pending operations [CorrelationId: {CorrelationId}]", correlationId);
             
             // Collect final metrics
-            await GetResourceMetricsAsync();
+            await GetResourceMetricsAsync().ConfigureAwait(false);
             
             // Log final dead letter queue status
             var totalDeadLetterItems = _deadLetterQueues.Values.Sum(q => q.Count);
@@ -363,7 +363,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
                     totalDeadLetterItems, correlationId);
             }
             
-            await Task.Delay(100, CancellationToken.None); // Brief pause for log flushing
+            await Task.Delay(100, CancellationToken.None).ConfigureAwait(false); // Brief pause for log flushing
         }
         catch (Exception ex)
         {
@@ -377,7 +377,7 @@ public class ObservabilityManager : IObservabilityManager, IHostedService
         {
             _ = Task.Run(async () =>
             {
-                var metrics = await GetResourceMetricsAsync();
+                var metrics = await GetResourceMetricsAsync().ConfigureAwait(false);
                 OnResourceMetricsUpdated.Invoke(metrics);
                 
                 // Check for resource alerts

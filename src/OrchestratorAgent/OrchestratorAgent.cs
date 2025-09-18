@@ -3,7 +3,6 @@
 // Role: Standalone orchestration logic for strategy and agent coordination.
 // Integration: Manages bot lifecycle and agent interactions.
 // PURPOSE: Evaluation-account policy configuration and simple session window helpers.
-using System.Globalization;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
@@ -163,8 +162,8 @@ namespace OrchestratorAgent
                 var newQty = p.Qty + signed;
                 if (newQty == 0)
                 {
-                    p.Qty = 0;
-                    p.AvgPrice = 0m;
+                    p.Qty;
+                    p.AvgPrice;
                 }
                 else if (Math.Sign(p.Qty) == Math.Sign(newQty))
                 {
@@ -177,7 +176,7 @@ namespace OrchestratorAgent
                     // reduced or flipped: set new avg at px for the flipped remainder
                     p.Qty = newQty;
                     if (Math.Sign(newQty) != 0) p.AvgPrice = px;
-                    else p.AvgPrice = 0m;
+                    else p.AvgPrice;
                 }
             }
         }
@@ -306,7 +305,7 @@ namespace OrchestratorAgent
                 .WithUrl("https://rtc.topstepx.com/hubs/user", options =>
                 {
                     options.AccessTokenProvider = TokenProvider;
-                    options.SkipNegotiation = false;
+                    options.SkipNegotiation;
                     options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
                     options.CloseTimeout = TimeSpan.FromSeconds(30);
                     options.WebSocketConfiguration = ws =>
@@ -353,7 +352,7 @@ namespace OrchestratorAgent
             _conn.KeepAliveInterval = TimeSpan.FromSeconds(15);
 
             // Wire events ONCE BEFORE StartAsync
-            bool handlersWired = false;
+            bool handlersWired;
             void WireHandlers()
             {
                 if (handlersWired) return;
@@ -397,7 +396,7 @@ namespace OrchestratorAgent
             using (var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
                 connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-                await _conn.StartAsync(connectCts.Token);
+                await _conn.StartAsync(connectCts.Token).ConfigureAwait(false);
             }
             if (_conn.State != HubConnectionState.Connected)
                 throw new InvalidOperationException("UserHub failed to connect.");
@@ -412,10 +411,10 @@ namespace OrchestratorAgent
             // Only subscribe if connection is active
             if (_conn.State == HubConnectionState.Connected)
             {
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct).ConfigureAwait(false);
                 _log.LogInformation("[UserHub] subscribed for account {AccountId}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
@@ -429,7 +428,7 @@ namespace OrchestratorAgent
 
                 if (conn.State == HubConnectionState.Connected)
                 {
-                    try { await call(conn, ct); return; }
+                    try { await call(conn, ct).ConfigureAwait(false); return; }
                     catch (Exception ex) { _log.LogWarning(ex, $"Invoke attempt {attempt} failed: {ex.Message}"); }
                 }
                 else
@@ -437,7 +436,7 @@ namespace OrchestratorAgent
                     _log.LogWarning($"Connection state is {conn.State}, waiting before retry...");
                 }
 
-                await Task.Delay(delay, ct);
+                await Task.Delay(delay, ct).ConfigureAwait(false);
                 delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
             }
             throw new InvalidOperationException("UserHub invoke could not complete after multiple retries.");
@@ -476,6 +475,7 @@ namespace OrchestratorAgent
                 
                 // Parse the JSON payload
                 using var doc = JsonDocument.Parse(jsonString);
+using System.Globalization;
                 var root = doc.RootElement;
 
                 // Look for 'exp' claim (expiration time as Unix timestamp)
@@ -523,7 +523,7 @@ namespace OrchestratorAgent
         {
             if (_conn is not null)
             {
-                try { await _conn.DisposeAsync(); } catch { }
+                try { await _conn.DisposeAsync().ConfigureAwait(false); } catch { }
             }
         }
     }

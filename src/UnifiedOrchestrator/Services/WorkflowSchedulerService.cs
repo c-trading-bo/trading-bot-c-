@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -47,10 +48,10 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
             try
             {
                 // Main workflow scheduling loop
-                await ProcessScheduledWorkflowsAsync(stoppingToken);
+                await ProcessScheduledWorkflowsAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Wait before next iteration
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -59,7 +60,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in workflow scheduler loop");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -70,7 +71,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
     {
         // Process scheduled workflows
         // This will be implemented based on actual workflow requirements
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task ScheduleWorkflowAsync(WorkflowDefinition workflow, CancellationToken cancellationToken = default)
@@ -80,7 +81,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
             _logger.LogInformation("Scheduling workflow: {WorkflowName}", workflow.Name);
             
             // Implementation would schedule the workflow
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -109,7 +110,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
             _logger.LogInformation("[SCHEDULER] Scheduling workflow: {WorkflowId}", workflow.Id);
             
             // Implementation would schedule the workflow
-            await Task.Delay(50, cancellationToken); // Simulate scheduling
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // Simulate scheduling
             
             _logger.LogInformation("[SCHEDULER] Workflow scheduled successfully: {WorkflowId}", workflow.Id);
         }
@@ -127,7 +128,7 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
             _logger.LogInformation("[SCHEDULER] Unscheduling workflow: {WorkflowId}", workflowId);
             
             // Implementation would unschedule the workflow
-            await Task.Delay(50, cancellationToken); // Simulate unscheduling
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // Simulate unscheduling
             
             _logger.LogInformation("[SCHEDULER] Workflow unscheduled successfully: {WorkflowId}", workflowId);
         }
@@ -215,8 +216,8 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
                 var nextExecutionET = TimeZoneInfo.ConvertTimeFromUtc(nextExecution.Value, targetTimeZoneInfo);
                 
                 _logger.LogDebug("[SCHEDULER] Next execution for {WorkflowId}: {NextExecutionUTC} UTC ({NextExecutionET} ET) (using schedule: {Schedule})", 
-                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss"), 
-                    nextExecutionET.ToString("yyyy-MM-dd HH:mm:ss"), activeSchedule);
+                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), 
+                    nextExecutionET.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), activeSchedule);
                 return nextExecution.Value;
             }
 
@@ -261,12 +262,12 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
     public new async Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[SCHEDULER] Starting workflow scheduler...");
-        await base.StartAsync(cancellationToken);
+        await base.StartAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public new async Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[SCHEDULER] Stopping workflow scheduler...");
-        await base.StopAsync(cancellationToken);
+        await base.StopAsync(cancellationToken).ConfigureAwait(false);
     }
 }

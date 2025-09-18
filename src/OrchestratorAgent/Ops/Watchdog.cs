@@ -22,12 +22,12 @@ namespace OrchestratorAgent.Ops
                     var threads = proc.Threads.Count;
                     if (rssMb > _maxMb || threads > _maxThreads)
                     {
-                        try { await _persist(); } catch { }
+                        try { await _persist().ConfigureAwait(false); } catch { }
                         Environment.Exit(200);
                     }
                 }
                 catch { }
-                try { await Task.Delay(TimeSpan.FromSeconds(_periodSec), ct); } catch { }
+                try { await Task.Delay(TimeSpan.FromSeconds(_periodSec), ct).ConfigureAwait(false); } catch { }
             }
         }
     }

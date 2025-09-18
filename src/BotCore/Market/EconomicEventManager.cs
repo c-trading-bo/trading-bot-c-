@@ -20,8 +20,8 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
     private readonly Timer _eventMonitor;
     private readonly Timer _restrictionUpdater;
     private readonly object _lockObject = new();
-    private bool _disposed = false;
-    private bool _initialized = false;
+    private bool _disposed;
+    private bool _initialized;
 
     // Configuration
     private static readonly TimeSpan DEFAULT_LOOKHEAD = TimeSpan.FromHours(2);
@@ -56,7 +56,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             _logger.LogInformation("[EconomicEventManager] Initializing economic event monitoring...");
 
             // Load initial economic events
-            await LoadEconomicEventsAsync();
+            await LoadEconomicEventsAsync().ConfigureAwait(false);
 
             // Start monitoring timers
             _eventMonitor.Change(TimeSpan.Zero, TimeSpan.FromMinutes(5));
@@ -108,7 +108,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
 
     public async Task<bool> ShouldRestrictTradingAsync(string symbol, TimeSpan lookAhead)
     {
-        var restriction = await GetTradingRestrictionAsync(symbol);
+        var restriction = await GetTradingRestrictionAsync(symbol).ConfigureAwait(false);
         
         if (restriction.IsRestricted)
         {
@@ -118,7 +118,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         }
 
         // Check for upcoming high-impact events
-        var upcomingEvents = await GetUpcomingEventsAsync(lookAhead);
+        var upcomingEvents = await GetUpcomingEventsAsync(lookAhead).ConfigureAwait(false);
         var relevantEvents = upcomingEvents.Where(e => 
             e.AffectedSymbols.Contains(symbol) || 
             e.Impact >= EventImpact.Critical ||
@@ -167,10 +167,10 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         {
             _logger.LogInformation("[EconomicEventManager] Shutting down economic event monitoring...");
 
-            await _eventMonitor.DisposeAsync();
-            await _restrictionUpdater.DisposeAsync();
+            await _eventMonitor.DisposeAsync().ConfigureAwait(false);
+            await _restrictionUpdater.DisposeAsync().ConfigureAwait(false);
 
-            _initialized = false;
+            _initialized;
             _logger.LogInformation("[EconomicEventManager] Economic event monitoring stopped");
         }
         catch (Exception ex)
@@ -184,7 +184,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         try
         {
             // Load economic events from configuration and external data sources
-            var realEvents = await LoadRealEconomicEventsAsync();
+            var realEvents = await LoadRealEconomicEventsAsync().ConfigureAwait(false);
 
             lock (_lockObject)
             {
@@ -214,7 +214,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
 
             if (!string.IsNullOrEmpty(economicDataSource) && !string.IsNullOrEmpty(economicApiKey))
             {
-                events = await LoadFromExternalSourceAsync(economicDataSource, economicApiKey);
+                events = await LoadFromExternalSourceAsync(economicDataSource, economicApiKey).ConfigureAwait(false);
             }
             else
             {
@@ -222,7 +222,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
                 var dataFile = Path.Combine(Directory.GetCurrentDirectory(), "data", "economic_events.json");
                 if (File.Exists(dataFile))
                 {
-                    events = await LoadFromLocalFileAsync(dataFile);
+                    events = await LoadFromLocalFileAsync(dataFile).ConfigureAwait(false);
                 }
                 else
                 {
@@ -247,7 +247,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
         // This would integrate with real economic calendar APIs
         // For production readiness, implement actual API integration
         _logger.LogInformation("[EconomicEventManager] Loading from external source: {Source}", dataSource);
-        await Task.Delay(100); // Simulate async API call
+        await Task.Delay(100).ConfigureAwait(false); // Simulate async API call
         return GetKnownScheduledEvents();
     }
 
@@ -255,7 +255,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
     {
         try
         {
-            var jsonContent = await File.ReadAllTextAsync(filePath);
+            var jsonContent = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var events = System.Text.Json.JsonSerializer.Deserialize<List<EconomicEvent>>(jsonContent) ?? new List<EconomicEvent>();
             _logger.LogInformation("[EconomicEventManager] Loaded {Count} events from local file: {File}", events.Count, filePath);
             return events;
@@ -283,7 +283,7 @@ public class EconomicEventManager : IEconomicEventManager, IDisposable
             new { Name = "Retail Sales", Impact = EventImpact.Medium, Currency = "USD", Category = "Consumer Spending" }
         };
 
-        for (int i = 0; i < eventTemplates.Length; i++)
+        for (int i; i < eventTemplates.Length; i++)
         {
             var template = eventTemplates[i];
             var eventTime = now.AddHours(2 + i * 6); // Space events 6 hours apart

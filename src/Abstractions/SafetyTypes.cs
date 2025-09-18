@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace TopstepX.Bot.Abstractions;
 
@@ -15,7 +16,7 @@ public class RiskViolationEventArgs : EventArgs
 {
     public string Symbol { get; set; } = string.Empty;
     public string ViolationType { get; set; } = string.Empty;
-    public List<string> Violations { get; } = new();
+    public Collection<string> Violations { get; } = new();
     public object? Position { get; set; } // Generic position object
     public DateTime Timestamp { get; set; }
 }

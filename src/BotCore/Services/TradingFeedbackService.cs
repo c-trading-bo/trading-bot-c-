@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -51,11 +52,11 @@ public class TradingFeedbackService : BackgroundService
         {
             try
             {
-                await ProcessFeedbackQueue(stoppingToken);
-                await AnalyzePerformance(stoppingToken);
-                await CheckRetrainingTriggers(stoppingToken);
+                await ProcessFeedbackQueue(stoppingToken).ConfigureAwait(false);
+                await AnalyzePerformance(stoppingToken).ConfigureAwait(false);
+                await CheckRetrainingTriggers(stoppingToken).ConfigureAwait(false);
                 
-                await Task.Delay(_processingInterval, stoppingToken);
+                await Task.Delay(_processingInterval, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -64,7 +65,7 @@ public class TradingFeedbackService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "🔄 [FEEDBACK] Error in background processing");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -131,7 +132,7 @@ public class TradingFeedbackService : BackgroundService
     /// </summary>
     private async Task ProcessFeedbackQueue(CancellationToken cancellationToken)
     {
-        var processedCount = 0;
+        var processedCount;
         var outcomes = new List<TradingOutcome>();
         
         // Dequeue all pending outcomes
@@ -149,7 +150,7 @@ public class TradingFeedbackService : BackgroundService
             _logger.LogDebug("🔄 [FEEDBACK] Processed {Count} feedback items", processedCount);
             
             // Save feedback data to disk for analysis
-            await SaveFeedbackDataAsync(outcomes, cancellationToken);
+            await SaveFeedbackDataAsync(outcomes, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -287,7 +288,7 @@ public class TradingFeedbackService : BackgroundService
             }
             
             // Save issues for analysis
-            await SavePerformanceIssuesAsync(performanceIssues, cancellationToken);
+            await SavePerformanceIssuesAsync(performanceIssues, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -314,7 +315,7 @@ public class TradingFeedbackService : BackgroundService
             _logger.LogWarning("🔄 [FEEDBACK] Triggering retraining for underperforming strategies: {Strategies}", 
                 string.Join(", ", underperformingStrategies));
             
-            await TriggerModelRetraining(underperformingStrategies, cancellationToken);
+            await TriggerModelRetraining(underperformingStrategies, cancellationToken).ConfigureAwait(false);
             _lastRetrainingTrigger = DateTime.UtcNow;
         }
         
@@ -329,7 +330,7 @@ public class TradingFeedbackService : BackgroundService
         {
             _logger.LogWarning("🔄 [FEEDBACK] Triggering ensemble retraining - Overall accuracy: {Accuracy:P1}", overallAccuracy);
             
-            await TriggerEnsembleRetraining(cancellationToken);
+            await TriggerEnsembleRetraining(cancellationToken).ConfigureAwait(false);
             _lastRetrainingTrigger = DateTime.UtcNow;
         }
     }
@@ -356,13 +357,13 @@ public class TradingFeedbackService : BackgroundService
             // Save retraining request
             var requestPath = Path.Combine(_feedbackDataPath, $"retraining_request_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var requestJson = JsonSerializer.Serialize(retrainingRequest, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(requestPath, requestJson, cancellationToken);
+            await File.WriteAllTextAsync(requestPath, requestJson, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("🔄 [FEEDBACK] Retraining request saved: {Path}", requestPath);
             
             // Trigger cloud synchronization to check for new models
             // This will eventually trigger GitHub Actions for retraining
-            await _cloudSync.SynchronizeModelsAsync(cancellationToken);
+            await _cloudSync.SynchronizeModelsAsync(cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("🔄 [FEEDBACK] Cloud synchronization triggered for retraining");
         }
@@ -391,12 +392,12 @@ public class TradingFeedbackService : BackgroundService
             // Save ensemble retraining request
             var requestPath = Path.Combine(_feedbackDataPath, $"ensemble_retraining_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var requestJson = JsonSerializer.Serialize(ensembleRequest, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(requestPath, requestJson, cancellationToken);
+            await File.WriteAllTextAsync(requestPath, requestJson, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("🔄 [FEEDBACK] Ensemble retraining request saved: {Path}", requestPath);
             
             // Force cloud model synchronization
-            await _cloudSync.SynchronizeModelsAsync(cancellationToken);
+            await _cloudSync.SynchronizeModelsAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -411,7 +412,7 @@ public class TradingFeedbackService : BackgroundService
     {
         try
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = Path.Combine(_feedbackDataPath, $"feedback_{timestamp}.json");
             
             var data = new
@@ -422,7 +423,7 @@ public class TradingFeedbackService : BackgroundService
             };
             
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json, cancellationToken);
+            await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
             
             _logger.LogDebug("🔄 [FEEDBACK] Saved {Count} outcomes to {Path}", outcomes.Count, filePath);
         }
@@ -439,7 +440,7 @@ public class TradingFeedbackService : BackgroundService
     {
         try
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = Path.Combine(_feedbackDataPath, $"performance_issues_{timestamp}.json");
             
             var data = new
@@ -450,7 +451,7 @@ public class TradingFeedbackService : BackgroundService
             };
             
             var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json, cancellationToken);
+            await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
             
             _logger.LogDebug("🔄 [FEEDBACK] Saved {Count} performance issues to {Path}", issues.Count, filePath);
         }
@@ -515,7 +516,7 @@ public class TradingOutcome
     public string MarketConditions { get; set; } = string.Empty;
     public double ModelConfidence { get; set; }
     public string ActualOutcome { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; set; } = new();
+    public Dictionary<string, object> TradingContext { get; } = new();
 }
 
 public class PredictionFeedback
@@ -529,7 +530,7 @@ public class PredictionFeedback
     public decimal ImpactOnPnL { get; set; }
     public double OriginalConfidence { get; set; }
     public string MarketContext { get; set; } = string.Empty;
-    public Dictionary<string, object> TradingContext { get; set; } = new();
+    public Dictionary<string, object> TradingContext { get; } = new();
 }
 
 public class PerformanceMetrics
@@ -543,7 +544,7 @@ public class PerformanceMetrics
     public double WinRate { get; set; }
     public double AccuracyVolatility { get; set; }
     public decimal TotalPnL { get; set; }
-    public List<double> AccuracyHistory { get; set; } = new();
+    public List<double> AccuracyHistory { get; } = new();
     public DateTime FirstTrade { get; set; }
     public DateTime LastUpdate { get; set; }
 }
@@ -561,9 +562,9 @@ public class PerformanceIssue
 public class ModelRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
-    public List<string> Strategies { get; set; } = new();
+    public List<string> Strategies { get; } = new();
     public string Reason { get; set; } = string.Empty;
-    public List<PerformanceMetrics> PerformanceMetrics { get; set; } = new();
+    public List<PerformanceMetrics> PerformanceMetrics { get; } = new();
     public double TriggerThreshold { get; set; }
     public int MinSamples { get; set; }
 }
@@ -572,8 +573,8 @@ public class EnsembleRetrainingRequest
 {
     public DateTime Timestamp { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public Dictionary<string, ModelPerformance> ModelPerformance { get; set; } = new();
-    public List<PerformanceMetrics> OverallPerformance { get; set; } = new();
+    public Dictionary<string, ModelPerformance> ModelPerformance { get; } = new();
+    public List<PerformanceMetrics> OverallPerformance { get; } = new();
     public double TriggerThreshold { get; set; }
 }
 
@@ -584,8 +585,8 @@ public class PerformanceSummary
     public int TotalTrades { get; set; }
     public double OverallAccuracy { get; set; }
     public decimal OverallPnL { get; set; }
-    public List<PerformanceMetrics> StrategyMetrics { get; set; } = new();
-    public Dictionary<string, ModelPerformance> ModelMetrics { get; set; } = new();
+    public List<PerformanceMetrics> StrategyMetrics { get; } = new();
+    public Dictionary<string, ModelPerformance> ModelMetrics { get; } = new();
     public DateTime LastRetrainingTrigger { get; set; }
 }
 

@@ -28,8 +28,8 @@ public class DataFlowMonitoringService : BackgroundService
     
     private DateTime _lastLiveDataReceived = DateTime.MinValue;
     private DateTime _lastHistoricalDataProcessed = DateTime.MinValue;
-    private int _totalLiveDataEvents = 0;
-    private int _totalHistoricalDataEvents = 0;
+    private int _totalLiveDataEvents;
+    private int _totalHistoricalDataEvents;
 
     public DataFlowMonitoringService(
         ILogger<DataFlowMonitoringService> logger,
@@ -44,18 +44,18 @@ public class DataFlowMonitoringService : BackgroundService
         _logger.LogInformation("[DATA-MONITOR] Starting comprehensive data flow monitoring");
         
         // Wait for system initialization
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await MonitorDataFlows(stoppingToken);
-                await CheckConnectionHealth(stoppingToken);
-                await ReportDataFlowStatus(stoppingToken);
+                await MonitorDataFlows(stoppingToken).ConfigureAwait(false);
+                await CheckConnectionHealth(stoppingToken).ConfigureAwait(false);
+                await ReportDataFlowStatus(stoppingToken).ConfigureAwait(false);
                 
                 // Monitor every 30 seconds
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -64,7 +64,7 @@ public class DataFlowMonitoringService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DATA-MONITOR] Error in monitoring loop");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -79,13 +79,13 @@ public class DataFlowMonitoringService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         
         // Monitor SignalR connections
-        await MonitorSignalRConnections(scope, cancellationToken);
+        await MonitorSignalRConnections(scope, cancellationToken).ConfigureAwait(false);
         
         // Monitor data integration service
-        await MonitorDataIntegrationService(scope, cancellationToken);
+        await MonitorDataIntegrationService(scope, cancellationToken).ConfigureAwait(false);
         
         // Monitor backtest learning service
-        await MonitorBacktestLearningService(scope, cancellationToken);
+        await MonitorBacktestLearningService(scope, cancellationToken).ConfigureAwait(false);
         
         // Clean up old metrics (keep last hour only)
         CleanupOldMetrics();
@@ -128,7 +128,7 @@ public class DataFlowMonitoringService : BackgroundService
                 }
             }
 
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -151,8 +151,8 @@ public class DataFlowMonitoringService : BackgroundService
                 return;
             }
 
-            var historicalStatus = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken);
-            var liveStatus = await dataIntegrationService.CheckLiveDataAsync(cancellationToken);
+            var historicalStatus = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
+            var liveStatus = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false);
             
             RecordConnectionHealth("HistoricalData", historicalStatus, 
                 historicalStatus ? "Connected" : "Disconnected");
@@ -203,7 +203,7 @@ public class DataFlowMonitoringService : BackgroundService
                     $"Last processed {timeSinceLastHistorical.TotalMinutes:F1} minutes ago");
             }
 
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -238,7 +238,7 @@ public class DataFlowMonitoringService : BackgroundService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -259,7 +259,7 @@ public class DataFlowMonitoringService : BackgroundService
             liveDataCount, liveDataRate, historicalDataCount, historicalDataRate,
             _connectionHealth.Values.Count(h => h.IsHealthy), _connectionHealth.Count);
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -413,7 +413,7 @@ public class DataFlowStatusReport
     public DateTime LastHistoricalDataProcessed { get; set; }
     public double LiveDataRatePerMinute { get; set; }
     public double HistoricalDataRatePerFiveMinutes { get; set; }
-    public Dictionary<string, ConnectionHealth> ConnectionHealthStatus { get; set; } = new();
+    public Dictionary<string, ConnectionHealth> ConnectionHealthStatus { get; } = new();
     public int HealthyConnectionCount { get; set; }
     public int TotalConnectionCount { get; set; }
 }

@@ -38,7 +38,7 @@ namespace UnifiedOrchestrator.Services
         public string ModelName { get; set; } = "";
         public DateTime BacktestStart { get; set; }
         public DateTime BacktestEnd { get; set; }
-        public List<BacktestWindowResult> WindowResults { get; set; } = new();
+        public List<BacktestWindowResult> WindowResults { get; } = new();
         public BacktestWindowResult OverallMetrics { get; set; } = new();
         public bool WasSuccessful { get; set; }
         public string ErrorMessage { get; set; } = "";
@@ -84,7 +84,7 @@ namespace UnifiedOrchestrator.Services
 
                 while (currentDate.AddDays(_options.TrainingWindowDays + _options.TestWindowDays) <= endDate)
                 {
-                    var windowResult = await RunBacktestWindowAsync(modelName, currentDate, cancellationToken);
+                    var windowResult = await RunBacktestWindowAsync(modelName, currentDate, cancellationToken).ConfigureAwait(false);
                     windowResults.Add(windowResult);
 
                     _logger.LogDebug("Completed backtest window: Training {TrainingStart}-{TrainingEnd}, Test {TestStart}-{TestEnd}, Accuracy: {Accuracy:F3}",
@@ -135,11 +135,11 @@ namespace UnifiedOrchestrator.Services
                 // Simulate model training on training window
                 if (_options.AutoRetrain)
                 {
-                    await SimulateModelTrainingAsync(modelName, trainingStart, trainingEnd, cancellationToken);
+                    await SimulateModelTrainingAsync(modelName, trainingStart, trainingEnd, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Simulate model testing on test window
-                var testResults = await SimulateModelTestingAsync(modelName, testStart, testEnd, cancellationToken);
+                var testResults = await SimulateModelTestingAsync(modelName, testStart, testEnd, cancellationToken).ConfigureAwait(false);
                 
                 windowResult.Accuracy = testResults.accuracy;
                 windowResult.Precision = testResults.precision;
@@ -169,7 +169,7 @@ namespace UnifiedOrchestrator.Services
                 modelName, trainingStart, trainingEnd);
 
             // Simulate training time
-            await Task.Delay(100, cancellationToken); // Quick simulation
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Quick simulation
 
             // In a real implementation, this would:
             // 1. Load historical data for the training window
@@ -187,7 +187,7 @@ namespace UnifiedOrchestrator.Services
                 modelName, testStart, testEnd);
 
             // Simulate testing time
-            await Task.Delay(50, cancellationToken); // Quick simulation
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // Quick simulation
 
             // Generate simulated realistic metrics
             var random = new Random(modelName.GetHashCode() + testStart.GetHashCode());

@@ -40,8 +40,8 @@ namespace OrchestratorAgent.Execution
 
                 try
                 {
-                    await Task.Delay(delay, stoppingToken);
-                    await RetuneAsync(stoppingToken);
+                    await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
+                    await RetuneAsync(stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -69,7 +69,7 @@ namespace OrchestratorAgent.Execution
                 _log.LogInformation("[AUTO] Would run walk-forward validation on {Days} days with {TestDays}-day folds", _lookbackDays, _testDays);
 
                 // Integrate with existing TuningRunner system
-                await RunWalkForwardIntegration(_lookbackDays, _testDays, ct);
+                await RunWalkForwardIntegration(_lookbackDays, _testDays, ct).ConfigureAwait(false);
 
                 _log.LogInformation("[AUTO] nightly retune done");
             }
@@ -89,10 +89,10 @@ namespace OrchestratorAgent.Execution
                 
                 // Simulate walk-forward analysis
                 var folds = lookbackDays / testDays;
-                for (int fold = 0; fold < folds && !ct.IsCancellationRequested; fold++)
+                for (int fold; fold < folds && !ct.IsCancellationRequested; fold++)
                 {
                     _log.LogDebug("[AUTO] Processing fold {Fold}/{TotalFolds}", fold + 1, folds);
-                    await Task.Delay(100, ct); // Simulate processing time
+                    await Task.Delay(100, ct).ConfigureAwait(false); // Simulate processing time
                 }
                 
                 _log.LogInformation("[AUTO] Walk-forward validation completed successfully");

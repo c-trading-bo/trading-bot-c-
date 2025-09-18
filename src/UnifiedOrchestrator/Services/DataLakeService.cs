@@ -21,7 +21,7 @@ namespace UnifiedOrchestrator.Services
     public class FeatureSet
     {
         public string FeatureSetName { get; set; } = "";
-        public Dictionary<string, object> Features { get; set; } = new();
+        public Dictionary<string, object> Features { get; } = new();
         public DateTime Timestamp { get; set; }
         public string InstanceId { get; set; } = "";
     }
@@ -34,7 +34,7 @@ namespace UnifiedOrchestrator.Services
         public double CompletenessScore { get; set; }
         public double DriftScore { get; set; }
         public bool IsHealthy { get; set; }
-        public List<string> Issues { get; set; } = new();
+        public List<string> Issues { get; } = new();
     }
 
     public class DataLakeService : IDisposable
@@ -95,12 +95,12 @@ namespace UnifiedOrchestrator.Services
             try
             {
                 var featuresJson = JsonSerializer.Serialize(features);
-                var timestampString = timestamp.ToString("O");
+                var timestampString = timestamp.ToString("O", CultureInfo.InvariantCulture);
 
                 // Check for drift if enabled
                 if (_options.AlertOnDrift)
                 {
-                    var driftScore = await CalculateDriftScoreAsync(featureSetName, features, cancellationToken);
+                    var driftScore = await CalculateDriftScoreAsync(featureSetName, features, cancellationToken).ConfigureAwait(false);
                     if (driftScore > _options.DriftThreshold)
                     {
                         _logger.LogWarning("Feature drift detected for {FeatureSetName}: {DriftScore:F3} > {Threshold:F3}", 
@@ -161,10 +161,11 @@ namespace UnifiedOrchestrator.Services
 
                     var command = new SQLiteCommand(selectSql, _connection);
                     command.Parameters.AddWithValue("@featureSetName", featureSetName);
-                    command.Parameters.AddWithValue("@startTime", startTime.ToString("O"));
-                    command.Parameters.AddWithValue("@endTime", endTime.ToString("O"));
+                    command.Parameters.AddWithValue("@startTime", startTime.ToString("O", CultureInfo.InvariantCulture));
+                    command.Parameters.AddWithValue("@endTime", endTime.ToString("O", CultureInfo.InvariantCulture));
 
                     using var reader = command.ExecuteReader();
+using System.Globalization;
                     while (reader.Read())
                     {
                         var featuresJson = reader.GetString(1); // features column
@@ -197,7 +198,7 @@ namespace UnifiedOrchestrator.Services
                 var endTime = DateTime.UtcNow;
                 var startTime = endTime - lookbackWindow;
                 
-                var featureSets = await RetrieveFeaturesAsync(featureSetName, startTime, endTime, cancellationToken);
+                var featureSets = await RetrieveFeaturesAsync(featureSetName, startTime, endTime, cancellationToken).ConfigureAwait(false);
                 
                 var report = new DataQualityReport
                 {
@@ -207,7 +208,7 @@ namespace UnifiedOrchestrator.Services
                     CompletenessScore = CalculateCompletenessScore(featureSets),
                     DriftScore = await CalculateAverageDriftScoreAsync(featureSetName, featureSets, cancellationToken),
                     Issues = new List<string>()
-                };
+                }.ConfigureAwait(false);
 
                 report.IsHealthy = report.CompletenessScore > 0.95 && report.DriftScore < _options.DriftThreshold;
 
@@ -234,14 +235,14 @@ namespace UnifiedOrchestrator.Services
                 var endTime = DateTime.UtcNow.AddMinutes(-1);
                 var startTime = endTime.AddHours(-1);
                 
-                var historicalFeatures = await RetrieveFeaturesAsync(featureSetName, startTime, endTime, cancellationToken);
+                var historicalFeatures = await RetrieveFeaturesAsync(featureSetName, startTime, endTime, cancellationToken).ConfigureAwait(false);
                 
                 if (historicalFeatures.Count == 0)
                     return 0.0; // No historical data to compare
 
                 // Simple statistical drift detection
                 double totalDrift = 0.0;
-                int numericFeatureCount = 0;
+                int numericFeatureCount;
 
                 foreach (var feature in currentFeatures)
                 {
@@ -317,11 +318,11 @@ namespace UnifiedOrchestrator.Services
                 return 0.0;
 
             double totalDrift = 0.0;
-            int comparisons = 0;
+            int comparisons;
 
             for (int i = 1; i < featureSets.Count; i++)
             {
-                var drift = await CalculateDriftScoreAsync(featureSetName, featureSets[i].Features, cancellationToken);
+                var drift = await CalculateDriftScoreAsync(featureSetName, featureSets[i].Features, cancellationToken).ConfigureAwait(false);
                 totalDrift += drift;
                 comparisons++;
             }

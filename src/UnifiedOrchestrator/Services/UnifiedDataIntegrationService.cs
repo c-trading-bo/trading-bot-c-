@@ -23,8 +23,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     private readonly List<DataFlowEvent> _dataFlowEvents = new();
     private DateTime _lastHistoricalDataSync = DateTime.MinValue;
     private DateTime _lastLiveDataReceived = DateTime.MinValue;
-    private bool _isHistoricalDataConnected = false;
-    private bool _isLiveDataConnected = false;
+    private bool _isHistoricalDataConnected;
+    private bool _isLiveDataConnected;
     
     public UnifiedDataIntegrationService(
         ILogger<UnifiedDataIntegrationService> logger,
@@ -41,7 +41,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         try
         {
             // Initialize data connections
-            await InitializeDataConnectionsAsync(stoppingToken);
+            await InitializeDataConnectionsAsync(stoppingToken).ConfigureAwait(false);
             
             // Start concurrent data processing tasks
             var tasks = new List<Task>
@@ -54,7 +54,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             _logger.LogInformation("[DATA-INTEGRATION] ✅ Started concurrent historical and live data processing");
             
             // Wait for all data processing tasks
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -80,15 +80,15 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 if (_isHistoricalDataConnected)
                 {
                     // Process historical data for training
-                    await ProcessHistoricalDataBatch(cancellationToken);
+                    await ProcessHistoricalDataBatch(cancellationToken).ConfigureAwait(false);
                     _lastHistoricalDataSync = DateTime.UtcNow;
                     
                     // Feed historical data to the trading brain for training
-                    await FeedHistoricalDataToBrain(cancellationToken);
+                    await FeedHistoricalDataToBrain(cancellationToken).ConfigureAwait(false);
                 }
                 
                 // Wait before next historical data processing cycle
-                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -97,7 +97,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DATA-INTEGRATION] Error in historical data processing");
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -116,15 +116,15 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 if (_isLiveDataConnected)
                 {
                     // Process live market data
-                    await ProcessLiveMarketData(cancellationToken);
+                    await ProcessLiveMarketData(cancellationToken).ConfigureAwait(false);
                     _lastLiveDataReceived = DateTime.UtcNow;
                     
                     // Feed live data to the trading brain for inference
-                    await FeedLiveDataToBrain(cancellationToken);
+                    await FeedLiveDataToBrain(cancellationToken).ConfigureAwait(false);
                 }
                 
                 // Process live data more frequently
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -133,7 +133,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DATA-INTEGRATION] Error in live data processing");
-                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -149,8 +149,8 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         {
             try
             {
-                await MonitorDataFlow(cancellationToken);
-                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                await MonitorDataFlow(cancellationToken).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -159,7 +159,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DATA-INTEGRATION] Error in data flow monitoring");
-                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -172,13 +172,13 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         _logger.LogInformation("[DATA-INTEGRATION] Initializing data connections");
         
         // Connect to historical data sources
-        await ConnectHistoricalDataAsync(cancellationToken);
+        await ConnectHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
         
         // Connect to live TopStep data
-        await ConnectLiveTopStepDataAsync(cancellationToken);
+        await ConnectLiveTopStepDataAsync(cancellationToken).ConfigureAwait(false);
         
         // Verify unified data pipeline
-        await VerifyUnifiedPipelineAsync(cancellationToken);
+        await VerifyUnifiedPipelineAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -205,7 +205,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             // Test connection to historical data endpoint
             try
             {
-                var response = await httpClient.GetAsync("/api/historical/test", cancellationToken);
+                var response = await httpClient.GetAsync("/api/historical/test", cancellationToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation("[DATA-INTEGRATION] Successfully connected to TopstepX historical data API");
@@ -228,7 +228,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 "models/training_data",
             };
             
-            var connectedSources = 0;
+            var connectedSources;
             foreach (var path in historicalDataPaths)
             {
                 if (Directory.Exists(path) || File.Exists($"{path}.csv"))
@@ -255,7 +255,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DATA-INTEGRATION] Failed to connect historical data");
-            _isHistoricalDataConnected = false;
+            _isHistoricalDataConnected;
         }
     }
 
@@ -284,7 +284,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             var canConnectToApi = true; // Would test actual connection in production
             
             // Simulate checking connection endpoints
-            await Task.Delay(500, cancellationToken);
+            await Task.Delay(500, cancellationToken).ConfigureAwait(false);
             
             _isLiveDataConnected = hasValidAuth && canConnectToApi;
             _lastLiveDataReceived = DateTime.UtcNow;
@@ -311,7 +311,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DATA-INTEGRATION] Failed to connect live TopStep data");
-            _isLiveDataConnected = false;
+            _isLiveDataConnected;
         }
     }
 
@@ -320,7 +320,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task VerifyUnifiedPipelineAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         _logger.LogInformation("[DATA-INTEGRATION] Verifying unified data pipeline");
         
@@ -354,16 +354,16 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             // Simulate data integration
             if (_isHistoricalDataConnected)
             {
-                await ProcessHistoricalDataForTrainingAsync(cancellationToken);
+                await ProcessHistoricalDataForTrainingAsync(cancellationToken).ConfigureAwait(false);
             }
             
             if (_isLiveDataConnected)
             {
-                await ProcessLiveDataForInferenceAsync(cancellationToken);
+                await ProcessLiveDataForInferenceAsync(cancellationToken).ConfigureAwait(false);
             }
             
             // Ensure data flows to both training and inference brains
-            await EnsureDataFlowToBrainsAsync(cancellationToken);
+            await EnsureDataFlowToBrainsAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -376,7 +376,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ProcessHistoricalDataForTrainingAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         // Simulate processing historical data
         _lastHistoricalDataSync = DateTime.UtcNow;
@@ -396,7 +396,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ProcessLiveDataForInferenceAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         // Simulate processing live data
         _lastLiveDataReceived = DateTime.UtcNow;
@@ -416,7 +416,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task EnsureDataFlowToBrainsAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         _dataFlowEvents.Add(new DataFlowEvent
         {
@@ -458,7 +458,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<bool> ValidateDataConsistencyAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         _logger.LogInformation("[UNIFIED-DATA] Validating data consistency between historical and live pipelines");
         
@@ -520,7 +520,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<bool> CheckHistoricalDataAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); 
+        await Task.Yield().ConfigureAwait(false); 
         return _isHistoricalDataConnected;
     }
     
@@ -529,7 +529,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<bool> CheckLiveDataAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         return _isLiveDataConnected;
     }
     
@@ -538,7 +538,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<object> GetDataIntegrationStatusAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         return new 
         {
             IsHistoricalDataConnected = _isHistoricalDataConnected,
@@ -556,7 +556,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<HistoricalDataStatus> GetHistoricalDataStatusAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         return new HistoricalDataStatus
         {
             IsConnected = _isHistoricalDataConnected,
@@ -572,7 +572,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     public async Task<LiveDataStatus> GetLiveDataStatusAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         var liveEvents = _dataFlowEvents.Where(e => e.Source.Contains("Live") || e.Source.Contains("TopStep")).ToList();
         var messagesPerSecond = 0.0;
         
@@ -601,7 +601,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task ProcessHistoricalDataBatch(CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         _logger.LogDebug("[DATA-INTEGRATION] Processing historical data batch for training");
         
@@ -621,12 +621,12 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task FeedHistoricalDataToBrain(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
             // Feed historical data to brain for training via brain adapter
-            var historicalData = await LoadRecentHistoricalDataAsync(cancellationToken);
+            var historicalData = await LoadRecentHistoricalDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (historicalData.Any())
             {
@@ -638,7 +638,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                     var context = CreateTradingContextFromHistoricalData(dataPoint);
                     
                     // This feeds the data to the brain for pattern learning
-                    await _brainAdapter.DecideAsync(context, cancellationToken);
+                    await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false);
                 }
                 
                 _logger.LogInformation("[BRAIN-INTEGRATION] Successfully fed {Count} historical data points to brain", historicalData.Count);
@@ -668,7 +668,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
         
         try
         {
-            await Task.Delay(10, cancellationToken); // Minimal delay for async compliance
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Minimal delay for async compliance
             
             _logger.LogInformation("[DATA-INTEGRATION] Processing REAL live market data for inference");
             
@@ -707,12 +707,12 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task FeedLiveDataToBrain(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
             // Feed live data to brain for real-time inference
-            var liveData = await GetLatestLiveDataAsync(cancellationToken);
+            var liveData = await GetLatestLiveDataAsync(cancellationToken).ConfigureAwait(false);
             
             if (liveData != null)
             {
@@ -722,7 +722,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
                 var context = CreateTradingContextFromLiveData(liveData);
                 
                 // Use the brain adapter to make real-time trading decisions
-                var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
+                var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("[BRAIN-INTEGRATION] Brain made decision: {Action} with confidence {Confidence:F2}", 
                     decision.Action, decision.Confidence);
@@ -748,7 +748,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task MonitorDataFlow(CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var recentEvents = _dataFlowEvents.Where(e => e.Timestamp > DateTime.UtcNow.AddMinutes(-5)).ToList();
         var successRate = recentEvents.Count > 0 ? recentEvents.Count(e => e.Success) / (double)recentEvents.Count : 1.0;
@@ -767,7 +767,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task<List<MarketDataPoint>> LoadRecentHistoricalDataAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         try
         {
@@ -776,7 +776,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
             var data = new List<MarketDataPoint>();
             var baseTime = DateTime.UtcNow.AddDays(-1);
             
-            for (int i = 0; i < 5; i++)
+            for (int i; i < 5; i++)
             {
                 data.Add(new MarketDataPoint
                 {
@@ -804,7 +804,7 @@ public class UnifiedDataIntegrationService : BackgroundService, IUnifiedDataInte
     /// </summary>
     private async Task<LiveDataPoint?> GetLatestLiveDataAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         try
         {

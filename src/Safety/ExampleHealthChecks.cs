@@ -40,7 +40,7 @@ public class MLLearningHealthCheck : IHealthCheck
             }
 
             // Validate state file structure
-            var stateContent = await System.IO.File.ReadAllTextAsync(stateFile, cancellationToken);
+            var stateContent = await System.IO.File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
             if (string.IsNullOrEmpty(stateContent) || !stateContent.Contains("lastPractice"))
             {
                 return HealthCheckResult.Failed("ML learning state file is corrupted or invalid");
@@ -99,14 +99,14 @@ public class StrategySignalHealthCheck : IHealthCheck
             }
 
             // Validate each strategy config
-            var validConfigs = 0;
+            var validConfigs;
             var totalConfigs = configFiles.Length;
 
             foreach (var configFile in configFiles)
             {
                 try
                 {
-                    var content = await System.IO.File.ReadAllTextAsync(configFile, cancellationToken);
+                    var content = await System.IO.File.ReadAllTextAsync(configFile, cancellationToken).ConfigureAwait(false);
                     if (content.Contains("maxTrades") && content.Contains("entryMode"))
                     {
                         validConfigs++;
@@ -168,7 +168,7 @@ public class NewFeatureHealthCheckTemplate : IHealthCheck
         try
         {
             // Implementation complete: Basic validation template for new features
-            await Task.Delay(1, cancellationToken); // Satisfy async requirement
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false); // Satisfy async requirement
 
             // Example checks:
             // 1. Validate configuration is loaded correctly

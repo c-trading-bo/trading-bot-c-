@@ -96,13 +96,13 @@ public static class AdaptiveLearner
         {
             log.LogWarning(ex, "[Learn] AdaptiveLearner failed");
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private static void ProposeS2(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
-        var extra = new Dictionary<string, JsonElement>(); bool write = false;
+        var extra = new Dictionary<string, JsonElement>(); bool write;
         if (trades == 0 || wr < 0.42m)
         {
             write = true;
@@ -140,7 +140,7 @@ public static class AdaptiveLearner
     private static void ProposeS6(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
-        var extra = new Dictionary<string, JsonElement>(); bool write = false;
+        var extra = new Dictionary<string, JsonElement>(); bool write;
         if (trades == 0)
         {
             write = true; extra["min_atr"] = JsonSerializer.SerializeToElement(0.6m); extra["stop_mult"] = JsonSerializer.SerializeToElement(2.2m); extra["target_mult"] = JsonSerializer.SerializeToElement(4.0m);
@@ -155,7 +155,7 @@ public static class AdaptiveLearner
     private static void ProposeS11(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)
     {
         var life = TimeSpan.FromDays(EnvInt("LEARN_TTL_DAYS", 1));
-        var extra = new Dictionary<string, JsonElement>(); bool write = false;
+        var extra = new Dictionary<string, JsonElement>(); bool write;
         if (trades == 0)
         {
             write = true; extra["min_atr"] = JsonSerializer.SerializeToElement(0.8m); extra["stop_mult"] = JsonSerializer.SerializeToElement(3.2m); extra["target_mult"] = JsonSerializer.SerializeToElement(6.0m);

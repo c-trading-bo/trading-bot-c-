@@ -25,7 +25,7 @@ public sealed class OnnxModelLoader : IDisposable
     private readonly ModelRegistryOptions _registryOptions;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _registryPath;
-    private bool _disposed = false;
+    private bool _disposed;
 
     // Model versioning pattern: {family}.{symbol}.{strategy}.{regime}.v{semver}+{sha}.onnx
     private static readonly Regex ModelVersionPattern = new(
@@ -95,7 +95,7 @@ public sealed class OnnxModelLoader : IDisposable
         if (_loadedSessions.TryGetValue(modelKey, out var existingSession) && 
             _modelMetadata.TryGetValue(modelKey, out var existingMetadata))
         {
-            var currentMetadata = await GetModelMetadataAsync(modelPath);
+            var currentMetadata = await GetModelMetadataAsync(modelPath).ConfigureAwait(false);
             if (currentMetadata != null && currentMetadata.Checksum == existingMetadata.Checksum)
             {
                 _logger.LogDebug("[ONNX-Loader] Reusing cached model: {ModelPath}", modelPath);
@@ -104,7 +104,7 @@ public sealed class OnnxModelLoader : IDisposable
         }
 
         // Try loading with fallback order
-        var loadResult = await LoadModelWithFallbackAsync(modelPath, validateInference);
+        var loadResult = await LoadModelWithFallbackAsync(modelPath, validateInference).ConfigureAwait(false);
         
         if (loadResult.Session != null)
         {
@@ -142,7 +142,7 @@ public sealed class OnnxModelLoader : IDisposable
             {
                 _logger.LogInformation("[ONNX-Loader] Attempting to load model: {ModelPath}", candidate);
                 
-                var result = await LoadSingleModelAsync(candidate, validateInference);
+                var result = await LoadSingleModelAsync(candidate, validateInference).ConfigureAwait(false);
                 if (result.Session != null && result.IsHealthy)
                 {
                     if (candidate != modelPath)
@@ -233,7 +233,7 @@ public sealed class OnnxModelLoader : IDisposable
             var startTime = DateTime.UtcNow;
             
             // Get model metadata
-            var metadata = await GetModelMetadataAsync(modelPath);
+            var metadata = await GetModelMetadataAsync(modelPath).ConfigureAwait(false);
             
             // Load the ONNX model
             var session = new InferenceSession(modelPath, _sessionOptions);
@@ -251,7 +251,7 @@ public sealed class OnnxModelLoader : IDisposable
             var isHealthy = true;
             if (validateInference)
             {
-                var healthProbeResult = await HealthProbeAsync(session);
+                var healthProbeResult = await HealthProbeAsync(session).ConfigureAwait(false);
                 isHealthy = healthProbeResult.IsHealthy;
                 
                 if (!isHealthy)
@@ -376,8 +376,8 @@ public sealed class OnnxModelLoader : IDisposable
             _logger.LogDebug("[ONNX-Loader] Checking for model updates...");
             
             // 4️⃣ Enable Model Hot-Reload: Poll data/registry and data/rl/sac every 60s
-            await CheckDataRegistryUpdatesAsync();
-            await CheckSACModelsUpdatesAsync();
+            await CheckDataRegistryUpdatesAsync().ConfigureAwait(false);
+            await CheckSACModelsUpdatesAsync().ConfigureAwait(false);
             
             var modelFiles = Directory.GetFiles(_modelsDirectory, "*.onnx", SearchOption.AllDirectories)
                 .Where(f => _modelNamePattern.IsMatch(Path.GetFileName(f)))
@@ -390,7 +390,7 @@ public sealed class OnnxModelLoader : IDisposable
                 // Check if we have this model loaded
                 if (_loadedSessions.ContainsKey(modelKey) && _modelMetadata.TryGetValue(modelKey, out var currentMetadata))
                 {
-                    var newMetadata = await GetModelMetadataAsync(modelFile);
+                    var newMetadata = await GetModelMetadataAsync(modelFile).ConfigureAwait(false);
                     
                     // Check if newer version or different checksum
                     if (newMetadata != null && 
@@ -400,7 +400,7 @@ public sealed class OnnxModelLoader : IDisposable
                             modelFile, currentMetadata.Version, newMetadata.Version);
                         
                         // Hot-reload the model
-                        await HotReloadModelAsync(modelFile, modelKey);
+                        await HotReloadModelAsync(modelFile, modelKey).ConfigureAwait(false);
                     }
                 }
             }
@@ -440,8 +440,8 @@ public sealed class OnnxModelLoader : IDisposable
                         Path.GetFileName(metadataFile), lastWriteTime);
                     
                     // Read and parse metadata to trigger model reload if needed
-                    var content = await File.ReadAllTextAsync(metadataFile);
-                    await ParseMetadataAndTriggerReloadAsync(content, metadataFile);
+                    var content = await File.ReadAllTextAsync(metadataFile).ConfigureAwait(false);
+                    await ParseMetadataAndTriggerReloadAsync(content, metadataFile).ConfigureAwait(false);
                     
                     // Update cache
                     _modelMetadata[cacheKey] = new ModelMetadata
@@ -491,7 +491,7 @@ public sealed class OnnxModelLoader : IDisposable
                         Path.GetFileName(sacFile), lastWriteTime);
                     
                     // Trigger SAC model reload in Python side
-                    await TriggerSacModelReloadAsync(sacFile);
+                    await TriggerSacModelReloadAsync(sacFile).ConfigureAwait(false);
                     
                     // Update cache
                     _modelMetadata[cacheKey] = new ModelMetadata
@@ -519,7 +519,7 @@ public sealed class OnnxModelLoader : IDisposable
             _logger.LogInformation("[ONNX-Loader] Hot-reloading model: {ModelFile}", modelFile);
             
             // Load new model with health probe
-            var loadResult = await LoadSingleModelAsync(modelFile, true);
+            var loadResult = await LoadSingleModelAsync(modelFile, true).ConfigureAwait(false);
             
             if (loadResult.Session != null && loadResult.IsHealthy)
             {
@@ -619,7 +619,7 @@ public sealed class OnnxModelLoader : IDisposable
             }
             
             // Calculate file checksum
-            var checksum = await CalculateFileChecksumAsync(modelPath);
+            var checksum = await CalculateFileChecksumAsync(modelPath).ConfigureAwait(false);
             
             return new ModelMetadata
             {
@@ -649,7 +649,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         using var stream = File.OpenRead(filePath);
         using var sha256 = SHA256.Create();
-        var hash = await Task.Run(() => sha256.ComputeHash(stream));
+        var hash = await Task.Run(() => sha256.ComputeHash(stream)).ConfigureAwait(false);
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 
@@ -682,7 +682,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new float[totalElements];
                 
                 // Fill with realistic canned trading features
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i switch
                     {
@@ -709,7 +709,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var data = new long[totalElements];
                 
                 // Fill with appropriate integer values
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i % 3; // Values 0, 1, 2 for typical categorical features
                 }
@@ -723,7 +723,7 @@ public sealed class OnnxModelLoader : IDisposable
                 var totalElements = shape.Aggregate(1, (a, b) => a * b);
                 var data = new int[totalElements];
                 
-                for (int i = 0; i < totalElements; i++)
+                for (int i; i < totalElements; i++)
                 {
                     data[i] = i % 3;
                 }
@@ -769,7 +769,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         var modelKey = GetModelKey(modelPathOrKey);
         
-        var unloaded = false;
+        var unloaded;
         if (_loadedSessions.TryRemove(modelKey, out var session))
         {
             session.Dispose();
@@ -854,7 +854,7 @@ public sealed class OnnxModelLoader : IDisposable
         try
         {
             // Calculate model hash
-            var modelHash = await CalculateFileHashAsync(modelPath, cancellationToken);
+            var modelHash = await CalculateFileHashAsync(modelPath, cancellationToken).ConfigureAwait(false);
             var timestamp = DateTime.UtcNow;
             var version = $"{timestamp:yyyyMMdd-HHmmss}-{modelHash[..8]}";
 
@@ -912,17 +912,17 @@ public sealed class OnnxModelLoader : IDisposable
             // Compress model if enabled
             if (_registryOptions.AutoCompress)
             {
-                await CompressModelAsync(registryModelPath, cancellationToken);
+                await CompressModelAsync(registryModelPath, cancellationToken).ConfigureAwait(false);
                 entry.IsCompressed = true;
             }
 
             // Save metadata
             var metadataPath = Path.Combine(versionedDir, "metadata.json");
             var metadataJson = JsonSerializer.Serialize(entry, _jsonOptions);
-            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken);
+            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Update registry index
-            await UpdateRegistryIndexAsync(entry, cancellationToken);
+            await UpdateRegistryIndexAsync(entry, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("[ONNX-Registry] Model registered: {ModelName} v{Version}", modelName, version);
             return entry;
@@ -965,7 +965,7 @@ public sealed class OnnxModelLoader : IDisposable
                 return null;
             }
 
-            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+            var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
             var entry = JsonSerializer.Deserialize<ModelRegistryEntry>(metadataJson, _jsonOptions);
             
             return entry;
@@ -995,7 +995,7 @@ public sealed class OnnxModelLoader : IDisposable
             foreach (var modelDir in modelDirs)
             {
                 var modelName = Path.GetFileName(modelDir);
-                var latestModel = await GetLatestRegisteredModelAsync(modelName, cancellationToken);
+                var latestModel = await GetLatestRegisteredModelAsync(modelName, cancellationToken).ConfigureAwait(false);
                 
                 var status = new ModelHealthStatus
                 {
@@ -1017,7 +1017,7 @@ public sealed class OnnxModelLoader : IDisposable
                     }
                     
                     // Check file integrity
-                    var currentHash = await CalculateFileHashAsync(latestModel.RegistryPath, cancellationToken);
+                    var currentHash = await CalculateFileHashAsync(latestModel.RegistryPath, cancellationToken).ConfigureAwait(false);
                     if (currentHash != latestModel.Hash)
                     {
                         status.Issues.Add("Model file hash mismatch - file may be corrupted");
@@ -1045,7 +1045,7 @@ public sealed class OnnxModelLoader : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX-Registry] Failed to perform health check");
-            report.IsHealthy = false;
+            report.IsHealthy;
         }
 
         return report;
@@ -1092,7 +1092,8 @@ public sealed class OnnxModelLoader : IDisposable
     {
         using var sha256 = SHA256.Create();
         using var fileStream = File.OpenRead(filePath);
-        var hashBytes = await Task.Run(() => sha256.ComputeHash(fileStream), cancellationToken);
+using System.Globalization;
+        var hashBytes = await Task.Run(() => sha256.ComputeHash(fileStream), cancellationToken).ConfigureAwait(false);
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 
@@ -1101,7 +1102,7 @@ public sealed class OnnxModelLoader : IDisposable
         // Compress model file using GZip compression
         await Task.Run(() =>
         {
-            var compressedPath = modelPath + ".gz";
+            var compressedPath = modelPath + ".gz".ConfigureAwait(false);
             
             using (var originalFileStream = File.OpenRead(modelPath))
             using (var compressedFileStream = File.Create(compressedPath))
@@ -1126,7 +1127,7 @@ public sealed class OnnxModelLoader : IDisposable
         List<ModelRegistryEntry> index;
         if (File.Exists(indexPath))
         {
-            var indexJson = await File.ReadAllTextAsync(indexPath, cancellationToken);
+            var indexJson = await File.ReadAllTextAsync(indexPath, cancellationToken).ConfigureAwait(false);
             index = JsonSerializer.Deserialize<List<ModelRegistryEntry>>(indexJson, _jsonOptions) ?? new();
         }
         else
@@ -1147,7 +1148,7 @@ public sealed class OnnxModelLoader : IDisposable
 
         // Save updated index
         var updatedIndexJson = JsonSerializer.Serialize(index, _jsonOptions);
-        await File.WriteAllTextAsync(indexPath, updatedIndexJson, cancellationToken);
+        await File.WriteAllTextAsync(indexPath, updatedIndexJson, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -1165,7 +1166,7 @@ public sealed class OnnxModelLoader : IDisposable
                     Path.GetFileName(metadataFile), metadata["version"]);
                 
                 // Trigger model reload notification
-                await NotifyModelUpdateAsync(metadataFile, metadata);
+                await NotifyModelUpdateAsync(metadataFile, metadata).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -1185,7 +1186,7 @@ public sealed class OnnxModelLoader : IDisposable
             
             // Send reload signal to Python SAC agent via file system signal
             var reloadSignalFile = Path.Combine(Path.GetDirectoryName(sacFile) ?? "", ".sac_reload_signal");
-            await File.WriteAllTextAsync(reloadSignalFile, DateTime.UtcNow.ToString("O"));
+            await File.WriteAllTextAsync(reloadSignalFile, DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)).ConfigureAwait(false);
             
             _logger.LogInformation("[SAC_RELOAD] Reload signal sent for SAC model");
         }
@@ -1218,7 +1219,7 @@ public sealed class OnnxModelLoader : IDisposable
             var notificationFile = Path.Combine(notificationDir, $"model_update_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var notificationJson = System.Text.Json.JsonSerializer.Serialize(notification, _jsonOptions);
             
-            await File.WriteAllTextAsync(notificationFile, notificationJson);
+            await File.WriteAllTextAsync(notificationFile, notificationJson).ConfigureAwait(false);
             _logger.LogInformation("[MODEL_NOTIFICATION] Model update notification created: {File}", notificationFile);
         }
         catch (Exception ex)
@@ -1350,12 +1351,12 @@ public class ModelRegistryEntry
 public class ModelRegistryMetadata
 {
     public DateTime TrainingDate { get; set; }
-    public Dictionary<string, object> Hyperparams { get; set; } = new();
+    public Dictionary<string, object> Hyperparams { get; } = new();
     public string TrainingDataHash { get; set; } = string.Empty;
     public double ValidationAccuracy { get; set; }
-    public Dictionary<string, double> TrainingMetrics { get; set; } = new();
+    public Dictionary<string, double> TrainingMetrics { get; } = new();
     public string Description { get; set; } = string.Empty;
-    public List<string> Tags { get; set; } = new();
+    public List<string> Tags { get; } = new();
 }
 
 /// <summary>
@@ -1376,7 +1377,7 @@ public class ModelHealthReport
 {
     public DateTime Timestamp { get; set; }
     public bool IsHealthy { get; set; }
-    public List<ModelHealthStatus> ModelStatuses { get; set; } = new();
+    public List<ModelHealthStatus> ModelStatuses { get; } = new();
 }
 
 /// <summary>
@@ -1388,7 +1389,7 @@ public class ModelHealthStatus
     public string Version { get; set; } = string.Empty;
     public bool IsHealthy { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<string> Issues { get; set; } = new();
+    public List<string> Issues { get; } = new();
 }
 
 #endregion

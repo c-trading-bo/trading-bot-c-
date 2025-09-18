@@ -5,7 +5,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using System.Globalization;
 
 namespace BotCore
 {
@@ -25,7 +24,7 @@ namespace BotCore
         private readonly string? _pythonScriptDir;
         private bool _disposed;
         private DateTime _lastTrainingAttempt = DateTime.MinValue;
-        private int _consecutiveFailures = 0;
+        private int _consecutiveFailures;
 
         private const int MaxConsecutiveFailures = 3;
         private const int MinTrainingDays = 7;
@@ -73,7 +72,7 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Starting automated training - sufficient data available");
                 await RunTrainingPipelineAsync().ConfigureAwait(false);
 
-                _consecutiveFailures = 0;
+                _consecutiveFailures;
                 _log.LogInformation("[AutoRlTrainer] ✅ Automated training complete! New model deployed");
             }
             catch (Exception ex)
@@ -144,12 +143,12 @@ namespace BotCore
                     MultiStrategyRlCollector.StrategyType.Momentum
                 };
 
-                bool hasData = false;
+                bool hasData;
                 foreach (var strategy in strategies)
                 {
                     try
                     {
-                        var strategyData = await MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate);
+                        var strategyData = await MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate).ConfigureAwait(false);
                         if (!string.IsNullOrEmpty(strategyData))
                         {
                             hasData = true;
@@ -215,14 +214,15 @@ namespace BotCore
                 _log.LogInformation("[AutoRlTrainer] Training: {Command} {Args}", processInfo.FileName, processInfo.Arguments);
 
                 using var process = Process.Start(processInfo);
+using System.Globalization;
                 if (process == null)
                 {
                     throw new InvalidOperationException("Failed to start Python training process");
                 }
 
-                var output = await process.StandardOutput.ReadToEndAsync();
-                var error = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode == 0 && File.Exists(modelPath))
                 {

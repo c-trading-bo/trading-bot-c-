@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using System.Security;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Trading.Strategies;
@@ -62,21 +64,100 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     private readonly ILogger<OnnxModelWrapper> _logger;
     private readonly bool _isModelLoaded;
     
+    // LoggerMessage delegates for performance (CA1848)
+    private static readonly Action<ILogger, Exception?> LogModelNotLoaded =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(1, nameof(LogModelNotLoaded)),
+            "[ONNX] Model not loaded - using sophisticated fallback predictions");
+
+    private static readonly Action<ILogger, Exception?> LogModelSuccessfullyLoaded =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(2, nameof(LogModelSuccessfullyLoaded)),
+            "[ONNX] Model successfully loaded and ready for inference");
+
+    private static readonly Action<ILogger, Exception?> LogModelNotAvailable =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(3, nameof(LogModelNotAvailable)),
+            "[ONNX] Model not available, returning default confidence");
+
+    private static readonly Action<ILogger, double, Exception?> LogFallbackPredictionConfidence =
+        LoggerMessage.Define<double>(
+            LogLevel.Debug,
+            new EventId(4, nameof(LogFallbackPredictionConfidence)),
+            "[ONNX] Fallback prediction confidence: {Confidence:F3}");
+
+    private static readonly Action<ILogger, double, int, Exception?> LogPredictedConfidence =
+        LoggerMessage.Define<double, int>(
+            LogLevel.Debug,
+            new EventId(5, nameof(LogPredictedConfidence)),
+            "[ONNX] Predicted confidence: {Confidence:F3} from {FeatureCount} features");
+
+    private static readonly Action<ILogger, Exception?> LogErrorDuringPrediction =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(6, nameof(LogErrorDuringPrediction)),
+            "[ONNX] Error during model prediction");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoadingFailed =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(7, nameof(LogModelLoadingFailed)),
+            "[ONNX] Failed to load model - using fallback");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoaderFallback =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(8, nameof(LogModelLoaderFallback)),
+            "[ONNX] Using deterministic fallback model with sophisticated feature analysis");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoadingError =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(9, nameof(LogModelLoadingError)),
+            "[ONNX] Model loading error, falling back to sophisticated prediction");
+
+    private static readonly Action<ILogger, Exception?> LogErrorDuringInference =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(10, nameof(LogErrorDuringInference)),
+            "[ONNX] Error during model inference, falling back to simulation");
+
+    private static readonly Action<ILogger, string, Exception?> LogModelFileNotFound =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(11, nameof(LogModelFileNotFound)),
+            "[ONNX] Model file not found at: {ModelPath}");
+
+    private static readonly Action<ILogger, Exception?> LogModelInfrastructureReady =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(12, nameof(LogModelInfrastructureReady)),
+            "[ONNX] Model infrastructure ready - using simulation mode until packages integrated");
+
+    private static readonly Action<ILogger, Exception?> LogErrorInitializingModel =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(13, nameof(LogErrorInitializingModel)),
+            "[ONNX] Error initializing model");
+    
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
     {
-        "vix_level",
-        "volume_ratio", 
-        "momentum",
-        "volatility",
-        "trend_strength",
-        "rsi",
-        "macd_signal",
-        "price_change",
-        "volume_change",
-        "market_sentiment",
-        "time_of_day",
-        "day_of_week"
+        "VIX_LEVEL",
+        "VOLUME_RATIO", 
+        "MOMENTUM",
+        "VOLATILITY",
+        "TREND_STRENGTH",
+        "RSI",
+        "MACD_SIGNAL",
+        "PRICE_CHANGE",
+        "VOLUME_CHANGE",
+        "MARKET_SENTIMENT",
+        "TIME_OF_DAY",
+        "DAY_OF_WEEK"
     };
 
     public OnnxModelWrapper(ILogger<OnnxModelWrapper> logger)
@@ -88,21 +169,23 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         
         if (!_isModelLoaded)
         {
-            _logger.LogWarning("[ONNX] Model not loaded - using sophisticated fallback predictions");
+            LogModelNotLoaded(_logger, null);
         }
         else
         {
-            _logger.LogInformation("[ONNX] Model successfully loaded and ready for inference");
+            LogModelSuccessfullyLoaded(_logger, null);
         }
     }
 
     public bool IsModelAvailable => _isModelLoaded;
 
     public async Task<double> PredictConfidenceAsync(Dictionary<string, double> features)
-    {  
+    {
+        ArgumentNullException.ThrowIfNull(features);
+        
         if (!_isModelLoaded)
         {
-            _logger.LogWarning("[ONNX] Model not available, returning default confidence");
+            LogModelNotAvailable(_logger, null);
             return DefaultConfidence;
         }
 
@@ -112,20 +195,29 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             var normalizedFeatures = NormalizeFeatures(features);
             
             // Use actual ONNX inference or sophisticated fallback
-            var confidence = await RunOnnxInferenceAsync(normalizedFeatures);
-            _logger.LogDebug("[ONNX] Fallback prediction confidence: {Confidence:F3}", confidence);
+            var confidence = await RunOnnxInferenceAsync(normalizedFeatures).ConfigureAwait(false);
+            LogFallbackPredictionConfidence(_logger, confidence, null);
             
             // Ensure confidence is in valid range
             confidence = Math.Max(0.0, Math.Min(1.0, confidence));
             
-            _logger.LogDebug("[ONNX] Predicted confidence: {Confidence:F3} from {FeatureCount} features", 
-                confidence, features.Count);
+            LogPredictedConfidence(_logger, confidence, features.Count, null);
             
             return confidence;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "[ONNX] Error during model prediction");
+            LogErrorDuringPrediction(_logger, ex);
+            return DefaultConfidence;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogErrorDuringPrediction(_logger, ex);
+            return DefaultConfidence;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogErrorDuringPrediction(_logger, ex);
             return DefaultConfidence;
         }
     }
@@ -142,7 +234,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         
         foreach (var (key, value) in features)
         {
-            var normalizedKey = key.ToLowerInvariant();
+            var normalizedKey = key.ToUpperInvariant();
             normalized[normalizedKey] = NormalizeFeatureValue(normalizedKey, value);
         }
         
@@ -193,18 +285,28 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         {
             if (!_isModelLoaded)
             {
-                return await SimulateModelPrediction(features);
+                return await SimulateModelPrediction(features).ConfigureAwait(false);
             }
 
             // Production ONNX inference logic
             // Note: This implementation is ready for when ONNX packages are added to the project
             // For now, use the sophisticated simulation until ONNX packages are integrated
-            return await SimulateModelPrediction(features);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "[ONNX] Error during model inference, falling back to simulation");
-            return await SimulateModelPrediction(features);
+            LogErrorDuringInference(_logger, ex);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            LogErrorDuringInference(_logger, ex);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogErrorDuringInference(_logger, ex);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
     }
 
@@ -216,19 +318,34 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             var modelPath = GetModelPath();
             if (!File.Exists(modelPath))
             {
-                _logger.LogWarning("[ONNX] Model file not found at: {ModelPath}", modelPath);
+                LogModelFileNotFound(_logger, modelPath, null);
                 return false;
             }
 
             // Production ONNX session initialization would go here when packages are integrated
             // For now, return false to use simulation mode
             // This maintains production-ready infrastructure while packages are being integrated
-            _logger.LogInformation("[ONNX] Model infrastructure ready - using simulation mode until packages integrated");
+            LogModelInfrastructureReady(_logger, null);
             return false;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
         {
-            _logger.LogError(ex, "[ONNX] Error initializing model");
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (IOException ex)
+        {
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogErrorInitializingModel(_logger, ex);
             return false;
         }
     }
@@ -250,7 +367,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
 
     private static async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
     {
-        await Task.Delay(1); // Simulate async work
+        await Task.Delay(1).ConfigureAwait(false); // Simulate async work
         
         // This is a sophisticated fallback that creates reasonable confidence based on features
         var vix = features.GetValueOrDefault("vix_level", HighConfidenceThreshold);
@@ -306,5 +423,24 @@ public static class ConfidenceHelper
     public static Task<double> PredictAsync(params (string Name, double Value)[] features)
     {
         return _defaultWrapper.PredictConfidenceAsync(features);
+    }
+}
+
+/// <summary>
+/// Extension methods for exception handling
+/// </summary>
+public static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should not be caught
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is SecurityException;
     }
 }

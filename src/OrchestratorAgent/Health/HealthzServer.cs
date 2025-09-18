@@ -31,18 +31,18 @@ namespace OrchestratorAgent.Health
                     {
                         try
                         {
-                            var ctx = await listener.GetContextAsync();
+                            var ctx = await listener.GetContextAsync().ConfigureAwait(false);
                             var path = ctx.Request.Url?.AbsolutePath ?? string.Empty;
                             if (path.Equals("/healthz", StringComparison.OrdinalIgnoreCase))
                             {
-                                var (ok, msg) = await pf.RunAsync(symbol, ct);
+                                var (ok, msg) = await pf.RunAsync(symbol, ct).ConfigureAwait(false);
                                 var (_, warn) = dst.Check();
                                 var json = JsonSerializer.Serialize(new { ok, msg, warn_dst = warn, mode = mode == null ? null : (mode.IsLive ? "LIVE" : "SHADOW") });
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/healthz/mode", StringComparison.OrdinalIgnoreCase))
@@ -53,7 +53,7 @@ namespace OrchestratorAgent.Health
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.ContentEncoding = System.Text.Encoding.UTF8;
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/build", StringComparison.OrdinalIgnoreCase))
@@ -73,7 +73,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/capabilities", StringComparison.OrdinalIgnoreCase))
@@ -83,7 +83,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/deploy/status", StringComparison.OrdinalIgnoreCase))
@@ -102,17 +102,17 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes(json);
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/promote", StringComparison.OrdinalIgnoreCase) && mode != null)
                             {
                                 mode.Set(OrchestratorAgent.Ops.TradeMode.Live);
-                                if (state != null) state.DrainMode = false;
+                                if (state != null) state.DrainMode;
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/demote", StringComparison.OrdinalIgnoreCase) && mode != null)
@@ -122,7 +122,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else if (path.Equals("/drain", StringComparison.OrdinalIgnoreCase) && state != null)
@@ -131,7 +131,7 @@ namespace OrchestratorAgent.Health
                                 var bytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
                                 ctx.Response.ContentType = "application/json";
                                 ctx.Response.StatusCode = 200;
-                                await ctx.Response.OutputStream.WriteAsync(bytes);
+                                await ctx.Response.OutputStream.WriteAsync(bytes).ConfigureAwait(false);
                                 ctx.Response.Close();
                             }
                             else

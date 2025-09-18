@@ -25,9 +25,9 @@ public class InferenceBrain : IInferenceBrain
     private readonly IModelRouter<object> _lstmRouter;
     
     // Statistics tracking
-    private int _totalDecisions = 0;
-    private int _decisionsToday = 0;
-    private int _errorCount = 0;
+    private int _totalDecisions;
+    private int _decisionsToday;
+    private int _errorCount;
     private readonly List<double> _processingTimes = new();
     private readonly DateTime _startTime = DateTime.UtcNow;
     private DateTime _lastDecisionTime = DateTime.MinValue;
@@ -62,7 +62,7 @@ public class InferenceBrain : IInferenceBrain
             // Reset daily counters if new day
             if (DateTime.UtcNow.Date > _lastResetDate)
             {
-                _decisionsToday = 0;
+                _decisionsToday;
                 _lastResetDate = DateTime.UtcNow.Date;
             }
 
@@ -81,7 +81,7 @@ public class InferenceBrain : IInferenceBrain
             // Ensure all models are ready
             if (!await IsReadyAsync(cancellationToken))
             {
-                riskWarnings.Add("One or more champion models not ready");
+                riskWarnings.Add("One or more champion models not ready").ConfigureAwait(false);
                 return CreateFallbackDecision(context, stopwatch.Elapsed, riskWarnings);
             }
 
@@ -107,23 +107,23 @@ public class InferenceBrain : IInferenceBrain
             // PPO Decision (if available)
             if (ppoModel != null && ppoVersion != null)
             {
-                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken);
+                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken).ConfigureAwait(false);
             }
             
             // UCB Decision (if available)
             if (ucbModel != null && ucbVersion != null)
             {
-                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken);
+                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken).ConfigureAwait(false);
             }
             
             // LSTM Decision (if available)
             if (lstmModel != null && lstmVersion != null)
             {
-                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken);
+                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken).ConfigureAwait(false);
             }
 
             // Ensemble decision making
-            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken);
+            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken).ConfigureAwait(false);
             
             // Build complete trading decision with full attribution
             var tradingDecision = new TradingDecision
@@ -212,7 +212,7 @@ public class InferenceBrain : IInferenceBrain
             ["PPO"] = _ppoRouter.CurrentVersion,
             ["UCB"] = _ucbRouter.CurrentVersion,
             ["LSTM"] = _lstmRouter.CurrentVersion
-        });
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -220,9 +220,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<bool> IsReadyAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
         
         // At least one algorithm must be ready
         return ppoStats.IsHealthy || ucbStats.IsHealthy || lstmStats.IsHealthy;
@@ -233,9 +233,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<InferenceStats> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false);
         
         return new InferenceStats
         {
@@ -280,14 +280,14 @@ public class InferenceBrain : IInferenceBrain
         if (context.DailyPnL <= context.DailyLossLimit)
         {
             warnings.Add($"CRITICAL: Daily loss limit exceeded: {context.DailyPnL:C} <= {context.DailyLossLimit:C}");
-            passed = false;
+            passed;
         }
         
         // Max drawdown check
         if (context.UnrealizedPnL <= -Math.Abs(context.MaxDrawdown))
         {
             warnings.Add($"CRITICAL: Max drawdown exceeded: {context.UnrealizedPnL:C} <= {-Math.Abs(context.MaxDrawdown):C}");
-            passed = false;
+            passed;
         }
         
         // Position size sanity check
@@ -303,7 +303,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken); // Simulate inference time
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false); // Simulate inference time
             
             // Real PPO (Proximal Policy Optimization) trading algorithm implementation
             var features = ExtractMarketFeatures(context);
@@ -311,7 +311,7 @@ public class InferenceBrain : IInferenceBrain
             
             // PPO decision based on policy gradient and market momentum
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // Trend-following logic with momentum analysis
@@ -369,7 +369,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             // Real UCB (Upper Confidence Bound) multi-armed bandit algorithm implementation
             var features = ExtractMarketFeatures(context);
@@ -377,7 +377,7 @@ public class InferenceBrain : IInferenceBrain
             
             // UCB explores vs exploits based on confidence intervals
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // UCB arms: BUY, SELL, HOLD with confidence bounds
@@ -431,7 +431,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             // Real LSTM (Long Short-Term Memory) neural network implementation
             var sequenceFeatures = ExtractSequenceFeatures(context);
@@ -439,7 +439,7 @@ public class InferenceBrain : IInferenceBrain
             
             // LSTM decision based on sequential pattern recognition
             var action = "HOLD";
-            var size = 0m;
+            var size;
             var confidence = 0.5m;
             
             // Pattern-based decision making
@@ -490,7 +490,7 @@ public class InferenceBrain : IInferenceBrain
 
     private async Task<EnsembleDecision> EnsembleDecisions(Dictionary<string, AlgorithmDecision> decisions, TradingContext context, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (decisions.Count == 0)
         {
@@ -516,12 +516,12 @@ public class InferenceBrain : IInferenceBrain
         var lstmWeight = regimeWeights["LSTM"];
         
         // Calculate weighted action scores
-        var buyScore = 0m;
-        var sellScore = 0m;
-        var holdScore = 0m;
-        var totalWeight = 0m;
-        var totalSize = 0m;
-        var avgConfidence = 0m;
+        var buyScore;
+        var sellScore;
+        var holdScore;
+        var totalWeight;
+        var totalSize;
+        var avgConfidence;
         var participatingStrategies = new List<string>();
         
         if (ppoDecision != null)
@@ -598,7 +598,7 @@ public class InferenceBrain : IInferenceBrain
         else
         {
             finalAction = "HOLD";
-            totalSize = 0;
+            totalSize;
             ensembleMethod = $"WEIGHTED_HOLD_{holdScore:F2}";
         }
         
@@ -607,7 +607,7 @@ public class InferenceBrain : IInferenceBrain
         if (actionConflict > 0.4m && (buyScore > 0.3m && sellScore > 0.3m))
         {
             finalAction = "HOLD";
-            totalSize = 0;
+            totalSize;
             finalConfidence *= 0.5m; // Reduce confidence due to conflict
             ensembleMethod = $"CONFLICT_RESOLUTION_HOLD_{actionConflict:F2}";
         }
@@ -1166,7 +1166,7 @@ internal class PPOAnalysis
 /// </summary>
 internal class UCBAnalysis
 {
-    public List<UCBArm> Arms { get; set; } = new();
+    public List<UCBArm> Arms { get; } = new();
     public int TotalPulls { get; set; }
     public decimal ExplorationThreshold { get; set; }
     public decimal MarketVolatility { get; set; }
@@ -1193,7 +1193,7 @@ internal class LSTMAnalysis
     public decimal PredictedMagnitude { get; set; }
     public decimal PatternConfidence { get; set; }
     public decimal SequenceReliability { get; set; }
-    public List<MarketPattern> RecognizedPatterns { get; set; } = new();
+    public List<MarketPattern> RecognizedPatterns { get; } = new();
     public string TimeHorizon { get; set; } = string.Empty;
 }
 

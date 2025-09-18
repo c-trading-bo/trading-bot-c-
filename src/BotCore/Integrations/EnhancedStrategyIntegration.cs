@@ -29,7 +29,7 @@ namespace BotCore.Integrations
                 var signalData = ConvertToTrainingSignalData(signal, currentBar, snapshot);
 
                 // Record the trade data for RL training
-                var tradeId = await trainingService.RecordTradeAsync(signalData);
+                var tradeId = await trainingService.RecordTradeAsync(signalData).ConfigureAwait(false);
 
                 logger.LogDebug("[EnhancedIntegration] Collected signal data for {Strategy}: {TradeId}",
                     signal.Strategy, tradeId);
@@ -72,7 +72,7 @@ namespace BotCore.Integrations
                     MaxDrawdown = Math.Min(0, pnl) // Simplified - could be enhanced with real-time tracking
                 };
 
-                await trainingService.RecordTradeResultAsync(tradeId, outcomeData);
+                await trainingService.RecordTradeResultAsync(tradeId, outcomeData).ConfigureAwait(false);
 
                 logger.LogDebug("[EnhancedIntegration] Recorded trade outcome for {TradeId}: {Result} (R={RMultiple:F2})",
                     tradeId, isWin ? "WIN" : "LOSS", outcomeData.ActualRMultiple);
@@ -104,7 +104,7 @@ namespace BotCore.Integrations
             try
             {
                 // Process with enhanced training data collection
-                result.TradeId = await CollectSignalDataAsync(logger, trainingService, signal, currentBar, snapshot);
+                result.TradeId = await CollectSignalDataAsync(logger, trainingService, signal, currentBar, snapshot).ConfigureAwait(false);
                 result.Success = !string.IsNullOrEmpty(result.TradeId);
 
                 logger.LogInformation("[EnhancedIntegration] Processed signal for {Strategy} - TradeId: {TradeId}",

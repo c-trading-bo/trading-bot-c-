@@ -85,7 +85,7 @@ namespace OrchestratorAgent
                         continue;
                     }
 
-                    await _router.RouteAsync(normalized, cid, ct);
+                    await _router.RouteAsync(normalized, cid, ct).ConfigureAwait(false);
                 }
             }
         }

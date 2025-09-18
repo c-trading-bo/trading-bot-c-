@@ -12,14 +12,14 @@ public sealed class ReplayRunner(Action<ReplayRunner.TradeTick> onTick)
     public async Task RunAsync(string file, TimeSpan? maxDuration, CancellationToken ct)
     {
         if (!File.Exists(file)) return;
-        var text = await File.ReadAllTextAsync(file, ct);
+        var text = await File.ReadAllTextAsync(file, ct).ConfigureAwait(false);
         var ticks = JsonSerializer.Deserialize<List<TradeTick>>(text) ?? [];
         var start = DateTime.UtcNow;
         foreach (var t in ticks)
         {
             _onTick(t);
             if (maxDuration.HasValue && DateTime.UtcNow - start > maxDuration.Value) break;
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
         }
     }
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Runtime;
 
@@ -89,7 +90,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
                     Metadata = new Dictionary<string, object>
                     {
                         ["PreviousVersionId"] = previousVersion,
-                        ["SwapTimestamp"] = swapStartTime.ToString("O"),
+                        ["SwapTimestamp"] = swapStartTime.ToString("O", CultureInfo.InvariantCulture),
                         ["ModelType"] = newVersion.ModelType,
                         ["SchemaVersion"] = newVersion.SchemaVersion
                     }
@@ -120,7 +121,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
                     Metadata = _stats.Metadata.ToDictionary(k => k.Key, v => v.Value)
                 };
                 _stats.Metadata["LastError"] = ex.Message;
-                _stats.Metadata["LastErrorTime"] = DateTime.UtcNow.ToString("O");
+                _stats.Metadata["LastErrorTime"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
             }
             
             return Task.FromResult(false);
@@ -141,7 +142,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
     public async Task<bool> InitializeAsync(T championModel, ModelVersion championVersion, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[{Algorithm}] Initializing with champion model version {VersionId}", _algorithm, championVersion.VersionId);
-        return await SwapAsync(championModel, championVersion, cancellationToken);
+        return await SwapAsync(championModel, championVersion, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -217,18 +218,18 @@ public class ModelRouterFactory : IModelRouterFactory
             {
                 if (kvp.Value is IModelRouter<object> router)
                 {
-                    var stats = await router.GetStatsAsync();
+                    var stats = await router.GetStatsAsync().ConfigureAwait(false);
                     health[kvp.Key] = stats.IsHealthy;
                 }
                 else
                 {
-                    health[kvp.Key] = false;
+                    health[kvp.Key];
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to get health for router {RouterKey}", kvp.Key);
-                health[kvp.Key] = false;
+                health[kvp.Key];
             }
         }
         

@@ -47,7 +47,7 @@ namespace TradingBot.Critical
             public string Status { get; set; } = string.Empty;
             public bool IsVerified { get; set; }
             public string ExecutionProof { get; set; } = string.Empty;
-            public List<PartialFill> PartialFills { get; set; } = new();
+            public List<PartialFill> PartialFills { get; } = new();
         }
         
         public class FillRecord
@@ -98,12 +98,12 @@ namespace TradingBot.Critical
             // Setup SignalR listeners for fill events
             _signalRConnection.On<FillEventData>("FillReceived", async (fillData) =>
             {
-                await ProcessFillEvent(fillData);
+                await ProcessFillEvent(fillData).ConfigureAwait(false);
             });
             
             _signalRConnection.On<OrderStatusData>("OrderStatusUpdate", async (statusData) =>
             {
-                await ProcessOrderStatus(statusData);
+                await ProcessOrderStatus(statusData).ConfigureAwait(false);
             });
             
             // Initialize database for audit trail
@@ -167,7 +167,7 @@ namespace TradingBot.Critical
                 else
                 {
                     // Orphaned fill - CRITICAL ALERT
-                    Task.Run(async () => await HandleOrphanedFill(fillData));
+                    Task.Run(async () => await HandleOrphanedFill(fillData)).ConfigureAwait(false);
                 }
             }
             
@@ -184,7 +184,7 @@ namespace TradingBot.Critical
                     LogOrderFailure(order, statusData.RejectReason);
                     
                     // Alert system
-                    await AlertOrderFailure(order, statusData.RejectReason);
+                    await AlertOrderFailure(order, statusData.RejectReason).ConfigureAwait(false);
                 }
             }
         }
@@ -202,7 +202,7 @@ namespace TradingBot.Critical
                 {
                     try
                     {
-                        var actualStatus = await QueryOrderStatus(order.OrderId);
+                        var actualStatus = await QueryOrderStatus(order.OrderId).ConfigureAwait(false);
                         
                         if (actualStatus == null)
                         {
@@ -314,7 +314,7 @@ namespace TradingBot.Critical
                     }
                 }
                 
-                await Task.Delay(100);
+                await Task.Delay(100).ConfigureAwait(false);
             }
             
             return false;
@@ -430,7 +430,7 @@ namespace TradingBot.Critical
                 _logger.LogError(ex, "Failed to log order failure alert for {OrderId}", order.OrderId);
             }
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
 
         private async Task<string?> QueryOrderStatus(string orderId)
@@ -441,10 +441,10 @@ namespace TradingBot.Critical
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", GetJwtToken());
                 
-                var response = await httpClient.GetAsync($"https://api.topstepx.com/api/Order/{orderId}");
+                var response = await httpClient.GetAsync($"https://api.topstepx.com/api/Order/{orderId}").ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = await response.Content.ReadAsStringAsync();
+                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var orderData = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(json);
                     
                     if (orderData.TryGetProperty("status", out var statusElement))
@@ -511,7 +511,7 @@ namespace TradingBot.Critical
         private readonly ConcurrentDictionary<string, Position> _activePositions = new();
         private readonly object _stateLock = new();
         private DateTime _lastHeartbeat;
-        private bool _emergencyModeActive = false;
+        private bool _emergencyModeActive;
         private readonly ILogger<DisasterRecoverySystem> _logger;
         private readonly SQLiteConnection? _database;
         
@@ -519,9 +519,9 @@ namespace TradingBot.Critical
         {
             public DateTime Timestamp { get; set; }
             public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
-            public Dictionary<string, Position> Positions { get; set; } = new();
-            public Dictionary<string, PendingOrder> PendingOrders { get; set; } = new();
-            public Dictionary<string, StrategyState> StrategyStates { get; set; } = new();
+            public Dictionary<string, Position> Positions { get; } = new();
+            public Dictionary<string, PendingOrder> PendingOrders { get; } = new();
+            public Dictionary<string, StrategyState> StrategyStates { get; } = new();
             public RiskMetrics RiskMetrics { get; set; } = new();
             public MarketState MarketState { get; set; } = new();
             public string SystemVersion { get; set; } = string.Empty;
@@ -588,7 +588,7 @@ namespace TradingBot.Critical
             // Check for existing state file
             if (File.Exists(_stateFile))
             {
-                await RecoverFromCrash();
+                await RecoverFromCrash().ConfigureAwait(false);
             }
             
             // Start state persistence - every tick
@@ -608,7 +608,7 @@ namespace TradingBot.Critical
         {
             try
             {
-                var stateJson = await File.ReadAllTextAsync(_stateFile);
+                var stateJson = await File.ReadAllTextAsync(_stateFile).ConfigureAwait(false);
                 var state = JsonSerializer.Deserialize<SystemState>(stateJson);
                 
                 if (state == null)
@@ -623,7 +623,7 @@ namespace TradingBot.Critical
                     // Try backup
                     if (File.Exists(_backupStateFile))
                     {
-                        stateJson = await File.ReadAllTextAsync(_backupStateFile);
+                        stateJson = await File.ReadAllTextAsync(_backupStateFile).ConfigureAwait(false);
                         state = JsonSerializer.Deserialize<SystemState>(stateJson);
                     }
                 }
@@ -640,24 +640,24 @@ namespace TradingBot.Critical
                 if (downtime > TimeSpan.FromMinutes(1))
                 {
                     // Emergency liquidation
-                    await EmergencyLiquidation(state);
+                    await EmergencyLiquidation(state).ConfigureAwait(false);
                 }
                 else
                 {
                     // Reconcile positions
-                    await ReconcilePositions(state);
+                    await ReconcilePositions(state).ConfigureAwait(false);
                     
                     // Reattach stop losses
-                    await ReattachProtectiveOrders(state);
+                    await ReattachProtectiveOrders(state).ConfigureAwait(false);
                     
                     // Resume strategies
-                    await ResumeStrategies(state);
+                    await ResumeStrategies(state).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
             {
                 // Catastrophic failure - emergency mode
-                await ActivateEmergencyMode(ex);
+                await ActivateEmergencyMode(ex).ConfigureAwait(false);
             }
         }
         
@@ -741,7 +741,7 @@ namespace TradingBot.Critical
                 _logger.LogInformation("[POSITION_RECONCILE] Starting position reconciliation");
                 
                 // Get actual positions from broker
-                var brokerPositions = await GetBrokerPositions();
+                var brokerPositions = await GetBrokerPositions().ConfigureAwait(false);
                 var discrepancies = new List<string>();
                 
                 // Compare saved positions with broker positions
@@ -789,7 +789,7 @@ namespace TradingBot.Critical
                 if (discrepancies.Any())
                 {
                     _logger.LogWarning("[POSITION_RECONCILE] Found {Count} position discrepancies", discrepancies.Count);
-                    await StorePositionDiscrepancies(discrepancies);
+                    await StorePositionDiscrepancies(discrepancies).ConfigureAwait(false);
                 }
                 else
                 {
@@ -836,6 +836,7 @@ namespace TradingBot.Critical
             const string sql = @"INSERT INTO UnknownPositions (Timestamp, Symbol, Quantity, Source) 
                                VALUES (@Timestamp, @Symbol, @Quantity, @Source)";
             using var cmd = new SQLiteCommand(sql, _database);
+using System.Globalization;
             cmd.Parameters.AddWithValue("@Timestamp", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@Symbol", brokerPos.Symbol);
             cmd.Parameters.AddWithValue("@Quantity", brokerPos.Quantity);
@@ -853,25 +854,25 @@ namespace TradingBot.Critical
             foreach (var position in _activePositions.Values)
             {
                 // Check if stop loss exists
-                var stopLossExists = await CheckOrderExists(position.StopLossOrderId);
+                var stopLossExists = await CheckOrderExists(position.StopLossOrderId).ConfigureAwait(false);
                 
                 if (!stopLossExists)
                 {
                     // Reattach stop loss
                     var stopPrice = CalculateStopLoss(position);
-                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice);
+                    var stopOrder = await PlaceStopLossOrder(position.Symbol, position.Quantity, stopPrice).ConfigureAwait(false);
                     position.StopLossOrderId = stopOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached stop loss for {position.Symbol} at {stopPrice}");
                 }
                 
                 // Check take profit
-                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId);
+                var takeProfitExists = await CheckOrderExists(position.TakeProfitOrderId).ConfigureAwait(false);
                 
                 if (!takeProfitExists)
                 {
                     var targetPrice = CalculateTakeProfit(position);
-                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice);
+                    var targetOrder = await PlaceTakeProfitOrder(position.Symbol, position.Quantity, targetPrice).ConfigureAwait(false);
                     position.TakeProfitOrderId = targetOrder?.OrderId ?? string.Empty;
                     
                     LogCriticalAction($"Reattached take profit for {position.Symbol} at {targetPrice}");
@@ -900,7 +901,7 @@ namespace TradingBot.Critical
                         EmergencyOrder = true
                     };
                     
-                    await ExecuteEmergencyOrder(closeOrder);
+                    await ExecuteEmergencyOrder(closeOrder).ConfigureAwait(false);
                     
                     LogCriticalAction($"Emergency liquidation: {position.Symbol} x {position.Quantity}");
                 }
@@ -908,18 +909,18 @@ namespace TradingBot.Critical
                 {
                     _logger.LogError(ex, "Failed during emergency liquidation for position {Symbol}", position.Symbol);
                     // Try alternative broker if available
-                    await ExecuteBackupLiquidation(position);
+                    await ExecuteBackupLiquidation(position).ConfigureAwait(false);
                 }
             }
             
             // Cancel all pending orders
-            await CancelAllPendingOrders();
+            await CancelAllPendingOrders().ConfigureAwait(false);
             
             // Disable all strategies
-            await DisableAllStrategies();
+            await DisableAllStrategies().ConfigureAwait(false);
             
             // Send emergency alert
-            await SendEmergencyAlert("System performed emergency liquidation after crash");
+            await SendEmergencyAlert("System performed emergency liquidation after crash").ConfigureAwait(false);
         }
         
         private void StartHeartbeatMonitor()
@@ -928,12 +929,12 @@ namespace TradingBot.Critical
             {
                 while (true)
                 {
-                    await Task.Delay(5000);
+                    await Task.Delay(5000).ConfigureAwait(false);
                     
                     if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(10))
                     {
                         // System frozen
-                        await HandleSystemFreeze();
+                        await HandleSystemFreeze().ConfigureAwait(false);
                     }
                 }
             });
@@ -955,7 +956,7 @@ namespace TradingBot.Critical
                 _logger.LogWarning("[CRITICAL] High memory pressure detected ({MemoryGB:F1}GB), suggesting collection", memoryPressure);
                 // Gentle suggestion to runtime, not forced
                 GC.Collect(0, GCCollectionMode.Optimized, false);
-                await Task.Delay(2000); // Give runtime time to respond
+                await Task.Delay(2000).ConfigureAwait(false); // Give runtime time to respond
             }
             
             // Check for thread pool starvation
@@ -967,10 +968,10 @@ namespace TradingBot.Critical
             }
             
             // If still frozen after intelligent recovery, initiate emergency protocol
-            await Task.Delay(5000); // Wait 5 seconds for recovery
+            await Task.Delay(5000).ConfigureAwait(false); // Wait 5 seconds for recovery
             if (DateTime.UtcNow - _lastHeartbeat > TimeSpan.FromSeconds(35))
             {
-                await ActivateEmergencyMode(new Exception("System freeze > 35 seconds after recovery attempt"));
+                await ActivateEmergencyMode(new Exception("System freeze > 35 seconds after recovery attempt")).ConfigureAwait(false);
             }
         }
         
@@ -994,7 +995,7 @@ namespace TradingBot.Critical
             SaveCrashDump(exception);
             
             // Attempt emergency position protection
-            Task.Run(async () => await EmergencyPositionProtection()).Wait(5000);
+            Task.Run(async () => await EmergencyPositionProtection()).Wait(5000).ConfigureAwait(false);
         }
 
         // Additional stub implementations
@@ -1034,7 +1035,7 @@ namespace TradingBot.Critical
                 };
                 
                 _logger?.LogError("[Emergency] Order logged: {OrderData}", orderData);
-                await Task.Delay(50); // Simulate order execution time
+                await Task.Delay(50).ConfigureAwait(false); // Simulate order execution time
             }
             catch (Exception ex)
             {
@@ -1059,7 +1060,7 @@ namespace TradingBot.Critical
                 };
                 
                 _logger?.LogError("[Emergency] Backup liquidation attempted: {Data}", liquidationData);
-                await Task.Delay(100); // Simulate backup execution time
+                await Task.Delay(100).ConfigureAwait(false); // Simulate backup execution time
             }
             catch (Exception ex)
             {
@@ -1083,7 +1084,7 @@ namespace TradingBot.Critical
                 };
                 
                 _logger?.LogError("[Emergency] All orders cancelled: {Data}", cancellationData);
-                await Task.Delay(200); // Simulate cancellation processing time
+                await Task.Delay(200).ConfigureAwait(false); // Simulate cancellation processing time
             }
             catch (Exception ex)
             {
@@ -1103,7 +1104,7 @@ namespace TradingBot.Critical
                 var disableCommand = new { Command = "DISABLE_ALL", Reason = "EMERGENCY_MODE", Timestamp = DateTime.UtcNow };
                 _logger?.LogWarning("[Emergency] All strategies disabled: {Command}", disableCommand);
                 
-                await Task.Delay(100); // Brief pause to ensure command propagation
+                await Task.Delay(100).ConfigureAwait(false); // Brief pause to ensure command propagation
             }
             catch (Exception ex)
             {
@@ -1130,7 +1131,7 @@ namespace TradingBot.Critical
                 // Write to emergency log file
                 var emergencyLog = Path.Combine(Environment.CurrentDirectory, "emergency.log");
                 var logEntry = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} [EMERGENCY] {message}\n";
-                await File.AppendAllTextAsync(emergencyLog, logEntry);
+                await File.AppendAllTextAsync(emergencyLog, logEntry).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -1147,10 +1148,10 @@ namespace TradingBot.Critical
                 _logger?.LogError(ex, "[Emergency] Emergency mode activated");
                 
                 // Disable all strategies
-                await DisableAllStrategies();
+                await DisableAllStrategies().ConfigureAwait(false);
                 
                 // Send alert
-                await SendEmergencyAlert($"Emergency mode activated: {ex.Message}");
+                await SendEmergencyAlert($"Emergency mode activated: {ex.Message}").ConfigureAwait(false);
                 
                 // Save crash dump
                 SaveCrashDump(ex);
@@ -1158,7 +1159,7 @@ namespace TradingBot.Critical
                 // Close connections
                 CloseAllConnections();
                 
-                await Task.Delay(500); // Brief delay to ensure cleanup
+                await Task.Delay(500).ConfigureAwait(false); // Brief delay to ensure cleanup
             }
             catch (Exception cleanupEx)
             {
@@ -1188,7 +1189,7 @@ namespace TradingBot.Critical
                 var crashDir = Path.Combine(Environment.CurrentDirectory, "crash_dumps");
                 Directory.CreateDirectory(crashDir);
 
-                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 var dumpFile = Path.Combine(crashDir, $"crash_{timestamp}.json");
 
                 var crashData = new
@@ -1237,11 +1238,11 @@ namespace TradingBot.Critical
                             position.Symbol, riskLevel);
                         
                         // This would trigger emergency liquidation
-                        await SendEmergencyAlert($"High risk position: {position.Symbol} (Risk: {riskLevel})");
+                        await SendEmergencyAlert($"High risk position: {position.Symbol} (Risk: {riskLevel})").ConfigureAwait(false);
                     }
                 }
                 
-                await Task.Delay(100); // Brief processing delay
+                await Task.Delay(100).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
@@ -1272,7 +1273,7 @@ namespace TradingBot.Critical
                 };
                 
                 _logger?.LogWarning("[Recovery] Strategies resumed: {Data}", resumeData);
-                await Task.Delay(200); // Brief processing delay
+                await Task.Delay(200).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
@@ -1310,7 +1311,7 @@ namespace TradingBot.Critical
             public decimal DirectionalExposure { get; set; }
             public decimal DollarExposure { get; set; }
             public decimal CorrelatedExposure { get; set; }
-            public Dictionary<string, decimal> CorrelatedWith { get; set; } = new();
+            public Dictionary<string, decimal> CorrelatedWith { get; } = new();
             public DateTime LastUpdated { get; set; }
         }
         
@@ -1319,7 +1320,7 @@ namespace TradingBot.Critical
             public string AlertType { get; set; } = string.Empty;
             public double CurrentCorrelation { get; set; }
             public double MaxAllowed { get; set; }
-            public List<string> AffectedSymbols { get; set; } = new();
+            public List<string> AffectedSymbols { get; } = new();
             public string RecommendedAction { get; set; } = string.Empty;
         }
         
@@ -1332,7 +1333,7 @@ namespace TradingBot.Critical
         public async Task InitializeCorrelationMonitor()
         {
             // Load historical correlations
-            await LoadHistoricalCorrelations();
+            await LoadHistoricalCorrelations().ConfigureAwait(false);
             
             // Start real-time correlation updates
             _correlationUpdateTimer?.Change(TimeSpan.Zero, TimeSpan.FromMinutes(5));
@@ -1383,7 +1384,7 @@ namespace TradingBot.Critical
                             RecommendedAction = "Reduce one position before adding to the other"
                         };
                         
-                        await SendCorrelationAlert(alert);
+                        await SendCorrelationAlert(alert).ConfigureAwait(false);
                         return false;
                     }
                 }
@@ -1472,7 +1473,7 @@ namespace TradingBot.Critical
                 
                 if (File.Exists(correlationFile))
                 {
-                    var historicalData = await File.ReadAllTextAsync(correlationFile);
+                    var historicalData = await File.ReadAllTextAsync(correlationFile).ConfigureAwait(false);
                     var correlations = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, double>>>(historicalData);
                     
                     if (correlations != null)
@@ -1495,7 +1496,7 @@ namespace TradingBot.Critical
                     _logger?.LogInformation("[Correlation] Initialized with default correlations");
                 }
                 
-                await Task.Delay(100); // Brief processing delay
+                await Task.Delay(100).ConfigureAwait(false); // Brief processing delay
             }
             catch (Exception ex)
             {
@@ -1514,7 +1515,7 @@ namespace TradingBot.Critical
         private decimal GetMaxESNQCombined() => 5000m;
         private async Task SendCorrelationAlert(CorrelationAlert alert) 
         { 
-            await Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction)); 
+            await Task.Run(() => _logger.LogWarning("[CORRELATION_ALERT] {AlertType}: {Action}", alert.AlertType, alert.RecommendedAction)).ConfigureAwait(false); 
         }
         private decimal CalculatePortfolioConcentration(string symbol, decimal newExposure) => 0.3m;
         private Dictionary<string, List<decimal>> GetRecentPriceData() => new();

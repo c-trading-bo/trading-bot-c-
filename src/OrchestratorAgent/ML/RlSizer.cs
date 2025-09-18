@@ -192,8 +192,8 @@ namespace OrchestratorAgent.ML
 
                 // Load ONNX model
                 var sessionOptions = new SessionOptions();
-                sessionOptions.EnableMemoryPattern = false; // Reduce memory usage
-                sessionOptions.EnableCpuMemArena = false;
+                sessionOptions.EnableMemoryPattern; // Reduce memory usage
+                sessionOptions.EnableCpuMemArena;
 
                 _session = new InferenceSession(_modelPath, sessionOptions);
                 _modelLastWrite = File.GetLastWriteTimeUtc(_modelPath);
@@ -254,6 +254,7 @@ namespace OrchestratorAgent.ML
 
                 // Run inference
                 using var results = _session.Run(inputs);
+using System.Globalization;
 
                 // Extract logits (policy output)
                 DenseTensor<float>? logits = null!;
@@ -283,7 +284,7 @@ namespace OrchestratorAgent.ML
                 recommendedSize = Math.Max(0.1, Math.Min(recommendedSize, 3.0));
 
                 _logger.LogDebug("[RlSizer] Recommended size: {Size:F2} (action {Index}, logits: [{Logits}])",
-                    recommendedSize, actionIndex, string.Join(", ", logitsArray.Select(x => x.ToString("F3"))));
+                    recommendedSize, actionIndex, string.Join(", ", logitsArray.Select(x => x.ToString("F3", CultureInfo.InvariantCulture))));
 
                 return recommendedSize;
             }
@@ -296,7 +297,7 @@ namespace OrchestratorAgent.ML
 
         private int GreedyAction(float[] logits)
         {
-            int maxIndex = 0;
+            int maxIndex;
             for (int i = 1; i < logits.Length; i++)
             {
                 if (logits[i] > logits[maxIndex])
@@ -314,22 +315,22 @@ namespace OrchestratorAgent.ML
                 if (v > max) max = v;
             }
 
-            double sum = 0;
+            double sum;
             var probs = new double[logits.Length];
-            for (int i = 0; i < logits.Length; i++)
+            for (int i; i < logits.Length; i++)
             {
                 probs[i] = Math.Exp(logits[i] - max);
                 sum += probs[i];
             }
 
-            for (int i = 0; i < probs.Length; i++)
+            for (int i; i < probs.Length; i++)
             {
                 probs[i] /= sum;
             }
 
             double u = _rng.NextDouble();
-            double acc = 0;
-            for (int i = 0; i < probs.Length; i++)
+            double acc;
+            for (int i; i < probs.Length; i++)
             {
                 acc += probs[i];
                 if (u <= acc) return i;

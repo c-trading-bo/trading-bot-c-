@@ -145,7 +145,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<bool> GetFeatureFlagAsync(string flagName)
@@ -218,7 +218,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<RolloutStatus> GetRolloutStatusAsync(string featureName)
@@ -301,7 +301,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             throw;
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<List<ConfigurationChange>> GetConfigurationHistoryAsync(DateTime? from = null)
@@ -342,16 +342,16 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             _logger.LogInformation("[CONFIG_MANAGER] Starting configuration validation [CorrelationId: {CorrelationId}]", correlationId);
 
             // Validate critical configurations
-            await ValidateCriticalConfigurationsAsync(result);
+            await ValidateCriticalConfigurationsAsync(result).ConfigureAwait(false);
             
             // Validate feature flag consistency
-            await ValidateFeatureFlagsAsync(result);
+            await ValidateFeatureFlagsAsync(result).ConfigureAwait(false);
             
             // Validate rollout configurations
-            await ValidateRolloutsAsync(result);
+            await ValidateRolloutsAsync(result).ConfigureAwait(false);
             
             // Check for configuration drift
-            await CheckConfigurationDriftAsync(result);
+            await CheckConfigurationDriftAsync(result).ConfigureAwait(false);
 
             var criticalIssueCount = result.Issues.Count(i => i.Severity == ValidationSeverity.Critical);
             var warningIssueCount = result.Issues.Count(i => i.Severity == ValidationSeverity.Warning);
@@ -360,7 +360,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             {
                 _logger.LogCritical("[CONFIG_MANAGER] Configuration validation FAILED: {CriticalIssues} critical, {Warnings} warnings [CorrelationId: {CorrelationId}]",
                     criticalIssueCount, warningIssueCount, correlationId);
-                result.IsValid = false;
+                result.IsValid;
             }
             else if (warningIssueCount > 0)
             {
@@ -379,7 +379,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CONFIG_MANAGER] Error during configuration validation [CorrelationId: {CorrelationId}]", correlationId);
-            result.IsValid = false;
+            result.IsValid;
             result.Issues.Add(new ValidationIssue
             {
                 Key = "VALIDATION_ERROR",
@@ -388,7 +388,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             });
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task ExportConfigurationAsync(string filePath)
@@ -413,7 +413,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(filePath, json);
+            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
 
             _logger.LogInformation("[CONFIG_MANAGER] Configuration exported to: {FilePath} [CorrelationId: {CorrelationId}]", 
                 filePath, correlationId);
@@ -436,7 +436,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
                 throw new FileNotFoundException($"Configuration file not found: {filePath}");
             }
 
-            var json = await File.ReadAllTextAsync(filePath);
+            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var import = JsonSerializer.Deserialize<ConfigurationExport>(json, new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -453,7 +453,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
                 _logger.LogInformation("[CONFIG_MANAGER] Validating configuration import [CorrelationId: {CorrelationId}]", correlationId);
                 
                 var configDictionary = import.Configurations.ToDictionary(c => c.Key, c => JsonSerializer.Deserialize<object>(c.Value) ?? c.Value);
-                await ValidateConfigurationImport(configDictionary, correlationId);
+                await ValidateConfigurationImport(configDictionary, correlationId).ConfigureAwait(false);
             }
 
             // Apply configurations
@@ -488,10 +488,10 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         _persistenceTimer.Change(_config.PersistenceInterval, _config.PersistenceInterval);
         
         // Load persisted configuration if available
-        await LoadPersistedConfigurationAsync();
+        await LoadPersistedConfigurationAsync().ConfigureAwait(false);
         
         _logger.LogInformation("[CONFIG_MANAGER] Started with validation interval: {ValidationInterval}", _config.ValidationInterval);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -500,7 +500,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         _persistenceTimer.Change(Timeout.Infinite, Timeout.Infinite);
         
         // Persist configuration before shutdown
-        await PersistConfigurationAsync();
+        await PersistConfigurationAsync().ConfigureAwait(false);
         
         _logger.LogInformation("[CONFIG_MANAGER] Stopped");
     }
@@ -565,7 +565,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
 
             // Validate critical configuration values
-            await ValidateConfigurationValue(kvp.Key, kvp.Value, validationErrors);
+            await ValidateConfigurationValue(kvp.Key, kvp.Value, validationErrors).ConfigureAwait(false);
         }
 
         if (validationErrors.Any())
@@ -580,7 +580,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
 
     private async Task ValidateConfigurationValue(string key, object value, List<string> validationErrors)
     {
-        await Task.CompletedTask; // For async consistency
+        await Task.CompletedTask.ConfigureAwait(false); // For async consistency
 
         switch (key.ToUpperInvariant())
         {
@@ -644,7 +644,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task ValidateFeatureFlagsAsync(ValidationResult result)
@@ -663,7 +663,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task ValidateRolloutsAsync(ValidationResult result)
@@ -681,7 +681,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task CheckConfigurationDriftAsync(ValidationResult result)
@@ -702,7 +702,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             });
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task LoadPersistedConfigurationAsync()
@@ -712,7 +712,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
             var configFile = Path.Combine(_config.PersistenceDirectory, "configuration.json");
             if (File.Exists(configFile))
             {
-                await ImportConfigurationAsync(configFile, false);
+                await ImportConfigurationAsync(configFile, false).ConfigureAwait(false);
                 _logger.LogInformation("[CONFIG_MANAGER] Loaded persisted configuration from: {ConfigFile}", configFile);
             }
         }
@@ -728,7 +728,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
         {
             Directory.CreateDirectory(_config.PersistenceDirectory);
             var configFile = Path.Combine(_config.PersistenceDirectory, "configuration.json");
-            await ExportConfigurationAsync(configFile);
+            await ExportConfigurationAsync(configFile).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -740,7 +740,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await ValidateConfigurationAsync());
+            _ = Task.Run(async () => await ValidateConfigurationAsync()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -752,7 +752,7 @@ public class ConfigurationManager : IConfigurationManager, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await PersistConfigurationAsync());
+            _ = Task.Run(async () => await PersistConfigurationAsync()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -827,7 +827,7 @@ public class ValidationResult
     public string ValidationId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public bool IsValid { get; set; }
-    public List<ValidationIssue> Issues { get; set; } = new();
+    public List<ValidationIssue> Issues { get; } = new();
 }
 
 public class ValidationIssue
@@ -842,9 +842,9 @@ public class ConfigurationExport
     public string ExportId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string ExportedBy { get; set; } = string.Empty;
-    public List<ConfigurationItem> Configurations { get; set; } = new();
-    public List<FeatureFlag> FeatureFlags { get; set; } = new();
-    public List<RolloutConfig> Rollouts { get; set; } = new();
+    public List<ConfigurationItem> Configurations { get; } = new();
+    public List<FeatureFlag> FeatureFlags { get; } = new();
+    public List<RolloutConfig> Rollouts { get; } = new();
 }
 
 public enum ConfigurationChangeType

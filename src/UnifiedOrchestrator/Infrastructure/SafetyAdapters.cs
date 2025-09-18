@@ -26,7 +26,7 @@ public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
     public async Task StartMonitoringAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🔍 Starting health monitoring");
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
 
         // Start background monitoring
         _ = Task.Run(async () =>
@@ -36,7 +36,7 @@ public class HealthMonitorAdapter : Trading.Safety.IHealthMonitor
                 try
                 {
                     _logger.LogDebug("🔍 Performing health check");
-                    await Task.Delay(5000, cancellationToken);
+                    await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

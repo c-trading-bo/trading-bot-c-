@@ -25,11 +25,11 @@ public class BatchedOnnxInferenceService : IDisposable
     private readonly Channel<InferenceRequest> _requestQueue;
     private readonly ConcurrentDictionary<string, List<InferenceRequest>> _pendingBatches = new();
     private readonly object _lock = new();
-    private bool _disposed = false;
+    private bool _disposed;
 
     // GPU and quantization detection
-    private bool _gpuAvailable = false;
-    private bool _quantizedModelsSupported = false;
+    private bool _gpuAvailable;
+    private bool _quantizedModelsSupported;
 
     public BatchedOnnxInferenceService(
         ILogger<BatchedOnnxInferenceService> logger,
@@ -74,8 +74,8 @@ public class BatchedOnnxInferenceService : IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to detect hardware capabilities");
-            _gpuAvailable = false;
-            _quantizedModelsSupported = false;
+            _gpuAvailable;
+            _quantizedModelsSupported;
         }
     }
 
@@ -95,7 +95,7 @@ public class BatchedOnnxInferenceService : IDisposable
         };
 
         // Add to queue for batched processing
-        await _requestQueue.Writer.WriteAsync(request, cancellationToken);
+        await _requestQueue.Writer.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 
         // Wait for result with timeout
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -103,7 +103,7 @@ public class BatchedOnnxInferenceService : IDisposable
 
         try
         {
-            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token);
+            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -133,7 +133,7 @@ public class BatchedOnnxInferenceService : IDisposable
 
             foreach (var group in modelGroups)
             {
-                await ProcessModelBatchAsync(group.Key, group.ToList());
+                await ProcessModelBatchAsync(group.Key, group.ToList()).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -150,7 +150,7 @@ public class BatchedOnnxInferenceService : IDisposable
         try
         {
             // Load model if not already loaded
-            var session = await _modelLoader.LoadModelAsync(modelPath);
+            var session = await _modelLoader.LoadModelAsync(modelPath).ConfigureAwait(false);
             if (session == null)
             {
                 _logger.LogError("Failed to load model for batch inference: {ModelPath}", modelPath);
@@ -162,10 +162,10 @@ public class BatchedOnnxInferenceService : IDisposable
             var batchSize = Math.Min(requests.Count, _batchConfig.ModelInferenceBatchSize);
             
             // Process in batches
-            for (int i = 0; i < requests.Count; i += batchSize)
+            for (int i; i < requests.Count; i += batchSize)
             {
                 var batchRequests = requests.Skip(i).Take(batchSize).ToList();
-                await ProcessSingleBatchAsync(session, batchRequests);
+                await ProcessSingleBatchAsync(session, batchRequests).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -189,9 +189,9 @@ public class BatchedOnnxInferenceService : IDisposable
             var featureSize = batchRequests[0].Features.Length;
             var batchInput = new float[batchSize, featureSize];
 
-            for (int i = 0; i < batchSize; i++)
+            for (int i; i < batchSize; i++)
             {
-                for (int j = 0; j < featureSize; j++)
+                for (int j; j < featureSize; j++)
                 {
                     batchInput[i, j] = batchRequests[i].Features[j];
                 }
@@ -205,16 +205,16 @@ public class BatchedOnnxInferenceService : IDisposable
             };
 
             // Run inference
-            var outputs = await Task.Run(() => session.Run(inputs));
+            var outputs = await Task.Run(() => session.Run(inputs)).ConfigureAwait(false);
             var outputTensor = outputs.First().AsTensor<float>();
 
             // Extract results and complete requests
-            for (int i = 0; i < batchSize; i++)
+            for (int i; i < batchSize; i++)
             {
                 try
                 {
                     var result = new double[outputTensor.Dimensions[1]];
-                    for (int j = 0; j < result.Length; j++)
+                    for (int j; j < result.Length; j++)
                     {
                         result[j] = outputTensor[i, j];
                     }

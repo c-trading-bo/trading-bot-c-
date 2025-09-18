@@ -135,7 +135,7 @@ public class ProductionGuardrailOrchestrator : IHostedService
         // Guardrail 1: Force DRY_RUN if kill.txt exists
         if (ProductionKillSwitchService.IsKillSwitchActive())
         {
-            result.IsValid = false;
+            result.IsValid;
             result.ValidationErrors.Add("Kill switch is active - all execution disabled");
             _logger.LogCritical("🔴 [GUARDRAILS] Trade rejected: Kill switch active");
             return result;
@@ -154,7 +154,7 @@ public class ProductionGuardrailOrchestrator : IHostedService
 
         if (!priceValidation.IsValid)
         {
-            result.IsValid = false;
+            result.IsValid;
             result.ValidationErrors.Add($"Price validation failed: {priceValidation.ValidationError}");
             _logger.LogCritical("🔴 [GUARDRAILS] Trade rejected: {Error}", priceValidation.ValidationError);
             return result;
@@ -181,7 +181,7 @@ public class TradeValidationResult
     public string CustomTag { get; set; } = string.Empty;
     public bool IsValid { get; set; }
     public bool IsDryRun { get; set; }
-    public List<string> ValidationErrors { get; set; } = new();
+    public List<string> ValidationErrors { get; } = new();
     
     // Validated and rounded prices
     public decimal RoundedEntry { get; set; }

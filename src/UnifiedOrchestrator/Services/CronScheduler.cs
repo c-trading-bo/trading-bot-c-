@@ -1,6 +1,6 @@
 using System;
-using System.Globalization;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -42,7 +42,7 @@ public static class CronScheduler
             var next = new DateTime(localTime.Year, localTime.Month, localTime.Day, localTime.Hour, localTime.Minute, 0, DateTimeKind.Unspecified).AddMinutes(1);
 
             // Find next valid time within the next 7 days (to handle weekly cycles)
-            for (int i = 0; i < 10080; i++) // 7 days * 24 hours * 60 minutes
+            for (int i; i < 10080; i++) // 7 days * 24 hours * 60 minutes
             {
                 if (MatchesCronExpression(next, second, minute, hour, day, month, dayOfWeek))
                 {
@@ -238,7 +238,7 @@ public static class CronScheduler
     /// </summary>
     public static bool IsMarketHoliday(DateTime date, List<string> holidays)
     {
-        var dateStr = date.ToString("yyyy-MM-dd");
+        var dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         return holidays.Contains(dateStr);
     }
 }

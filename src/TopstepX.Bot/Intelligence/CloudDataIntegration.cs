@@ -48,7 +48,7 @@ namespace TopstepX.Bot.Intelligence
                     _logger.LogWarning($"Trading signals data is {age.TotalMinutes:F1} minutes old. Consider refreshing cloud data.");
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(signalsFile);
+                var jsonContent = await File.ReadAllTextAsync(signalsFile).ConfigureAwait(false);
                 var signals = JsonSerializer.Deserialize<MarketSignals>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -79,7 +79,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(optionsFile);
+                var jsonContent = await File.ReadAllTextAsync(optionsFile).ConfigureAwait(false);
                 var optionsData = JsonSerializer.Deserialize<OptionsFlowData>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -110,7 +110,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(macroFile);
+                var jsonContent = await File.ReadAllTextAsync(macroFile).ConfigureAwait(false);
                 var macroData = JsonSerializer.Deserialize<MacroData>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -141,7 +141,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(cotFile);
+                var jsonContent = await File.ReadAllTextAsync(cotFile).ConfigureAwait(false);
                 var cotData = JsonSerializer.Deserialize<COTAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -172,7 +172,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(congressFile);
+                var jsonContent = await File.ReadAllTextAsync(congressFile).ConfigureAwait(false);
                 var congressData = JsonSerializer.Deserialize<CongressionalAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -203,7 +203,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(socialFile);
+                var jsonContent = await File.ReadAllTextAsync(socialFile).ConfigureAwait(false);
                 var socialData = JsonSerializer.Deserialize<SocialAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -234,7 +234,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(intermarketFile);
+                var jsonContent = await File.ReadAllTextAsync(intermarketFile).ConfigureAwait(false);
                 var intermarketData = JsonSerializer.Deserialize<IntermarketAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -265,7 +265,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(opexFile);
+                var jsonContent = await File.ReadAllTextAsync(opexFile).ConfigureAwait(false);
                 var opexData = JsonSerializer.Deserialize<OPEXAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -314,7 +314,7 @@ namespace TopstepX.Bot.Intelligence
                     if (!File.Exists(filePath))
                     {
                         status.Issues.Add($"Missing {dataType} data file");
-                        status.IsHealthy = false;
+                        status.IsHealthy;
                         continue;
                     }
                     
@@ -327,19 +327,19 @@ namespace TopstepX.Bot.Intelligence
                         status.Issues.Add($"{dataType} data is stale ({age.TotalMinutes:F0} minutes old)");
                         if (age.TotalHours > 4) // Critical if over 4 hours
                         {
-                            status.IsHealthy = false;
+                            status.IsHealthy;
                         }
                     }
                 }
                 
                 // Additional health checks
-                var signals = await GetLatestMarketSignalsAsync();
+                var signals = await GetLatestMarketSignalsAsync().ConfigureAwait(false);
                 if (signals?.DataAvailability?.Options == false && 
                     signals?.DataAvailability?.Macro == false && 
                     signals?.DataAvailability?.News == false)
                 {
                     status.Issues.Add("No data sources available in combined signals");
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                 }
                 
                 status.AvailableDataSources = new Dictionary<string, bool>
@@ -366,7 +366,7 @@ namespace TopstepX.Bot.Intelligence
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error checking cloud data status");
-                status.IsHealthy = false;
+                status.IsHealthy;
                 status.Issues.Add($"Status check failed: {ex.Message}");
                 return status;
             }
@@ -387,7 +387,7 @@ namespace TopstepX.Bot.Intelligence
             
             try
             {
-                var signals = await GetLatestMarketSignalsAsync();
+                var signals = await GetLatestMarketSignalsAsync().ConfigureAwait(false);
                 
                 if (signals == null)
                 {
@@ -546,7 +546,7 @@ namespace TopstepX.Bot.Intelligence
     {
         public DateTime Timestamp { get; set; }
         public bool IsHealthy { get; set; }
-        public List<string> Issues { get; set; } = new();
+        public List<string> Issues { get; } = new();
         public Dictionary<string, bool>? AvailableDataSources { get; set; }
     }
     

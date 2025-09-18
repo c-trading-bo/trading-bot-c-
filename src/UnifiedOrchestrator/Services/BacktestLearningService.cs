@@ -41,7 +41,7 @@ namespace UnifiedOrchestrator.Services
             _logger.LogInformation("🤖 [BACKTEST_LEARNING] Service starting...");
 
             // Wait for system to initialize
-            await Task.Delay(10000, stoppingToken);
+            await Task.Delay(10000, stoppingToken).ConfigureAwait(false);
 
             var runLearning = Environment.GetEnvironmentVariable("RUN_LEARNING");
             var backtestMode = Environment.GetEnvironmentVariable("BACKTEST_MODE");
@@ -66,14 +66,14 @@ namespace UnifiedOrchestrator.Services
                 {
                     try
                     {
-                        await RunBacktestingSession(stoppingToken);
+                        await RunBacktestingSession(stoppingToken).ConfigureAwait(false);
                         
                         // Wait before next learning session (2 hours by default)
                         var learningInterval = TimeSpan.FromMinutes(
                             int.Parse(Environment.GetEnvironmentVariable("HISTORICAL_LEARNING_INTERVAL_MINUTES") ?? "120"));
                         
                         _logger.LogInformation("⏱️ [BACKTEST_LEARNING] Waiting {Interval} before next learning session", learningInterval);
-                        await Task.Delay(learningInterval, stoppingToken);
+                        await Task.Delay(learningInterval, stoppingToken).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {
@@ -82,7 +82,7 @@ namespace UnifiedOrchestrator.Services
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "❌ [BACKTEST_LEARNING] Error in continuous learning loop");
-                        await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken); // Wait before retry
+                        await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken).ConfigureAwait(false); // Wait before retry
                     }
                 }
             }
@@ -92,7 +92,7 @@ namespace UnifiedOrchestrator.Services
                 
                 try
                 {
-                    await RunBacktestingSession(stoppingToken);
+                    await RunBacktestingSession(stoppingToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -130,34 +130,34 @@ namespace UnifiedOrchestrator.Services
             {
                 // Run S2 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S2 strategy backtesting...");
-                await TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken);
+                await TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
-                await Task.Delay(2000, cancellationToken);
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S3 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S3 strategy backtesting...");
-                await TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken);
+                await TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
-                await Task.Delay(2000, cancellationToken);
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S6 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S6 strategy backtesting...");
-                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken);
+                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, esContractId, "ES", "S6", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 // Wait a bit between runs
-                await Task.Delay(2000, cancellationToken);
+                await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
                 // Run S11 strategy backtesting
                 _logger.LogInformation("🔍 [BACKTEST_LEARNING] Running S11 strategy backtesting...");
-                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken);
+                await TuningRunner.RunStrategySummaryAsync(_httpClient, getJwt, nqContractId, "NQ", "S11", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("✅ [BACKTEST_LEARNING] Backtesting session completed successfully - All 4 ML strategies tested");
 
                 // Trigger adaptive learning
                 _logger.LogInformation("🧠 [BACKTEST_LEARNING] Triggering adaptive learning from backtest results...");
-                await TriggerAdaptiveLearning(cancellationToken);
+                await TriggerAdaptiveLearning(cancellationToken).ConfigureAwait(false);
 
             }
             catch (Exception ex)
@@ -182,7 +182,7 @@ namespace UnifiedOrchestrator.Services
                 _logger.LogInformation("⚙️ [BACKTEST_LEARNING] Learning config - RUN_LEARNING:{Learning} PROMOTE_TUNER:{Promote} INSTANT_ALLOW_LIVE:{Allow}", 
                     runLearning, promoteTuner, instantAllowLive);
 
-                await Task.CompletedTask;
+                await Task.CompletedTask.ConfigureAwait(false);
             }
             catch (Exception ex)
             {

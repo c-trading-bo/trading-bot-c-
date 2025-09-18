@@ -30,12 +30,12 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
     private readonly Dictionary<string, DateTime> _loginAttempts = new();
     private readonly Timer _healthCheckTimer;
     
-    private volatile bool _isLoginCompleted = false;
-    private volatile bool _isDisposed = false;
+    private volatile bool _isLoginCompleted;
+    private volatile bool _isDisposed;
     private DateTime _loginStartTime = DateTime.MinValue;
     private DateTime _loginCompletedTime = DateTime.MinValue;
     private string _loginSessionId = string.Empty;
-    private int _loginAttemptCount = 0;
+    private int _loginAttemptCount;
     
     // Production-grade configuration
     private readonly TimeSpan _loginTimeout = TimeSpan.FromMinutes(5);
@@ -79,7 +79,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
             return;
         }
 
-        await _stateSemaphore.WaitAsync(_timeoutCts.Token);
+        await _stateSemaphore.WaitAsync(_timeoutCts.Token).ConfigureAwait(false);
         try
         {
             if (!_isLoginCompleted && _loginStartTime == DateTime.MinValue)
@@ -99,7 +99,7 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
         
         try
         {
-            await _loginCompletedTcs.Task;
+            await _loginCompletedTcs.Task.ConfigureAwait(false);
             
             _logger.LogInformation("[LOGIN-STATE] Login completion wait successful for session {SessionId}, duration: {Duration}ms",
                 _loginSessionId, (_loginCompletedTime - _loginStartTime).TotalMilliseconds);
@@ -193,12 +193,12 @@ public class EnterpriseLoginCompletionState : ILoginCompletionState
     /// </summary>
     public async Task ResetStateAsync()
     {
-        await _stateSemaphore.WaitAsync();
+        await _stateSemaphore.WaitAsync().ConfigureAwait(false);
         try
         {
             _logger.LogWarning("[LOGIN-STATE] Forcing state reset for session {SessionId}", _loginSessionId);
             
-            _isLoginCompleted = false;
+            _isLoginCompleted;
             _loginStartTime = DateTime.MinValue;
             _loginCompletedTime = DateTime.MinValue;
             _loginSessionId = Guid.NewGuid().ToString("N")[..8];
@@ -292,7 +292,7 @@ public class BridgeLoginCompletionState : TradingBot.Abstractions.ILoginCompleti
     {
         try
         {
-            await _localState.WaitForLoginCompletion();
+            await _localState.WaitForLoginCompletion().ConfigureAwait(false);
         }
         catch (Exception ex)
         {

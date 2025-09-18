@@ -106,7 +106,7 @@ public static class TuningRunner
     {
         // 1) Fetch 1m bars for the requested window via /api/History/retrieveBars
         log.LogInformation("[Tune:S2] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S2] Bars fetched: {N}", bars.Count);
         if (bars.Count < 120)
         {
@@ -156,7 +156,7 @@ public static class TuningRunner
 
         // 4) Run trials
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var cfg in grids)
         {
             trialIndex++;
@@ -171,7 +171,7 @@ public static class TuningRunner
             // Backtest loop: single open trade at a time
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
 
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
@@ -231,7 +231,7 @@ public static class TuningRunner
             var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"S2-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
-            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
 
             // Also emit a tuned profile copy if the base profile exists
             var basePath = "src\\BotCore\\Config\\high_win_rate_profile.json";
@@ -244,7 +244,7 @@ public static class TuningRunner
                     foreach (var p in best.Config.Params) p.Apply(s2def.Extra);
                     var tunedPath = Path.Combine(outDir, "high_win_rate_profile.tuned.json");
                     var json = JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true });
-                    await File.WriteAllTextAsync(tunedPath, json, ct);
+                    await File.WriteAllTextAsync(tunedPath, json, ct).ConfigureAwait(false);
                     log.LogInformation("[Tune] Wrote tuned profile: {Path}", tunedPath);
                 }
             }
@@ -281,7 +281,7 @@ public static class TuningRunner
     public static async Task RunS2SummaryAsync(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Backtest:S2] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:S2] Bars fetched: {N}", bars.Count);
         if (bars.Count < 120)
         {
@@ -337,9 +337,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         foreach (var b in bars)
         {
@@ -394,7 +394,7 @@ public static class TuningRunner
                 avgR,
                 maxDrawdownUsd = maxDd
             };
-            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
             log.LogInformation("[Backtest:S2] Wrote summary: {Path}", outPath);
         }
         catch { }
@@ -404,7 +404,7 @@ public static class TuningRunner
     {
         // 1) Fetch 1m bars for the requested window
         log.LogInformation("[Tune:S3] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S3] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200)
         {
@@ -453,7 +453,7 @@ public static class TuningRunner
 
         // 4) Run trials
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var cfg in grids)
         {
             trialIndex++;
@@ -467,7 +467,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -518,11 +518,11 @@ public static class TuningRunner
             var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"S3-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
-            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
 
             // Emit a tuned S3-StrategyConfig JSON to use via S3_CONFIG_PATH
             var tunedCfgPath = Path.Combine(outDir, $"S3-StrategyConfig.tuned.{symbolRoot}.json");
-            await File.WriteAllTextAsync(tunedCfgPath, BuildS3ConfigJson(best.Config), ct);
+            await File.WriteAllTextAsync(tunedCfgPath, BuildS3ConfigJson(best.Config), ct).ConfigureAwait(false);
             log.LogInformation("[Tune:S3] Wrote tuned S3 config: {Path}", tunedCfgPath);
         }
         catch (Exception ex)
@@ -557,7 +557,7 @@ public static class TuningRunner
     public static async Task RunS3SummaryAsync(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Backtest:S3] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:S3] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200)
         {
@@ -579,7 +579,7 @@ public static class TuningRunner
             var s3cfg = Environment.GetEnvironmentVariable("S3_CONFIG_PATH");
             if (!string.IsNullOrWhiteSpace(s3cfg) && File.Exists(s3cfg))
             {
-                var json = await File.ReadAllTextAsync(s3cfg, ct);
+                var json = await File.ReadAllTextAsync(s3cfg, ct).ConfigureAwait(false);
                 try { BotCore.Strategy.S3Strategy.ApplyTuningJson(json); } catch { }
             }
         }
@@ -617,9 +617,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         // Optional per-guard diagnostics
         var dbg = Environment.GetEnvironmentVariable("S3_DEBUG_REASONS");
@@ -688,7 +688,7 @@ public static class TuningRunner
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"S3-summary-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
             var summary = new { strategy = "S3", symbol = symbolRoot, start = utcStart, end = utcEnd, trades, wins, losses, netUsd = net, winRate = wr, avgR, maxDrawdownUsd = maxDd };
-            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
             log.LogInformation("[Backtest:S3] Wrote summary: {Path}", outPath);
         }
         catch { }
@@ -698,7 +698,7 @@ public static class TuningRunner
     public static async Task RunS6Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Tune:S6] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S6] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200) { log.LogWarning("[Tune:S6] Not enough bars: {N}", bars.Count); return; }
 
@@ -712,7 +712,7 @@ public static class TuningRunner
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
@@ -728,7 +728,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -759,7 +759,7 @@ public static class TuningRunner
             var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"S6-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
-            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
         }
         catch (Exception ex) { log.LogWarning(ex, "[Tune:S6] Persist tuned output failed"); }
 
@@ -784,7 +784,7 @@ public static class TuningRunner
     public static async Task RunS11Async(HttpClient http, Func<Task<string>> getJwt, string contractId, string symbolRoot, DateTime utcStart, DateTime utcEnd, ILogger log, CancellationToken ct)
     {
         log.LogInformation("[Tune:S11] Fetching bars for {Cid} {From:u} → {To:u}…", contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Tune:S11] Bars fetched: {N}", bars.Count);
         if (bars.Count < 200) { log.LogWarning("[Tune:S11] Not enough bars: {N}", bars.Count); return; }
 
@@ -798,7 +798,7 @@ public static class TuningRunner
         foreach (var ma in minAtr) foreach (var sm in stopM) foreach (var tm in targM) grids.Add((ma, sm, tm));
 
         var results = new List<TrialResult>(grids.Count);
-        int trialIndex = 0;
+        int trialIndex;
         foreach (var (MinAtr, StopMult, TargetMult) in grids)
         {
             trialIndex++;
@@ -814,7 +814,7 @@ public static class TuningRunner
             var levels = new Levels();
             Trade? open = null!;
             var equity = new List<decimal> { 0m };
-            int wins = 0, losses = 0, trades = 0;
+            int wins = 0, losses = 0, trades;
             var history = new List<Bar>(Math.Min(5000, bars.Count));
             foreach (var b in bars)
             {
@@ -845,7 +845,7 @@ public static class TuningRunner
             var outDir = Path.Combine(AppContext.BaseDirectory, "state", "tuning");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"S11-best-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
-            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, JsonSerializer.Serialize(best, new JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
         }
         catch (Exception ex) { log.LogWarning(ex, "[Tune:S11] Persist tuned output failed"); }
 
@@ -870,7 +870,7 @@ public static class TuningRunner
     {
         if (string.IsNullOrWhiteSpace(strategyId)) return;
         log.LogInformation("[Backtest:{Strat}] Fetching bars for {Cid} {From:u} → {To:u}…", strategyId, contractId, utcStart, utcEnd);
-        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct);
+        var bars = await FetchBarsAsync(http, getJwt, contractId, utcStart, utcEnd, ct).ConfigureAwait(false);
         log.LogInformation("[Backtest:{Strat}] Bars fetched: {N}", strategyId, bars.Count);
         if (bars.Count < 200)
         {
@@ -890,9 +890,9 @@ public static class TuningRunner
         var levels = new Levels();
         Trade? open = null!;
         var equity = new List<decimal> { 0m };
-        int wins = 0, losses = 0, trades = 0;
+        int wins = 0, losses = 0, trades;
         var history = new List<Bar>(Math.Min(5000, bars.Count));
-        int barCounter = 0;
+        int barCounter;
 
         foreach (var b in bars)
         {
@@ -932,7 +932,7 @@ public static class TuningRunner
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, $"{strategyId}-summary-{symbolRoot}-{DateTime.UtcNow:yyyyMMdd-HHmm}.json");
             var summary = new { strategy = strategyId, symbol = symbolRoot, start = utcStart, end = utcEnd, trades, wins, losses, netUsd = net, winRate = wr, avgR, maxDrawdownUsd = maxDd };
-            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct);
+            await File.WriteAllTextAsync(outPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), ct).ConfigureAwait(false);
             log.LogInformation("[Backtest:{Strat}] Wrote summary: {Path}", strategyId, outPath);
         }
         catch { }
@@ -1004,24 +1004,25 @@ public static class TuningRunner
     {
         try
         {
-            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await getJwt());
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", await getJwt()).ConfigureAwait(false);
         }
         catch { }
         var payload = new
         {
             contractId,
             live = false,
-            startTime = utcStart.ToString("o"),
-            endTime = utcEnd.ToString("o"),
+            startTime = utcStart.ToString("o", CultureInfo.InvariantCulture),
+            endTime = utcEnd.ToString("o", CultureInfo.InvariantCulture),
             unit = 2,        // Minute
             unitNumber = 1,
             limit = 20000,
             includePartialBar = false
         };
-        using var resp = await http.PostAsJsonAsync("/api/History/retrieveBars", payload, ct);
+        using var resp = await http.PostAsJsonAsync("/api/History/retrieveBars", payload, ct).ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
-        var text = await resp.Content.ReadAsStringAsync(ct);
+        var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(text);
+using System.Globalization;
         var arr = doc.RootElement.GetProperty("bars");
         var list = new List<Bar>(arr.GetArrayLength());
         foreach (var x in arr.EnumerateArray())
@@ -1054,20 +1055,20 @@ public static class TuningRunner
 
     private static bool TryExit(ref Trade? tr, Bar b, string root, out decimal pnlUsd, out bool won)
     {
-        pnlUsd = 0m; won = false; if (tr == null) return false;
+        pnlUsd; won; if (tr == null) return false;
         var pv = InstrumentMeta.PointValue(root);
         // Conservative: stop-first within the bar
         if (string.Equals(tr.Side, "BUY", StringComparison.OrdinalIgnoreCase))
         {
             if (b.Low <= tr.Stop)
-            { pnlUsd = (tr.Stop - tr.Entry) * pv * tr.Size; won = false; tr = null; return true; }
+            { pnlUsd = (tr.Stop - tr.Entry) * pv * tr.Size; won; tr = null; return true; }
             if (b.High >= tr.Target)
             { pnlUsd = (tr.Target - tr.Entry) * pv * tr.Size; won = true; tr = null; return true; }
         }
         else
         {
             if (b.High >= tr.Stop)
-            { pnlUsd = (tr.Entry - tr.Stop) * pv * tr.Size; won = false; tr = null; return true; }
+            { pnlUsd = (tr.Entry - tr.Stop) * pv * tr.Size; won; tr = null; return true; }
             if (b.Low <= tr.Target)
             { pnlUsd = (tr.Entry - tr.Target) * pv * tr.Size; won = true; tr = null; return true; }
         }
@@ -1076,7 +1077,7 @@ public static class TuningRunner
 
     private static decimal MaxDrawdown(List<decimal> eq)
     {
-        decimal peak = 0m, dd = 0m;
+        decimal peak = 0m, dd;
         foreach (var x in eq)
         {
             if (x > peak) peak = x;

@@ -79,7 +79,7 @@ namespace TradingBot.Tests
                 var tasks = new List<Task<bool>>();
                 
                 // Simulate multiple concurrent launch attempts
-                for (int i = 0; i < attemptCount; i++)
+                for (int i; i < attemptCount; i++)
                 {
                     tasks.Add(Task.Run(() => TryLaunchAgent(agentKey, async () => 
                     {

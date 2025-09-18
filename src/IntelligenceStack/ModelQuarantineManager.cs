@@ -47,7 +47,7 @@ public class ModelQuarantineManager : IQuarantineManager
             await Task.Run(async () =>
             {
                 // Simulate async health check with external model monitoring API
-                await Task.Delay(15, cancellationToken);
+                await Task.Delay(15, cancellationToken).ConfigureAwait(false);
             }, cancellationToken);
             
             lock (_lock)
@@ -108,13 +108,13 @@ public class ModelQuarantineManager : IQuarantineManager
                 healthState.LastChecked = DateTime.UtcNow;
 
                 // Reset shadow decision count
-                _shadowDecisionCounts[modelId] = 0;
+                _shadowDecisionCounts[modelId];
 
                 _logger.LogWarning("[QUARANTINE] 🚫 Model quarantined: {ModelId} (reason: {Reason}, previous: {PreviousState})", 
                     modelId, reason, previousState);
             }
 
-            await SaveStateAsync(cancellationToken);
+            await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -176,7 +176,7 @@ public class ModelQuarantineManager : IQuarantineManager
         }
         finally
         {
-            await SaveStateAsync(cancellationToken);
+            await SaveStateAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -192,7 +192,7 @@ public class ModelQuarantineManager : IQuarantineManager
                     return _modelHealth
                         .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                         .Select(kvp => kvp.Key)
-                        .ToList();
+                        .ToList().ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -231,7 +231,7 @@ public class ModelQuarantineManager : IQuarantineManager
             }
 
             // Increment shadow decision count if in quarantine
-            await IncrementShadowDecisionCountAsync(modelId, cancellationToken);
+            await IncrementShadowDecisionCountAsync(modelId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -246,7 +246,7 @@ public class ModelQuarantineManager : IQuarantineManager
     {
         try
         {
-            bool shouldQuarantine = false;
+            bool shouldQuarantine;
             lock (_lock)
             {
                 if (!_modelHealth.TryGetValue(modelId, out var healthState))
@@ -273,7 +273,7 @@ public class ModelQuarantineManager : IQuarantineManager
             // Quarantine outside the lock
             if (shouldQuarantine)
             {
-                await QuarantineModelAsync(modelId, QuarantineReason.ExceptionRateTooHigh, cancellationToken);
+                await QuarantineModelAsync(modelId, QuarantineReason.ExceptionRateTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -489,7 +489,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 if (_modelHealth.TryGetValue(modelId, out var healthState) && 
                     healthState.State == HealthState.Quarantine)
                 {
-                    _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1;
+                    _shadowDecisionCounts[modelId] = _shadowDecisionCounts.GetValueOrDefault(modelId, 0) + 1.ConfigureAwait(false);
                 }
             }
         }, cancellationToken);
@@ -508,7 +508,7 @@ public class ModelQuarantineManager : IQuarantineManager
 
             var stateFile = Path.Combine(_statePath, "quarantine_state.json");
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(stateFile, json, cancellationToken);
+            await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -526,7 +526,7 @@ public class ModelQuarantineManager : IQuarantineManager
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(stateFile, cancellationToken);
+            var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<QuarantineState>(content);
             
             if (state != null)
@@ -567,7 +567,7 @@ public class ModelHealthState
     public DateTime? QuarantinedAt { get; set; }
     public DateTime? RestoredAt { get; set; }
     public DateTime LastChecked { get; set; } = DateTime.UtcNow;
-    public int ExceptionCount { get; set; } = 0;
+    public int ExceptionCount { get; set; }
     public string? LastException { get; set; }
     public DateTime? LastExceptionTime { get; set; }
 }
@@ -580,7 +580,7 @@ public class ModelHealthReport
     public int WatchModels { get; set; }
     public int DegradeModels { get; set; }
     public int QuarantinedModels { get; set; }
-    public Dictionary<string, ModelHealthDetail> ModelDetails { get; set; } = new();
+    public Dictionary<string, ModelHealthDetail> ModelDetails { get; } = new();
 }
 
 public class ModelHealthDetail
@@ -600,8 +600,8 @@ public class ModelHealthDetail
 
 public class QuarantineState
 {
-    public Dictionary<string, ModelHealthState> ModelHealth { get; set; } = new();
-    public Dictionary<string, int> ShadowDecisionCounts { get; set; } = new();
+    public Dictionary<string, ModelHealthState> ModelHealth { get; } = new();
+    public Dictionary<string, int> ShadowDecisionCounts { get; } = new();
     public DateTime LastSaved { get; set; }
 }
 

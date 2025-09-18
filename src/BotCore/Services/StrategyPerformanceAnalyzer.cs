@@ -86,7 +86,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_regimePerformance[trade.AnalyzerMarketRegime].ContainsKey(strategy))
                 {
-                    _regimePerformance[trade.AnalyzerMarketRegime][strategy] = 0m;
+                    _regimePerformance[trade.AnalyzerMarketRegime][strategy];
                 }
                 _regimePerformance[trade.AnalyzerMarketRegime][strategy] += trade.PnL;
                 
@@ -98,7 +98,7 @@ public class StrategyPerformanceAnalyzer
                 }
                 if (!_timeBasedPerformance[timeKey].ContainsKey(strategy))
                 {
-                    _timeBasedPerformance[timeKey][strategy] = 0m;
+                    _timeBasedPerformance[timeKey][strategy];
                 }
                 _timeBasedPerformance[timeKey][strategy] += trade.PnL;
             }
@@ -114,7 +114,7 @@ public class StrategyPerformanceAnalyzer
         }
         
         // Generate insights outside the lock
-        await GenerateStrategyInsightsAsync(strategy, cancellationToken);
+        await GenerateStrategyInsightsAsync(strategy, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -122,7 +122,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<decimal> GetStrategyScoreAsync(string strategy, AnalyzerMarketRegime regime, TimeSpan currentTime, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_analysisLock)
         {
@@ -165,7 +165,7 @@ public class StrategyPerformanceAnalyzer
         
         foreach (var strategy in strategies)
         {
-            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken);
+            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken).ConfigureAwait(false);
             
             // Apply volatility adjustments
             score = ApplyVolatilityAdjustment(strategy, score, volatility);
@@ -195,7 +195,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<List<StrategyAlert>> DetectPerformanceIssuesAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var alerts = new List<StrategyAlert>();
         
@@ -275,7 +275,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<List<StrategyOptimization>> GetOptimizationRecommendationsAsync(string strategy, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var recommendations = new List<StrategyOptimization>();
         
@@ -441,9 +441,9 @@ public class StrategyPerformanceAnalyzer
     {
         if (trades.Count == 0) return 0m;
         
-        var runningPnL = 0m;
-        var peak = 0m;
-        var maxDrawdown = 0m;
+        var runningPnL;
+        var peak;
+        var maxDrawdown;
         
         foreach (var trade in trades.OrderBy(t => t.EntryTime))
         {
@@ -518,7 +518,7 @@ public class StrategyPerformanceAnalyzer
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private decimal GetRegimeSpecificScore(string strategy, AnalyzerMarketRegime regime)
@@ -839,7 +839,7 @@ public class StrategyPerformanceAnalyzer
 public class StrategyAnalysis
 {
     public string StrategyName { get; set; } = "";
-    public List<AnalyzerTradeOutcome> AllTrades { get; set; } = new();
+    public List<AnalyzerTradeOutcome> AllTrades { get; } = new();
     public decimal TotalPnL { get; set; }
     public decimal WinRate { get; set; }
     public decimal ProfitFactor { get; set; }
@@ -876,7 +876,7 @@ public class StrategyRecommendation
     public decimal Score { get; set; }
     public decimal Confidence { get; set; }
     public string Reasoning { get; set; } = "";
-    public Dictionary<string, decimal> AlternativeStrategies { get; set; } = new();
+    public Dictionary<string, decimal> AlternativeStrategies { get; } = new();
 }
 
 public class StrategyAlert

@@ -13,7 +13,7 @@ public class CentralMessageBus : ICentralMessageBus
     private readonly ConcurrentDictionary<string, object> _sharedState = new();
     private readonly ConcurrentDictionary<string, List<Delegate>> _subscribers = new();
     private readonly TradingBrainState _brainState = new();
-    private bool _isStarted = false;
+    private bool _isStarted;
 
     public CentralMessageBus(ILogger<CentralMessageBus> logger)
     {
@@ -32,8 +32,8 @@ public class CentralMessageBus : ICentralMessageBus
     public Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Stopping Central Message Bus");
-        _isStarted = false;
-        _brainState.IsActive = false;
+        _isStarted;
+        _brainState.IsActive;
         return Task.CompletedTask;
     }
 
@@ -60,7 +60,7 @@ public class CentralMessageBus : ICentralMessageBus
                 }
             });
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         _logger.LogDebug("Published message to topic: {Topic}", topic);
@@ -99,7 +99,7 @@ public class CentralMessageBus : ICentralMessageBus
     public async Task<TradingDecision> RequestTradingDecisionAsync(TradingSignal signal, CancellationToken cancellationToken = default)
     {
         // Simulate decision making process
-        await Task.Delay(50, cancellationToken);
+        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
         
         // Convert signal direction to trading action and side
         var (action, side, quantity) = ConvertSignalToDecision(signal);
@@ -129,7 +129,7 @@ public class CentralMessageBus : ICentralMessageBus
     {
         var action = TradingAction.Hold;
         var side = TradeSide.Hold;
-        var quantity = 0m;
+        var quantity;
         
         // Convert signal direction to trading decision
         switch (signal.Direction.ToUpperInvariant())
@@ -157,7 +157,7 @@ public class CentralMessageBus : ICentralMessageBus
             default:
                 action = TradingAction.Hold;
                 side = TradeSide.Hold;
-                quantity = 0m;
+                quantity;
                 break;
         }
         

@@ -19,11 +19,11 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     
     private RegimeState? _currentState;
     private DateTime _lastTransitionTime = DateTime.MinValue;
-    private int _profitableTradesCount = 0;
+    private int _profitableTradesCount;
     private readonly Queue<double> _atrHistory = new();
     private readonly Queue<double> _priceHistory = new();
-    private double _medianAtr = 0;
-    private readonly double _spreadMedian = 0;
+    private double _medianAtr;
+    private readonly double _spreadMedian;
 
     public RegimeDetectorWithHysteresis(
         ILogger<RegimeDetectorWithHysteresis> logger,
@@ -36,7 +36,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
     public async Task<RegimeState> DetectCurrentRegimeAsync(CancellationToken cancellationToken = default)
     {
         // Ensure proper async execution
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         lock (_lock)
         {
@@ -69,7 +69,7 @@ public class RegimeDetectorWithHysteresis : IRegimeDetector
 
     public async Task<RegimeTransition> CheckTransitionAsync(RegimeState currentState, CancellationToken cancellationToken = default)
     {
-        var newRegime = await DetectCurrentRegimeAsync(cancellationToken);
+        var newRegime = await DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false);
         
         return new RegimeTransition
         {

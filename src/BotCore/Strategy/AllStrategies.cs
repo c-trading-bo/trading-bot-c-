@@ -399,7 +399,7 @@ namespace BotCore.Strategy
 
         private static int IndexFromLocalAnchor(IList<Bar> bars, DateTime anchorLocal)
         {
-            for (int i = 0; i < bars.Count; i++)
+            for (int i; i < bars.Count; i++)
             {
                 var t = bars[i].Start; // Start assumed local; if UTC adjust upstream
                 if (t >= anchorLocal) return i;
@@ -409,7 +409,7 @@ namespace BotCore.Strategy
 
         private static (decimal vwap, decimal wvar, decimal wvol) SessionVwapAndVar(IList<Bar> bars, DateTime anchorLocal)
         {
-            decimal wv = 0m, vol = 0m;
+            decimal wv = 0m, vol;
             var idx0 = IndexFromLocalAnchor(bars, anchorLocal);
             if (idx0 < 0) return (0m, 0m, 0m);
             for (int i = idx0; i < bars.Count; i++)
@@ -422,7 +422,7 @@ namespace BotCore.Strategy
             }
             if (vol <= 0) return (0m, 0m, 0m);
             var vwap = wv / vol;
-            decimal num = 0m;
+            decimal num;
             for (int i = idx0; i < bars.Count; i++)
             {
                 var b = bars[i];
@@ -449,8 +449,8 @@ namespace BotCore.Strategy
 
         private static (decimal high, decimal low) InitialBalance(IList<Bar> bars, DateTime startLocal, DateTime endLocal)
         {
-            decimal hi = 0m, lo = 0m; bool init = false;
-            for (int i = 0; i < bars.Count; i++)
+            decimal hi = 0m, lo; bool init;
+            for (int i; i < bars.Count; i++)
             {
                 var t = bars[i].Start;
                 if (t < startLocal) continue;
@@ -462,9 +462,9 @@ namespace BotCore.Strategy
         }
 
         private static int AboveVWAPCount(IList<Bar> b, decimal vwap, int look)
-        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close > vwap) cnt++; return cnt; }
+        { int cnt; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close > vwap) cnt++; return cnt; }
         private static int BelowVWAPCount(IList<Bar> b, decimal vwap, int look)
-        { int cnt = 0; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close < vwap) cnt++; return cnt; }
+        { int cnt; for (int i = Math.Max(0, b.Count - look); i < b.Count; i++) if (b[i].Close < vwap) cnt++; return cnt; }
 
         private static bool BullConfirm(IList<Bar> b)
         {
@@ -544,9 +544,9 @@ namespace BotCore.Strategy
             try { S2Quantiles.Observe(symbol, nowLocal, Math.Abs(z)); } catch { }
 
             // ADR guards: compute simple rolling ADR and today's realized range
-            decimal adr = 0m;
+            decimal adr;
             int look = Math.Max(5, S2RuntimeConfig.AdrGuardEnabled ? S2RuntimeConfig.AdrGuardLen : S2RuntimeConfig.AdrLookbackDays);
-            int daysCounted = 0; decimal sumAdr = 0m;
+            int daysCounted; decimal sumAdr;
             for (int i = bars.Count - 1; i >= 0 && daysCounted < look; i--)
             {
                 var day = bars[i].Start.Date;
@@ -561,9 +561,9 @@ namespace BotCore.Strategy
             }
             if (daysCounted > 0) adr = sumAdr / daysCounted;
             // Today's realized range
-            decimal todayHi = 0m, todayLo = 0m; bool todayInit = false;
+            decimal todayHi = 0m, todayLo; bool todayInit;
             var today = nowLocal.Date;
-            for (int i = 0; i < bars.Count; i++)
+            for (int i; i < bars.Count; i++)
             {
                 if (bars[i].Start.Date != today) continue;
                 if (!todayInit) { todayHi = bars[i].High; todayLo = bars[i].Low; todayInit = true; }
@@ -592,7 +592,7 @@ namespace BotCore.Strategy
             // Roll-week bump (env switch + simple auto-detect fallback)
             try
             {
-                bool isRoll = false;
+                bool isRoll;
                 var roll = Environment.GetEnvironmentVariable("ROLL_WEEK");
                 isRoll = !string.IsNullOrWhiteSpace(roll) && (roll.Equals("1", StringComparison.OrdinalIgnoreCase) || roll.Equals("true", StringComparison.OrdinalIgnoreCase));
                 if (!isRoll)

@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -51,7 +52,7 @@ namespace TopstepX.Bot.Core.Services
             public int ErrorCount { get; set; }
             public double SuccessRate { get; set; } = 100.0;
             public long ResponseTimeMs { get; set; }
-            public Dictionary<string, object> Metrics { get; set; } = new();
+            public Dictionary<string, object> Metrics { get; } = new();
         }
         
         public enum ErrorSeverity
@@ -128,7 +129,7 @@ namespace TopstepX.Bot.Core.Services
                     component, exception.GetType().Name, exception.Message, severity, errorId);
                 
                 // Write to error log file
-                await WriteErrorToFileAsync(component, exception, severity, errorId, additionalData);
+                await WriteErrorToFileAsync(component, exception, severity, errorId, additionalData).ConfigureAwait(false);
                 
                 // Update component health
                 UpdateComponentHealth(component, HealthStatus.Warning, exception.Message);
@@ -136,7 +137,7 @@ namespace TopstepX.Bot.Core.Services
                 // Check if this is a critical error that requires immediate attention
                 if (severity >= ErrorSeverity.Critical)
                 {
-                    await HandleCriticalErrorAsync(component, exception, errorId);
+                    await HandleCriticalErrorAsync(component, exception, errorId).ConfigureAwait(false);
                 }
                 
                 // Clean up old error records (keep last 24 hours)
@@ -161,7 +162,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 var errorLogEntry = new
                 {
-                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture),
                     ErrorId = errorId,
                     Component = component,
                     Severity = severity.ToString(),
@@ -177,7 +178,7 @@ namespace TopstepX.Bot.Core.Services
                 var fileName = $"error_{DateTime.UtcNow:yyyyMMdd}_{errorId}.json";
                 var filePath = Path.Combine(_errorLogPath, fileName);
                 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -189,7 +190,7 @@ namespace TopstepX.Bot.Core.Services
         {
             try
             {
-                _isSystemHealthy = false;
+                _isSystemHealthy;
                 
                 var eventArgs = new CriticalErrorEventArgs
                 {
@@ -224,7 +225,7 @@ namespace TopstepX.Bot.Core.Services
                     {exception.StackTrace}
                     """;
                     
-                await File.WriteAllTextAsync(alertPath, alertContent);
+                await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 
                 _logger.LogInformation("📋 Critical alert file created: {AlertPath}", alertPath);
             }
@@ -513,7 +514,7 @@ namespace TopstepX.Bot.Core.Services
         public bool IsHealthy { get; set; }
         public double OverallHealthScore { get; set; }
         public DateTime Timestamp { get; set; }
-        public Dictionary<string, object> ComponentHealthSummary { get; set; } = new();
+        public Dictionary<string, object> ComponentHealthSummary { get; } = new();
     }
     
     public class SystemHealthStatus

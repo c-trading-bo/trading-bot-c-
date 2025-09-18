@@ -49,7 +49,7 @@ namespace BotCore.Auth
             // Simple refresh logic - if token expires in 2 minutes, refresh it
             if (DateTimeOffset.UtcNow >= _expUtc - TimeSpan.FromSeconds(120))
             {
-                await RefreshTokenAsync(ct);
+                await RefreshTokenAsync(ct).ConfigureAwait(false);
             }
             
             lock (_gate)
@@ -60,12 +60,12 @@ namespace BotCore.Auth
 
         public async Task EnsureFreshTokenAsync(CancellationToken ct = default)
         {
-            await GetFreshJwtAsync(ct);
+            await GetFreshJwtAsync(ct).ConfigureAwait(false);
         }
 
         public async Task<string> GetTokenAsync(CancellationToken ct = default)
         {
-            var (jwt, _) = await GetFreshJwtAsync(ct);
+            var (jwt, _) = await GetFreshJwtAsync(ct).ConfigureAwait(false);
             return jwt;
         }
 
@@ -84,17 +84,17 @@ namespace BotCore.Auth
                         "application/json")
                 };
 
-                using var response = await _http.SendAsync(request, ct);
+                using var response = await _http.SendAsync(request, ct).ConfigureAwait(false);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorBody = await response.Content.ReadAsStringAsync(ct);
+                    var errorBody = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                     _logger.LogError("Auth failed: {StatusCode} {ReasonPhrase} - {Body}", 
                         response.StatusCode, response.ReasonPhrase, errorBody);
                     throw new HttpRequestException($"Auth {(int)response.StatusCode} {response.StatusCode}: {errorBody}");
                 }
 
-                var json = await response.Content.ReadAsStringAsync(ct);
+                var json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 _logger.LogInformation("JWT received successfully");
 
                 using var doc = JsonDocument.Parse(json);

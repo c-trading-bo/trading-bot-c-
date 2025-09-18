@@ -40,7 +40,7 @@ namespace TradingBot.Monitoring
                     modelName, modelVersion);
 
                 // Simulate promotion logic
-                await Task.Delay(DeploymentSimulationDelayMs, cancellationToken); // Simulate deployment time
+                await Task.Delay(DeploymentSimulationDelayMs, cancellationToken).ConfigureAwait(false); // Simulate deployment time
                 
                 lock (_lockObject)
                 {
@@ -56,7 +56,7 @@ namespace TradingBot.Monitoring
                     _activeDeployments[$"{modelName}_prod"] = deployment;
                 }
 
-                await _alertService.SendDeploymentAlertAsync("Model Promoted to Production", modelName, true);
+                await _alertService.SendDeploymentAlertAsync("Model Promoted to Production", modelName, true).ConfigureAwait(false);
                 
                 _logger.LogInformation("[DEPLOYMENT] Model successfully promoted to production - Model: {ModelName}, Version: {Version}",
                     modelName, modelVersion);
@@ -66,7 +66,7 @@ namespace TradingBot.Monitoring
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DEPLOYMENT] Failed to promote model to production - Model: {ModelName}", modelName);
-                await _alertService.SendDeploymentAlertAsync("Model Promotion Failed", modelName, false);
+                await _alertService.SendDeploymentAlertAsync("Model Promotion Failed", modelName, false).ConfigureAwait(false);
                 return false;
             }
         }
@@ -80,7 +80,7 @@ namespace TradingBot.Monitoring
                     modelName, modelVersion, trafficPercentage);
 
                 // Simulate canary rollout logic
-                await Task.Delay(CanaryRolloutDelayMs, cancellationToken);
+                await Task.Delay(CanaryRolloutDelayMs, cancellationToken).ConfigureAwait(false);
                 
                 lock (_lockObject)
                 {
@@ -97,7 +97,7 @@ namespace TradingBot.Monitoring
                     _activeDeployments[$"{modelName}_canary"] = deployment;
                 }
 
-                await _alertService.SendDeploymentAlertAsync($"Canary Rollout Started ({trafficPercentage:P1} traffic)", modelName, true);
+                await _alertService.SendDeploymentAlertAsync($"Canary Rollout Started ({trafficPercentage:P1} traffic)", modelName, true).ConfigureAwait(false);
                 
                 _logger.LogInformation("[DEPLOYMENT] Canary rollout started successfully - Model: {ModelName}, Version: {Version}",
                     modelName, modelVersion);
@@ -107,7 +107,7 @@ namespace TradingBot.Monitoring
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[DEPLOYMENT] Failed to start canary rollout - Model: {ModelName}", modelName);
-                await _alertService.SendDeploymentAlertAsync("Canary Rollout Failed", modelName, false);
+                await _alertService.SendDeploymentAlertAsync("Canary Rollout Failed", modelName, false).ConfigureAwait(false);
                 return false;
             }
         }
@@ -133,10 +133,10 @@ namespace TradingBot.Monitoring
 
                 await _alertService.SendCriticalAlertAsync(
                     "Canary Rollout Failure",
-                    $"Model: {modelName}\nReason: {reason}\nAction: Automatic rollback initiated");
+                    $"Model: {modelName}\nReason: {reason}\nAction: Automatic rollback initiated").ConfigureAwait(false);
                 
                 // Trigger automatic rollback
-                await RollbackModelAsync(modelName, $"Canary failure: {reason}", cancellationToken);
+                await RollbackModelAsync(modelName, $"Canary failure: {reason}", cancellationToken).ConfigureAwait(false);
                 
                 return true;
             }
@@ -156,7 +156,7 @@ namespace TradingBot.Monitoring
                     modelName, reason);
 
                 // Simulate rollback logic
-                await Task.Delay(RollbackDelayMs, cancellationToken);
+                await Task.Delay(RollbackDelayMs, cancellationToken).ConfigureAwait(false);
                 
                 lock (_lockObject)
                 {
@@ -174,7 +174,7 @@ namespace TradingBot.Monitoring
 
                 await _alertService.SendCriticalAlertAsync(
                     "Model Rollback Triggered",
-                    $"Model: {modelName}\nReason: {reason}\nStatus: Rollback completed");
+                    $"Model: {modelName}\nReason: {reason}\nStatus: Rollback completed").ConfigureAwait(false);
                 
                 _logger.LogInformation("[DEPLOYMENT] Model rollback completed - Model: {ModelName}", modelName);
                 
@@ -185,7 +185,7 @@ namespace TradingBot.Monitoring
                 _logger.LogError(ex, "[DEPLOYMENT] Failed to rollback model - Model: {ModelName}", modelName);
                 await _alertService.SendCriticalAlertAsync(
                     "Rollback Failed",
-                    $"Model: {modelName}\nReason: {reason}\nError: {ex.Message}");
+                    $"Model: {modelName}\nReason: {reason}\nError: {ex.Message}").ConfigureAwait(false);
                 return false;
             }
         }
@@ -210,7 +210,7 @@ namespace TradingBot.Monitoring
         public async Task<DeploymentHealthStatus> GetDeploymentHealthAsync(CancellationToken cancellationToken = default)
         {
             // Simulate some async health checking operation
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             var deployments = GetActiveDeployments();
             var status = new DeploymentHealthStatus

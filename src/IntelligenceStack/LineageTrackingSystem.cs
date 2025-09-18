@@ -65,7 +65,7 @@ public class LineageTrackingSystem
                 ConfigurationHash = await CalculateConfigurationHashAsync(cancellationToken),
                 SystemComponents = await GetSystemComponentVersionsAsync(cancellationToken),
                 EnvironmentInfo = GetEnvironmentInfo()
-            };
+            }.ConfigureAwait(false);
 
             // Store snapshot
             lock (_lock)
@@ -73,7 +73,7 @@ public class LineageTrackingSystem
                 _snapshots[snapshotId] = snapshot;
             }
 
-            await SaveSnapshotAsync(snapshot, cancellationToken);
+            await SaveSnapshotAsync(snapshot, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("[LINEAGE] Created snapshot {SnapshotId} with {Models} models and feature store v{FeatureVersion}", 
                 snapshotId, snapshot.ModelVersions.Count, snapshot.FeatureStoreVersion);
@@ -116,7 +116,7 @@ public class LineageTrackingSystem
                 ModelLineage = await GetModelLineageAsync(decision.ModelId, cancellationToken),
                 FeatureLineage = await GetFeatureLineageAsync(decision.FeaturesVersion, cancellationToken),
                 ProcessingChain = await GetProcessingChainAsync(decision, cancellationToken)
-            };
+            }.ConfigureAwait(false);
 
             // Record lineage event
             await RecordLineageEventAsync(new LineageEvent
@@ -135,10 +135,10 @@ public class LineageTrackingSystem
                     ["regime"] = decision.Regime.ToString(),
                     ["symbol"] = decision.Symbol
                 }
-            }, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
 
             // Store decision with lineage
-            await SaveDecisionLineageAsync(decisionId, decision, stamp, cancellationToken);
+            await SaveDecisionLineageAsync(decisionId, decision, stamp, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[LINEAGE] Stamped decision {DecisionId} with model {ModelVersion}, features {FeatureVersion}, calibration {CalibrationId}", 
                 decisionId, stamp.ModelRegistryVersion, stamp.FeatureStoreVersion, stamp.CalibrationMapId);
@@ -176,7 +176,7 @@ public class LineageTrackingSystem
                 ["promotion_criteria"] = JsonSerializer.Serialize(criteria),
                 ["promotion_reason"] = "performance_improvement"
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("[LINEAGE] Tracked model promotion: {ModelId} {FromVersion} -> {ToVersion}", 
             modelId, fromVersion, toVersion);
@@ -205,7 +205,7 @@ public class LineageTrackingSystem
                 ["changed_features"] = changedFeatures,
                 ["change_count"] = changedFeatures.Count
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("[LINEAGE] Tracked feature store update: {FromVersion} -> {ToVersion} ({ChangeCount} features)", 
             fromVersion, toVersion, changedFeatures.Count);
@@ -235,7 +235,7 @@ public class LineageTrackingSystem
                 ["brier_score"] = brierScore,
                 ["update_reason"] = "nightly_calibration"
             }
-        }, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("[LINEAGE] Tracked calibration update: {CalibrationMapId} for model {ModelId} (Brier: {BrierScore:F3})", 
             calibrationMapId, modelId, brierScore);
@@ -254,7 +254,7 @@ public class LineageTrackingSystem
                 throw new FileNotFoundException($"Decision lineage not found: {decisionId}");
             }
 
-            var content = await File.ReadAllTextAsync(decisionFile, cancellationToken);
+            var content = await File.ReadAllTextAsync(decisionFile, cancellationToken).ConfigureAwait(false);
             var decisionLineage = JsonSerializer.Deserialize<DecisionLineageRecord>(content);
 
             if (decisionLineage == null)
@@ -273,7 +273,7 @@ public class LineageTrackingSystem
                 FeatureLineage = await GetCompleteFeatureLineageAsync(decisionLineage.LineageStamp.FeatureStoreVersion, cancellationToken),
                 CalibrationLineage = await GetCompleteCalibrationLineageAsync(decisionLineage.LineageStamp.CalibrationMapId, cancellationToken),
                 RelatedEvents = await GetRelatedEventsAsync(decisionId, cancellationToken)
-            };
+            }.ConfigureAwait(false);
 
             return trace;
         }
@@ -292,7 +292,7 @@ public class LineageTrackingSystem
         DateTime endTime,
         CancellationToken cancellationToken = default)
     {
-        var events = await GetEventsInPeriodAsync(startTime, endTime, cancellationToken);
+        var events = await GetEventsInPeriodAsync(startTime, endTime, cancellationToken).ConfigureAwait(false);
         
         var summary = new LineageSummary
         {
@@ -329,7 +329,7 @@ public class LineageTrackingSystem
         {
             try
             {
-                var model = await _modelRegistry.GetModelAsync(family, "latest", cancellationToken);
+                var model = await _modelRegistry.GetModelAsync(family, "latest", cancellationToken).ConfigureAwait(false);
                 modelVersions[family] = model.Version;
             }
             catch (Exception ex)
@@ -346,7 +346,7 @@ public class LineageTrackingSystem
     {
         try
         {
-            var schema = await _featureStore.GetSchemaAsync("latest", cancellationToken);
+            var schema = await _featureStore.GetSchemaAsync("latest", cancellationToken).ConfigureAwait(false);
             return schema.Version;
         }
         catch (Exception ex)
@@ -361,14 +361,14 @@ public class LineageTrackingSystem
         var calibrationMaps = new Dictionary<string, string>();
         
         // Get calibration maps for all models
-        var modelVersions = await GetCurrentModelVersionsAsync(cancellationToken);
+        var modelVersions = await GetCurrentModelVersionsAsync(cancellationToken).ConfigureAwait(false);
         
         foreach (var (modelFamily, version) in modelVersions)
         {
             try
             {
                 var modelId = $"{modelFamily}_{version}";
-                var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken);
+                var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
                 calibrationMaps[modelId] = $"{calibrationMap.ModelId}_{calibrationMap.CreatedAt:yyyyMMdd}";
             }
             catch (Exception ex)
@@ -384,12 +384,12 @@ public class LineageTrackingSystem
     private async Task<string> CalculateConfigurationHashAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         // Calculate hash of current configuration for reproducibility
         var configData = new
         {
-            timestamp = DateTime.UtcNow.ToString("yyyyMMdd"),
+            timestamp = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             version = "1.0.0",
             components = new[] { "ensemble", "quarantine", "maml", "rl_advisor" }
         };
@@ -403,7 +403,7 @@ public class LineageTrackingSystem
     private async Task<Dictionary<string, string>> GetSystemComponentVersionsAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         return new Dictionary<string, string>
         {
@@ -434,7 +434,7 @@ public class LineageTrackingSystem
     private async Task<string> GetModelVersionForDecisionAsync(IntelligenceDecision decision, CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         try
         {
@@ -458,7 +458,7 @@ public class LineageTrackingSystem
     {
         try
         {
-            var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken);
+            var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return $"{calibrationMap.ModelId}_cal_{calibrationMap.CreatedAt:yyyyMMdd}";
         }
         catch (Exception ex)
@@ -475,11 +475,12 @@ public class LineageTrackingSystem
             symbol = decision.Symbol,
             timeframe = decision.Timeframe,
             features_hash = decision.FeaturesHash,
-            timestamp = decision.Timestamp.ToString("yyyyMMddHHmm") // Minute-level granularity
+            timestamp = decision.Timestamp.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) // Minute-level granularity
         };
         
         var inputJson = JsonSerializer.Serialize(inputData);
         using var sha = SHA256.Create();
+using System.Globalization;
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
         return Convert.ToHexString(hash)[..16];
     }
@@ -494,7 +495,7 @@ public class LineageTrackingSystem
     {
         try
         {
-            var model = await _modelRegistry.GetModelAsync(ExtractFamilyFromId(modelId), ExtractVersionFromId(modelId), cancellationToken);
+            var model = await _modelRegistry.GetModelAsync(ExtractFamilyFromId(modelId), ExtractVersionFromId(modelId), cancellationToken).ConfigureAwait(false);
             
             return new ModelLineageInfo
             {
@@ -520,7 +521,7 @@ public class LineageTrackingSystem
     {
         try
         {
-            var schema = await _featureStore.GetSchemaAsync(version, cancellationToken);
+            var schema = await _featureStore.GetSchemaAsync(version, cancellationToken).ConfigureAwait(false);
             
             return new FeatureLineageInfo
             {
@@ -573,7 +574,7 @@ public class LineageTrackingSystem
                     OutputHash = decision.DecisionId[^8..],
                     ProcessingTime = TimeSpan.FromMilliseconds(20)
                 }
-            };
+            }.ConfigureAwait(false);
         }, cancellationToken);
     }
 
@@ -597,14 +598,14 @@ public class LineageTrackingSystem
         }
 
         // Save event to disk
-        await SaveLineageEventAsync(lineageEvent, cancellationToken);
+        await SaveLineageEventAsync(lineageEvent, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveSnapshotAsync(LineageSnapshot snapshot, CancellationToken cancellationToken)
     {
         var snapshotFile = Path.Combine(_lineagePath, "snapshots", $"{snapshot.SnapshotId}.json");
         var json = JsonSerializer.Serialize(snapshot, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(snapshotFile, json, cancellationToken);
+        await File.WriteAllTextAsync(snapshotFile, json, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveDecisionLineageAsync(
@@ -623,14 +624,14 @@ public class LineageTrackingSystem
 
         var decisionFile = Path.Combine(_lineagePath, "decisions", $"{decisionId}.json");
         var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(decisionFile, json, cancellationToken);
+        await File.WriteAllTextAsync(decisionFile, json, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task SaveLineageEventAsync(LineageEvent lineageEvent, CancellationToken cancellationToken)
     {
         var eventFile = Path.Combine(_lineagePath, "events", $"{lineageEvent.EventId}.json");
         var json = JsonSerializer.Serialize(lineageEvent, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(eventFile, json, cancellationToken);
+        await File.WriteAllTextAsync(eventFile, json, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<List<LineageEvent>> GetEventsInPeriodAsync(DateTime startTime, DateTime endTime, CancellationToken cancellationToken)
@@ -638,7 +639,7 @@ public class LineageTrackingSystem
         // Retrieve lineage events in period asynchronously to avoid blocking analysis operations
         return await Task.Run(() =>
         {
-            var allEvents = new List<LineageEvent>();
+            var allEvents = new List<LineageEvent>().ConfigureAwait(false);
             
             lock (_lock)
             {
@@ -654,7 +655,7 @@ public class LineageTrackingSystem
 
     private async Task<CompleteModelLineage> GetCompleteModelLineageAsync(string modelId, CancellationToken cancellationToken)
     {
-        var events = await GetRelatedEventsAsync(modelId, cancellationToken);
+        var events = await GetRelatedEventsAsync(modelId, cancellationToken).ConfigureAwait(false);
         var modelEvents = events.Where(e => e.EntityType == "model").ToList();
         
         return new CompleteModelLineage
@@ -670,7 +671,7 @@ public class LineageTrackingSystem
 
     private async Task<CompleteFeatureLineage> GetCompleteFeatureLineageAsync(string version, CancellationToken cancellationToken)
     {
-        var events = await GetRelatedEventsAsync($"feature_store_{version}", cancellationToken);
+        var events = await GetRelatedEventsAsync($"feature_store_{version}", cancellationToken).ConfigureAwait(false);
         
         return new CompleteFeatureLineage
         {
@@ -684,7 +685,7 @@ public class LineageTrackingSystem
 
     private async Task<CompleteCalibrationLineage> GetCompleteCalibrationLineageAsync(string calibrationMapId, CancellationToken cancellationToken)
     {
-        var events = await GetRelatedEventsAsync(calibrationMapId, cancellationToken);
+        var events = await GetRelatedEventsAsync(calibrationMapId, cancellationToken).ConfigureAwait(false);
         
         return new CompleteCalibrationLineage
         {
@@ -701,7 +702,7 @@ public class LineageTrackingSystem
         // Retrieve related lineage events asynchronously to avoid blocking lineage analysis
         return await Task.Run(() =>
         {
-            var relatedEvents = new List<LineageEvent>();
+            var relatedEvents = new List<LineageEvent>().ConfigureAwait(false);
             
             lock (_lock)
             {
@@ -736,11 +737,11 @@ public class LineageSnapshot
 {
     public string SnapshotId { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
-    public Dictionary<string, string> ModelVersions { get; set; } = new();
+    public Dictionary<string, string> ModelVersions { get; } = new();
     public string FeatureStoreVersion { get; set; } = string.Empty;
-    public Dictionary<string, string> CalibrationMaps { get; set; } = new();
+    public Dictionary<string, string> CalibrationMaps { get; } = new();
     public string ConfigurationHash { get; set; } = string.Empty;
-    public Dictionary<string, string> SystemComponents { get; set; } = new();
+    public Dictionary<string, string> SystemComponents { get; } = new();
     public EnvironmentInfo EnvironmentInfo { get; set; } = new();
 }
 
@@ -756,7 +757,7 @@ public class LineageStamp
     public RegimeLineageInfo RegimeContext { get; set; } = new();
     public ModelLineageInfo? ModelLineage { get; set; }
     public FeatureLineageInfo? FeatureLineage { get; set; }
-    public List<ProcessingStep> ProcessingChain { get; set; } = new();
+    public List<ProcessingStep> ProcessingChain { get; } = new();
 }
 
 public class LineageEvent
@@ -766,7 +767,7 @@ public class LineageEvent
     public DateTime Timestamp { get; set; }
     public string EntityId { get; set; } = string.Empty;
     public string EntityType { get; set; } = string.Empty;
-    public Dictionary<string, object> Properties { get; set; } = new();
+    public Dictionary<string, object> Properties { get; } = new();
 }
 
 public class LineageTrace
@@ -778,7 +779,7 @@ public class LineageTrace
     public CompleteModelLineage? ModelLineage { get; set; }
     public CompleteFeatureLineage? FeatureLineage { get; set; }
     public CompleteCalibrationLineage? CalibrationLineage { get; set; }
-    public List<LineageEvent> RelatedEvents { get; set; } = new();
+    public List<LineageEvent> RelatedEvents { get; } = new();
 }
 
 public class LineageSummary
@@ -791,8 +792,8 @@ public class LineageSummary
     public int FeatureStoreUpdates { get; set; }
     public int CalibrationUpdates { get; set; }
     public int UniqueModels { get; set; }
-    public Dictionary<string, int> ModelVersionDistribution { get; set; } = new();
-    public Dictionary<string, int> FeatureVersionDistribution { get; set; } = new();
+    public Dictionary<string, int> ModelVersionDistribution { get; } = new();
+    public Dictionary<string, int> FeatureVersionDistribution { get; } = new();
 }
 
 public class RegimeLineageInfo
@@ -822,7 +823,7 @@ public class FeatureLineageInfo
     public string SchemaChecksum { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int FeatureCount { get; set; }
-    public List<string> FeatureNames { get; set; } = new();
+    public List<string> FeatureNames { get; } = new();
 }
 
 public class ProcessingStep
@@ -857,22 +858,22 @@ public class CompleteModelLineage
 {
     public string ModelId { get; set; } = string.Empty;
     public LineageEvent? CreationEvent { get; set; }
-    public List<LineageEvent> PromotionEvents { get; set; } = new();
-    public List<LineageEvent> UsageEvents { get; set; } = new();
+    public List<LineageEvent> PromotionEvents { get; } = new();
+    public List<LineageEvent> UsageEvents { get; } = new();
 }
 
 public class CompleteFeatureLineage
 {
     public string Version { get; set; } = string.Empty;
-    public List<LineageEvent> UpdateEvents { get; set; } = new();
-    public List<LineageEvent> UsageEvents { get; set; } = new();
+    public List<LineageEvent> UpdateEvents { get; } = new();
+    public List<LineageEvent> UsageEvents { get; } = new();
 }
 
 public class CompleteCalibrationLineage
 {
     public string CalibrationMapId { get; set; } = string.Empty;
-    public List<LineageEvent> UpdateEvents { get; set; } = new();
-    public List<LineageEvent> UsageEvents { get; set; } = new();
+    public List<LineageEvent> UpdateEvents { get; } = new();
+    public List<LineageEvent> UsageEvents { get; } = new();
 }
 
 public enum LineageEventType

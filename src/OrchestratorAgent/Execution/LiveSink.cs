@@ -21,7 +21,7 @@ namespace OrchestratorAgent.Execution
                 stop = o.Stop,
                 target = o.Target
             };
-            var orderId = await _api.PlaceOrderAsync(payload, ct);
+            var orderId = await _api.PlaceOrderAsync(payload, ct).ConfigureAwait(false);
             return new { status = "sent", orderId };
         }
     }

@@ -23,7 +23,7 @@ namespace OrchestratorAgent.Execution
         readonly CanaryAA _canary;
         readonly Dictionary<string, double> _strategyWeights = new();
 
-        bool _driftSafeMode = false;
+        bool _driftSafeMode;
 
         public SuperRouter(HttpClient http, Func<Task<string?>> getJwtAsync, ILogger log, bool live, object? partialExit = null)
         {
@@ -62,7 +62,7 @@ namespace OrchestratorAgent.Execution
 
         // Entry control methods with real implementation
         public void DisableAllEntries() { 
-            _entriesEnabled = false;
+            _entriesEnabled;
             _log.LogInformation("All entries DISABLED - new signals will be rejected");
         }
         
@@ -78,14 +78,14 @@ namespace OrchestratorAgent.Execution
             // Use available method to cancel orders and flatten positions
             var accountId = int.Parse(Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "0");
             if (accountId > 0) {
-                await _baseRouter.CancelAllOpenAsync(accountId, ct);
-                await _baseRouter.FlattenAllAsync(accountId, ct);
+                await _baseRouter.CancelAllOpenAsync(accountId, ct).ConfigureAwait(false);
+                await _baseRouter.FlattenAllAsync(accountId, ct).ConfigureAwait(false);
             }
         }
         
-        public async Task EnsureBracketsAsync(long accountId, CancellationToken ct) => await _baseRouter.EnsureBracketsAsync(accountId, ct);
+        public async Task EnsureBracketsAsync(long accountId, CancellationToken ct) => await _baseRouter.EnsureBracketsAsync(accountId, ct).ConfigureAwait(false);
         
-        public async Task FlattenAll(long accountId, CancellationToken ct) => await _baseRouter.FlattenAllAsync(accountId, ct);
+        public async Task FlattenAll(long accountId, CancellationToken ct) => await _baseRouter.FlattenAllAsync(accountId, ct).ConfigureAwait(false);
 
         // Enhanced routing with ML integration
         public async Task<bool> RouteAsync(Signal sig, CancellationToken ct)
@@ -101,7 +101,7 @@ namespace OrchestratorAgent.Execution
                 }
 
                 // Apply ML enhancements before routing
-                var enhancedSig = await EnhanceSignalAsync(sig, ct);
+                var enhancedSig = await EnhanceSignalAsync(sig, ct).ConfigureAwait(false);
 
                 // Convert Signal to StrategySignal for OrderRouter
                 var strategySig = new BotCore.StrategySignal
@@ -116,7 +116,7 @@ namespace OrchestratorAgent.Execution
                 };
 
                 // Route using base router with contract ID
-                return await _baseRouter.RouteAsync(strategySig, enhancedSig.ContractId, ct);
+                return await _baseRouter.RouteAsync(strategySig, enhancedSig.ContractId, ct).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -134,7 +134,7 @@ namespace OrchestratorAgent.Execution
                     ClientOrderId = sig.Tag
                 };
                 
-                return await _baseRouter.RouteAsync(fallbackSig, sig.ContractId, ct);
+                return await _baseRouter.RouteAsync(fallbackSig, sig.ContractId, ct).ConfigureAwait(false);
             }
         }
 
@@ -378,7 +378,7 @@ namespace OrchestratorAgent.Execution
                     // Zero out all strategy weights
                     foreach (var key in _strategyWeights.Keys.ToList())
                     {
-                        _strategyWeights[key] = 0;
+                        _strategyWeights[key];
                     }
                     _log.LogWarning("[SuperRouter] Drift action: Pausing all strategies");
                     break;
@@ -387,7 +387,7 @@ namespace OrchestratorAgent.Execution
 
         public void ResetDriftMode()
         {
-            _driftSafeMode = false;
+            _driftSafeMode;
             _driftDetector.Reset();
             _log.LogInformation("[SuperRouter] Drift safe mode reset");
         }

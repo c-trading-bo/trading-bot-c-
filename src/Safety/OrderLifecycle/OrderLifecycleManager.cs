@@ -56,7 +56,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
         if (await IsCustomTagUsedAsync(request.CustomTag))
         {
             _logger.LogWarning("[ORDER_LIFECYCLE] Duplicate customTag detected: {CustomTag} - blocking replay", 
-                request.CustomTag);
+                request.CustomTag).ConfigureAwait(false);
             throw new InvalidOperationException($"CustomTag {request.CustomTag} already used - preventing duplicate order");
         }
 
@@ -104,7 +104,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
             StopPrice = request.StopPrice,
             Strategy = request.Strategy,
             Context = request.DecisionContext ?? new()
-        });
+        }).ConfigureAwait(false);
 
         _logger.LogInformation("[ORDER_LIFECYCLE] Order evidence created: {EvidenceId} {Symbol} {Side} {Quantity} tag={CustomTag} [CorrelationId: {CorrelationId}]",
             evidenceId, request.Symbol, request.Side, request.Quantity, request.CustomTag, correlationId);
@@ -165,7 +165,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
                         Commission = updateEvent.Commission ?? 0m
                     });
                     evidence.TotalFilled += updateEvent.FilledQuantity;
-                    evidence.RemainingQuantity = 0;
+                    evidence.RemainingQuantity;
                     evidence.Status = OrderEvidenceStatus.FullyFilled;
                     evidence.CompletedAt = updateEvent.Timestamp;
                     evidence.LastFillAt = updateEvent.Timestamp;
@@ -201,7 +201,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
         }
 
         // Log to trade journal
-        await LogEventToJournalAsync(evidence, updateEvent);
+        await LogEventToJournalAsync(evidence, updateEvent).ConfigureAwait(false);
 
         _logger.LogInformation("[ORDER_LIFECYCLE] Evidence updated: {EvidenceId} {EventType} {Status} [CorrelationId: {CorrelationId}]",
             evidenceId, updateEvent.EventType, evidence.Status, evidence.CorrelationId);
@@ -220,7 +220,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
 
     public async Task<OrderEvidence?> GetOrderEvidenceAsync(string evidenceId)
     {
-        return await Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId));
+        return await Task.FromResult(_orderEvidence.GetValueOrDefault(evidenceId)).ConfigureAwait(false);
     }
 
     public async Task<List<OrderEvidence>> GetActiveOrdersAsync()
@@ -230,12 +230,12 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
             .OrderBy(e => e.CreatedAt)
             .ToList();
 
-        return await Task.FromResult(activeOrders);
+        return await Task.FromResult(activeOrders).ConfigureAwait(false);
     }
 
     public async Task<bool> IsCustomTagUsedAsync(string customTag)
     {
-        return await Task.FromResult(_usedCustomTags.ContainsKey(customTag));
+        return await Task.FromResult(_usedCustomTags.ContainsKey(customTag)).ConfigureAwait(false);
     }
 
     public async Task CancelStaleOrdersAsync()
@@ -247,7 +247,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
 
         foreach (var staleOrder in staleOrders)
         {
-            await ForceTimeoutOrderAsync(staleOrder.EvidenceId, "Stale order timeout");
+            await ForceTimeoutOrderAsync(staleOrder.EvidenceId, "Stale order timeout").ConfigureAwait(false);
             OnStaleOrderDetected.Invoke(staleOrder);
         }
     }
@@ -264,7 +264,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
                 ["forced_timeout"] = true,
                 ["timeout_reason"] = reason
             }
-        });
+        }).ConfigureAwait(false);
 
         _logger.LogWarning("[ORDER_LIFECYCLE] Order forcibly timed out: {EvidenceId} - {Reason}", 
             evidenceId, reason);
@@ -275,21 +275,21 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
         _staleOrderTimer.Change(TimeSpan.Zero, _config.StaleOrderCheckInterval);
         _logger.LogInformation("[ORDER_LIFECYCLE] Started with timeout: {Timeout}, check interval: {Interval}",
             _config.OrderTimeout, _config.StaleOrderCheckInterval);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _staleOrderTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _logger.LogInformation("[ORDER_LIFECYCLE] Stopped");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void CheckStaleOrdersCallback(object? state)
     {
         try
         {
-            _ = Task.Run(async () => await CancelStaleOrdersAsync());
+            _ = Task.Run(async () => await CancelStaleOrdersAsync()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -310,7 +310,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
                     Timestamp = updateEvent.Timestamp,
                     Status = "PLACED",
                     Metadata = updateEvent.Metadata ?? new()
-                });
+                }).ConfigureAwait(false);
                 break;
 
             case OrderEventType.PartialFill:
@@ -325,7 +325,7 @@ public class OrderLifecycleManager : IOrderLifecycleManager, IHostedService
                     FillPrice = updateEvent.FillPrice,
                     Commission = updateEvent.Commission ?? 0m,
                     Metadata = updateEvent.Metadata ?? new()
-                });
+                }).ConfigureAwait(false);
                 break;
 
 
@@ -367,8 +367,8 @@ public class OrderEvidence
     public string Strategy { get; set; } = string.Empty;
     
     public List<FillEvidence>? Fills { get; set; }
-    public Dictionary<string, object> DecisionContext { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> DecisionContext { get; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
     
     public string? RejectReason { get; set; }
     public string? CancelReason { get; set; }

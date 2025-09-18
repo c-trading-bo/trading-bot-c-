@@ -44,5 +44,5 @@ public class ArtifactMetadata
     public string Hash { get; set; } = string.Empty;
     public string InputShape { get; set; } = string.Empty;
     public string OutputShape { get; set; } = string.Empty;
-    public Dictionary<string, object> Properties { get; set; } = new();
+    public Dictionary<string, object> Properties { get; } = new();
 }

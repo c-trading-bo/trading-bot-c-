@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -58,7 +57,7 @@ public class WalkForwardTrainer
         };
 
         var currentDate = startDate;
-        var foldNumber = 0;
+        var foldNumber;
 
         Console.WriteLine($"[WALK-FORWARD] Starting training from {startDate:yyyy-MM-dd} to {endDate:yyyy-MM-dd}");
         Console.WriteLine($"[WALK-FORWARD] Training window: {_config.TrainingWindowDays} days, " +
@@ -70,7 +69,7 @@ public class WalkForwardTrainer
             foldNumber++;
             Console.WriteLine($"[WALK-FORWARD] Processing fold {foldNumber}...");
 
-            var fold = await ProcessFoldAsync(currentDate, foldNumber, ct);
+            var fold = await ProcessFoldAsync(currentDate, foldNumber, ct).ConfigureAwait(false);
             results.Folds.Add(fold);
 
             // Move to next fold
@@ -87,7 +86,7 @@ public class WalkForwardTrainer
                          $"Overall accuracy: {results.OverallMetrics.Accuracy:P1}, " +
                          $"Brier score: {results.OverallMetrics.BrierScore:F3}");
 
-        await SaveResultsAsync(results, ct);
+        await SaveResultsAsync(results, ct).ConfigureAwait(false);
         return results;
     }
 
@@ -120,8 +119,8 @@ public class WalkForwardTrainer
         try
         {
             // Get training data
-            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct);
-            var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct);
+            var trainSignals = await GetHistoricalSignalsAsync(trainStart, trainEnd, ct).ConfigureAwait(false);
+            var trainLabeled = await _labeler.LabelSignalsAsync(trainSignals, ct).ConfigureAwait(false);
 
             fold.TrainingSamples = trainLabeled.Count;
 
@@ -133,12 +132,12 @@ public class WalkForwardTrainer
             }
 
             // Train model using ML framework
-            var modelPath = await TrainModelAsync(trainLabeled, foldNumber, ct);
+            var modelPath = await TrainModelAsync(trainLabeled, foldNumber, ct).ConfigureAwait(false);
             fold.ModelPath = modelPath;
 
             // Get test data (respecting embargo period)
-            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct);
-            var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct);
+            var testSignals = await GetHistoricalSignalsAsync(testStart, testEnd, ct).ConfigureAwait(false);
+            var testLabeled = await _labeler.LabelSignalsAsync(testSignals, ct).ConfigureAwait(false);
 
             fold.TestSamples = testLabeled.Count;
 
@@ -149,7 +148,7 @@ public class WalkForwardTrainer
             }
 
             // Evaluate model on test set
-            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct);
+            var metrics = await EvaluateModelAsync(modelPath, testLabeled, ct).ConfigureAwait(false);
             fold.Metrics = metrics;
             fold.Status = FoldStatus.Completed;
 
@@ -174,7 +173,7 @@ public class WalkForwardTrainer
     {
         // Note: This needs integration with signal history storage system
         // Currently returns empty list - connect to actual data provider when available
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return new List<HistoricalTradeSignal>();
     }
 
@@ -194,7 +193,7 @@ public class WalkForwardTrainer
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(trainingDataPath, trainingJson, ct);
+            await File.WriteAllTextAsync(trainingDataPath, trainingJson, ct).ConfigureAwait(false);
             Console.WriteLine($"[WALK-FORWARD] Exported {trainData.Count} training samples to {trainingDataPath}");
 
             // Use sophisticated model selection: choose best available trained model
@@ -208,7 +207,7 @@ public class WalkForwardTrainer
             {
                 Console.WriteLine($"[WALK-FORWARD] Warning: No base model found, skipping model creation for fold {foldNumber}");
                 // Create empty ONNX file structure rather than text content
-                await File.WriteAllBytesAsync(modelPath, new byte[0], ct);
+                await File.WriteAllBytesAsync(modelPath, new byte[0], ct).ConfigureAwait(false);
             }
 
             return modelPath;
@@ -236,11 +235,11 @@ public class WalkForwardTrainer
             // Load and use sophisticated ONNX model for real ML inference
             Console.WriteLine($"[WALK-FORWARD] Loading ONNX model for evaluation: {modelPath}");
             
-            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
+            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false);
             if (session == null)
             {
                 Console.WriteLine($"[WALK-FORWARD] Failed to load ONNX model, falling back to feature-based prediction");
-                return await EvaluateWithFeatureBasedPrediction(testData);
+                return await EvaluateWithFeatureBasedPrediction(testData).ConfigureAwait(false);
             }
 
             var predictions = new List<decimal>();
@@ -248,7 +247,7 @@ public class WalkForwardTrainer
             foreach (var testSample in testData)
             {
                 // Use sophisticated ONNX model inference for predictions
-                var prediction = await RunOnnxInferenceAsync(session, testSample);
+                var prediction = await RunOnnxInferenceAsync(session, testSample).ConfigureAwait(false);
                 predictions.Add(prediction);
             }
 
@@ -270,7 +269,7 @@ public class WalkForwardTrainer
     /// </summary>
     private static async Task<decimal> RunOnnxInferenceAsync(InferenceSession session, LabeledTradeData sample)
     {
-        await Task.CompletedTask; // Keep async for future async ONNX operations
+        await Task.CompletedTask.ConfigureAwait(false); // Keep async for future async ONNX operations
         
         try
         {
@@ -287,6 +286,7 @@ public class WalkForwardTrainer
 
             // Run sophisticated ONNX inference
             using var results = session.Run(inputs);
+using System.Globalization;
             var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0.5f;
             
             // Apply sigmoid activation for probability output
@@ -305,7 +305,7 @@ public class WalkForwardTrainer
     /// </summary>
     private async Task<ValidationMetrics> EvaluateWithFeatureBasedPrediction(List<LabeledTradeData> testData)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var predictions = new List<decimal>();
         foreach (var testSample in testData)
@@ -344,11 +344,11 @@ public class WalkForwardTrainer
             return new ValidationMetrics();
         }
 
-        var correct = 0;
-        var brierSum = 0m;
-        var logLossSum = 0m;
+        var correct;
+        var brierSum;
+        var logLossSum;
 
-        for (int i = 0; i < predictions.Count; i++)
+        for (int i; i < predictions.Count; i++)
         {
             var pred = Math.Max(0.001m, Math.Min(0.999m, predictions[i])); // Clip for stability
             var actual = actuals[i];
@@ -411,7 +411,7 @@ public class WalkForwardTrainer
             Converters = { new DateTimeJsonConverter() }
         });
 
-        await File.WriteAllTextAsync(resultsPath, json, ct);
+        await File.WriteAllTextAsync(resultsPath, json, ct).ConfigureAwait(false);
         Console.WriteLine($"[WALK-FORWARD] Results saved to {resultsPath}");
     }
 }
@@ -497,6 +497,6 @@ public class DateTimeJsonConverter : System.Text.Json.Serialization.JsonConverte
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
-        writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
     }
 }

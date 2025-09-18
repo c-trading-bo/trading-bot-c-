@@ -44,10 +44,10 @@ namespace BotCore.Services
         private readonly ConcurrentDictionary<string, DataFlowMetrics> _flowMetrics = new();
         private readonly Timer _healthCheckTimer;
         private readonly Timer _heartbeatTimer;
-        private volatile bool _isHealthy = false;
-        private volatile bool _isMonitoring = false;
+        private volatile bool _isHealthy;
+        private volatile bool _isMonitoring;
         private readonly object _recoveryLock = new object();
-        private int _recoveryAttempts = 0;
+        private int _recoveryAttempts;
 
         public event Action<string, object>? OnMarketDataReceived;
         public event Action<string>? OnDataFlowRestored;
@@ -124,7 +124,7 @@ namespace BotCore.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-DATA-FLOW] ❌ Failed to initialize enhanced market data flow");
-                _isHealthy = false;
+                _isHealthy;
                 return Task.FromResult(false);
             }
         }
@@ -137,7 +137,7 @@ namespace BotCore.Services
             try
             {
                 var currentTime = DateTime.UtcNow;
-                var healthySymbols = 0;
+                var healthySymbols;
                 var totalSymbols = _flowMetrics.Count;
                 var issues = new List<string>();
 
@@ -200,19 +200,19 @@ namespace BotCore.Services
             {
                 _logger.LogInformation("[DATA-FLOW-RECOVERY] Ensuring data flow health");
 
-                var healthStatus = await GetHealthStatusAsync();
+                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false);
                 
                 if (healthStatus.IsHealthy)
                 {
                     _logger.LogDebug("[DATA-FLOW-RECOVERY] Data flow is healthy ({HealthPercentage:P1})", healthStatus.HealthPercentage);
-                    _recoveryAttempts = 0; // Reset recovery attempts
+                    _recoveryAttempts; // Reset recovery attempts
                     return;
                 }
 
                 // Attempt recovery if enabled
                 if (_config.HealthMonitoring.AutoRecoveryEnabled)
                 {
-                    await AttemptDataFlowRecoveryAsync();
+                    await AttemptDataFlowRecoveryAsync().ConfigureAwait(false);
                 }
                 else
                 {
@@ -244,12 +244,12 @@ namespace BotCore.Services
                 // Wait for configured delay before requesting snapshots
                 if (_config.SnapshotRequestDelay > 0)
                 {
-                    await Task.Delay(_config.SnapshotRequestDelay);
+                    await Task.Delay(_config.SnapshotRequestDelay).ConfigureAwait(false);
                 }
 
                 foreach (var symbol in symbols)
                 {
-                    await RequestSymbolSnapshotAsync(symbol);
+                    await RequestSymbolSnapshotAsync(symbol).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("[SNAPSHOT-REQUEST] ✅ Snapshot data requests completed");
@@ -282,7 +282,7 @@ namespace BotCore.Services
                         return true;
                     }
 
-                    await Task.Delay(1000); // Check every second
+                    await Task.Delay(1000).ConfigureAwait(false); // Check every second
                 }
 
                 _logger.LogWarning("[DATA-FLOW-VERIFY] ❌ Data flow verification failed for {Symbol} within {Timeout}", symbol, timeout);
@@ -310,8 +310,8 @@ namespace BotCore.Services
             {
                 while (!cancellationToken.IsCancellationRequested && _isMonitoring)
                 {
-                    await PerformHealthCheckAsync();
-                    await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds), cancellationToken);
+                    await PerformHealthCheckAsync().ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.HealthCheckIntervalSeconds), cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -324,7 +324,7 @@ namespace BotCore.Services
             }
             finally
             {
-                _isMonitoring = false;
+                _isMonitoring;
             }
         }
 
@@ -372,7 +372,7 @@ namespace BotCore.Services
             {
                 try
                 {
-                    await PerformHealthCheckAsync();
+                    await PerformHealthCheckAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -390,7 +390,7 @@ namespace BotCore.Services
             {
                 try
                 {
-                    await PerformHeartbeatCheckAsync();
+                    await PerformHeartbeatCheckAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -434,7 +434,7 @@ namespace BotCore.Services
                     // Immediate snapshot request for stale symbols
                     if (_config.HealthMonitoring.AutoRecoveryEnabled)
                     {
-                        await RequestSnapshotDataAsync(staleSymbols);
+                        await RequestSnapshotDataAsync(staleSymbols).ConfigureAwait(false);
                         
                         _logger.LogInformation("[HEARTBEAT] 🔄 Initiated snapshot recovery for {Count} stale symbols", staleSymbols.Count);
                     }
@@ -458,7 +458,7 @@ namespace BotCore.Services
         {
             try
             {
-                var healthStatus = await GetHealthStatusAsync();
+                var healthStatus = await GetHealthStatusAsync().ConfigureAwait(false);
                 
                 if (!healthStatus.IsHealthy)
                 {
@@ -468,7 +468,7 @@ namespace BotCore.Services
                     // Trigger recovery if enabled
                     if (_config.HealthMonitoring.AutoRecoveryEnabled)
                     {
-                        await EnsureDataFlowHealthAsync();
+                        await EnsureDataFlowHealthAsync().ConfigureAwait(false);
                     }
                 }
                 else
@@ -513,18 +513,18 @@ namespace BotCore.Services
 
                 if (unhealthySymbols.Any())
                 {
-                    await RequestSnapshotDataAsync(unhealthySymbols);
+                    await RequestSnapshotDataAsync(unhealthySymbols).ConfigureAwait(false);
                 }
 
                 // Step 2: Wait for recovery delay
-                await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.RecoveryDelaySeconds));
+                await Task.Delay(TimeSpan.FromSeconds(_config.HealthMonitoring.RecoveryDelaySeconds)).ConfigureAwait(false);
 
                 // Step 3: Verify recovery
-                var healthStatusAfterRecovery = await GetHealthStatusAsync();
+                var healthStatusAfterRecovery = await GetHealthStatusAsync().ConfigureAwait(false);
                 if (healthStatusAfterRecovery.IsHealthy)
                 {
                     _logger.LogInformation("[DATA-RECOVERY] ✅ Data flow recovery successful");
-                    _recoveryAttempts = 0; // Reset attempts on success
+                    _recoveryAttempts; // Reset attempts on success
                     
                     // Notify recovery
                     foreach (var symbol in unhealthySymbols)
@@ -562,7 +562,7 @@ namespace BotCore.Services
                 // For now, we'll simulate the request
                 
                 // Simulate API call delay
-                await Task.Delay(100);
+                await Task.Delay(100).ConfigureAwait(false);
 
                 // Simulate successful snapshot response
                 var snapshotData = new
@@ -603,7 +603,7 @@ namespace BotCore.Services
                 _logger.LogTrace("[MARKET-DATA-FLOW] Processed market data for {Symbol} at {Price}", 
                     marketData.Symbol, marketData.Close);
                     
-                await Task.CompletedTask; // Make it properly async
+                await Task.CompletedTask.ConfigureAwait(false); // Make it properly async
             }
             catch (Exception ex)
             {
@@ -616,7 +616,7 @@ namespace BotCore.Services
 
         #region IDisposable
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         public void Dispose()
         {
@@ -624,7 +624,7 @@ namespace BotCore.Services
             {
                 _healthCheckTimer?.Dispose();
                 _heartbeatTimer?.Dispose();
-                _isMonitoring = false;
+                _isMonitoring;
                 _disposed = true;
             }
         }
@@ -645,8 +645,8 @@ namespace BotCore.Services
         public int HealthySymbolCount { get; set; }
         public int TotalSymbolCount { get; set; }
         public double HealthPercentage { get; set; }
-        public List<string> Issues { get; set; } = new();
-        public List<DataFlowMetrics> SymbolMetrics { get; set; } = new();
+        public List<string> Issues { get; } = new();
+        public List<DataFlowMetrics> SymbolMetrics { get; } = new();
     }
 
     /// <summary>

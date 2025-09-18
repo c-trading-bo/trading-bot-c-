@@ -85,22 +85,22 @@ public class UnifiedDataIntegrationService : BackgroundService
         try
         {
             // Initialize unified data pipeline
-            await InitializeUnifiedPipelineAsync(stoppingToken);
+            await InitializeUnifiedPipelineAsync(stoppingToken).ConfigureAwait(false);
             
             // Start historical data seeding with correct contracts
-            await StartHistoricalDataSeedingAsync(stoppingToken);
+            await StartHistoricalDataSeedingAsync(stoppingToken).ConfigureAwait(false);
             
             // Start live data integration
-            await StartLiveDataIntegrationAsync(stoppingToken);
+            await StartLiveDataIntegrationAsync(stoppingToken).ConfigureAwait(false);
             
             // Main monitoring loop
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    await MonitorDataIntegrationAsync(stoppingToken);
-                    await CheckContractRolloverAsync(stoppingToken);
-                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                    await MonitorDataIntegrationAsync(stoppingToken).ConfigureAwait(false);
+                    await CheckContractRolloverAsync(stoppingToken).ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -109,7 +109,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "❌ [UNIFIED-DATA] Error in monitoring loop");
-                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                    await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
                 }
             }
         }
@@ -134,7 +134,7 @@ public class UnifiedDataIntegrationService : BackgroundService
         try
         {
             // Detect current contracts (Z25 → H26 rollover logic)
-            var currentContracts = await _contractManager.GetCurrentContractsAsync(cancellationToken);
+            var currentContracts = await _contractManager.GetCurrentContractsAsync(cancellationToken).ConfigureAwait(false);
             
             if (currentContracts.ContainsKey("ES"))
             {
@@ -197,10 +197,10 @@ public class UnifiedDataIntegrationService : BackgroundService
             _logger.LogInformation("📈 [HISTORICAL-SEEDING] Starting with unified contracts...");
             
             // Seed ES historical data with Z25 contract (NOT U25)
-            await SeedHistoricalDataAsync("ES", _currentESContract, cancellationToken);
+            await SeedHistoricalDataAsync("ES", _currentESContract, cancellationToken).ConfigureAwait(false);
             
             // Seed NQ historical data with Z25 contract (NOT U25)
-            await SeedHistoricalDataAsync("NQ", _currentNQContract, cancellationToken);
+            await SeedHistoricalDataAsync("NQ", _currentNQContract, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [HISTORICAL-SEEDING] Completed seeding with unified contracts");
         }
@@ -224,11 +224,11 @@ public class UnifiedDataIntegrationService : BackgroundService
             var historicalBars = GenerateHistoricalBars(symbol, contractId, _config.MinHistoricalBars);
             
             // Process bars through the SAME pipeline as live data
-            var barsProcessed = 0;
+            var barsProcessed;
             foreach (var bar in historicalBars)
             {
                 // Process through unified pipeline
-                await ProcessBarThroughUnifiedPipelineAsync(bar, isHistorical: true, cancellationToken);
+                await ProcessBarThroughUnifiedPipelineAsync(bar, isHistorical: true, cancellationToken).ConfigureAwait(false);
                 barsProcessed++;
                 
                 // Update status
@@ -245,7 +245,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 // Small delay to avoid overwhelming the system
                 if (barsProcessed % 50 == 0)
                 {
-                    await Task.Delay(10, cancellationToken);
+                    await Task.Delay(10, cancellationToken).ConfigureAwait(false);
                     _logger.LogDebug("📊 [SEED-{Symbol}] Seeded {Count}/{Total} bars", 
                         symbol, barsProcessed, _config.MinHistoricalBars);
                 }
@@ -279,13 +279,13 @@ public class UnifiedDataIntegrationService : BackgroundService
             }
             
             // Process through bar count manager
-            await _barCountManager.ProcessBarAsync(bar, isHistorical, cancellationToken);
+            await _barCountManager.ProcessBarAsync(bar, isHistorical, cancellationToken).ConfigureAwait(false);
             
             // Publish to market data flow if available
             if (_marketDataFlow != null)
             {
                 var marketData = ConvertBarToMarketData(bar);
-                await _marketDataFlow.ProcessMarketDataAsync(marketData, cancellationToken);
+                await _marketDataFlow.ProcessMarketDataAsync(marketData, cancellationToken).ConfigureAwait(false);
             }
             
             _logger.LogTrace("📊 [UNIFIED-PIPELINE] Processed {Type} bar: {Symbol} {Close}", 
@@ -307,8 +307,8 @@ public class UnifiedDataIntegrationService : BackgroundService
             _logger.LogInformation("📡 [LIVE-DATA] Starting live data integration...");
             
             // Subscribe to live data for same contracts as historical
-            await SubscribeToLiveDataAsync(_currentESContract, cancellationToken);
-            await SubscribeToLiveDataAsync(_currentNQContract, cancellationToken);
+            await SubscribeToLiveDataAsync(_currentESContract, cancellationToken).ConfigureAwait(false);
+            await SubscribeToLiveDataAsync(_currentNQContract, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [LIVE-DATA] Live data integration started");
         }
@@ -330,7 +330,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             // In production, this would subscribe to actual market data feed
             // For now, simulate live data subscription
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -349,7 +349,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             var bar = ConvertMarketDataToBar(marketData);
             
             // Process through unified pipeline (same as historical)
-            await ProcessBarThroughUnifiedPipelineAsync(bar, isHistorical: false, cancellationToken);
+            await ProcessBarThroughUnifiedPipelineAsync(bar, isHistorical: false, cancellationToken).ConfigureAwait(false);
             
             // Update live data status
             var contractId = GetContractIdFromSymbol(marketData.Symbol);
@@ -408,7 +408,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 // Update readiness tracker - let validation determine readiness
                 if (_readinessTracker != null)
                 {
-                    await _readinessTracker.ValidateReadinessAsync();
+                    await _readinessTracker.ValidateReadinessAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -417,7 +417,7 @@ public class UnifiedDataIntegrationService : BackgroundService
             _logger.LogError(ex, "❌ [MONITORING] Error monitoring data integration");
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     /// <summary>
@@ -430,14 +430,14 @@ public class UnifiedDataIntegrationService : BackgroundService
         try
         {
             // Check if rollover is needed (e.g., approaching December 2025 expiry)
-            var rolloverNeeded = await _contractManager.CheckRolloverNeededAsync(_currentESContract, _currentNQContract, cancellationToken);
+            var rolloverNeeded = await _contractManager.CheckRolloverNeededAsync(_currentESContract, _currentNQContract, cancellationToken).ConfigureAwait(false);
             
             if (rolloverNeeded.ESNeedsRollover || rolloverNeeded.NQNeedsRollover)
             {
                 _logger.LogInformation("🔄 [CONTRACT-ROLLOVER] Rollover needed: ES={ES}, NQ={NQ}", 
                     rolloverNeeded.ESNeedsRollover, rolloverNeeded.NQNeedsRollover);
                 
-                await ExecuteContractRolloverAsync(rolloverNeeded, cancellationToken);
+                await ExecuteContractRolloverAsync(rolloverNeeded, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -458,7 +458,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 var newESContract = rolloverNeeded.NewESContract ?? "CON.F.US.EP.H26"; // March 2026
                 _logger.LogInformation("🔄 [ES-ROLLOVER] Rolling ES: {Old} → {New}", _currentESContract, newESContract);
                 
-                await RolloverContractAsync("ES", _currentESContract, newESContract, cancellationToken);
+                await RolloverContractAsync("ES", _currentESContract, newESContract, cancellationToken).ConfigureAwait(false);
                 _currentESContract = newESContract;
             }
             
@@ -467,7 +467,7 @@ public class UnifiedDataIntegrationService : BackgroundService
                 var newNQContract = rolloverNeeded.NewNQContract ?? "CON.F.US.ENQ.H26"; // March 2026 - FIXED: Use ENQ consistently
                 _logger.LogInformation("🔄 [NQ-ROLLOVER] Rolling NQ: {Old} → {New}", _currentNQContract, newNQContract);
                 
-                await RolloverContractAsync("NQ", _currentNQContract, newNQContract, cancellationToken);
+                await RolloverContractAsync("NQ", _currentNQContract, newNQContract, cancellationToken).ConfigureAwait(false);
                 _currentNQContract = newNQContract;
             }
         }
@@ -504,10 +504,10 @@ public class UnifiedDataIntegrationService : BackgroundService
             }
             
             // Re-seed historical data for new contract
-            await SeedHistoricalDataAsync(symbol, newContract, cancellationToken);
+            await SeedHistoricalDataAsync(symbol, newContract, cancellationToken).ConfigureAwait(false);
             
             // Re-subscribe to live data for new contract
-            await SubscribeToLiveDataAsync(newContract, cancellationToken);
+            await SubscribeToLiveDataAsync(newContract, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [CONTRACT-ROLLOVER] Completed {Symbol} rollover to {NewContract}", symbol, newContract);
         }
@@ -668,7 +668,7 @@ public class BarCountManager
     public async Task ProcessBarAsync(MarketBar bar, bool isHistorical, CancellationToken cancellationToken)
     {
         // Unified bar processing logic
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
 
@@ -697,7 +697,7 @@ public class ContractDataStatus
 
 public class DataIntegrationStatus
 {
-    public List<ContractDataStatus> ContractStatuses { get; set; } = new();
+    public List<ContractDataStatus> ContractStatuses { get; } = new();
     public string CurrentESContract { get; set; } = string.Empty;
     public string CurrentNQContract { get; set; } = string.Empty;
     public int ConfiguredMinBars { get; set; }

@@ -15,9 +15,9 @@ namespace OrchestratorAgent.Execution
         {
             _lambda = lambda;
             _delta = delta;
-            _mean = 0;
-            _cum = 0;
-            _minCum = 0;
+            _mean;
+            _cum;
+            _minCum;
         }
 
         public bool Update(double x)
@@ -37,9 +37,9 @@ namespace OrchestratorAgent.Execution
 
         void Reset()
         {
-            _mean = 0;
-            _cum = 0;
-            _minCum = 0;
+            _mean;
+            _cum;
+            _minCum;
         }
     }
 
@@ -70,7 +70,7 @@ namespace OrchestratorAgent.Execution
 
         public void Reset()
         {
-            IsDrifting = false;
+            IsDrifting;
         }
     }
 }

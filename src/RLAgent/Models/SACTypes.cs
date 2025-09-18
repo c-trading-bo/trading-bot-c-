@@ -41,7 +41,7 @@ public class SacState
     public string Symbol { get; set; } = string.Empty;
     public double Price { get; set; }
     public double Volume { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
+    public Dictionary<string, double> TechnicalIndicators { get; } = new();
     
     public int Dimension => Features.Length;
     
@@ -111,11 +111,11 @@ public class SacTrainingResult
     public int BufferSize { get; set; }
     public int TotalSteps { get; set; }
     public TimeSpan TrainingDuration { get; set; }
-    public Dictionary<string, object> Metrics { get; set; } = new();
+    public Dictionary<string, object> Metrics { get; } = new();
     
     public SacTrainingResult()
     {
-        Success = false;
+        Success;
         Message = "Training not completed";
     }
     
@@ -145,8 +145,8 @@ public class SacStatistics
     public int MaxBufferSize { get; set; }
     public TimeSpan TotalTrainingTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
-    public Dictionary<string, double> NetworkLosses { get; set; } = new();
-    public List<double> RewardHistory { get; set; } = new();
+    public Dictionary<string, double> NetworkLosses { get; } = new();
+    public List<double> RewardHistory { get; } = new();
     
     public SacStatistics()
     {

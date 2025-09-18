@@ -223,7 +223,7 @@ namespace OrchestratorAgent.Execution
                 Console.WriteLine("[CALIBRATION] Starting nightly maintenance...");
 
                 var cutoff = DateTime.Now.Subtract(CalibrationWindow);
-                var cleaned = 0;
+                var cleaned;
 
                 // Clean old data from trackers
                 foreach (var tracker in _trackers.Values)
@@ -365,7 +365,7 @@ namespace OrchestratorAgent.Execution
             const int numBins = 10;
             var reliability = 0.0;
 
-            for (int bin = 0; bin < numBins; bin++)
+            for (int bin; bin < numBins; bin++)
             {
                 var binStart = bin / (double)numBins;
                 var binEnd = (bin + 1) / (double)numBins;
@@ -449,7 +449,7 @@ namespace OrchestratorAgent.Execution
     public class CalibrationReport
     {
         public DateTime GeneratedAt { get; set; }
-        public List<ContextCalibrationReport> ContextReports { get; set; } = new();
+        public List<ContextCalibrationReport> ContextReports { get; } = new();
         public double OverallBrierScore { get; set; }
         public double OverallReliability { get; set; }
         public int TotalPredictions { get; set; }

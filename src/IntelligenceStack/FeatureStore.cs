@@ -57,7 +57,7 @@ public class FeatureStore : IFeatureStore
 
             foreach (var file in featureFiles)
             {
-                var content = await File.ReadAllTextAsync(file, cancellationToken);
+                var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false);
                 var featureSet = JsonSerializer.Deserialize<FeatureSet>(content);
                 
                 if (featureSet != null)
@@ -109,7 +109,7 @@ public class FeatureStore : IFeatureStore
         try
         {
             // Validate before saving
-            var isValid = await ValidateSchemaAsync(features, cancellationToken);
+            var isValid = await ValidateSchemaAsync(features, cancellationToken).ConfigureAwait(false);
             if (!isValid)
             {
                 throw new InvalidOperationException($"Feature validation failed for {features.Symbol}");
@@ -129,7 +129,7 @@ public class FeatureStore : IFeatureStore
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(filePath, json, cancellationToken);
+            await File.WriteAllTextAsync(filePath, json, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[FEATURES] Saved {Count} features for {Symbol} at {Timestamp}", 
                 features.Features.Count, features.Symbol, features.Timestamp);
@@ -146,7 +146,7 @@ public class FeatureStore : IFeatureStore
     {
         try
         {
-            var schema = await GetSchemaAsync(features.Version, cancellationToken);
+            var schema = await GetSchemaAsync(features.Version, cancellationToken).ConfigureAwait(false);
             if (schema == null)
             {
                 _logger.LogWarning("[FEATURES] Schema not found for version: {Version}", features.Version);
@@ -188,11 +188,11 @@ public class FeatureStore : IFeatureStore
             {
                 // Create default schema if not found
                 var defaultSchema = CreateDefaultSchema(version);
-                await SaveSchemaAsync(defaultSchema, cancellationToken);
+                await SaveSchemaAsync(defaultSchema, cancellationToken).ConfigureAwait(false);
                 return defaultSchema;
             }
 
-            var content = await File.ReadAllTextAsync(schemaPath, cancellationToken);
+            var content = await File.ReadAllTextAsync(schemaPath, cancellationToken).ConfigureAwait(false);
             var schema = JsonSerializer.Deserialize<FeatureSchema>(content);
 
             if (schema != null)
@@ -225,7 +225,7 @@ public class FeatureStore : IFeatureStore
                 WriteIndented = true
             });
 
-            await File.WriteAllTextAsync(schemaPath, json, cancellationToken);
+            await File.WriteAllTextAsync(schemaPath, json, cancellationToken).ConfigureAwait(false);
 
             lock (_lock)
             {
@@ -245,9 +245,9 @@ public class FeatureStore : IFeatureStore
     private ValidationResult ValidateFeatureSet(FeatureSet features, FeatureSchema schema)
     {
         var totalFeatures = schema.Features.Count;
-        var missingCount = 0;
-        var outOfRangeCount = 0;
-        var typeErrorCount = 0;
+        var missingCount;
+        var outOfRangeCount;
+        var typeErrorCount;
 
         foreach (var schemaFeature in schema.Features.Values)
         {

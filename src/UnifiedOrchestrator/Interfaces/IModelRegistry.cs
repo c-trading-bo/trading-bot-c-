@@ -95,7 +95,7 @@ public class ModelRouterStats
     public DateTime LastSwapAt { get; set; }
     public TimeSpan LastSwapDuration { get; set; }
     public bool IsHealthy { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>

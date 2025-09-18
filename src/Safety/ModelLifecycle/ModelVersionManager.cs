@@ -37,7 +37,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
 
     public async Task<ModelMetadata?> LoadModelAsync(string modelHash, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (_modelCache.TryGetValue(modelHash, out var cached))
@@ -45,7 +45,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
                 // Validate integrity before returning
                 if (await ValidateModelIntegrityAsync(modelHash, cancellationToken))
                 {
-                    _logger.LogInformation("Loaded model {ModelHash} from cache with integrity validation", modelHash);
+                    _logger.LogInformation("Loaded model {ModelHash} from cache with integrity validation", modelHash).ConfigureAwait(false);
                     return cached;
                 }
                 
@@ -53,13 +53,13 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
                 _modelCache.TryRemove(modelHash, out _);
             }
             
-            await LoadModelRegistryAsync();
+            await LoadModelRegistryAsync().ConfigureAwait(false);
             
             if (_modelCache.TryGetValue(modelHash, out var metadata))
             {
                 if (await ValidateModelIntegrityAsync(modelHash, cancellationToken))
                 {
-                    _logger.LogInformation("Loaded model {ModelHash} with version {Version}", modelHash, metadata.Version);
+                    _logger.LogInformation("Loaded model {ModelHash} with version {Version}", modelHash, metadata.Version).ConfigureAwait(false);
                     return metadata;
                 }
             }
@@ -75,15 +75,15 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
 
     public async Task<string> RegisterModelAsync(ModelMetadata metadata, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Calculate file hash for integrity
-            var hash = await CalculateFileHashAsync(metadata.FilePath);
+            var hash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false);
             var newMetadata = metadata with { Hash = hash };
             
             _modelCache[hash] = newMetadata;
-            await SaveModelRegistryAsync();
+            await SaveModelRegistryAsync().ConfigureAwait(false);
             
             _logger.LogInformation("Registered model {ModelHash} version {Version} at {FilePath}", 
                 hash, metadata.Version, metadata.FilePath);
@@ -98,7 +98,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
 
     public async Task<ModelMetadata?> GetActiveModelAsync(CancellationToken cancellationToken = default)
     {
-        await LoadModelRegistryAsync();
+        await LoadModelRegistryAsync().ConfigureAwait(false);
         
         var activeModel = _modelCache.Values
             .Where(m => m.Status == "active")
@@ -115,7 +115,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
 
     public async Task SetActiveModelAsync(string modelHash, bool isPending = false, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (!_modelCache.TryGetValue(modelHash, out var model))
@@ -127,7 +127,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
             // Validate integrity before activation
             if (!await ValidateModelIntegrityAsync(modelHash, cancellationToken))
             {
-                _logger.LogError("Cannot set active model: {ModelHash} failed integrity validation", modelHash);
+                _logger.LogError("Cannot set active model: {ModelHash} failed integrity validation", modelHash).ConfigureAwait(false);
                 throw new InvalidOperationException($"Model {modelHash} failed integrity validation");
             }
             
@@ -141,7 +141,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
             var status = isPending ? "pending" : "active";
             _modelCache[modelHash] = model with { Status = status };
             
-            await SaveModelRegistryAsync();
+            await SaveModelRegistryAsync().ConfigureAwait(false);
             
             _logger.LogInformation("Set model {ModelHash} version {Version} as {Status}", 
                 modelHash, model.Version, status);
@@ -154,7 +154,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
 
     public async Task<List<ModelMetadata>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
-        await LoadModelRegistryAsync();
+        await LoadModelRegistryAsync().ConfigureAwait(false);
         return _modelCache.Values.OrderByDescending(m => m.CreatedAt).ToList();
     }
 
@@ -173,7 +173,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
         
         try
         {
-            var currentHash = await CalculateFileHashAsync(metadata.FilePath);
+            var currentHash = await CalculateFileHashAsync(metadata.FilePath).ConfigureAwait(false);
             var isValid = currentHash == modelHash;
             
             if (!isValid)
@@ -195,7 +195,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
     {
         using var sha256 = SHA256.Create();
         await using var stream = File.OpenRead(filePath);
-        var hashBytes = await sha256.ComputeHashAsync(stream);
+        var hashBytes = await sha256.ComputeHashAsync(stream).ConfigureAwait(false);
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
     
@@ -208,7 +208,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
         
         try
         {
-            var json = await File.ReadAllTextAsync(_metadataFile);
+            var json = await File.ReadAllTextAsync(_metadataFile).ConfigureAwait(false);
             var models = JsonSerializer.Deserialize<List<ModelMetadata>>(json);
             
             if (models != null)
@@ -237,7 +237,7 @@ public class ModelVersionManager : IModelVersionManager, IDisposable
             
             // Atomic write
             var tempFile = _metadataFile + ".tmp";
-            await File.WriteAllTextAsync(tempFile, json);
+            await File.WriteAllTextAsync(tempFile, json).ConfigureAwait(false);
             File.Move(tempFile, _metadataFile, true);
             
             _logger.LogDebug("Saved {Count} models to registry", models.Count);

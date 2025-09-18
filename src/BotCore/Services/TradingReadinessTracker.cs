@@ -98,7 +98,7 @@ namespace BotCore.Services
 
         public async Task<ReadinessValidationResult> ValidateReadinessAsync()
         {
-            await Task.CompletedTask; // For async interface compatibility
+            await Task.CompletedTask.ConfigureAwait(false); // For async interface compatibility
 
             lock (_lockObject)
             {
@@ -184,24 +184,24 @@ namespace BotCore.Services
             else if (_context.LiveTicks > 0)
             {
                 _context.State = TradingReadinessState.LiveTickReceived;
-                _context.CanTrade = false;
+                _context.CanTrade;
             }
             else if (_context.SeededBars > 0)
             {
                 _context.State = TradingReadinessState.Seeded;
-                _context.CanTrade = false;
+                _context.CanTrade;
             }
             else
             {
                 _context.State = TradingReadinessState.Initializing;
-                _context.CanTrade = false;
+                _context.CanTrade;
             }
 
             // Check for data timeout
             if (_context.TimeSinceLastData.TotalSeconds > _config.MarketDataTimeoutSeconds)
             {
                 _context.State = TradingReadinessState.Degraded;
-                _context.CanTrade = false;
+                _context.CanTrade;
             }
 
             if (oldState != _context.State)

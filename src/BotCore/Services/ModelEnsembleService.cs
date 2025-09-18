@@ -47,13 +47,13 @@ public class ModelEnsembleService
             var predictions = new List<StrategyPrediction>();
             
             // Get predictions from all loaded strategy selection models
-            var strategyModels = await GetActiveModelsAsync("strategy_selection", cancellationToken);
+            var strategyModels = await GetActiveModelsAsync("strategy_selection", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in strategyModels)
             {
                 try
                 {
-                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVector, availableStrategies, cancellationToken);
+                    var prediction = await GetSingleStrategyPredictionAsync(model, contextVector, availableStrategies, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -103,13 +103,13 @@ public class ModelEnsembleService
             var predictions = new List<PriceDirectionPrediction>();
             
             // Get predictions from all loaded price prediction models
-            var priceModels = await GetActiveModelsAsync("price_prediction", cancellationToken);
+            var priceModels = await GetActiveModelsAsync("price_prediction", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in priceModels)
             {
                 try
                 {
-                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatures, cancellationToken);
+                    var prediction = await GetSinglePricePredictionAsync(model, marketFeatures, cancellationToken).ConfigureAwait(false);
                     if (prediction != null)
                     {
                         predictions.Add(prediction);
@@ -159,7 +159,7 @@ public class ModelEnsembleService
             var actions = new List<ActionResult>();
             
             // Get actions from all loaded RL models
-            var rlModels = await GetActiveModelsAsync("cvar_ppo", cancellationToken);
+            var rlModels = await GetActiveModelsAsync("cvar_ppo", cancellationToken).ConfigureAwait(false);
             
             foreach (var model in rlModels)
             {
@@ -167,7 +167,7 @@ public class ModelEnsembleService
                 {
                     if (model.Model is CVaRPPO cvarAgent)
                     {
-                        var action = await cvarAgent.GetActionAsync(state, deterministic, cancellationToken);
+                        var action = await cvarAgent.GetActionAsync(state, deterministic, cancellationToken).ConfigureAwait(false);
                         actions.Add(action);
                     }
                 }
@@ -218,7 +218,7 @@ public class ModelEnsembleService
             // Load model based on type and source
             if (modelPath.EndsWith(".onnx"))
             {
-                model = await _memoryManager.LoadModelAsync<object>(modelPath, "latest");
+                model = await _memoryManager.LoadModelAsync<object>(modelPath, "latest").ConfigureAwait(false);
             }
             else if (modelName.Contains("cvar_ppo"))
             {
@@ -353,7 +353,7 @@ public class ModelEnsembleService
             
             if (!strategyVotes.ContainsKey(prediction.SelectedStrategy))
             {
-                strategyVotes[prediction.SelectedStrategy] = 0;
+                strategyVotes[prediction.SelectedStrategy];
             }
             
             strategyVotes[prediction.SelectedStrategy] += weight * prediction.Confidence;
@@ -449,7 +449,7 @@ public class ModelEnsembleService
             
             if (action.ActionProbabilities != null)
             {
-                for (int i = 0; i < Math.Min(actionCount, action.ActionProbabilities.Length); i++)
+                for (int i; i < Math.Min(actionCount, action.ActionProbabilities.Length); i++)
                 {
                     blendedProbs[i] += action.ActionProbabilities[i] * weight;
                 }
@@ -463,7 +463,7 @@ public class ModelEnsembleService
         // Normalize probabilities
         if (totalWeight > 0)
         {
-            for (int i = 0; i < actionCount; i++)
+            for (int i; i < actionCount; i++)
             {
                 blendedProbs[i] /= totalWeight;
             }
@@ -580,7 +580,7 @@ public class ModelEnsembleService
         var strategy = availableStrategies[random.Next(availableStrategies.Count)];
         
         // PLACEHOLDER: This confidence should come from actual model inference
-        // In production, this would be: var confidence = await model.GetPredictionConfidence(contextVector);
+        // In production, this would be: var confidence = await model.GetPredictionConfidence(contextVector).ConfigureAwait(false);
         var baseConfidence = 0.7; // This will be replaced by actual model output
         var confidenceVariation = random.NextDouble() * 0.3;
         

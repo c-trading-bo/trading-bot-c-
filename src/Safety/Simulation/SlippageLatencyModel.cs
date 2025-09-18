@@ -32,7 +32,7 @@ public class OrderSimulationRequest
     public decimal Volatility { get; set; } // Implied volatility for slippage modeling
     public decimal Volume { get; set; } // Recent volume for liquidity assessment
     public string Strategy { get; set; } = string.Empty;
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 /// <summary>
@@ -61,8 +61,8 @@ public class ExecutionSimulation
     
     // Simulation Details
     public string SimulationMethod { get; set; } = string.Empty;
-    public Dictionary<string, object> SimulationFactors { get; set; } = new();
-    public List<string> WarningFlags { get; set; } = new();
+    public Dictionary<string, object> SimulationFactors { get; } = new();
+    public List<string> WarningFlags { get; } = new();
     
     // Performance Metrics
     public decimal EstimatedTransactionCost { get; set; }
@@ -83,7 +83,7 @@ public class LatencyMetrics
     public TimeSpan MaxLatency { get; set; }
     public int SampleCount { get; set; }
     public bool IsUnderStress { get; set; }
-    public List<LatencyOutlier> RecentOutliers { get; set; } = new();
+    public List<LatencyOutlier> RecentOutliers { get; } = new();
 }
 
 /// <summary>
@@ -95,7 +95,7 @@ public class LatencyOutlier
     public TimeSpan Latency { get; set; }
     public string Reason { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 /// <summary>
@@ -610,7 +610,7 @@ public class SlippageLatencyModel : ISlippageLatencyModel, IHostedService
         {
             _ = Task.Run(async () =>
             {
-                var metrics = await GetCurrentLatencyMetricsAsync();
+                var metrics = await GetCurrentLatencyMetricsAsync().ConfigureAwait(false);
                 
                 if (metrics.IsUnderStress)
                 {

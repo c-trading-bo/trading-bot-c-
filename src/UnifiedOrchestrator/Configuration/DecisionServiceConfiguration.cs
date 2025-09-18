@@ -14,8 +14,8 @@ namespace TradingBot.UnifiedOrchestrator.Configuration;
 public class WorkflowSchedulingOptions
 {
     public bool Enabled { get; set; } = true;
-    public Dictionary<string, WorkflowScheduleConfig> DefaultSchedules { get; set; } = new();
-    public List<string> MarketHolidays { get; set; } = new();
+    public Dictionary<string, WorkflowScheduleConfig> DefaultSchedules { get; } = new();
+    public List<string> MarketHolidays { get; } = new();
     public string TimeZone { get; set; } = "America/New_York";
 }
 
@@ -50,7 +50,7 @@ public class PythonIntegrationOptions
     public bool Enabled { get; set; } = true;
     public string PythonPath { get; set; } = "/usr/bin/python3";
     public string WorkingDirectory { get; set; } = "./python";
-    public Dictionary<string, string> ScriptPaths { get; set; } = new();
+    public Dictionary<string, string> ScriptPaths { get; } = new();
     public int Timeout { get; set; } = 30;
 }
 
@@ -63,7 +63,7 @@ public class ModelLoadingOptions
     public bool OnnxEnabled { get; set; } = true;
     public string ModelsDirectory { get; set; } = "./models";
     public string FallbackMode { get; set; } = "simulation";
-    public Dictionary<string, string> ModelPaths { get; set; } = new();
+    public Dictionary<string, string> ModelPaths { get; } = new();
     public int HealthCheckInterval { get; set; } = 300;
 }
 
@@ -82,9 +82,9 @@ public class DecisionServiceLauncherOptions
     public string Host { get; set; } = "localhost";
     public int Port { get; set; } = 8080;
     public bool EnableLogging { get; set; } = true;
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; }
     public bool AutoRestart { get; set; } = true;
-    public Dictionary<string, string> Environment { get; set; } = new();
+    public Dictionary<string, string> Environment { get; } = new();
 }
 
 /// <summary>
@@ -99,7 +99,7 @@ public class DecisionServiceOptions
     public int TimeoutMs { get; set; } = 30000;
     public int MaxRetries { get; set; } = 3;
     public bool EnableHealthChecks { get; set; } = true;
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; }
 }
 
 /// <summary>
@@ -110,12 +110,12 @@ public class DecisionServiceIntegrationOptions
     public string IntegrationEndpoint { get; set; } = "http://localhost:8080/integration";
     public string WebhookUrl { get; set; } = string.Empty;
     public int SyncIntervalSeconds { get; set; } = 60;
-    public bool EnableRealTimeSync { get; set; } = false;
-    public bool Enabled { get; set; } = false;
+    public bool EnableRealTimeSync { get; set; }
+    public bool Enabled { get; set; }
     public int HealthCheckIntervalSeconds { get; set; } = 30;
     public bool LogDecisionLines { get; set; } = true;
-    public bool EnableTradeManagement { get; set; } = false;
-    public Dictionary<string, object> CustomSettings { get; set; } = new();
+    public bool EnableTradeManagement { get; set; }
+    public Dictionary<string, object> CustomSettings { get; } = new();
 }
 
 /// <summary>
@@ -144,7 +144,7 @@ public class DecisionServiceClient
         
         try
         {
-            var response = await _httpClient.GetAsync("/health", cancellationToken);
+            var response = await _httpClient.GetAsync("/health", cancellationToken).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -160,7 +160,7 @@ public class DecisionServiceClient
             // Try Python model first if enabled
             if (_pythonOptions.Enabled)
             {
-                var pythonResult = await CallPythonModelAsync(input, cancellationToken);
+                var pythonResult = await CallPythonModelAsync(input, cancellationToken).ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(pythonResult))
                 {
                     _logger?.LogInformation("[DECISION_SERVICE] Python model decision: {Decision}", pythonResult);
@@ -169,7 +169,7 @@ public class DecisionServiceClient
             }
             
             // Fallback to built-in decision logic
-            await Task.Delay(100, cancellationToken); // Simulate processing time
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate processing time
             
             // Parse input and make conservative decision
             if (string.IsNullOrWhiteSpace(input))
@@ -242,10 +242,10 @@ public class DecisionServiceClient
                 return null;
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
 
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {

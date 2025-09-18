@@ -36,12 +36,12 @@ public class TradingLogger : ITradingLogger, IDisposable
     private readonly PerformanceMetrics _performanceMetrics = new();
     
     // Market data sampling
-    private int _marketDataCounter = 0;
-    private int _mlPredictionCounter = 0;
+    private int _marketDataCounter;
+    private int _mlPredictionCounter;
     private readonly object _samplingLock = new();
     
-    private bool _disposed = false;
-    private int _pendingCount = 0;
+    private bool _disposed;
+    private int _pendingCount;
 
     public TradingLogger(ILogger<TradingLogger> logger, IOptions<TradingLoggerOptions> options)
     {
@@ -84,11 +84,11 @@ public class TradingLogger : ITradingLogger, IDisposable
         // Handle critical alerts
         if (_options.EnableCriticalAlerts && ShouldCreateCriticalAlert(level, eventType, data))
         {
-            await WriteCriticalAlertAsync(entry);
+            await WriteCriticalAlertAsync(entry).ConfigureAwait(false);
         }
 
         EnqueueLogEntry(entry);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task LogOrderAsync(string side, string symbol, decimal quantity, decimal entry, decimal stop, decimal target, decimal rMultiple, string customTag, string? orderId = null)
@@ -98,15 +98,15 @@ public class TradingLogger : ITradingLogger, IDisposable
             side,
             symbol,
             qty = quantity,
-            entry = entry.ToString("0.00"),
-            stop = stop.ToString("0.00"),
-            t1 = target.ToString("0.00"),
-            rMultiple = rMultiple.ToString("0.00"),
+            entry = entry.ToString("0.00", CultureInfo.InvariantCulture),
+            stop = stop.ToString("0.00", CultureInfo.InvariantCulture),
+            t1 = target.ToString("0.00", CultureInfo.InvariantCulture),
+            rMultiple = rMultiple.ToString("0.00", CultureInfo.InvariantCulture),
             tag = customTag,
             orderId
         };
 
-        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_PLACED", orderData, customTag);
+        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_PLACED", orderData, customTag).ConfigureAwait(false);
     }
 
     public async Task LogTradeAsync(string accountId, string orderId, decimal fillPrice, decimal quantity, DateTime fillTime)
@@ -115,12 +115,12 @@ public class TradingLogger : ITradingLogger, IDisposable
         {
             account = accountId,
             orderId,
-            fillPrice = fillPrice.ToString("0.00"),
+            fillPrice = fillPrice.ToString("0.00", CultureInfo.InvariantCulture),
             qty = quantity,
-            time = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            time = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
         };
 
-        await LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, "TRADE_FILLED", tradeData, orderId);
+        await LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, "TRADE_FILLED", tradeData, orderId).ConfigureAwait(false);
     }
 
     public async Task LogOrderStatusAsync(string accountId, string orderId, string status, string? reason = null)
@@ -133,7 +133,7 @@ public class TradingLogger : ITradingLogger, IDisposable
             reason
         };
 
-        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_STATUS", statusData, orderId);
+        await LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, "ORDER_STATUS", statusData, orderId).ConfigureAwait(false);
     }
 
     public async Task LogSystemAsync(TradingLogLevel level, string component, string message, object? context = null)
@@ -145,7 +145,7 @@ public class TradingLogger : ITradingLogger, IDisposable
             context
         };
 
-        await LogEventAsync(TradingLogCategory.SYSTEM, level, "SYSTEM_EVENT", systemData);
+        await LogEventAsync(TradingLogCategory.SYSTEM, level, "SYSTEM_EVENT", systemData).ConfigureAwait(false);
     }
 
     public async Task LogMarketDataAsync(string symbol, string dataType, object data)
@@ -174,7 +174,7 @@ public class TradingLogger : ITradingLogger, IDisposable
             sampleNumber = _marketDataCounter
         };
 
-        await LogEventAsync(TradingLogCategory.MARKET, TradingLogLevel.DEBUG, "MARKET_DATA", marketData);
+        await LogEventAsync(TradingLogCategory.MARKET, TradingLogLevel.DEBUG, "MARKET_DATA", marketData).ConfigureAwait(false);
     }
 
     public async Task LogMLAsync(string model, string action, object data, string? correlationId = null)
@@ -189,7 +189,7 @@ public class TradingLogger : ITradingLogger, IDisposable
                 {
                     return; // Skip logging until we reach aggregation count
                 }
-                _mlPredictionCounter = 0; // Reset counter
+                _mlPredictionCounter; // Reset counter
             }
         }
 
@@ -201,7 +201,7 @@ public class TradingLogger : ITradingLogger, IDisposable
             aggregatedCount = action == "PREDICTION" ? _options.MLPredictionAggregationCount : 1
         };
 
-        await LogEventAsync(TradingLogCategory.ML, TradingLogLevel.INFO, "ML_EVENT", mlData, correlationId);
+        await LogEventAsync(TradingLogCategory.ML, TradingLogLevel.INFO, "ML_EVENT", mlData, correlationId).ConfigureAwait(false);
     }
 
     public Task<TradingLogEntry[]> GetRecentEntriesAsync(int count = 1000, TradingLogCategory? category = null)
@@ -226,7 +226,7 @@ public class TradingLogger : ITradingLogger, IDisposable
         
         while (_pendingCount > 0 && DateTime.UtcNow - start < maxWait)
         {
-            await Task.Delay(10);
+            await Task.Delay(10).ConfigureAwait(false);
         }
     }
 
@@ -266,17 +266,17 @@ public class TradingLogger : ITradingLogger, IDisposable
                     }
                     else
                     {
-                        await Task.Delay(1, _cancellationTokenSource.Token);
+                        await Task.Delay(1, _cancellationTokenSource.Token).ConfigureAwait(false);
                     }
                 }
 
                 if (batch.Count > 0)
                 {
-                    await WriteBatchToFilesAsync(batch);
+                    await WriteBatchToFilesAsync(batch).ConfigureAwait(false);
                 }
                 else
                 {
-                    await Task.Delay(10, _cancellationTokenSource.Token);
+                    await Task.Delay(10, _cancellationTokenSource.Token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -286,14 +286,14 @@ public class TradingLogger : ITradingLogger, IDisposable
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in log processing");
-                await Task.Delay(1000, _cancellationTokenSource.Token);
+                await Task.Delay(1000, _cancellationTokenSource.Token).ConfigureAwait(false);
             }
         }
     }
 
     private async Task WriteBatchToFilesAsync(List<TradingLogEntry> batch)
     {
-        await _fileLock.WaitAsync(_cancellationTokenSource.Token);
+        await _fileLock.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
         try
         {
             // Group by category for efficient file writing
@@ -309,7 +309,7 @@ public class TradingLogger : ITradingLogger, IDisposable
                 // Check if file rotation is needed
                 if (ShouldRotateFile(category, filePath))
                 {
-                    await RotateLogFileAsync(category, filePath);
+                    await RotateLogFileAsync(category, filePath).ConfigureAwait(false);
                     filePath = GetLogFilePath(category);
                 }
                 
@@ -317,7 +317,7 @@ public class TradingLogger : ITradingLogger, IDisposable
                 var jsonLines = entries.Select(entry => JsonSerializer.Serialize(entry, JsonOptions));
                 var content = string.Join('\n', jsonLines) + '\n';
                 
-                await File.AppendAllTextAsync(filePath, content, _cancellationTokenSource.Token);
+                await File.AppendAllTextAsync(filePath, content, _cancellationTokenSource.Token).ConfigureAwait(false);
                 
                 // Update file size tracking
                 _currentFileSizes[category] = _currentFileSizes.GetValueOrDefault(category, 0) + content.Length;
@@ -331,7 +331,7 @@ public class TradingLogger : ITradingLogger, IDisposable
 
     private string GetLogFilePath(TradingLogCategory category)
     {
-        var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var date = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var subdirectory = GetSubdirectoryForCategory(category);
         var fileName = $"{category.ToString().ToLower()}_{date}.ndjson";
         return Path.Combine(_options.LogDirectory, subdirectory, fileName);
@@ -358,7 +358,7 @@ public class TradingLogger : ITradingLogger, IDisposable
     {
         if (!File.Exists(filePath)) return;
         
-        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
         var rotatedPath = filePath.Replace(".ndjson", $"_{timestamp}.ndjson");
         
         // Move current file
@@ -369,7 +369,7 @@ public class TradingLogger : ITradingLogger, IDisposable
         {
             try
             {
-                await CompressFileAsync(rotatedPath);
+                await CompressFileAsync(rotatedPath).ConfigureAwait(false);
                 File.Delete(rotatedPath);
             }
             catch (Exception ex)
@@ -379,10 +379,10 @@ public class TradingLogger : ITradingLogger, IDisposable
         });
         
         // Reset size tracking
-        _currentFileSizes[category] = 0;
+        _currentFileSizes[category];
         
         // Add a small delay to make this method async-worthy
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
     }
 
     private static async Task CompressFileAsync(string filePath)
@@ -392,8 +392,9 @@ public class TradingLogger : ITradingLogger, IDisposable
         using var originalStream = File.OpenRead(filePath);
         using var compressedStream = File.Create(compressedPath);
         using var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress);
+using System.Globalization;
         
-        await originalStream.CopyToAsync(gzipStream);
+        await originalStream.CopyToAsync(gzipStream).ConfigureAwait(false);
     }
 
     private void EnsureLogDirectoryExists()
@@ -458,7 +459,7 @@ public class TradingLogger : ITradingLogger, IDisposable
                               $"Data: {JsonSerializer.Serialize(entry.Data)}\n" +
                               $"Session: {entry.SessionId}\n\n";
             
-            await File.AppendAllTextAsync(alertPath, alertMessage);
+            await File.AppendAllTextAsync(alertPath, alertMessage).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -468,7 +469,7 @@ public class TradingLogger : ITradingLogger, IDisposable
 
     public async Task<PerformanceMetrics> GetPerformanceMetricsAsync()
     {
-        return await Task.FromResult(_performanceMetrics);
+        return await Task.FromResult(_performanceMetrics).ConfigureAwait(false);
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -527,7 +528,7 @@ public class PerformanceMetrics
     private readonly ConcurrentDictionary<TradingLogLevel, long> _levelCounts = new();
     private readonly object _lockObject = new();
     private DateTime _startTime = DateTime.UtcNow;
-    private long _totalEntries = 0;
+    private long _totalEntries;
 
     public void RecordLogEntry(TradingLogCategory category, TradingLogLevel level)
     {

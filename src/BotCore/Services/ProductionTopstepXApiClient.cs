@@ -38,7 +38,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/balance";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/positions";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -74,7 +74,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/orders";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -86,7 +86,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Account ID cannot be null or empty", nameof(accountId));
 
             var endpoint = $"/accounts/{accountId}/trades";
-            return await ExecuteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Order request cannot be null", nameof(orderRequest));
 
             var endpoint = $"/accounts/{accountId}/orders";
-            return await ExecutePostWithRetryAsync(endpoint, orderRequest, cancellationToken);
+            return await ExecutePostWithRetryAsync(endpoint, orderRequest, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace BotCore.Services
                 throw new ArgumentException("Order ID cannot be null or empty", nameof(orderId));
 
             var endpoint = $"/accounts/{accountId}/orders/{orderId}";
-            return await ExecuteDeleteWithRetryAsync(endpoint, cancellationToken);
+            return await ExecuteDeleteWithRetryAsync(endpoint, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -134,11 +134,11 @@ namespace BotCore.Services
                     _logger.LogDebug("[API-CLIENT] Executing GET request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
                         endpoint, attempt, maxRetries);
 
-                    using var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+                    using var response = await _httpClient.GetAsync(endpoint, cancellationToken).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {
-                        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                        var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(content);
                         
                         _logger.LogDebug("[API-CLIENT] GET request to {Endpoint} succeeded", endpoint);
@@ -146,8 +146,8 @@ namespace BotCore.Services
                     }
 
                     // Handle specific HTTP status codes
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries);
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -181,7 +181,7 @@ namespace BotCore.Services
                     _logger.LogInformation("[API-CLIENT] Retrying request to {Endpoint} in {DelayMs}ms",
                         endpoint, totalDelay.TotalMilliseconds);
                     
-                    await Task.Delay(totalDelay, cancellationToken);
+                    await Task.Delay(totalDelay, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -206,19 +206,19 @@ namespace BotCore.Services
                     _logger.LogDebug("[API-CLIENT] Executing POST request to {Endpoint}, Attempt {Attempt}/{MaxRetries}",
                         endpoint, attempt, maxRetries);
 
-                    using var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
+                    using var response = await _httpClient.PostAsync(endpoint, content, cancellationToken).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {
-                        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                        var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                         var jsonElement = JsonSerializer.Deserialize<JsonElement>(responseContent);
                         
                         _logger.LogInformation("[API-CLIENT] POST request to {Endpoint} succeeded", endpoint);
                         return jsonElement;
                     }
 
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries);
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -237,7 +237,7 @@ namespace BotCore.Services
                 if (attempt < maxRetries)
                 {
                     var delay = TimeSpan.FromMilliseconds(baseDelay.TotalMilliseconds * Math.Pow(2, attempt - 1));
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -256,11 +256,11 @@ namespace BotCore.Services
             {
                 try
                 {
-                    using var response = await _httpClient.DeleteAsync(endpoint, cancellationToken);
+                    using var response = await _httpClient.DeleteAsync(endpoint, cancellationToken).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {
-                        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                        var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                         var jsonElement = string.IsNullOrEmpty(content) 
                             ? JsonSerializer.Deserialize<JsonElement>("{}") 
                             : JsonSerializer.Deserialize<JsonElement>(content);
@@ -269,13 +269,13 @@ namespace BotCore.Services
                         return jsonElement;
                     }
 
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries);
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                    await HandleHttpErrorAsync(response.StatusCode, errorContent, endpoint, attempt, maxRetries).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (attempt < maxRetries)
                 {
                     _logger.LogWarning(ex, "[API-CLIENT] DELETE request to {Endpoint} failed, retrying...", endpoint);
-                    await Task.Delay(baseDelay, cancellationToken);
+                    await Task.Delay(baseDelay, cancellationToken).ConfigureAwait(false);
                 }
             }
 
@@ -317,7 +317,7 @@ namespace BotCore.Services
                 throw exception;
             }
 
-            await Task.Yield(); // Allow retry logic to continue
+            await Task.Yield().ConfigureAwait(false); // Allow retry logic to continue
         }
     }
 }

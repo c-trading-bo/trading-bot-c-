@@ -2,8 +2,10 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Linq;
+using System.Security;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using System.Globalization;
 
 namespace UpdaterAgent;
 
@@ -39,7 +41,7 @@ public class UpdaterAgent
             .AddEnvironmentVariables()
             .Build();
 
-        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+        Log.Logger = new LoggerConfiguration().WriteTo.Console(formatProvider: CultureInfo.InvariantCulture).CreateLogger();
 
         _repoPath = cfg["Updater:RepoPath"] ?? Environment.CurrentDirectory;
         string projRel = cfg["Updater:Project"] ?? "src\\OrchestratorAgent\\OrchestratorAgent.csproj";
@@ -66,9 +68,44 @@ public class UpdaterAgent
             await RunUpdateLoop().ConfigureAwait(false);
             return 0;
         }
-        catch (Exception ex)
+        catch (TaskCanceledException ex)
         {
-            Log.Error(ex, "UpdaterAgent failed");
+            Log.Warning(ex, "UpdaterAgent was cancelled");
+            return 1;
+        }
+        catch (OperationCanceledException ex)
+        {
+            Log.Warning(ex, "UpdaterAgent operation was cancelled");
+            return 1;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "UpdaterAgent invalid operation");
+            return 1;
+        }
+        catch (Exception ex) when (ex.IsFatal())
+        {
+            Log.Fatal(ex, "Fatal error in UpdaterAgent - terminating");
+            throw; // Rethrow fatal exceptions
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "Invalid operation in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Log.Error(ex, "Access denied in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (IOException ex)
+        {
+            Log.Error(ex, "IO error in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            Log.Error(ex, "Unexpected error in UpdaterAgent - returning error code");
             return 1;
         }
     }
@@ -85,9 +122,34 @@ public class UpdaterAgent
                 await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
                 iterationCount++;
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                Log.Error(ex, "Update cycle failed");
+                Log.Error(ex, "HTTP error during update cycle");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException ex)
+            {
+                Log.Warning(ex, "Update cycle was cancelled");
+                break; // Exit the loop
+            }
+            catch (Exception ex) when (ex.IsFatal())
+            {
+                Log.Fatal(ex, "Fatal error in update cycle");
+                throw; // Rethrow fatal exceptions
+            }
+            catch (InvalidOperationException ex)
+            {
+                Log.Error(ex, "Invalid operation in update cycle - continuing with next iteration");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (IOException ex)
+            {
+                Log.Error(ex, "IO error in update cycle - continuing with next iteration");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Log.Error(ex, "Unexpected error in update cycle - continuing with next iteration");
                 await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
             }
         }
@@ -98,7 +160,7 @@ public class UpdaterAgent
         // Compute pending commits vs last deployed
         var head = Git("rev-parse HEAD");
         var last = File.Exists(_lastDeployedPath) ? 
-            (await File.ReadAllTextAsync(_lastDeployedPath)).Split('|').FirstOrDefault() ?? "" : "";
+            (await File.ReadAllTextAsync(_lastDeployedPath).ConfigureAwait(false)).Split('|').FirstOrDefault() ?? "" : "";
 
         if (head == last)
         {
@@ -106,7 +168,7 @@ public class UpdaterAgent
             return;
         }
 
-        await BuildAndDeployUpdate(head);
+        await BuildAndDeployUpdate(head).ConfigureAwait(false);
     }
 
     private async Task BuildAndDeployUpdate(string head)
@@ -135,7 +197,7 @@ public class UpdaterAgent
 
     private async Task<bool> RunValidation()
     {
-        if (_runTests && !await RunTests())
+        if (_runTests && !await RunTests().ConfigureAwait(false))
             return false;
 
         if (_runReplays && !await RunReplays().ConfigureAwait(false))
@@ -168,7 +230,7 @@ public class UpdaterAgent
         // Launch shadow process and validate
         if (LaunchAndValidateShadow())
         {
-            await PromoteToLive(head);
+            await PromoteToLive(head).ConfigureAwait(false);
         }
     }
 
@@ -182,14 +244,14 @@ public class UpdaterAgent
     private async Task PromoteToLive(string head)
     {
         // Promote shadow to live logic
-        await File.WriteAllTextAsync(_lastDeployedPath, $"{head}|{DateTime.UtcNow:O}");
+        await File.WriteAllTextAsync(_lastDeployedPath, $"{head}|{DateTime.UtcNow:O}").ConfigureAwait(false);
         Log.Information("Successfully deployed {Head}", head);
     }
 
     private async Task CreateBuildMetadata(string outDir)
     {
         await File.WriteAllTextAsync(Path.Combine(outDir, "buildinfo.json"), 
-            $"{{\"commit\":\"{Git("rev-parse HEAD")}\",\"builtUtc\":\"{DateTime.UtcNow:O}\"}}");
+            $"{{\"commit\":\"{Git("rev-parse HEAD")}\",\"builtUtc\":\"{DateTime.UtcNow:O}\"}}").ConfigureAwait(false);
         
         var outState = Path.Combine(outDir, "state");
         Directory.CreateDirectory(outState);
@@ -208,7 +270,15 @@ public class UpdaterAgent
             if (File.Exists(_lastDeployedPath)) 
                 File.Copy(_lastDeployedPath, Path.Combine(outState, Path.GetFileName(_lastDeployedPath)), true);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied copying state files: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error copying state files: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to copy state files: {ex.Message}");
         }
@@ -219,9 +289,17 @@ public class UpdaterAgent
         try 
         { 
             await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n"); 
+                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied logging build failure: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error logging build failure: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to log build failure: {ex.Message}");
         }
@@ -232,9 +310,17 @@ public class UpdaterAgent
         try 
         { 
             await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n"); 
+                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied logging test failure: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error logging test failure: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to log test failure: {ex.Message}");
         }
@@ -267,7 +353,7 @@ public class UpdaterAgent
 
     private string Git(string args)
     {
-        var p = new Process();
+        using var p = new Process();
         p.StartInfo.FileName = "git";
         p.StartInfo.Arguments = args;
         p.StartInfo.WorkingDirectory = _repoPath;
@@ -278,5 +364,20 @@ public class UpdaterAgent
         p.WaitForExit();
         return output.Trim();
     }
+}
 
+internal static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should be rethrown
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is SecurityException;
+    }
 }

@@ -15,7 +15,7 @@ namespace BotCore
         {
             if (_token is null || DateTimeOffset.UtcNow >= _exp - TimeSpan.FromMinutes(3))
             {
-                var t = await _acquire();
+                var t = await _acquire().ConfigureAwait(false);
                 _token = t;
                 _exp = ParseExp(t);
             }

@@ -69,7 +69,7 @@ namespace TopstepX.S11
     {
         private readonly T[] _buf;
         private int _idx, _count;
-        public Ring(int capacity) { _buf = new T[capacity]; _idx = 0; _count = 0; }
+        public Ring(int capacity) { _buf = new T[capacity]; _idx; _count; }
         public int Count => _count; public int Capacity => _buf.Length;
         public void Add(in T x) { _buf[_idx] = x; _idx = (_idx + 1) % _buf.Length; if (_count < _buf.Length) _count++; }
         public ref readonly T Last(int back = 0)
@@ -78,7 +78,7 @@ namespace TopstepX.S11
             int pos = (_idx - 1 - back); if (pos < 0) pos += _buf.Length; return ref _buf[pos];
         }
         public void ForEachNewest(int n, Action<T> f) { for (int i = Math.Max(0,_count - n); i < _count; i++) { int pos = ( (_idx - _count + i) % _buf.Length + _buf.Length ) % _buf.Length; f(_buf[pos]); } }
-        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i = 0; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
+        public void CopyNewest(int n, Span<T> dst) { n = Math.Min(n, _count); for (int i; i < n; i++){ int pos = (_idx - n + i); if (pos < 0) pos += _buf.Length; dst[i] = _buf[pos]; } }
     }
 
     // --- ROLLING INDICATORS ---
@@ -104,7 +104,7 @@ namespace TopstepX.S11
             double up = curH - prevH, dn = prevL - curL;
             double dmP = (up > dn && up > 0) ? up : 0; double dmN = (dn > up && dn > 0) ? dn : 0;
             double tr = Math.Max(curH - curL, Math.Max(Math.Abs(curH - prevC), Math.Abs(curL - prevC)));
-            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; Value = 0; }
+            if (!_seeded){ _tr = tr; _dmP = dmP; _dmN = dmN; _seeded = true; Value; }
             else { _tr = _tr - (_tr / _n) + tr; _dmP = _dmP - (_dmP / _n) + dmP; _dmN = _dmN - (_dmN / _n) + dmN; }
             if (_tr <= 1e-12) return Value;
             double diP = 100.0 * (_dmP / _tr); double diN = 100.0 * (_dmN / _tr);
@@ -181,7 +181,7 @@ namespace TopstepX.S11
         public double AdrExhaustionThreshold = 0.75; // 75% of ADR used
 
         // news avoidance
-        public bool EnableNewsGate = false;
+        public bool EnableNewsGate;
     }
 
     // --- STRATEGY ---
@@ -341,8 +341,8 @@ namespace TopstepX.S11
                 int mod15 = bar.TimeET.Minute % 15;
                 if (mod15 == 14 && Min1.Count >= 15)
                 {
-                    long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15 = 0;
-                    for (int i = 0; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
+                    long o15 = Min1.Last(14).Open; long h15 = long.MinValue; long l15 = long.MaxValue; long c15 = Min1.Last(0).Close; double v15;
+                    for (int i; i < 15; i++) { var b = Min1.Last(i); if (b.High > h15) h15 = b.High; if (b.Low < l15) l15 = b.Low; v15 += b.Volume; }
                     Min15.Add(new Bar1m(bar.TimeET, o15, h15, l15, c15, v15));
                 }
 
@@ -390,8 +390,8 @@ namespace TopstepX.S11
                 if (Adr <= 0) return false;
                 var today = LastBarTime.Date;
                 double todayHi = 0, todayLo = double.MaxValue;
-                bool found = false;
-                for (int i = 0; i < Min1.Count; i++)
+                bool found;
+                for (int i; i < Min1.Count; i++)
                 {
                     var b = Min1.Last(i);
                     if (b.TimeET.Date != today) continue;
@@ -406,7 +406,7 @@ namespace TopstepX.S11
             public bool VolumeExhaustion()
             {
                 if (Min1.Count < C.ExhaustionBars) return false;
-                double avgVol = 0; for (int i = 1; i <= C.ExhaustionBars; i++) avgVol += Min1.Last(i).Volume; avgVol /= C.ExhaustionBars;
+                double avgVol; for (int i = 1; i <= C.ExhaustionBars; i++) avgVol += Min1.Last(i).Volume; avgVol /= C.ExhaustionBars;
                 return Min1.Last(0).Volume >= (avgVol * C.ExhaustionVolMult);
             }
 

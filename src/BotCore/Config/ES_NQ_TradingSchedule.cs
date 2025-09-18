@@ -358,8 +358,8 @@ namespace BotCore.Config
         public TimeSpan End { get; set; }
         public string[] Instruments { get; set; } = Array.Empty<string>();
         public string PrimaryInstrument { get; set; } = "";
-        public Dictionary<string, string[]> Strategies { get; set; } = new();
-        public Dictionary<string, double> PositionSizeMultiplier { get; set; } = new();
+        public Dictionary<string, string[]> Strategies { get; } = new();
+        public Dictionary<string, double> PositionSizeMultiplier { get; } = new();
         public string Description { get; set; } = "";
         public bool IsActive { get; set; } = true;
         public TradingBot.Abstractions.SessionType SessionType { get; set; } = TradingBot.Abstractions.SessionType.Regular;

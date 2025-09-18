@@ -95,8 +95,8 @@ public record RiskState
     
     // Risk Status
     public bool IsRiskBreached { get; set; }
-    public List<string> ActiveBreaches { get; set; } = new();
-    public List<string> ActiveWarnings { get; set; } = new();
+    public List<string> ActiveBreaches { get; } = new();
+    public List<string> ActiveWarnings { get; } = new();
     
     // Risk Level Assessment
     public string RiskLevel { get; set; } = "LOW"; // LOW, MEDIUM, HIGH, CRITICAL
@@ -150,7 +150,7 @@ public class RiskBreachEvent
     public decimal CurrentValue { get; set; }
     public decimal LimitValue { get; set; }
     public decimal UtilizationPercent { get; set; }
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
     public bool RequiresImmediateAction { get; set; }
-    public List<string> RecommendedActions { get; set; } = new();
+    public List<string> RecommendedActions { get; } = new();
 }

@@ -47,7 +47,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
         try
         {
             // Perform async validation and enrichment
-            await ValidateOrderRequestAsync(request, cancellationToken);
+            await ValidateOrderRequestAsync(request, cancellationToken).ConfigureAwait(false);
             
             // Implement deterministic orderKey: hash of modelId|strategyId|signalId|ts|symbol|side|priceBucket
             // Requirement: deterministic orderKey with 24h dedupe
@@ -58,10 +58,10 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             var keyContent = $"{request.ModelId}|{request.StrategyId}|{request.SignalId}|{timestampBucket:yyyy-MM-dd_HH-mm}|{request.Symbol}|{request.Side}|{priceBucket:F2}";
             
             // Async hash computation for production-grade systems
-            var orderKey = await ComputeHashAsync(keyContent, cancellationToken);
+            var orderKey = await ComputeHashAsync(keyContent, cancellationToken).ConfigureAwait(false);
             
             // Async logging for audit trail
-            await LogOrderKeyGenerationAsync(orderKey, request, (decimal)priceBucket, cancellationToken);
+            await LogOrderKeyGenerationAsync(orderKey, request, (decimal)priceBucket, cancellationToken).ConfigureAwait(false);
             
             return orderKey;
         }
@@ -95,7 +95,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
             if (File.Exists(orderPath))
             {
-                var content = await File.ReadAllTextAsync(orderPath, cancellationToken);
+                var content = await File.ReadAllTextAsync(orderPath, cancellationToken).ConfigureAwait(false);
                 var record = JsonSerializer.Deserialize<OrderRecord>(content);
                 
                 if (record != null && IsWithinDedupeWindow(record.CreatedAt))
@@ -151,7 +151,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             // Save to persistent storage
             var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
             var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(orderPath, json, cancellationToken);
+            await File.WriteAllTextAsync(orderPath, json, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[IDEMPOTENT] Registered order: {OrderKey} -> {OrderId}", orderKey[..8], orderId);
         }
@@ -166,8 +166,8 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     {
         try
         {
-            var orderKey = await GenerateOrderKeyAsync(request, cancellationToken);
-            var isDuplicate = await IsDuplicateOrderAsync(orderKey, cancellationToken);
+            var orderKey = await GenerateOrderKeyAsync(request, cancellationToken).ConfigureAwait(false);
+            var isDuplicate = await IsDuplicateOrderAsync(orderKey, cancellationToken).ConfigureAwait(false);
 
             var result = new OrderDeduplicationResult
             {
@@ -218,7 +218,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             _logger.LogInformation("[IDEMPOTENT] Retrying order {OrderKey} (attempt {Attempt}/{Max}) after {Delay}ms", 
                 orderKey[..8], attemptNumber, _config.Retry.MaxAttempts, delayMs);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(delayMs), cancellationToken).ConfigureAwait(false);
 
             // Update attempt count
             if (_orderCache.TryGetValue(orderKey, out var record))
@@ -229,7 +229,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
                 // Update persistent storage
                 var orderPath = Path.Combine(_basePath, $"{orderKey}.json");
                 var json = JsonSerializer.Serialize(record, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(orderPath, json, cancellationToken);
+                await File.WriteAllTextAsync(orderPath, json, cancellationToken).ConfigureAwait(false);
             }
 
             return true;
@@ -254,13 +254,13 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             if (!Directory.Exists(_basePath)) return;
 
             var orderFiles = Directory.GetFiles(_basePath, "*.json");
-            var loadedCount = 0;
+            var loadedCount;
 
             foreach (var file in orderFiles)
             {
                 try
                 {
-                    var content = await File.ReadAllTextAsync(file);
+                    var content = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var record = JsonSerializer.Deserialize<OrderRecord>(content);
                     
                     if (record != null && IsWithinDedupeWindow(record.CreatedAt))
@@ -313,7 +313,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
             if (Directory.Exists(_basePath))
             {
                 var orderFiles = Directory.GetFiles(_basePath, "*.json");
-                var deletedCount = 0;
+                var deletedCount;
 
                 foreach (var file in orderFiles)
                 {
@@ -365,7 +365,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     private static async Task ValidateOrderRequestAsync(OrderRequest request, CancellationToken cancellationToken)
     {
         // Simulate async validation with external services
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         if (string.IsNullOrEmpty(request.ModelId) || string.IsNullOrEmpty(request.Symbol))
         {
@@ -380,7 +380,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     {
         return await Task.Run(() =>
         {
-            using var sha256 = SHA256.Create();
+            using var sha256 = SHA256.Create().ConfigureAwait(false);
             var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(hash).ToLowerInvariant();
         }, cancellationToken);
@@ -392,7 +392,7 @@ public class IdempotentOrderService : IIdempotentOrderService, IDisposable
     private async Task LogOrderKeyGenerationAsync(string orderKey, OrderRequest request, decimal priceBucket, CancellationToken cancellationToken)
     {
         // Simulate async audit logging to external system
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         _logger.LogDebug("[IDEMPOTENT] Generated order key: {Key} for {Symbol} {Side} (bucket: {PriceBucket:F2})", 
             orderKey[..8], request.Symbol, request.Side, priceBucket);

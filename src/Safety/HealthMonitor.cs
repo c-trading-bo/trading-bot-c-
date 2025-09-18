@@ -47,7 +47,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
     private bool _isHealthy = true;
     private bool _tradingAllowed = true;
     private DateTime _lastHealthCheck = DateTime.UtcNow;
-    private int _reconnectAttempts = 0;
+    private int _reconnectAttempts;
 
     public event Action<TradingBot.Abstractions.HealthStatus>? OnHealthChanged;
     public event Action<TradingBot.Abstractions.HealthStatus>? HealthStatusChanged;
@@ -80,12 +80,12 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             ErrorRate = currentHealth.ErrorRate,
             AverageLatencyMs = currentHealth.AverageLatencyMs,
             StatusMessage = currentHealth.StatusMessage
-        });
+        }).ConfigureAwait(false);
     }
 
     public async Task StartMonitoringAsync()
     {
-        await StartMonitoringAsync(CancellationToken.None);
+        await StartMonitoringAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     public async Task StartMonitoringAsync(CancellationToken cancellationToken = default)
@@ -96,8 +96,8 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                await PerformHealthCheckAsync();
-                await Task.Delay(HealthCheckIntervalMs, cancellationToken);
+                await PerformHealthCheckAsync().ConfigureAwait(false);
+                await Task.Delay(HealthCheckIntervalMs, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -164,7 +164,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             var previouslyAllowedTrading = _tradingAllowed;
 
             // Check hub connections
-            var connectedHubs = 0;
+            var connectedHubs;
             var totalHubs = _hubConnections.Count;
             foreach (var connection in _hubConnections.Values)
             {
@@ -221,11 +221,11 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             // Handle degraded health
             if (!_isHealthy)
             {
-                await HandleDegradedHealthAsync(status);
+                await HandleDegradedHealthAsync(status).ConfigureAwait(false);
             }
             else
             {
-                _reconnectAttempts = 0; // Reset on recovery
+                _reconnectAttempts; // Reset on recovery
             }
 
             _lastHealthCheck = DateTime.UtcNow;
@@ -249,10 +249,10 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             
             // Exponential backoff
             var delayMs = Math.Min(1000 * Math.Pow(2, _reconnectAttempts - 1), 30000);
-            await Task.Delay(TimeSpan.FromMilliseconds(delayMs));
+            await Task.Delay(TimeSpan.FromMilliseconds(delayMs)).ConfigureAwait(false);
             
             // Trigger reconnection logic for TopstepX adapter
-            await TriggerHubReconnectionAsync();
+            await TriggerHubReconnectionAsync().ConfigureAwait(false);
         }
         else
         {
@@ -336,10 +336,10 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
                 {
                     // Signal to the hub management system to attempt reconnection
                     // This approach uses events rather than direct coupling
-                    await NotifyHubReconnectionRequiredAsync(hubName);
+                    await NotifyHubReconnectionRequiredAsync(hubName).ConfigureAwait(false);
                     
                     // Wait a moment before processing next hub
-                    await Task.Delay(100);
+                    await Task.Delay(100).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -379,7 +379,7 @@ public class HealthMonitor : TradingBot.Abstractions.IHealthMonitor
             
             // For now, this provides the infrastructure for hub management
             // The actual TopstepX adapter connection management should subscribe to these events
-            await Task.Delay(50); // Simulate async notification
+            await Task.Delay(50).ConfigureAwait(false); // Simulate async notification
         }
         catch (Exception ex)
         {

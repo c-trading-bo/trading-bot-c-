@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -71,7 +72,7 @@ public class FeatureSchema
 {
     public string Version { get; set; } = string.Empty;
     public string Checksum { get; set; } = string.Empty;
-    public Dictionary<string, FeatureDefinition> Features { get; set; } = new();
+    public Dictionary<string, FeatureDefinition> Features { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -118,7 +119,7 @@ public class ModelRegistration
     public string FeaturesVersion { get; set; } = string.Empty;
     public ModelMetrics Metrics { get; set; } = new();
     public byte[] ModelData { get; set; } = Array.Empty<byte>();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class ModelMetrics
@@ -155,7 +156,7 @@ public class CalibrationMap
 {
     public string ModelId { get; set; } = string.Empty;
     public CalibrationMethod Method { get; set; }
-    public Dictionary<string, double> Parameters { get; set; } = new();
+    public Dictionary<string, double> Parameters { get; } = new();
     public double BrierScore { get; set; }
     public double LogLoss { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -214,7 +215,7 @@ public class TradeRecord
     public double FillPrice { get; set; }
     public DateTime FillTime { get; set; } = DateTime.UtcNow;
     public string StrategyId { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 #endregion
@@ -285,7 +286,7 @@ public class IntelligenceDecision
     public string OrderKey { get; set; } = string.Empty;
     public string Route { get; set; } = string.Empty;
     public double LatencyMs { get; set; }
-    public List<string> QuarantineFlags { get; } = new();
+    public Collection<string> QuarantineFlags { get; } = new();
     public Dictionary<string, object> Metadata { get; } = new();
 }
 
@@ -317,8 +318,8 @@ public class StartupValidationResult
     public bool AllTestsPassed { get; set; }
     public bool IsValid { get; set; }
     public Dictionary<string, TestResult> TestResults { get; } = new();
-    public List<string> FailureReasons { get; } = new();
-    public List<string> ValidationErrors { get; } = new();
+    public Collection<string> FailureReasons { get; } = new();
+    public Collection<string> ValidationErrors { get; } = new();
     public TimeSpan TotalDuration { get; set; }
 }
 

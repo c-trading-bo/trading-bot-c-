@@ -23,8 +23,8 @@ public class SystemHealthMonitoringService : IHostedService
     private readonly Timer _performanceTimer;
     private readonly Process _currentProcess;
 
-    private long _lastGcCollectionCount = 0;
-    private long _lastWorkingSet = 0;
+    private long _lastGcCollectionCount;
+    private long _lastWorkingSet;
 
     public SystemHealthMonitoringService(
         ILogger<SystemHealthMonitoringService> logger,
@@ -48,16 +48,16 @@ public class SystemHealthMonitoringService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "HealthMonitor", 
-            "System health monitoring started");
+            "System health monitoring started").ConfigureAwait(false);
 
         // Log initial system state
-        await LogSystemInitialization();
+        await LogSystemInitialization().ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "HealthMonitor", 
-            "System health monitoring stopped");
+            "System health monitoring stopped").ConfigureAwait(false);
             
         _healthCheckTimer?.Dispose();
         _performanceTimer?.Dispose();
@@ -75,12 +75,12 @@ public class SystemHealthMonitoringService : IHostedService
                 processorCount = Environment.ProcessorCount,
                 workingSet = _currentProcess.WorkingSet64,
                 initialMemory = memoryInfo,
-                startTime = _currentProcess.StartTime.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                startTime = _currentProcess.StartTime.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
                 processId = _currentProcess.Id
             };
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "HealthMonitor", 
-                "System initialization completed", systemInfo);
+                "System initialization completed", systemInfo).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -94,15 +94,15 @@ public class SystemHealthMonitoringService : IHostedService
         {
             var healthData = new
             {
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
                 services = await CheckServiceHealth(),
                 connections = await CheckConnectionHealth(),
                 memory = await CheckMemoryHealth(),
                 threadPool = await GetThreadPoolStatus()
-            };
+            }.ConfigureAwait(false);
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.DEBUG, "HealthMonitor", 
-                "Health check completed", healthData);
+                "Health check completed", healthData).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -134,13 +134,13 @@ public class SystemHealthMonitoringService : IHostedService
             };
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "HealthMonitor", 
-                "Performance metrics collected", performanceData);
+                "Performance metrics collected", performanceData).ConfigureAwait(false);
 
             // Alert on high memory usage
             if (currentWorkingSet > 1024 * 1024 * 1024) // 1GB
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "HealthMonitor", 
-                    "High memory usage detected", new { memoryUsageGB = Math.Round(currentWorkingSet / 1024.0 / 1024.0 / 1024.0, 2) });
+                    "High memory usage detected", new { memoryUsageGB = Math.Round(currentWorkingSet / 1024.0 / 1024.0 / 1024.0, 2) }).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -158,7 +158,7 @@ public class SystemHealthMonitoringService : IHostedService
             tokenProvider = tokenProvider?.IsTokenValid ?? false,
             topstepXAdapter = CheckTopstepXAdapterHealth(),
             authenticationService = await CheckAuthenticationHealthAsync()
-        };
+        }.ConfigureAwait(false);
 
         return serviceChecks;
     }
@@ -183,7 +183,7 @@ public class SystemHealthMonitoringService : IHostedService
             var tokenProvider = _serviceProvider.GetService<ITokenProvider>();
             if (tokenProvider == null) return false;
             
-            var token = await tokenProvider.GetTokenAsync();
+            var token = await tokenProvider.GetTokenAsync().ConfigureAwait(false);
             return !string.IsNullOrEmpty(token);
         }
         catch
@@ -199,14 +199,14 @@ public class SystemHealthMonitoringService : IHostedService
             userHub = await CheckHubConnection("User"),
             marketHub = await CheckHubConnection("Market"),
             httpClient = await CheckHttpClientHealth()
-        };
+        }.ConfigureAwait(false);
 
         return connectionHealth;
     }
 
     private async Task<object> CheckHubConnection(string hubType)
     {
-        await Task.Delay(1); // Make method actually async
+        await Task.Delay(1).ConfigureAwait(false); // Make method actually async
         
         try
         {
@@ -233,7 +233,8 @@ public class SystemHealthMonitoringService : IHostedService
         {
             // Quick health check to TopstepX API
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await httpClient.GetAsync("https://api.topstepx.com/health");
+using System.Globalization;
+            var response = await httpClient.GetAsync("https://api.topstepx.com/health").ConfigureAwait(false);
             
             return new 
             { 
@@ -252,7 +253,7 @@ public class SystemHealthMonitoringService : IHostedService
 
     private async Task<object> CheckMemoryHealth()
     {
-        await Task.Delay(1); // Make method actually async
+        await Task.Delay(1).ConfigureAwait(false); // Make method actually async
         
         var memoryData = new
         {
@@ -269,7 +270,7 @@ public class SystemHealthMonitoringService : IHostedService
 
     private static async Task<object> GetThreadPoolStatus()
     {
-        await Task.Delay(1); // Make method actually async
+        await Task.Delay(1).ConfigureAwait(false); // Make method actually async
         
         ThreadPool.GetAvailableThreads(out var availableWorkerThreads, out var availableCompletionPortThreads);
         ThreadPool.GetMaxThreads(out var maxWorkerThreads, out var maxCompletionPortThreads);

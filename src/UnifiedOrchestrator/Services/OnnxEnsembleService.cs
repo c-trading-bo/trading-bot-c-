@@ -13,7 +13,7 @@ namespace UnifiedOrchestrator.Services
     {
         public int MaxBatchSize { get; set; } = 16;
         public int BatchTimeoutMs { get; set; } = 50;
-        public bool UseGpu { get; set; } = false;
+        public bool UseGpu { get; set; }
         public bool ClampInputs { get; set; } = true;
         public bool BlockAnomalousInputs { get; set; } = true;
         public double AnomalyThreshold { get; set; } = 3.0; // Z-score threshold
@@ -37,15 +37,15 @@ namespace UnifiedOrchestrator.Services
         public long TotalPredictions { get; set; }
         public double AverageLatencyMs { get; set; }
         public DateTime LastPrediction { get; set; }
-        public List<ModelInfo> Models { get; set; } = new();
+        public List<ModelInfo> Models { get; } = new();
     }
 
     public class PredictionResult
     {
-        public Dictionary<string, double> Outputs { get; set; } = new();
+        public Dictionary<string, double> Outputs { get; } = new();
         public double Confidence { get; set; }
         public double LatencyMs { get; set; }
-        public List<string> ModelsUsed { get; set; } = new();
+        public List<string> ModelsUsed { get; } = new();
         public bool WasBlocked { get; set; }
         public string BlockedReason { get; set; } = "";
     }
@@ -56,7 +56,7 @@ namespace UnifiedOrchestrator.Services
         private readonly OnnxEnsembleOptions _options;
         private readonly ConcurrentDictionary<string, ModelInfo> _models = new();
         private readonly ConcurrentQueue<double> _latencyHistory = new();
-        private long _totalPredictions = 0;
+        private long _totalPredictions;
         private DateTime _lastPrediction = DateTime.MinValue;
 
         public OnnxEnsembleService(ILogger<OnnxEnsembleService> logger, IOptions<OnnxEnsembleOptions> options)
@@ -93,7 +93,7 @@ namespace UnifiedOrchestrator.Services
                 }
 
                 // Simulate ONNX model loading (in a real implementation, this would use Microsoft.ML.OnnxRuntime)
-                await Task.Delay(100, cancellationToken); // Simulate loading time
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate loading time
 
                 // For testing purposes, reject models with very small file sizes (dummy files)
                 if (fileInfo.Length < 1000)
@@ -156,7 +156,7 @@ namespace UnifiedOrchestrator.Services
                     _logger.LogInformation("Unloaded model {ModelName}", modelName);
                     
                     // Simulate cleanup time
-                    await Task.Delay(10, cancellationToken);
+                    await Task.Delay(10, cancellationToken).ConfigureAwait(false);
                     return true;
                 }
                 else
@@ -216,7 +216,7 @@ namespace UnifiedOrchestrator.Services
                     try
                     {
                         // Real ONNX model inference instead of simulation
-                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken);
+                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken).ConfigureAwait(false);
                         predictions.Add(modelPrediction);
                         modelsUsed.Add(model.ModelName);
                     }
@@ -311,7 +311,7 @@ namespace UnifiedOrchestrator.Services
             {
                 // In a production environment, this would use Microsoft.ML.OnnxRuntime
                 // For now, implementing a realistic inference simulation that could be real data
-                await Task.Delay(Random.Shared.Next(5, 25), cancellationToken); // Realistic inference latency
+                await Task.Delay(Random.Shared.Next(5, 25), cancellationToken).ConfigureAwait(false); // Realistic inference latency
                 
                 _logger.LogDebug("Running ONNX inference for model {ModelName} with {InputCount} inputs", modelName, inputs.Count);
 
@@ -435,7 +435,7 @@ namespace UnifiedOrchestrator.Services
                 double weightedSum = 0.0;
                 double usedWeight = 0.0;
 
-                for (int i = 0; i < predictions.Count && i < models.Count; i++)
+                for (int i; i < predictions.Count && i < models.Count; i++)
                 {
                     if (predictions[i].TryGetValue(key, out var value))
                     {

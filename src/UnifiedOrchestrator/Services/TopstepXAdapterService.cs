@@ -76,7 +76,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         _logger = logger;
         _config = config.Value;
         _instruments = new[] { "MNQ", "ES" }; // Support MNQ and ES as specified
-        _isInitialized = false;
+        _isInitialized;
         _connectionHealth = 0.0;
     }
 
@@ -96,10 +96,10 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
             _logger.LogInformation("🚀 Initializing TopstepX Python SDK adapter...");
 
             // Validate Python SDK is available
-            await ValidatePythonSDKAsync(cancellationToken);
+            await ValidatePythonSDKAsync(cancellationToken).ConfigureAwait(false);
 
             // Initialize adapter through Python process
-            var result = await ExecutePythonCommandAsync("initialize", cancellationToken);
+            var result = await ExecutePythonCommandAsync("initialize", cancellationToken).ConfigureAwait(false);
             
             if (result.Success)
             {
@@ -136,7 +136,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         try
         {
             var command = new { action = "get_price", symbol };
-            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken);
+            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
             if (result.Success && result.Data != null)
             {
@@ -171,7 +171,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
 
         try
         {
-            var currentPrice = await GetPriceAsync(symbol, cancellationToken);
+            var currentPrice = await GetPriceAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation(
                 "[ORDER] Placing bracket order: {Symbol} size={Size} entry=${EntryPrice:F2} stop=${StopLoss:F2} target=${TakeProfit:F2}",
@@ -187,7 +187,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
                 max_risk_percent = 0.01 // 1% risk as specified
             };
 
-            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken);
+            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
             if (result.Success && result.Data != null)
             {
@@ -243,7 +243,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         try
         {
             var command = new { action = "get_health_score" };
-            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken);
+            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
             if (result.Success && result.Data != null)
             {
@@ -315,7 +315,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         try
         {
             var command = new { action = "get_portfolio_status" };
-            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken);
+            var result = await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
             if (result.Success && result.Data != null)
             {
@@ -378,9 +378,9 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
             _logger.LogInformation("Disconnecting TopstepX adapter...");
             
             var command = new { action = "disconnect" };
-            await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken);
+            await ExecutePythonCommandAsync(JsonSerializer.Serialize(command), cancellationToken).ConfigureAwait(false);
             
-            _isInitialized = false;
+            _isInitialized;
             _connectionHealth = 0.0;
             
             lock (_processLock)
@@ -404,7 +404,7 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
         try
         {
             // Check if project-x-py is installed
-            var result = await ExecutePythonCommandAsync("validate_sdk", cancellationToken);
+            var result = await ExecutePythonCommandAsync("validate_sdk", cancellationToken).ConfigureAwait(false);
             if (!result.Success)
             {
                 throw new InvalidOperationException(
@@ -463,10 +463,10 @@ public class TopstepXAdapterService : ITopstepXAdapterService, IDisposable
             var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
             var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
             
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
             
-            var output = await outputTask;
-            var error = await errorTask;
+            var output = await outputTask.ConfigureAwait(false);
+            var error = await errorTask.ConfigureAwait(false);
 
             if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
             {

@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace OrchestratorAgent.Infra;
 
@@ -41,7 +41,7 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
             while (!_cts.IsCancellationRequested)
             {
                 try { EvaluateOnce(); } catch (Exception ex) { _log.LogWarning(ex, "[Rollback] evaluate"); }
-                try { await Task.Delay(TimeSpan.FromMinutes(5), _cts.Token); } catch (OperationCanceledException) { /* shutdown */ }
+                try { await Task.Delay(TimeSpan.FromMinutes(5), _cts.Token).ConfigureAwait(false); } catch (OperationCanceledException) { /* shutdown */ }
             }
         }, _cts.Token);
     }
@@ -156,7 +156,7 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
         try
         {
             var snap = _pos.Snapshot();
-            decimal sum = 0m;
+            decimal sum;
             foreach (var kv in snap)
             {
                 try
@@ -212,8 +212,8 @@ public sealed class AutoRollbackGuard : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        try { await _cts.CancelAsync(); } catch (Exception) { /* best-effort cancel */ }
-        try { if (_loop != null) await _loop; } catch (Exception) { /* ignore */ }
+        try { await _cts.CancelAsync().ConfigureAwait(false); } catch (Exception) { /* best-effort cancel */ }
+        try { if (_loop != null) await _loop.ConfigureAwait(false); } catch (Exception) { /* ignore */ }
         _cts.Dispose();
     }
 }

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.IntelligenceAgent;
 
@@ -24,6 +25,73 @@ public class Verifier : IVerifier
     private readonly HttpClient _httpClient;
     private readonly ILogger<Verifier> _logger;
 
+    // LoggerMessage delegates for performance (CA1848)
+    private static readonly Action<ILogger, DateTime, DateTime, Exception?> LogStartingTodayVerification =
+        LoggerMessage.Define<DateTime, DateTime>(
+            LogLevel.Information,
+            new EventId(1, nameof(LogStartingTodayVerification)),
+            "Starting trade verification for UTC today: {UtcToday} to {UtcNow}");
+
+    private static readonly Action<ILogger, Exception?> LogTradeVerificationFailed =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(2, nameof(LogTradeVerificationFailed)),
+            "Trade verification failed");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationError =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(3, nameof(LogVerificationError)),
+            "VERIFICATION_ERROR: {ErrorData}");
+
+    private static readonly Action<ILogger, HttpStatusCode, string, Exception?> LogOrderSearchStatusCode =
+        LoggerMessage.Define<HttpStatusCode, string>(
+            LogLevel.Warning,
+            new EventId(4, nameof(LogOrderSearchStatusCode)),
+            "Order search returned {StatusCode}: {ReasonPhrase}");
+
+    private static readonly Action<ILogger, string, Exception?> LogOrderQueryCompleted =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(5, nameof(LogOrderQueryCompleted)),
+            "Order query completed: {OrderCounts}");
+
+    private static readonly Action<ILogger, Exception?> LogFailedToQueryOrders =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(6, nameof(LogFailedToQueryOrders)),
+            "Failed to query orders");
+
+    private static readonly Action<ILogger, HttpStatusCode, string, Exception?> LogTradeSearchStatusCode =
+        LoggerMessage.Define<HttpStatusCode, string>(
+            LogLevel.Warning,
+            new EventId(7, nameof(LogTradeSearchStatusCode)),
+            "Trade search returned {StatusCode}: {ReasonPhrase}");
+
+    private static readonly Action<ILogger, string, Exception?> LogTradeQueryCompleted =
+        LoggerMessage.Define<string>(
+            LogLevel.Debug,
+            new EventId(8, nameof(LogTradeQueryCompleted)),
+            "Trade query completed: {TradeCounts}");
+
+    private static readonly Action<ILogger, Exception?> LogFailedToQueryTrades =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(9, nameof(LogFailedToQueryTrades)),
+            "Failed to query trades");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationSummary =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(10, nameof(LogVerificationSummary)),
+            "{Summary}");
+
+    private static readonly Action<ILogger, string, Exception?> LogVerificationResult =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(11, nameof(LogVerificationResult)),
+            "VERIFICATION_RESULT: {StructuredData}");
+
     public Verifier(HttpClient httpClient, ILogger<Verifier> logger)
     {
         _httpClient = httpClient;
@@ -37,8 +105,7 @@ public class Verifier : IVerifier
             var utcToday = DateTime.UtcNow.Date;
             var utcNow = DateTime.UtcNow;
 
-            _logger.LogInformation("Starting trade verification for UTC today: {UtcToday} to {UtcNow}", 
-                utcToday, utcNow);
+            LogStartingTodayVerification(_logger, utcToday, utcNow, null);
 
             // Query orders for today
             var orderStats = await QueryOrdersAsync(utcToday, utcNow, cancellationToken)
@@ -69,9 +136,55 @@ public class Verifier : IVerifier
 
             return result;
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Trade verification failed");
+            LogTradeVerificationFailed(_logger, ex);
+
+            // Structured error log without secret exposure
+            var errorData = new
+            {
+                timestamp = DateTime.UtcNow,
+                error_type = ex.GetType().Name,
+                // No stack trace or inner details that might contain secrets
+                reason = "verification_failed"
+            };
+
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
+
+            return new VerificationResult
+            {
+                Date = DateTime.UtcNow.Date,
+                ErrorMessage = "Verification failed due to HTTP request exception",
+                Success = false,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogTradeVerificationFailed(_logger, ex);
+
+            // Structured error log without secret exposure
+            var errorData = new
+            {
+                timestamp = DateTime.UtcNow,
+                error_type = ex.GetType().Name,
+                // No stack trace or inner details that might contain secrets
+                reason = "verification_failed"
+            };
+
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
+
+            return new VerificationResult
+            {
+                Date = DateTime.UtcNow.Date,
+                ErrorMessage = "Verification failed due to timeout",
+                Success = false,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogTradeVerificationFailed(_logger, ex);
 
             // Structured error log without secret exposure
             var errorData = new
@@ -85,8 +198,7 @@ public class Verifier : IVerifier
                 reason = "verification_failed"
             };
 
-            _logger.LogError("VERIFICATION_ERROR: {ErrorData}", 
-                JsonSerializer.Serialize(errorData));
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
 
             return new VerificationResult
             {
@@ -114,18 +226,17 @@ public class Verifier : IVerifier
 
         try
         {
-            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
             
             var requestUri = $"/api/Order/search?from={fromParam}&to={toParam}";
             
-            using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
+            using var response = await _httpClient.GetAsync(new Uri(requestUri, UriKind.Relative), cancellationToken)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Order search returned {StatusCode}: {ReasonPhrase}", 
-                    response.StatusCode, response.ReasonPhrase);
+                LogOrderSearchStatusCode(_logger, response.StatusCode, response.ReasonPhrase ?? "Unknown", null);
                 return orderCounts;
             }
 
@@ -149,11 +260,23 @@ public class Verifier : IVerifier
                 }
             }
 
-            _logger.LogDebug("Order query completed: {OrderCounts}", orderCounts);
+            LogOrderQueryCompleted(_logger, orderCounts, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to query orders");
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogFailedToQueryOrders(_logger, ex);
         }
 
         return orderCounts;
@@ -172,18 +295,17 @@ public class Verifier : IVerifier
 
         try
         {
-            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
             
             var requestUri = $"/api/Trade/search?from={fromParam}&to={toParam}";
             
-            using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
+            using var response = await _httpClient.GetAsync(new Uri(requestUri, UriKind.Relative), cancellationToken)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Trade search returned {StatusCode}: {ReasonPhrase}", 
-                    response.StatusCode, response.ReasonPhrase);
+                LogTradeSearchStatusCode(_logger, response.StatusCode, response.ReasonPhrase ?? "Unknown", null);
                 return tradeCounts;
             }
 
@@ -217,11 +339,23 @@ public class Verifier : IVerifier
                 }
             }
 
-            _logger.LogDebug("Trade query completed: {TradeCounts}", tradeCounts);
+            LogTradeQueryCompleted(_logger, tradeCounts, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to query trades");
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
+        {
+            LogFailedToQueryTrades(_logger, ex);
         }
 
         return tradeCounts;
@@ -241,7 +375,7 @@ public class Verifier : IVerifier
                      $"Trades: {totalTrades} total " +
                      $"(Executed: {result.TradesByStatus.GetValueOrDefault("Executed", 0)})";
 
-        _logger.LogInformation("{Summary}", summary);
+        LogVerificationSummary(_logger, summary, null);
     }
 
     private void EmitStructuredLog(VerificationResult result)
@@ -251,7 +385,7 @@ public class Verifier : IVerifier
             timestamp = result.Timestamp,
             component = "verifier", 
             operation = "verify_today",
-            date = result.Date.ToString("yyyy-MM-dd"),
+            date = result.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             success = result.Success,
             orders_total = result.OrdersByStatus.Values.Sum(),
             orders_by_status = result.OrdersByStatus,
@@ -259,8 +393,7 @@ public class Verifier : IVerifier
             trades_by_status = result.TradesByStatus
         };
 
-        _logger.LogInformation("VERIFICATION_RESULT: {StructuredData}", 
-            JsonSerializer.Serialize(structuredData));
+        LogVerificationResult(_logger, JsonSerializer.Serialize(structuredData), null);
     }
 }
 
@@ -272,4 +405,23 @@ public class VerificationResult
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTime Timestamp { get; set; }
+}
+
+/// <summary>
+/// Extension methods for exception handling
+/// </summary>
+public static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should not be caught
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is System.Security.SecurityException;
+    }
 }

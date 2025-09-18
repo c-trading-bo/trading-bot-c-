@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http.Connections;
 using BotCore.Models;
+using System.Globalization;
 
 namespace BotCore
 {
@@ -108,7 +109,7 @@ namespace BotCore
             _hub.Reconnected += async id =>
             {
                 _log.LogInformation("UserHub RE reconnected. State={State} | ConnectionId={Id}", _hub.State, id);
-                try { await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log); }
+                try { await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log).ConfigureAwait(false); }
                 catch (Exception ex) { _log.LogWarning(ex, "UserHub SubscribeAllAsync failed after Reconnected"); }
             };
 
@@ -129,11 +130,11 @@ namespace BotCore
             //     return Task.CompletedTask;
             // };
 
-            await _hub.StartAsync(ct);
+            await _hub.StartAsync(ct).ConfigureAwait(false);
             _log.LogInformation("UserHub connected. State={State}", _hub.State);
             StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
-            await Task.Delay(250, ct); // ensure server is ready before subscribing
-            await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log);
+            await Task.Delay(250, ct).ConfigureAwait(false); // ensure server is ready before subscribing
+            await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log).ConfigureAwait(false);
         }
 
         private static Task SubscribeAllAsync(HubConnection hub, long accountId, CancellationToken ct, ILogger log)
@@ -141,10 +142,10 @@ namespace BotCore
             return HubSafe.InvokeWhenConnected(hub, async () =>
             {
                 log?.LogInformation("[UserHub] subscribing …");
-                await hub.InvokeAsync("SubscribeAccounts", cancellationToken: ct);
-                await hub.InvokeAsync("SubscribeOrders", accountId, cancellationToken: ct);
-                await hub.InvokeAsync("SubscribePositions", accountId, cancellationToken: ct);
-                await hub.InvokeAsync("SubscribeTrades", accountId, cancellationToken: ct);
+                await hub.InvokeAsync("SubscribeAccounts", cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribeOrders", accountId, cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribePositions", accountId, cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribeTrades", accountId, cancellationToken: ct).ConfigureAwait(false);
             }, log, ct, maxAttempts: 10, waitMs: 500);
         }
 
@@ -229,7 +230,7 @@ namespace BotCore
                     var quantity = TryGet(data, "quantity") ?? TryGet(data, "qty") ?? "0";
                     var accountIdStr = TryGet(data, "accountId") ?? "unknown";
                     var customTag = TryGet(data, "customTag") ?? TryGet(data, "tag") ?? "unknown";
-                    var timestamp = TryGet(data, "timestamp") ?? TryGet(data, "time") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                    var timestamp = TryGet(data, "timestamp") ?? TryGet(data, "time") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
                     
                     // Parse and format fillPrice to ensure 2 decimals
                     if (decimal.TryParse(fillPrice, out var fillPriceDecimal))
@@ -343,8 +344,8 @@ namespace BotCore
 
                 string? orderId = null;
                 string? customTag = null;
-                decimal fillPrice = 0m;
-                int quantity = 0;
+                decimal fillPrice;
+                int quantity;
 
                 if (data.TryGetProperty("orderId", out var orderIdProp)) orderId = orderIdProp.GetString();
                 if (data.TryGetProperty("id", out var idProp)) orderId ??= idProp.GetString();
@@ -375,7 +376,7 @@ namespace BotCore
         {
             if (_hub != null)
             {
-                await _hub.DisposeAsync();
+                await _hub.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

@@ -64,7 +64,7 @@ namespace BotCore.Strategy
                     AccountId: Environment.GetEnvironmentVariable("TOPSTEPX_ACCOUNT_ID") ?? "1"
                 );
 
-                var result = await _orderService.PlaceOrderAsync(orderRequest);
+                var result = await _orderService.PlaceOrderAsync(orderRequest).ConfigureAwait(false);
                 
                 if (result.Success && !string.IsNullOrEmpty(result.OrderId))
                 {
@@ -99,7 +99,7 @@ namespace BotCore.Strategy
 
                 // For stop modifications, we'd typically need a separate service method
                 // For now, implement using order cancellation and replacement pattern
-                var cancelResult = await _orderService.CancelOrderAsync(positionId);
+                var cancelResult = await _orderService.CancelOrderAsync(positionId).ConfigureAwait(false);
                 if (!cancelResult)
                 {
                     _logger.LogWarning("[S6S11_BRIDGE] Failed to cancel existing order for stop modification");
@@ -127,10 +127,10 @@ namespace BotCore.Strategy
 
                 // For position closure, we'd place an offsetting order
                 // Implementation would require position details to create offsetting order
-                var cancelResult = await _orderService.CancelOrderAsync(positionId);
+                var cancelResult = await _orderService.CancelOrderAsync(positionId).ConfigureAwait(false);
                 
                 // Update position cache
-                await _positionCacheLock.WaitAsync();
+                await _positionCacheLock.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     _positionCache.Remove(positionId);
@@ -168,7 +168,7 @@ namespace BotCore.Strategy
             try
             {
                 // Check cache first
-                await _positionCacheLock.WaitAsync();
+                await _positionCacheLock.WaitAsync().ConfigureAwait(false);
                 try
                 {
                     if (_positionCache.TryGetValue(instrument, out var cachedPosition))

@@ -80,42 +80,42 @@ public class UnifiedDecisionRouter
             _logger.LogDebug("🎯 [DECISION-ROUTER] Routing decision for {Symbol}", symbol);
             
             // Step 1: Try Enhanced Brain Integration (Primary)
-            var decision = await TryEnhancedBrainAsync(symbol, marketContext, cancellationToken);
+            var decision = await TryEnhancedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
                 decision.DecisionSource = "EnhancedBrain";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "enhanced_brain", cancellationToken);
+                await TrackDecisionAsync(decision, "enhanced_brain", cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("🧠 [ENHANCED-BRAIN] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
             }
             
             // Step 2: Try Unified Trading Brain (Secondary)
-            decision = await TryUnifiedBrainAsync(symbol, marketContext, cancellationToken);
+            decision = await TryUnifiedBrainAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
                 decision.DecisionSource = "UnifiedBrain";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "unified_brain", cancellationToken);
+                await TrackDecisionAsync(decision, "unified_brain", cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("🎯 [UNIFIED-BRAIN] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
             }
             
             // Step 3: Try Intelligence Orchestrator (Fallback)
-            decision = await TryIntelligenceOrchestratorAsync(symbol, marketContext, cancellationToken);
+            decision = await TryIntelligenceOrchestratorAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
             if (decision != null && decision.Action != TradingAction.Hold)
             {
                 decision.DecisionId = decisionId;
                 decision.DecisionSource = "IntelligenceOrchestrator";
                 decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
                 
-                await TrackDecisionAsync(decision, "intelligence_orchestrator", cancellationToken);
+                await TrackDecisionAsync(decision, "intelligence_orchestrator", cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("🤖 [INTELLIGENCE-ORCHESTRATOR] Decision: {Action} {Symbol} confidence={Confidence:P1}",
                     decision.Action, symbol, decision.Confidence);
                 return decision;
@@ -127,7 +127,7 @@ public class UnifiedDecisionRouter
             decision.DecisionSource = "ForcedDecision";
             decision.ProcessingTimeMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             
-            await TrackDecisionAsync(decision, "forced_decision", cancellationToken);
+            await TrackDecisionAsync(decision, "forced_decision", cancellationToken).ConfigureAwait(false);
             _logger.LogWarning("⚠️ [FORCED-DECISION] All brains returned HOLD, forcing: {Action} {Symbol}",
                 decision.Action, symbol);
             return decision;
@@ -161,7 +161,7 @@ public class UnifiedDecisionRouter
             var availableStrategies = GetAvailableStrategies(marketContext);
             
             var enhancedDecision = await _enhancedBrain.MakeEnhancedDecisionAsync(
-                symbol, enhancedContext, availableStrategies, cancellationToken);
+                symbol, enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false);
             
             if (enhancedDecision?.EnhancementApplied == true)
             {
@@ -194,7 +194,7 @@ public class UnifiedDecisionRouter
             var risk = CreateRiskEngine();
             
             var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
-                symbol, env, levels, bars, risk, cancellationToken);
+                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false);
             
             return ConvertFromBrainDecision(brainDecision);
         }
@@ -216,7 +216,7 @@ public class UnifiedDecisionRouter
         try
         {
             var abstractionContext = EnhanceMarketContext(marketContext);
-            var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken);
+            var decision = await _intelligenceOrchestrator.MakeDecisionAsync(abstractionContext, cancellationToken).ConfigureAwait(false);
             
             return ConvertFromAbstractionDecision(decision);
         }
@@ -354,7 +354,7 @@ public class UnifiedDecisionRouter
             _logger.LogError(ex, "❌ [DECISION-TRACKING] Failed to track decision");
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     /// <summary>
@@ -389,7 +389,7 @@ public class UnifiedDecisionRouter
             outcome.OutcomeReceived = true;
             
             // Submit feedback to the appropriate brain
-            await SubmitFeedbackToBrainAsync(outcome, cancellationToken);
+            await SubmitFeedbackToBrainAsync(outcome, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("📈 [DECISION-FEEDBACK] Outcome submitted: {DecisionId} PnL={PnL:C2} Correct={Correct}",
                 decisionId, realizedPnL, wasCorrect);
@@ -430,7 +430,7 @@ public class UnifiedDecisionRouter
                         outcome.RealizedPnL,
                         outcome.WasCorrect,
                         outcome.HoldTime,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     break;
                     
                 case "intelligence_orchestrator":
@@ -539,7 +539,7 @@ public class UnifiedDecisionRouter
         var volume = (decimal)context.Volume;
         
         // Create synthetic bars for the brain
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             var variation = (decimal)(_random.NextDouble() - 0.5) * 2;
             bars.Add(new ModelBar
@@ -699,7 +699,7 @@ public class UnifiedTradingDecision
     public decimal Quantity { get; set; }
     public string Strategy { get; set; } = string.Empty;
     public string DecisionSource { get; set; } = string.Empty;
-    public Dictionary<string, object> Reasoning { get; set; } = new();
+    public Dictionary<string, object> Reasoning { get; } = new();
     public DateTime Timestamp { get; set; }
     public double ProcessingTimeMs { get; set; }
 }
@@ -710,7 +710,7 @@ public class MarketAnalysis
 {
     public bool IsUptrend { get; set; }
     public decimal Strength { get; set; }
-    public List<string> Signals { get; set; } = new();
+    public List<string> Signals { get; } = new();
 }
 
 public class DecisionOutcome
@@ -732,7 +732,7 @@ public class DecisionOutcome
 
 public class DecisionRouterStats
 {
-    public List<SourceStats> SourceStats { get; set; } = new();
+    public List<SourceStats> SourceStats { get; } = new();
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -44,21 +45,21 @@ public class AutonomousPerformanceTracker
     private readonly object _trackingLock = new();
     
     // Current performance state
-    private decimal _totalPnL = 0m;
-    private decimal _todayPnL = 0m;
-    private decimal _weekPnL = 0m;
-    private decimal _monthPnL = 0m;
-    private int _totalTrades = 0;
-    private int _winningTrades = 0;
-    private int _losingTrades = 0;
-    private decimal _largestWin = 0m;
-    private decimal _largestLoss = 0m;
-    private decimal _avgWin = 0m;
-    private decimal _avgLoss = 0m;
-    private decimal _winRate = 0m;
-    private decimal _profitFactor = 0m;
-    private decimal _sharpeRatio = 0m;
-    private decimal _maxDrawdown = 0m;
+    private decimal _totalPnL;
+    private decimal _todayPnL;
+    private decimal _weekPnL;
+    private decimal _monthPnL;
+    private int _totalTrades;
+    private int _winningTrades;
+    private int _losingTrades;
+    private decimal _largestWin;
+    private decimal _largestLoss;
+    private decimal _avgWin;
+    private decimal _avgLoss;
+    private decimal _winRate;
+    private decimal _profitFactor;
+    private decimal _sharpeRatio;
+    private decimal _maxDrawdown;
     private DateTime _lastUpdateTime = DateTime.MinValue;
     
     // Learning and optimization
@@ -102,7 +103,7 @@ public class AutonomousPerformanceTracker
             var tradeDate = trade.EntryTime.Date;
             if (!_dailyPnL.ContainsKey(tradeDate))
             {
-                _dailyPnL[tradeDate] = 0m;
+                _dailyPnL[tradeDate];
             }
             _dailyPnL[tradeDate] += trade.PnL;
             
@@ -114,7 +115,7 @@ public class AutonomousPerformanceTracker
         }
         
         // Record learning insights outside the lock
-        await RecordLearningInsightAsync(trade, cancellationToken);
+        await RecordLearningInsightAsync(trade, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -122,7 +123,7 @@ public class AutonomousPerformanceTracker
     /// </summary>
     public async Task UpdateMetricsAsync(AutonomousTradeOutcome[] recentTrades, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_trackingLock)
         {
@@ -251,7 +252,7 @@ public class AutonomousPerformanceTracker
         }
         
         // Generate insights outside the lock
-        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken);
+        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken).ConfigureAwait(false);
         
         lock (_trackingLock)
         {
@@ -406,9 +407,9 @@ public class AutonomousPerformanceTracker
     {
         if (_allTrades.Count == 0) return 0m;
         
-        var runningPnL = 0m;
-        var peak = 0m;
-        var maxDrawdown = 0m;
+        var runningPnL;
+        var peak;
+        var maxDrawdown;
         
         foreach (var trade in _allTrades.OrderBy(t => t.EntryTime))
         {
@@ -478,7 +479,7 @@ public class AutonomousPerformanceTracker
             MarketConditions = new Dictionary<string, object>
             {
                 ["Regime"] = trade.MarketRegime.ToString(),
-                ["EntryTime"] = trade.EntryTime.ToString("HH:mm"),
+                ["EntryTime"] = trade.EntryTime.ToString("HH:mm", CultureInfo.InvariantCulture),
                 ["Direction"] = trade.Direction
             }
         };
@@ -494,7 +495,7 @@ public class AutonomousPerformanceTracker
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private decimal GetRecentStrategyPerformance(string strategy, TimeSpan period)
@@ -591,7 +592,7 @@ public class AutonomousPerformanceTracker
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return insights;
     }
     
@@ -774,8 +775,8 @@ public class DailyPerformanceReport
     public decimal LargestLoss { get; set; }
     public string BestStrategy { get; set; } = "";
     public string WorstStrategy { get; set; } = "";
-    public List<string> TradingInsights { get; set; } = new();
-    public List<OptimizationRecommendation> OptimizationRecommendations { get; set; } = new();
+    public List<string> TradingInsights { get; } = new();
+    public List<OptimizationRecommendation> OptimizationRecommendations { get; } = new();
 }
 
 /// <summary>
@@ -789,7 +790,7 @@ public class LearningInsight
     public string InsightType { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal Confidence { get; set; }
-    public Dictionary<string, object> MarketConditions { get; set; } = new();
+    public Dictionary<string, object> MarketConditions { get; } = new();
 }
 
 /// <summary>
@@ -798,7 +799,7 @@ public class LearningInsight
 public class StrategyLearning
 {
     public string StrategyName { get; set; } = "";
-    public List<LearningInsight> Insights { get; set; } = new();
+    public List<LearningInsight> Insights { get; } = new();
 }
 
 /// <summary>

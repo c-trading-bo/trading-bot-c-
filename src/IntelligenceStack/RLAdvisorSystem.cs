@@ -28,7 +28,7 @@ public class RLAdvisorSystem
     private readonly Dictionary<string, PerformanceTracker> _performanceTrackers = new();
     private readonly object _lock = new();
     
-    private bool _orderInfluenceEnabled = false;
+    private bool _orderInfluenceEnabled;
     private DateTime _lastUpliftCheck = DateTime.MinValue;
 
     public RLAdvisorSystem(
@@ -77,7 +77,7 @@ public class RLAdvisorSystem
             var state = CreateStateVector(context);
             
             // Get action from RL agent
-            var rlAction = await agent.GetActionAsync(state, cancellationToken);
+            var rlAction = await agent.GetActionAsync(state, cancellationToken).ConfigureAwait(false);
             
             // Convert to exit recommendation
             var recommendation = new RLAdvisorRecommendation
@@ -93,10 +93,10 @@ public class RLAdvisorSystem
             };
 
             // Log decision for performance tracking
-            await LogRLDecisionAsync(agentKey, recommendation, context, cancellationToken);
+            await LogRLDecisionAsync(agentKey, recommendation, context, cancellationToken).ConfigureAwait(false);
 
             // Increment shadow decision count
-            await IncrementShadowDecisionCountAsync(agentKey);
+            await IncrementShadowDecisionCountAsync(agentKey).ConfigureAwait(false);
 
             _logger.LogDebug("[RL_ADVISOR] Generated recommendation for {Symbol}: {Action} (confidence: {Confidence:F3})", 
                 context.Symbol, recommendation.Action, recommendation.Confidence);
@@ -141,10 +141,10 @@ public class RLAdvisorSystem
             var reward = CalculateReward(decision, outcome);
             
             // Update agent with experience
-            await agent.UpdateAsync(decision.StateVector, decision.RawAction, reward, outcome.NextState, cancellationToken);
+            await agent.UpdateAsync(decision.StateVector, decision.RawAction, reward, outcome.NextState, cancellationToken).ConfigureAwait(false);
             
             // Update performance tracking
-            await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken);
+            await UpdatePerformanceTrackingAsync(agentKey, outcome, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[RL_ADVISOR] Updated agent {Agent} with outcome: reward={Reward:F3}", 
                 agentKey, reward);
@@ -152,7 +152,7 @@ public class RLAdvisorSystem
             // Check for uplift periodically
             if (DateTime.UtcNow - _lastUpliftCheck > TimeSpan.FromHours(24))
             {
-                await CheckForProvenUpliftAsync(cancellationToken);
+                await CheckForProvenUpliftAsync(cancellationToken).ConfigureAwait(false);
                 _lastUpliftCheck = DateTime.UtcNow;
             }
         }
@@ -223,7 +223,7 @@ public class RLAdvisorSystem
             };
 
             // Generate training episodes from historical data
-            var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken);
+            var episodes = await GenerateTrainingEpisodesAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false);
             
             result.EpisodesGenerated = episodes.Count;
             _logger.LogInformation("[RL_ADVISOR] Generated {Count} training episodes", episodes.Count);
@@ -236,7 +236,7 @@ public class RLAdvisorSystem
                 var agent = GetOrCreateAgent(agentKey);
                 agent.AgentType = agentType;
                 
-                var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken);
+                var agentResult = await TrainAgentAsync(agent, episodes, cancellationToken).ConfigureAwait(false);
                 result.AgentResults[agentType] = agentResult;
                 
                 _logger.LogInformation("[RL_ADVISOR] Trained {AgentType} agent: {Episodes} episodes, final reward: {Reward:F3}", 
@@ -246,7 +246,7 @@ public class RLAdvisorSystem
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
 
-            await SaveTrainingResultAsync(result, cancellationToken);
+            await SaveTrainingResultAsync(result, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -397,13 +397,13 @@ public class RLAdvisorSystem
         intelligenceDecision.Metadata["is_advise_only"] = recommendation.IsAdviseOnly;
         intelligenceDecision.Metadata["reasoning"] = recommendation.Reasoning;
 
-        await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken);
+        await _decisionLogger.LogDecisionAsync(intelligenceDecision, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task IncrementShadowDecisionCountAsync(string agentKey)
     {
         // Brief yield for async context
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         // Increment shadow decision count for the agent
         var decisions = _decisionHistory.GetValueOrDefault(agentKey, new List<RLDecision>());
@@ -450,7 +450,7 @@ public class RLAdvisorSystem
         CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         lock (_lock)
         {
@@ -487,10 +487,10 @@ public class RLAdvisorSystem
         {
             try
             {
-                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence");
+                _logger.LogInformation("[RL_ADVISOR] Checking for proven uplift to enable order influence").ConfigureAwait(false);
                 
                 var totalEdgeBps = 0.0;
-                var validAgents = 0;
+                var validAgents;
                 
                 foreach (var (agentKey, tracker) in _performanceTrackers)
                 {
@@ -515,7 +515,7 @@ public class RLAdvisorSystem
                     }
                     else if (averageEdgeBps < _config.MinEdgeBps && _orderInfluenceEnabled)
                     {
-                        _orderInfluenceEnabled = false;
+                        _orderInfluenceEnabled;
                         _logger.LogWarning("[RL_ADVISOR] ❌ Disabled order influence - insufficient uplift: {EdgeBps:F1} bps", 
                             averageEdgeBps);
                     }
@@ -543,21 +543,21 @@ public class RLAdvisorSystem
         // Production-grade episode generation from historical market data
         return await Task.Run(async () =>
         {
-            var episodes = new List<TrainingEpisode>();
+            var episodes = new List<TrainingEpisode>().ConfigureAwait(false);
             
             // Step 1: Load historical market data asynchronously via SDK adapter
             var marketDataTask = LoadHistoricalMarketDataViaSdkAsync(symbol, startDate, endDate);
             var tradeDataTask = Task.Run(() => LoadHistoricalTradeData(symbol, startDate, endDate), cancellationToken);
             
-            var marketData = await marketDataTask;
-            var tradeData = await tradeDataTask;
+            var marketData = await marketDataTask.ConfigureAwait(false);
+            var tradeData = await tradeDataTask.ConfigureAwait(false);
             
             // Step 2: Generate episodes based on market regimes and volatility clusters
-            var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken);
+            var episodeWindows = await GenerateEpisodeWindowsAsync(marketData, cancellationToken).ConfigureAwait(false);
             
             foreach (var window in episodeWindows)
             {
-                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken);
+                var episode = await CreateEpisodeFromMarketDataAsync(window, marketData, cancellationToken).ConfigureAwait(false);
                 episodes.Add(episode);
             }
             
@@ -603,9 +603,9 @@ public class RLAdvisorSystem
                 return LoadHistoricalMarketDataFallback(symbol, startDate, endDate);
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);
+            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {
@@ -701,7 +701,7 @@ public class RLAdvisorSystem
             var timePeriod = endDate - startDate;
             var estimatedTrades = (int)(timePeriod.TotalDays * 2); // Approx 2 trades per day
             
-            for (int i = 0; i < estimatedTrades; i++)
+            for (int i; i < estimatedTrades; i++)
             {
                 // Use cryptographically secure random for production trading system
                 using var rng = RandomNumberGenerator.Create();
@@ -736,9 +736,9 @@ public class RLAdvisorSystem
     {
         return await Task.Run(() =>
         {
-            var windows = new List<EpisodeWindow>();
+            var windows = new List<EpisodeWindow>().ConfigureAwait(false);
             
-            for (int i = 0; i < marketData.Count - 240; i += 120) // 2-hour overlap
+            for (int i; i < marketData.Count - 240; i += 120) // 2-hour overlap
             {
                 var startIndex = i;
                 var endIndex = Math.Min(i + 240, marketData.Count - 1); // 4 hours of 1-min data
@@ -769,7 +769,7 @@ public class RLAdvisorSystem
                 EndTime = window.EndTime,
                 InitialState = ExtractMarketFeatures(marketData[window.StartIndex]),
                 Actions = new List<(double[] state, RLActionResult action, double reward)>()
-            };
+            }.ConfigureAwait(false);
             
             // Generate state-action-reward sequences from market movements
             for (int i = window.StartIndex; i < window.EndIndex - 1; i++)
@@ -813,7 +813,7 @@ public class RLAdvisorSystem
         else if (priceChange < 0)
             actionType = 2; // Sell
         else
-            actionType = 0; // Hold
+            actionType; // Hold
             
         var confidence = Math.Min(0.95, Math.Abs(priceChange) / current.Price * 10); // Confidence based on price move
         
@@ -848,7 +848,7 @@ public class RLAdvisorSystem
         };
         
         var totalReward = 0.0;
-        var processedEpisodes = 0;
+        var processedEpisodes;
         
         foreach (var episode in episodes)
         {
@@ -858,7 +858,7 @@ public class RLAdvisorSystem
             // Train on episode
             foreach (var (state, action, reward) in episode.Actions)
             {
-                await agent.UpdateAsync(state, action, reward, state, cancellationToken);
+                await agent.UpdateAsync(state, action, reward, state, cancellationToken).ConfigureAwait(false);
                 totalReward += reward;
             }
             
@@ -878,7 +878,7 @@ public class RLAdvisorSystem
         {
             var resultFile = Path.Combine(_statePath, $"training_{result.Symbol}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var json = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(resultFile, json, cancellationToken);
+            await File.WriteAllTextAsync(resultFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -894,7 +894,7 @@ public class RLAdvisorSystem
             var stateFile = Path.Combine(_statePath, "rl_advisor_state.json");
             if (File.Exists(stateFile))
             {
-                var content = await File.ReadAllTextAsync(stateFile, cancellationToken);
+                var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false);
                 var state = JsonSerializer.Deserialize<RLAdvisorState>(content);
                 
                 if (state != null)
@@ -935,7 +935,7 @@ public class RLAgent
     public async Task<RLActionResult> GetActionAsync(double[] state, CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         LastDecisionTime = DateTime.UtcNow;
         
@@ -954,10 +954,10 @@ public class RLAgent
         else
         {
             // Exploitation - choose best action
-            var bestAction = 0;
+            var bestAction;
             var bestValue = double.MinValue;
             
-            for (int i = 0; i < 4; i++)
+            for (int i; i < 4; i++)
             {
                 var actionKey = $"{stateKey}_{i}";
                 var value = _qTable.GetValueOrDefault(actionKey, 0.0);
@@ -991,7 +991,7 @@ public class RLAgent
         CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         // Simplified Q-learning update
         var stateKey = string.Join(",", state.Select(s => Math.Round(s, 2)));
@@ -1005,7 +1005,7 @@ public class RLAgent
         var nextStateKey = string.Join(",", nextState.Select(s => Math.Round(s, 2)));
         var maxNextQ = 0.0;
         
-        for (int i = 0; i < 4; i++)
+        for (int i; i < 4; i++)
         {
             var nextActionKey = $"{nextStateKey}_{i}";
             maxNextQ = Math.Max(maxNextQ, _qTable.GetValueOrDefault(nextActionKey, 0.0));
@@ -1084,7 +1084,7 @@ public class ExitDecisionContext
     public double CurrentVolatility { get; set; }
     public string MarketRegime { get; set; } = string.Empty;
     public bool UsesCVaR { get; set; }
-    public Dictionary<string, double> TechnicalIndicators { get; set; } = new();
+    public Dictionary<string, double> TechnicalIndicators { get; } = new();
 }
 
 public class ExitOutcome
@@ -1113,7 +1113,7 @@ public class RLAdvisorStatus
     public bool OrderInfluenceEnabled { get; set; }
     public int MinShadowDecisions { get; set; }
     public int MinEdgeBps { get; set; }
-    public Dictionary<string, RLAgentStatus> AgentStates { get; set; } = new();
+    public Dictionary<string, RLAgentStatus> AgentStates { get; } = new();
 }
 
 public class RLAgentStatus
@@ -1138,7 +1138,7 @@ public class RLTrainingResult
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public int EpisodesGenerated { get; set; }
-    public Dictionary<RLAgentType, AgentTrainingResult> AgentResults { get; set; } = new();
+    public Dictionary<RLAgentType, AgentTrainingResult> AgentResults { get; } = new();
 }
 
 public class AgentTrainingResult
@@ -1155,7 +1155,7 @@ public class TrainingEpisode
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public double[] InitialState { get; set; } = Array.Empty<double>();
-    public List<(double[] state, RLActionResult action, double reward)> Actions { get; set; } = new();
+    public List<(double[] state, RLActionResult action, double reward)> Actions { get; } = new();
 }
 
 public class RLAdvisorState

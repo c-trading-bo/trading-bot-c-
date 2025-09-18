@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using BotCore.Infra;
+using System.Globalization;
 
 namespace OrchestratorAgent.Infra
 {
@@ -89,7 +90,7 @@ namespace OrchestratorAgent.Infra
         {
             try
             {
-                var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
+                var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false);
                 var list = resp?.positions ?? [];
                 foreach (var p in list)
                 {
@@ -149,7 +150,7 @@ namespace OrchestratorAgent.Infra
                 st.Qty = oldQty + qtySigned;
                 if (st.Qty == 0)
                 {
-                    st.AvgPrice = 0m;
+                    st.AvgPrice;
                 }
                 else if (remaining > 0)
                 {
@@ -212,7 +213,7 @@ namespace OrchestratorAgent.Infra
 
         private static void RecalcUnreal(string symbol, PositionState st)
         {
-            if (st.Qty == 0 || st.AvgPrice <= 0m || st.LastPrice <= 0m) { st.UnrealizedUsd = 0m; return; }
+            if (st.Qty == 0 || st.AvgPrice <= 0m || st.LastPrice <= 0m) { st.UnrealizedUsd; return; }
             var root = OrchestratorAgent.SymbolMeta.RootFromName(symbol);
             var points = (st.LastPrice - st.AvgPrice) * (st.Qty >= 0 ? 1 : -1); // profit positive
             st.UnrealizedUsd = OrchestratorAgent.SymbolMeta.ToPnlUSD(root, points, Math.Abs(st.Qty));

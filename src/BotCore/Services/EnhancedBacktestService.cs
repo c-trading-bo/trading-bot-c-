@@ -71,7 +71,7 @@ namespace BotCore.Services
                         break;
 
                     var marketConditions = CreateMarketConditions(signal.Timestamp, signal.Symbol);
-                    var trade = await ProcessSignalWithFrictionAsync(signal, marketConditions);
+                    var trade = await ProcessSignalWithFrictionAsync(signal, marketConditions).ConfigureAwait(false);
                     
                     if (trade != null)
                     {
@@ -126,7 +126,7 @@ namespace BotCore.Services
             var commission = CalculateCommissions(order.Symbol, order.Quantity, order.IsEntry);
 
             // Simulate latency delay
-            await Task.Delay(Math.Min(latency, 100)); // Cap simulation delay at 100ms
+            await Task.Delay(Math.Min(latency, 100)).ConfigureAwait(false); // Cap simulation delay at 100ms
 
             // Determine execution price with slippage
             var isLong = order.Side.Equals("BUY", StringComparison.OrdinalIgnoreCase);
@@ -235,7 +235,7 @@ namespace BotCore.Services
                 };
 
                 // Simulate entry execution
-                var entryExecution = await SimulateOrderExecutionAsync(entryOrder, conditions);
+                var entryExecution = await SimulateOrderExecutionAsync(entryOrder, conditions).ConfigureAwait(false);
                 if (!entryExecution.Success)
                     return null;
 
@@ -255,7 +255,7 @@ namespace BotCore.Services
                 };
 
                 // Simulate exit execution
-                var exitExecution = await SimulateOrderExecutionAsync(exitOrder, conditions);
+                var exitExecution = await SimulateOrderExecutionAsync(exitOrder, conditions).ConfigureAwait(false);
                 if (!exitExecution.Success)
                     return null;
 
@@ -364,7 +364,7 @@ namespace BotCore.Services
         public string StrategyName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<SignalEvent> Signals { get; set; } = new();
+        public List<SignalEvent> Signals { get; } = new();
         public bool EnableMarketFriction { get; set; } = true;
     }
 
@@ -451,7 +451,7 @@ namespace BotCore.Services
         public string StrategyName { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<Trade> Trades { get; set; } = new();
+        public List<Trade> Trades { get; } = new();
         
         // Basic metrics
         public int TotalTrades { get; set; }

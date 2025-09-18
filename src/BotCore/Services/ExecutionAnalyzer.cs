@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BotCore.Models;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -43,7 +44,7 @@ public class ExecutionAnalyzer
             {
                 Symbol = symbol,
                 Strategy = strategy,
-                Timestamp = timestamp.ToString("O"),
+                Timestamp = timestamp.ToString("O", CultureInfo.InvariantCulture),
                 EntryPrice = entryPrice,
                 FillPrice = fillPrice,
                 Quantity = quantity,
@@ -58,7 +59,7 @@ public class ExecutionAnalyzer
                 symbol, strategy, slippagePercent / 100, fillQuality.Quality);
 
             // Save to execution quality log
-            await SaveExecutionMetricsAsync(fillQuality);
+            await SaveExecutionMetricsAsync(fillQuality).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -81,7 +82,7 @@ public class ExecutionAnalyzer
                 Symbol = symbol,
                 ZoneLevel = Math.Round(zoneLevel, 2),
                 ZoneType = zoneType, // "supply" or "demand"
-                TestTime = DateTime.UtcNow.ToString("O"),
+                TestTime = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 Successful = successful,
                 EntryPrice = Math.Round(entryPrice, 2),
                 ExitPrice = Math.Round(exitPrice, 2),
@@ -93,7 +94,7 @@ public class ExecutionAnalyzer
                 symbol, zoneType, zoneLevel, successful, pnlPercent / 100);
 
             // Update zone feedback data
-            await UpdateZoneFeedbackAsync(symbol, zoneLevel, zoneType, successful);
+            await UpdateZoneFeedbackAsync(symbol, zoneLevel, zoneType, successful).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -113,7 +114,7 @@ public class ExecutionAnalyzer
             {
                 Symbol = symbol,
                 PatternType = patternType,
-                Timestamp = DateTime.UtcNow.ToString("O"),
+                Timestamp = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 Successful = successful,
                 Confidence = Math.Round(confidence, 3),
                 Details = details,
@@ -126,7 +127,7 @@ public class ExecutionAnalyzer
             _logger.LogInformation("[PATTERN_OUTCOME] {Symbol} {PatternType} success={Successful} conf={Confidence:P1}",
                 symbol, patternType, successful, confidence);
 
-            await SavePatternOutcomeAsync(outcome);
+            await SavePatternOutcomeAsync(outcome).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -141,13 +142,13 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var metricsFile = Path.Combine(_feedbackPath, $"execution_metrics_{today}.json");
 
             if (!File.Exists(metricsFile))
                 return null;
 
-            var json = await File.ReadAllTextAsync(metricsFile);
+            var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false);
             return JsonSerializer.Deserialize<ExecutionMetrics>(json, _jsonOptions);
         }
         catch (Exception ex)
@@ -161,14 +162,14 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var metricsFile = Path.Combine(_feedbackPath, $"execution_metrics_{today}.json");
 
             // Load existing metrics or create new
             var metrics = new List<object>();
             if (File.Exists(metricsFile))
             {
-                var json = await File.ReadAllTextAsync(metricsFile);
+                var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) metrics = existing;
             }
@@ -176,7 +177,7 @@ public class ExecutionAnalyzer
             metrics.Add(fillQuality);
 
             await File.WriteAllTextAsync(metricsFile,
-                JsonSerializer.Serialize(metrics, _jsonOptions));
+                JsonSerializer.Serialize(metrics, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -195,7 +196,7 @@ public class ExecutionAnalyzer
             var feedback = new Dictionary<string, object>();
             if (File.Exists(feedbackFile))
             {
-                var json = await File.ReadAllTextAsync(feedbackFile);
+                var json = await File.ReadAllTextAsync(feedbackFile).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
                 if (existing != null) feedback = existing;
             }
@@ -221,11 +222,11 @@ public class ExecutionAnalyzer
                 success_count = newSuccessCount,
                 test_count = newTestCount,
                 success_rate = Math.Round(newSuccessRate, 3),
-                last_test = DateTime.UtcNow.ToString("O")
+                last_test = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)
             };
 
             await File.WriteAllTextAsync(feedbackFile,
-                JsonSerializer.Serialize(feedback, _jsonOptions));
+                JsonSerializer.Serialize(feedback, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -237,13 +238,13 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var outcomeFile = Path.Combine(_feedbackPath, $"pattern_outcomes_{today}.json");
 
             var outcomes = new List<object>();
             if (File.Exists(outcomeFile))
             {
-                var json = await File.ReadAllTextAsync(outcomeFile);
+                var json = await File.ReadAllTextAsync(outcomeFile).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) outcomes = existing;
             }
@@ -251,7 +252,7 @@ public class ExecutionAnalyzer
             outcomes.Add(outcome);
 
             await File.WriteAllTextAsync(outcomeFile,
-                JsonSerializer.Serialize(outcomes, _jsonOptions));
+                JsonSerializer.Serialize(outcomes, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

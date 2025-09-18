@@ -9,7 +9,7 @@ namespace OrchestratorAgent.Execution
     public class VolumeAnalyzer
     {
         private decimal[] _recentVolumes = new decimal[20];
-        private int _index = 0;
+        private int _index;
 
         public void UpdateVolume(decimal volume)
         {
@@ -21,10 +21,10 @@ namespace OrchestratorAgent.Execution
         public decimal GetVolumeSignal()
         {
             // Calculate volume momentum
-            var recent = 0m;
-            var older = 0m;
+            var recent;
+            var older;
 
-            for (int i = 0; i < 10; i++)
+            for (int i; i < 10; i++)
             {
                 recent += _recentVolumes[i];
                 older += _recentVolumes[i + 10];
@@ -42,7 +42,7 @@ namespace OrchestratorAgent.Execution
         public bool IsVolumeSpike()
         {
             var current = _recentVolumes[(_index - 1 + _recentVolumes.Length) % _recentVolumes.Length];
-            var average = 0m;
+            var average;
 
             for (int i = 1; i < _recentVolumes.Length; i++)
             {

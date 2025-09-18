@@ -1,6 +1,6 @@
 using System;
-using System.Globalization;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -148,7 +148,7 @@ public static class ProductionPriceService
         catch (Exception ex)
         {
             logger?.LogError(ex, "❌ [PRICE-SERVICE] Error validating trade setup for {Symbol}", symbol);
-            result.IsValid = false;
+            result.IsValid;
             result.ValidationError = ex.Message;
             return result;
         }

@@ -75,6 +75,6 @@ public enum HealthStatus
 public class HealthCheckAttribute : Attribute
 {
     public string? Category { get; set; }
-    public int Priority { get; set; } = 0;
+    public int Priority { get; set; }
     public bool Enabled { get; set; } = true;
 }

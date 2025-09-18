@@ -67,7 +67,7 @@ public class IntelligenceService : IIntelligenceService
                 return null;
             }
 
-            var json = await File.ReadAllTextAsync(_signalsPath);
+            var json = await File.ReadAllTextAsync(_signalsPath).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(json))
             {
                 _logger.LogDebug("[INTEL] Signals file is empty");
@@ -151,7 +151,7 @@ public class IntelligenceService : IIntelligenceService
             };
 
             var json = JsonSerializer.Serialize(tradeResult, _jsonOptions);
-            await File.AppendAllTextAsync(resultsPath, json + Environment.NewLine);
+            await File.AppendAllTextAsync(resultsPath, json + Environment.NewLine).ConfigureAwait(false);
 
             _logger.LogDebug("[INTEL] Logged trade result: {Symbol} PnL={PnL:F2} with intelligence={HasIntel}",
                 symbol, pnl, intelligenceUsed != null);

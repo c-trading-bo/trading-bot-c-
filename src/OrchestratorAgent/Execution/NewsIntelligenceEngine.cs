@@ -73,7 +73,7 @@ namespace OrchestratorAgent.Execution
             var bullishWords = new[] { "strong", "growth", "beat", "positive", "surge", "rally", "bullish" };
             var bearishWords = new[] { "weak", "decline", "miss", "negative", "crash", "bearish", "fall" };
 
-            int bullishScore = 0, bearishScore = 0;
+            int bullishScore = 0, bearishScore;
             foreach (var word in bullishWords)
                 if (lower.Contains(word)) bullishScore++;
             foreach (var word in bearishWords)
@@ -121,7 +121,7 @@ namespace OrchestratorAgent.Execution
             var newsEvent = relevantEvent.Value;
 
             // Smart trading logic based on news analysis
-            bool shouldTrade = false;
+            bool shouldTrade;
 
             // High confidence + high volatility = trade opportunity
             if (newsEvent.ConfidenceScore >= 0.75m && newsEvent.Severity == "HIGH")

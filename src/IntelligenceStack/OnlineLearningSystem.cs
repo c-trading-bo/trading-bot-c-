@@ -42,7 +42,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     public async Task UpdateWeightsAsync(string regimeType, Dictionary<string, double> weights, CancellationToken cancellationToken = default)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         if (!_config.Enabled)
         {
@@ -94,7 +94,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             }
 
             // Persist state asynchronously
-            _ = Task.Run(async () => await SaveStateAsync(cancellationToken));
+            _ = Task.Run(async () => await SaveStateAsync(cancellationToken)).ConfigureAwait(false);
 
             _logger.LogDebug("[ONLINE] Updated weights for regime: {Regime} (LR: {LR:F4})", 
                 regimeType, CalculateLearningRate(regimeType));
@@ -108,7 +108,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     public async Task<Dictionary<string, double>> GetCurrentWeightsAsync(string regimeType, CancellationToken cancellationToken = default)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         lock (_lock)
         {
@@ -136,7 +136,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
         try
         {
-            bool shouldRollback = false;
+            bool shouldRollback;
             string? modelToRollback = null;
             lock (_lock)
             {
@@ -181,7 +181,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             // Perform rollback outside the lock
             if (shouldRollback && modelToRollback != null)
             {
-                await RollbackWeightsAsync(modelToRollback, cancellationToken);
+                await RollbackWeightsAsync(modelToRollback, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -203,7 +203,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             FeatureDriftState? driftState = null;
             if (File.Exists(driftStatePath))
             {
-                var content = await File.ReadAllTextAsync(driftStatePath, cancellationToken);
+                var content = await File.ReadAllTextAsync(driftStatePath, cancellationToken).ConfigureAwait(false);
                 driftState = JsonSerializer.Deserialize<FeatureDriftState>(content);
             }
 
@@ -236,7 +236,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
             // Save updated drift state
             var json = JsonSerializer.Serialize(driftState, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(driftStatePath, json, cancellationToken);
+            await File.WriteAllTextAsync(driftStatePath, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -285,10 +285,10 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             weightUpdates[$"strategy_{strategyId}"] = hitRate > 0.6 ? 1.1 : 0.9;
             
             // Update weights for the current regime
-            await UpdateWeightsAsync(regimeType, weightUpdates, cancellationToken);
+            await UpdateWeightsAsync(regimeType, weightUpdates, cancellationToken).ConfigureAwait(false);
             
             // Adapt to performance for long-term model health
-            await AdaptToPerformanceAsync(strategyId, modelPerformance, cancellationToken);
+            await AdaptToPerformanceAsync(strategyId, modelPerformance, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("[ONLINE] Model update completed for trade: {TradeId} - Strategy: {Strategy}, Regime: {Regime}, HitRate: {HitRate:F2}", 
                 tradeRecord.TradeId, strategyId, regimeType, hitRate);
@@ -324,7 +324,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
         if (baseline.Count == 0) return 0.0;
         
         var score = 0.0;
-        var featureCount = 0;
+        var featureCount;
         
         foreach (var key in baseline.Keys)
         {
@@ -349,7 +349,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
             await Task.Run(async () =>
             {
                 // Simulate async model state persistence
-                await Task.Delay(10, cancellationToken);
+                await Task.Delay(10, cancellationToken).ConfigureAwait(false);
                 
                 // Rollback to previous stable weights - simulate database/file operations
                 lock (_lock)
@@ -368,7 +368,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 }
                 
                 // Simulate async logging to audit trail
-                await Task.Delay(5, cancellationToken);
+                await Task.Delay(5, cancellationToken).ConfigureAwait(false);
                 
             }, cancellationToken);
 
@@ -390,7 +390,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(stateFile);
+            var content = await File.ReadAllTextAsync(stateFile).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<OnlineLearningState>(content);
             
             if (state != null)
@@ -441,7 +441,7 @@ public class OnlineLearningSystem : IOnlineLearningSystem
 
             var stateFile = Path.Combine(_statePath, "online_learning_state.json");
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(stateFile, json, cancellationToken);
+            await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -635,14 +635,14 @@ public class OnlineLearningSystem : IOnlineLearningSystem
     private sealed class OnlineLearningState
     {
         public Dictionary<string, Dictionary<string, double>> RegimeWeights { get; set; } = new();
-        public Dictionary<string, double> BaselineVariance { get; set; } = new();
+        public Dictionary<string, double> BaselineVariance { get; } = new();
         public DateTime LastSaved { get; set; }
     }
 
     private sealed class FeatureDriftState
     {
         public string ModelId { get; set; } = string.Empty;
-        public Dictionary<string, double> BaselineFeatures { get; set; } = new();
+        public Dictionary<string, double> BaselineFeatures { get; } = new();
         public DateTime LastUpdated { get; set; }
         public int DriftDetectedCount { get; set; }
     }
@@ -669,12 +669,12 @@ public class SloMonitor
 
     public async Task RecordDecisionLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken);
+        await RecordLatencyAsync("decision", latencyMs, _config.DecisionLatencyP99Ms, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RecordOrderLatencyAsync(double latencyMs, CancellationToken cancellationToken = default)
     {
-        await RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken);
+        await RecordLatencyAsync("order", latencyMs, _config.E2eOrderP99Ms, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task RecordErrorAsync(string errorType, CancellationToken cancellationToken = default)
@@ -688,7 +688,7 @@ public class SloMonitor
             }
 
             // Check error budget
-            await CheckErrorBudgetAsync(cancellationToken);
+            await CheckErrorBudgetAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -707,7 +707,7 @@ public class SloMonitor
                 {
                     if (!_latencyHistory.TryGetValue(metricType, out var history))
                     {
-                        history = new List<double>();
+                        history = new List<double>().ConfigureAwait(false);
                         _latencyHistory[metricType] = history;
                     }
 
@@ -747,7 +747,7 @@ public class SloMonitor
             {
                 lock (_lock)
                 {
-                    var totalErrors = _errorCounts.Values.Sum();
+                    var totalErrors = _errorCounts.Values.Sum().ConfigureAwait(false);
                     var totalDecisions = _latencyHistory.GetValueOrDefault("decision", new List<double>()).Count;
                     
                     if (totalDecisions > 0)

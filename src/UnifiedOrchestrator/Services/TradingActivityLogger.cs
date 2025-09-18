@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -38,17 +39,17 @@ public class TradingActivityLogger
             symbol,
             direction,
             quantity = 1,
-            entry = entry.ToString("0.00"),
-            stop = stop.ToString("0.00"),
-            target = target.ToString("0.00"),
-            rMultiple = rMultiple.ToString("0.00"),
-            confidence = confidence.ToString("0.00"),
+            entry = entry.ToString("0.00", CultureInfo.InvariantCulture),
+            stop = stop.ToString("0.00", CultureInfo.InvariantCulture),
+            target = target.ToString("0.00", CultureInfo.InvariantCulture),
+            rMultiple = rMultiple.ToString("0.00", CultureInfo.InvariantCulture),
+            confidence = confidence.ToString("0.00", CultureInfo.InvariantCulture),
             customTag,
             context
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.SIGNAL, TradingLogLevel.INFO, 
-            "SIGNAL_GENERATED", signalData, customTag);
+            "SIGNAL_GENERATED", signalData, customTag).ConfigureAwait(false);
 
         // Also log to console with structured format
         _logger.LogInformation("📡 SIGNAL: {SignalMessage}", signalMessage);
@@ -69,14 +70,14 @@ public class TradingActivityLogger
             symbol,
             side,
             quantity,
-            price = price.ToString("0.00"),
+            price = price.ToString("0.00", CultureInfo.InvariantCulture),
             customTag,
             status = "New",
             orderDetails
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, 
-            "ORDER_PLACED", orderData, customTag);
+            "ORDER_PLACED", orderData, customTag).ConfigureAwait(false);
 
         _logger.LogInformation("📋 ORDER: {OrderMessage}", orderMessage);
     }
@@ -100,7 +101,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, 
-            "ORDER_STATUS_CHANGE", statusData, orderId);
+            "ORDER_STATUS_CHANGE", statusData, orderId).ConfigureAwait(false);
 
         var logLevel = status == "Rejected" || status == "Cancelled" ? LogLevel.Warning : LogLevel.Information;
         _logger.Log(logLevel, "📋 ORDER STATUS: {StatusMessage}", statusMessage);
@@ -118,14 +119,14 @@ public class TradingActivityLogger
         {
             accountId,
             orderId,
-            fillPrice = fillPrice.ToString("0.00"),
+            fillPrice = fillPrice.ToString("0.00", CultureInfo.InvariantCulture),
             quantity,
-            fillTime = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            fillTime = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
             fillDetails
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, 
-            "TRADE_FILLED", tradeData, orderId);
+            "TRADE_FILLED", tradeData, orderId).ConfigureAwait(false);
 
         _logger.LogInformation("💰 TRADE: {TradeMessage}", tradeMessage);
     }
@@ -141,13 +142,13 @@ public class TradingActivityLogger
             accountId,
             symbol,
             positionSize,
-            averagePrice = averagePrice.ToString("0.00"),
-            unrealizedPnL = unrealizedPnL.ToString("0.00"),
+            averagePrice = averagePrice.ToString("0.00", CultureInfo.InvariantCulture),
+            unrealizedPnL = unrealizedPnL.ToString("0.00", CultureInfo.InvariantCulture),
             positionDetails
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.RISK, TradingLogLevel.INFO, 
-            "POSITION_CHANGE", positionData);
+            "POSITION_CHANGE", positionData).ConfigureAwait(false);
 
         var pnlIcon = unrealizedPnL >= 0 ? "📈" : "📉";
         _logger.LogInformation("{Icon} POSITION: {Symbol} size={PositionSize} avgPrice={AvgPrice:0.00} PnL={PnL:0.00}", 
@@ -164,15 +165,15 @@ public class TradingActivityLogger
         {
             riskType,
             passed,
-            currentValue = currentValue.ToString("0.00"),
-            limit = limit.ToString("0.00"),
+            currentValue = currentValue.ToString("0.00", CultureInfo.InvariantCulture),
+            limit = limit.ToString("0.00", CultureInfo.InvariantCulture),
             utilizationPercent = Math.Round((currentValue / limit) * 100, 2),
             riskDetails
         };
 
         var level = passed ? TradingLogLevel.DEBUG : TradingLogLevel.WARN;
         await _tradingLogger.LogEventAsync(TradingLogCategory.RISK, level, 
-            "RISK_CHECK", riskData);
+            "RISK_CHECK", riskData).ConfigureAwait(false);
 
         if (!passed)
         {
@@ -190,12 +191,12 @@ public class TradingActivityLogger
         {
             reason,
             triggeredBy,
-            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
             details
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ERROR, TradingLogLevel.ERROR, 
-            "KILL_SWITCH_ACTIVATED", killSwitchData);
+            "KILL_SWITCH_ACTIVATED", killSwitchData).ConfigureAwait(false);
 
         _logger.LogError("🛑 KILL SWITCH ACTIVATED: {Reason} (triggered by {TriggeredBy})", reason, triggeredBy);
     }

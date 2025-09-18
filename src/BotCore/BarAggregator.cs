@@ -112,7 +112,7 @@ namespace BotCore
                 Volume = (int)_v
             };
             _bucket = DateTimeOffset.MinValue;
-            _o = _h = _l = _c = 0m; _v = 0;
+            _o = _h = _l = _c; _v;
             OnBar?.Invoke(bar);
         }
 
@@ -151,7 +151,7 @@ namespace BotCore
                     if (p.ValueKind == JsonValueKind.String && decimal.TryParse(p.GetString(), out val)) return true;
                 }
             }
-            val = 0m; return false;
+            val; return false;
         }
 
         private static bool TryGetLong(JsonElement e, out long val, params string[] names)
@@ -164,7 +164,7 @@ namespace BotCore
                     if (p.ValueKind == JsonValueKind.String && long.TryParse(p.GetString(), out val)) return true;
                 }
             }
-            val = 0; return false;
+            val; return false;
         }
     }
 }

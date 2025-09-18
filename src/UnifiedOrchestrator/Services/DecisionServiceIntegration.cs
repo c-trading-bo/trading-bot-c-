@@ -23,7 +23,7 @@ public class DecisionServiceIntegration : IHostedService
         {
             // Production-ready integration logic
             // Check if decision service is available
-            await Task.Delay(100); // Simulate connection time
+            await Task.Delay(100).ConfigureAwait(false); // Simulate connection time
             
             // In production, this would:
             // 1. Verify decision service endpoint is responsive
@@ -38,7 +38,7 @@ public class DecisionServiceIntegration : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_INTEGRATION] Failed to integrate decision service");
-            IsConnected = false;
+            IsConnected;
             return false;
         }
     }
@@ -62,8 +62,8 @@ public class DecisionServiceIntegration : IHostedService
             // 3. Clean up resources
             // 4. Stop health monitoring
             
-            await Task.Delay(50); // Simulate graceful shutdown
-            IsConnected = false;
+            await Task.Delay(50).ConfigureAwait(false); // Simulate graceful shutdown
+            IsConnected;
             
             _logger.LogInformation("[DECISION_INTEGRATION] Decision service integration disconnected");
             return true;
@@ -71,12 +71,12 @@ public class DecisionServiceIntegration : IHostedService
         catch (Exception ex)
         {
             _logger.LogError(ex, "[DECISION_INTEGRATION] Error during disconnection");
-            IsConnected = false;
+            IsConnected;
             return false;
         }
     }
 
-    public bool IsConnected { get; private set; } = false;
+    public bool IsConnected { get; private set; };
 
     // IHostedService implementation
     Task IHostedService.StartAsync(CancellationToken cancellationToken)

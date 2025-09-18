@@ -46,8 +46,8 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             _logger?.LogInformation("[ADAPTIVE-HEAL] Starting intelligent recovery for unknown issue: {Message}", healthCheckResult.Message);
 
             // Load knowledge base
-            var knowledgeBase = await LoadKnowledgeBaseAsync(cancellationToken);
-            var repairPatterns = await LoadRepairPatternsAsync(cancellationToken);
+            var knowledgeBase = await LoadKnowledgeBaseAsync(cancellationToken).ConfigureAwait(false);
+            var repairPatterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
 
             // Analyze the failure type and determine strategy
             var failureAnalysis = AnalyzeFailure(healthCheckResult, knowledgeBase);
@@ -61,13 +61,13 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             {
                 _logger?.LogInformation("[ADAPTIVE-HEAL] Attempting strategy: {Strategy}", strategy.Name);
                 
-                var result = await ExecuteRecoveryStrategy(strategy, cancellationToken);
+                var result = await ExecuteRecoveryStrategy(strategy, cancellationToken).ConfigureAwait(false);
                 actionsPerformed.AddRange(result.ActionsPerformed);
 
                 if (result.Success)
                 {
                     // Learn from successful repair
-                    await RecordSuccessfulPattern(failureAnalysis, strategy, cancellationToken);
+                    await RecordSuccessfulPattern(failureAnalysis, strategy, cancellationToken).ConfigureAwait(false);
                     
                     var duration = DateTime.UtcNow - startTime;
                     _logger?.LogInformation("[ADAPTIVE-HEAL] Successfully recovered using adaptive strategy: {Strategy}", strategy.Name);
@@ -83,7 +83,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             }
 
             // If all strategies failed, learn from the failure
-            await RecordFailurePattern(failureAnalysis, recoveryStrategies, cancellationToken);
+            await RecordFailurePattern(failureAnalysis, recoveryStrategies, cancellationToken).ConfigureAwait(false);
 
             return new RecoveryResult
             {
@@ -401,12 +401,12 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             foreach (var action in strategy.Actions)
             {
-                var actionResult = await ExecuteRecoveryAction(action, cancellationToken);
+                var actionResult = await ExecuteRecoveryAction(action, cancellationToken).ConfigureAwait(false);
                 result.ActionsPerformed.Add($"{action}: {actionResult}");
                 
                 if (!actionResult.Contains("success", StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Success = false;
+                    result.Success;
                     return result;
                 }
             }
@@ -416,7 +416,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         }
         catch (Exception ex)
         {
-            result.Success = false;
+            result.Success;
             result.ActionsPerformed.Add($"Strategy execution failed: {ex.Message}");
             return result;
         }
@@ -424,7 +424,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
 
     private async Task<string> ExecuteRecoveryAction(string action, CancellationToken cancellationToken)
     {
-        await Task.Delay(100, cancellationToken); // Simulate action execution
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate action execution
         
         return action switch
         {
@@ -446,7 +446,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     private string CreateMissingDirectories()
     {
         var directories = new[] { "state", "models", "training_data", "logs", "config" };
-        var created = 0;
+        var created;
         
         foreach (var dir in directories)
         {
@@ -464,7 +464,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     private string ClearTempFiles()
     {
         var tempDirs = new[] { "temp", "cache", ".tmp" };
-        var filesDeleted = 0;
+        var filesDeleted;
         
         foreach (var tempDir in tempDirs)
         {
@@ -491,7 +491,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     {
         try
         {
-            var patterns = await LoadRepairPatternsAsync(cancellationToken);
+            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
             
             if (!patterns.SuccessfulStrategies.ContainsKey(analysis.Category))
             {
@@ -522,7 +522,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
                 });
             }
             
-            await SaveRepairPatternsAsync(patterns, cancellationToken);
+            await SaveRepairPatternsAsync(patterns, cancellationToken).ConfigureAwait(false);
             _logger?.LogInformation("[ADAPTIVE-HEAL] Recorded successful pattern: {Strategy} for {Category}", 
                 strategy.Name, analysis.Category);
         }
@@ -536,7 +536,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
     {
         try
         {
-            var patterns = await LoadRepairPatternsAsync(cancellationToken);
+            var patterns = await LoadRepairPatternsAsync(cancellationToken).ConfigureAwait(false);
             
             foreach (var strategy in strategies)
             {
@@ -555,7 +555,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
                 }
             }
             
-            await SaveRepairPatternsAsync(patterns, cancellationToken);
+            await SaveRepairPatternsAsync(patterns, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -569,7 +569,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             if (File.Exists(KnowledgeBaseFile))
             {
-                var json = await File.ReadAllTextAsync(KnowledgeBaseFile, cancellationToken);
+                var json = await File.ReadAllTextAsync(KnowledgeBaseFile, cancellationToken).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<AdaptiveKnowledgeBase>(json) ?? new AdaptiveKnowledgeBase();
             }
         }
@@ -587,7 +587,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
         {
             if (File.Exists(RepairPatternsFile))
             {
-                var json = await File.ReadAllTextAsync(RepairPatternsFile, cancellationToken);
+                var json = await File.ReadAllTextAsync(RepairPatternsFile, cancellationToken).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<RepairPatterns>(json) ?? new RepairPatterns();
             }
         }
@@ -610,7 +610,7 @@ public class AdaptiveSelfHealingAction : ISelfHealingAction
             }
             
             var json = JsonSerializer.Serialize(patterns, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(RepairPatternsFile, json, cancellationToken);
+            await File.WriteAllTextAsync(RepairPatternsFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -625,7 +625,7 @@ public class FailureAnalysis
     public string OriginalMessage { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public double Confidence { get; set; }
-    public List<string> KeyIndicators { get; set; } = new();
+    public List<string> KeyIndicators { get; } = new();
     public string SeverityLevel { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
 }
@@ -642,7 +642,7 @@ public class RecoveryStrategy
 public class RecoveryStrategyResult
 {
     public bool Success { get; set; }
-    public List<string> ActionsPerformed { get; set; } = new();
+    public List<string> ActionsPerformed { get; } = new();
 }
 
 public class AdaptiveKnowledgeBase
@@ -669,7 +669,7 @@ public class LearnedStrategy
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<string> Actions { get; set; } = new();
+    public List<string> Actions { get; } = new();
     public int SuccessCount { get; set; }
     public int FailureCount { get; set; }
     public double SuccessRate { get; set; }

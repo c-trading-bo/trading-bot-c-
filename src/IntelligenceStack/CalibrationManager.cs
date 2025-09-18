@@ -51,7 +51,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
                 return CreateDefaultCalibrationMap(modelId);
             }
 
-            var content = await File.ReadAllTextAsync(calibrationPath, cancellationToken);
+            var content = await File.ReadAllTextAsync(calibrationPath, cancellationToken).ConfigureAwait(false);
             var map = JsonSerializer.Deserialize<CalibrationMap>(content);
             
             if (map != null)
@@ -95,7 +95,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             var bestMap = plattMap.BrierScore <= isotonicMap.BrierScore ? plattMap : isotonicMap;
 
             // Save the best calibration map
-            await SaveCalibrationMapAsync(bestMap, cancellationToken);
+            await SaveCalibrationMapAsync(bestMap, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("[CALIBRATION] Fitted calibration for {ModelId}: {Method} (Brier: {Brier:F4})", 
                 modelId, bestMap.Method, bestMap.BrierScore);
@@ -113,7 +113,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     {
         try
         {
-            var map = await LoadCalibrationMapAsync(modelId, cancellationToken);
+            var map = await LoadCalibrationMapAsync(modelId, cancellationToken).ConfigureAwait(false);
             return ApplyCalibration(map, rawConfidence);
         }
         catch (Exception ex)
@@ -137,18 +137,18 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             }
 
             var modelFiles = Directory.GetFiles(modelsDir, "*.json");
-            var updated = 0;
+            var updated;
 
             foreach (var modelFile in modelFiles)
             {
                 try
                 {
                     var fileName = Path.GetFileNameWithoutExtension(modelFile);
-                    var calibrationPoints = await LoadCalibrationPointsAsync(fileName, cancellationToken);
+                    var calibrationPoints = await LoadCalibrationPointsAsync(fileName, cancellationToken).ConfigureAwait(false);
                     
                     if (calibrationPoints.Count >= 50) // Minimum points for stable calibration
                     {
-                        await FitCalibrationAsync(fileName, calibrationPoints, cancellationToken);
+                        await FitCalibrationAsync(fileName, calibrationPoints, cancellationToken).ConfigureAwait(false);
                         updated++;
                     }
                 }
@@ -211,7 +211,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
         const int numBins = 10;
         var binSize = sortedPoints.Count / numBins;
         
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             var binStart = i * binSize;
             var binEnd = Math.Min((i + 1) * binSize, sortedPoints.Count);
@@ -262,10 +262,10 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     private static double ApplyIsotonicCalibration(double rawConfidence, Dictionary<string, double> parameters)
     {
         // Find appropriate bin
-        var bestBin = 0;
+        var bestBin;
         var minDiff = double.MaxValue;
         
-        for (int i = 0; i < 10; i++)
+        for (int i; i < 10; i++)
         {
             if (parameters.TryGetValue($"threshold_{i}", out var threshold))
             {
@@ -328,7 +328,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
     {
         var path = Path.Combine(_basePath, $"{map.ModelId}_calibration.json");
         var json = JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(path, json, cancellationToken);
+        await File.WriteAllTextAsync(path, json, cancellationToken).ConfigureAwait(false);
         
         lock (_lock)
         {
@@ -346,7 +346,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
 
         try
         {
-            var content = await File.ReadAllTextAsync(pointsPath, cancellationToken);
+            var content = await File.ReadAllTextAsync(pointsPath, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize<List<CalibrationPoint>>(content) ?? new List<CalibrationPoint>();
         }
         catch (Exception ex)
@@ -375,7 +375,7 @@ public class CalibrationManager : ICalibrationManager, IDisposable
             {
                 try
                 {
-                    await PerformNightlyCalibrationAsync(CancellationToken.None);
+                    await PerformNightlyCalibrationAsync(CancellationToken.None).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {

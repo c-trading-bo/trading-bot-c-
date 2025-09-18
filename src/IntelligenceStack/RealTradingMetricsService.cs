@@ -20,9 +20,9 @@ public class RealTradingMetricsService : BackgroundService
     private readonly TimeSpan _pushInterval = TimeSpan.FromMinutes(1); // Push metrics every minute
     
     // Real trading metrics tracking
-    private decimal _dailyPnL = 0m;
-    private int _totalPositions = 0;
-    private int _totalFills = 0;
+    private decimal _dailyPnL;
+    private int _totalPositions;
+    private int _totalFills;
     private DateTime _lastMetricsPush = DateTime.MinValue;
     private readonly object _metricsLock = new();
     
@@ -52,7 +52,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
                 // Main service loop - metrics are pushed via timer
             }
         }
@@ -154,7 +154,7 @@ public class RealTradingMetricsService : BackgroundService
             }
 
             // Push real metrics to cloud
-            await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics);
+            await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics).ConfigureAwait(false);
             
             _lastMetricsPush = DateTime.UtcNow;
             

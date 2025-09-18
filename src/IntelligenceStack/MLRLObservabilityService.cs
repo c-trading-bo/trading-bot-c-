@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -202,7 +203,7 @@ public class MlrlObservabilityService : IDisposable
             var prometheusGateway = Environment.GetEnvironmentVariable("PROMETHEUS_GATEWAY_URL");
             if (!string.IsNullOrEmpty(prometheusGateway))
             {
-                await ExportToPrometheusAsync(prometheusGateway);
+                await ExportToPrometheusAsync(prometheusGateway).ConfigureAwait(false);
             }
 
             // Export to Grafana Cloud if configured
@@ -210,11 +211,11 @@ public class MlrlObservabilityService : IDisposable
             var grafanaApiKey = Environment.GetEnvironmentVariable("GRAFANA_API_KEY");
             if (!string.IsNullOrEmpty(grafanaUrl) && !string.IsNullOrEmpty(grafanaApiKey))
             {
-                await ExportToGrafanaAsync(grafanaUrl, grafanaApiKey);
+                await ExportToGrafanaAsync(grafanaUrl, grafanaApiKey).ConfigureAwait(false);
             }
 
             // Export to local file for development
-            await ExportToFileAsync();
+            await ExportToFileAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -229,7 +230,7 @@ public class MlrlObservabilityService : IDisposable
             var prometheusFormat = GeneratePrometheusFormat();
             var content = new StringContent(prometheusFormat, Encoding.UTF8, "text/plain");
             
-            var response = await _httpClient.PostAsync($"{gatewayUrl}/metrics/job/trading_bot", content);
+            var response = await _httpClient.PostAsync($"{gatewayUrl}/metrics/job/trading_bot", content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -256,7 +257,7 @@ public class MlrlObservabilityService : IDisposable
             
             _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
             
-            var response = await _httpClient.PostAsync($"{grafanaUrl}/api/push", content);
+            var response = await _httpClient.PostAsync($"{grafanaUrl}/api/push", content).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {
@@ -280,7 +281,7 @@ public class MlrlObservabilityService : IDisposable
             var metricsDir = "data/metrics";
             System.IO.Directory.CreateDirectory(metricsDir);
             
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = System.IO.Path.Combine(metricsDir, $"ml_rl_metrics_{timestamp}.json");
             
             var allMetrics = new Dictionary<string, object>();
@@ -300,7 +301,7 @@ public class MlrlObservabilityService : IDisposable
             }
             
             var json = JsonSerializer.Serialize(allMetrics, new JsonSerializerOptions { WriteIndented = true });
-            await System.IO.File.WriteAllTextAsync(filePath, json);
+            await System.IO.File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             
             _logger.LogDebug("Exported {MetricCount} metrics to {FilePath}", allMetrics.Count, filePath);
         }
@@ -375,7 +376,7 @@ internal class MetricValue
     public double Value { get; set; }
     public MetricType Type { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<double> Samples { get; set; } = new();
+    public List<double> Samples { get; } = new();
 }
 
 /// <summary>

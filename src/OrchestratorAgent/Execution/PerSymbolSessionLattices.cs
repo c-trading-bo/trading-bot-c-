@@ -227,7 +227,7 @@ namespace OrchestratorAgent.Execution
         public double WinProbability => Alpha / (Alpha + Beta);
 
         private double _totalR = 0.0;
-        private int _trades = 0;
+        private int _trades;
         public double AverageR => _trades > 0 ? _totalR / _trades : 0.0;
 
         public void Update(bool isWin, double rMultiple)

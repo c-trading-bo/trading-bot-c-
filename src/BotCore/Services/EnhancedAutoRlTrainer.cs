@@ -50,7 +50,7 @@ namespace BotCore
             try
             {
                 // Check total training samples across all sources
-                var totalSamples = await GetTotalTrainingSampleCountAsync();
+                var totalSamples = await GetTotalTrainingSampleCountAsync().ConfigureAwait(false);
 
                 if (totalSamples < 100)
                 {
@@ -61,7 +61,7 @@ namespace BotCore
                 _logger.LogInformation("[EnhancedAutoRlTrainer] Starting automated training - {SampleCount} samples available", totalSamples);
 
                 // Export latest training data
-                var exportPath = await _trainingDataService.ExportTrainingDataAsync(50);
+                var exportPath = await _trainingDataService.ExportTrainingDataAsync(50).ConfigureAwait(false);
                 if (exportPath == null)
                 {
                     _logger.LogWarning("[EnhancedAutoRlTrainer] Failed to export training data");
@@ -69,14 +69,14 @@ namespace BotCore
                 }
 
                 // Train the model
-                var success = await TrainModelAsync(exportPath);
+                var success = await TrainModelAsync(exportPath).ConfigureAwait(false);
 
                 if (success)
                 {
                     _logger.LogInformation("[EnhancedAutoRlTrainer] ✅ Automated training complete! New model deployed");
 
                     // Cleanup old data
-                    await _trainingDataService.CleanupOldDataAsync(7);
+                    await _trainingDataService.CleanupOldDataAsync(7).ConfigureAwait(false);
                 }
                 else
                 {
@@ -91,10 +91,10 @@ namespace BotCore
 
         private async Task<int> GetTotalTrainingSampleCountAsync()
         {
-            var count = 0;
+            var count;
 
             // Count from enhanced training data service
-            count += await _trainingDataService.GetTrainingSampleCountAsync();
+            count += await _trainingDataService.GetTrainingSampleCountAsync().ConfigureAwait(false);
 
             // Count from traditional MultiStrategyRlCollector
             count += MultiStrategyRlCollector.GetTotalTrainingSampleCount();
@@ -105,7 +105,7 @@ namespace BotCore
                 var emergencyFiles = Directory.GetFiles(_dataDir, "emergency_training_*.jsonl");
                 foreach (var file in emergencyFiles)
                 {
-                    var lines = await File.ReadAllLinesAsync(file);
+                    var lines = await File.ReadAllLinesAsync(file).ConfigureAwait(false);
                     count += lines.Length;
                 }
             }
@@ -178,7 +178,7 @@ namespace BotCore
                 process.BeginErrorReadLine();
 
                 // Wait for training to complete (with timeout)
-                var completed = await Task.Run(() => process.WaitForExit(600000)); // 10 minutes timeout
+                var completed = await Task.Run(() => process.WaitForExit(600000)).ConfigureAwait(false); // 10 minutes timeout
 
                 if (!completed)
                 {

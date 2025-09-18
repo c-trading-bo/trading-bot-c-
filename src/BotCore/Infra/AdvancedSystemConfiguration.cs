@@ -59,7 +59,7 @@ public static class AdvancedSystemConfiguration
         var memoryManager = serviceProvider.GetService<IMLMemoryManager>();
         if (memoryManager != null)
         {
-            await memoryManager.InitializeMemoryManagementAsync();
+            await memoryManager.InitializeMemoryManagementAsync().ConfigureAwait(false);
             logger.LogInformation("[Advanced-System] ML memory management initialized");
         }
         
@@ -67,7 +67,7 @@ public static class AdvancedSystemConfiguration
         var dataFeedManager = serviceProvider.GetService<RedundantDataFeedManager>();
         if (dataFeedManager != null)
         {
-            await dataFeedManager.InitializeDataFeedsAsync();
+            await dataFeedManager.InitializeDataFeedsAsync().ConfigureAwait(false);
             logger.LogInformation("[Advanced-System] Redundant data feeds initialized");
         }
         
@@ -75,7 +75,7 @@ public static class AdvancedSystemConfiguration
         var economicEventManager = serviceProvider.GetService<IEconomicEventManager>();
         if (economicEventManager != null)
         {
-            await economicEventManager.InitializeAsync();
+            await economicEventManager.InitializeAsync().ConfigureAwait(false);
             logger.LogInformation("[Advanced-System] Economic event management initialized");
         }
         

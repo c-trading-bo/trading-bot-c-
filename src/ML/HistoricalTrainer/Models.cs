@@ -51,7 +51,7 @@ public class DatasetInfo
     public int FeatureCount { get; set; }
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
-    public List<string> Symbols { get; set; } = new();
+    public List<string> Symbols { get; } = new();
 }
 
 /// <summary>
@@ -59,8 +59,8 @@ public class DatasetInfo
 /// </summary>
 public class TrainingDataset
 {
-    public List<TrainingSample> Samples { get; set; } = new();
-    public List<string> FeatureNames { get; set; } = new();
+    public List<TrainingSample> Samples { get; } = new();
+    public List<string> FeatureNames { get; } = new();
     public int FeatureCount { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -70,11 +70,11 @@ public class TrainingDataset
 /// </summary>
 public class TrainingSample
 {
-    public Dictionary<string, double> Features { get; set; } = new();
+    public Dictionary<string, double> Features { get; } = new();
     public double Label { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -82,7 +82,7 @@ public class TrainingSample
 /// </summary>
 public class WalkForwardResults
 {
-    public List<TrainedModelResult> FoldResults { get; set; } = new();
+    public List<TrainedModelResult> FoldResults { get; } = new();
     public double AverageAuc { get; set; }
     public int CompletedFolds { get; set; }
     public int TotalFolds { get; set; }
@@ -124,8 +124,8 @@ public class ModelMetadata
     public string Name { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<string> FeatureNames { get; set; } = new();
-    public Dictionary<string, object> Hyperparameters { get; set; } = new();
+    public List<string> FeatureNames { get; } = new();
+    public Dictionary<string, object> Hyperparameters { get; } = new();
     public MLModelMetrics Metrics { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime DeployedAt { get; set; }

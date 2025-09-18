@@ -48,7 +48,7 @@ public class ContractService : IContractService
         try
         {
             // Try available-first approach
-            var contractId = await TryAvailableFirstAsync(symbol, cancellationToken);
+            var contractId = await TryAvailableFirstAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             if (!string.IsNullOrEmpty(contractId))
             {
@@ -68,7 +68,7 @@ public class ContractService : IContractService
 
             // Fallback to search if available returned empty
             _logger.LogWarning("contract: available empty → fallback to search for symbol {Symbol}", symbol);
-            contractId = await TrySearchFallbackAsync(symbol, cancellationToken);
+            contractId = await TrySearchFallbackAsync(symbol, cancellationToken).ConfigureAwait(false);
             
             if (!string.IsNullOrEmpty(contractId))
             {

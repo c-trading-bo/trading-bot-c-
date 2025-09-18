@@ -65,16 +65,16 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
         try
         {
             // Validate timestamp
-            await ValidateTimestampAsync(dataPoint, tracker, report);
+            await ValidateTimestampAsync(dataPoint, tracker, report).ConfigureAwait(false);
             
             // Validate price data
-            await ValidatePriceDataAsync(dataPoint, tracker, report);
+            await ValidatePriceDataAsync(dataPoint, tracker, report).ConfigureAwait(false);
             
             // Validate volume data
-            await ValidateVolumeDataAsync(dataPoint, tracker, report);
+            await ValidateVolumeDataAsync(dataPoint, tracker, report).ConfigureAwait(false);
             
             // Check for data gaps
-            await CheckDataGapsAsync(dataPoint, tracker, report);
+            await CheckDataGapsAsync(dataPoint, tracker, report).ConfigureAwait(false);
             
             // Update tracker
             tracker.UpdateWith(dataPoint);
@@ -223,7 +223,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        return await Task.FromResult(issues);
+        return await Task.FromResult(issues).ConfigureAwait(false);
     }
 
     public async Task<TimeSpan> CheckTimeSynchronizationAsync()
@@ -233,7 +233,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             var systemTime = DateTime.UtcNow;
             
             // Simulate NTP check (in production, use actual NTP client)
-            var ntpTime = await SimulateNtpQueryAsync();
+            var ntpTime = await SimulateNtpQueryAsync().ConfigureAwait(false);
             _timeSkew = systemTime - ntpTime;
             _lastNtpSync = systemTime;
 
@@ -301,7 +301,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
 
                 foreach (var gap in gaps)
                 {
-                    await FillDataGapAsync(symbol, gap, correlationId);
+                    await FillDataGapAsync(symbol, gap, correlationId).ConfigureAwait(false);
                 }
             }
             else
@@ -359,17 +359,17 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             _logger.LogError(ex, "[DATA_QUALITY] Error validating schema [CorrelationId: {CorrelationId}]", correlationId);
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<DataQualityMetrics> GetQualityMetricsAsync(string symbol)
     {
         if (_qualityMetrics.TryGetValue(symbol, out var metrics))
         {
-            return await Task.FromResult(metrics.Clone());
+            return await Task.FromResult(metrics.Clone()).ConfigureAwait(false);
         }
 
-        return await Task.FromResult(new DataQualityMetrics { Symbol = symbol });
+        return await Task.FromResult(new DataQualityMetrics { Symbol = symbol }).ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -377,7 +377,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
         _monitoringTimer.Change(TimeSpan.Zero, _config.MonitoringInterval);
         _ntpSyncTimer.Change(TimeSpan.Zero, _config.NtpSyncInterval);
         _logger.LogInformation("[DATA_QUALITY] Started monitoring with interval: {Interval}", _config.MonitoringInterval);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
@@ -385,7 +385,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
         _monitoringTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _ntpSyncTimer.Change(Timeout.Infinite, Timeout.Infinite);
         _logger.LogInformation("[DATA_QUALITY] Stopped monitoring");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     // Private implementation methods
@@ -422,7 +422,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task ValidatePriceDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
@@ -459,7 +459,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task ValidateVolumeDataAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
@@ -478,7 +478,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             });
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task CheckDataGapsAsync(MarketDataPoint dataPoint, SymbolDataTracker tracker, DataQualityReport report)
@@ -502,7 +502,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void UpdateQualityMetrics(DataQualityMetrics metrics, DataQualityReport report)
@@ -562,7 +562,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
     private async Task<DateTime> SimulateNtpQueryAsync()
     {
         // Simulate NTP query with small random offset
-        await Task.Delay(50); // Simulate network delay
+        await Task.Delay(50).ConfigureAwait(false); // Simulate network delay
         var random = new Random();
         var offsetMs = random.Next(-100, 100); // ±100ms random offset
         return DateTime.UtcNow.AddMilliseconds(offsetMs);
@@ -598,7 +598,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
                 symbol, gap.StartTime, gap.EndTime, gap.Duration.TotalSeconds, correlationId);
 
             // Simulate gap filling (in production, implement actual data retrieval)
-            await Task.Delay(100);
+            await Task.Delay(100).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -616,7 +616,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
                 // Periodic monitoring tasks
                 foreach (var symbol in _symbolTrackers.Keys.ToList())
                 {
-                    await DetectDataDriftAsync(symbol, _config.DriftDetectionPeriod);
+                    await DetectDataDriftAsync(symbol, _config.DriftDetectionPeriod).ConfigureAwait(false);
                 }
             });
         }
@@ -630,7 +630,7 @@ public class DataQualityMonitor : IDataQualityMonitor, IHostedService
     {
         try
         {
-            _ = Task.Run(async () => await CheckTimeSynchronizationAsync());
+            _ = Task.Run(async () => await CheckTimeSynchronizationAsync()).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -681,7 +681,7 @@ public class DataQualityReport
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
-    public List<DataQualityIssue> Issues { get; set; } = new();
+    public List<DataQualityIssue> Issues { get; } = new();
     public bool HasIssues => Issues.Any();
     public int CriticalIssueCount => Issues.Count(i => i.Severity == DataQualitySeverity.Critical);
 }
@@ -694,7 +694,7 @@ public class DataQualityIssue
     public string Symbol { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string CorrelationId { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class DataQualityMetrics

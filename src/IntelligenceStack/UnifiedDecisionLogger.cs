@@ -54,7 +54,7 @@ public class UnifiedDecisionLogger
             var jsonLine = JsonSerializer.Serialize(decision, _jsonOptions);
             
             // Write to file (append mode)
-            await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine);
+            await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine).ConfigureAwait(false);
             
             // Also log to console for immediate visibility
             _logger.LogInformation("[UNIFIED_DECISION] {Symbol} {Strategy} {Regime}: P_final={PFinal:F3} size={Size} action={Action}",
@@ -120,7 +120,7 @@ public class UnifiedDecisionRecord
     public double UcbScore { get; set; }
     
     // Risk Management
-    public Dictionary<string, int> RiskCaps { get; set; } = new();
+    public Dictionary<string, int> RiskCaps { get; } = new();
     public bool RiskGatePassed { get; set; }
     
     // Decision Output
@@ -143,7 +143,7 @@ public class UnifiedDecisionRecord
     public DateTime? FillTime { get; set; }
     
     // Additional data for extensibility
-    public Dictionary<string, object> AdditionalData { get; set; } = new();
+    public Dictionary<string, object> AdditionalData { get; } = new();
 }
 
 /// <summary>

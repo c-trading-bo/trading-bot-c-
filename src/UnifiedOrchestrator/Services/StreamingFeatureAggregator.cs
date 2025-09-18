@@ -50,7 +50,7 @@ namespace UnifiedOrchestrator.Services
         public string Symbol { get; set; } = "";
         public DateTime GeneratedAt { get; set; }
         public MicrostructureFeatures MicrostructureFeatures { get; set; } = new();
-        public Dictionary<TimeSpan, TimeWindowFeatures> TimeWindowFeatures { get; set; } = new();
+        public Dictionary<TimeSpan, TimeWindowFeatures> TimeWindowFeatures { get; } = new();
     }
 
     public class StreamingFeatureAggregator : IDisposable
@@ -96,7 +96,7 @@ namespace UnifiedOrchestrator.Services
                 _lastUpdateTime[tick.Symbol] = DateTime.UtcNow;
 
                 // Generate features
-                var features = await GenerateFeaturesAsync(tick.Symbol, tick.Timestamp, cancellationToken);
+                var features = await GenerateFeaturesAsync(tick.Symbol, tick.Timestamp, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogDebug("Generated features for {Symbol} at {Timestamp}", tick.Symbol, tick.Timestamp);
                 
@@ -123,7 +123,7 @@ namespace UnifiedOrchestrator.Services
             if (latestTick == null)
                 return null;
 
-            return await GenerateFeaturesAsync(symbol, latestTick.Timestamp, CancellationToken.None);
+            return await GenerateFeaturesAsync(symbol, latestTick.Timestamp, CancellationToken.None).ConfigureAwait(false);
         }
 
         public bool HasStaleFeatures()
@@ -171,7 +171,7 @@ namespace UnifiedOrchestrator.Services
                 features.TimeWindowFeatures[window] = windowFeatures;
             }
 
-            await Task.CompletedTask; // For async consistency
+            await Task.CompletedTask.ConfigureAwait(false); // For async consistency
             return features;
         }
 

@@ -11,6 +11,7 @@ using BotCore.Brain;
 using BotCore.Models;
 using BotCore.Risk;
 using BotCore.Strategy;
+using System.Globalization;
 using MarketBar = BotCore.Market.Bar; // Alias to resolve ambiguity
 using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision; // Alias for clarity
 using UnifiedTradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision; // Alias for UnifiedOrchestrator type
@@ -34,12 +35,12 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     private readonly List<DecisionComparison> _recentComparisons = new();
     private readonly object _comparisonLock = new object();
     private DateTime _lastPromotionCheck = DateTime.MinValue;
-    private bool _useInferenceBrainPrimary = false; // Start with UnifiedTradingBrain as primary
+    private bool _useInferenceBrainPrimary; // Start with UnifiedTradingBrain as primary
     
     // Performance tracking
-    private int _totalDecisions = 0;
-    private int _agreementCount = 0;
-    private int _disagreementCount = 0;
+    private int _totalDecisions;
+    private int _agreementCount;
+    private int _disagreementCount;
     private double _agreementRate => _totalDecisions > 0 ? (double)_agreementCount / _totalDecisions : 0.0;
     
     public TradingBrainAdapter(
@@ -68,14 +69,14 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         try
         {
             // Get challenger decision from InferenceBrain (using unified type)
-            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken);
+            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false);
             
             // Convert UnifiedTradingBrain to unified decision format
-            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
+            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false);
             var championDecision = ConvertBrainDecisionToUnifiedDecision(brainDecision, context, "UnifiedTradingBrain");
             
             // Track decision comparison for statistical analysis
-            await TrackUnifiedDecisionComparisonAsync(championDecision, challengerDecision, context);
+            await TrackUnifiedDecisionComparisonAsync(championDecision, challengerDecision, context).ConfigureAwait(false);
             
             // Use primary brain's decision (UnifiedTradingBrain by default, InferenceBrain if promoted)
             var primaryDecision = _useInferenceBrainPrimary ? challengerDecision : championDecision;
@@ -84,13 +85,13 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             // Add adapter metadata to reasoning dictionary
             primaryDecision.Reasoning["AdapterMode"] = _useInferenceBrainPrimary ? "InferenceBrain-Primary" : "UnifiedTradingBrain-Primary";
             primaryDecision.Reasoning["ShadowBrainUsed"] = _useInferenceBrainPrimary ? "UnifiedTradingBrain" : "InferenceBrain";
-            primaryDecision.Reasoning["AgreementRate"] = _agreementRate.ToString("F4");
-            primaryDecision.Reasoning["ProcessingTimeMs"] = stopwatch.Elapsed.TotalMilliseconds.ToString("F2");
+            primaryDecision.Reasoning["AgreementRate"] = _agreementRate.ToString("F4", CultureInfo.InvariantCulture);
+            primaryDecision.Reasoning["ProcessingTimeMs"] = stopwatch.Elapsed.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture);
             
             // Check for promotion opportunity (every hour)
             if (DateTime.UtcNow - _lastPromotionCheck > TimeSpan.FromHours(1))
             {
-                _ = Task.Run(async () => await CheckPromotionOpportunityAsync(), cancellationToken);
+                _ = Task.Run(async () => await CheckPromotionOpportunityAsync(), cancellationToken).ConfigureAwait(false);
                 _lastPromotionCheck = DateTime.UtcNow;
             }
             
@@ -99,7 +100,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 _useInferenceBrainPrimary ? "InferenceBrain" : "UnifiedTradingBrain",
                 primaryDecision.Action,
                 (_agreementRate * 100).ToString("F1"),
-                stopwatch.Elapsed.TotalMilliseconds.ToString("F1"));
+                stopwatch.Elapsed.TotalMilliseconds.ToString("F1", CultureInfo.InvariantCulture));
                 
             return primaryDecision;
         }
@@ -108,7 +109,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             _logger.LogError(ex, "[ADAPTER] Error in decision making, falling back to UnifiedTradingBrain");
             
             // Fallback to UnifiedTradingBrain on any error
-            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
+            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false);
             return ConvertBrainDecisionToUnifiedDecision(fallbackDecision, context, "UnifiedTradingBrain-Fallback");
         }
     }
@@ -150,7 +151,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         
         var riskEngine = new RiskEngine();
         
-        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken);
+        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -174,12 +175,12 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             Reasoning = new Dictionary<string, object>
             {
                 ["Algorithm"] = algorithmName,
-                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["Strategy"] = brainDecision.RecommendedStrategy,
-                ["StrategyConfidence"] = brainDecision.StrategyConfidence.ToString("F4"),
+                ["StrategyConfidence"] = brainDecision.StrategyConfidence.ToString("F4", CultureInfo.InvariantCulture),
                 ["RiskAssessment"] = brainDecision.RiskAssessment,
                 ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
-                ["PriceProbability"] = brainDecision.PriceProbability.ToString("F4"),
+                ["PriceProbability"] = brainDecision.PriceProbability.ToString("F4", CultureInfo.InvariantCulture),
                 ["MarketRegime"] = brainDecision.MarketRegime.ToString()
             }
         };
@@ -234,7 +235,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 ["PPOVersionId"] = interfaceDecision.PPOVersionId,
                 ["UCBVersionId"] = interfaceDecision.UCBVersionId,
                 ["LSTMVersionId"] = interfaceDecision.LSTMVersionId,
-                ["ProcessingTimeMs"] = interfaceDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = interfaceDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["PassedRiskChecks"] = interfaceDecision.PassedRiskChecks.ToString(),
                 ["RiskWarnings"] = string.Join("; ", interfaceDecision.RiskWarnings),
                 ["AlgorithmVersions"] = interfaceDecision.AlgorithmVersions,
@@ -252,7 +253,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     {
         // Determine action based on PriceDirection and OptimalPositionMultiplier
         string actionString = "HOLD";
-        decimal size = 0;
+        decimal size;
         
         if (brainDecision.OptimalPositionMultiplier > 0)
         {
@@ -286,7 +287,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             DecisionMetadata = new Dictionary<string, object>
             {
                 ["Algorithm"] = algorithmName,
-                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
                 ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
                 ["RiskAssessment"] = brainDecision.RiskAssessment,
@@ -304,7 +305,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task TrackUnifiedDecisionComparisonAsync(UnifiedTradingDecision championDecision, UnifiedTradingDecision challengerDecision, TradingContext context)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var comparison = new UnifiedDecisionComparison
         {
@@ -344,7 +345,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task TrackDecisionComparisonAsync(AbstractionsTradingDecision championDecision, AbstractionsTradingDecision challengerDecision, TradingContext context)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var comparison = new DecisionComparison
         {
@@ -372,7 +373,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         }
 
         // Record decision for shadow testing comparison
-        await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision);
+        await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -391,7 +392,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task CheckPromotionOpportunityAsync()
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -399,7 +400,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 return;
 
             // Get shadow test results for promotion evaluation
-            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24));
+            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24)).ConfigureAwait(false);
             
             if (shadowResults.Count < 50) // Need sufficient shadow test data
                 return;
@@ -430,7 +431,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> PromoteToChallengerAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -454,14 +455,14 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> RollbackToChampionAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
             _logger.LogWarning("[ADAPTER] Rollback to UnifiedTradingBrain requested");
             
             // Perform rollback with atomic swap
-            _useInferenceBrainPrimary = false;
+            _useInferenceBrainPrimary;
             
             _logger.LogWarning("[ADAPTER] Rolled back to UnifiedTradingBrain as primary decision maker");
             return true;

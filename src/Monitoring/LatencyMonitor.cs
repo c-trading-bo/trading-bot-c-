@@ -29,8 +29,8 @@ namespace TradingBot.Monitoring
         
         private readonly Queue<LatencyMeasurement> _decisionLatencies = new();
         private readonly Queue<LatencyMeasurement> _orderLatencies = new();
-        private int _consecutiveDecisionViolations = 0;
-        private int _consecutiveOrderViolations = 0;
+        private int _consecutiveDecisionViolations;
+        private int _consecutiveOrderViolations;
         private readonly object _lockObject = new();
 
         public LatencyMonitor(ILogger<LatencyMonitor> logger, IAlertService alertService)
@@ -72,13 +72,13 @@ namespace TradingBot.Monitoring
                     if (_consecutiveDecisionViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Decision Processing", latencyMs, _decisionLatencyThreshold));
-                        _consecutiveDecisionViolations = 0; // Reset to avoid spam
+                            "Decision Processing", latencyMs, _decisionLatencyThreshold)).ConfigureAwait(false);
+                        _consecutiveDecisionViolations; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveDecisionViolations = 0; // Reset on good latency
+                    _consecutiveDecisionViolations; // Reset on good latency
                 }
             }
         }
@@ -108,13 +108,13 @@ namespace TradingBot.Monitoring
                     if (_consecutiveOrderViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Order Processing", latencyMs, _orderLatencyThreshold));
-                        _consecutiveOrderViolations = 0; // Reset to avoid spam
+                            "Order Processing", latencyMs, _orderLatencyThreshold)).ConfigureAwait(false);
+                        _consecutiveOrderViolations; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveOrderViolations = 0; // Reset on good latency
+                    _consecutiveOrderViolations; // Reset on good latency
                 }
             }
         }
@@ -234,7 +234,7 @@ namespace TradingBot.Monitoring
         private readonly LatencyType _type;
         private readonly string? _context;
         private readonly Stopwatch _stopwatch;
-        private bool _stopped = false;
+        private bool _stopped;
 
         public LatencyTracker(LatencyMonitor monitor, LatencyType type, string? context)
         {
@@ -264,7 +264,7 @@ namespace TradingBot.Monitoring
             _stopped = true;
         }
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         public void Dispose()
         {

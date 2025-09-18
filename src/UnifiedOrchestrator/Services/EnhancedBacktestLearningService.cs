@@ -71,7 +71,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         _logger.LogInformation("[ENHANCED-BACKTEST] Starting enhanced backtest learning service with UnifiedTradingBrain");
         
         // Wait for system initialization
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -87,17 +87,17 @@ public class EnhancedBacktestLearningService : BackgroundService
                 if (schedulingRecommendation.LearningIntensity == "INTENSIVE" || 
                     schedulingRecommendation.LearningIntensity == "LIGHT")
                 {
-                    await RunUnifiedBacktestLearningAsync(schedulingRecommendation, stoppingToken);
+                    await RunUnifiedBacktestLearningAsync(schedulingRecommendation, stoppingToken).ConfigureAwait(false);
                 }
                 
                 // Use the exact interval recommended by UnifiedTradingBrain
                 var delayMinutes = schedulingRecommendation.HistoricalLearningIntervalMinutes;
-                await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ENHANCED-BACKTEST] Error in backtest learning service");
-                await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken).ConfigureAwait(false);
             }
         }
     }
@@ -117,7 +117,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         {
             // 🚀 CRITICAL FIX: Run actual strategy implementations from TuningRunner
             // This ensures all 4 strategies (S2, S3, S6, S11) actually execute and learn
-            await RunActualStrategyImplementationsAsync(scheduling, cancellationToken);
+            await RunActualStrategyImplementationsAsync(scheduling, cancellationToken).ConfigureAwait(false);
             
             // ALSO run unified brain learning (for cross-strategy intelligence)
             var backtestConfigs = GenerateUnifiedBacktestConfigs(scheduling);
@@ -133,10 +133,10 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             var tasks = backtestConfigs.Select(async config =>
             {
-                await semaphore.WaitAsync(cancellationToken);
+                await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 try
                 {
-                    return await RunUnifiedHistoricalBacktestAsync(config, cancellationToken);
+                    return await RunUnifiedHistoricalBacktestAsync(config, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -144,10 +144,10 @@ public class EnhancedBacktestLearningService : BackgroundService
                 }
             });
 
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             
             // Feed results back to UnifiedTradingBrain for continuous learning
-            await FeedResultsToUnifiedBrainAsync(results, cancellationToken);
+            await FeedResultsToUnifiedBrainAsync(results, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("[UNIFIED-BACKTEST] Completed unified backtest learning session - processed {Count} backtests across {Strategies} strategies", 
                 results.Length, string.Join(",", scheduling.RecommendedStrategies));
@@ -181,7 +181,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         {
             try
             {
-                var (jwt, _) = await _authService.GetFreshJwtAsync(cancellationToken);
+                var (jwt, _) = await _authService.GetFreshJwtAsync(cancellationToken).ConfigureAwait(false);
                 return jwt;
             }
             catch (Exception ex)
@@ -196,22 +196,22 @@ public class EnhancedBacktestLearningService : BackgroundService
         {
             // Run S2 strategy (VWAP Mean Reversion) on ES
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S2 (VWAP Mean Reversion) strategy backtesting on ES...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken);
-            await Task.Delay(2000, cancellationToken); // Brief pause between strategies
+            await OrchestratorAgent.Execution.TuningRunner.RunS2SummaryAsync(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(2000, cancellationToken).ConfigureAwait(false); // Brief pause between strategies
 
             // Run S3 strategy (Bollinger Compression) on NQ  
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S3 (Bollinger Compression) strategy backtesting on NQ...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken);
-            await Task.Delay(2000, cancellationToken);
+            await OrchestratorAgent.Execution.TuningRunner.RunS3SummaryAsync(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
             // Run S6 strategy (Momentum) on ES
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S6 (Momentum) strategy backtesting on ES...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS6Async(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken);
-            await Task.Delay(2000, cancellationToken);
+            await OrchestratorAgent.Execution.TuningRunner.RunS6Async(_httpClient, getJwt, esContractId, "ES", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
+            await Task.Delay(2000, cancellationToken).ConfigureAwait(false);
 
             // Run S11 strategy (Exhaustion/Specialized) on NQ
             _logger.LogInformation("🔍 [STRATEGY-EXECUTION] Running S11 (Exhaustion/Specialized) strategy backtesting on NQ...");
-            await OrchestratorAgent.Execution.TuningRunner.RunS11Async(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken);
+            await OrchestratorAgent.Execution.TuningRunner.RunS11Async(_httpClient, getJwt, nqContractId, "NQ", startDate, endDate, _logger, cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("✅ [STRATEGY-EXECUTION] ALL 4 ML strategies executed successfully - S2, S3, S6, S11 now have real trade data and learning");
         }
@@ -295,7 +295,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             _replayContexts[backtestId] = replayContext;
 
             // Load historical data with identical formatting as live trading
-            var historicalBars = await LoadHistoricalBarsAsync(config, cancellationToken);
+            var historicalBars = await LoadHistoricalBarsAsync(config, cancellationToken).ConfigureAwait(false);
             if (!historicalBars.Any())
             {
                 throw new InvalidOperationException($"No historical data found for {config.Symbol} in period {config.StartDate} to {config.EndDate}");
@@ -329,7 +329,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                     break;
                     
                 var dailyBars = dayGroup.OrderBy(b => b.Start).ToList();
-                await ProcessDailyBarsWithUnifiedBrainAsync(dailyBars, backtestState, replayContext, cancellationToken);
+                await ProcessDailyBarsWithUnifiedBrainAsync(dailyBars, backtestState, replayContext, cancellationToken).ConfigureAwait(false);
                 
                 replayContext.ProcessedBars += dailyBars.Count;
                 
@@ -403,7 +403,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         UnifiedHistoricalReplayContext replayContext,
         CancellationToken cancellationToken)
     {
-        for (int i = 0; i < dailyBars.Count; i++)
+        for (int i; i < dailyBars.Count; i++)
         {
             if (cancellationToken.IsCancellationRequested)
                 break;
@@ -429,7 +429,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                 
                 // 🚀 CRITICAL: Use SAME UnifiedTradingBrain as live trading
                 var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
-                    replayContext.Symbol, env, levels, historicalBars, riskEngine, cancellationToken);
+                    replayContext.Symbol, env, levels, historicalBars, riskEngine, cancellationToken).ConfigureAwait(false);
                 
                 // Record the decision for learning
                 var historicalDecision = new UnifiedHistoricalDecision
@@ -464,7 +464,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                 // Execute trades if brain recommends them
                 if (brainDecision.RecommendedStrategy != "HOLD" && brainDecision.OptimalPositionMultiplier != 0)
                 {
-                    await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState, cancellationToken);
+                    await ExecuteHistoricalTradeAsync(historicalDecision, currentBar.Close, backtestState, cancellationToken).ConfigureAwait(false);
                 }
                 
                 // Feed result back to brain for continuous learning (simulate trade outcome)
@@ -482,7 +482,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                         priceMove,
                         wasCorrect,
                         TimeSpan.FromMinutes(10),
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -555,7 +555,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             };
             
             var brainDecision = await _unifiedBrain.MakeIntelligentDecisionAsync(
-                tradingContext.Symbol, env, levels, bars, riskEngine, cancellationToken);
+                tradingContext.Symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false);
             
             var historicalDecision = new HistoricalDecision
             {
@@ -626,7 +626,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             if (File.Exists(dataFile))
             {
-                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken);
+                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
                 var historicalData = JsonSerializer.Deserialize<List<HistoricalDataPoint>>(jsonData);
                 if (historicalData != null && historicalData.Any())
                 {
@@ -663,7 +663,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             // This would be the real implementation:
             // var topstepXClient = GetService<ITopstepXClient>();
-            // var historicalData = await topstepXClient.GetHistoricalDataAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken);
+            // var historicalData = await topstepXClient.GetHistoricalDataAsync(config.Symbol, config.StartDate, config.EndDate, cancellationToken).ConfigureAwait(false);
             // return ConvertToHistoricalDataPoints(historicalData);
             
             _logger.LogWarning("[HISTORICAL-DATA] Historical data service not available for {Symbol}. Backtesting will be skipped.", config.Symbol);
@@ -685,7 +685,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         HistoricalDataPoint dataPoint,
         CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var previousPosition = state.Position;
         var positionChange = decision.Size - previousPosition;
@@ -761,7 +761,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         }
         else
         {
-            state.UnrealizedPnL = 0;
+            state.UnrealizedPnL;
         }
         
         // Update capital to reflect current total value
@@ -776,14 +776,14 @@ public class EnhancedBacktestLearningService : BackgroundService
         HistoricalReplayContext context,
         CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var totalPnL = state.RealizedPnL + state.UnrealizedPnL;
         var totalReturn = state.StartingCapital > 0 ? totalPnL / state.StartingCapital : 0;
         
         // Calculate REAL performance metrics from actual trading decisions and results
         var returns = new List<decimal>();
-        var cumulativePnL = 0m;
+        var cumulativePnL;
         var dailyReturns = new List<decimal>();
         
         // Group decisions by day to calculate daily returns
@@ -794,7 +794,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         foreach (var dayGroup in decisionsByDay)
         {
-            var dayPnL = 0m;
+            var dayPnL;
             
             foreach (var decision in dayGroup)
             {
@@ -898,7 +898,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         
         var endDate = DateTime.UtcNow.Date.AddDays(-1); // Yesterday
         
-        for (int i = 0; i < configCount; i++)
+        for (int i; i < configCount; i++)
         {
             var daysBack = 30 + (i * 30); // 30, 60, 90, etc. days
             var startDate = endDate.AddDays(-daysBack);
@@ -919,7 +919,7 @@ public class EnhancedBacktestLearningService : BackgroundService
 
     private async Task AnalyzeBacktestResultsAsync(BacktestResult[] results, TrainingIntensity intensity, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         if (!results.Any())
         {
@@ -949,12 +949,12 @@ public class EnhancedBacktestLearningService : BackgroundService
                 bestResult.SharpeRatio, bestResult.TotalReturn, bestResult.TotalTrades, bestResult.MaxDrawdown);
             
             // Extract and analyze decision patterns from the best result
-            var patternAnalysis = await AnalyzeSuccessfulPatternsAsync(bestResult, cancellationToken);
+            var patternAnalysis = await AnalyzeSuccessfulPatternsAsync(bestResult, cancellationToken).ConfigureAwait(false);
             
             // Trigger enhanced learning if performance exceeds thresholds
             if (bestResult.SharpeRatio > 1.5m || (bestResult.SharpeRatio > 1.0m && bestResult.MaxDrawdown > -0.10m))
             {
-                await TriggerEnhancedLearningAsync(bestResult, patternAnalysis, cancellationToken);
+                await TriggerEnhancedLearningAsync(bestResult, patternAnalysis, cancellationToken).ConfigureAwait(false);
             }
         }
         
@@ -963,7 +963,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         if (failedResults.Any())
         {
             _logger.LogWarning("[ENHANCED-BACKTEST] Analyzing {FailedCount} failed backtests for risk patterns", failedResults.Length);
-            await AnalyzeFailurePatternsAsync(failedResults, cancellationToken);
+            await AnalyzeFailurePatternsAsync(failedResults, cancellationToken).ConfigureAwait(false);
         }
         
         // Store results for future analysis
@@ -984,7 +984,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<Dictionary<string, object>> AnalyzeSuccessfulPatternsAsync(BacktestResult result, CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var patterns = new Dictionary<string, object>
         {
@@ -1022,7 +1022,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<Dictionary<string, object>> AnalyzeFailurePatternsAsync(BacktestResult[] failedResults, CancellationToken cancellationToken)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var patterns = new Dictionary<string, object>();
         
@@ -1069,7 +1069,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                     ["trade_frequency_weight"] = Math.Min(1.2, (double)bestResult.TotalTrades / 100.0)
                 };
                 
-                await learningService.UpdateWeightsAsync("backtest_success", successWeights, cancellationToken);
+                await learningService.UpdateWeightsAsync("backtest_success", successWeights, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("[ENHANCED-LEARNING] Updated model weights based on successful patterns");
             }
             else
@@ -1203,7 +1203,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task<List<BotCore.Models.Bar>> LoadHistoricalBarsAsync(UnifiedBacktestConfig config, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -1216,7 +1216,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             if (File.Exists(dataFile))
             {
-                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken);
+                var jsonData = await File.ReadAllTextAsync(dataFile, cancellationToken).ConfigureAwait(false);
                 var historicalBars = JsonSerializer.Deserialize<List<BotCore.Models.Bar>>(jsonData);
                 if (historicalBars != null && historicalBars.Any())
                 {
@@ -1253,7 +1253,7 @@ public class EnhancedBacktestLearningService : BackgroundService
             
             // This would be the real implementation:
             // var topstepXClient = GetService<ITopstepXClient>();
-            // var historicalBars = await topstepXClient.GetHistoricalBarsAsync(config.Symbol, config.StartDate, config.EndDate, TimeFrame.OneMinute, cancellationToken);
+            // var historicalBars = await topstepXClient.GetHistoricalBarsAsync(config.Symbol, config.StartDate, config.EndDate, TimeFrame.OneMinute, cancellationToken).ConfigureAwait(false);
             // return ConvertToBotCoreBars(historicalBars);
             
             _logger.LogWarning("[UNIFIED-BACKTEST] Historical bars service not available for {Symbol}. Unified backtesting will be skipped.", config.Symbol);
@@ -1371,7 +1371,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         UnifiedBacktestState state,
         CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior for proper execution simulation
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior for proper execution simulation
         
         // Real-time execution simulation with market microstructure
         var marketImpact = CalculateMarketImpact(decision, state);
@@ -1389,7 +1389,7 @@ public class EnhancedBacktestLearningService : BackgroundService
         var tradeValue = tradeSize * executionPrice;
         
         // Calculate PnL for position changes
-        var pnl = 0m;
+        var pnl;
         if (decision.Action == "BUY")
         {
             pnl = (state.Position < 0) ? Math.Abs(state.Position) * (state.AverageEntryPrice - executionPrice) : 0;
@@ -1427,7 +1427,7 @@ public class EnhancedBacktestLearningService : BackgroundService
     /// </summary>
     private async Task FeedResultsToUnifiedBrainAsync(UnifiedBacktestResult[] results, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         _logger.LogInformation("[UNIFIED-BACKTEST] Feeding {Count} backtest results to UnifiedTradingBrain for learning", results.Length);
         
@@ -1467,7 +1467,7 @@ public class EnhancedBacktestLearningService : BackgroundService
                     Timestamp = DateTime.UtcNow
                 };
 
-                await trainingService.TrainChallengerAsync(trainingRequest, cancellationToken);
+                await trainingService.TrainChallengerAsync(trainingRequest, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("[CHALLENGER-TRAINING] Challenger training request submitted successfully");
             }
             else
@@ -1534,9 +1534,9 @@ public class EnhancedBacktestLearningService : BackgroundService
     {
         if (!returns.Any()) return 0;
         
-        var peak = 0m;
-        var maxDrawdown = 0m;
-        var cumulative = 0m;
+        var peak;
+        var maxDrawdown;
+        var cumulative;
         
         foreach (var ret in returns)
         {
@@ -1757,7 +1757,7 @@ public class BacktestState
     public int TotalTrades { get; set; }
     public int WinningTrades { get; set; }
     public int LosingTrades { get; set; }
-    public List<HistoricalDecision> Decisions { get; set; } = new();
+    public List<HistoricalDecision> Decisions { get; } = new();
 }
 
 /// <summary>
@@ -1774,10 +1774,10 @@ public class HistoricalDecision
     public string Strategy { get; set; } = string.Empty;
     
     // Brain attribution
-    public Dictionary<string, string> AlgorithmVersions { get; set; } = new();
+    public Dictionary<string, string> AlgorithmVersions { get; } = new();
     public decimal ProcessingTimeMs { get; set; }
     public bool PassedRiskChecks { get; set; }
-    public List<string> RiskWarnings { get; set; } = new();
+    public List<string> RiskWarnings { get; } = new();
     
     // Backtest context
     public string BacktestId { get; set; } = string.Empty;

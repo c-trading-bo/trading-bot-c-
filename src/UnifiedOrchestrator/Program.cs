@@ -57,7 +57,7 @@ public class Program
         // Check for production demonstration command
         if (args.Length > 0 && args[0].Equals("--production-demo", StringComparison.OrdinalIgnoreCase))
         {
-            await RunProductionDemonstrationAsync(args);
+            await RunProductionDemonstrationAsync(args).ConfigureAwait(false);
             return;
         }
         
@@ -90,7 +90,7 @@ public class Program
             // Note: DisplayStartupInfo() temporarily disabled during build phase
             
             // Run the unified orchestrator
-            await host.RunAsync();
+            await host.RunAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -146,7 +146,7 @@ Artifacts will be saved to: artifacts/production-demo/
             var demoRunner = host.Services.GetRequiredService<ProductionDemonstrationRunner>();
             
             // Run complete demonstration
-            var result = await demoRunner.RunCompleteProductionDemoAsync(CancellationToken.None);
+            var result = await demoRunner.RunCompleteProductionDemoAsync(CancellationToken.None).ConfigureAwait(false);
             
             if (result.Success)
             {
@@ -633,7 +633,7 @@ Stack Trace:
         services.AddSingleton<Func<Task<string?>>>(serviceProvider =>
         {
             var tokenProvider = serviceProvider.GetRequiredService<ITokenProvider>();
-            return async () => await tokenProvider.GetTokenAsync();
+            return async () => await tokenProvider.GetTokenAsync().ConfigureAwait(false);
         });
 
         // NOTE: AutoTopstepXLoginService registration disabled due to type resolution issues

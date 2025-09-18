@@ -34,7 +34,7 @@ namespace TopstepX.Bot.Core.Services
             public decimal UnrealizedPnL { get; set; }
             public decimal RealizedPnL { get; set; }
             public DateTime LastUpdate { get; set; }
-            public List<Fill> Fills { get; set; } = new();
+            public List<Fill> Fills { get; } = new();
             public decimal MarketValue { get; set; }
             public decimal DailyPnL { get; set; }
         }
@@ -129,7 +129,7 @@ namespace TopstepX.Bot.Core.Services
                     symbol, fillQuantity, fillPrice, position.NetQuantity);
                 
                 // Check risk limits (outside lock)
-                await CheckRiskLimitsAsync(position);
+                await CheckRiskLimitsAsync(position).ConfigureAwait(false);
                 
                 // Fire position update event
                 PositionUpdated?.Invoke(this, new PositionUpdateEventArgs { Position = position });
@@ -169,7 +169,7 @@ namespace TopstepX.Bot.Core.Services
                 // Position closed - realize P&L
                 var realizedPnL = (fill.Price - oldAvgPrice) * Math.Abs(fill.Quantity);
                 position.RealizedPnL += realizedPnL;
-                position.AveragePrice = 0;
+                position.AveragePrice;
             }
             
             position.LastUpdate = DateTime.UtcNow;
@@ -206,7 +206,7 @@ namespace TopstepX.Bot.Core.Services
             }
             
             // Check overall account risk
-            await CheckAccountRiskAsync();
+            await CheckAccountRiskAsync().ConfigureAwait(false);
         }
         
         private Task CheckRiskLimitsAsync(Position position)

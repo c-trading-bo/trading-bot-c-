@@ -34,7 +34,7 @@ public class EvExecutionRouter : IExecutionRouter
         try
         {
             var intent = CreateTradeIntent(signal, marketContext);
-            var recommendation = await _microstructureAnalyzer.GetExecutionRecommendationAsync(intent, null, ct);
+            var recommendation = await _microstructureAnalyzer.GetExecutionRecommendationAsync(intent, null, ct).ConfigureAwait(false);
 
             var decision = new ExecutionDecision
             {
@@ -84,7 +84,7 @@ public class EvExecutionRouter : IExecutionRouter
         ExecutionResult actualResult,
         CancellationToken ct = default)
     {
-        await _costTracker.RecordExecutionAsync(signalId, originalDecision, actualResult, ct);
+        await _costTracker.RecordExecutionAsync(signalId, originalDecision, actualResult, ct).ConfigureAwait(false);
 
         var predictionError = Math.Abs(originalDecision.ExpectedSlippageBps - actualResult.ActualSlippageBps);
 
@@ -96,7 +96,7 @@ public class EvExecutionRouter : IExecutionRouter
         // Learn from significant prediction errors
         if (predictionError > 3m)
         {
-            await _costTracker.AnalyzePredictionErrorAsync(signalId, originalDecision, actualResult, ct);
+            await _costTracker.AnalyzePredictionErrorAsync(signalId, originalDecision, actualResult, ct).ConfigureAwait(false);
         }
     }
 
@@ -279,5 +279,6 @@ public record ExecutionStatistics
     public decimal SlippagePredictionError { get; init; }
     public decimal FillRate { get; init; }
     public decimal CostSavingsBps { get; init; } // vs always using market orders
-    public Dictionary<OrderType, decimal> CostByOrderType { get; init; } = new();
+    public Dictionary<OrderType, decimal> CostByOrderType { get;
+using System.Globalization; init; } = new();
 }

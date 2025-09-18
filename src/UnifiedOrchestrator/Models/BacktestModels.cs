@@ -20,7 +20,7 @@ public class UnifiedBacktestConfig
     public bool UseUnifiedBrain { get; set; } = true;
     public bool LearningMode { get; set; } = true;
     public string ConfigId { get; set; } = Guid.NewGuid().ToString();
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
 }
 
 /// <summary>
@@ -34,7 +34,7 @@ public class BacktestConfig
     public decimal InitialCapital { get; set; } = 100000m;
     public string DataSource { get; set; } = "historical";
     public TrainingIntensity TrainingIntensity { get; set; } = TrainingIntensity.Medium;
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
     
     // Required properties per production specification
     public decimal MaxDrawdown { get; set; } = 0.10m; // 10% max drawdown default
@@ -67,8 +67,8 @@ public class UnifiedBacktestResult
     public decimal SortinoRatio { get; set; }
     public decimal VaR95 { get; set; }
     public decimal CVaR { get; set; }
-    public List<UnifiedHistoricalDecision> Decisions { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public List<UnifiedHistoricalDecision> Decisions { get; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -99,7 +99,7 @@ public class BacktestResult
     public int BrainDecisionCount { get; set; }
     public double AverageProcessingTimeMs { get; set; }
     public int RiskCheckFailures { get; set; }
-    public Dictionary<string, object> AlgorithmUsage { get; set; } = new();
+    public Dictionary<string, object> AlgorithmUsage { get; } = new();
     
     // Additional performance metrics added for production readiness
     public decimal WinRate { get; set; }
@@ -126,7 +126,7 @@ public class UnifiedBacktestState
     public decimal AverageEntryPrice { get; set; }
     public string Strategy { get; set; } = string.Empty;
     public string Symbol { get; set; } = string.Empty;
-    public List<UnifiedHistoricalDecision> UnifiedDecisions { get; set; } = new();
+    public List<UnifiedHistoricalDecision> UnifiedDecisions { get; } = new();
 }
 
 /// <summary>
@@ -145,7 +145,7 @@ public class UnifiedHistoricalReplayContext
     public int TotalBars { get; set; }
     public int ProcessedBars { get; set; }
     public bool IsActive { get; set; }
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 /// <summary>
@@ -163,7 +163,7 @@ public class UnifiedHistoricalDecision
     public string Reasoning { get; set; } = string.Empty;
     public AbstractionsTradingDecision Decision { get; set; } = new();
     public TradingBot.UnifiedOrchestrator.Models.TradingContext MarketContext { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -264,7 +264,7 @@ public class UnifiedBacktestConfigEnhanced
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
     public decimal InitialCapital { get; set; } = 100000m;
-    public Dictionary<string, object> Parameters { get; set; } = new();
+    public Dictionary<string, object> Parameters { get; } = new();
 }
 
 /// <summary>
@@ -290,7 +290,7 @@ public class UnifiedHistoricalReplayContextEnhanced
     public int TotalBars { get; set; }
     public int ProcessedBars { get; set; }
     public bool IsActive { get; set; }
-    public Dictionary<string, object> Context { get; set; } = new();
+    public Dictionary<string, object> Context { get; } = new();
 }
 
 /// <summary>
@@ -305,5 +305,5 @@ public class UnifiedHistoricalDecisionEnhanced
     public string Strategy { get; set; } = string.Empty;
     public decimal Confidence { get; set; }
     public string Reasoning { get; set; } = string.Empty;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }

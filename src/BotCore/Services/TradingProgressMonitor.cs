@@ -66,8 +66,8 @@ namespace BotCore.Services
                 var hour = result.EntryTime.Hour;
                 if (!metrics.TradesByHour.ContainsKey(hour))
                 {
-                    metrics.TradesByHour[hour] = 0;
-                    metrics.WinsByHour[hour] = 0;
+                    metrics.TradesByHour[hour];
+                    metrics.WinsByHour[hour];
                 }
 
                 metrics.TradesByHour[hour]++;
@@ -109,7 +109,7 @@ namespace BotCore.Services
                 // Log significant trades with structured data (fire and forget)
                 if (Math.Abs(result.PnL) > 100 || metrics.TotalTrades % 10 == 0)
                 {
-                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot));
+                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot)).ConfigureAwait(false);
                 }
             }
         }
@@ -162,7 +162,7 @@ namespace BotCore.Services
 
             if (_tradingLogger != null)
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Progress Report", progressData);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Progress Report", progressData).ConfigureAwait(false);
             }
         }
 
@@ -187,7 +187,7 @@ namespace BotCore.Services
 
             if (_tradingLogger != null)
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Strategy Progress", progressData);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Strategy Progress", progressData).ConfigureAwait(false);
             }
         }
 
@@ -308,9 +308,9 @@ namespace BotCore.Services
         public int TotalTrades { get; set; }
         public int WinningTrades { get; set; }
         public double WinRate => TotalTrades > 0 ? (double)WinningTrades / TotalTrades : 0;
-        public Dictionary<int, int> TradesByHour { get; set; } = new();
-        public Dictionary<int, int> WinsByHour { get; set; } = new();
-        public Dictionary<int, double> WinRateByHour { get; set; } = new();
+        public Dictionary<int, int> TradesByHour { get; } = new();
+        public Dictionary<int, int> WinsByHour { get; } = new();
+        public Dictionary<int, double> WinRateByHour { get; } = new();
         public double TotalPnL { get; set; }
         public double AveragePnL => TotalTrades > 0 ? TotalPnL / TotalTrades : 0;
         public double AverageWin { get; set; }

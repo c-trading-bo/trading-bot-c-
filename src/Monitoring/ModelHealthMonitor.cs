@@ -109,19 +109,19 @@ namespace TradingBot.Monitoring
                 // Check health conditions
                 if (status.ConfidenceDrift > _confidenceDriftThreshold)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add($"Confidence drift ({status.ConfidenceDrift:F3}) exceeds threshold ({_confidenceDriftThreshold})");
                 }
 
                 if (status.AverageBrierScore > _brierScoreThreshold)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add($"Brier score ({status.AverageBrierScore:F3}) exceeds threshold ({_brierScoreThreshold})");
                 }
 
                 if (status.HasFeatureDrift)
                 {
-                    status.IsHealthy = false;
+                    status.IsHealthy;
                     status.HealthIssues.Add("Feature drift detected in one or more features");
                 }
 
@@ -174,7 +174,7 @@ namespace TradingBot.Monitoring
                 await _alertService.SendModelHealthAlertAsync(
                     "Feature Parity Check", 
                     $"Feature parity check failed: {details}",
-                    new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow });
+                    new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow }).ConfigureAwait(false);
                 
                 return false;
             }
@@ -185,7 +185,7 @@ namespace TradingBot.Monitoring
         private void CheckModelHealthCallback(object? state)
         {
             // Fire and forget - don't await to avoid blocking timer
-            _ = Task.Run(async () => await CheckModelHealthAsync());
+            _ = Task.Run(async () => await CheckModelHealthAsync()).ConfigureAwait(false);
         }
 
         private async Task CheckModelHealthAsync()
@@ -197,7 +197,7 @@ namespace TradingBot.Monitoring
                 if (!health.IsHealthy)
                 {
                     var issues = string.Join("; ", health.HealthIssues);
-                    await _alertService.SendModelHealthAlertAsync("Model Health", issues, health);
+                    await _alertService.SendModelHealthAlertAsync("Model Health", issues, health).ConfigureAwait(false);
                     
                     _logger.LogWarning("[MODEL_HEALTH] Health issues detected: {Issues}", issues);
                 }
@@ -246,7 +246,7 @@ namespace TradingBot.Monitoring
             return false;
         }
 
-        private bool _disposed = false;
+        private bool _disposed;
 
         public void Dispose()
         {
@@ -283,6 +283,6 @@ namespace TradingBot.Monitoring
         public double ConfidenceDrift { get; set; }
         public bool HasFeatureDrift { get; set; }
         public bool IsHealthy { get; set; }
-        public List<string> HealthIssues { get; set; } = new();
+        public List<string> HealthIssues { get; } = new();
     }
 }

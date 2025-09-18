@@ -25,7 +25,7 @@ public class CVaRPPO : IDisposable
     private readonly object _trainingLock = new();
     
     // Training state
-    private int _currentEpisode = 0;
+    private int _currentEpisode;
     private double _averageReward = 0.0;
     private double _averageLoss = 0.0;
     private DateTime _lastTrainingTime = DateTime.MinValue;
@@ -39,7 +39,7 @@ public class CVaRPPO : IDisposable
     private readonly CircularBuffer<double> _lossHistory = new(1000);
     private readonly CircularBuffer<double> _cvarHistory = new(1000);
     
-    private bool _disposed = false;
+    private bool _disposed;
 
     public CVaRPPO(
         ILogger<CVaRPPO> logger,
@@ -79,7 +79,7 @@ public class CVaRPPO : IDisposable
             // Check if we have enough experiences
             if (_experienceBuffer.Count < _config.MinExperiencesForTraining)
             {
-                result.Success = false;
+                result.Success;
                 result.ErrorMessage = $"Insufficient experiences: {_experienceBuffer.Count} < {_config.MinExperiencesForTraining}";
                 return result;
             }
@@ -93,7 +93,7 @@ public class CVaRPPO : IDisposable
             
             if (experiences.Count == 0)
             {
-                result.Success = false;
+                result.Success;
                 result.ErrorMessage = "No valid experiences collected";
                 return result;
             }
@@ -107,7 +107,7 @@ public class CVaRPPO : IDisposable
             var totalCVaRLoss = 0.0;
             var totalEntropy = 0.0;
 
-            for (int epoch = 0; epoch < _config.PPOEpochs; epoch++)
+            for (int epoch; epoch < _config.PPOEpochs; epoch++)
             {
                 // Shuffle experiences using cryptographically secure random
                 using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
@@ -118,7 +118,7 @@ public class CVaRPPO : IDisposable
                 }).ToArray();
                 
                 // Mini-batch training
-                for (int i = 0; i < experiences.Count; i += _config.BatchSize)
+                for (int i; i < experiences.Count; i += _config.BatchSize)
                 {
                     var batchIndices = shuffledIndices.Skip(i).Take(_config.BatchSize).ToArray();
                     var batchExperiences = batchIndices.Select(idx => experiences[idx]).ToArray();
@@ -167,7 +167,7 @@ public class CVaRPPO : IDisposable
                 _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
 
             // Save checkpoint if performance improved
-            await SaveCheckpointIfImproved(result, cancellationToken);
+            await SaveCheckpointIfImproved(result, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -286,15 +286,15 @@ public class CVaRPPO : IDisposable
         try
         {
             var version = customVersion ?? GenerateNextVersion();
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var modelPath = Path.Combine(_modelBasePath, $"cvar_ppo_v{version}_{timestamp}");
             
             Directory.CreateDirectory(modelPath);
 
             // Save networks
-            await _policyNetwork.SaveAsync(Path.Combine(modelPath, "policy.json"), cancellationToken);
-            await _valueNetwork.SaveAsync(Path.Combine(modelPath, "value.json"), cancellationToken);
-            await _cvarNetwork.SaveAsync(Path.Combine(modelPath, "cvar.json"), cancellationToken);
+            await _policyNetwork.SaveAsync(Path.Combine(modelPath, "policy.json"), cancellationToken).ConfigureAwait(false);
+            await _valueNetwork.SaveAsync(Path.Combine(modelPath, "value.json"), cancellationToken).ConfigureAwait(false);
+            await _cvarNetwork.SaveAsync(Path.Combine(modelPath, "cvar.json"), cancellationToken).ConfigureAwait(false);
 
             // Save metadata
             var metadata = new ModelMetadata
@@ -314,7 +314,7 @@ public class CVaRPPO : IDisposable
             };
 
             var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Create checkpoint record
             var checkpoint = new ModelCheckpoint
@@ -364,15 +364,15 @@ public class CVaRPPO : IDisposable
                 return false;
             }
 
-            await _policyNetwork.LoadAsync(policyPath, cancellationToken);
-            await _valueNetwork.LoadAsync(valuePath, cancellationToken);
-            await _cvarNetwork.LoadAsync(cvarPath, cancellationToken);
+            await _policyNetwork.LoadAsync(policyPath, cancellationToken).ConfigureAwait(false);
+            await _valueNetwork.LoadAsync(valuePath, cancellationToken).ConfigureAwait(false);
+            await _cvarNetwork.LoadAsync(cvarPath, cancellationToken).ConfigureAwait(false);
 
             // Load metadata if available
             var metadataPath = Path.Combine(modelPath, "metadata.json");
             if (File.Exists(metadataPath))
             {
-                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                 var metadata = JsonSerializer.Deserialize<ModelMetadata>(metadataJson);
                 
                 if (metadata != null)
@@ -462,14 +462,14 @@ public class CVaRPPO : IDisposable
         
         if (advantageStd > 0)
         {
-            for (int i = 0; i < advantages.Length; i++)
+            for (int i; i < advantages.Length; i++)
             {
                 advantages[i] = (advantages[i] - advantageMean) / advantageStd;
             }
         }
         
         // Calculate CVaR targets
-        for (int i = 0; i < experiences.Count; i++)
+        for (int i; i < experiences.Count; i++)
         {
             cvarTargets[i] = CalculateCVaRTarget(experiences, i);
         }
@@ -510,7 +510,7 @@ public class CVaRPPO : IDisposable
         var cvarLoss = 0.0;
         var entropy = 0.0;
         
-        for (int i = 0; i < batch.Length; i++)
+        for (int i; i < batch.Length; i++)
         {
             var experience = batch[i];
             var advantage = advantages[i];
@@ -574,7 +574,7 @@ public class CVaRPPO : IDisposable
         
         var cumulative = 0.0;
         
-        for (int i = 0; i < probabilities.Length; i++)
+        for (int i; i < probabilities.Length; i++)
         {
             cumulative += probabilities[i];
             if (randomValue <= cumulative)
@@ -599,7 +599,7 @@ public class CVaRPPO : IDisposable
         
         if (shouldSave)
         {
-            await SaveModelAsync(null, cancellationToken);
+            await SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("[CVAR_PPO] Checkpoint saved due to performance improvement");
         }
     }
@@ -797,9 +797,9 @@ public class PolicyNetwork : IDisposable
         var limit1 = Math.Sqrt(6.0 / (_stateSize + _hiddenSize));
         var limit2 = Math.Sqrt(6.0 / (_hiddenSize + _actionSize));
         
-        for (int i = 0; i < _stateSize; i++)
+        for (int i; i < _stateSize; i++)
         {
-            for (int j = 0; j < _hiddenSize; j++)
+            for (int j; j < _hiddenSize; j++)
             {
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
@@ -808,9 +808,9 @@ public class PolicyNetwork : IDisposable
             }
         }
         
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
-            for (int j = 0; j < _actionSize; j++)
+            for (int j; j < _actionSize; j++)
             {
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
@@ -824,10 +824,10 @@ public class PolicyNetwork : IDisposable
     {
         // Hidden layer
         var hidden = new double[_hiddenSize];
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
             hidden[i] = _bias1[i];
-            for (int j = 0; j < _stateSize; j++)
+            for (int j; j < _stateSize; j++)
             {
                 hidden[i] += state[j] * _weights1[j, i];
             }
@@ -836,10 +836,10 @@ public class PolicyNetwork : IDisposable
         
         // Output layer
         var output = new double[_actionSize];
-        for (int i = 0; i < _actionSize; i++)
+        for (int i; i < _actionSize; i++)
         {
             output[i] = _bias2[i];
-            for (int j = 0; j < _hiddenSize; j++)
+            for (int j; j < _hiddenSize; j++)
             {
                 output[i] += hidden[j] * _weights2[j, i];
             }
@@ -853,9 +853,9 @@ public class PolicyNetwork : IDisposable
         // Simplified gradient update (in practice, this would be proper backpropagation)
         var gradient = loss * learningRate;
         
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
-            for (int j = 0; j < _actionSize; j++)
+            for (int j; j < _actionSize; j++)
             {
                 _weights2[i, j] -= gradient * 0.001; // Simplified gradient
             }
@@ -917,6 +917,7 @@ public class ValueNetwork : IDisposable
     private void InitializeWeights()
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+using System.Globalization;
         
         _weights1 = new double[_stateSize, _hiddenSize];
         _bias1 = new double[_hiddenSize];
@@ -925,9 +926,9 @@ public class ValueNetwork : IDisposable
         
         var limit = Math.Sqrt(6.0 / (_stateSize + _hiddenSize));
         
-        for (int i = 0; i < _stateSize; i++)
+        for (int i; i < _stateSize; i++)
         {
-            for (int j = 0; j < _hiddenSize; j++)
+            for (int j; j < _hiddenSize; j++)
             {
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
@@ -936,7 +937,7 @@ public class ValueNetwork : IDisposable
             }
         }
         
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
             var bytes = new byte[8];
             rng.GetBytes(bytes);
@@ -949,10 +950,10 @@ public class ValueNetwork : IDisposable
     {
         // Hidden layer
         var hidden = new double[_hiddenSize];
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
             hidden[i] = _bias1[i];
-            for (int j = 0; j < _stateSize; j++)
+            for (int j; j < _stateSize; j++)
             {
                 hidden[i] += state[j] * _weights1[j, i];
             }
@@ -961,7 +962,7 @@ public class ValueNetwork : IDisposable
         
         // Output (single value)
         var output = _bias2;
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
             output += hidden[i] * _weights2[i];
         }
@@ -973,7 +974,7 @@ public class ValueNetwork : IDisposable
     {
         var gradient = loss * learningRate;
         
-        for (int i = 0; i < _hiddenSize; i++)
+        for (int i; i < _hiddenSize; i++)
         {
             _weights2[i] -= gradient * 0.001;
         }

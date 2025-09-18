@@ -17,7 +17,7 @@ namespace OrchestratorAgent.Infra
         {
             if (string.IsNullOrWhiteSpace(_url)) return;
             var payload = new { content = $"`{lvl}` {DateTime.UtcNow:HH:mm:ss} {m}" };
-            try { await _http.PostAsJsonAsync(_url, payload); } catch { }
+            try { await _http.PostAsJsonAsync(_url, payload).ConfigureAwait(false); } catch { }
         }
     }
 }

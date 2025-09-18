@@ -20,7 +20,7 @@ namespace UnifiedOrchestrator.Services
     public class ModelMetadata
     {
         public DateTime TrainingDate { get; set; }
-        public Dictionary<string, object> Hyperparams { get; set; } = new();
+        public Dictionary<string, object> Hyperparams { get; } = new();
         public double ValidationAccuracy { get; set; }
         public string Description { get; set; } = "";
         public string Version { get; set; } = "";
@@ -66,7 +66,7 @@ namespace UnifiedOrchestrator.Services
                 using (var sourceStream = new FileStream(modelPath, FileMode.Open, FileAccess.Read))
                 using (var destinationStream = new FileStream(targetModelPath, FileMode.Create, FileAccess.Write))
                 {
-                    await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+                    await sourceStream.CopyToAsync(destinationStream, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Update metadata
@@ -85,12 +85,12 @@ namespace UnifiedOrchestrator.Services
                 // Save metadata
                 var metadataPath = Path.Combine(modelDir, "metadata.json");
                 var metadataJson = JsonSerializer.Serialize(entry, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken);
+                await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("Registered model {ModelName} with ID {RegistryId}", modelName, registryId);
                 
                 // Cleanup old models if needed
-                await CleanupOldModelsAsync(modelName, cancellationToken);
+                await CleanupOldModelsAsync(modelName, cancellationToken).ConfigureAwait(false);
 
                 return entry;
             }
@@ -121,7 +121,7 @@ namespace UnifiedOrchestrator.Services
                     var metadataPath = Path.Combine(dir, "metadata.json");
                     if (File.Exists(metadataPath))
                     {
-                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                         var entry = JsonSerializer.Deserialize<ModelRegistryEntry>(metadataJson);
                         
                         if (entry != null && entry.RegisteredAt > latestTime)
@@ -164,7 +164,7 @@ namespace UnifiedOrchestrator.Services
                     var metadataPath = Path.Combine(dir, "metadata.json");
                     if (File.Exists(metadataPath))
                     {
-                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+                        var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false);
                         var entry = JsonSerializer.Deserialize<ModelRegistryEntry>(metadataJson);
                         if (entry != null)
                         {

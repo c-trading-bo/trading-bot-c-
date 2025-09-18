@@ -64,7 +64,7 @@ public class StartupValidator : IStartupValidator
             try
             {
                 _logger.LogInformation("[STARTUP] Running test: {TestName}", testName);
-                var passed = await testFunc(cancellationToken);
+                var passed = await testFunc(cancellationToken).ConfigureAwait(false);
                 testStopwatch.Stop();
 
                 result.TestResults[testName] = new TestResult
@@ -140,7 +140,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Brief delay to allow DI container to stabilize during startup
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             
             // Test that all critical services can be resolved
             var criticalServices = new[]
@@ -199,7 +199,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Load schemas
-            var schema = await _featureStore.GetSchemaAsync("test_v1", cancellationToken);
+            var schema = await _featureStore.GetSchemaAsync("test_v1", cancellationToken).ConfigureAwait(false);
             if (schema == null)
             {
                 _logger.LogError("[FEATURES] Failed to load/create test schema");
@@ -219,7 +219,7 @@ public class StartupValidator : IStartupValidator
             sampleFeatures.Features["volume"] = 1000.0;
             sampleFeatures.Features["volatility"] = 0.15;
 
-            var isValid = await _featureStore.ValidateSchemaAsync(sampleFeatures, cancellationToken);
+            var isValid = await _featureStore.ValidateSchemaAsync(sampleFeatures, cancellationToken).ConfigureAwait(false);
             if (!isValid)
             {
                 _logger.LogError("[FEATURES] Sample feature validation failed");
@@ -243,7 +243,7 @@ public class StartupValidator : IStartupValidator
             // Load active artifacts
             try
             {
-                await _modelRegistry.GetModelAsync("test_family", "latest", cancellationToken);
+                await _modelRegistry.GetModelAsync("test_family", "latest", cancellationToken).ConfigureAwait(false);
                 // It's OK if no model exists yet, just test the retrieval mechanism
             }
             catch (FileNotFoundException)
@@ -252,7 +252,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Verify we can compute metrics
-            await _modelRegistry.GetModelMetricsAsync("test_model_123", cancellationToken);
+            await _modelRegistry.GetModelMetricsAsync("test_model_123", cancellationToken).ConfigureAwait(false);
             
             _logger.LogDebug("[REGISTRY] Model registry access validated");
             return true;
@@ -269,7 +269,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Load calibration map
-            var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync("test_model", cancellationToken);
+            var calibrationMap = await _calibrationManager.LoadCalibrationMapAsync("test_model", cancellationToken).ConfigureAwait(false);
             if (calibrationMap == null)
             {
                 _logger.LogError("[CALIBRATION] Failed to load calibration map");
@@ -277,7 +277,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Smoke-predict on a sample row
-            var calibratedConf = await _calibrationManager.CalibrateConfidenceAsync("test_model", 0.75, cancellationToken);
+            var calibratedConf = await _calibrationManager.CalibrateConfidenceAsync("test_model", 0.75, cancellationToken).ConfigureAwait(false);
             if (calibratedConf < 0.0 || calibratedConf > 1.0)
             {
                 _logger.LogError("[CALIBRATION] Invalid calibrated confidence: {Value}", calibratedConf);
@@ -312,7 +312,7 @@ public class StartupValidator : IStartupValidator
             };
 
             // First order should not be duplicate
-            var result1 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken);
+            var result1 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken).ConfigureAwait(false);
             if (result1.IsDuplicate)
             {
                 _logger.LogError("[IDEMPOTENCY] First order incorrectly flagged as duplicate");
@@ -320,10 +320,10 @@ public class StartupValidator : IStartupValidator
             }
 
             // Register the order
-            await _idempotentOrderService.RegisterOrderAsync(result1.OrderKey, "test_order_123", cancellationToken);
+            await _idempotentOrderService.RegisterOrderAsync(result1.OrderKey, "test_order_123", cancellationToken).ConfigureAwait(false);
 
             // Second identical order should be duplicate
-            var result2 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken);
+            var result2 = await _idempotentOrderService.CheckDeduplicationAsync(testOrder, cancellationToken).ConfigureAwait(false);
             if (!result2.IsDuplicate)
             {
                 _logger.LogError("[IDEMPOTENCY] Duplicate order not detected");
@@ -352,7 +352,7 @@ public class StartupValidator : IStartupValidator
             }
 
             // Test that we can check kill switch status
-            await killSwitch.IsKillSwitchActiveAsync();
+            await killSwitch.IsKillSwitchActiveAsync().ConfigureAwait(false);
             
             // Simulate halt test (should complete in < 3 seconds)
             var stopwatch = Stopwatch.StartNew();
@@ -361,7 +361,7 @@ public class StartupValidator : IStartupValidator
             try
             {
                 // Test that the system can respond to kill switch quickly
-                await Task.Delay(100, timeout.Token); // Simulate brief processing
+                await Task.Delay(100, timeout.Token).ConfigureAwait(false); // Simulate brief processing
                 stopwatch.Stop();
                 
                 if (stopwatch.ElapsedMilliseconds >= 3000)
@@ -391,7 +391,7 @@ public class StartupValidator : IStartupValidator
         try
         {
             // Test acquire/release lock
-            var acquired = await _leaderElectionService.TryAcquireLeadershipAsync(cancellationToken);
+            var acquired = await _leaderElectionService.TryAcquireLeadershipAsync(cancellationToken).ConfigureAwait(false);
             if (!acquired)
             {
                 _logger.LogWarning("[LEADER] Could not acquire leadership (may be expected if another instance is running)");
@@ -399,13 +399,13 @@ public class StartupValidator : IStartupValidator
             }
 
             // Test that we can check leadership status
-            await _leaderElectionService.IsLeaderAsync(cancellationToken);
+            await _leaderElectionService.IsLeaderAsync(cancellationToken).ConfigureAwait(false);
             
             if (acquired)
             {
                 // If we acquired leadership, test release
-                await _leaderElectionService.ReleaseLeadershipAsync(cancellationToken);
-                var stillLeader = await _leaderElectionService.IsLeaderAsync(cancellationToken);
+                await _leaderElectionService.ReleaseLeadershipAsync(cancellationToken).ConfigureAwait(false);
+                var stillLeader = await _leaderElectionService.IsLeaderAsync(cancellationToken).ConfigureAwait(false);
                 
                 if (stillLeader)
                 {

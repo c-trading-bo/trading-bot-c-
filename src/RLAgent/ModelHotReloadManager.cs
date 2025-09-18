@@ -22,7 +22,7 @@ public class ModelHotReloadManager : IDisposable
     private readonly FileSystemWatcher _fileWatcher;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly SemaphoreSlim _reloadSemaphore = new(1, 1);
-    private bool _disposed = false;
+    private bool _disposed;
 
     public ModelHotReloadManager(
         ILogger<ModelHotReloadManager> logger,
@@ -58,7 +58,7 @@ public class ModelHotReloadManager : IDisposable
                 return;
 
             // Debounce rapid file system events
-            await Task.Delay(_options.DebounceDelayMs, _cancellationTokenSource.Token);
+            await Task.Delay(_options.DebounceDelayMs, _cancellationTokenSource.Token).ConfigureAwait(false);
 
             if (!File.Exists(e.FullPath))
                 return;
@@ -66,7 +66,7 @@ public class ModelHotReloadManager : IDisposable
             _logger.LogInformation("[HOT_RELOAD] Model file change detected: {ModelPath}", e.FullPath);
             
             // Process hot-reload on background thread
-            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath), _cancellationTokenSource.Token);
+            _ = Task.Run(async () => await ProcessHotReloadAsync(e.FullPath), _cancellationTokenSource.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -81,7 +81,7 @@ public class ModelHotReloadManager : IDisposable
     {
         if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token))
         {
-            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
+            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath).ConfigureAwait(false);
             return;
         }
 
@@ -94,7 +94,7 @@ public class ModelHotReloadManager : IDisposable
                 modelPath, candidateModelName);
 
             // Step 1: Load candidate model
-            var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token);
+            var loadSuccess = await _onnxEnsemble.LoadModelAsync(candidateModelName, modelPath, 1.0, _cancellationTokenSource.Token).ConfigureAwait(false);
             if (!loadSuccess)
             {
                 _logger.LogError("[HOT_RELOAD] Failed to load candidate model: {ModelPath}", modelPath);
@@ -102,11 +102,11 @@ public class ModelHotReloadManager : IDisposable
             }
 
             // Step 2: Run smoke tests
-            var smokeTestPassed = await RunSmokeTestsAsync(candidateModelName);
+            var smokeTestPassed = await RunSmokeTestsAsync(candidateModelName).ConfigureAwait(false);
             if (!smokeTestPassed)
             {
                 _logger.LogError("[HOT_RELOAD] Smoke tests failed for candidate model: {CandidateName}", candidateModelName);
-                await _onnxEnsemble.UnloadModelAsync(candidateModelName);
+                await _onnxEnsemble.UnloadModelAsync(candidateModelName).ConfigureAwait(false);
                 return;
             }
 
@@ -114,7 +114,7 @@ public class ModelHotReloadManager : IDisposable
             var oldModelName = GetCurrentModelName(fileName);
             if (!string.IsNullOrEmpty(oldModelName))
             {
-                await _onnxEnsemble.UnloadModelAsync(oldModelName);
+                await _onnxEnsemble.UnloadModelAsync(oldModelName).ConfigureAwait(false);
                 _logger.LogInformation("[HOT_RELOAD] Unloaded old model: {OldModelName}", oldModelName);
             }
 
@@ -146,11 +146,11 @@ public class ModelHotReloadManager : IDisposable
             // Generate deterministic golden inputs for testing
             var goldenInputs = GenerateGoldenInputs();
             
-            for (int i = 0; i < _options.SmokeTestIterations; i++)
+            for (int i; i < _options.SmokeTestIterations; i++)
             {
                 foreach (var input in goldenInputs)
                 {
-                    var prediction = await _onnxEnsemble.PredictAsync(input, _cancellationTokenSource.Token);
+                    var prediction = await _onnxEnsemble.PredictAsync(input, _cancellationTokenSource.Token).ConfigureAwait(false);
                     
                     // Validate prediction is within expected bounds
                     if (prediction.Confidence < 0.0 || prediction.Confidence > 1.0)
@@ -193,15 +193,16 @@ public class ModelHotReloadManager : IDisposable
         
         // Add deterministic test vectors based on expected model input shape
         // These should be representative of normal trading features
-        for (int i = 0; i < _options.GoldenInputCount; i++)
+        for (int i; i < _options.GoldenInputCount; i++)
         {
             var features = new float[_options.ExpectedFeatureCount];
             
             // Generate deterministic but varied features
             // Use cryptographically secure random for all values in production trading system
             using var rng = RandomNumberGenerator.Create();
+using System.Globalization;
             
-            for (int j = 0; j < features.Length; j++)
+            for (int j; j < features.Length; j++)
             {
                 // Generate normalized features in reasonable trading ranges using secure random
                 var randomBytes = new byte[4];
@@ -237,7 +238,7 @@ public class ModelHotReloadManager : IDisposable
             var registryPath = Path.Combine(_options.WatchDirectory, "model_registry.json");
             var registry = new Dictionary<string, object>
             {
-                ["last_reload"] = DateTime.UtcNow.ToString("O"),
+                ["last_reload"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 ["active_model"] = modelName,
                 ["source_file"] = fileName,
                 ["reload_count"] = GetReloadCount() + 1
@@ -312,5 +313,5 @@ public class ModelHotReloadOptions
     public int SmokeTestIterations { get; set; } = 3;
     public int GoldenInputCount { get; set; } = 5;
     public int ExpectedFeatureCount { get; set; } = 10;
-    public bool FailOnAnomalies { get; set; } = false;
+    public bool FailOnAnomalies { get; set; }
 }

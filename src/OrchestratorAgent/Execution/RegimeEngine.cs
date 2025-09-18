@@ -16,7 +16,7 @@ namespace OrchestratorAgent.Execution
         readonly Queue<double[]> _buf = new();
         readonly int _maxBuf = 2000;
         readonly int _minHoldBars;
-        int _holdCount = 0;
+        int _holdCount;
         Regime _last = Regime.Range;
 
         public RegimeEngine(int minHoldBars = 10)
@@ -26,15 +26,15 @@ namespace OrchestratorAgent.Execution
             _mu = new double[_states][];
             _sigma = new double[_states][];
 
-            for (int i = 0; i < _states; i++)
+            for (int i; i < _states; i++)
             {
                 _mu[i] = new double[3];
                 _sigma[i] = new double[] { 1, 1, 1 };
             }
 
             // Start with a sticky prior
-            for (int i = 0; i < _states; i++)
-                for (int j = 0; j < _states; j++)
+            for (int i; i < _states; i++)
+                for (int j; j < _states; j++)
                     _A[i, j] = i == j ? 0.90 : 0.05;
         }
 
@@ -47,9 +47,9 @@ namespace OrchestratorAgent.Execution
 
             // crude online EM step (moment updates)
             var post = Posterior(x);
-            for (int k = 0; k < _states; k++)
+            for (int k; k < _states; k++)
             {
-                for (int d = 0; d < 3; d++)
+                for (int d; d < 3; d++)
                 {
                     _mu[k][d] = 0.98 * _mu[k][d] + 0.02 * post[k] * x[d];
                     double diff = x[d] - _mu[k][d];
@@ -66,7 +66,7 @@ namespace OrchestratorAgent.Execution
             }
             else
             {
-                _holdCount = 0;
+                _holdCount;
                 _last = r;
             }
             return r;
@@ -75,11 +75,11 @@ namespace OrchestratorAgent.Execution
         double[] Posterior(double[] x)
         {
             double[] p = new double[_states];
-            for (int k = 0; k < _states; k++)
+            for (int k; k < _states; k++)
             {
                 // diag Gaussian likelihood times self-transition weight
                 double like = 1.0;
-                for (int d = 0; d < 3; d++)
+                for (int d; d < 3; d++)
                 {
                     double s = Math.Max(1e-3, _sigma[k][d]);
                     double z = (x[d] - _mu[k][d]) / s;
@@ -93,7 +93,7 @@ namespace OrchestratorAgent.Execution
             if (sum <= 0)
                 return Enumerable.Repeat(1.0 / _states, _states).ToArray();
 
-            for (int k = 0; k < _states; k++)
+            for (int k; k < _states; k++)
                 p[k] /= sum;
             return p;
         }

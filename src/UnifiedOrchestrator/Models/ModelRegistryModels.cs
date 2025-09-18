@@ -66,7 +66,7 @@ public class ModelVersion
     // Model schema information
     public string SchemaVersion { get; set; } = string.Empty;
     public string ModelType { get; set; } = string.Empty; // ONNX, Pickle, Custom
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
     
     // Validation status
     public bool IsValidated { get; set; }
@@ -101,7 +101,7 @@ public class PromotionRecord
     // Context at promotion time
     public bool WasFlat { get; set; }
     public string MarketSession { get; set; } = string.Empty; // PRE_MARKET, OPEN, CLOSE, OVERNIGHT
-    public Dictionary<string, object> ContextData { get; set; } = new();
+    public Dictionary<string, object> ContextData { get; } = new();
 }
 
 /// <summary>
@@ -111,8 +111,8 @@ public class PromotionDecision
 {
     public bool ShouldPromote { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public List<string> ValidationErrors { get; set; } = new();
-    public List<string> RiskConcerns { get; set; } = new();
+    public List<string> ValidationErrors { get; } = new();
+    public List<string> RiskConcerns { get; } = new();
     
     // Statistical validation
     public decimal PValue { get; set; }
@@ -181,6 +181,6 @@ public class PromotionTestReport
     
     // Final assessment
     public bool PassedAllGates { get; set; }
-    public List<string> FailureReasons { get; set; } = new();
+    public List<string> FailureReasons { get; } = new();
     public string RecommendedAction { get; set; } = string.Empty;
 }

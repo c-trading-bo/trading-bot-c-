@@ -24,7 +24,7 @@ namespace TopstepX.Bot.Authentication
         public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
         {
             // IMPORTANT: /api/Auth/loginKey (exact path)
-            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
             {
                 // Use property names exactly as docs show: userName, apiKey
                 Content = new StringContent(
@@ -32,24 +32,24 @@ namespace TopstepX.Bot.Authentication
                     Encoding.UTF8, "application/json")
             };
 
-            using var resp = await _http.SendAsync(req, ct);
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
             {
-                var body = await resp.Content.ReadAsStringAsync(ct);
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 throw new HttpRequestException($"Auth {(int)resp.StatusCode} {resp.StatusCode}: {body}", null, resp.StatusCode);
             }
 
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
             return doc.RootElement.GetProperty("token").GetString()!;
         }
 
         public async Task<string?> ValidateAsync(CancellationToken ct)
         {
-            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
-            using var resp = await _http.SendAsync(req, ct);
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
+            using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) return null;
 
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
             if (doc.RootElement.TryGetProperty("newToken", out var nt)) return nt.GetString();
             return null;
         }
@@ -63,6 +63,8 @@ namespace TopstepX.Bot.Extensions
     {
         public static async Task<HttpRequestMessage> CloneAsync(this HttpRequestMessage req)
         {
+            ArgumentNullException.ThrowIfNull(req);
+            
             var clone = new HttpRequestMessage(req.Method, req.RequestUri);
             // Copy headers
             foreach (var h in req.Headers)
@@ -70,7 +72,7 @@ namespace TopstepX.Bot.Extensions
             // Copy content asynchronously
             if (req.Content != null)
             {
-                var contentBytes = await req.Content.ReadAsByteArrayAsync();
+                var contentBytes = await req.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                 var newContent = new ByteArrayContent(contentBytes);
                 foreach (var h in req.Content.Headers)
                     newContent.Headers.TryAddWithoutValidation(h.Key, h.Value);

@@ -49,8 +49,8 @@ public class MarketConditionAnalyzer
     // Current market state
     private TradingMarketRegime _currentRegime = TradingMarketRegime.Unknown;
     private MarketVolatility _currentVolatility = MarketVolatility.Normal;
-    private decimal _currentTrend = 0m;
-    private decimal _currentVolatilityValue = 0m;
+    private decimal _currentTrend;
+    private decimal _currentVolatilityValue;
     private DateTime _lastAnalysis = DateTime.MinValue;
     
     public MarketConditionAnalyzer(ILogger<MarketConditionAnalyzer> logger)
@@ -65,7 +65,7 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task UpdateMarketDataAsync(decimal price, decimal volume, DateTime timestamp, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_dataLock)
         {
@@ -98,7 +98,7 @@ public class MarketConditionAnalyzer
         if (_recentData.Count >= LongTermPeriod && 
             DateTime.UtcNow - _lastAnalysis > TimeSpan.FromMinutes(1))
         {
-            await AnalyzeMarketConditionsAsync(cancellationToken);
+            await AnalyzeMarketConditionsAsync(cancellationToken).ConfigureAwait(false);
         }
     }
     
@@ -107,7 +107,7 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<TradingMarketRegime> DetermineMarketRegimeAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_dataLock)
         {
@@ -163,7 +163,7 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<MarketVolatility> GetCurrentVolatilityAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_dataLock)
         {
@@ -207,7 +207,7 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<TrendAnalysis> GetTrendAnalysisAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_dataLock)
         {
@@ -258,7 +258,7 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<VolumeAnalysis> GetVolumeAnalysisAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_dataLock)
         {
@@ -310,10 +310,10 @@ public class MarketConditionAnalyzer
     /// </summary>
     public async Task<decimal> GetTradingOpportunityScoreAsync(CancellationToken cancellationToken = default)
     {
-        var regime = await DetermineMarketRegimeAsync(cancellationToken);
-        var volatility = await GetCurrentVolatilityAsync(cancellationToken);
-        var trend = await GetTrendAnalysisAsync(cancellationToken);
-        var volume = await GetVolumeAnalysisAsync(cancellationToken);
+        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false);
+        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false);
+        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false);
+        var volume = await GetVolumeAnalysisAsync(cancellationToken).ConfigureAwait(false);
         
         // Multi-factor opportunity scoring
         var regimeScore = GetRegimeScore(regime);
@@ -356,7 +356,7 @@ public class MarketConditionAnalyzer
             (timeOfDay >= new TimeSpan(16, 0, 0) && timeOfDay <= new TimeSpan(17, 0, 0));    // Closing hour
         
         // Check market conditions
-        var opportunityScore = await GetTradingOpportunityScoreAsync(cancellationToken);
+        var opportunityScore = await GetTradingOpportunityScoreAsync(cancellationToken).ConfigureAwait(false);
         var hasGoodConditions = opportunityScore > 0.6m;
         
         return isOptimalTime && hasGoodConditions;
@@ -367,9 +367,9 @@ public class MarketConditionAnalyzer
         _lastAnalysis = DateTime.UtcNow;
         
         // Update all analysis components
-        var regime = await DetermineMarketRegimeAsync(cancellationToken);
-        var volatility = await GetCurrentVolatilityAsync(cancellationToken);
-        var trend = await GetTrendAnalysisAsync(cancellationToken);
+        var regime = await DetermineMarketRegimeAsync(cancellationToken).ConfigureAwait(false);
+        var volatility = await GetCurrentVolatilityAsync(cancellationToken).ConfigureAwait(false);
+        var trend = await GetTrendAnalysisAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogDebug("📊 [MARKET-ANALYZER] Analysis update: Regime={Regime}, Volatility={Volatility}, Trend={Direction}({Strength:F3})",
             regime, volatility, trend.Direction, trend.Strength);

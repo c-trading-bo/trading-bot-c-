@@ -20,7 +20,7 @@ public static class EnvironmentLoader
             var candidates = new[] { ".env.local", ".env" };
             string? dir = Environment.CurrentDirectory;
             
-            for (int up = 0; up < 5 && dir != null; up++)
+            for (int up; up < 5 && dir != null; up++)
             {
                 foreach (var file in candidates)
                 {

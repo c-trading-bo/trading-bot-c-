@@ -49,7 +49,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
     {
         try
         {
-            await Task.Delay(1, ct); // Satisfy async requirement
+            await Task.Delay(1, ct).ConfigureAwait(false); // Satisfy async requirement
             // Prepare features for ONNX model
             var features = PrepareFeatures(signal, marketContext);
 
@@ -92,7 +92,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         _calibration.AddPrediction(predictedProb, actualOutcome);
 
         // Update threshold based on calibration if needed
-        var metrics = await GetCalibrationMetricsAsync(ct);
+        var metrics = await GetCalibrationMetricsAsync(ct).ConfigureAwait(false);
         if (metrics.TotalPredictions > 100 && !metrics.IsWellCalibrated)
         {
             // Adjust threshold if model is poorly calibrated
@@ -106,7 +106,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
 
     public async Task<CalibrationMetrics> GetCalibrationMetricsAsync(CancellationToken ct = default)
     {
-        return await Task.FromResult(_calibration.GetMetrics());
+        return await Task.FromResult(_calibration.GetMetrics()).ConfigureAwait(false);
     }
 
     private static float[] PrepareFeatures(TradeSignalContext signal, MarketContext marketContext)
@@ -225,7 +225,7 @@ internal class CalibrationTracker
         var bins = new List<decimal>[numBins];
         var outcomes = new List<bool>[numBins];
 
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             bins[i] = new List<decimal>();
             outcomes[i] = new List<bool>();
@@ -238,10 +238,10 @@ internal class CalibrationTracker
             outcomes[binIndex].Add(actual);
         }
 
-        decimal reliabilitySum = 0m;
+        decimal reliabilitySum;
         int totalCount = _predictions.Count;
 
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             if (bins[i].Count == 0) continue;
 
@@ -263,7 +263,7 @@ internal class CalibrationTracker
         const int numBins = 10;
         var bins = new List<bool>[numBins];
 
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             bins[i] = new List<bool>();
         }
@@ -274,10 +274,10 @@ internal class CalibrationTracker
             bins[binIndex].Add(actual);
         }
 
-        decimal resolutionSum = 0m;
+        decimal resolutionSum;
         int totalCount = _predictions.Count;
 
-        for (int i = 0; i < numBins; i++)
+        for (int i; i < numBins; i++)
         {
             if (bins[i].Count == 0) continue;
 

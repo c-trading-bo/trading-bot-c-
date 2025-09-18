@@ -167,37 +167,128 @@ public interface ITopstepXClient
     /// <summary>
     /// Order update events
     /// </summary>
-    event Action<TradingBot.Abstractions.GatewayUserOrder>? OnOrderUpdate;
+    event EventHandler<OrderUpdateEventArgs>? OnOrderUpdate;
     
     /// <summary>
     /// Trade execution events
     /// </summary>
-    event Action<TradingBot.Abstractions.GatewayUserTrade>? OnTradeUpdate;
+    event EventHandler<TradeUpdateEventArgs>? OnTradeUpdate;
     
     /// <summary>
     /// Market data update events
     /// </summary>
-    event Action<TradingBot.Abstractions.MarketData>? OnMarketDataUpdate;
+    event EventHandler<MarketDataUpdateEventArgs>? OnMarketDataUpdate;
     
     /// <summary>
     /// Level 2 market data events
     /// </summary>
-    event Action<TradingBot.Abstractions.OrderBookData>? OnLevel2Update;
+    event EventHandler<Level2UpdateEventArgs>? OnLevel2Update;
     
     /// <summary>
     /// Trade confirmation events
     /// </summary>
-    event Action<TradingBot.Abstractions.TradeConfirmation>? OnTradeConfirmed;
+    event EventHandler<TradeConfirmationEventArgs>? OnTradeConfirmed;
     
     /// <summary>
     /// Error events
     /// </summary>
-    event Action<string>? OnError;
+    event EventHandler<ErrorEventArgs>? OnError;
     
     /// <summary>
     /// Connection state change events
     /// </summary>
-    event Action<bool>? OnConnectionStateChanged;
+    event EventHandler<ConnectionStateChangedEventArgs>? OnConnectionStateChanged;
+}
+
+/// <summary>
+/// Event arguments for order update events
+/// </summary>
+public class OrderUpdateEventArgs : EventArgs
+{
+    public GatewayUserOrder Order { get; }
+
+    public OrderUpdateEventArgs(GatewayUserOrder order)
+    {
+        Order = order;
+    }
+}
+
+/// <summary>
+/// Event arguments for trade update events
+/// </summary>
+public class TradeUpdateEventArgs : EventArgs
+{
+    public GatewayUserTrade Trade { get; }
+
+    public TradeUpdateEventArgs(GatewayUserTrade trade)
+    {
+        Trade = trade;
+    }
+}
+
+/// <summary>
+/// Event arguments for market data update events
+/// </summary>
+public class MarketDataUpdateEventArgs : EventArgs
+{
+    public MarketData MarketData { get; }
+
+    public MarketDataUpdateEventArgs(MarketData marketData)
+    {
+        MarketData = marketData;
+    }
+}
+
+/// <summary>
+/// Event arguments for level 2 update events
+/// </summary>
+public class Level2UpdateEventArgs : EventArgs
+{
+    public OrderBookData OrderBookData { get; }
+
+    public Level2UpdateEventArgs(OrderBookData orderBookData)
+    {
+        OrderBookData = orderBookData;
+    }
+}
+
+/// <summary>
+/// Event arguments for trade confirmation events
+/// </summary>
+public class TradeConfirmationEventArgs : EventArgs
+{
+    public TradeConfirmation TradeConfirmation { get; }
+
+    public TradeConfirmationEventArgs(TradeConfirmation tradeConfirmation)
+    {
+        TradeConfirmation = tradeConfirmation;
+    }
+}
+
+/// <summary>
+/// Event arguments for error events
+/// </summary>
+public class ErrorEventArgs : EventArgs
+{
+    public string Error { get; }
+
+    public ErrorEventArgs(string error)
+    {
+        Error = error;
+    }
+}
+
+/// <summary>
+/// Event arguments for connection state change events
+/// </summary>
+public class ConnectionStateChangedEventArgs : EventArgs
+{
+    public bool IsConnected { get; }
+
+    public ConnectionStateChangedEventArgs(bool isConnected)
+    {
+        IsConnected = isConnected;
+    }
 }
 
 /// <summary>
