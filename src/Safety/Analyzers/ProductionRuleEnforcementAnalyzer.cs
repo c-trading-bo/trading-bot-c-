@@ -154,6 +154,15 @@ namespace TradingBot.Safety.Analyzers
             isEnabledByDefault: true,
             description: "Unused parameters, private members, and fields indicate incomplete or stub code.");
 
+        public static readonly DiagnosticDescriptor MockPatternInProduction = new DiagnosticDescriptor(
+            "PRE016",
+            "Mock pattern detected in production code",
+            "Mock pattern found in production code: {0}. Move mock code to tests directory.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Mock classes, methods, or variables are not allowed in production code - move to tests/ directory.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 SuppressMessageWithoutProof,
@@ -170,7 +179,8 @@ namespace TradingBot.Safety.Analyzers
                 EmptyMethodBodyDetected,
                 ShortMethodWithoutAttributes,
                 PythonPassStatementDetected,
-                UnusedParameterOrMemberDetected);
+                UnusedParameterOrMemberDetected,
+                MockPatternInProduction);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -683,6 +693,38 @@ namespace TradingBot.Safety.Analyzers
                 foreach (Match match in matches)
                 {
                     var diagnostic = Diagnostic.Create(PlaceholderPatternDetected,
+                        Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
+                        match.Value.Trim());
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+            
+            // Check for Mock patterns specifically
+            CheckMockPatterns(context, text);
+        }
+        
+        private static void CheckMockPatterns(SyntaxTreeAnalysisContext context, string text)
+        {
+            // Check for specific Mock patterns that indicate test code in production
+            var mockPatterns = new[]
+            {
+                @"\bMock[A-Z]\w*", // MockSomething class names
+                @"\bmock[A-Z]\w*", // mockSomething variables  
+                @"class\s+\w*Mock\w*", // class names containing Mock
+                @"def\s+\w*mock\w*", // Python function names containing mock
+                @"Mock\w*\s*=", // Mock assignments
+                @"=\s*Mock\w*\(", // Mock instantiations
+                @"\.mock\(" // method calls to mock()
+            };
+            
+            foreach (var pattern in mockPatterns)
+            {
+                var regex = new Regex(pattern, RegexOptions.Multiline | RegexOptions.IgnoreCase);
+                var matches = regex.Matches(text);
+                
+                foreach (Match match in matches)
+                {
+                    var diagnostic = Diagnostic.Create(MockPatternInProduction,
                         Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
                         match.Value.Trim());
                     context.ReportDiagnostic(diagnostic);

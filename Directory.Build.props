@@ -118,6 +118,16 @@
     <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -exec awk '/public|private|protected|internal/ &amp;&amp; /\(.*\)/ &amp;&amp; !/\[Obsolete\]/ &amp;&amp; !/\[GeneratedCode\]/ { inMethod=1; lineCount=0; } inMethod &amp;&amp; /\{/ { inMethod=2; } inMethod==2 { lineCount++; } inMethod==2 &amp;&amp; /\}/ { if(lineCount &lt; 3) print FILENAME; inMethod=0; }' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Methods with fewer than 3 lines detected without [Obsolete] or [GeneratedCode] attributes. Build failed.'; exit 1; fi"
           ContinueOnError="false"
           IgnoreExitCode="false" />
+    
+    <!-- Phase 13: Mock Pattern Detection in Production Code -->
+    <Exec Command="if find . -name '*.cs' -not -path './bin/*' -not -path './obj/*' -not -path './packages/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -exec grep -l -E '\bMock[A-Z]|\bmock[A-Z]|class.*Mock|Mock.*=' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Mock patterns detected in production code. Move mock code to tests/ directory. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+    
+    <!-- Phase 14: Python Mock Pattern Detection -->
+    <Exec Command="if find . -name '*.py' -path './src/*' -not -path './test*/*' -not -path './Test*/*' -not -path './mock*/*' -exec grep -l -E 'Mock[A-Z]|mock[A-Z]|class.*Mock|def.*mock' {} \; | grep -q .; then echo 'PRODUCTION VIOLATION: Python mock patterns detected in production code. Move mock code to tests/ directory. Build failed.'; exit 1; fi"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
   </Target>
   
   <!-- BUSINESS LOGIC VALIDATION: Focus on specific issues mentioned in #3304685224 -->
