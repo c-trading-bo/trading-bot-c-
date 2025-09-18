@@ -508,6 +508,12 @@ Stack Trace:
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
         
+        // Register TopstepX Python SDK adapter service for production trading
+        services.AddSingleton<ITopstepXAdapterService, TopstepXAdapterService>();
+        
+        // Register TopstepX integration test service (runs when RUN_TOPSTEPX_TESTS=true)
+        services.AddHostedService<TopstepXIntegrationTestService>();
+        
         // Register UnifiedOrchestratorService as singleton and hosted service (SINGLE REGISTRATION)
         services.AddSingleton<UnifiedOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IUnifiedOrchestrator>(provider => provider.GetRequiredService<UnifiedOrchestratorService>());

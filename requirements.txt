@@ -1,0 +1,12 @@
+# TopstepX SDK Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Main SDK requirement as specified in problem statement
+project-x-py[all]>=1.0.0
+
+# Additional dependencies for production use
+asyncio-throttle>=1.0.0
+aiohttp>=3.8.0
+websockets>=11.0.0
+pydantic>=2.0.0
+python-dateutil>=2.8.0

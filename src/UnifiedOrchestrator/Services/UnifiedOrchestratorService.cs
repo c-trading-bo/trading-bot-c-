@@ -11,18 +11,26 @@ using System.Threading.Tasks;
 namespace TradingBot.UnifiedOrchestrator.Services;
 
 /// <summary>
-/// Main unified orchestrator service - coordinates all subsystems
+/// Main unified orchestrator service - coordinates all subsystems with TopstepX SDK integration
+/// Features:
+/// - Multi-instrument trading support (MNQ, ES)
+/// - Python SDK adapter integration
+/// - Risk management via managed_trade() context
+/// - Real-time health monitoring and statistics
+/// - Production-ready error handling
 /// </summary>
 public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrator
 {
     private readonly ILogger<UnifiedOrchestratorService> _logger;
     private readonly ICentralMessageBus _messageBus;
     private readonly ISignalRConnectionManager _signalRManager;
+    private readonly ITopstepXAdapterService _topstepXAdapter;
     private readonly object? _tradingOrchestrator;
     private readonly object? _intelligenceOrchestrator;
     private readonly object? _dataOrchestrator;
     private readonly DateTime _startTime;
     private bool _isConnectedToTopstep = false;
+    private bool _adapterInitialized = false;
     
     // Workflow tracking for real stats
     private readonly Dictionary<string, UnifiedWorkflow> _registeredWorkflows = new();
@@ -37,11 +45,13 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
     public UnifiedOrchestratorService(
         ILogger<UnifiedOrchestratorService> logger,
         ICentralMessageBus messageBus,
-        ISignalRConnectionManager signalRManager)
+        ISignalRConnectionManager signalRManager,
+        ITopstepXAdapterService topstepXAdapter)
     {
         _logger = logger;
         _messageBus = messageBus;
         _signalRManager = signalRManager;
+        _topstepXAdapter = topstepXAdapter;
         _tradingOrchestrator = null!; // Will be resolved later
         _intelligenceOrchestrator = null!; // Will be resolved later
         _dataOrchestrator = null!; // Will be resolved later
@@ -87,7 +97,41 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     private async Task InitializeSystemAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("🔧 Initializing unified trading system...");
+        _logger.LogInformation("🔧 Initializing unified trading system with TopstepX SDK...");
+        
+        // Initialize TopstepX Python SDK adapter first
+        try
+        {
+            _logger.LogInformation("🚀 Initializing TopstepX Python SDK adapter...");
+            _adapterInitialized = await _topstepXAdapter.InitializeAsync(cancellationToken);
+            
+            if (_adapterInitialized)
+            {
+                // Test health and connectivity
+                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+                if (health.HealthScore >= 80)
+                {
+                    _logger.LogInformation("✅ TopstepX SDK adapter initialized - Health: {HealthScore}%", health.HealthScore);
+                    
+                    // Test price data for both instruments
+                    await TestInstrumentConnectivityAsync(cancellationToken);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ TopstepX adapter health degraded: {HealthScore}% - Status: {Status}", 
+                        health.HealthScore, health.Status);
+                }
+            }
+            else
+            {
+                _logger.LogError("❌ Failed to initialize TopstepX SDK adapter");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ TopstepX SDK adapter initialization failed");
+            _adapterInitialized = false;
+        }
         
         // Initialize all subsystems
         // Log the orchestrator components status
@@ -103,8 +147,8 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
             var marketHubConnected = _signalRManager.IsMarketHubConnected;
             _isConnectedToTopstep = userHubConnected && marketHubConnected;
             
-            _logger.LogInformation("🔗 TopstepX connection status - User Hub: {UserHub}, Market Hub: {MarketHub}, Overall: {Overall}", 
-                userHubConnected, marketHubConnected, _isConnectedToTopstep);
+            _logger.LogInformation("🔗 TopstepX connection status - User Hub: {UserHub}, Market Hub: {MarketHub}, Overall: {Overall}, SDK: {SDK}", 
+                userHubConnected, marketHubConnected, _isConnectedToTopstep, _adapterInitialized);
                 
             // Subscribe to connection state changes for real-time updates
             _signalRManager.ConnectionStateChanged += OnConnectionStateChanged;
@@ -117,12 +161,57 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         
         await Task.CompletedTask;
         
-        _logger.LogInformation("✅ Unified trading system initialized successfully");
+        _logger.LogInformation("✅ Unified trading system initialized successfully - SDK Ready: {SDKReady}", _adapterInitialized);
+    }
+
+    /// <summary>
+    /// Test connectivity to all configured instruments
+    /// </summary>
+    private async Task TestInstrumentConnectivityAsync(CancellationToken cancellationToken)
+    {
+        var instruments = new[] { "MNQ", "ES" };
+        
+        foreach (var instrument in instruments)
+        {
+            try
+            {
+                var price = await _topstepXAdapter.GetPriceAsync(instrument, cancellationToken);
+                _logger.LogInformation("✅ {Instrument} connected - Current price: ${Price:F2}", instrument, price);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to connect to {Instrument}", instrument);
+            }
+        }
     }
 
     private async Task ProcessSystemOperationsAsync(CancellationToken cancellationToken)
     {
-        // Coordinate between all orchestrators
+        // Coordinate between all orchestrators and monitor SDK health
+        if (_adapterInitialized && _topstepXAdapter.IsConnected)
+        {
+            try
+            {
+                // Periodic health check and price monitoring
+                var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+                if (health.HealthScore < 80)
+                {
+                    _logger.LogWarning("⚠️ TopstepX adapter health degraded: {HealthScore}% - Status: {Status}", 
+                        health.HealthScore, health.Status);
+                }
+                
+                // Log current prices for monitoring
+                await LogCurrentPricesAsync(cancellationToken);
+                
+                // Check if demo trading should be performed
+                await ProcessDemoTradingAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in TopstepX SDK operations");
+            }
+        }
+        
         // Check status of all orchestrator components
         if (_tradingOrchestrator != null)
         {
@@ -142,11 +231,102 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
         await Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Log current prices for monitoring and health validation
+    /// </summary>
+    private async Task LogCurrentPricesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken);
+            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken);
+            
+            _logger.LogDebug("[PRICES] MNQ: ${MNQPrice:F2}, ES: ${ESPrice:F2}", mnqPrice, esPrice);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("Price monitoring error: {Error}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Demonstrate trading functionality as specified in requirements
+    /// This method shows how the adapter integrates with the orchestrator
+    /// </summary>
+    private async Task ProcessDemoTradingAsync(CancellationToken cancellationToken)
+    {
+        // Check if we should perform demo trading (every 5 minutes)
+        var currentTime = DateTime.UtcNow;
+        if (currentTime.Minute % 5 != 0 || currentTime.Second > 10)
+        {
+            return; // Only run on 5-minute intervals
+        }
+
+        try
+        {
+            _logger.LogInformation("🎯 Demonstrating TopstepX SDK integration...");
+            
+            // Get health score and validate system ready
+            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+            if (health.HealthScore < 80)
+            {
+                _logger.LogWarning("❌ System health too low for trading: {HealthScore}%", health.HealthScore);
+                return;
+            }
+            
+            // Get current MNQ price for demo
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken);
+            _logger.LogInformation("📊 MNQ Price: ${Price:F2}", mnqPrice);
+            
+            // Place demonstration bracket order as specified in requirements
+            var orderResult = await _topstepXAdapter.PlaceOrderAsync(
+                symbol: "MNQ",
+                size: 1,
+                stopLoss: mnqPrice - 10m,
+                takeProfit: mnqPrice + 15m,
+                cancellationToken);
+                
+            if (orderResult.Success)
+            {
+                _logger.LogInformation("✅ Demo order placed successfully: {OrderId}", orderResult.OrderId);
+                _logger.LogInformation("[ORDER-DEMO] {Symbol} size={Size} entry=${EntryPrice:F2} stop=${StopLoss:F2} target=${TakeProfit:F2}",
+                    orderResult.Symbol, orderResult.Size, orderResult.EntryPrice, orderResult.StopLoss, orderResult.TakeProfit);
+            }
+            else
+            {
+                _logger.LogError("❌ Demo order failed: {Error}", orderResult.Error);
+            }
+            
+            // Get portfolio status
+            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken);
+            _logger.LogInformation("📈 Portfolio updated - {PositionCount} positions tracked", portfolio.Positions.Count);
+            
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Demo trading process failed");
+        }
+    }
+
     private async Task ShutdownSystemAsync()
     {
         _logger.LogInformation("🔧 Shutting down unified trading system...");
         
-        // Graceful shutdown of all subsystems
+        // Graceful shutdown of TopstepX adapter
+        if (_adapterInitialized)
+        {
+            try
+            {
+                await _topstepXAdapter.DisconnectAsync();
+                _logger.LogInformation("✅ TopstepX adapter shutdown complete");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during TopstepX adapter shutdown");
+            }
+        }
+        
+        // Graceful shutdown of all other subsystems
         await Task.CompletedTask;
         
         _logger.LogInformation("✅ Unified trading system shutdown complete");
@@ -154,17 +334,107 @@ public class UnifiedOrchestratorService : BackgroundService, IUnifiedOrchestrato
 
     public Task<SystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(new SystemStatus
+        var systemStatus = new SystemStatus
         {
-            IsHealthy = true,
+            IsHealthy = _adapterInitialized && _topstepXAdapter.IsConnected,
             ComponentStatuses = new()
             {
                 ["Trading"] = "Operational",
                 ["Intelligence"] = "Operational", 
-                ["Data"] = "Operational"
+                ["Data"] = "Operational",
+                ["TopstepX-SDK"] = _adapterInitialized ? "Connected" : "Disconnected",
+                ["TopstepX-Health"] = $"{_topstepXAdapter.ConnectionHealth:F1}%"
             },
             LastUpdated = DateTime.UtcNow
-        });
+        };
+        
+        return Task.FromResult(systemStatus);
+    }
+
+    /// <summary>
+    /// Start trading demonstration as specified in requirements
+    /// Shows complete SDK integration with TradingSuite.create() and managed_trade()
+    /// </summary>
+    public async Task StartTradingDemoAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_adapterInitialized || !_topstepXAdapter.IsConnected)
+        {
+            throw new InvalidOperationException("TopstepX adapter not initialized or connected");
+        }
+
+        try
+        {
+            _logger.LogInformation("🚀 Starting TopstepX SDK trading demonstration...");
+            
+            // Validate health score >= 80 as specified
+            var health = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+            if (health.HealthScore < 80)
+            {
+                throw new InvalidOperationException($"System health degraded: {health.HealthScore}% < 80%");
+            }
+            
+            _logger.LogInformation("✅ Health score validation passed: {HealthScore}%", health.HealthScore);
+            
+            // Get current prices for both instruments
+            var mnqPrice = await _topstepXAdapter.GetPriceAsync("MNQ", cancellationToken);
+            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken);
+            
+            _logger.LogInformation("📊 Current Prices - MNQ: ${MNQPrice:F2}, ES: ${ESPrice:F2}", mnqPrice, esPrice);
+            
+            // Place bracket order for MNQ as specified in requirements  
+            var orderResult = await _topstepXAdapter.PlaceOrderAsync(
+                symbol: "MNQ",
+                size: 1,
+                stopLoss: mnqPrice - 10m,
+                takeProfit: mnqPrice + 15m,
+                cancellationToken);
+                
+            if (!orderResult.Success)
+            {
+                throw new InvalidOperationException($"Order placement failed: {orderResult.Error}");
+            }
+            
+            _logger.LogInformation("✅ Bracket order placed successfully");
+            _logger.LogInformation("[ORDER] {Symbol} size={Size} entry=${EntryPrice:F2} stop=${StopLoss:F2} target=${TakeProfit:F2} orderId={OrderId}",
+                orderResult.Symbol, orderResult.Size, orderResult.EntryPrice, orderResult.StopLoss, orderResult.TakeProfit, orderResult.OrderId);
+                
+            // Get portfolio status to verify
+            var portfolio = await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken);
+            _logger.LogInformation("📈 Portfolio status retrieved - {PositionCount} positions", portfolio.Positions.Count);
+            
+            _logger.LogInformation("✅ Trading demonstration completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Trading demonstration failed");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Get TopstepX adapter health and statistics
+    /// </summary>
+    public async Task<HealthScoreResult> GetTopstepXHealthAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_adapterInitialized)
+        {
+            return new HealthScoreResult(0, "not_initialized", new(), new(), DateTime.UtcNow, false);
+        }
+        
+        return await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Get current portfolio status from TopstepX
+    /// </summary>
+    public async Task<PortfolioStatusResult> GetPortfolioStatusAsync(CancellationToken cancellationToken = default)
+    {
+        if (!_adapterInitialized)
+        {
+            throw new InvalidOperationException("TopstepX adapter not initialized");
+        }
+        
+        return await _topstepXAdapter.GetPortfolioStatusAsync(cancellationToken);
     }
 
     public async Task<bool> ExecuteEmergencyShutdownAsync(CancellationToken cancellationToken = default)
