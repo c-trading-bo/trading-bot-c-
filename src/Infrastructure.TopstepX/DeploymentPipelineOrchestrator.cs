@@ -16,6 +16,12 @@ namespace BotCore.Orchestration;
 /// </summary>
 public class DeploymentPipelineOrchestrator
 {
+    #region Pipeline Constants
+    
+    private const int MAX_CREDENTIAL_FILES_TO_EXAMINE = 3; // Limit to first 3 files
+    
+    #endregion
+    
     private readonly ILogger<DeploymentPipelineOrchestrator> _logger;
     private readonly IServiceProvider _serviceProvider;
 
@@ -191,7 +197,7 @@ public class DeploymentPipelineOrchestrator
                 result.Details.Add($"  • Found {files.Length} credential file(s) in secure directory");
                 
                 // Check file permissions (simplified for cross-platform)
-                foreach (var file in files.Take(3)) // Limit to first 3 files
+                foreach (var file in files.Take(MAX_CREDENTIAL_FILES_TO_EXAMINE)) // Limit to first 3 files
                 {
                     var fileInfo = new FileInfo(file);
                     result.Details.Add($"  • {Path.GetFileName(file)}: {fileInfo.Length} bytes, modified {fileInfo.LastWriteTime:yyyy-MM-dd}");
