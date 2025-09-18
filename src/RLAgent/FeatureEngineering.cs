@@ -815,8 +815,7 @@ public class FeatureEngineering : IDisposable
             
             var report = new FeatureImportanceReport
             {
-                GeneratedAt = DateTime.UtcNow,
-                SymbolReports = new Dictionary<string, Dictionary<string, double>>()
+                GeneratedAt = DateTime.UtcNow
             };
             
             foreach (var (featureKey, tracker) in _importanceTrackers)
@@ -989,7 +988,7 @@ public class FeatureImportanceTracker
 public class FeatureImportanceReport
 {
     public DateTime GeneratedAt { get; set; }
-    public Dictionary<string, Dictionary<string, double>> SymbolReports { get; set; } = new();
+    public Dictionary<string, Dictionary<string, double>> SymbolReports { get; } = new();
 }
 
 /// <summary>
@@ -1016,7 +1015,7 @@ public class StreamingFeatures
     public DateTime Timestamp { get; set; }
     public Dictionary<string, double> Features { get; } = new();
     public Dictionary<string, double> MicrostructureFeatures { get; } = new();
-    public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; set; } = new();
+    public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; } = new();
     public bool IsStale { get; set; }
 }
 

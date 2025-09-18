@@ -138,7 +138,7 @@ public class PositionSizing
         // Update edge estimate from ML predictions
         if (request.MLPrediction != null)
         {
-            state.UpdateEdgeEstimate(request.MLPrediction.Confidence, request.MLPrediction.Expected_Return);
+            state.UpdateEdgeEstimate(request.MLPrediction.Confidence, request.MLPrediction.ExpectedReturn);
         }
         
         // Calculate Kelly fraction: f = (bp - q) / b
@@ -303,7 +303,7 @@ public class PositionSizing
         return new double[]
         {
             request.MLPrediction?.Confidence ?? DEFAULT_ML_CONFIDENCE,
-            request.MLPrediction?.Expected_Return ?? DEFAULT_ML_EXPECTED_RETURN,
+            request.MLPrediction?.ExpectedReturn ?? DEFAULT_ML_EXPECTED_RETURN,
             (double)(request.Regime switch { 
                 RegimeType.Trend => TREND_REGIME_VALUE, 
                 RegimeType.Range => RANGE_REGIME_VALUE, 
@@ -390,7 +390,7 @@ public class PositionSizingConfig
     public int MaxStepChange { get; set; } = 2; // ≤ +2 contracts step change
     public double LatencyDegradationMultiplier { get; set; } = 0.5; // 50% reduction when latency degraded
     
-    public Dictionary<RegimeType, double> RegimeClips { get; set; } = new()
+    public Dictionary<RegimeType, double> RegimeClips { get; } = new()
     {
         { RegimeType.Trend, TREND_REGIME_CLIP },      // Higher clip for trending
         { RegimeType.Range, RANGE_REGIME_CLIP },
@@ -399,13 +399,13 @@ public class PositionSizingConfig
         { RegimeType.Volatility, VOLATILITY_REGIME_CLIP }
     };
     
-    public Dictionary<string, double> SymbolCaps { get; set; } = new()
+    public Dictionary<string, double> SymbolCaps { get; } = new()
     {
         { "ES", ES_SYMBOL_CAP },
         { "NQ", NQ_SYMBOL_CAP }
     };
     
-    public Dictionary<string, int> MaxContractsPerSymbol { get; set; } = new()
+    public Dictionary<string, int> MaxContractsPerSymbol { get; } = new()
     {
         { "ES", ES_MAX_CONTRACTS },
         { "NQ", NQ_MAX_CONTRACTS }
@@ -466,8 +466,8 @@ public class CapsApplied
 public class MLPrediction
 {
     public double Confidence { get; set; }
-    public double Expected_Return { get; set; }
-    public string Model_Id { get; set; } = string.Empty;
+    public double ExpectedReturn { get; set; }
+    public string ModelId { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -489,7 +489,7 @@ public class KellyState
     private readonly CircularBuffer<double> _edgeHistory = new(100);
     private readonly CircularBuffer<bool> _outcomeHistory = new(100);
     
-    public double CalibratedEdge { get; private set; } = 0.0;
+    public double CalibratedEdge { get; private set; }
     public double WinRate { get; private set; } = 0.5;
     
     public void UpdateEdgeEstimate(double confidence, double expectedReturn)

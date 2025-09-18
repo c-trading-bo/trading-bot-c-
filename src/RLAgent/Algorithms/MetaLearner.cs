@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -87,8 +88,8 @@ public class MetaLearner
                 foreach (var experience in supportSet)
                 {
                     // Forward pass
-                    var prediction = adaptedPolicy.Predict(experience.State);
-                    var actionLoss = CalculateActionLoss(prediction, experience.Action, experience.Reward);
+                    var prediction = adaptedPolicy.Predict(experience.State.ToArray());
+                    var actionLoss = CalculateActionLoss(prediction, experience.Action.ToArray(), experience.Reward);
                     loss += actionLoss;
                     
                     // Compute gradients (simplified)
@@ -257,8 +258,8 @@ public class MetaLearner
         
         foreach (var experience in querySet)
         {
-            var prediction = policy.Predict(experience.State);
-            var loss = CalculateActionLoss(prediction, experience.Action, experience.Reward);
+            var prediction = policy.Predict(experience.State.ToArray());
+            var loss = CalculateActionLoss(prediction, experience.Action.ToArray(), experience.Reward);
             totalLoss += loss;
         }
         
@@ -290,7 +291,7 @@ public class MetaLearner
         // In a full implementation, this would use proper backpropagation
         var gradients = new Dictionary<string, double[]>();
         
-        var prediction = policy.Predict(experience.State);
+        var prediction = policy.Predict(experience.State.ToArray());
         var error = new double[prediction.Length];
         
         for (int i = 0; i < prediction.Length; i++)
@@ -317,10 +318,10 @@ public class MetaLearner
         
         foreach (var experience in querySet)
         {
-            var prediction = adaptedPolicy.Predict(experience.State);
+            var prediction = adaptedPolicy.Predict(experience.State.ToArray());
             for (int i = 0; i < prediction.Length; i++)
             {
-                avgError[i] += (experience.Action[i] - prediction[i]) / querySet.Count;
+                avgError[i] += (experience.Action.ToArray()[i] - prediction[i]) / querySet.Count;
             }
         }
         
@@ -451,10 +452,10 @@ public class MetaLearningConfig
 /// </summary>
 public class TaskExperience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
-    public double[] Action { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Action { get; set; } = Array.Empty<double>();
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
     public DateTime Timestamp { get; set; }
 }
@@ -465,7 +466,7 @@ public class TaskExperience
 public class TaskData
 {
     public string TaskId { get; set; } = string.Empty;
-    public List<TaskExperience> Experiences { get; } = new();
+    public Collection<TaskExperience> Experiences { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }

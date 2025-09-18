@@ -44,7 +44,7 @@ public class SoftActorCritic
     // Training statistics
     private int _totalSteps;
     private double _averageReward = 0.0;
-    private double _entropy = 0.0;
+    private double _entropy;
     
     public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {

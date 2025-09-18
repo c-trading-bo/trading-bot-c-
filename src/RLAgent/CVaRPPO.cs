@@ -712,9 +712,9 @@ public class TrainingStatistics
     public int ExperienceBufferSize { get; set; }
     public DateTime LastTrainingTime { get; set; }
     public string CurrentModelVersion { get; set; } = string.Empty;
-    public double[] RecentRewards { get; set; } = Array.Empty<double>();
-    public double[] RecentLosses { get; set; } = Array.Empty<double>();
-    public double[] RecentCVaRLosses { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentRewards { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentLosses { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentCVaRLosses { get; set; } = Array.Empty<double>();
 }
 
 /// <summary>
@@ -759,9 +759,9 @@ public class ModelMetadata
 /// </summary>
 public class PerformanceMetrics
 {
-    public double[] RecentRewards { get; set; } = Array.Empty<double>();
-    public double[] RecentLosses { get; set; } = Array.Empty<double>();
-    public double[] RecentCVaRLosses { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentRewards { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentLosses { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> RecentCVaRLosses { get; set; } = Array.Empty<double>();
 }
 
 /// <summary>
@@ -772,9 +772,9 @@ public class PolicyNetwork : IDisposable
     private readonly int _stateSize;
     private readonly int _actionSize;
     private readonly int _hiddenSize;
-    private double[,] _weights1 = null!;
+    private double[][] _weights1 = null!;
     private double[] _bias1 = null!;
-    private double[,] _weights2 = null!;
+    private double[][] _weights2 = null!;
     private double[] _bias2 = null!;
     public PolicyNetwork(int stateSize, int actionSize, int hiddenSize)
     {
@@ -789,9 +789,20 @@ public class PolicyNetwork : IDisposable
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
-        _weights1 = new double[_stateSize, _hiddenSize];
+        // Initialize jagged arrays
+        _weights1 = new double[_stateSize][];
+        for (int i = 0; i < _stateSize; i++)
+        {
+            _weights1[i] = new double[_hiddenSize];
+        }
+        
+        _weights2 = new double[_hiddenSize][];
+        for (int i = 0; i < _hiddenSize; i++)
+        {
+            _weights2[i] = new double[_actionSize];
+        }
+        
         _bias1 = new double[_hiddenSize];
-        _weights2 = new double[_hiddenSize, _actionSize];
         _bias2 = new double[_actionSize];
         
         // Xavier initialization with secure random
@@ -805,7 +816,7 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i, j] = (randomValue * 2 - 1) * limit1;
+                _weights1[i][j] = (randomValue * 2 - 1) * limit1;
             }
         }
         
@@ -816,7 +827,7 @@ public class PolicyNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights2[i, j] = (randomValue * 2 - 1) * limit2;
+                _weights2[i][j] = (randomValue * 2 - 1) * limit2;
             }
         }
     }
@@ -830,7 +841,7 @@ public class PolicyNetwork : IDisposable
             hidden[i] = _bias1[i];
             for (int j = 0; j < _stateSize; j++)
             {
-                hidden[i] += state[j] * _weights1[j, i];
+                hidden[i] += state[j] * _weights1[j][i];
             }
             hidden[i] = Math.Tanh(hidden[i]); // Activation
         }
@@ -842,7 +853,7 @@ public class PolicyNetwork : IDisposable
             output[i] = _bias2[i];
             for (int j = 0; j < _hiddenSize; j++)
             {
-                output[i] += hidden[j] * _weights2[j, i];
+                output[i] += hidden[j] * _weights2[j][i];
             }
         }
         
@@ -858,7 +869,7 @@ public class PolicyNetwork : IDisposable
         {
             for (int j = 0; j < _actionSize; j++)
             {
-                _weights2[i, j] -= gradient * 0.001; // Simplified gradient
+                _weights2[i][j] -= gradient * 0.001; // Simplified gradient
             }
         }
     }
@@ -903,7 +914,7 @@ public class ValueNetwork : IDisposable
 {
     private readonly int _stateSize;
     private readonly int _hiddenSize;
-    private double[,] _weights1 = null!;
+    private double[][] _weights1 = null!;
     private double[] _bias1 = null!;
     private double[] _weights2 = null!;
     private double _bias2;
@@ -919,7 +930,13 @@ public class ValueNetwork : IDisposable
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         
-        _weights1 = new double[_stateSize, _hiddenSize];
+        // Initialize jagged array
+        _weights1 = new double[_stateSize][];
+        for (int i = 0; i < _stateSize; i++)
+        {
+            _weights1[i] = new double[_hiddenSize];
+        }
+        
         _bias1 = new double[_hiddenSize];
         _weights2 = new double[_hiddenSize];
         _bias2 = 0.0;
@@ -933,7 +950,7 @@ public class ValueNetwork : IDisposable
                 var bytes = new byte[8];
                 rng.GetBytes(bytes);
                 var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-                _weights1[i, j] = (randomValue * 2 - 1) * limit;
+                _weights1[i][j] = (randomValue * 2 - 1) * limit;
             }
         }
         
@@ -955,7 +972,7 @@ public class ValueNetwork : IDisposable
             hidden[i] = _bias1[i];
             for (int j = 0; j < _stateSize; j++)
             {
-                hidden[i] += state[j] * _weights1[j, i];
+                hidden[i] += state[j] * _weights1[j][i];
             }
             hidden[i] = Math.Tanh(hidden[i]);
         }
