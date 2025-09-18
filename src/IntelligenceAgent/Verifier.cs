@@ -263,8 +263,8 @@ public class Verifier : IVerifier
 public class VerificationResult
 {
     public DateTime Date { get; set; }
-    public Dictionary<string, int> OrdersByStatus { get; set; } = new();
-    public Dictionary<string, int> TradesByStatus { get; set; } = new();
+    public Dictionary<string, int> OrdersByStatus { get; } = new();
+    public Dictionary<string, int> TradesByStatus { get; } = new();
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTime Timestamp { get; set; }

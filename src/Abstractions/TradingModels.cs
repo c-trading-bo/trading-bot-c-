@@ -12,13 +12,13 @@ public class TradingBrainState
     public bool IsSystemHealthy { get; set; } = true;
     public string CurrentMarketRegime { get; set; } = "UNKNOWN";
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
-    public List<string> ConnectedComponents { get; set; } = new();
-    public List<string> ActiveStrategies { get; set; } = new();
-    public Dictionary<string, decimal> ActivePositions { get; set; } = new();
+    public List<string> ConnectedComponents { get; } = new();
+    public List<string> ActiveStrategies { get; } = new();
+    public Dictionary<string, decimal> ActivePositions { get; } = new();
     public decimal DailyPnL { get; set; } = 0m;
     public string MarketRegime { get; set; } = "UNKNOWN";
     public decimal RiskLevel { get; set; } = 0m;
-    public Dictionary<string, object> ComponentStates { get; set; } = new();
+    public Dictionary<string, object> ComponentStates { get; } = new();
     
     // Intelligence system state
     public MLSystemState MLState { get; set; } = new();
@@ -54,12 +54,12 @@ public class MLSystemState
 {
     public bool IsActive { get; set; } = false;
     public DateTime LastTraining { get; set; } = DateTime.MinValue;
-    public Dictionary<string, decimal> ModelConfidences { get; set; } = new();
+    public Dictionary<string, decimal> ModelConfidences { get; } = new();
     public string ActiveModel { get; set; } = "NEURAL_BANDIT";
-    public Dictionary<string, decimal> FeatureImportance { get; set; } = new();
+    public Dictionary<string, decimal> FeatureImportance { get; } = new();
     public string LastPrediction { get; set; } = string.Empty;
     public decimal PredictionConfidence { get; set; } = 0m;
-    public List<string> ActiveFeatures { get; set; } = new();
+    public List<string> ActiveFeatures { get; } = new();
     
     public MLSystemState Clone()
     {
@@ -86,8 +86,8 @@ public class RiskSystemState
     public decimal CurrentRisk { get; set; } = 0m;
     public decimal MaxDailyRisk { get; set; } = 1000m;
     public decimal RiskUtilization { get; set; } = 0m;
-    public Dictionary<string, decimal> PositionRisks { get; set; } = new();
-    public List<string> RiskWarnings { get; set; } = new();
+    public Dictionary<string, decimal> PositionRisks { get; } = new();
+    public List<string> RiskWarnings { get; } = new();
     public DateTime LastRiskCheck { get; set; } = DateTime.MinValue;
     
     public RiskSystemState Clone()
@@ -187,7 +187,7 @@ public class TradingSignal
     public decimal StopLoss { get; set; } = 0m;
     public decimal TakeProfit { get; set; } = 0m;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 /// <summary>
@@ -210,7 +210,7 @@ public class TradingDecision
     public string MarketRegime { get; set; } = string.Empty;
     public decimal RegimeConfidence { get; set; } = 0m;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-    public Dictionary<string, object> Reasoning { get; set; } = new();
+    public Dictionary<string, object> Reasoning { get; } = new();
 }
 
 /// <summary>
@@ -248,7 +248,7 @@ public class RiskAssessment
     public decimal CurrentExposure { get; set; } = 0m;
     public decimal VaR { get; set; } = 0m; // Value at Risk
     public string RiskLevel { get; set; } = "LOW"; // LOW/MEDIUM/HIGH
-    public List<string> Warnings { get; set; } = new();
+    public List<string> Warnings { get; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
@@ -259,7 +259,7 @@ public class MarketRegime
 {
     public string CurrentRegime { get; set; } = "UNKNOWN"; // TRENDING/RANGING/CHOPPY/VOLATILE
     public decimal Confidence { get; set; } = 0m;
-    public Dictionary<string, decimal> RegimeScores { get; set; } = new();
+    public Dictionary<string, decimal> RegimeScores { get; } = new();
     public string Trend { get; set; } = "SIDEWAYS"; // UP/DOWN/SIDEWAYS
     public decimal Volatility { get; set; } = 0m;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -313,7 +313,7 @@ public class WorkflowExecutionResult
 {
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
-    public Dictionary<string, object> Results { get; set; } = new();
+    public Dictionary<string, object> Results { get; } = new();
     public TimeSpan Duration { get; set; }
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }

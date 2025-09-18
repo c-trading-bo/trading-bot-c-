@@ -24,7 +24,7 @@ public class RegimeState
     public double Confidence { get; set; }
     public DateTime DetectedAt { get; set; } = DateTime.UtcNow;
     public TimeSpan DwellTime { get; set; }
-    public Dictionary<string, double> Indicators { get; set; } = new();
+    public Dictionary<string, double> Indicators { get; } = new();
 }
 
 public class RegimeTransition
@@ -63,8 +63,8 @@ public class FeatureSet
     public DateTime Timestamp { get; set; }
     public string Version { get; set; } = string.Empty;
     public string SchemaChecksum { get; set; } = string.Empty;
-    public Dictionary<string, double> Features { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public Dictionary<string, double> Features { get; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class FeatureSchema
@@ -285,8 +285,8 @@ public class IntelligenceDecision
     public string OrderKey { get; set; } = string.Empty;
     public string Route { get; set; } = string.Empty;
     public double LatencyMs { get; set; }
-    public List<string> QuarantineFlags { get; set; } = new();
-    public Dictionary<string, object> Metadata { get; set; } = new();
+    public List<string> QuarantineFlags { get; } = new();
+    public Dictionary<string, object> Metadata { get; } = new();
 }
 
 public class RiskState
@@ -316,9 +316,9 @@ public class StartupValidationResult
 {
     public bool AllTestsPassed { get; set; }
     public bool IsValid { get; set; }
-    public Dictionary<string, TestResult> TestResults { get; set; } = new();
-    public List<string> FailureReasons { get; set; } = new();
-    public List<string> ValidationErrors { get; set; } = new();
+    public Dictionary<string, TestResult> TestResults { get; } = new();
+    public List<string> FailureReasons { get; } = new();
+    public List<string> ValidationErrors { get; } = new();
     public TimeSpan TotalDuration { get; set; }
 }
 
