@@ -17,6 +17,25 @@ namespace TradingBot.Abstractions
         private readonly ILogger<OrderManager> _logger;
         private readonly Dictionary<string, IBrokerAdapter> _brokerAdapters;
 
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, int, string, Exception?> LogOrderManagerInitialized =
+            LoggerMessage.Define<int, string>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogOrderManagerInitialized)),
+                "[OrderManager] Initialized with {AdapterCount} broker adapters: {Brokers}");
+
+        private static readonly Action<ILogger, Exception?> LogCannotCancelOrderNullId =
+            LoggerMessage.Define(
+                LogLevel.Warning,
+                new EventId(2, nameof(LogCannotCancelOrderNullId)),
+                "[OrderManager] Cannot cancel order - orderId is null or empty");
+
+        private static readonly Action<ILogger, string, string, string, Exception?> LogCancellingOrder =
+            LoggerMessage.Define<string, string, string>(
+                LogLevel.Information,
+                new EventId(3, nameof(LogCancellingOrder)),
+                "[OrderManager] Cancelling order {OrderId} via {Broker}: {Reason}");
+
         public OrderManager(ILogger<OrderManager> logger, IEnumerable<IBrokerAdapter> brokerAdapters)
         {
             _logger = logger;
@@ -27,8 +46,7 @@ namespace TradingBot.Abstractions
                 _brokerAdapters[adapter.BrokerName] = adapter;
             }
             
-            _logger.LogInformation("[OrderManager] Initialized with {AdapterCount} broker adapters: {Brokers}", 
-                _brokerAdapters.Count, string.Join(", ", _brokerAdapters.Keys));
+            LogOrderManagerInitialized(_logger, _brokerAdapters.Count, string.Join(", ", _brokerAdapters.Keys), null);
         }
 
         /// <summary>
@@ -39,14 +57,13 @@ namespace TradingBot.Abstractions
         {
             if (string.IsNullOrEmpty(orderId))
             {
-                _logger.LogWarning("[OrderManager] Cannot cancel order - orderId is null or empty");
+                LogCannotCancelOrderNullId(_logger, null);
                 return false;
             }
 
             reason ??= "Manual cancellation";
             
-            _logger.LogInformation("[OrderManager] Cancelling order {OrderId} via {Broker}: {Reason}", 
-                orderId, brokerName ?? "auto-detect", reason);
+            LogCancellingOrder(_logger, orderId, brokerName ?? "auto-detect", reason, null);
 
             // If no broker specified, try all adapters until one succeeds
             if (string.IsNullOrEmpty(brokerName))

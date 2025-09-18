@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace TradingBot.Abstractions;
 
 /// <summary>
@@ -228,5 +230,5 @@ public class OrchestratorStatus
     public DateTime StartTime { get; set; }
     public TimeSpan Uptime { get; set; }
     public Dictionary<string, object> ComponentStatus { get; } = new();
-    public List<string> RecentErrors { get; } = new();
+    public Collection<string> RecentErrors { get; } = new();
 }

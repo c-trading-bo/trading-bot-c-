@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Collections.ObjectModel;
 
 namespace TradingBot.Abstractions;
 
@@ -12,8 +13,8 @@ public class TradingBrainState
     public bool IsSystemHealthy { get; set; } = true;
     public string CurrentMarketRegime { get; set; } = "UNKNOWN";
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
-    public List<string> ConnectedComponents { get; } = new();
-    public List<string> ActiveStrategies { get; } = new();
+    public Collection<string> ConnectedComponents { get; } = new();
+    public Collection<string> ActiveStrategies { get; } = new();
     public Dictionary<string, decimal> ActivePositions { get; } = new();
     public decimal DailyPnL { get; set; }
     public string MarketRegime { get; set; } = "UNKNOWN";
@@ -67,7 +68,7 @@ public class MLSystemState
     public Dictionary<string, decimal> FeatureImportance { get; } = new();
     public string LastPrediction { get; set; } = string.Empty;
     public decimal PredictionConfidence { get; set; }
-    public List<string> ActiveFeatures { get; } = new();
+    public Collection<string> ActiveFeatures { get; } = new();
     
     public MLSystemState Clone()
     {
@@ -102,7 +103,7 @@ public class RiskSystemState
     public decimal MaxDailyRisk { get; set; } = 1000m;
     public decimal RiskUtilization { get; set; }
     public Dictionary<string, decimal> PositionRisks { get; } = new();
-    public List<string> RiskWarnings { get; } = new();
+    public Collection<string> RiskWarnings { get; } = new();
     public DateTime LastRiskCheck { get; set; } = DateTime.MinValue;
     
     public RiskSystemState Clone()
@@ -177,7 +178,7 @@ public class DataSystemState
     public Dictionary<string, DateTime> LastSymbolUpdate { get; } = new();
     public int TotalDataPoints { get; set; }
     public string DataQuality { get; set; } = "UNKNOWN";
-    public List<string> DataSources { get; } = new();
+    public Collection<string> DataSources { get; } = new();
     
     public DataSystemState Clone()
     {
@@ -291,7 +292,7 @@ public class RiskAssessment
     public decimal CurrentExposure { get; set; }
     public decimal VaR { get; set; } // Value at Risk
     public string RiskLevel { get; set; } = "LOW"; // LOW/MEDIUM/HIGH
-    public List<string> Warnings { get; } = new();
+    public Collection<string> Warnings { get; } = new();
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
@@ -331,7 +332,7 @@ public class WorkflowExecutionContext
     public DateTime? EndTime { get; set; }
     public WorkflowExecutionStatus Status { get; set; } = WorkflowExecutionStatus.Running;
     public Dictionary<string, object> Parameters { get; } = new();
-    public List<string> Logs { get; } = new();
+    public Collection<string> Logs { get; } = new();
     public string? ErrorMessage { get; set; }
     public TimeSpan Duration => (EndTime ?? DateTime.UtcNow) - StartTime;
 }
@@ -667,7 +668,7 @@ public class HealthStatus
     public string StatusMessage { get; set; } = string.Empty;
     public DateTime LastCheck { get; set; } = DateTime.UtcNow;
     public Dictionary<string, object> Metrics { get; } = new();
-    public List<string> Issues { get; } = new();
+    public Collection<string> Issues { get; } = new();
 }
 
 // TopstepX SignalR message models
