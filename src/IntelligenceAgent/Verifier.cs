@@ -138,7 +138,7 @@ public class Verifier : IVerifier
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Trade verification failed");
+            LogTradeVerificationFailed(_logger, ex);
 
             // Structured error log without secret exposure
             var errorData = new
@@ -152,8 +152,7 @@ public class Verifier : IVerifier
                 reason = "verification_failed"
             };
 
-            _logger.LogError("VERIFICATION_ERROR: {ErrorData}", 
-                JsonSerializer.Serialize(errorData));
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
 
             return new VerificationResult
             {
@@ -191,8 +190,7 @@ public class Verifier : IVerifier
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Order search returned {StatusCode}: {ReasonPhrase}", 
-                    response.StatusCode, response.ReasonPhrase);
+                LogOrderSearchStatusCode(_logger, response.StatusCode, response.ReasonPhrase ?? "Unknown", null);
                 return orderCounts;
             }
 
@@ -216,11 +214,11 @@ public class Verifier : IVerifier
                 }
             }
 
-            _logger.LogDebug("Order query completed: {OrderCounts}", orderCounts);
+            LogOrderQueryCompleted(_logger, orderCounts, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to query orders");
+            LogFailedToQueryOrders(_logger, ex);
         }
 
         return orderCounts;
@@ -249,8 +247,7 @@ public class Verifier : IVerifier
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Trade search returned {StatusCode}: {ReasonPhrase}", 
-                    response.StatusCode, response.ReasonPhrase);
+                LogTradeSearchStatusCode(_logger, response.StatusCode, response.ReasonPhrase ?? "Unknown", null);
                 return tradeCounts;
             }
 
@@ -284,11 +281,11 @@ public class Verifier : IVerifier
                 }
             }
 
-            _logger.LogDebug("Trade query completed: {TradeCounts}", tradeCounts);
+            LogTradeQueryCompleted(_logger, tradeCounts, null);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to query trades");
+            LogFailedToQueryTrades(_logger, ex);
         }
 
         return tradeCounts;
@@ -308,7 +305,7 @@ public class Verifier : IVerifier
                      $"Trades: {totalTrades} total " +
                      $"(Executed: {result.TradesByStatus.GetValueOrDefault("Executed", 0)})";
 
-        _logger.LogInformation("{Summary}", summary);
+        LogVerificationSummary(_logger, summary, null);
     }
 
     private void EmitStructuredLog(VerificationResult result)
@@ -326,8 +323,7 @@ public class Verifier : IVerifier
             trades_by_status = result.TradesByStatus
         };
 
-        _logger.LogInformation("VERIFICATION_RESULT: {StructuredData}", 
-            JsonSerializer.Serialize(structuredData));
+        LogVerificationResult(_logger, JsonSerializer.Serialize(structuredData), null);
     }
 }
 

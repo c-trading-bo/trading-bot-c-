@@ -116,6 +116,30 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             LogLevel.Error,
             new EventId(9, nameof(LogModelLoadingError)),
             "[ONNX] Model loading error, falling back to sophisticated prediction");
+
+    private static readonly Action<ILogger, Exception?> LogErrorDuringInference =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(10, nameof(LogErrorDuringInference)),
+            "[ONNX] Error during model inference, falling back to simulation");
+
+    private static readonly Action<ILogger, string, Exception?> LogModelFileNotFound =
+        LoggerMessage.Define<string>(
+            LogLevel.Warning,
+            new EventId(11, nameof(LogModelFileNotFound)),
+            "[ONNX] Model file not found at: {ModelPath}");
+
+    private static readonly Action<ILogger, Exception?> LogModelInfrastructureReady =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(12, nameof(LogModelInfrastructureReady)),
+            "[ONNX] Model infrastructure ready - using simulation mode until packages integrated");
+
+    private static readonly Action<ILogger, Exception?> LogErrorInitializingModel =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(13, nameof(LogErrorInitializingModel)),
+            "[ONNX] Error initializing model");
     
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
@@ -259,7 +283,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONNX] Error during model inference, falling back to simulation");
+            LogErrorDuringInference(_logger, ex);
             return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
     }
@@ -272,19 +296,19 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             var modelPath = GetModelPath();
             if (!File.Exists(modelPath))
             {
-                _logger.LogWarning("[ONNX] Model file not found at: {ModelPath}", modelPath);
+                LogModelFileNotFound(_logger, modelPath, null);
                 return false;
             }
 
             // Production ONNX session initialization would go here when packages are integrated
             // For now, return false to use simulation mode
             // This maintains production-ready infrastructure while packages are being integrated
-            _logger.LogInformation("[ONNX] Model infrastructure ready - using simulation mode until packages integrated");
+            LogModelInfrastructureReady(_logger, null);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONNX] Error initializing model");
+            LogErrorInitializingModel(_logger, ex);
             return false;
         }
     }
