@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -26,7 +25,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
     private readonly IServiceProvider _serviceProvider;
     private readonly PerformanceCounter _performanceCounter;
     private readonly HealthMonitor _healthMonitor;
-    private readonly SignalRMonitor _signalRMonitor;
+    private readonly TopstepXAdapterMonitor _topstepXAdapterMonitor;
     private readonly ApiHealthMonitor _apiHealthMonitor;
     private Timer? _monitoringTimer;
     private Timer? _reconciliationTimer;
@@ -39,7 +38,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         _serviceProvider = serviceProvider;
         _performanceCounter = new PerformanceCounter();
         _healthMonitor = new HealthMonitor(logger);
-        _signalRMonitor = new SignalRMonitor(logger);
+        _topstepXAdapterMonitor = new TopstepXAdapterMonitor(logger);
         _apiHealthMonitor = new ApiHealthMonitor(logger);
     }
 
@@ -53,7 +52,7 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
 
         // Initialize monitoring components
         await _healthMonitor.InitializeAsync();
-        await _signalRMonitor.InitializeAsync(_serviceProvider);
+        await _topstepXAdapterMonitor.InitializeAsync(_serviceProvider);
         await _apiHealthMonitor.InitializeAsync(_serviceProvider);
 
         _logger.LogInformation("✅ [OBSERVABILITY] Production observability monitoring started");
@@ -101,11 +100,11 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         {
             _logger.LogDebug("🔍 [HEALTH-CHECK] Performing comprehensive health checks...");
 
-            // Check SignalR connection health
-            var signalRHealth = await _signalRMonitor.CheckHealthAsync();
-            if (!signalRHealth.IsHealthy)
+            // Check TopstepX adapter health
+            var adapterHealth = await _topstepXAdapterMonitor.CheckHealthAsync();
+            if (!adapterHealth.IsHealthy)
             {
-                _logger.LogError("❌ [HEALTH-CHECK] SignalR connection unhealthy: {Reason}", signalRHealth.Reason);
+                _logger.LogError("❌ [HEALTH-CHECK] TopstepX adapter unhealthy: {Reason}", adapterHealth.Reason);
             }
 
             // Check API health
@@ -145,8 +144,8 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
         {
             _logger.LogDebug("🔄 [RECONCILIATION] Performing periodic REST reconciliation...");
 
-            // Perform REST reconciliation to catch missed SignalR events
-            await _signalRMonitor.PerformReconciliationAsync();
+            // Perform portfolio reconciliation via TopstepX adapter
+            await _topstepXAdapterMonitor.PerformReconciliationAsync();
 
             _logger.LogDebug("✅ [RECONCILIATION] Periodic reconciliation completed");
         }
@@ -158,17 +157,17 @@ public class ProductionObservabilityService : IHostedService, IPerformanceMonito
 }
 
 /// <summary>
-/// SignalR connection and event monitoring
+/// TopstepX adapter monitoring and health checks
 /// </summary>
-public class SignalRMonitor
+public class TopstepXAdapterMonitor
 {
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<string, DateTime> _lastEventTimes = new();
-    private ISignalRConnectionManager? _connectionManager;
+    private ITopstepXAdapterService? _topstepXAdapter;
     private DateTime _lastReconciliation = DateTime.UtcNow;
     private IServiceProvider? _serviceProvider;
 
-    public SignalRMonitor(ILogger logger)
+    public TopstepXAdapterMonitor(ILogger logger)
     {
         _logger = logger;
     }
@@ -178,19 +177,19 @@ public class SignalRMonitor
         try
         {
             _serviceProvider = serviceProvider;
-            _connectionManager = serviceProvider.GetService<ISignalRConnectionManager>();
-            if (_connectionManager != null)
+            _topstepXAdapter = serviceProvider.GetService<ITopstepXAdapterService>();
+            if (_topstepXAdapter != null)
             {
-                _logger.LogInformation("✅ [SIGNALR-MONITOR] SignalR connection manager initialized");
+                _logger.LogInformation("✅ [TOPSTEPX-MONITOR] TopstepX adapter initialized for monitoring");
             }
             else
             {
-                _logger.LogWarning("⚠️ [SIGNALR-MONITOR] SignalR connection manager not found");
+                _logger.LogWarning("⚠️ [TOPSTEPX-MONITOR] TopstepX adapter not found");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [SIGNALR-MONITOR] Failed to initialize SignalR monitor");
+            _logger.LogError(ex, "❌ [TOPSTEPX-MONITOR] Failed to initialize TopstepX adapter monitor");
         }
         
         await Task.CompletedTask;
