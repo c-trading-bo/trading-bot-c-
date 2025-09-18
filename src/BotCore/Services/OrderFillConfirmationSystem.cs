@@ -7,10 +7,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TopstepX.Bot.Abstractions;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -22,9 +22,7 @@ namespace TopstepX.Bot.Core.Services
     {
         private readonly ILogger<OrderFillConfirmationSystem> _logger;
         private readonly HttpClient _httpClient;
-        private HubConnection _userHubConnection;
-        private HubConnection _marketHubConnection;
-        private readonly ISignalRConnectionManager? _signalRConnectionManager;
+        private readonly ITopstepXAdapterService? _topstepXAdapter;
         private readonly ConcurrentDictionary<string, OrderTrackingRecord> _orderTracking = new();
         private readonly Timer _verificationTimer;
         private readonly PositionTrackingSystem _positionTracker;
@@ -73,109 +71,26 @@ namespace TopstepX.Bot.Core.Services
             public string ClientOrderId { get; set; } = string.Empty;
         }
         
+        /// <summary>
+        /// Constructor using TopstepX adapter service for real-time data
+        /// </summary>
         public OrderFillConfirmationSystem(
             ILogger<OrderFillConfirmationSystem> logger,
             HttpClient httpClient,
-            HubConnection userHubConnection,
-            HubConnection marketHubConnection,
+            ITopstepXAdapterService topstepXAdapter,
             PositionTrackingSystem positionTracker,
             EmergencyStopSystem emergencyStop)
         {
             _logger = logger;
             _httpClient = httpClient;
-            _userHubConnection = userHubConnection;
-            _marketHubConnection = marketHubConnection;
+            _topstepXAdapter = topstepXAdapter;
             _positionTracker = positionTracker;
             _emergencyStop = emergencyStop;
             
             // Setup verification timer - runs every 10 seconds
             _verificationTimer = new Timer(VerifyPendingOrders, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
             
-            SetupSignalRListeners();
-            _logger.LogInformation("📋 Order Fill Confirmation System initialized");
-        }
-
-        // Alternative constructor that accepts SignalRConnectionManager for shared connections
-        public OrderFillConfirmationSystem(
-            ILogger<OrderFillConfirmationSystem> logger,
-            HttpClient httpClient,
-            ISignalRConnectionManager signalRConnectionManager,
-            PositionTrackingSystem positionTracker,
-            EmergencyStopSystem emergencyStop)
-        {
-            _logger = logger;
-            _httpClient = httpClient;
-            _signalRConnectionManager = signalRConnectionManager;
-            _userHubConnection = null!; // Will be set dynamically
-            _marketHubConnection = null!; // Will be set dynamically
-            _positionTracker = positionTracker;
-            _emergencyStop = emergencyStop;
-            
-            // Setup verification timer - runs every 10 seconds
-            _verificationTimer = new Timer(VerifyPendingOrders, null, TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(10));
-            
-            // Setup listeners will be done when connections are available
-            _ = Task.Run(async () => await SetupSignalRListenersAsync());
-            _logger.LogInformation("📋 Order Fill Confirmation System initialized with shared SignalR connections");
-        }
-        
-        private void SetupSignalRListeners()
-        {
-            try
-            {
-                // Listen for order status updates from User Hub
-                _userHubConnection.On<GatewayUserOrder>("OrderUpdate", async (orderUpdate) =>
-                {
-                    await ProcessOrderUpdateAsync(orderUpdate);
-                });
-                
-                // Listen for trade fills from User Hub
-                _userHubConnection.On<GatewayUserTrade>("TradeUpdate", async (tradeUpdate) =>
-                {
-                    await ProcessTradeUpdateAsync(tradeUpdate);
-                });
-                
-                _logger.LogInformation("📡 SignalR listeners configured for order/trade updates");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Failed to setup SignalR listeners");
-            }
-        }
-
-        private async Task SetupSignalRListenersAsync()
-        {
-            if (_signalRConnectionManager == null)
-            {
-                _logger.LogWarning("⚠️ SignalRConnectionManager not available for dynamic setup");
-                return;
-            }
-
-            try
-            {
-                // Wait a bit for connections to be established
-                await Task.Delay(5000);
-
-                var userHub = await _signalRConnectionManager.GetUserHubConnectionAsync();
-                var marketHub = await _signalRConnectionManager.GetMarketHubConnectionAsync();
-
-                // Update the connections
-                _userHubConnection = userHub;
-                _marketHubConnection = marketHub;
-
-                // Setup listeners with the new connections
-                SetupSignalRListeners();
-
-                _logger.LogInformation("📡 SignalR listeners configured for order/trade updates using shared connections");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Failed to setup SignalR listeners with shared connections");
-                
-                // Retry after a delay
-                await Task.Delay(10000);
-                _ = Task.Run(async () => await SetupSignalRListenersAsync());
-            }
+            _logger.LogInformation("✅ Order Fill Confirmation System initialized with TopstepX adapter");
         }
         
         /// <summary>

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.Abstractions;
+using TradingBot.UnifiedOrchestrator.Services;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -155,19 +156,19 @@ public class SystemHealthMonitoringService : IHostedService
         var serviceChecks = new
         {
             tokenProvider = tokenProvider?.IsTokenValid ?? false,
-            signalRManager = CheckSignalRManagerHealth(),
+            topstepXAdapter = CheckTopstepXAdapterHealth(),
             authenticationService = await CheckAuthenticationHealthAsync()
         };
 
         return serviceChecks;
     }
 
-    private bool CheckSignalRManagerHealth()
+    private bool CheckTopstepXAdapterHealth()
     {
         try
         {
-            var signalRManager = _serviceProvider.GetService<ISignalRConnectionManager>();
-            return signalRManager?.IsUserHubConnected == true && signalRManager?.IsMarketHubConnected == true;
+            var topstepXAdapter = _serviceProvider.GetService<ITopstepXAdapterService>();
+            return topstepXAdapter?.IsConnected == true && topstepXAdapter?.ConnectionHealth >= 80.0;
         }
         catch
         {
@@ -209,17 +210,16 @@ public class SystemHealthMonitoringService : IHostedService
         
         try
         {
-            var signalRManager = _serviceProvider.GetService<ISignalRConnectionManager>();
-            if (signalRManager == null)
+            var topstepXAdapter = _serviceProvider.GetService<ITopstepXAdapterService>();
+            if (topstepXAdapter == null)
             {
-                return new { connected = false, reason = "SignalR manager not available" };
+                return new { connected = false, reason = "TopstepX adapter not available" };
             }
 
-            var isConnected = hubType == "User" 
-                ? signalRManager.IsUserHubConnected 
-                : signalRManager.IsMarketHubConnected;
+            var isConnected = topstepXAdapter.IsConnected;
+            var health = topstepXAdapter.ConnectionHealth;
 
-            return new { connected = isConnected, hubType };
+            return new { connected = isConnected, hubType, health };
         }
         catch (Exception ex)
         {

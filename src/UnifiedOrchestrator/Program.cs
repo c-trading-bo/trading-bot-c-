@@ -583,19 +583,19 @@ Stack Trace:
         // Register ErrorHandlingMonitoringSystem (529 lines) from BotCore  
         services.AddSingleton<TopstepX.Bot.Core.Services.ErrorHandlingMonitoringSystem>();
         
-        // OrderFillConfirmationSystem (520 lines) - Now uses shared SignalR connections
-        // Configure OrderFillConfirmationSystem to use shared SignalR connections via SignalRConnectionManager
+        // OrderFillConfirmationSystem (520 lines) - Now uses TopstepX adapter for real-time data
+        // Configure OrderFillConfirmationSystem to use TopstepX adapter service
         services.AddSingleton<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>(provider =>
         {
             var logger = provider.GetRequiredService<ILogger<TopstepX.Bot.Core.Services.OrderFillConfirmationSystem>>();
             var httpClient = provider.GetRequiredService<HttpClient>();
             var positionTracker = provider.GetRequiredService<TopstepX.Bot.Core.Services.PositionTrackingSystem>();
             var emergencyStop = provider.GetRequiredService<TopstepX.Bot.Core.Services.EmergencyStopSystem>();
-            var signalRConnectionManager = provider.GetRequiredService<ISignalRConnectionManager>();
+            var topstepXAdapter = provider.GetRequiredService<ITopstepXAdapterService>();
             
-            // Use the new constructor that accepts ISignalRConnectionManager for shared connections
+            // Use the new constructor that accepts ITopstepXAdapterService
             return new TopstepX.Bot.Core.Services.OrderFillConfirmationSystem(
-                logger, httpClient, signalRConnectionManager, positionTracker, emergencyStop);
+                logger, httpClient, topstepXAdapter, positionTracker, emergencyStop);
         });
         
         // Register PositionTrackingSystem (379 lines) from Safety project
