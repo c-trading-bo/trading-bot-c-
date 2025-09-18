@@ -46,6 +46,7 @@ internal static class AutoRemediationConstants
     // Test and measurement constants
     public const int TEST_DELAY_MS = 100;
     public const int FAILED_CONNECTION_TIMEOUT_MS = 5000;
+    public const double SUCCESS_HEALTH_SCORE_THRESHOLD = 0.8;
 }
 
 /// <summary>
@@ -675,7 +676,7 @@ public class AutoRemediationSystem
             var postRemediationReport = await _reportingSystem.GenerateComprehensiveReportAsync(dummyTestResults);
             
             var validationResult = new { 
-                IsOverallSuccess = postRemediationReport.OverallHealthScore > 0.8, 
+                IsOverallSuccess = postRemediationReport.OverallHealthScore > AutoRemediationConstants.SUCCESS_HEALTH_SCORE_THRESHOLD, 
                 FailedTests = new List<string>(),
                 HealthScore = postRemediationReport.OverallHealthScore
             };
@@ -1112,7 +1113,7 @@ public class AutoRemediationResult
         TotalIssuesAttempted = allActions.Count;
         TotalIssuesFixed = allActions.Count(a => a.Success);
         RemediationSuccessRate = TotalIssuesAttempted > 0 ? (double)TotalIssuesFixed / TotalIssuesAttempted : 1.0;
-        OverallSuccess = RemediationSuccessRate >= 0.8 && string.IsNullOrEmpty(CriticalError);
+        OverallSuccess = RemediationSuccessRate >= AutoRemediationConstants.SUCCESS_HEALTH_SCORE_THRESHOLD && string.IsNullOrEmpty(CriticalError);
     }
 
     public Dictionary<string, object> GetSummary()

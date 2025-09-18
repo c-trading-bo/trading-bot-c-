@@ -14,6 +14,8 @@ namespace Infrastructure.TopstepX;
 internal static class TopstepAuthConstants
 {
     public const int BASE64_PADDING_BLOCK_SIZE = 4;
+    public const int BASE64_PADDING_CASE_TWO = 2;
+    public const int BASE64_PADDING_CASE_THREE = 3;
 }
 
 public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
@@ -103,7 +105,10 @@ public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
         private static byte[] Base64UrlDecode(string s)
         {
             s = s.Replace('-', '+').Replace('_', '/');
-            switch (s.Length % TopstepAuthConstants.BASE64_PADDING_BLOCK_SIZE) { case 2: s += "=="; break; case 3: s += "="; break; }
+            switch (s.Length % TopstepAuthConstants.BASE64_PADDING_BLOCK_SIZE) { 
+                case TopstepAuthConstants.BASE64_PADDING_CASE_TWO: s += "=="; break; 
+                case TopstepAuthConstants.BASE64_PADDING_CASE_THREE: s += "="; break; 
+            }
             return Convert.FromBase64String(s);
         }
 
