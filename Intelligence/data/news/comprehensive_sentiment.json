@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-09-18T12:42:58.751964",
+  "timestamp": "2025-09-18T15:22:58.313409",
   "analysis_mode": "comprehensive",
-  "market_session": "extended",
-  "total_articles_processed": 17,
+  "market_session": "regular",
+  "total_articles_processed": 14,
   "sentiment_threshold": 0.3,
   "instruments": {
     "ES": {
@@ -10,12 +10,12 @@
       "article_count": 1,
       "articles": [
         {
-          "title": "Stock market today: Nasdaq, Dow, S&P 500 futures jump after Fed signals more cuts, Nvidia bets on Intel",
+          "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
           "sentiment": 0.35,
           "textblob_score": 0.5,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-futures-jump-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448805.html",
+          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
           "published": "2025-09-17T23:14:48Z",
           "relevance_keywords": [
             "S&P"
@@ -29,39 +29,26 @@
       ]
     },
     "NQ": {
-      "sentiment_score": 0.45625,
-      "article_count": 2,
+      "sentiment_score": 0.35,
+      "article_count": 1,
       "articles": [
         {
-          "title": "Stock market today: Nasdaq, Dow, S&P 500 futures jump after Fed signals more cuts, Nvidia bets on Intel",
+          "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
           "sentiment": 0.35,
           "textblob_score": 0.5,
           "keyword_score": 0,
           "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-futures-jump-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448805.html",
+          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
           "published": "2025-09-17T23:14:48Z",
-          "relevance_keywords": [
-            "Nasdaq"
-          ]
-        },
-        {
-          "title": "Nasdaq Futures Jump 1% as Stocks Rally After Fed: Markets Wrap",
-          "sentiment": 0.5625,
-          "textblob_score": 0.375,
-          "keyword_score": 1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-17/stock-market-today-dow-s-p-live-updates",
-          "published": "Wed, 17 Sep 2025 22:52:58 GMT",
           "relevance_keywords": [
             "Nasdaq"
           ]
         }
       ],
       "signal": "BULLISH",
-      "confidence": 0.2,
+      "confidence": 0.1,
       "sources": [
-        "yahoo_finance",
-        "bloomberg"
+        "yahoo_finance"
       ]
     },
     "SPY": {
@@ -81,217 +68,194 @@
       "sources": []
     },
     "BTC": {
-      "sentiment_score": 0.178,
-      "article_count": 2,
-      "articles": [
-        {
-          "title": "Why Is Crypto Up Today? \u2013 September 18, 2025",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/why-crypto-today-september-18-122452451.html",
-          "published": "2025-09-18T12:24:52Z",
-          "relevance_keywords": [
-            "crypto"
-          ]
-        },
-        {
-          "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
-          "sentiment": 0.055999999999999994,
-          "textblob_score": 0.08,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
-          "published": "Thu, 18 Sep 2025 09:00:00 GMT",
-          "relevance_keywords": [
-            "Bitcoin"
-          ]
-        }
-      ],
-      "signal": "NEUTRAL",
-      "confidence": 0.2,
-      "sources": [
-        "yahoo_finance",
-        "marketwatch"
-      ]
-    },
-    "TSLA": {
-      "sentiment_score": 0.009884726898615784,
-      "article_count": 9,
-      "articles": [
-        {
-          "title": "NFL Commanders Win $3.7 Billion Stadium Deal After DC Approval",
-          "sentiment": 0.19515151515151516,
-          "textblob_score": 0.2787878787878788,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-18/nfl-commanders-win-3-7-billion-stadium-deal-after-dc-approval",
-          "published": "Thu, 18 Sep 2025 12:00:52 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Argentina\u2019s Brokers See Their Losses Mount as Milei Bet Fades",
-          "sentiment": -0.38749999999999996,
-          "textblob_score": -0.125,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-18/argentina-markets-brokers-see-losses-mount-as-milei-bet-fades",
-          "published": "Thu, 18 Sep 2025 12:00:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "India May Finally Be Ready for Its Atomic Age",
-          "sentiment": 0.13999999999999999,
-          "textblob_score": 0.2,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/newsletters/2025-09-18/india-may-finally-be-ready-for-a-new-nuclear-power-age",
-          "published": "Thu, 18 Sep 2025 11:23:39 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Federal Reserve Got \u2018More Dovish,\u2019 Pimco\u2019s Mai Says",
-          "sentiment": 0.175,
-          "textblob_score": 0.25,
-          "keyword_score": 0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-18/federal-reserve-got-more-dovish-pimco-s-mai-says-video",
-          "published": "Thu, 18 Sep 2025 11:04:33 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Used-Car Unicorns Slim Down to Raise $1 Billion Via India IPOs",
-          "sentiment": -0.24127777777777779,
-          "textblob_score": 0.08388888888888887,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/articles/2025-09-17/used-car-unicorns-slim-down-to-raise-1-billion-via-india-ipos",
-          "published": "Wed, 17 Sep 2025 22:00:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Fed Eyes Two More Rate Cuts This Year, Trump to Meet Keir Starmer | The Opening Trade 9/18",
-          "sentiment": -0.2442445286195286,
-          "textblob_score": 0.0796506734006734,
-          "keyword_score": -1.0,
-          "source": "bloomberg",
-          "url": "https://www.bloomberg.com/news/videos/2025-09-18/the-opening-trade-9-18-video",
-          "published": "Thu, 18 Sep 2025 11:03:51 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
-          "sentiment": 0.055999999999999994,
-          "textblob_score": 0.08,
-          "keyword_score": 0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
-          "published": "Thu, 18 Sep 2025 12:36:00 GMT",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "On Holding: Valuation At Low Levels While Growth Doesn't Stop",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823978-on-holding-valuation-at-low-levels-while-growth-doesnt-stop?source=feed_all_articles",
-          "published": "Thu, 18 Sep 2025 08:25:03 -0400",
-          "relevance_keywords": [
-            "EV"
-          ]
-        },
-        {
-          "title": "Even At All-Time Highs, AppLovin's Earnings Power Makes It Hard To Bet Against",
-          "sentiment": 0.09583333333333333,
-          "textblob_score": -0.2916666666666667,
-          "keyword_score": 1.0,
-          "source": "seeking_alpha",
-          "url": "https://seekingalpha.com/article/4823977-even-at-all-time-highs-applovins-earnings-power-makes-it-hard-to-bet-against?source=feed_all_articles",
-          "published": "Thu, 18 Sep 2025 08:22:01 -0400",
-          "relevance_keywords": [
-            "EV"
-          ]
-        }
-      ],
-      "signal": "NEUTRAL",
-      "confidence": 0.9,
-      "sources": [
-        "bloomberg",
-        "marketwatch",
-        "seeking_alpha"
-      ]
-    },
-    "NVDA": {
-      "sentiment_score": 0.375,
-      "article_count": 3,
-      "articles": [
-        {
-          "title": "Stock market today: Nasdaq, Dow, S&P 500 futures jump after Fed signals more cuts, Nvidia bets on Intel",
-          "sentiment": 0.35,
-          "textblob_score": 0.5,
-          "keyword_score": 0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-futures-jump-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448805.html",
-          "published": "2025-09-17T23:14:48Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Intel shares soar as Nvidia announces $5 billion investment",
-          "sentiment": 0.3,
-          "textblob_score": 0.0,
-          "keyword_score": 1.0,
-          "source": "yahoo_finance",
-          "url": "https://finance.yahoo.com/news/intel-shares-soar-nvidia-announces-121908641.html",
-          "published": "2025-09-18T12:19:08Z",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        },
-        {
-          "title": "Intel\u2019s stock is soaring. Why Nvidia is investing $5 billion in the chip maker.",
-          "sentiment": 0.475,
-          "textblob_score": 0.25,
-          "keyword_score": 1.0,
-          "source": "marketwatch",
-          "url": "https://www.marketwatch.com/story/intels-stock-is-soaring-why-nvidia-is-investing-5-billion-in-the-chip-maker-e1296651?mod=mw_rss_topstories",
-          "published": "Thu, 18 Sep 2025 11:43:00 GMT",
-          "relevance_keywords": [
-            "Nvidia"
-          ]
-        }
-      ],
-      "signal": "BULLISH",
-      "confidence": 0.3,
-      "sources": [
-        "yahoo_finance",
-        "marketwatch"
-      ]
-    },
-    "AAPL": {
       "sentiment_score": 0.0,
       "article_count": 0,
       "articles": [],
       "signal": "NEUTRAL",
       "confidence": 0.0,
       "sources": []
+    },
+    "TSLA": {
+      "sentiment_score": 0.30556682900432897,
+      "article_count": 7,
+      "articles": [
+        {
+          "title": "Advisors Capital Boosts Advanced Micro Devices, Inc. (AMD) Holdings by 5.7%",
+          "sentiment": 0.58,
+          "textblob_score": 0.4,
+          "keyword_score": 1.0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/advisors-capital-boosts-advanced-micro-145913566.html",
+          "published": "2025-09-18T14:59:13Z",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Intel\u2019s Bonds Strengthen on Investment From Rival Nvidia",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-18/intel-s-bonds-strengthen-on-investment-from-rival-nvidia",
+          "published": "Thu, 18 Sep 2025 15:18:18 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "US Judge Rules PDVSA Bonds Valid, Clearing Way for Citgo Sale",
+          "sentiment": 0.10480113636363636,
+          "textblob_score": 0.1497159090909091,
+          "keyword_score": 0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-18/us-judge-rules-pdvsa-bonds-valid-clearing-way-for-citgo-sale",
+          "published": "Thu, 18 Sep 2025 15:06:05 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "ECB\u2019s Guindos Says Risk of Inflation Undershoot Isn\u2019t Big",
+          "sentiment": 0.0875,
+          "textblob_score": 0.125,
+          "keyword_score": 0.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-18/ecb-s-guindos-says-risk-of-inflation-goal-undershoot-isn-t-big",
+          "published": "Thu, 18 Sep 2025 10:05:03 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Inflation fears surge to their highest levels since \u2018liberation day\u2019 as Fed cuts rates",
+          "sentiment": 0.41666666666666663,
+          "textblob_score": 0.16666666666666669,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/inflation-fears-surge-to-highest-since-liberation-day-as-fed-cuts-rates-abe9778f?mod=mw_rss_topstories",
+          "published": "Thu, 18 Sep 2025 13:59:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "This Fed move can help job seekers even more than the latest interest-rate cut",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/this-fed-move-can-help-job-seekers-even-more-than-the-latest-interest-rate-cut-7481498e?mod=mw_rss_topstories",
+          "published": "Thu, 18 Sep 2025 13:55:00 GMT",
+          "relevance_keywords": [
+            "EV"
+          ]
+        },
+        {
+          "title": "Genpact: The Setup's Stronger, Even If The Market Hasn't Caught On",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "seeking_alpha",
+          "url": "https://seekingalpha.com/article/4824045-genpact-the-setups-stronger-even-if-the-market-hasnt-caught-on?source=feed_all_articles",
+          "published": "Thu, 18 Sep 2025 11:02:06 -0400",
+          "relevance_keywords": [
+            "EV"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.7,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "marketwatch",
+        "seeking_alpha"
+      ]
+    },
+    "NVDA": {
+      "sentiment_score": 0.36022727272727273,
+      "article_count": 4,
+      "articles": [
+        {
+          "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
+          "sentiment": 0.35,
+          "textblob_score": 0.5,
+          "keyword_score": 0,
+          "source": "yahoo_finance",
+          "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
+          "published": "2025-09-17T23:14:48Z",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "Intel\u2019s Bonds Strengthen on Investment From Rival Nvidia",
+          "sentiment": 0.3,
+          "textblob_score": 0.0,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-18/intel-s-bonds-strengthen-on-investment-from-rival-nvidia",
+          "published": "Thu, 18 Sep 2025 15:18:18 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "Huawei Unveils New AI Tech to Take on Nvidia",
+          "sentiment": 0.39545454545454545,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/videos/2025-09-18/huawei-unveils-new-ai-tech-to-take-on-nvidia-video",
+          "published": "Thu, 18 Sep 2025 14:44:30 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        },
+        {
+          "title": "Intel\u2019s stock is soaring. Here\u2019s why Nvidia is investing $5 billion in the chip maker.",
+          "sentiment": 0.39545454545454545,
+          "textblob_score": 0.13636363636363635,
+          "keyword_score": 1.0,
+          "source": "marketwatch",
+          "url": "https://www.marketwatch.com/story/intels-stock-is-soaring-why-nvidia-is-investing-5-billion-in-the-chip-maker-e1296651?mod=mw_rss_topstories",
+          "published": "Thu, 18 Sep 2025 14:42:00 GMT",
+          "relevance_keywords": [
+            "Nvidia"
+          ]
+        }
+      ],
+      "signal": "BULLISH",
+      "confidence": 0.4,
+      "sources": [
+        "yahoo_finance",
+        "bloomberg",
+        "marketwatch"
+      ]
+    },
+    "AAPL": {
+      "sentiment_score": -0.3,
+      "article_count": 1,
+      "articles": [
+        {
+          "title": "Kosters Predicts Rate Cut Will Spur Private Credit Fund Sales",
+          "sentiment": -0.3,
+          "textblob_score": 0.0,
+          "keyword_score": -1.0,
+          "source": "bloomberg",
+          "url": "https://www.bloomberg.com/news/articles/2025-09-18/kosters-predicts-rate-cut-will-spur-private-credit-fund-sales",
+          "published": "Thu, 18 Sep 2025 14:38:15 GMT",
+          "relevance_keywords": [
+            "Mac"
+          ]
+        }
+      ],
+      "signal": "NEUTRAL",
+      "confidence": 0.1,
+      "sources": [
+        "bloomberg"
+      ]
     }
   },
   "sources_used": [
