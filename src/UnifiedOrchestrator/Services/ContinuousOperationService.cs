@@ -35,9 +35,7 @@ public class ContinuousOperationService : BackgroundService
     // Configuration
     private readonly TimeSpan _operationCheckInterval = TimeSpan.FromMinutes(10);
     private readonly TimeSpan _dailyRetrainingWindow = TimeSpan.FromHours(2); // 2-hour daily retraining window
-#pragma warning disable CS0414 // Field is assigned but its value is never used - reserved for future capacity management
     private readonly int _maxConcurrentTrainingJobs = 3;
-#pragma warning restore CS0414
     private readonly int _rollingWindowDays = 30; // Use 30-day rolling window for retraining
 
     public ContinuousOperationService(

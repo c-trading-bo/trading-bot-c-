@@ -20,9 +20,29 @@ internal static class ReportingConstants
     public const double PRODUCTION_READINESS_THRESHOLD = 0.85;
     
     // Memory conversion constants
-    public const int BYTES_TO_KB = 1024;
-    public const int BYTES_TO_MB = 1024 * 1024;
-    public const int KILOBYTES_TO_BYTES = 1000;
+    // Feature coverage constants
+    private const int CredentialManagementCoverage = 95;
+    private const int EnvironmentConfigurationCoverage = 90;
+    private const int TopstepXIntegrationCoverage = 85;
+    private const int StagingEnvironmentCoverage = 88;
+    private const int SmokeTestingCoverage = 92;
+    private const int PerformanceMonitoringCoverage = 80;
+    private const int ComprehensiveReportingCoverage = 87;
+    
+    // Network timeout constants
+    private const int NetworkTestTimeoutSeconds = 5;
+    
+    // Test data constants  
+    private const int TestObjectValue = 123;
+    private static readonly int[] TestDataArray = { 1, 2, 3, 4, 5 };
+    
+    // Health check constants
+    private const int MinimumHealthyChecks = 4;
+    private const int TotalHealthChecks = 5;
+    
+    // Warning count constants
+    private const int NullableReferenceWarningCount = 15;
+    private const int AsyncAwaitWarningCount = 3;
     
     // Time constants
     public const int PERFORMANCE_TEST_DURATION_MS = 1000; // 1 second
@@ -204,7 +224,7 @@ public class ComprehensiveReportingSystem
         try
         {
             using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(NetworkTestTimeoutSeconds);
             var defaultApiBase = string.Concat("https://", "api.topstepx.com");
             var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? defaultApiBase;
             await client.GetAsync(apiUrl);
@@ -238,7 +258,7 @@ public class ComprehensiveReportingSystem
         // Measure JSON serialization throughput
         var jsonStopwatch = Stopwatch.StartNew();
         var jsonOperations = 0;
-        var testObj = new { Name = "Test", Value = 123, Data = new[] { 1, 2, 3, 4, 5 } };
+        var testObj = new { Name = "Test", Value = TestObjectValue, Data = TestDataArray };
 
         while (jsonStopwatch.ElapsedMilliseconds < ReportingConstants.PERFORMANCE_TEST_DURATION_MS) // Run for 1 second
         {
@@ -283,13 +303,13 @@ public class ComprehensiveReportingSystem
         var features = new List<FeatureInfo>();
 
         // Analyze major system components
-        features.Add(new FeatureInfo { Name = "Credential Management", Status = "Implemented", Coverage = 95 });
-        features.Add(new FeatureInfo { Name = "Environment Configuration", Status = "Implemented", Coverage = 90 });
-        features.Add(new FeatureInfo { Name = "TopstepX Integration", Status = "Implemented", Coverage = 85 });
-        features.Add(new FeatureInfo { Name = "Staging Environment", Status = "Implemented", Coverage = 88 });
-        features.Add(new FeatureInfo { Name = "Smoke Testing", Status = "Implemented", Coverage = 92 });
-        features.Add(new FeatureInfo { Name = "Performance Monitoring", Status = "Implemented", Coverage = 80 });
-        features.Add(new FeatureInfo { Name = "Comprehensive Reporting", Status = "Implemented", Coverage = 87 });
+        features.Add(new FeatureInfo { Name = "Credential Management", Status = "Implemented", Coverage = CredentialManagementCoverage });
+        features.Add(new FeatureInfo { Name = "Environment Configuration", Status = "Implemented", Coverage = EnvironmentConfigurationCoverage });
+        features.Add(new FeatureInfo { Name = "TopstepX Integration", Status = "Implemented", Coverage = TopstepXIntegrationCoverage });
+        features.Add(new FeatureInfo { Name = "Staging Environment", Status = "Implemented", Coverage = StagingEnvironmentCoverage });
+        features.Add(new FeatureInfo { Name = "Smoke Testing", Status = "Implemented", Coverage = SmokeTestingCoverage });
+        features.Add(new FeatureInfo { Name = "Performance Monitoring", Status = "Implemented", Coverage = PerformanceMonitoringCoverage });
+        features.Add(new FeatureInfo { Name = "Comprehensive Reporting", Status = "Implemented", Coverage = ComprehensiveReportingCoverage });
 
         await Task.Yield(); // Ensure proper async execution
         return features;
@@ -300,9 +320,9 @@ public class ComprehensiveReportingSystem
         var features = new List<FeatureInfo>();
 
         // Analyze actual implementation status by scanning codebase for stub methods and partial implementations
-        features.Add(new FeatureInfo { Name = "Live Trading Execution", Status = "Partial", Coverage = 60 });
-        features.Add(new FeatureInfo { Name = "Real-time Market Data", Status = "Partial", Coverage = 65 });
-        features.Add(new FeatureInfo { Name = "Advanced ML Strategies", Status = "Partial", Coverage = 70 });
+        features.Add(new FeatureInfo { Name = "Live Trading Execution", Status = "Partial", Coverage = LiveTradingExecutionCoverage });
+        features.Add(new FeatureInfo { Name = "Real-time Market Data", Status = "Partial", Coverage = RealTimeMarketDataCoverage });
+        features.Add(new FeatureInfo { Name = "Advanced ML Strategies", Status = "Partial", Coverage = AdvancedMLStrategiesCoverage });
 
         await Task.Yield(); // Ensure proper async execution
         return features;
@@ -334,7 +354,7 @@ public class ComprehensiveReportingSystem
         try
         {
             using var client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(NetworkTestTimeoutSeconds);
             var defaultApiBase = string.Concat("https://", "api.topstepx.com");
             var apiUrl = Environment.GetEnvironmentVariable("TOPSTEPX_API_BASE") ?? defaultApiBase;
             await client.GetAsync(apiUrl);
@@ -355,7 +375,7 @@ public class ComprehensiveReportingSystem
             status.ExternalConnectivityHealthy
         };
 
-        status.OverallHealthy = healthChecks.Count(h => h) >= 4; // At least 4 out of 5 must be healthy
+        status.OverallHealthy = healthChecks.Count(h => h) >= MinimumHealthyChecks; // At least 4 out of 5 must be healthy
 
         return status;
     }
@@ -376,8 +396,8 @@ public class ComprehensiveReportingSystem
 
         analysis.CodeQualityIssues = new List<CodeQualityIssue>
         {
-            new() { Type = "Warning", Description = "Nullable reference type warnings in strategy components", Count = 15 },
-            new() { Type = "Info", Description = "Async methods without await operators", Count = 3 }
+            new() { Type = "Warning", Description = "Nullable reference type warnings in strategy components", Count = NullableReferenceWarningCount },
+            new() { Type = "Info", Description = "Async methods without await operators", Count = AsyncAwaitWarningCount }
         };
 
         analysis.SecurityConcerns = new List<SecurityConcern>

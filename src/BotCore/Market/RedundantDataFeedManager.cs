@@ -704,10 +704,8 @@ public class TopstepXDataFeed : IDataFeed
     public string FeedName => "TopstepX";
     public int Priority { get; set; } = 1;
     
-#pragma warning disable CS0067 // Event is never used - reserved for future implementation
     public event EventHandler<MarketData>? OnDataReceived;
     public event EventHandler<Exception>? OnError;
-#pragma warning restore CS0067
 
     public async Task<bool> ConnectAsync()
     {
@@ -746,10 +744,8 @@ public class BackupDataFeed : IDataFeed
     public string FeedName => "Backup";
     public int Priority { get; set; } = 2;
     
-#pragma warning disable CS0067 // Event is never used - reserved for future implementation
     public event EventHandler<MarketData>? OnDataReceived;
     public event EventHandler<Exception>? OnError;
-#pragma warning restore CS0067
 
     public async Task<bool> ConnectAsync()
     {

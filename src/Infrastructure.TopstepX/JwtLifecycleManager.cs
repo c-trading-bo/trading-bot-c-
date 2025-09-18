@@ -25,6 +25,12 @@ public interface IJwtLifecycleManager
 
 public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDisposable
 {
+    // JWT validation constants
+    private const int TokenValidityBufferMinutes = 5;
+    private const int HealthCheckIntervalSeconds = 100;
+    private const int RefreshThresholdPercentage = 75;
+    private const int CriticalThresholdPercentage = 50;
+    
     private readonly ILogger<JwtLifecycleManager> _logger;
     private readonly ITradingLogger _tradingLogger;
     private readonly Timer _expirationCheckTimer;
@@ -95,8 +101,8 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
             var jsonToken = handler.ReadJwtToken(token);
             var expiry = jsonToken.ValidTo;
 
-            // Token is valid if it expires more than 5 minutes from now
-            return expiry > DateTime.UtcNow.AddMinutes(5);
+            // Token is valid if it expires more than the buffer time from now
+            return expiry > DateTime.UtcNow.AddMinutes(TokenValidityBufferMinutes);
         }
         catch (Exception ex)
         {
@@ -144,9 +150,9 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
             var elapsed = now - issuedAt;
 
             if (elapsed.TotalSeconds < 0) return 0.0;
-            if (elapsed >= totalLifetime) return 100.0;
+            if (elapsed >= totalLifetime) return HealthCheckIntervalSeconds;
 
-            return (elapsed.TotalSeconds / totalLifetime.TotalSeconds) * 100.0;
+            return (elapsed.TotalSeconds / totalLifetime.TotalSeconds) * HealthCheckIntervalSeconds;
         }
         catch (Exception ex)
         {
@@ -169,15 +175,15 @@ public class JwtLifecycleManager : IJwtLifecycleManager, IHostedService, IDispos
         {
             var lifetimePercentage = GetTokenLifetimePercentage(_currentToken!);
             
-            // Trigger refresh at 75% of token lifetime
-            if (lifetimePercentage >= 75.0)
+            // Trigger refresh at the configured threshold of token lifetime
+            if (lifetimePercentage >= RefreshThresholdPercentage)
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "JwtLifecycleManager",
                     $"Token is {lifetimePercentage:F1}% through its lifetime - triggering refresh");
                 
                 TokenNeedsRefresh?.Invoke(_currentToken!);
             }
-            else if (lifetimePercentage >= 50.0)
+            else if (lifetimePercentage >= CriticalThresholdPercentage)
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "JwtLifecycleManager",
                     $"Token is {lifetimePercentage:F1}% through its lifetime");

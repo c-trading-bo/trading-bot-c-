@@ -9,3 +9,8 @@
 /BotCore/UserHubClient.cs @kevin
 /BotCore/MarketHubClient.cs @kevin
 /BotCore/ExampleWireUp.cs @kevin
+
+# ANALYZER CONFIGURATION PROTECTION - MAXIMUM STRICT MODE LOCKDOWN
+# These files control analyzer enforcement and cannot be modified without explicit approval
+/.editorconfig @kevinsuero072897-collab
+/Directory.Build.props @kevinsuero072897-collab
