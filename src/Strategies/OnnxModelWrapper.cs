@@ -86,6 +86,36 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             LogLevel.Debug,
             new EventId(4, nameof(LogFallbackPredictionConfidence)),
             "[ONNX] Fallback prediction confidence: {Confidence:F3}");
+
+    private static readonly Action<ILogger, double, int, Exception?> LogPredictedConfidence =
+        LoggerMessage.Define<double, int>(
+            LogLevel.Debug,
+            new EventId(5, nameof(LogPredictedConfidence)),
+            "[ONNX] Predicted confidence: {Confidence:F3} from {FeatureCount} features");
+
+    private static readonly Action<ILogger, Exception?> LogErrorDuringPrediction =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(6, nameof(LogErrorDuringPrediction)),
+            "[ONNX] Error during model prediction");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoadingFailed =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(7, nameof(LogModelLoadingFailed)),
+            "[ONNX] Failed to load model - using fallback");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoaderFallback =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(8, nameof(LogModelLoaderFallback)),
+            "[ONNX] Using deterministic fallback model with sophisticated feature analysis");
+
+    private static readonly Action<ILogger, Exception?> LogModelLoadingError =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(9, nameof(LogModelLoadingError)),
+            "[ONNX] Model loading error, falling back to sophisticated prediction");
     
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
@@ -143,14 +173,13 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             // Ensure confidence is in valid range
             confidence = Math.Max(0.0, Math.Min(1.0, confidence));
             
-            _logger.LogDebug("[ONNX] Predicted confidence: {Confidence:F3} from {FeatureCount} features", 
-                confidence, features.Count);
+            LogPredictedConfidence(_logger, confidence, features.Count, null);
             
             return confidence;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ONNX] Error during model prediction");
+            LogErrorDuringPrediction(_logger, ex);
             return DefaultConfidence;
         }
     }

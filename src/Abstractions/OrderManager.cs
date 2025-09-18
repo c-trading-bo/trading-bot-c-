@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -187,5 +188,21 @@ namespace TradingBot.Abstractions
     {
         string BrokerName { get; }
         Task<bool> CancelOrderAsync(string orderId, CancellationToken cancellationToken = default);
+    }
+}
+
+internal static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should be rethrown
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is System.Security.SecurityException;
     }
 }
