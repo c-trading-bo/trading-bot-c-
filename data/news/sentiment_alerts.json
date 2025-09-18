@@ -1,20 +1,5 @@
 {
-  "timestamp": "2025-09-18T15:22:58.314340",
-  "alert_count": 2,
-  "alerts": [
-    {
-      "instrument": "TSLA",
-      "signal": "BULLISH",
-      "sentiment_score": 0.30556682900432897,
-      "confidence": 0.7,
-      "article_count": 7
-    },
-    {
-      "instrument": "NVDA",
-      "signal": "BULLISH",
-      "sentiment_score": 0.36022727272727273,
-      "confidence": 0.4,
-      "article_count": 4
-    }
-  ]
+  "timestamp": "2025-09-18T18:32:02.521625",
+  "alert_count": 0,
+  "alerts": []
 }

@@ -1,59 +1,57 @@
 {
-  "timestamp": "2025-09-18T15:27:45.032896",
+  "timestamp": "2025-09-18T18:36:47.067881",
   "analysis_mode": "comprehensive",
   "market_session": "regular",
-  "workflow_run": "74",
+  "workflow_run": "75",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-18T15:22:58.313409",
+    "timestamp": "2025-09-18T18:32:02.520680",
     "analysis_mode": "comprehensive",
     "market_session": "regular",
-    "total_articles_processed": 14,
+    "total_articles_processed": 13,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
-        "sentiment_score": 0.35,
-        "article_count": 1,
-        "articles": [
-          {
-            "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
-            "published": "2025-09-17T23:14:48Z",
-            "relevance_keywords": [
-              "S&P"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.1,
-        "sources": [
-          "yahoo_finance"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       },
       "NQ": {
-        "sentiment_score": 0.35,
-        "article_count": 1,
+        "sentiment_score": 0.04374999999999998,
+        "article_count": 2,
         "articles": [
           {
-            "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
+            "title": "Is Broadridge Financial Stock Underperforming the Nasdaq?",
+            "sentiment": -0.3,
+            "textblob_score": 0.0,
+            "keyword_score": -1.0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
-            "published": "2025-09-17T23:14:48Z",
+            "url": "https://finance.yahoo.com/news/broadridge-financial-stock-underperforming-nasdaq-075306706.html",
+            "published": "2025-09-17T07:53:06Z",
+            "relevance_keywords": [
+              "Nasdaq"
+            ]
+          },
+          {
+            "title": "Netskope leaps into a hot IPO market. The cybersecurity stock is seeing a double-digit percentage gain.",
+            "sentiment": 0.38749999999999996,
+            "textblob_score": 0.125,
+            "keyword_score": 1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/hot-ipo-market-continues-as-cybersecurity-software-company-netskope-raises-908-million-ac0e368a?mod=mw_rss_topstories",
+            "published": "Thu, 18 Sep 2025 17:23:00 GMT",
             "relevance_keywords": [
               "Nasdaq"
             ]
           }
         ],
-        "signal": "BULLISH",
-        "confidence": 0.1,
+        "signal": "NEUTRAL",
+        "confidence": 0.2,
         "sources": [
-          "yahoo_finance"
+          "yahoo_finance",
+          "marketwatch"
         ]
       },
       "SPY": {
@@ -73,104 +71,145 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
-        "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
-      },
-      "TSLA": {
-        "sentiment_score": 0.30556682900432897,
-        "article_count": 7,
+        "sentiment_score": -0.01199999999999999,
+        "article_count": 2,
         "articles": [
           {
-            "title": "Advisors Capital Boosts Advanced Micro Devices, Inc. (AMD) Holdings by 5.7%",
-            "sentiment": 0.58,
-            "textblob_score": 0.4,
-            "keyword_score": 1.0,
+            "title": "ETFs Are for Losers, Says Robert Kiyosaki Backing Trump\u2019s Crypto Plans",
+            "sentiment": -0.13999999999999999,
+            "textblob_score": -0.2,
+            "keyword_score": 0,
             "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/advisors-capital-boosts-advanced-micro-145913566.html",
-            "published": "2025-09-18T14:59:13Z",
+            "url": "https://finance.yahoo.com/news/etfs-losers-says-robert-kiyosaki-082523094.html",
+            "published": "2025-09-17T08:25:23Z",
             "relevance_keywords": [
-              "EV"
+              "crypto"
             ]
           },
           {
-            "title": "Intel\u2019s Bonds Strengthen on Investment From Rival Nvidia",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-18/intel-s-bonds-strengthen-on-investment-from-rival-nvidia",
-            "published": "Thu, 18 Sep 2025 15:18:18 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "US Judge Rules PDVSA Bonds Valid, Clearing Way for Citgo Sale",
-            "sentiment": 0.10480113636363636,
-            "textblob_score": 0.1497159090909091,
+            "title": "SEC Clears Way for First Multi-Crypto Token ETF",
+            "sentiment": 0.116,
+            "textblob_score": 0.16571428571428573,
             "keyword_score": 0,
             "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-18/us-judge-rules-pdvsa-bonds-valid-clearing-way-for-citgo-sale",
-            "published": "Thu, 18 Sep 2025 15:06:05 GMT",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-18/sec-clears-way-for-first-multi-crypto-token-etf-video",
+            "published": "Thu, 18 Sep 2025 17:56:28 GMT",
+            "relevance_keywords": [
+              "Bitcoin",
+              "crypto"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 0.2,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.12213131313131312,
+        "article_count": 8,
+        "articles": [
+          {
+            "title": "U.K. Inflation Holds at High Level Ahead of Bank of England Meeting",
+            "sentiment": 0.11199999999999999,
+            "textblob_score": 0.16,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://www.wsj.com/world/europe/u-k-inflation-holds-steady-ahead-of-bank-of-england-meeting-dddb82fb?siteid=yhoof2&yptr=yahoo",
+            "published": "2025-09-17T08:03:00Z",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "ECB\u2019s Guindos Says Risk of Inflation Undershoot Isn\u2019t Big",
-            "sentiment": 0.0875,
-            "textblob_score": 0.125,
+            "title": "Blue Owl Capital Launches Debut Interval Fund",
+            "sentiment": 0.06116161616161616,
+            "textblob_score": 0.08737373737373738,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-18/blue-owl-capital-launches-debut-interval-fund-video",
+            "published": "Thu, 18 Sep 2025 18:19:18 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "The Endless Layers of Policy\u00a0Uncertainty",
+            "sentiment": 0.15083333333333332,
+            "textblob_score": 0.21547619047619046,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/newsletters/2025-09-18/the-endless-layers-of-policy-uncertainty",
+            "published": "Thu, 18 Sep 2025 16:41:44 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "UBS AM\u2019s Zhao Says Fed Rate Hikes Will Widen Treasury Spreads",
+            "sentiment": 0.14833333333333334,
+            "textblob_score": -0.21666666666666665,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-18/ubs-am-s-zhao-says-fed-rate-hikes-will-widen-treasury-spreads",
+            "published": "Thu, 18 Sep 2025 16:41:19 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Retailers like Claire\u2019s and Rite Aid are closing stores. The biggest discounters will benefit, analysts say.",
+            "sentiment": 0.19055555555555553,
+            "textblob_score": 0.2722222222222222,
             "keyword_score": 0.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-18/ecb-s-guindos-says-risk-of-inflation-goal-undershoot-isn-t-big",
-            "published": "Thu, 18 Sep 2025 10:05:03 GMT",
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/retailers-like-claires-and-rite-aid-are-closing-stores-the-biggest-discounters-will-benefit-analysts-say-83608867?mod=mw_rss_topstories",
+            "published": "Thu, 18 Sep 2025 17:05:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "Inflation fears surge to their highest levels since \u2018liberation day\u2019 as Fed cuts rates",
+            "title": "Boycott Disney over pulling Jimmy Kimmel? Why the company will likely fare better than Tesla and Bud Light did.",
+            "sentiment": 0.1575,
+            "textblob_score": 0.225,
+            "keyword_score": 0.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/boycott-disney-over-pulling-jimmy-kimmel-why-the-company-will-likely-fare-better-than-tesla-and-bud-light-did-ae6d7759?mod=mw_rss_topstories",
+            "published": "Thu, 18 Sep 2025 16:42:00 GMT",
+            "relevance_keywords": [
+              "Tesla"
+            ]
+          },
+          {
+            "title": "Here\u2019s how Nike\u2019s stock could benefit big from the next World Cup",
             "sentiment": 0.41666666666666663,
-            "textblob_score": 0.16666666666666669,
+            "textblob_score": 0.16666666666666666,
             "keyword_score": 1.0,
             "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/inflation-fears-surge-to-highest-since-liberation-day-as-fed-cuts-rates-abe9778f?mod=mw_rss_topstories",
-            "published": "Thu, 18 Sep 2025 13:59:00 GMT",
+            "url": "https://www.marketwatch.com/story/heres-how-nikes-stock-could-benefit-big-from-the-next-world-cup-97ca0ca3?mod=mw_rss_topstories",
+            "published": "Thu, 18 Sep 2025 16:26:00 GMT",
             "relevance_keywords": [
               "EV"
             ]
           },
           {
-            "title": "This Fed move can help job seekers even more than the latest interest-rate cut",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/this-fed-move-can-help-job-seekers-even-more-than-the-latest-interest-rate-cut-7481498e?mod=mw_rss_topstories",
-            "published": "Thu, 18 Sep 2025 13:55:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Genpact: The Setup's Stronger, Even If The Market Hasn't Caught On",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
+            "title": "Contrarian Take: We Didn't Hate The Apple Event (Long-Term Buy)",
+            "sentiment": -0.25999999999999995,
+            "textblob_score": -0.8,
             "keyword_score": 1.0,
             "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4824045-genpact-the-setups-stronger-even-if-the-market-hasnt-caught-on?source=feed_all_articles",
-            "published": "Thu, 18 Sep 2025 11:02:06 -0400",
+            "url": "https://seekingalpha.com/article/4824119-contrarian-take-we-didnt-hate-the-apple-event-long-term-buy?source=feed_all_articles",
+            "published": "Thu, 18 Sep 2025 13:54:33 -0400",
             "relevance_keywords": [
               "EV"
             ]
           }
         ],
-        "signal": "BULLISH",
-        "confidence": 0.7,
+        "signal": "NEUTRAL",
+        "confidence": 0.8,
         "sources": [
           "yahoo_finance",
           "bloomberg",
@@ -179,87 +218,34 @@
         ]
       },
       "NVDA": {
-        "sentiment_score": 0.36022727272727273,
-        "article_count": 4,
-        "articles": [
-          {
-            "title": "Stock market today: Nasdaq, Dow, S&P 500 rise after Fed signals more cuts, Nvidia bets on Intel",
-            "sentiment": 0.35,
-            "textblob_score": 0.5,
-            "keyword_score": 0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-dow-sp-500-rise-after-fed-signals-more-cuts-nvidia-bets-on-intel-231448487.html",
-            "published": "2025-09-17T23:14:48Z",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "Intel\u2019s Bonds Strengthen on Investment From Rival Nvidia",
-            "sentiment": 0.3,
-            "textblob_score": 0.0,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-18/intel-s-bonds-strengthen-on-investment-from-rival-nvidia",
-            "published": "Thu, 18 Sep 2025 15:18:18 GMT",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "Huawei Unveils New AI Tech to Take on Nvidia",
-            "sentiment": 0.39545454545454545,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-18/huawei-unveils-new-ai-tech-to-take-on-nvidia-video",
-            "published": "Thu, 18 Sep 2025 14:44:30 GMT",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          },
-          {
-            "title": "Intel\u2019s stock is soaring. Here\u2019s why Nvidia is investing $5 billion in the chip maker.",
-            "sentiment": 0.39545454545454545,
-            "textblob_score": 0.13636363636363635,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/intels-stock-is-soaring-why-nvidia-is-investing-5-billion-in-the-chip-maker-e1296651?mod=mw_rss_topstories",
-            "published": "Thu, 18 Sep 2025 14:42:00 GMT",
-            "relevance_keywords": [
-              "Nvidia"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.4,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg",
-          "marketwatch"
-        ]
+        "sentiment_score": 0.0,
+        "article_count": 0,
+        "articles": [],
+        "signal": "NEUTRAL",
+        "confidence": 0.0,
+        "sources": []
       },
       "AAPL": {
-        "sentiment_score": -0.3,
+        "sentiment_score": -0.25999999999999995,
         "article_count": 1,
         "articles": [
           {
-            "title": "Kosters Predicts Rate Cut Will Spur Private Credit Fund Sales",
-            "sentiment": -0.3,
-            "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/articles/2025-09-18/kosters-predicts-rate-cut-will-spur-private-credit-fund-sales",
-            "published": "Thu, 18 Sep 2025 14:38:15 GMT",
+            "title": "Contrarian Take: We Didn't Hate The Apple Event (Long-Term Buy)",
+            "sentiment": -0.25999999999999995,
+            "textblob_score": -0.8,
+            "keyword_score": 1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4824119-contrarian-take-we-didnt-hate-the-apple-event-long-term-buy?source=feed_all_articles",
+            "published": "Thu, 18 Sep 2025 13:54:33 -0400",
             "relevance_keywords": [
-              "Mac"
+              "Apple"
             ]
           }
         ],
         "signal": "NEUTRAL",
         "confidence": 0.1,
         "sources": [
-          "bloomberg"
+          "seeking_alpha"
         ]
       }
     },
@@ -273,7 +259,7 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-18T15:27:44.889953",
+    "timestamp": "2025-09-18T18:36:46.932449",
     "market_session": "regular",
     "total_futures_articles": 0,
     "ES": {
@@ -295,7 +281,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-18T15:22:56.307008",
+    "timestamp": "2025-09-18T18:32:00.130403",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -410,16 +396,8 @@
       }
     ]
   },
-  "overall_market_sentiment": "BULLISH",
-  "high_confidence_signals": [
-    {
-      "instrument": "TSLA",
-      "signal": "BULLISH",
-      "sentiment_score": 0.30556682900432897,
-      "confidence": 0.7,
-      "source": "comprehensive_analysis"
-    }
-  ],
+  "overall_market_sentiment": "NEUTRAL",
+  "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
     "bloomberg",
