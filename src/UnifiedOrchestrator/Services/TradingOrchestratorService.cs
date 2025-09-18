@@ -14,7 +14,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.IO;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using static BotCore.Brain.UnifiedTradingBrain;
 
 namespace TradingBot.UnifiedOrchestrator.Services;

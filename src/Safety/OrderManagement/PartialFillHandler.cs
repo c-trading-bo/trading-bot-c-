@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Collections.Concurrent;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using TradingBot.Abstractions;
 
 namespace Trading.Safety.OrderManagement;

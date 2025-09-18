@@ -12,7 +12,6 @@ using BotCore.Risk;
 using BotCore.Strategy;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace BotCore.Strategy
 {

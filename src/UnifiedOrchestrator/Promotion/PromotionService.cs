@@ -8,8 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
-// Legacy removed: using IAccountService = TradingBot.Infrastructure.TopstepX.IAccountService;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
 using IModelRegistry = TradingBot.UnifiedOrchestrator.Interfaces.IModelRegistry;

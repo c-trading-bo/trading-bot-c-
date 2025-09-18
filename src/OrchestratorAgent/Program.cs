@@ -15,7 +15,6 @@ using OrchestratorAgent.Intelligence;
 using OrchestratorAgent.Critical;
 using System.Linq;
 using System.Net.Http.Json;
-// using Dashboard; // Commented out - Dashboard module not available
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;

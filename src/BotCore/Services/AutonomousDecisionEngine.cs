@@ -12,7 +12,6 @@ using BotCore.Models;
 using BotCore.Brain;
 using BotCore.Services;
 using TradingBot.Abstractions;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using TradingBot.UnifiedOrchestrator.Services;
 using System.Globalization;
 

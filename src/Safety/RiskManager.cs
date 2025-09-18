@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TradingBot.Abstractions;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace Trading.Safety;
 

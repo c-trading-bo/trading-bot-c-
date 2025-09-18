@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
 using TradingBot.IntelligenceStack;
-// Legacy removed: using TradingBot.Infrastructure.TopstepX;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
