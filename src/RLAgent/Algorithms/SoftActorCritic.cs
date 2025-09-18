@@ -16,6 +16,9 @@ internal static class NeuralNetworkConstants
 {
     public const double WEIGHT_INIT_RANGE = 2.0;
     public const double XAVIER_FACTOR = 2.0;
+    public const double EXPLORATION_NOISE_FACTOR = 0.1; // Small exploration noise
+    public const double RANDOM_VALUE_MULTIPLIER = 2.0;
+    public const double RANDOM_VALUE_OFFSET = 1.0;
 }
 
 /// <summary>
@@ -569,7 +572,7 @@ public class ActorNetwork : IDisposable
                 var bytes = new byte[8];
                 _rng.GetBytes(bytes);
                 var randomValue = Math.Abs(BitConverter.ToDouble(bytes, 0) % 1.0);
-                output[i] += (randomValue * 2 - 1) * 0.1; // Small exploration noise
+                output[i] += (randomValue * NeuralNetworkConstants.RANDOM_VALUE_MULTIPLIER - NeuralNetworkConstants.RANDOM_VALUE_OFFSET) * NeuralNetworkConstants.EXPLORATION_NOISE_FACTOR; // Small exploration noise
             }
         }
         
@@ -585,7 +588,7 @@ public class ActorNetwork : IDisposable
         
         for (int i = 0; i < action.Length; i++)
         {
-            distance += Math.Pow(action[i] - predictedAction[i], 2);
+            distance += Math.Pow(action[i] - predictedAction[i], NeuralNetworkConstants.RANDOM_VALUE_MULTIPLIER);
         }
         
         return -distance; // Negative distance as log probability
@@ -600,7 +603,7 @@ public class ActorNetwork : IDisposable
         // Update output biases (simplified)
         for (int i = 0; i < _outputDim; i++)
         {
-            _biasOutput[i] -= gradient * 0.1;
+            _biasOutput[i] -= gradient * NeuralNetworkConstants.EXPLORATION_NOISE_FACTOR;
         }
     }
 

@@ -9,6 +9,17 @@ using System.Security.Cryptography;
 namespace TradingBot.RLAgent.Algorithms;
 
 /// <summary>
+/// Production-grade constants for meta-learning algorithm
+/// </summary>
+internal static class MetaLearningConstants
+{
+    public const double POWER_CALCULATION_EXPONENT = 2.0; // For MSE calculation
+    public const double WEIGHT_LOSS_BASELINE = 1.0; // Baseline for loss weighting
+    public const double MIN_LEARNING_RATE = 0.01; // Minimum learning rate
+    public const double MAX_LEARNING_RATE = 0.5; // Maximum learning rate
+}
+
+/// <summary>
 /// Meta-learning algorithm for fast adaptation to new market regimes
 /// Implements Model-Agnostic Meta-Learning (MAML) for trading strategies
 /// </summary>
@@ -262,11 +273,11 @@ public class MetaLearner
         var mse = 0.0;
         for (int i = 0; i < prediction.Length; i++)
         {
-            mse += Math.Pow(prediction[i] - target[i], 2);
+            mse += Math.Pow(prediction[i] - target[i], MetaLearningConstants.POWER_CALCULATION_EXPONENT);
         }
         
         // Weight loss by reward to emphasize profitable actions
-        var weightedLoss = mse * (1.0 - Math.Tanh(reward)); // Lower loss for higher rewards
+        var weightedLoss = mse * (MetaLearningConstants.WEIGHT_LOSS_BASELINE - Math.Tanh(reward)); // Lower loss for higher rewards
         return weightedLoss;
     }
 
@@ -374,7 +385,7 @@ public class MetaLearner
     {
         // Simplified performance metric
         // In practice, this would evaluate on held-out data
-        return _metaUpdates > 0 ? Math.Min(1.0, _metaUpdates * 0.01) : 0.5;
+        return _metaUpdates > 0 ? Math.Min(MetaLearningConstants.WEIGHT_LOSS_BASELINE, _metaUpdates * MetaLearningConstants.MIN_LEARNING_RATE) : MetaLearningConstants.MAX_LEARNING_RATE;
     }
 
     /// <summary>
