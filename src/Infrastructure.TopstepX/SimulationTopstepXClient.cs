@@ -10,6 +10,22 @@ using TradingBot.Abstractions;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
+/// Production-grade constants to replace magic numbers following guardrails
+/// </summary>
+internal static class SimulationConstants
+{
+    // Market data simulation constants  
+    public const decimal ES_BASE_PRICE = 4125.25m;
+    public const decimal ES_BID_PRICE = 4125.00m;
+    public const decimal ES_ASK_PRICE = 4125.50m;
+    public const double RANDOM_OFFSET_MULTIPLIER = 0.5;
+    public const int RANDOM_RANGE_MULTIPLIER = 2;
+    public const int SIMULATION_VOLUME = 125430;
+    public const int MARKET_DATA_DELAY_MS = 120;
+    public const int SUBSCRIPTION_DELAY_MS = 1000;
+}
+
+/// <summary>
 /// Simulation TopstepX client for CI/testing purposes
 /// Provides realistic responses without connecting to real TopstepX servers
 /// Used only when TOPSTEPX_SIMULATION_MODE=true environment variable is set
@@ -417,16 +433,16 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
         {
             while (_isConnected && !cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(SimulationConstants.SUBSCRIPTION_DELAY_MS, cancellationToken);
                 OnMarketDataUpdate?.Invoke(new MarketData
                 {
                     Symbol = symbol,
 #pragma warning disable SCS0005 // Weak random generator acceptable for mock data
-                    Close = (double)(4125.25m + (decimal)(new Random().NextDouble() - 0.5) * 2),
+                    Close = (double)(SimulationConstants.ES_BASE_PRICE + (decimal)(new Random().NextDouble() - SimulationConstants.RANDOM_OFFSET_MULTIPLIER) * SimulationConstants.RANDOM_RANGE_MULTIPLIER),
 #pragma warning restore SCS0005
-                    Bid = (double)4125.00m,
-                    Ask = (double)4125.50m,
-                    Volume = 125430,
+                    Bid = (double)SimulationConstants.ES_BID_PRICE,
+                    Ask = (double)SimulationConstants.ES_ASK_PRICE,
+                    Volume = SimulationConstants.SIMULATION_VOLUME,
                     Timestamp = DateTime.UtcNow
                 });
             }
@@ -437,7 +453,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> SubscribeLevel2DataAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(120, cancellationToken);
+        await Task.Delay(SimulationConstants.MARKET_DATA_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to Level 2 data for: {Symbol}", symbol);
         return true;
     }
