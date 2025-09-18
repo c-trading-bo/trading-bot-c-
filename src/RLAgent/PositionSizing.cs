@@ -10,10 +10,43 @@ namespace TradingBot.RLAgent;
 /// </summary>
 public class PositionSizing
 {
+    #region Production Constants
+    
+    // Regime-based position sizing constants
+    private const double TREND_REGIME_CLIP = 0.8;
+    private const double RANGE_REGIME_CLIP = 0.5;
+    private const double LOW_VOL_REGIME_CLIP = 0.7;
+    private const double HIGH_VOL_REGIME_CLIP = 0.3;
+    private const double VOLATILITY_REGIME_CLIP = 0.4;
+    
+    // Symbol-specific position constants
+    private const double ES_SYMBOL_CAP = 0.25;
+    private const double NQ_SYMBOL_CAP = 0.25;
+    private const int ES_MAX_CONTRACTS = 15;
+    private const int NQ_MAX_CONTRACTS = 12;
+    
+    // General position sizing constants
+    private const double DEFAULT_POSITION_FRACTION = 0.5;
+    private const double MIN_POSITION_FRACTION = 0.1;
+    private const double DOUBLE_FACTOR = 2.0;
+    
+    // SAC algorithm constants
+    private const double SAC_CONFIDENCE_THRESHOLD = 0.5;
+    private const double SAC_ADJUSTMENT_FACTOR = 0.5;
+    private const double SAC_RANDOM_EXPLORATION = 0.1;
+    private const double SAC_DEFAULT_FALLBACK = 0.4;
+    private const double SAC_BASE_TREND = 0.8;
+    private const double SAC_BASE_RANGE = 0.5;
+    private const double SAC_BASE_LOW_VOL = 0.7;
+    private const double SAC_BASE_HIGH_VOL = 0.3;
+    private const double SAC_BASE_VOLATILITY = 0.3;
+    
+    #endregion
+    
     private readonly ILogger<PositionSizing> _logger;
     private readonly PositionSizingConfig _config;
     private readonly Dictionary<string, KellyState> _kellyStates = new();
-    private readonly Dictionary<string, SACState> _sacStates = new();
+    private readonly Dictionary<string, SacState> _sacStates = new();
     private readonly object _lock = new();
 
     public PositionSizing(
@@ -151,7 +184,7 @@ public class PositionSizing
     /// </summary>
     private double CalculateSACFraction(PositionSizeRequest request, string symbolKey)
     {
-        var state = _sacStates.TryGetValue(symbolKey, out var existingState) ? existingState : new SACState();
+        var state = _sacStates.TryGetValue(symbolKey, out var existingState) ? existingState : new SacState();
         _sacStates[symbolKey] = state;
         
         // SAC proposes fraction based on current market state
@@ -169,11 +202,11 @@ public class PositionSizing
     {
         return regime switch
         {
-            RegimeType.Trend => _config.RegimeClips.GetValueOrDefault(RegimeType.Trend, 0.8), // Higher clip for trending markets
-            RegimeType.Range => _config.RegimeClips.GetValueOrDefault(RegimeType.Range, 0.5),
-            RegimeType.LowVol => _config.RegimeClips.GetValueOrDefault(RegimeType.LowVol, 0.7),
-            RegimeType.HighVol => _config.RegimeClips.GetValueOrDefault(RegimeType.HighVol, 0.3), // Lower clip for high volatility
-            RegimeType.Volatility => _config.RegimeClips.GetValueOrDefault(RegimeType.Volatility, 0.4),
+            RegimeType.Trend => _config.RegimeClips.GetValueOrDefault(RegimeType.Trend, TREND_REGIME_CLIP), // Higher clip for trending markets
+            RegimeType.Range => _config.RegimeClips.GetValueOrDefault(RegimeType.Range, RANGE_REGIME_CLIP),
+            RegimeType.LowVol => _config.RegimeClips.GetValueOrDefault(RegimeType.LowVol, LOW_VOL_REGIME_CLIP),
+            RegimeType.HighVol => _config.RegimeClips.GetValueOrDefault(RegimeType.HighVol, HIGH_VOL_REGIME_CLIP), // Lower clip for high volatility
+            RegimeType.Volatility => _config.RegimeClips.GetValueOrDefault(RegimeType.Volatility, VOLATILITY_REGIME_CLIP),
             _ => _config.DefaultRegimeClip
         };
     }
@@ -336,6 +369,22 @@ public class PositionSizing
 /// </summary>
 public class PositionSizingConfig
 {
+    #region Production Constants
+    
+    // Regime-based position sizing constants
+    private const double TREND_REGIME_CLIP = 0.8;
+    private const double RANGE_REGIME_CLIP = 0.5;
+    private const double LOW_VOL_REGIME_CLIP = 0.7;
+    private const double HIGH_VOL_REGIME_CLIP = 0.3;
+    private const double VOLATILITY_REGIME_CLIP = 0.4;
+    
+    // Symbol-specific position constants
+    private const double ES_SYMBOL_CAP = 0.25;
+    private const double NQ_SYMBOL_CAP = 0.25;
+    private const int ES_MAX_CONTRACTS = 15;
+    private const int NQ_MAX_CONTRACTS = 12;
+    
+    #endregion
     public double MaxAllocationPerSymbol { get; set; } = 0.2; // 20% max per symbol
     public double GlobalAllocationCap { get; set; } = 0.8; // 80% global cap
     public double TopstepRiskCap { get; set; } = 0.6; // 60% Topstep risk cap
@@ -349,23 +398,23 @@ public class PositionSizingConfig
     
     public Dictionary<RegimeType, double> RegimeClips { get; set; } = new()
     {
-        { RegimeType.Trend, 0.8 },      // Higher clip for trending
-        { RegimeType.Range, 0.5 },
-        { RegimeType.LowVol, 0.7 },
-        { RegimeType.HighVol, 0.3 },    // Lower clip for high volatility
-        { RegimeType.Volatility, 0.4 }
+        { RegimeType.Trend, TREND_REGIME_CLIP },      // Higher clip for trending
+        { RegimeType.Range, RANGE_REGIME_CLIP },
+        { RegimeType.LowVol, LOW_VOL_REGIME_CLIP },
+        { RegimeType.HighVol, HIGH_VOL_REGIME_CLIP },    // Lower clip for high volatility
+        { RegimeType.Volatility, VOLATILITY_REGIME_CLIP }
     };
     
     public Dictionary<string, double> SymbolCaps { get; set; } = new()
     {
-        { "ES", 0.25 },
-        { "NQ", 0.25 }
+        { "ES", ES_SYMBOL_CAP },
+        { "NQ", NQ_SYMBOL_CAP }
     };
     
     public Dictionary<string, int> MaxContractsPerSymbol { get; set; } = new()
     {
-        { "ES", 15 },
-        { "NQ", 12 }
+        { "ES", ES_MAX_CONTRACTS },
+        { "NQ", NQ_MAX_CONTRACTS }
     };
 }
 
@@ -477,33 +526,47 @@ public class KellyState
 /// </summary>
 public class SacState : IDisposable
 {
+    #region SAC Constants
+    
+    private const double SAC_TREND_BASE = 0.6;
+    private const double SAC_RANGE_BASE = 0.4;
+    private const double SAC_HIGH_VOL_BASE = 0.2;
+    private const double SAC_LOW_VOL_BASE = 0.5;
+    private const double SAC_VOLATILITY_BASE = 0.3;
+    private const double SAC_CONFIDENCE_THRESHOLD = 0.5;
+    private const double SAC_ADJUSTMENT_FACTOR = 0.5;
+    private const double SAC_RANDOM_EXPLORATION = 0.1;
+    private const double SAC_DEFAULT_FALLBACK = 0.4;
+    
+    #endregion
+    
     private readonly System.Security.Cryptography.RandomNumberGenerator _rng = System.Security.Cryptography.RandomNumberGenerator.Create();
     private readonly Dictionary<RegimeType, double> _baseProposals = new()
     {
-        { RegimeType.Trend, 0.6 },
-        { RegimeType.Range, 0.4 },
-        { RegimeType.HighVol, 0.2 },
-        { RegimeType.LowVol, 0.5 },
-        { RegimeType.Volatility, 0.3 }
+        { RegimeType.Trend, SAC_TREND_BASE },
+        { RegimeType.Range, SAC_RANGE_BASE },
+        { RegimeType.HighVol, SAC_HIGH_VOL_BASE },
+        { RegimeType.LowVol, SAC_LOW_VOL_BASE },
+        { RegimeType.Volatility, SAC_VOLATILITY_BASE }
     };
     
     public double ProposeFraction(double[] marketFeatures, RegimeType regime)
     {
         // Simplified SAC implementation - in practice would use trained neural network
-        var baseProposal = _baseProposals.GetValueOrDefault(regime, 0.4);
+        var baseProposal = _baseProposals.GetValueOrDefault(regime, SAC_DEFAULT_FALLBACK);
         
         // Adjust based on confidence and expected return
         var confidence = marketFeatures[0];
         var expectedReturn = marketFeatures[1];
         
-        var adjustment = (confidence - 0.5) * Math.Abs(expectedReturn) * 0.5;
+        var adjustment = (confidence - SAC_CONFIDENCE_THRESHOLD) * Math.Abs(expectedReturn) * SAC_ADJUSTMENT_FACTOR;
         var proposedFraction = baseProposal + adjustment;
         
         // Add some controlled randomness for exploration
         var bytes = new byte[8];
         _rng.GetBytes(bytes);
         var randomValue = BitConverter.ToUInt64(bytes, 0) / (double)ulong.MaxValue;
-        proposedFraction += (randomValue - 0.5) * 0.1;
+        proposedFraction += (randomValue - SAC_CONFIDENCE_THRESHOLD) * SAC_RANDOM_EXPLORATION;
         
         return Math.Max(0.0, Math.Min(1.0, proposedFraction));
     }

@@ -121,7 +121,7 @@ public static class AlgorithmFactory
         logger.LogInformation("[ALGORITHM_FACTORY] Created CVaR-PPO algorithm with config: {Config}", 
             System.Text.Json.JsonSerializer.Serialize(ppoConfig));
         
-        return new CVaRPPOAlgorithmWrapper(cvarPpo);
+        return new CVaRppoAlgorithmWrapper(cvarPpo);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public class SacAlgorithmWrapper : IRLAlgorithm
     public async Task<ITrainingResult> TrainAsync()
     {
         var result = await _sac.TrainAsync();
-        return new SACTrainingResultWrapper(result);
+        return new SacTrainingResultWrapper(result);
     }
 
     public string GetAlgorithmType() => "SAC";
@@ -290,11 +290,11 @@ public class MetaLearningAlgorithmWrapper : IRLAlgorithm
 /// <summary>
 /// Wrapper for CVaR-PPO algorithm
 /// </summary>
-public class CVaRPPOAlgorithmWrapper : IRLAlgorithm
+public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 {
     private readonly CVaRPPO _cvarPpo;
 
-    public CVaRPPOAlgorithmWrapper(CVaRPPO cvarPpo)
+    public CVaRppoAlgorithmWrapper(CVaRPPO cvarPpo)
     {
         _cvarPpo = cvarPpo;
     }
@@ -325,7 +325,7 @@ public class CVaRPPOAlgorithmWrapper : IRLAlgorithm
     public async Task<ITrainingResult> TrainAsync()
     {
         var result = await _cvarPpo.TrainAsync();
-        return new CVaRPPOTrainingResultWrapper(result);
+        return new CVaRppoTrainingResultWrapper(result);
     }
 
     public string GetAlgorithmType() => "CVaR-PPO";
@@ -337,11 +337,11 @@ public class CVaRPPOAlgorithmWrapper : IRLAlgorithm
 
 #region Training Result Wrappers
 
-public class SACTrainingResultWrapper : ITrainingResult
+public class SacTrainingResultWrapper : ITrainingResult
 {
-    private readonly SACTrainingResult _result;
+    private readonly SacTrainingResult _result;
 
-    public SACTrainingResultWrapper(SACTrainingResult result)
+    public SacTrainingResultWrapper(SacTrainingResult result)
     {
         _result = result;
     }
@@ -365,11 +365,11 @@ public class MetaTrainingResultWrapper : ITrainingResult
     public double Loss => _result.MetaLoss;
 }
 
-public class CVaRPPOTrainingResultWrapper : ITrainingResult
+public class CVaRppoTrainingResultWrapper : ITrainingResult
 {
     private readonly TrainingResult _result;
 
-    public CVaRPPOTrainingResultWrapper(TrainingResult result)
+    public CVaRppoTrainingResultWrapper(TrainingResult result)
     {
         _result = result;
     }

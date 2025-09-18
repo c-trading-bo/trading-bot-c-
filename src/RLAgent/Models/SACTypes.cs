@@ -34,7 +34,7 @@ public class SACConfig
 /// <summary>
 /// State representation for SAC algorithm
 /// </summary>
-public class SACState
+public class SacState
 {
     public double[] Features { get; set; } = Array.Empty<double>();
     public DateTime Timestamp { get; set; }
@@ -45,12 +45,12 @@ public class SACState
     
     public int Dimension => Features.Length;
     
-    public SACState()
+    public SacState()
     {
         Timestamp = DateTime.UtcNow;
     }
     
-    public SACState(double[] features) : this()
+    public SacState(double[] features) : this()
     {
         Features = (double[])features.Clone();
     }
@@ -94,7 +94,7 @@ public class SACState
 /// <summary>
 /// Training result for SAC algorithm
 /// </summary>
-public class SACTrainingResult
+public class SacTrainingResult
 {
     public bool Success { get; set; }
     public string Message { get; set; } = string.Empty;
@@ -113,13 +113,13 @@ public class SACTrainingResult
     public TimeSpan TrainingDuration { get; set; }
     public Dictionary<string, object> Metrics { get; set; } = new();
     
-    public SACTrainingResult()
+    public SacTrainingResult()
     {
         Success = false;
         Message = "Training not completed";
     }
     
-    public SACTrainingResult(bool success, string message) : this()
+    public SacTrainingResult(bool success, string message) : this()
     {
         Success = success;
         Message = message;
