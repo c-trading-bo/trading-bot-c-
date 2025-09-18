@@ -42,6 +42,10 @@ internal static class AutoRemediationConstants
     public const int MAX_TIMEOUT_SECONDS = 30;
     public const int VALIDATION_LENGTH_THRESHOLD = 10;
     public const int THREAD_MULTIPLIER = 2;
+    
+    // Test and measurement constants
+    public const int TEST_DELAY_MS = 100;
+    public const int FAILED_CONNECTION_TIMEOUT_MS = 5000;
 }
 
 /// <summary>
@@ -802,7 +806,7 @@ public class AutoRemediationSystem
             catch
             {
                 // Connection failed, use conservative timeout
-                connectionTimes.Add(5000);
+                connectionTimes.Add(AutoRemediationConstants.FAILED_CONNECTION_TIMEOUT_MS);
             }
         }
 
@@ -832,11 +836,11 @@ public class AutoRemediationSystem
                 stopwatch.Stop();
                 measurements.Add(stopwatch.ElapsedMilliseconds);
                 
-                await Task.Delay(100); // Small delay between tests
+                await Task.Delay(AutoRemediationConstants.TEST_DELAY_MS); // Small delay between tests
             }
             catch
             {
-                measurements.Add(5000); // Use 5s for failed connections
+                measurements.Add(AutoRemediationConstants.FAILED_CONNECTION_TIMEOUT_MS); // Use 5s for failed connections
             }
         }
         

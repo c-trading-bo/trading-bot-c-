@@ -12,6 +12,14 @@ using TradingBot.Abstractions;
 namespace BotCore.Services;
 
 /// <summary>
+/// Production constants for TopstepX service
+/// </summary>
+internal static class TopstepXServiceConstants
+{
+    public const int RECONNECTION_DELAY_MS = 1000;
+}
+
+/// <summary>
 /// Enhanced TopstepX service with improved SignalR connection handling
 /// </summary>
 public interface ITopstepXService
@@ -231,7 +239,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             // Don't auto-reconnect immediately, let the timer handle it
-            await Task.Delay(1000);
+            await Task.Delay(TopstepXServiceConstants.RECONNECTION_DELAY_MS);
         };
 
         _hubConnection.Reconnecting += (error) =>
@@ -605,7 +613,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 _logger,
                 cts.Token,
                 maxAttempts: 1,  // Single attempt for health check
-                waitMs: 1000);
+                waitMs: TopstepXServiceConstants.RECONNECTION_DELAY_MS);
 
             _logger.LogDebug("[TOPSTEPX] Health check ping successful");
         }
@@ -622,7 +630,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                     try
                     {
                         await DisconnectAsync();
-                        await Task.Delay(1000); // Brief delay before reconnecting
+                        await Task.Delay(TopstepXServiceConstants.RECONNECTION_DELAY_MS); // Brief delay before reconnecting
                         await ConnectAsync();
                     }
                     catch (Exception reconEx)

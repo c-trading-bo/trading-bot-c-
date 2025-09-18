@@ -10,6 +10,14 @@ using TradingBot.Abstractions;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
+/// Production constants for snapshot management
+/// </summary>
+internal static class SnapshotConstants
+{
+    public const int ACCOUNT_ID_VISIBLE_CHARS = 2;
+}
+
+/// <summary>
 /// Snapshot Manager for TopstepX state synchronization
 /// Implements Snapshot + Delta pattern to handle missed events during disconnections
 /// </summary>
@@ -388,6 +396,6 @@ public class SnapshotManager : ISnapshotManager
         if (string.IsNullOrEmpty(accountId) || accountId.Length <= 4)
             return "****";
         
-        return accountId.Substring(0, 2) + "****" + accountId.Substring(accountId.Length - 2);
+        return accountId.Substring(0, SnapshotConstants.ACCOUNT_ID_VISIBLE_CHARS) + "****" + accountId.Substring(accountId.Length - SnapshotConstants.ACCOUNT_ID_VISIBLE_CHARS);
     }
 }

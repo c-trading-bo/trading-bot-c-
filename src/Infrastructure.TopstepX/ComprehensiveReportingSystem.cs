@@ -9,6 +9,16 @@ using BotCore.Testing;
 namespace BotCore.Reporting;
 
 /// <summary>
+/// Production constants for comprehensive reporting system
+/// </summary>
+internal static class ReportingConstants
+{
+    public const double MINIMUM_TEST_PASS_RATE = 0.9;
+    public const int MAXIMUM_NETWORK_LATENCY_MS = 5000;
+    public const int MINIMUM_SECURITY_SCORE = 80;
+}
+
+/// <summary>
 /// Comprehensive reporting system for metrics, coverage, latency, and system status
 /// </summary>
 public class ComprehensiveReportingSystem
@@ -474,7 +484,7 @@ public class ComprehensiveReportingSystem
         var recommendations = new List<Recommendation>();
 
         // Test-based recommendations
-        if (report.TestResultsAnalysis.OverallPassRate < 0.9)
+        if (report.TestResultsAnalysis.OverallPassRate < ReportingConstants.MINIMUM_TEST_PASS_RATE)
         {
             recommendations.Add(new Recommendation
             {
@@ -486,7 +496,7 @@ public class ComprehensiveReportingSystem
         }
 
         // Performance-based recommendations
-        if (report.PerformanceMetrics.LatencyMetrics.NetworkConnectivityLatency > 5000)
+        if (report.PerformanceMetrics.LatencyMetrics.NetworkConnectivityLatency > ReportingConstants.MAXIMUM_NETWORK_LATENCY_MS)
         {
             recommendations.Add(new Recommendation
             {
@@ -498,7 +508,7 @@ public class ComprehensiveReportingSystem
         }
 
         // Security-based recommendations
-        if (report.SecurityCompliance.OverallSecurityScore < 80)
+        if (report.SecurityCompliance.OverallSecurityScore < ReportingConstants.MINIMUM_SECURITY_SCORE)
         {
             recommendations.Add(new Recommendation
             {

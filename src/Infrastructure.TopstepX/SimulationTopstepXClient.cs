@@ -23,6 +23,10 @@ internal static class SimulationConstants
     public const int SIMULATION_VOLUME = 125430;
     public const int MARKET_DATA_DELAY_MS = 120;
     public const int SUBSCRIPTION_DELAY_MS = 1000;
+    
+    // Connection and subscription delays
+    public const int CONNECTION_DELAY_MS = 80;
+    public const int SUBSCRIPTION_REGISTRATION_DELAY_MS = 100;
 }
 
 /// <summary>
@@ -375,7 +379,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(80, cancellationToken);
+        await Task.Delay(SimulationConstants.CONNECTION_DELAY_MS, cancellationToken);
         var basePrice = symbol.ToUpper() switch
         {
             "ES" => 4125.25m,
@@ -411,21 +415,21 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> SubscribeOrdersAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to order updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeTradesAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to trade updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to market data for: {Symbol}", symbol);
         
         // Simulate periodic market data updates
