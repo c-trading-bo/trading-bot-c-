@@ -17,10 +17,8 @@ public static class Analytics
     /// <returns>Pearson correlation coefficient (-1 to 1), or NaN if calculation is not possible</returns>
     public static double CalculatePearsonCorrelation(IEnumerable<double> returnsX, IEnumerable<double> returnsY)
     {
-        if (returnsX == null)
-            throw new ArgumentNullException(nameof(returnsX));
-        if (returnsY == null)
-            throw new ArgumentNullException(nameof(returnsY));
+        ArgumentNullException.ThrowIfNull(returnsX);
+        ArgumentNullException.ThrowIfNull(returnsY);
             
         var arrayX = returnsX.ToArray();
         var arrayY = returnsY.ToArray();

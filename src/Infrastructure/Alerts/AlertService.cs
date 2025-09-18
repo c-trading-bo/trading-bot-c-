@@ -118,7 +118,7 @@ namespace TradingBot.Infrastructure.Alerts
             _slackWebhook = Environment.GetEnvironmentVariable("ALERT_SLACK_WEBHOOK");
             _smtpServer = Environment.GetEnvironmentVariable("ALERT_EMAIL_SMTP");
             _smtpPort = int.TryParse(Environment.GetEnvironmentVariable("ALERT_EMAIL_PORT"), out var port) ? port : DefaultSmtpPort;
-            _useTls = (Environment.GetEnvironmentVariable("ALERT_EMAIL_USE_TLS") ?? "true").ToLowerInvariant() is "true" or "1";
+            _useTls = (Environment.GetEnvironmentVariable("ALERT_EMAIL_USE_TLS") ?? "true").ToUpperInvariant() is "TRUE" or "1";
             _smtpUsername = Environment.GetEnvironmentVariable("ALERT_EMAIL_USERNAME");
             _smtpPassword = Environment.GetEnvironmentVariable("ALERT_EMAIL_PASSWORD");
             _emailFrom = Environment.GetEnvironmentVariable("ALERT_EMAIL_FROM");

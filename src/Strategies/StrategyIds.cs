@@ -46,8 +46,7 @@ public static class StrategyIds
         if (string.IsNullOrWhiteSpace(strategyName))
             throw new ArgumentException("Strategy name cannot be null or empty", nameof(strategyName));
             
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
             
         var baseId = GenerateStrategyId(strategyName, date);
         var configHash = GenerateConfigHash(configuration);
@@ -89,7 +88,7 @@ public static class StrategyIds
         }
         
         var hashLength = Math.Min(8, fullHash.Length);
-        return fullHash.Substring(0, hashLength).ToLowerInvariant();
+        return fullHash.Substring(0, hashLength).ToUpperInvariant();
     }
     
     /// <summary>

@@ -136,7 +136,53 @@ public class Verifier : IVerifier
 
             return result;
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogTradeVerificationFailed(_logger, ex);
+
+            // Structured error log without secret exposure
+            var errorData = new
+            {
+                timestamp = DateTime.UtcNow,
+                error_type = ex.GetType().Name,
+                // No stack trace or inner details that might contain secrets
+                reason = "verification_failed"
+            };
+
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
+
+            return new VerificationResult
+            {
+                Date = DateTime.UtcNow.Date,
+                ErrorMessage = "Verification failed due to HTTP request exception",
+                Success = false,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogTradeVerificationFailed(_logger, ex);
+
+            // Structured error log without secret exposure
+            var errorData = new
+            {
+                timestamp = DateTime.UtcNow,
+                error_type = ex.GetType().Name,
+                // No stack trace or inner details that might contain secrets
+                reason = "verification_failed"
+            };
+
+            LogVerificationError(_logger, JsonSerializer.Serialize(errorData), null);
+
+            return new VerificationResult
+            {
+                Date = DateTime.UtcNow.Date,
+                ErrorMessage = "Verification failed due to timeout",
+                Success = false,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogTradeVerificationFailed(_logger, ex);
 
@@ -216,7 +262,19 @@ public class Verifier : IVerifier
 
             LogOrderQueryCompleted(_logger, orderCounts, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToQueryOrders(_logger, ex);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogFailedToQueryOrders(_logger, ex);
         }
@@ -283,7 +341,19 @@ public class Verifier : IVerifier
 
             LogTradeQueryCompleted(_logger, tradeCounts, null);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
+        {
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (JsonException ex)
+        {
+            LogFailedToQueryTrades(_logger, ex);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogFailedToQueryTrades(_logger, ex);
         }

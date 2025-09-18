@@ -144,18 +144,18 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
     {
-        "vix_level",
-        "volume_ratio", 
-        "momentum",
-        "volatility",
-        "trend_strength",
-        "rsi",
-        "macd_signal",
-        "price_change",
-        "volume_change",
-        "market_sentiment",
-        "time_of_day",
-        "day_of_week"
+        "VIX_LEVEL",
+        "VOLUME_RATIO", 
+        "MOMENTUM",
+        "VOLATILITY",
+        "TREND_STRENGTH",
+        "RSI",
+        "MACD_SIGNAL",
+        "PRICE_CHANGE",
+        "VOLUME_CHANGE",
+        "MARKET_SENTIMENT",
+        "TIME_OF_DAY",
+        "DAY_OF_WEEK"
     };
 
     public OnnxModelWrapper(ILogger<OnnxModelWrapper> logger)
@@ -203,7 +203,17 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             
             return confidence;
         }
-        catch (Exception ex)
+        catch (ArgumentException ex)
+        {
+            LogErrorDuringPrediction(_logger, ex);
+            return DefaultConfidence;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogErrorDuringPrediction(_logger, ex);
+            return DefaultConfidence;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogErrorDuringPrediction(_logger, ex);
             return DefaultConfidence;
@@ -222,7 +232,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         
         foreach (var (key, value) in features)
         {
-            var normalizedKey = key.ToLowerInvariant();
+            var normalizedKey = key.ToUpperInvariant();
             normalized[normalizedKey] = NormalizeFeatureValue(normalizedKey, value);
         }
         
@@ -281,7 +291,17 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             // For now, use the sophisticated simulation until ONNX packages are integrated
             return await SimulateModelPrediction(features).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            LogErrorDuringInference(_logger, ex);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
+        }
+        catch (ArgumentException ex)
+        {
+            LogErrorDuringInference(_logger, ex);
+            return await SimulateModelPrediction(features).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogErrorDuringInference(_logger, ex);
             return await SimulateModelPrediction(features).ConfigureAwait(false);
@@ -306,7 +326,22 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             LogModelInfrastructureReady(_logger, null);
             return false;
         }
-        catch (Exception ex)
+        catch (FileNotFoundException ex)
+        {
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (IOException ex)
+        {
+            LogErrorInitializingModel(_logger, ex);
+            return false;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             LogErrorInitializingModel(_logger, ex);
             return false;
