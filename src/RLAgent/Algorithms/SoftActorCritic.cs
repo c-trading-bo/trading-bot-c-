@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
 using TradingBot.RLAgent.Algorithms;
+using TradingBot.RLAgent.Models;
 
 namespace TradingBot.RLAgent.Algorithms;
 
@@ -116,12 +117,12 @@ public class SoftActorCritic
     /// <summary>
     /// Train the SAC agent using experience replay
     /// </summary>
-    public async Task<SacTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
+    public async Task<Models.SacTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
             await Task.CompletedTask; // Ensure async pattern compliance
-            return new SacTrainingResult
+            return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = $"Insufficient experience: {_replayBuffer.Count} < {_config.MinBufferSize}"
@@ -156,7 +157,7 @@ public class SoftActorCritic
             // Soft update target networks
             SoftUpdateTargetNetworks();
             
-            var result = new SacTrainingResult
+            var result = new Models.SacTrainingResult
             {
                 Success = true,
                 ActorLoss = actorLoss,
@@ -177,7 +178,7 @@ public class SoftActorCritic
         catch (Exception ex)
         {
             _logger.LogError(ex, "[SAC] Training failed");
-            return new SacTrainingResult
+            return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = ex.Message
@@ -313,9 +314,9 @@ public class SoftActorCritic
     /// <summary>
     /// Get current training statistics
     /// </summary>
-    public SACStatistics GetStatistics()
+    public Models.SACStatistics GetStatistics()
     {
-        return new SACStatistics
+        return new Models.SACStatistics
         {
             TotalSteps = _totalSteps,
             AverageReward = _averageReward,

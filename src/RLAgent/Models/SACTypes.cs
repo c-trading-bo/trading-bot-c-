@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using TradingBot.Abstractions;
 
-namespace TradingBot.RLAgent.Algorithms;
+namespace TradingBot.RLAgent.Models;
 
 /// <summary>
 /// Configuration for Soft Actor-Critic algorithm

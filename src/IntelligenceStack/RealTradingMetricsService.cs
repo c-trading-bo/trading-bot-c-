@@ -211,7 +211,8 @@ public class RealTradingMetricsService : BackgroundService
         var baselineMean = baselineFeatures.Average(f => f.Value);
         var baselineStd = Math.Sqrt(baselineFeatures.Select(f => Math.Pow(f.Value - baselineMean, 2)).Average());
         
-        if (Math.Abs(baselineStd) < 1e-10) return 0.0;
+        const double tolerance = 1e-10;
+        if (Math.Abs(baselineStd) < tolerance) return 0.0;
         
         return Math.Abs(recentMean - baselineMean) / baselineStd;
     }
