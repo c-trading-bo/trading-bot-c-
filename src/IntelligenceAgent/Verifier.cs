@@ -252,15 +252,16 @@ public class Verifier : IVerifier
                     if (order.TryGetProperty("status", out var statusElement))
                     {
                         var status = statusElement.GetString() ?? "Unknown";
-                        if (orderCounts.ContainsKey(status))
+                        if (orderCounts.TryGetValue(status, out var currentCount))
                         {
-                            orderCounts[status]++;
+                            orderCounts[status] = currentCount + 1;
                         }
                     }
                 }
             }
 
-            LogOrderQueryCompleted(_logger, orderCounts, null);
+            var orderCountsString = string.Join(", ", orderCounts.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+            LogOrderQueryCompleted(_logger, orderCountsString, null);
         }
         catch (HttpRequestException ex)
         {
@@ -321,9 +322,9 @@ public class Verifier : IVerifier
                     if (trade.TryGetProperty("status", out var statusElement))
                     {
                         var status = statusElement.GetString() ?? "Unknown";
-                        if (tradeCounts.ContainsKey(status))
+                        if (tradeCounts.TryGetValue(status, out var currentCount))
                         {
-                            tradeCounts[status]++;
+                            tradeCounts[status] = currentCount + 1;
                         }
                         else
                         {
@@ -339,7 +340,8 @@ public class Verifier : IVerifier
                 }
             }
 
-            LogTradeQueryCompleted(_logger, tradeCounts, null);
+            var tradeCountsString = string.Join(", ", tradeCounts.Select(kvp => $"{kvp.Key}: {kvp.Value}"));
+            LogTradeQueryCompleted(_logger, tradeCountsString, null);
         }
         catch (HttpRequestException ex)
         {

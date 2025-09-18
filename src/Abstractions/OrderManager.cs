@@ -219,6 +219,8 @@ namespace TradingBot.Abstractions
         /// </summary>
         public async Task<Dictionary<string, bool>> CancelOrdersAsync(IEnumerable<string> orderIds, string? brokerName = null, string? reason = null, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(orderIds);
+            
             var results = new Dictionary<string, bool>();
             
             foreach (var orderId in orderIds)
@@ -233,9 +235,9 @@ namespace TradingBot.Abstractions
         }
 
         /// <summary>
-        /// Get available broker adapters
+        /// Available broker adapters
         /// </summary>
-        public IEnumerable<string> GetAvailableBrokers() => _brokerAdapters.Keys;
+        public IEnumerable<string> AvailableBrokers => _brokerAdapters.Keys;
 
         /// <summary>
         /// Check if a broker adapter is available

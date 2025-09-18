@@ -73,12 +73,12 @@ namespace TradingBot.Monitoring
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
                             "Decision Processing", latencyMs, _decisionLatencyThreshold)).ConfigureAwait(false);
-                        _consecutiveDecisionViolations; // Reset to avoid spam
+                        _consecutiveDecisionViolations = 0; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveDecisionViolations; // Reset on good latency
+                    _consecutiveDecisionViolations = 0; // Reset on good latency
                 }
             }
         }
@@ -109,12 +109,12 @@ namespace TradingBot.Monitoring
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
                             "Order Processing", latencyMs, _orderLatencyThreshold)).ConfigureAwait(false);
-                        _consecutiveOrderViolations; // Reset to avoid spam
+                        _consecutiveOrderViolations = 0; // Reset to avoid spam
                     }
                 }
                 else
                 {
-                    _consecutiveOrderViolations; // Reset on good latency
+                    _consecutiveOrderViolations = 0; // Reset on good latency
                 }
             }
         }

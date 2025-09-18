@@ -414,7 +414,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
 /// </summary>
 public static class ConfidenceHelper
 {
-    private static readonly IOnnxModelWrapper _defaultWrapper = 
+    private static readonly OnnxModelWrapper _defaultWrapper = 
         new OnnxModelWrapper(Microsoft.Extensions.Logging.Abstractions.NullLogger<OnnxModelWrapper>.Instance);
 
     /// <summary>

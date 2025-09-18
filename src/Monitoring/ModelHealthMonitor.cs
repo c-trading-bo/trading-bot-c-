@@ -109,19 +109,19 @@ namespace TradingBot.Monitoring
                 // Check health conditions
                 if (status.ConfidenceDrift > _confidenceDriftThreshold)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add($"Confidence drift ({status.ConfidenceDrift:F3}) exceeds threshold ({_confidenceDriftThreshold})");
                 }
 
                 if (status.AverageBrierScore > _brierScoreThreshold)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add($"Brier score ({status.AverageBrierScore:F3}) exceeds threshold ({_brierScoreThreshold})");
                 }
 
                 if (status.HasFeatureDrift)
                 {
-                    status.IsHealthy;
+                    status.IsHealthy = false;
                     status.HealthIssues.Add("Feature drift detected in one or more features");
                 }
 

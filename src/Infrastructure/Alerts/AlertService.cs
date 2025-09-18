@@ -19,6 +19,9 @@ namespace TradingBot.Infrastructure.Alerts
         // Configuration constants
         private const int DefaultSmtpPort = 587;
         
+        // Cached JsonSerializerOptions for performance (CA1869)
+        private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+        
         private readonly ILogger<AlertService> _logger;
         private readonly HttpClient _httpClient;
         private readonly string? _slackWebhook;
@@ -227,7 +230,7 @@ namespace TradingBot.Infrastructure.Alerts
 
         public async Task SendModelHealthAlertAsync(string modelName, string healthIssue, object? metrics = null)
         {
-            var metricsText = metrics != null ? JsonSerializer.Serialize(metrics, new JsonSerializerOptions { WriteIndented = true }) : "N/A";
+            var metricsText = metrics != null ? JsonSerializer.Serialize(metrics, IndentedJsonOptions) : "N/A";
             var subject = $"Model Health Alert: {modelName}";
             var body = $"Model: {modelName}\nIssue: {healthIssue}\nMetrics:\n{metricsText}";
             
