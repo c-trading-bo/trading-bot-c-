@@ -88,7 +88,22 @@ public class UpdaterAgent
             Log.Fatal(ex, "Fatal error in UpdaterAgent - terminating");
             throw; // Rethrow fatal exceptions
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
+        {
+            Log.Error(ex, "Invalid operation in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Log.Error(ex, "Access denied in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (IOException ex)
+        {
+            Log.Error(ex, "IO error in UpdaterAgent - returning error code");
+            return 1;
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Log.Error(ex, "Unexpected error in UpdaterAgent - returning error code");
             return 1;
@@ -122,7 +137,17 @@ public class UpdaterAgent
                 Log.Fatal(ex, "Fatal error in update cycle");
                 throw; // Rethrow fatal exceptions
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                Log.Error(ex, "Invalid operation in update cycle - continuing with next iteration");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (IOException ex)
+            {
+                Log.Error(ex, "IO error in update cycle - continuing with next iteration");
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 Log.Error(ex, "Unexpected error in update cycle - continuing with next iteration");
                 await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
@@ -245,7 +270,15 @@ public class UpdaterAgent
             if (File.Exists(_lastDeployedPath)) 
                 File.Copy(_lastDeployedPath, Path.Combine(outState, Path.GetFileName(_lastDeployedPath)), true);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied copying state files: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error copying state files: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to copy state files: {ex.Message}");
         }
@@ -258,7 +291,15 @@ public class UpdaterAgent
             await File.AppendAllTextAsync(_deployLogPath, 
                 JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied logging build failure: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error logging build failure: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to log build failure: {ex.Message}");
         }
@@ -271,7 +312,15 @@ public class UpdaterAgent
             await File.AppendAllTextAsync(_deployLogPath, 
                 JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine($"Warning: Access denied logging test failure: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Warning: IO error logging test failure: {ex.Message}");
+        }
+        catch (Exception ex) when (!ex.IsFatal())
         {
             Console.WriteLine($"Warning: Failed to log test failure: {ex.Message}");
         }
