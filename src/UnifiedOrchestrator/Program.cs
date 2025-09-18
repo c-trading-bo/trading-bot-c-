@@ -978,11 +978,11 @@ Stack Trace:
         }
         
         // Register core agents and clients that exist in BotCore
-        // NOTE: Hub-creating services disabled to avoid conflicts with SignalRConnectionManager
+        // NOTE: Hub-creating services disabled - functionality provided by TopstepX adapter
         
         services.AddSingleton<BotCore.PositionAgent>();
         
-        // NOTE: MarketDataAgent disabled - functionality provided by SignalRConnectionManager events
+        // NOTE: MarketDataAgent disabled - functionality provided by TopstepX adapter
         services.AddSingleton<BotCore.ModelUpdaterService>();
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator

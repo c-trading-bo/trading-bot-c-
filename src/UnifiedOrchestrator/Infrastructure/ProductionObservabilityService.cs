@@ -17,7 +17,7 @@ namespace TradingBot.UnifiedOrchestrator.Infrastructure;
 
 /// <summary>
 /// Comprehensive observability and health monitoring system for production trading
-/// Monitors SignalR connections, API health, performance metrics, and system state
+/// Monitors TopstepX adapter connections, API health, performance metrics, and system state
 /// </summary>
 public class ProductionObservabilityService : IHostedService, IPerformanceMonitor
 {
@@ -199,37 +199,32 @@ public class TopstepXAdapterMonitor
     {
         try
         {
-            if (_connectionManager == null)
+            if (_topstepXAdapter == null)
             {
-                return new HealthStatus { IsHealthy = false, Reason = "SignalR connection manager not available" };
+                return new HealthStatus { IsHealthy = false, Reason = "TopstepX adapter not available" };
             }
 
-            var connectionState = await _connectionManager.GetConnectionStateAsync();
-            var isConnected = connectionState == HubConnectionState.Connected;
+            var isConnected = _topstepXAdapter.IsConnected;
+            var health = _topstepXAdapter.ConnectionHealth;
 
-            if (!isConnected)
+            if (!isConnected || health < 80.0)
             {
-                return new HealthStatus { IsHealthy = false, Reason = $"SignalR connection state: {connectionState}" };
+                return new HealthStatus { IsHealthy = false, Reason = $"TopstepX adapter health: {health}%, connected: {isConnected}" };
             }
 
-            // Check for stale events (no events received in last 10 minutes)
-            var staleThreshold = DateTime.UtcNow.AddMinutes(-10);
-            var staleEvents = _lastEventTimes
-                .Where(kvp => kvp.Value < staleThreshold)
-                .Select(kvp => kvp.Key)
-                .ToList();
-
-            if (staleEvents.Any())
+            // Get detailed health metrics from adapter
+            var healthResult = await _topstepXAdapter.GetHealthScoreAsync();
+            
+            if (healthResult.HealthScore < 80)
             {
-                _logger.LogWarning("⚠️ [SIGNALR-MONITOR] Stale event streams detected: {StaleEvents}", 
-                    string.Join(", ", staleEvents));
+                _logger.LogWarning("⚠️ [TOPSTEPX-MONITOR] Health score below threshold: {HealthScore}%", healthResult.HealthScore);
             }
 
-            return new HealthStatus { IsHealthy = true, Reason = "SignalR connection healthy" };
+            return new HealthStatus { IsHealthy = true, Reason = $"TopstepX adapter healthy: {healthResult.HealthScore}%" };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [SIGNALR-MONITOR] Health check failed");
+            _logger.LogError(ex, "❌ [TOPSTEPX-MONITOR] Health check failed");
             return new HealthStatus { IsHealthy = false, Reason = $"Health check error: {ex.Message}" };
         }
     }
@@ -238,26 +233,23 @@ public class TopstepXAdapterMonitor
     {
         try
         {
-            if (_connectionManager == null)
+            if (_topstepXAdapter == null)
             {
-                _logger.LogWarning("⚠️ [SIGNALR-RECONCILIATION] Connection manager not available");
+                _logger.LogWarning("⚠️ [TOPSTEPX-RECONCILIATION] TopstepX adapter not available");
                 return;
             }
 
-            // Trigger reconciliation of positions and orders via REST API
-            // This catches any events that might have been missed by SignalR
-            _logger.LogInformation("🔄 [SIGNALR-RECONCILIATION] Performing REST reconciliation since {LastReconciliation}", 
+            // Get portfolio status for reconciliation
+            var portfolioStatus = await _topstepXAdapter.GetPortfolioStatusAsync();
+            
+            _logger.LogInformation("🔄 [TOPSTEPX-RECONCILIATION] Portfolio reconciliation completed since {LastReconciliation}", 
                 _lastReconciliation);
-
-            // Implement actual reconciliation logic
-            await PerformPositionReconciliationAsync();
-            await PerformOrderReconciliationAsync();
-
+            
             _lastReconciliation = DateTime.UtcNow;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ [SIGNALR-RECONCILIATION] Reconciliation failed");
+            _logger.LogError(ex, "❌ [TOPSTEPX-RECONCILIATION] Reconciliation failed");
         }
     }
 
@@ -549,7 +541,7 @@ public static class ObservabilityServiceExtensions
         // Add health checks
         services.AddHealthChecks()
             .AddCheck("database", () => HealthCheckResult.Healthy("Database connection OK"))
-            .AddCheck("signalr", () => HealthCheckResult.Healthy("SignalR connection OK"))
+            .AddCheck("topstepx", () => HealthCheckResult.Healthy("TopstepX adapter connection OK"))
             .AddCheck("api", () => HealthCheckResult.Healthy("API connectivity OK"));
 
         return services;

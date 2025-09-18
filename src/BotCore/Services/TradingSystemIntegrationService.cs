@@ -1086,14 +1086,14 @@ namespace TopstepX.Bot.Core.Services
                 return Task.FromResult(false);
             }
 
-            // Check hub connections using SignalRConnectionManager
-            var userHubConnected = _signalRConnectionManager.IsUserHubConnected;
-            var marketHubConnected = _signalRConnectionManager.IsMarketHubConnected;
+            // Check adapter connection using TopstepX adapter
+            var adapterConnected = _topstepXAdapter.IsConnected;
+            var adapterHealth = _topstepXAdapter.ConnectionHealth;
             
-            if (!userHubConnected || !marketHubConnected)
+            if (!adapterConnected || adapterHealth < 80)
             {
-                _logger.LogDebug("[PRECHECK] Failed - hubs not connected. User: {UserHub}, Market: {MarketHub}",
-                    userHubConnected, marketHubConnected);
+                _logger.LogDebug("[PRECHECK] Failed - adapter not ready. Connected: {Connected}, Health: {Health}%",
+                    adapterConnected, adapterHealth);
                 return Task.FromResult(false);
             }
 
@@ -1768,12 +1768,12 @@ namespace TopstepX.Bot.Core.Services
         {
             _logger.LogInformation("🔍 Performing system readiness checks...");
             
-            // Check connections using SignalRConnectionManager
-            var userHubReady = _signalRConnectionManager.IsUserHubConnected;
-            var marketHubReady = _signalRConnectionManager.IsMarketHubConnected;
+            // Check connections using TopstepX adapter
+            var adapterConnected = _topstepXAdapter.IsConnected;
+            var adapterHealth = _topstepXAdapter.ConnectionHealth;
             
-            _logger.LogInformation("📊 System Status - UserHub: {UserHub}, MarketHub: {MarketHub}, BarsSeen: {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})",
-                userHubReady, marketHubReady, _barsSeen + _seededBars, _barsSeen, _seededBars);
+            _logger.LogInformation("📊 System Status - TopstepX Adapter Connected: {Connected}, Health: {Health}%, BarsSeen: {BarsSeen} (Live: {LiveBars}, Seeded: {SeededBars})",
+                adapterConnected, adapterHealth, _barsSeen + _seededBars, _barsSeen, _seededBars);
                 
             return Task.CompletedTask;
         }
@@ -1795,9 +1795,9 @@ namespace TopstepX.Bot.Core.Services
         {
             var score = 1.0;
             
-            // Reduce score for disconnected hubs using SignalRConnectionManager
-            if (!_signalRConnectionManager.IsUserHubConnected) score -= 0.3;
-            if (!_signalRConnectionManager.IsMarketHubConnected) score -= 0.3;
+            // Reduce score for poor adapter health
+            if (!_topstepXAdapter.IsConnected) score -= 0.3;
+            if (_topstepXAdapter.ConnectionHealth < 80) score -= 0.3;
             
             // Reduce score for stale data
             if ((DateTime.UtcNow - _lastMarketDataUpdate).TotalMinutes > 5) score -= 0.2;
