@@ -23,6 +23,18 @@ internal static class SimulationConstants
     public const int SIMULATION_VOLUME = 125430;
     public const int MARKET_DATA_DELAY_MS = 120;
     public const int SUBSCRIPTION_DELAY_MS = 1000;
+    
+    // Connection and subscription delays
+    public const int CONNECTION_DELAY_MS = 80;
+    public const int SUBSCRIPTION_REGISTRATION_DELAY_MS = 100;
+    public const int STANDARD_CONNECTION_DELAY_MS = 100;
+    public const int DISCONNECTION_DELAY_MS = 50;
+    public const int AUTH_DELAY_MS = 200;
+    public const int ACCOUNT_INFO_DELAY_MS = 150;
+    public const int BALANCE_DELAY_MS = 100;
+    public const int POSITIONS_DELAY_MS = 180;
+    public const int ORDERS_DELAY_MS = 300;
+    public const int TRADES_DELAY_MS = 500;
 }
 
 /// <summary>
@@ -59,7 +71,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken); // Simulate connection delay
+        await Task.Delay(SimulationConstants.STANDARD_CONNECTION_DELAY_MS, cancellationToken); // Simulate connection delay
         _isConnected = true;
         OnConnectionStateChanged?.Invoke(true);
         _logger.LogInformation("[SIM-TOPSTEPX] Connected to mock TopstepX services");
@@ -68,7 +80,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> DisconnectAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Delay(50, cancellationToken); // Simulate disconnection delay
+        await Task.Delay(SimulationConstants.DISCONNECTION_DELAY_MS, cancellationToken); // Simulate disconnection delay
         _isConnected = false;
         OnConnectionStateChanged?.Invoke(false);
         _logger.LogInformation("[SIM-TOPSTEPX] Disconnected from mock TopstepX services");
@@ -82,7 +94,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
     public async Task<(string jwt, DateTimeOffset expiresUtc)> AuthenticateAsync(
         string username, string password, string apiKey, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(200, cancellationToken); // Simulate auth delay
+        await Task.Delay(SimulationConstants.AUTH_DELAY_MS, cancellationToken); // Simulate auth delay
         var jwt = "mock.jwt.token.for.testing";
         var expires = DateTimeOffset.UtcNow.AddHours(1);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation authentication successful for user: {Username}", username);
@@ -92,7 +104,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
     public async Task<(string jwt, DateTimeOffset expiresUtc)> RefreshTokenAsync(
         string refreshToken, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken); // Simulate refresh delay
+        await Task.Delay(SimulationConstants.STANDARD_CONNECTION_DELAY_MS, cancellationToken); // Simulate refresh delay
         var jwt = "mock.refreshed.jwt.token";
         var expires = DateTimeOffset.UtcNow.AddHours(1);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation token refresh successful");
@@ -105,7 +117,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetAccountAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(150, cancellationToken);
+        await Task.Delay(SimulationConstants.ACCOUNT_INFO_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             accountId = accountId,
@@ -121,7 +133,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetAccountBalanceAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(120, cancellationToken);
+        await Task.Delay(SimulationConstants.MARKET_DATA_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             accountId = accountId,
@@ -140,7 +152,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetAccountPositionsAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.BALANCE_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             accountId = accountId,
@@ -166,7 +178,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchAccountsAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(180, cancellationToken);
+        await Task.Delay(SimulationConstants.POSITIONS_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             accounts = new[]
@@ -186,7 +198,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> PlaceOrderAsync(object orderRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(300, cancellationToken); // Simulate order placement delay
+        await Task.Delay(SimulationConstants.ORDERS_DELAY_MS, cancellationToken); // Simulate order placement delay
         var orderId = Guid.NewGuid().ToString();
         var mockResponse = JsonSerializer.Serialize(new
         {
@@ -206,7 +218,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
         // Simulate order update event after a short delay
         _ = Task.Run(async () =>
         {
-            await Task.Delay(500, cancellationToken);
+            await Task.Delay(SimulationConstants.TRADES_DELAY_MS, cancellationToken);
             OnOrderUpdate?.Invoke(new GatewayUserOrder
             {
                 OrderId = orderId,
@@ -224,14 +236,14 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> CancelOrderAsync(string orderId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(150, cancellationToken);
+        await Task.Delay(SimulationConstants.ACCOUNT_INFO_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation order cancelled. OrderId: {OrderId}", orderId);
         return true;
     }
 
     public async Task<JsonElement> GetOrderStatusAsync(string orderId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.BALANCE_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             orderId = orderId,
@@ -250,7 +262,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchOrdersAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(200, cancellationToken);
+        await Task.Delay(SimulationConstants.AUTH_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             orders = new[]
@@ -274,7 +286,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchOpenOrdersAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(150, cancellationToken);
+        await Task.Delay(SimulationConstants.ACCOUNT_INFO_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             orders = new object[0], // No open orders in mock
@@ -290,7 +302,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchTradesAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(180, cancellationToken);
+        await Task.Delay(SimulationConstants.POSITIONS_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             trades = new[]
@@ -315,7 +327,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetTradeAsync(string tradeId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(120, cancellationToken);
+        await Task.Delay(SimulationConstants.MARKET_DATA_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             tradeId = tradeId,
@@ -337,7 +349,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetContractAsync(string contractId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.BALANCE_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             contractId = contractId,
@@ -358,7 +370,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> SearchContractsAsync(object searchRequest, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(150, cancellationToken);
+        await Task.Delay(SimulationConstants.ACCOUNT_INFO_DELAY_MS, cancellationToken);
         var mockResponse = JsonSerializer.Serialize(new
         {
             contracts = new[]
@@ -375,7 +387,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<JsonElement> GetMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(80, cancellationToken);
+        await Task.Delay(SimulationConstants.CONNECTION_DELAY_MS, cancellationToken);
         var basePrice = symbol.ToUpper() switch
         {
             "ES" => 4125.25m,
@@ -411,21 +423,21 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
 
     public async Task<bool> SubscribeOrdersAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to order updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeTradesAsync(string accountId, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to trade updates for account: {AccountId}", accountId);
         return true;
     }
 
     public async Task<bool> SubscribeMarketDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
-        await Task.Delay(100, cancellationToken);
+        await Task.Delay(SimulationConstants.SUBSCRIPTION_REGISTRATION_DELAY_MS, cancellationToken);
         _logger.LogInformation("[SIM-TOPSTEPX] Simulation subscription to market data for: {Symbol}", symbol);
         
         // Simulate periodic market data updates

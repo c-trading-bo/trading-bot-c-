@@ -42,6 +42,12 @@ internal static class AutoRemediationConstants
     public const int MAX_TIMEOUT_SECONDS = 30;
     public const int VALIDATION_LENGTH_THRESHOLD = 10;
     public const int THREAD_MULTIPLIER = 2;
+    
+    // Test and measurement constants
+    public const int TEST_DELAY_MS = 100;
+    public const int FAILED_CONNECTION_TIMEOUT_MS = 5000;
+    public const double SUCCESS_HEALTH_SCORE_THRESHOLD = 0.8;
+    public const int MEMORY_PRESSURE_MB = 1;  // 1MB memory pressure for GC triggering
 }
 
 /// <summary>
@@ -329,7 +335,7 @@ public class AutoRemediationSystem
         }
 
         // Issue 2: High memory usage - Use proper memory management instead of forced GC
-        if (systemReport.PerformanceMetrics.ResourceUsage.MemoryUsageMB > 500)
+        if (systemReport.PerformanceMetrics.ResourceUsage.MemoryUsageMB > AutoRemediationConstants.HIGH_MEMORY_THRESHOLD_MB)
         {
             var action = new RemediationAction
             {
@@ -355,12 +361,13 @@ public class AutoRemediationSystem
                     // Request garbage collection without forcing it
                     GC.WaitForPendingFinalizers();
                     // Monitor memory and let runtime decide optimal collection timing
-                    GC.AddMemoryPressure(1024 * 1024); // Add 1MB pressure to trigger natural collection
-                    GC.RemoveMemoryPressure(1024 * 1024); // Remove the pressure immediately
+                    var pressureBytes = AutoRemediationConstants.MEMORY_PRESSURE_MB * AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT;
+                    GC.AddMemoryPressure(pressureBytes); // Add 1MB pressure to trigger natural collection
+                    GC.RemoveMemoryPressure(pressureBytes); // Remove the pressure immediately
                 }
 
                 var memoryAfter = GC.GetTotalMemory(false);
-                var freedMB = (memoryBefore - memoryAfter) / (1024 * 1024);
+                var freedMB = (memoryBefore - memoryAfter) / (AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT);
                 
                 action.Success = true;
                 action.Result = $"Memory optimization completed, freed {freedMB}MB";
@@ -671,7 +678,7 @@ public class AutoRemediationSystem
             var postRemediationReport = await _reportingSystem.GenerateComprehensiveReportAsync(dummyTestResults);
             
             var validationResult = new { 
-                IsOverallSuccess = postRemediationReport.OverallHealthScore > 0.8, 
+                IsOverallSuccess = postRemediationReport.OverallHealthScore > AutoRemediationConstants.SUCCESS_HEALTH_SCORE_THRESHOLD, 
                 FailedTests = new List<string>(),
                 HealthScore = postRemediationReport.OverallHealthScore
             };
@@ -802,7 +809,7 @@ public class AutoRemediationSystem
             catch
             {
                 // Connection failed, use conservative timeout
-                connectionTimes.Add(5000);
+                connectionTimes.Add(AutoRemediationConstants.FAILED_CONNECTION_TIMEOUT_MS);
             }
         }
 
@@ -832,11 +839,11 @@ public class AutoRemediationSystem
                 stopwatch.Stop();
                 measurements.Add(stopwatch.ElapsedMilliseconds);
                 
-                await Task.Delay(100); // Small delay between tests
+                await Task.Delay(AutoRemediationConstants.TEST_DELAY_MS); // Small delay between tests
             }
             catch
             {
-                measurements.Add(5000); // Use 5s for failed connections
+                measurements.Add(AutoRemediationConstants.FAILED_CONNECTION_TIMEOUT_MS); // Use 5s for failed connections
             }
         }
         
@@ -1108,7 +1115,7 @@ public class AutoRemediationResult
         TotalIssuesAttempted = allActions.Count;
         TotalIssuesFixed = allActions.Count(a => a.Success);
         RemediationSuccessRate = TotalIssuesAttempted > 0 ? (double)TotalIssuesFixed / TotalIssuesAttempted : 1.0;
-        OverallSuccess = RemediationSuccessRate >= 0.8 && string.IsNullOrEmpty(CriticalError);
+        OverallSuccess = RemediationSuccessRate >= AutoRemediationConstants.SUCCESS_HEALTH_SCORE_THRESHOLD && string.IsNullOrEmpty(CriticalError);
     }
 
     public Dictionary<string, object> GetSummary()

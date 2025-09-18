@@ -8,6 +8,14 @@ using BotCore.Infrastructure;
 namespace BotCore.Testing;
 
 /// <summary>
+/// Production constants for smoke test suite
+/// </summary>
+internal static class SmokeTestConstants
+{
+    public const double MINIMUM_CATEGORY_PASS_RATE = 0.8;
+}
+
+/// <summary>
 /// Comprehensive smoke test and end-to-end simulation system for TopstepX bot
 /// </summary>
 public class ComprehensiveSmokeTestSuite
@@ -489,7 +497,7 @@ public class TestCategoryResult
     public int TotalTests => Tests.Count;
     public int PassedTests => Tests.Count(t => t.Passed);
     public double PassRate => TotalTests > 0 ? (double)PassedTests / TotalTests : 0;
-    public bool IsSuccess => PassRate >= 0.8; // 80% pass rate required per category
+    public bool IsSuccess => PassRate >= SmokeTestConstants.MINIMUM_CATEGORY_PASS_RATE; // 80% pass rate required per category
 
     public TestCategoryResult(string categoryName)
     {

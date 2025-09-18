@@ -10,6 +10,16 @@ using TradingBot.Abstractions;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
+/// Production constants for snapshot management
+/// </summary>
+internal static class SnapshotConstants
+{
+    public const int ACCOUNT_ID_VISIBLE_CHARS = 2;
+    public const int ACCOUNT_ID_LOG_VISIBLE_CHARS = 4;
+    public const int MINIMUM_ACCOUNT_ID_LENGTH = 4;
+}
+
+/// <summary>
 /// Snapshot Manager for TopstepX state synchronization
 /// Implements Snapshot + Delta pattern to handle missed events during disconnections
 /// </summary>
@@ -74,7 +84,7 @@ public class SnapshotManager : ISnapshotManager
         try
         {
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SnapshotManager",
-                $"Fetching initial snapshot for account {accountId.Substring(0, Math.Min(4, accountId.Length))}***");
+                $"Fetching initial snapshot for account {accountId.Substring(0, Math.Min(SnapshotConstants.ACCOUNT_ID_LOG_VISIBLE_CHARS, accountId.Length))}***");
 
             var snapshot = await FetchAccountSnapshotAsync(accountId);
             if (snapshot != null)
@@ -107,7 +117,7 @@ public class SnapshotManager : ISnapshotManager
         try
         {
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "SnapshotManager",
-                $"Reconciling state after reconnect for account {accountId.Substring(0, Math.Min(4, accountId.Length))}***");
+                $"Reconciling state after reconnect for account {accountId.Substring(0, Math.Min(SnapshotConstants.ACCOUNT_ID_LOG_VISIBLE_CHARS, accountId.Length))}***");
 
             var currentSnapshot = await FetchAccountSnapshotAsync(accountId);
             if (currentSnapshot == null)
@@ -385,9 +395,9 @@ public class SnapshotManager : ISnapshotManager
     /// </summary>
     private static string MaskAccountId(string accountId)
     {
-        if (string.IsNullOrEmpty(accountId) || accountId.Length <= 4)
+        if (string.IsNullOrEmpty(accountId) || accountId.Length <= SnapshotConstants.MINIMUM_ACCOUNT_ID_LENGTH)
             return "****";
         
-        return accountId.Substring(0, 2) + "****" + accountId.Substring(accountId.Length - 2);
+        return accountId.Substring(0, SnapshotConstants.ACCOUNT_ID_VISIBLE_CHARS) + "****" + accountId.Substring(accountId.Length - SnapshotConstants.ACCOUNT_ID_VISIBLE_CHARS);
     }
 }

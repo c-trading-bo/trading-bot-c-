@@ -6,6 +6,14 @@ using TradingBot.Abstractions;
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
+/// Production constants for account service
+/// </summary>
+internal static class AccountServiceConstants
+{
+    public const double EXPONENTIAL_BACKOFF_BASE = 2.0;
+}
+
+/// <summary>
 /// AccountService with real /api/Account GET + periodic refresh
 /// Production implementation - Uses actual TopstepX account API for live portfolio data  
 /// </summary>
@@ -124,7 +132,7 @@ public class AccountService : IAccountService, IDisposable
                 {
                     _logger.LogWarning("[ACCOUNT] Attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
                         attempt, maxRetries, (int)response.StatusCode);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(AccountServiceConstants.EXPONENTIAL_BACKOFF_BASE, attempt)));
                     continue;
                 }
                 else
@@ -137,7 +145,7 @@ public class AccountService : IAccountService, IDisposable
             {
                 _logger.LogWarning(ex, "[ACCOUNT] HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
                     attempt, maxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(AccountServiceConstants.EXPONENTIAL_BACKOFF_BASE, attempt)));
             }
         }
 
@@ -175,7 +183,7 @@ public class AccountService : IAccountService, IDisposable
                 {
                     _logger.LogWarning("[ACCOUNT] Positions request attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
                         attempt, maxRetries, (int)response.StatusCode);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(AccountServiceConstants.EXPONENTIAL_BACKOFF_BASE, attempt)));
                     continue;
                 }
                 else
@@ -188,7 +196,7 @@ public class AccountService : IAccountService, IDisposable
             {
                 _logger.LogWarning(ex, "[ACCOUNT] Positions HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
                     attempt, maxRetries);
-                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(AccountServiceConstants.EXPONENTIAL_BACKOFF_BASE, attempt)));
             }
         }
 

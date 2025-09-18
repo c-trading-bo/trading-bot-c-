@@ -12,6 +12,15 @@ using TradingBot.Abstractions;
 namespace BotCore.Services;
 
 /// <summary>
+/// Production constants for TopstepX service
+/// </summary>
+internal static class TopstepXServiceConstants
+{
+    public const int RECONNECTION_DELAY_MS = 1000;
+    public const int MAX_RETRY_ATTEMPTS = 5;
+}
+
+/// <summary>
 /// Enhanced TopstepX service with improved SignalR connection handling
 /// </summary>
 public interface ITopstepXService
@@ -231,7 +240,7 @@ public class TopstepXService : ITopstepXService, IDisposable
             }
 
             // Don't auto-reconnect immediately, let the timer handle it
-            await Task.Delay(1000);
+            await Task.Delay(TopstepXServiceConstants.RECONNECTION_DELAY_MS);
         };
 
         _hubConnection.Reconnecting += (error) =>
@@ -605,7 +614,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                 _logger,
                 cts.Token,
                 maxAttempts: 1,  // Single attempt for health check
-                waitMs: 1000);
+                waitMs: TopstepXServiceConstants.RECONNECTION_DELAY_MS);
 
             _logger.LogDebug("[TOPSTEPX] Health check ping successful");
         }
@@ -622,7 +631,7 @@ public class TopstepXService : ITopstepXService, IDisposable
                     try
                     {
                         await DisconnectAsync();
-                        await Task.Delay(1000); // Brief delay before reconnecting
+                        await Task.Delay(TopstepXServiceConstants.RECONNECTION_DELAY_MS); // Brief delay before reconnecting
                         await ConnectAsync();
                     }
                     catch (Exception reconEx)
@@ -748,7 +757,7 @@ public class ExponentialBackoffRetryPolicy : IRetryPolicy
     public TimeSpan? NextRetryDelay(RetryContext retryContext)
     {
         // Max 5 retries with exponential backoff
-        if (retryContext.PreviousRetryCount >= 5)
+        if (retryContext.PreviousRetryCount >= TopstepXServiceConstants.MAX_RETRY_ATTEMPTS)
             return null; // Stop retrying after max attempts
 
         var delay = TimeSpan.FromSeconds(Math.Pow(2, retryContext.PreviousRetryCount));
