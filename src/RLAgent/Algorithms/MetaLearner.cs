@@ -79,7 +79,7 @@ public class MetaLearner
             var adaptedPolicy = _metaPolicy.Clone();
             
             // Perform gradient descent steps on support set
-            for (int step; step < _config.AdaptationSteps; step++)
+            for (int step = 0; step < _config.AdaptationSteps; step++)
             {
                 var loss = 0.0;
                 var gradients = new Dictionary<string, double[]>();
@@ -232,7 +232,7 @@ public class MetaLearner
     {
         var adaptedPolicy = _metaPolicy.Clone();
         
-        for (int step; step < _config.AdaptationSteps; step++)
+        for (int step = 0; step < _config.AdaptationSteps; step++)
         {
             var gradients = new Dictionary<string, double[]>();
             
@@ -271,7 +271,7 @@ public class MetaLearner
     private static double CalculateActionLoss(double[] prediction, double[] target, double reward)
     {
         var mse = 0.0;
-        for (int i; i < prediction.Length; i++)
+        for (int i = 0; i < prediction.Length; i++)
         {
             mse += Math.Pow(prediction[i] - target[i], MetaLearningConstants.POWER_CALCULATION_EXPONENT);
         }
@@ -293,7 +293,7 @@ public class MetaLearner
         var prediction = policy.Predict(experience.State);
         var error = new double[prediction.Length];
         
-        for (int i; i < prediction.Length; i++)
+        for (int i = 0; i < prediction.Length; i++)
         {
             error[i] = experience.Action[i] - prediction[i];
         }
@@ -318,7 +318,7 @@ public class MetaLearner
         foreach (var experience in querySet)
         {
             var prediction = adaptedPolicy.Predict(experience.State);
-            for (int i; i < prediction.Length; i++)
+            for (int i = 0; i < prediction.Length; i++)
             {
                 avgError[i] += (experience.Action[i] - prediction[i]) / querySet.Count;
             }
@@ -342,7 +342,7 @@ public class MetaLearner
             }
             else
             {
-                for (int i; i < existingGrad.Length; i++)
+                for (int i = 0; i < existingGrad.Length; i++)
                 {
                     existingGrad[i] += kvp.Value[i];
                 }
@@ -622,13 +622,13 @@ public class PolicyNetwork
         _parameters["output_bias"] = new double[_outputDim];
         
         // Xavier initialization
-        for (int i; i < _parameters["input_weights"].Length; i++)
+        for (int i = 0; i < _parameters["input_weights"].Length; i++)
         {
             _parameters["input_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
         
         scale = Math.Sqrt(2.0 / _hiddenDim);
-        for (int i; i < _parameters["output_weights"].Length; i++)
+        for (int i = 0; i < _parameters["output_weights"].Length; i++)
         {
             _parameters["output_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
@@ -642,10 +642,10 @@ public class PolicyNetwork
         var hiddenBias = _parameters["hidden_bias"];
         
         // Input to hidden
-        for (int i; i < _hiddenDim; i++)
+        for (int i = 0; i < _hiddenDim; i++)
         {
             hidden[i] = hiddenBias[i];
-            for (int j; j < _inputDim; j++)
+            for (int j = 0; j < _inputDim; j++)
             {
                 hidden[i] += input[j] * inputWeights[j * _hiddenDim + i];
             }
@@ -657,10 +657,10 @@ public class PolicyNetwork
         var outputWeights = _parameters["output_weights"];
         var outputBias = _parameters["output_bias"];
         
-        for (int i; i < _outputDim; i++)
+        for (int i = 0; i < _outputDim; i++)
         {
             output[i] = outputBias[i];
-            for (int j; j < _hiddenDim; j++)
+            for (int j = 0; j < _hiddenDim; j++)
             {
                 output[i] += hidden[j] * outputWeights[j * _outputDim + i];
             }
@@ -674,7 +674,7 @@ public class PolicyNetwork
     {
         if (_parameters.TryGetValue(paramName, out var param))
         {
-            for (int i; i < Math.Min(param.Length, gradient.Length); i++)
+            for (int i = 0; i < Math.Min(param.Length, gradient.Length); i++)
             {
                 param[i] += learningRate * gradient[i];
             }
