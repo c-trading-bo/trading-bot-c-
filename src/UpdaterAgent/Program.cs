@@ -63,7 +63,7 @@ public class UpdaterAgent
     {
         try
         {
-            await RunUpdateLoop();
+            await RunUpdateLoop().ConfigureAwait(false);
             return 0;
         }
         catch (Exception ex)
@@ -81,14 +81,14 @@ public class UpdaterAgent
             try
             {
                 Log.Information("Updater: building vNext …");
-                await ProcessUpdate();
-                await Task.Delay(TimeSpan.FromMinutes(2));
+                await ProcessUpdate().ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMinutes(2)).ConfigureAwait(false);
                 iterationCount++;
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Update cycle failed");
-                await Task.Delay(TimeSpan.FromMinutes(1));
+                await Task.Delay(TimeSpan.FromMinutes(1)).ConfigureAwait(false);
             }
         }
     }
@@ -113,9 +113,9 @@ public class UpdaterAgent
     {
         var outDir = Path.Combine(_publishDir, $"build-{DateTime.UtcNow:yyyyMMdd-HHmmss}");
         
-        if (await BuildProject(outDir) && await RunValidation())
+        if (await BuildProject(outDir).ConfigureAwait(false) && await RunValidation().ConfigureAwait(false))
         {
-            await DeployUpdate(head);
+            await DeployUpdate(head).ConfigureAwait(false);
         }
     }
 
@@ -125,11 +125,11 @@ public class UpdaterAgent
         var pubCode = Run("dotnet", $"publish \"{_projPath}\" -c Release -o \"{outDir}\"", _repoPath);
         if (pubCode != 0)
         {
-            await LogBuildFailure();
+            await LogBuildFailure().ConfigureAwait(false);
             return false;
         }
 
-        await CreateBuildMetadata(outDir);
+        await CreateBuildMetadata(outDir).ConfigureAwait(false);
         return true;
     }
 
@@ -138,7 +138,7 @@ public class UpdaterAgent
         if (_runTests && !await RunTests())
             return false;
 
-        if (_runReplays && !await RunReplays())
+        if (_runReplays && !await RunReplays().ConfigureAwait(false))
             return false;
 
         return true;
@@ -149,7 +149,7 @@ public class UpdaterAgent
         var testCode = Run("dotnet", "test --logger console;verbosity=minimal", _repoPath);
         if (testCode != 0)
         {
-            await LogTestFailure();
+            await LogTestFailure().ConfigureAwait(false);
             return false;
         }
         return true;

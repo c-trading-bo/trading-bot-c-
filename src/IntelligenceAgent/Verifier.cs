@@ -51,11 +51,15 @@ public class Verifier : IVerifier
             var result = new VerificationResult
             {
                 Date = utcToday,
-                OrdersByStatus = orderStats,
-                TradesByStatus = tradeStats,
                 Success = true,
                 Timestamp = DateTime.UtcNow
             };
+            
+            // Populate read-only collections
+            foreach (var kvp in orderStats)
+                result.OrdersByStatus.Add(kvp.Key, kvp.Value);
+            foreach (var kvp in tradeStats)
+                result.TradesByStatus.Add(kvp.Key, kvp.Value);
 
             // Emit human summary
             EmitHumanSummary(result);

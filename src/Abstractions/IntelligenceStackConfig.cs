@@ -7,7 +7,7 @@ namespace TradingBot.Abstractions;
 /// </summary>
 public class IntelligenceStackConfig
 {
-    public bool EnableTrading { get; set; } = false;
+    public bool EnableTrading { get; set; }
     public MLConfig ML { get; set; } = new();
     public OnlineConfig Online { get; set; } = new();
     public RLConfig RL { get; set; } = new();
@@ -100,7 +100,7 @@ public class ShadowConfig
 
 public class CanaryConfig
 {
-    public int Percent { get; set; } = 0;
+    public int Percent { get; set; }
     public int MaxPercent { get; set; } = 20;
 }
 
@@ -140,7 +140,7 @@ public class RLConfig
 
 public class AdvisorConfig
 {
-    public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; }
     public int ShadowMinDecisions { get; set; } = 1000;
     public int MinEdgeBps { get; set; } = 3;
     

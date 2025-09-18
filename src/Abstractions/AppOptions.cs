@@ -11,7 +11,7 @@ public sealed class AppOptions
     public string AuthToken { get; init; } = "";
     public string AccountId { get; init; } = "";
     public bool EnableDryRunMode { get; init; } = true;
-    public bool EnableAutoExecution { get; init; } = false;
+    public bool EnableAutoExecution { get; init; }
     public decimal MaxDailyLoss { get; init; } = DefaultMaxDailyLoss;
     public int MaxPositionSize { get; init; } = DefaultMaxPositionSize;
     public decimal DrawdownLimit { get; init; } = DefaultDrawdownLimit;

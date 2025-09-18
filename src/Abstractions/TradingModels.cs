@@ -8,7 +8,7 @@ namespace TradingBot.Abstractions;
 /// </summary>
 public class TradingBrainState
 {
-    public bool IsActive { get; set; } = false;
+    public bool IsActive { get; set; }
     public bool IsSystemHealthy { get; set; } = true;
     public string CurrentMarketRegime { get; set; } = "UNKNOWN";
     public DateTime LastUpdate { get; set; } = DateTime.UtcNow;
@@ -28,22 +28,30 @@ public class TradingBrainState
     
     public TradingBrainState Clone()
     {
-        return new TradingBrainState
+        var clone = new TradingBrainState
         {
             IsActive = IsActive,
             LastUpdate = LastUpdate,
-            ConnectedComponents = new List<string>(ConnectedComponents),
-            ActiveStrategies = new List<string>(ActiveStrategies),
-            ActivePositions = new Dictionary<string, decimal>(ActivePositions),
             DailyPnL = DailyPnL,
             MarketRegime = MarketRegime,
             RiskLevel = RiskLevel,
-            ComponentStates = new Dictionary<string, object>(ComponentStates),
             MLState = MLState.Clone(),
             RiskState = RiskState.Clone(),
             TradingState = TradingState.Clone(),
             DataState = DataState.Clone()
         };
+        
+        // Populate read-only collections
+        foreach (var item in ConnectedComponents)
+            clone.ConnectedComponents.Add(item);
+        foreach (var item in ActiveStrategies)
+            clone.ActiveStrategies.Add(item);
+        foreach (var kvp in ActivePositions)
+            clone.ActivePositions.Add(kvp.Key, kvp.Value);
+        foreach (var kvp in ComponentStates)
+            clone.ComponentStates.Add(kvp.Key, kvp.Value);
+            
+        return clone;
     }
 }
 
@@ -63,17 +71,24 @@ public class MLSystemState
     
     public MLSystemState Clone()
     {
-        return new MLSystemState
+        var clone = new MLSystemState
         {
             IsActive = IsActive,
             LastTraining = LastTraining,
-            ModelConfidences = new Dictionary<string, decimal>(ModelConfidences),
             ActiveModel = ActiveModel,
-            FeatureImportance = new Dictionary<string, decimal>(FeatureImportance),
             LastPrediction = LastPrediction,
-            PredictionConfidence = PredictionConfidence,
-            ActiveFeatures = new List<string>(ActiveFeatures)
+            PredictionConfidence = PredictionConfidence
         };
+        
+        // Populate read-only collections
+        foreach (var kvp in ModelConfidences)
+            clone.ModelConfidences.Add(kvp.Key, kvp.Value);
+        foreach (var kvp in FeatureImportance)
+            clone.FeatureImportance.Add(kvp.Key, kvp.Value);
+        foreach (var item in ActiveFeatures)
+            clone.ActiveFeatures.Add(item);
+            
+        return clone;
     }
 }
 
@@ -92,16 +107,22 @@ public class RiskSystemState
     
     public RiskSystemState Clone()
     {
-        return new RiskSystemState
+        var clone = new RiskSystemState
         {
             IsActive = IsActive,
             CurrentRisk = CurrentRisk,
             MaxDailyRisk = MaxDailyRisk,
             RiskUtilization = RiskUtilization,
-            PositionRisks = new Dictionary<string, decimal>(PositionRisks),
-            RiskWarnings = new List<string>(RiskWarnings),
             LastRiskCheck = LastRiskCheck
         };
+        
+        // Populate read-only collections
+        foreach (var kvp in PositionRisks)
+            clone.PositionRisks.Add(kvp.Key, kvp.Value);
+        foreach (var item in RiskWarnings)
+            clone.RiskWarnings.Add(item);
+            
+        return clone;
     }
 }
 
@@ -110,10 +131,10 @@ public class RiskSystemState
 /// </summary>
 public class TradingSystemState
 {
-    public bool IsConnected { get; set; } = false;
-    public bool CanTrade { get; set; } = false;
-    public int ActiveOrders { get; set; } = 0;
-    public int FilledOrders { get; set; } = 0;
+    public bool IsConnected { get; set; }
+    public bool CanTrade { get; set; }
+    public int ActiveOrders { get; set; }
+    public int FilledOrders { get; set; }
     public Dictionary<string, decimal> Positions { get; set; } = new();
     public Dictionary<string, string> ContractIds { get; set; } = new();
     public DateTime LastOrderTime { get; set; } = DateTime.MinValue;
