@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-09-17T18:35:24.209622",
+  "timestamp": "2025-09-18T06:36:52.581638",
   "analysis_mode": "comprehensive",
-  "market_session": "regular",
-  "workflow_run": "70",
+  "market_session": "extended",
+  "workflow_run": "71",
   "comprehensive_sentiment": {
-    "timestamp": "2025-09-17T18:30:39.648821",
+    "timestamp": "2025-09-18T06:32:05.647131",
     "analysis_mode": "comprehensive",
-    "market_session": "regular",
-    "total_articles_processed": 8,
+    "market_session": "extended",
+    "total_articles_processed": 15,
     "sentiment_threshold": 0.3,
     "instruments": {
       "ES": {
@@ -43,147 +43,233 @@
         "sources": []
       },
       "BTC": {
-        "sentiment_score": 0.14959259259259258,
-        "article_count": 3,
-        "articles": [
-          {
-            "title": "American Bitcoin CEO Ho Pushes Back on National Security Concerns Over Bitmain Hardware",
-            "sentiment": -0.16,
-            "textblob_score": 0.2,
-            "keyword_score": -1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-17/michael-ho-on-security-concerns-over-bitmain-hardware-video",
-            "published": "Wed, 17 Sep 2025 18:27:06 GMT",
-            "relevance_keywords": [
-              "Bitcoin"
-            ]
-          },
-          {
-            "title": "Cannot Have Strong GDP Without Cheap Energy: Eric Trump",
-            "sentiment": 0.5527777777777778,
-            "textblob_score": 0.3611111111111111,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-17/cannot-have-strong-gdp-without-cheap-energy-eric-trump-video",
-            "published": "Wed, 17 Sep 2025 17:44:34 GMT",
-            "relevance_keywords": [
-              "Bitcoin"
-            ]
-          },
-          {
-            "title": "\u2018I am highly alarmed by the proposed changes to retirement accounts\u2019: I don\u2019t want bitcoin or private equity in my 401(k). What can I do?",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-am-highly-alarmed-by-the-proposed-changes-to-retirement-accounts-i-dont-want-bitcoin-or-private-equity-in-my-401-k-what-can-i-do-56384ead?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 17:24:00 GMT",
-            "relevance_keywords": [
-              "Bitcoin"
-            ]
-          }
-        ],
-        "signal": "NEUTRAL",
-        "confidence": 0.3,
-        "sources": [
-          "bloomberg",
-          "marketwatch"
-        ]
-      },
-      "TSLA": {
-        "sentiment_score": 0.45571717171717174,
-        "article_count": 4,
-        "articles": [
-          {
-            "title": "Tesla stock surges, turning positive year to date as Elon Musk buys $1 billion in shares",
-            "sentiment": 0.4590909090909091,
-            "textblob_score": 0.22727272727272727,
-            "keyword_score": 1.0,
-            "source": "yahoo_finance",
-            "url": "https://finance.yahoo.com/news/tesla-stock-surges-turning-positive-year-to-date-as-elon-musk-buys-1-billion-in-shares-152228766.html",
-            "published": "2025-09-15T20:03:38Z",
-            "relevance_keywords": [
-              "Tesla",
-              "Elon Musk"
-            ]
-          },
-          {
-            "title": "Cannot Have Strong GDP Without Cheap Energy: Eric Trump",
-            "sentiment": 0.5527777777777778,
-            "textblob_score": 0.3611111111111111,
-            "keyword_score": 1.0,
-            "source": "bloomberg",
-            "url": "https://www.bloomberg.com/news/videos/2025-09-17/cannot-have-strong-gdp-without-cheap-energy-eric-trump-video",
-            "published": "Wed, 17 Sep 2025 17:44:34 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          },
-          {
-            "title": "Tesla\u2019s stock-market win streak might be over \u2014 but it\u2019s made Elon Musk $38 billion richer",
-            "sentiment": 0.7549999999999999,
-            "textblob_score": 0.65,
-            "keyword_score": 1.0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/teslas-stock-may-be-ending-a-streak-but-not-before-making-musk-38-billion-richer-02e8a660?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 18:25:00 GMT",
-            "relevance_keywords": [
-              "Tesla",
-              "Elon Musk",
-              "EV"
-            ]
-          },
-          {
-            "title": "\u2018I spend 5 hours a day on my portfolio\u2019: I\u2019m 70 and received $300K in a lawsuit. Here\u2019s my foolproof financial plan.",
-            "sentiment": 0.055999999999999994,
-            "textblob_score": 0.08,
-            "keyword_score": 0,
-            "source": "marketwatch",
-            "url": "https://www.marketwatch.com/story/i-spend-5-hours-a-day-on-my-portfolio-im-70-and-received-300k-in-a-lawsuit-what-do-you-think-of-my-investment-plan-23f8f8c9?mod=mw_rss_topstories",
-            "published": "Wed, 17 Sep 2025 18:07:00 GMT",
-            "relevance_keywords": [
-              "EV"
-            ]
-          }
-        ],
-        "signal": "BULLISH",
-        "confidence": 0.4,
-        "sources": [
-          "yahoo_finance",
-          "bloomberg",
-          "marketwatch"
-        ]
-      },
-      "NVDA": {
-        "sentiment_score": -0.3,
+        "sentiment_score": 0.3,
         "article_count": 1,
         "articles": [
           {
-            "title": "Nvidia: You'll Regret Not Selling Here",
-            "sentiment": -0.3,
+            "title": "Hyperliquid (HYPE), Binance Coin (BNB) Lead Crypto Gainers as Gold Hits $3,700 ATH",
+            "sentiment": 0.3,
             "textblob_score": 0.0,
-            "keyword_score": -1.0,
-            "source": "seeking_alpha",
-            "url": "https://seekingalpha.com/article/4823789-nvidia-youll-regret-not-selling-here?source=feed_all_articles",
-            "published": "Wed, 17 Sep 2025 14:15:25 -0400",
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/hyperliquid-hype-binance-coin-bnb-182059687.html",
+            "published": "2025-09-16T18:20:59Z",
             "relevance_keywords": [
-              "Nvidia"
+              "crypto"
             ]
           }
         ],
         "signal": "NEUTRAL",
         "confidence": 0.1,
         "sources": [
+          "yahoo_finance"
+        ]
+      },
+      "TSLA": {
+        "sentiment_score": 0.16347222222222219,
+        "article_count": 10,
+        "articles": [
+          {
+            "title": "POET Technologies, NTT Innovative Devices Partner to Develop Optical Engines for AI Mobile Networks",
+            "sentiment": 0.35,
+            "textblob_score": 0.5,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/poet-technologies-ntt-innovative-devices-185809560.html",
+            "published": "2025-09-16T18:58:09Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Synaptics, Righ Partner to Develop Agentic AI for Smart Homes, Showcases Cloud-Independent Solution",
+            "sentiment": 0.15,
+            "textblob_score": 0.21428571428571427,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/synaptics-righ-partner-develop-agentic-185818571.html",
+            "published": "2025-09-16T18:58:18Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "EV battery startup Our Next Energy to exit most of its factory space",
+            "sentiment": 0.475,
+            "textblob_score": 0.25,
+            "keyword_score": 1.0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/ev-battery-startup-next-energy-182557392.html",
+            "published": "2025-09-16T18:25:57Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Teva Pharmaceutical Industries (TEVA) Attains FDA\u2019s Fast Track Designation for Emrusolmin",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.2,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/teva-pharmaceutical-industries-teva-attains-185817454.html",
+            "published": "2025-09-16T18:58:17Z",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "BOE to Hold Rates Before Cutting Twice Later, BofA Says",
+            "sentiment": -0.06027777777777776,
+            "textblob_score": -0.0861111111111111,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-18/boe-to-hold-rates-before-cutting-twice-later-bofa-says-video",
+            "published": "Thu, 18 Sep 2025 06:16:53 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Swiss Exports to US Collapsed in First Month of 39% Tariff",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.19999999999999998,
+            "keyword_score": 0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-18/swiss-exports-to-us-collapsed-in-first-month-of-39-tariff",
+            "published": "Thu, 18 Sep 2025 06:00:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "US, European Stock Futures Rise After Fed Rate Cut: Markets Wrap",
+            "sentiment": 0.37,
+            "textblob_score": 0.1,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-17/stock-market-today-dow-s-p-live-updates",
+            "published": "Wed, 17 Sep 2025 22:52:58 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Trip.com: China's Inbound Tourism Has Room to Grow",
+            "sentiment": 0.3,
+            "textblob_score": 0.0,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-18/trip-com-china-s-inbound-tourism-has-room-to-grow-video",
+            "published": "Thu, 18 Sep 2025 04:48:10 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "This Fed move can help job seekers even more than the latest interest-rate cut",
+            "sentiment": 0.35,
+            "textblob_score": 0.5,
+            "keyword_score": 0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/this-fed-move-can-help-job-seekers-even-more-than-the-latest-interest-rate-cut-7481498e?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 22:29:00 GMT",
+            "relevance_keywords": [
+              "EV"
+            ]
+          },
+          {
+            "title": "Flux Power: Sell On Poor Outlook And Elevated Dilution Risk",
+            "sentiment": -0.58,
+            "textblob_score": -0.4,
+            "keyword_score": -1.0,
+            "source": "seeking_alpha",
+            "url": "https://seekingalpha.com/article/4823884-flux-power-stock-sell-on-poor-outlook-elevated-dilution-risk?source=feed_all_articles",
+            "published": "Thu, 18 Sep 2025 00:24:21 -0400",
+            "relevance_keywords": [
+              "EV"
+            ]
+          }
+        ],
+        "signal": "NEUTRAL",
+        "confidence": 1.0,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg",
+          "marketwatch",
           "seeking_alpha"
         ]
       },
-      "AAPL": {
-        "sentiment_score": 0.0,
-        "article_count": 0,
-        "articles": [],
+      "NVDA": {
+        "sentiment_score": -0.20439814814814813,
+        "article_count": 2,
+        "articles": [
+          {
+            "title": "China Clamps Down on Nvidia Chips | The China Show 9/18/2025",
+            "sentiment": -0.2487962962962963,
+            "textblob_score": 0.07314814814814814,
+            "keyword_score": -1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/videos/2025-09-18/the-china-show-9-18-2025-video",
+            "published": "Thu, 18 Sep 2025 05:15:21 GMT",
+            "relevance_keywords": [
+              "Nvidia"
+            ]
+          },
+          {
+            "title": "Nvidia\u2019s stock falls on China fears. How much should investors worry?",
+            "sentiment": -0.15999999999999998,
+            "textblob_score": 0.20000000000000004,
+            "keyword_score": -1.0,
+            "source": "marketwatch",
+            "url": "https://www.marketwatch.com/story/nvidia-shares-slip-to-one-week-low-a-report-says-china-has-banned-its-chips-e45c70cc?mod=mw_rss_topstories",
+            "published": "Wed, 17 Sep 2025 23:05:00 GMT",
+            "relevance_keywords": [
+              "Nvidia"
+            ]
+          }
+        ],
         "signal": "NEUTRAL",
-        "confidence": 0.0,
-        "sources": []
+        "confidence": 0.2,
+        "sources": [
+          "bloomberg",
+          "marketwatch"
+        ]
+      },
+      "AAPL": {
+        "sentiment_score": 0.3075,
+        "article_count": 2,
+        "articles": [
+          {
+            "title": "Teva Pharmaceutical Industries (TEVA) Attains FDA\u2019s Fast Track Designation for Emrusolmin",
+            "sentiment": 0.13999999999999999,
+            "textblob_score": 0.2,
+            "keyword_score": 0,
+            "source": "yahoo_finance",
+            "url": "https://finance.yahoo.com/news/teva-pharmaceutical-industries-teva-attains-185817454.html",
+            "published": "2025-09-16T18:58:17Z",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          },
+          {
+            "title": "Roche to Buy 89bio for Up to $3.5 Billion in Obesity Push",
+            "sentiment": 0.475,
+            "textblob_score": 0.25,
+            "keyword_score": 1.0,
+            "source": "bloomberg",
+            "url": "https://www.bloomberg.com/news/articles/2025-09-18/roche-to-buy-biopharmceutical-firm-89bio-in-3-5-billion-deal",
+            "published": "Thu, 18 Sep 2025 05:23:36 GMT",
+            "relevance_keywords": [
+              "Mac"
+            ]
+          }
+        ],
+        "signal": "BULLISH",
+        "confidence": 0.2,
+        "sources": [
+          "yahoo_finance",
+          "bloomberg"
+        ]
       }
     },
     "sources_used": [
@@ -196,8 +282,8 @@
     ]
   },
   "futures_analysis": {
-    "timestamp": "2025-09-17T18:35:24.060669",
-    "market_session": "regular",
+    "timestamp": "2025-09-18T06:36:52.445348",
+    "market_session": "extended",
     "total_futures_articles": 0,
     "ES": {
       "sentiment": 0.0,
@@ -218,7 +304,7 @@
     "analysis_type": "futures_deep_dive"
   },
   "gdelt_data": {
-    "timestamp": "2025-09-17T18:30:37.654708",
+    "timestamp": "2025-09-18T06:32:03.506141",
     "total_articles": 15,
     "keywords_searched": [
       "stock market",
@@ -333,7 +419,7 @@
       }
     ]
   },
-  "overall_market_sentiment": "BULLISH",
+  "overall_market_sentiment": "NEUTRAL",
   "high_confidence_signals": [],
   "data_sources_used": [
     "yahoo_finance",
