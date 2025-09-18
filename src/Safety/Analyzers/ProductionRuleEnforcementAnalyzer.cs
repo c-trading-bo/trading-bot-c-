@@ -118,6 +118,42 @@ namespace TradingBot.Safety.Analyzers
             isEnabledByDefault: true,
             description: "Any numeric literal in business logic must be replaced with configuration values.");
 
+        public static readonly DiagnosticDescriptor EmptyMethodBodyDetected = new DiagnosticDescriptor(
+            "PRE012",
+            "Empty method body detected",
+            "Empty method body found: {0}. All methods must contain actual implementation.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Empty method bodies {} are not allowed in production code - implement actual logic.");
+
+        public static readonly DiagnosticDescriptor ShortMethodWithoutAttributes = new DiagnosticDescriptor(
+            "PRE013",
+            "Short method without proper attributes detected",
+            "Method {0} has fewer than 3 lines without [Obsolete] or [GeneratedCode] attributes.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Methods with fewer than 3 lines must have [Obsolete] or [GeneratedCode] attributes or contain more implementation.");
+
+        public static readonly DiagnosticDescriptor PythonPassStatementDetected = new DiagnosticDescriptor(
+            "PRE014",
+            "Python pass statement detected",
+            "Python pass statement found in production file: {0}. Implement actual logic.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Python pass statements are not allowed in production code - implement actual logic.");
+
+        public static readonly DiagnosticDescriptor UnusedParameterOrMemberDetected = new DiagnosticDescriptor(
+            "PRE015",
+            "Unused parameter or member detected",
+            "Unused code detected: {0}. Remove unused code patterns.",
+            "Production",
+            DiagnosticSeverity.Error,
+            isEnabledByDefault: true,
+            description: "Unused parameters, private members, and fields indicate incomplete or stub code.");
+
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(
                 SuppressMessageWithoutProof,
@@ -130,7 +166,11 @@ namespace TradingBot.Safety.Analyzers
                 EmptyAsyncPlaceholder,
                 DevelopmentOnlyComment,
                 WeakRandomGeneration,
-                NumericLiteralInBusinessLogic);
+                NumericLiteralInBusinessLogic,
+                EmptyMethodBodyDetected,
+                ShortMethodWithoutAttributes,
+                PythonPassStatementDetected,
+                UnusedParameterOrMemberDetected);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -335,6 +375,33 @@ namespace TradingBot.Safety.Analyzers
                     $"method name: {methodName}");
                 context.ReportDiagnostic(diagnostic);
             }
+            
+            // Check for empty method bodies
+            if (methodDeclaration.Body != null && methodDeclaration.Body.Statements.Count == 0)
+            {
+                if (IsInProductionCode(context))
+                {
+                    var diagnostic = Diagnostic.Create(EmptyMethodBodyDetected,
+                        methodDeclaration.Body.GetLocation(),
+                        $"method {methodName}");
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+            
+            // Check for short methods without proper attributes
+            if (methodDeclaration.Body != null && IsInProductionCode(context))
+            {
+                var lineCount = CountMethodLines(methodDeclaration.Body);
+                var hasProperAttributes = HasObsoleteOrGeneratedCodeAttribute(methodDeclaration);
+                
+                if (lineCount < 3 && !hasProperAttributes)
+                {
+                    var diagnostic = Diagnostic.Create(ShortMethodWithoutAttributes,
+                        methodDeclaration.Identifier.GetLocation(),
+                        methodName);
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
         }
 
         private static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
@@ -441,10 +508,17 @@ namespace TradingBot.Safety.Analyzers
         {
             var sourceText = context.Tree.GetText();
             var text = sourceText.ToString();
+            var filePath = context.Tree.FilePath;
             
             // Only analyze production code
-            if (!IsInProductionCode(context.Tree.FilePath))
+            if (!IsInProductionCode(filePath))
                 return;
+            
+            // Check Python files for pass statements
+            if (Path.GetExtension(filePath)?.Equals(".py", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                CheckPythonPassStatements(context, text);
+            }
             
             // Check for commented-out analyzer rules
             CheckCommentedAnalyzerRules(context, text);
@@ -456,7 +530,6 @@ namespace TradingBot.Safety.Analyzers
             CheckPlaceholderPatterns(context, text);
             
             // Check .editorconfig files for severity downgrades
-            var filePath = context.Tree.FilePath;
             if (Path.GetFileName(filePath)?.Equals(".editorconfig", StringComparison.OrdinalIgnoreCase) == true)
             {
                 CheckEditorConfigSeverityDowngrades(context, text);
@@ -657,6 +730,52 @@ namespace TradingBot.Safety.Analyzers
             return token.IsKind(SyntaxKind.NumericLiteralToken) && 
                    !token.ValueText.EndsWith("f") && // Allow float literals like 1.0f
                    !token.ValueText.EndsWith("F");   // Allow float literals like 1.0F
+        }
+        
+        private static int CountMethodLines(BlockSyntax methodBody)
+        {
+            if (methodBody?.Statements == null)
+                return 0;
+                
+            return methodBody.Statements.Count;
+        }
+        
+        private static bool HasObsoleteOrGeneratedCodeAttribute(MethodDeclarationSyntax method)
+        {
+            if (method.AttributeLists == null)
+                return false;
+                
+            foreach (var attributeList in method.AttributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    var attributeName = attribute.Name.ToString();
+                    if (attributeName.Contains("Obsolete") || 
+                        attributeName.Contains("GeneratedCode") ||
+                        attributeName.Contains("CompilerGenerated"))
+                    {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        private static void CheckPythonPassStatements(SyntaxTreeAnalysisContext context, string text)
+        {
+            // Check for standalone 'pass' statements in Python files
+            var passPattern = @"^\s*pass\s*$";
+            var regex = new Regex(passPattern, RegexOptions.Multiline);
+            var matches = regex.Matches(text);
+            
+            foreach (Match match in matches)
+            {
+                var diagnostic = Diagnostic.Create(PythonPassStatementDetected,
+                    Location.Create(context.Tree, new TextSpan(match.Index, match.Length)),
+                    context.Tree.FilePath);
+                context.ReportDiagnostic(diagnostic);
+            }
         }
     }
 }
