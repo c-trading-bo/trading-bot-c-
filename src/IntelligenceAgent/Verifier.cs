@@ -231,7 +231,7 @@ public class Verifier : IVerifier
             
             var requestUri = $"/api/Order/search?from={fromParam}&to={toParam}";
             
-            using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
+            using var response = await _httpClient.GetAsync(new Uri(requestUri, UriKind.Relative), cancellationToken)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -300,7 +300,7 @@ public class Verifier : IVerifier
             
             var requestUri = $"/api/Trade/search?from={fromParam}&to={toParam}";
             
-            using var response = await _httpClient.GetAsync(requestUri, cancellationToken)
+            using var response = await _httpClient.GetAsync(new Uri(requestUri, UriKind.Relative), cancellationToken)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -405,4 +405,23 @@ public class VerificationResult
     public bool Success { get; set; }
     public string? ErrorMessage { get; set; }
     public DateTime Timestamp { get; set; }
+}
+
+/// <summary>
+/// Extension methods for exception handling
+/// </summary>
+public static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should not be caught
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is System.Security.SecurityException;
+    }
 }

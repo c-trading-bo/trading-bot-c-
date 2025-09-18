@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
+using System.Security;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 
 namespace Trading.Strategies;
@@ -421,5 +423,24 @@ public static class ConfidenceHelper
     public static Task<double> PredictAsync(params (string Name, double Value)[] features)
     {
         return _defaultWrapper.PredictConfidenceAsync(features);
+    }
+}
+
+/// <summary>
+/// Extension methods for exception handling
+/// </summary>
+public static class ExceptionExtensions
+{
+    /// <summary>
+    /// Determines if an exception is fatal and should not be caught
+    /// </summary>
+    public static bool IsFatal(this Exception ex)
+    {
+        return ex is OutOfMemoryException ||
+               ex is StackOverflowException ||
+               ex is AccessViolationException ||
+               ex is AppDomainUnloadedException ||
+               ex is ThreadAbortException ||
+               ex is SecurityException;
     }
 }

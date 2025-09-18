@@ -64,8 +64,7 @@ public static class Analytics
     /// <returns>Rolling returns series</returns>
     public static IEnumerable<double> CalculateRollingReturns(IEnumerable<double> prices, int periods = 1)
     {
-        if (prices == null)
-            throw new ArgumentNullException(nameof(prices));
+        ArgumentNullException.ThrowIfNull(prices);
             
         if (periods <= 0)
             throw new ArgumentException("Periods must be positive", nameof(periods));

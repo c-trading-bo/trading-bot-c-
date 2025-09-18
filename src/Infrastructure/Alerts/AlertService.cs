@@ -201,7 +201,7 @@ namespace TradingBot.Infrastructure.Alerts
                 var json = JsonSerializer.Serialize(payload);
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync(_slackWebhook, content).ConfigureAwait(false);
+                var response = await _httpClient.PostAsync(new Uri(_slackWebhook), content).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 
                 LogSlackMessageSentSuccessfully(_logger, severity, null);

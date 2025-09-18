@@ -63,8 +63,7 @@ public static class StrategyIds
     public static string GenerateConfigHash<T>(T configuration)
         where T : class
     {
-        if (configuration == null)
-            throw new ArgumentNullException(nameof(configuration));
+        ArgumentNullException.ThrowIfNull(configuration);
             
         // Serialize configuration to JSON for consistent hashing
         var jsonOptions = new JsonSerializerOptions
