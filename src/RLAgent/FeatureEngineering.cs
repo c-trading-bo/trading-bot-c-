@@ -270,7 +270,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -311,7 +311,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -349,7 +349,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -383,7 +383,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -431,7 +431,7 @@ public class FeatureEngineering : IDisposable
         RegimeType regime)
     {
         // Brief yield to allow task scheduling for feature calculations
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         // One-hot encoding for regime
         features.AddRange(new[]
@@ -455,7 +455,7 @@ public class FeatureEngineering : IDisposable
         MarketData currentData)
     {
         // Brief yield to allow task scheduling
-        await Task.Yield().ConfigureAwait(false);
+        await Task.Yield();
         
         var timestamp = currentData.Timestamp;
         
@@ -487,7 +487,7 @@ public class FeatureEngineering : IDisposable
     {
         var cleanedFeatures = new List<double>();
         
-        for (int i; i < features.Count; i++)
+        for (int i = 0; i < features.Count; i++)
         {
             var feature = features[i];
             var featureName = i < featureNames.Count ? featureNames[i] : $"feature_{i}";
@@ -708,8 +708,8 @@ public class FeatureEngineering : IDisposable
     {
         if (buffer.Length < 2) return 0.0;
         
-        var upTicks;
-        var downTicks;
+        var upTicks = 0;
+        var downTicks = 0;
         
         for (int i = 1; i < buffer.Length; i++)
         {
@@ -815,8 +815,7 @@ public class FeatureEngineering : IDisposable
             
             var report = new FeatureImportanceReport
             {
-                GeneratedAt = DateTime.UtcNow,
-                SymbolReports = new Dictionary<string, Dictionary<string, double>>()
+                GeneratedAt = DateTime.UtcNow
             };
             
             foreach (var (featureKey, tracker) in _importanceTrackers)
@@ -948,7 +947,7 @@ public class FeatureImportanceTracker
     {
         lock (_lock)
         {
-            for (int i; i < Math.Min(featureNames.Length, importanceScores.Length); i++)
+            for (int i = 0; i < Math.Min(featureNames.Length, importanceScores.Length); i++)
             {
                 var featureName = featureNames[i];
                 var importance = importanceScores[i];
@@ -989,7 +988,7 @@ public class FeatureImportanceTracker
 public class FeatureImportanceReport
 {
     public DateTime GeneratedAt { get; set; }
-    public Dictionary<string, Dictionary<string, double>> SymbolReports { get; set; } = new();
+    public Dictionary<string, Dictionary<string, double>> SymbolReports { get; } = new();
 }
 
 /// <summary>
@@ -1016,7 +1015,7 @@ public class StreamingFeatures
     public DateTime Timestamp { get; set; }
     public Dictionary<string, double> Features { get; } = new();
     public Dictionary<string, double> MicrostructureFeatures { get; } = new();
-    public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; set; } = new();
+    public Dictionary<string, Dictionary<string, double>> TimeWindowFeatures { get; } = new();
     public bool IsStale { get; set; }
 }
 
@@ -1050,7 +1049,7 @@ public class StreamingSymbolAggregator : IDisposable
 
     public async Task<StreamingFeatures> ProcessTickAsync(MarketTick tick, CancellationToken cancellationToken)
     {
-        await Task.Yield().ConfigureAwait(false); // Make it async
+        await Task.Yield(); // Make it async
 
         lock (_lock)
         {
@@ -1084,9 +1083,15 @@ public class StreamingSymbolAggregator : IDisposable
         var features = new StreamingFeatures
         {
             Symbol = _symbol,
-            Timestamp = DateTime.UtcNow,
-            MicrostructureFeatures = _microstructureCalc.GetFeatures()
+            Timestamp = DateTime.UtcNow
         };
+        
+        // Populate the microstructure features
+        var microFeatures = _microstructureCalc.GetFeatures();
+        foreach (var kvp in microFeatures)
+        {
+            features.MicrostructureFeatures[kvp.Key] = kvp.Value;
+        }
 
         // Add time window features using configured windows
         foreach (var kvp in _windowAggregators)

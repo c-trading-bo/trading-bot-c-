@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -81,7 +82,7 @@ public class ModelHotReloadManager : IDisposable
     {
         if (!await _reloadSemaphore.WaitAsync(_options.ReloadTimeoutMs, _cancellationTokenSource.Token))
         {
-            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath).ConfigureAwait(false);
+            _logger.LogWarning("[HOT_RELOAD] Hot-reload already in progress, skipping: {ModelPath}", modelPath);
             return;
         }
 
@@ -146,7 +147,7 @@ public class ModelHotReloadManager : IDisposable
             // Generate deterministic golden inputs for testing
             var goldenInputs = GenerateGoldenInputs();
             
-            for (int i; i < _options.SmokeTestIterations; i++)
+            for (int i = 0; i < _options.SmokeTestIterations; i++)
             {
                 foreach (var input in goldenInputs)
                 {
@@ -193,16 +194,15 @@ public class ModelHotReloadManager : IDisposable
         
         // Add deterministic test vectors based on expected model input shape
         // These should be representative of normal trading features
-        for (int i; i < _options.GoldenInputCount; i++)
+        for (int i = 0; i < _options.GoldenInputCount; i++)
         {
             var features = new float[_options.ExpectedFeatureCount];
             
             // Generate deterministic but varied features
             // Use cryptographically secure random for all values in production trading system
             using var rng = RandomNumberGenerator.Create();
-using System.Globalization;
             
-            for (int j; j < features.Length; j++)
+            for (int j = 0; j < features.Length; j++)
             {
                 // Generate normalized features in reasonable trading ranges using secure random
                 var randomBytes = new byte[4];

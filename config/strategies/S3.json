@@ -1,0 +1,35 @@
+{
+  "Strategy": "S3",
+  "BaseParameters": {
+    "DefaultMultiplier": 1.3,
+    "DefaultThreshold": 0.67,
+    "MaxPositionSize": 4,
+    "MinConfidence": 0.62,
+    "PreferredTimeframe": "15m",
+    "RiskTolerance": "Aggressive"
+  },
+  "RiskParameters": {
+    "MaxDrawdown": 0.04,
+    "StopLossMultiplier": 1.8,
+    "TakeProfitMultiplier": 1.8,
+    "MaxDailyLoss": 750,
+    "PositionSizeLimit": 6
+  },
+  "MarketConditionOverrides": {
+    "Volatile": {
+      "DefaultMultiplier": 1.1,
+      "DefaultThreshold": 0.70,
+      "MaxPositionSize": 2
+    },
+    "Trending": {
+      "DefaultMultiplier": 1.5,
+      "DefaultThreshold": 0.64,
+      "MaxPositionSize": 5
+    },
+    "Ranging": {
+      "DefaultMultiplier": 1.2,
+      "DefaultThreshold": 0.67,
+      "MaxPositionSize": 3
+    }
+  }
+}

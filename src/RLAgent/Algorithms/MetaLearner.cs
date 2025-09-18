@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -79,7 +80,7 @@ public class MetaLearner
             var adaptedPolicy = _metaPolicy.Clone();
             
             // Perform gradient descent steps on support set
-            for (int step; step < _config.AdaptationSteps; step++)
+            for (int step = 0; step < _config.AdaptationSteps; step++)
             {
                 var loss = 0.0;
                 var gradients = new Dictionary<string, double[]>();
@@ -87,8 +88,8 @@ public class MetaLearner
                 foreach (var experience in supportSet)
                 {
                     // Forward pass
-                    var prediction = adaptedPolicy.Predict(experience.State);
-                    var actionLoss = CalculateActionLoss(prediction, experience.Action, experience.Reward);
+                    var prediction = adaptedPolicy.Predict(experience.State.ToArray());
+                    var actionLoss = CalculateActionLoss(prediction, experience.Action.ToArray(), experience.Reward);
                     loss += actionLoss;
                     
                     // Compute gradients (simplified)
@@ -232,7 +233,7 @@ public class MetaLearner
     {
         var adaptedPolicy = _metaPolicy.Clone();
         
-        for (int step; step < _config.AdaptationSteps; step++)
+        for (int step = 0; step < _config.AdaptationSteps; step++)
         {
             var gradients = new Dictionary<string, double[]>();
             
@@ -257,8 +258,8 @@ public class MetaLearner
         
         foreach (var experience in querySet)
         {
-            var prediction = policy.Predict(experience.State);
-            var loss = CalculateActionLoss(prediction, experience.Action, experience.Reward);
+            var prediction = policy.Predict(experience.State.ToArray());
+            var loss = CalculateActionLoss(prediction, experience.Action.ToArray(), experience.Reward);
             totalLoss += loss;
         }
         
@@ -271,7 +272,7 @@ public class MetaLearner
     private static double CalculateActionLoss(double[] prediction, double[] target, double reward)
     {
         var mse = 0.0;
-        for (int i; i < prediction.Length; i++)
+        for (int i = 0; i < prediction.Length; i++)
         {
             mse += Math.Pow(prediction[i] - target[i], MetaLearningConstants.POWER_CALCULATION_EXPONENT);
         }
@@ -290,10 +291,10 @@ public class MetaLearner
         // In a full implementation, this would use proper backpropagation
         var gradients = new Dictionary<string, double[]>();
         
-        var prediction = policy.Predict(experience.State);
+        var prediction = policy.Predict(experience.State.ToArray());
         var error = new double[prediction.Length];
         
-        for (int i; i < prediction.Length; i++)
+        for (int i = 0; i < prediction.Length; i++)
         {
             error[i] = experience.Action[i] - prediction[i];
         }
@@ -317,10 +318,10 @@ public class MetaLearner
         
         foreach (var experience in querySet)
         {
-            var prediction = adaptedPolicy.Predict(experience.State);
-            for (int i; i < prediction.Length; i++)
+            var prediction = adaptedPolicy.Predict(experience.State.ToArray());
+            for (int i = 0; i < prediction.Length; i++)
             {
-                avgError[i] += (experience.Action[i] - prediction[i]) / querySet.Count;
+                avgError[i] += (experience.Action.ToArray()[i] - prediction[i]) / querySet.Count;
             }
         }
         
@@ -342,7 +343,7 @@ public class MetaLearner
             }
             else
             {
-                for (int i; i < existingGrad.Length; i++)
+                for (int i = 0; i < existingGrad.Length; i++)
                 {
                     existingGrad[i] += kvp.Value[i];
                 }
@@ -451,10 +452,10 @@ public class MetaLearningConfig
 /// </summary>
 public class TaskExperience
 {
-    public double[] State { get; set; } = Array.Empty<double>();
-    public double[] Action { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> State { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> Action { get; set; } = Array.Empty<double>();
     public double Reward { get; set; }
-    public double[] NextState { get; set; } = Array.Empty<double>();
+    public IReadOnlyList<double> NextState { get; set; } = Array.Empty<double>();
     public bool Done { get; set; }
     public DateTime Timestamp { get; set; }
 }
@@ -465,7 +466,7 @@ public class TaskExperience
 public class TaskData
 {
     public string TaskId { get; set; } = string.Empty;
-    public List<TaskExperience> Experiences { get; } = new();
+    public Collection<TaskExperience> Experiences { get; } = new();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
@@ -622,13 +623,13 @@ public class PolicyNetwork
         _parameters["output_bias"] = new double[_outputDim];
         
         // Xavier initialization
-        for (int i; i < _parameters["input_weights"].Length; i++)
+        for (int i = 0; i < _parameters["input_weights"].Length; i++)
         {
             _parameters["input_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
         
         scale = Math.Sqrt(2.0 / _hiddenDim);
-        for (int i; i < _parameters["output_weights"].Length; i++)
+        for (int i = 0; i < _parameters["output_weights"].Length; i++)
         {
             _parameters["output_weights"][i] = (GenerateSecureRandomDouble() * 2 - 1) * scale;
         }
@@ -642,10 +643,10 @@ public class PolicyNetwork
         var hiddenBias = _parameters["hidden_bias"];
         
         // Input to hidden
-        for (int i; i < _hiddenDim; i++)
+        for (int i = 0; i < _hiddenDim; i++)
         {
             hidden[i] = hiddenBias[i];
-            for (int j; j < _inputDim; j++)
+            for (int j = 0; j < _inputDim; j++)
             {
                 hidden[i] += input[j] * inputWeights[j * _hiddenDim + i];
             }
@@ -657,10 +658,10 @@ public class PolicyNetwork
         var outputWeights = _parameters["output_weights"];
         var outputBias = _parameters["output_bias"];
         
-        for (int i; i < _outputDim; i++)
+        for (int i = 0; i < _outputDim; i++)
         {
             output[i] = outputBias[i];
-            for (int j; j < _hiddenDim; j++)
+            for (int j = 0; j < _hiddenDim; j++)
             {
                 output[i] += hidden[j] * outputWeights[j * _outputDim + i];
             }
@@ -674,7 +675,7 @@ public class PolicyNetwork
     {
         if (_parameters.TryGetValue(paramName, out var param))
         {
-            for (int i; i < Math.Min(param.Length, gradient.Length); i++)
+            for (int i = 0; i < Math.Min(param.Length, gradient.Length); i++)
             {
                 param[i] += learningRate * gradient[i];
             }
