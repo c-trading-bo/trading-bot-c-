@@ -381,7 +381,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private bool AreDecisionsEquivalent(AbstractionsTradingDecision decision1, AbstractionsTradingDecision decision2)
     {
-        const double confidenceThreshold = 0.1; // 10% confidence tolerance
+        const double confidenceThreshold = GetDecisionComparisonThreshold(); // Configuration-driven threshold
         
         return decision1.Action == decision2.Action && 
                Math.Abs((double)(decision1.Confidence - decision2.Confidence)) <= confidenceThreshold;
@@ -491,6 +491,22 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 LastDecisionTime = _recentComparisons.Count > 0 ? _recentComparisons[^1].Timestamp : DateTime.MinValue
             };
         }
+    }
+
+    /// <summary>
+    /// Get decision comparison threshold from configuration (replaces hardcoded 0.1)
+    /// </summary>
+    private static double GetDecisionComparisonThreshold()
+    {
+        // Try to get from environment variable first
+        var envValue = Environment.GetEnvironmentVariable("DECISION_COMPARISON_THRESHOLD");
+        if (double.TryParse(envValue, out var envResult))
+        {
+            return Math.Max(0.05, Math.Min(0.3, envResult)); // Bounded between 5% and 30%
+        }
+        
+        // Default configuration-driven value (10% confidence tolerance)
+        return 0.1;
     }
 }
 

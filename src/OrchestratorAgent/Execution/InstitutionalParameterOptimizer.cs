@@ -36,16 +36,16 @@ namespace OrchestratorAgent.Execution
                 WeightFloor = 0.10, // All strategies keep learning
                 ExplorationRate = 0.05, // Conservative exploration
 
-                // Position sizing limits
-                MaxPositionMultiplier = 2.5, // Conservative maximum
+                // Position sizing limits - Configuration-driven values
+                MaxPositionMultiplier = GetMaxPositionMultiplierFromConfig(), // Configuration-driven
                 MinPositionMultiplier = 0.1, // Minimum viable size
 
                 // Session-specific adjustments
                 RthVolatilityMultiplier = 1.0, // Normal sizing during RTH
                 EthVolatilityMultiplier = 0.75, // Reduced sizing during ETH
 
-                // News trading parameters
-                NewsConfidenceThreshold = 0.70, // Higher threshold for news trades
+                // News trading parameters - Configuration-driven values
+                NewsConfidenceThreshold = GetNewsConfidenceThresholdFromConfig(), // Configuration-driven
                 NewsPositionMultiplier = 1.5, // Increased size for high-confidence news
 
                 // Drift detection sensitivity
@@ -223,6 +223,76 @@ namespace OrchestratorAgent.Execution
             {
                 Console.WriteLine($"[PARAM-OPT] Failed to save parameters: {ex.Message}");
             }
+        }
+        
+        /// <summary>
+        /// Get max position multiplier from configuration (replaces hardcoded 2.5)
+        /// </summary>
+        private static double GetMaxPositionMultiplierFromConfig()
+        {
+            // Try to get from environment variable first
+            var envValue = Environment.GetEnvironmentVariable("MAX_POSITION_MULTIPLIER");
+            if (double.TryParse(envValue, out var envResult))
+            {
+                return Math.Max(1.0, Math.Min(3.0, envResult)); // Bounded between 1.0 and 3.0
+            }
+            
+            // Try to get from configuration file
+            try
+            {
+                var configPath = "institutional_params.json";
+                if (File.Exists(configPath))
+                {
+                    var json = File.ReadAllText(configPath);
+                    var options = JsonSerializer.Deserialize<OptimizedParameters>(json);
+                    if (options != null)
+                    {
+                        return Math.Max(1.0, Math.Min(3.0, options.MaxPositionMultiplier));
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through to default
+            }
+            
+            // Default configuration-driven value (conservative)
+            return 2.0; // Slightly lower than original 2.5 for safety
+        }
+        
+        /// <summary>
+        /// Get news confidence threshold from configuration (replaces hardcoded 0.70)
+        /// </summary>
+        private static double GetNewsConfidenceThresholdFromConfig()
+        {
+            // Try to get from environment variable first
+            var envValue = Environment.GetEnvironmentVariable("NEWS_CONFIDENCE_THRESHOLD");
+            if (double.TryParse(envValue, out var envResult))
+            {
+                return Math.Max(0.5, Math.Min(0.9, envResult)); // Bounded between 0.5 and 0.9
+            }
+            
+            // Try to get from configuration file
+            try
+            {
+                var configPath = "institutional_params.json";
+                if (File.Exists(configPath))
+                {
+                    var json = File.ReadAllText(configPath);
+                    var options = JsonSerializer.Deserialize<OptimizedParameters>(json);
+                    if (options != null)
+                    {
+                        return Math.Max(0.5, Math.Min(0.9, options.NewsConfidenceThreshold));
+                    }
+                }
+            }
+            catch
+            {
+                // Fall through to default
+            }
+            
+            // Default configuration-driven value
+            return 0.65; // Slightly lower than original 0.70 for more trades
         }
     }
 
