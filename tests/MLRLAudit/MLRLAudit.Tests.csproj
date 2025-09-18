@@ -32,7 +32,6 @@
     </ProjectReference>
     <ProjectReference Include="../../src/OrchestratorAgent/OrchestratorAgent.csproj" />
     <ProjectReference Include="../../src/Abstractions/Abstractions.csproj" />
-    <ProjectReference Include="../../src/Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
   </ItemGroup>
 
 </Project>

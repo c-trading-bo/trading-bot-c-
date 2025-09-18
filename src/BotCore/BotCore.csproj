@@ -28,7 +28,6 @@
     <ProjectReference Include="..\\TopstepAuthAgent\\TopstepAuthAgent.csproj" />
     <ProjectReference Include="..\\Abstractions\\Abstractions.csproj" />
     <ProjectReference Include="..\\IntelligenceStack\\IntelligenceStack.csproj" />
-    <ProjectReference Include="..\\Infrastructure.TopstepX\\Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="..\\RLAgent\\RLAgent.csproj" />
   </ItemGroup>
 

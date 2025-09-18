@@ -39,7 +39,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../Abstractions/Abstractions.csproj" />
-    <ProjectReference Include="../Infrastructure.TopstepX/Infrastructure.TopstepX.csproj" />
     <ProjectReference Include="../BotCore/BotCore.csproj" />
   </ItemGroup>
 
