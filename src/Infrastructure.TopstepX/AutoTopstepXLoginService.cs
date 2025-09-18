@@ -13,6 +13,12 @@ namespace TradingBot.Infrastructure.TopstepX;
 /// </summary>
 public class AutoTopstepXLoginService : BackgroundService
 {
+    #region Service Constants
+    
+    private const int STARTUP_DELAY_MS = 2000; // Wait for other services to start
+    
+    #endregion
+    
     private readonly ILogger<AutoTopstepXLoginService> _logger;
     private readonly TopstepXCredentialManager _credentialManager;
     private readonly TopstepAuthAgent _authAgent;
@@ -45,7 +51,7 @@ public class AutoTopstepXLoginService : BackgroundService
     {
         try
         {
-            await Task.Delay(2000, stoppingToken); // Wait for other services to start
+            await Task.Delay(STARTUP_DELAY_MS, stoppingToken); // Wait for other services to start
 
             _logger.LogInformation("🚀 Starting automatic TopstepX login...");
 

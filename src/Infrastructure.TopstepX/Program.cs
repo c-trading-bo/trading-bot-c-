@@ -17,6 +17,21 @@ namespace BotCore.DeploymentPipeline;
 /// </summary>
 public static class Program
 {
+    #region Exit Codes Constants
+    
+    private const int SUCCESS_EXIT_CODE = 0;
+    private const int GENERAL_ERROR_EXIT_CODE = 1;
+    private const int CREDENTIAL_ERROR_EXIT_CODE = 2;
+    private const int STAGING_DEPLOYMENT_ERROR_EXIT_CODE = 3;
+    private const int TEST_FAILURE_EXIT_CODE = 4;
+    private const int PERFORMANCE_ERROR_EXIT_CODE = 5;
+    private const int SECURITY_ERROR_EXIT_CODE = 6;
+    private const int AUTO_REMEDIATION_ERROR_EXIT_CODE = 7;
+    private const int PRODUCTION_GATE_ERROR_EXIT_CODE = 8;
+    private const int CRITICAL_SYSTEM_ERROR_EXIT_CODE = 9;
+    private const int TIMEOUT_EXIT_CODE = 124;
+    
+    #endregion
     static async Task<int> Main(string[] args)
     {
         Console.WriteLine("🚀 TopStep Trading Bot - Comprehensive Deployment Pipeline");
@@ -48,13 +63,13 @@ public static class Program
         catch (OperationCanceledException)
         {
             Console.WriteLine("⏰ Pipeline execution timed out");
-            return 124; // Timeout exit code
+            return TIMEOUT_EXIT_CODE; // Timeout exit code
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Critical pipeline error: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            return 1; // General error
+            return GENERAL_ERROR_EXIT_CODE; // General error
         }
     }
 
@@ -115,50 +130,50 @@ public static class Program
 
         if (!string.IsNullOrEmpty(result.CriticalError))
         {
-            return 9; // Critical system error
+            return CRITICAL_SYSTEM_ERROR_EXIT_CODE; // Critical system error
         }
 
         if (result.IsProductionReady)
         {
-            return 0; // Complete success - ready for production
+            return SUCCESS_EXIT_CODE; // Complete success - ready for production
         }
 
         // Determine specific failure reason
         if (!result.CredentialDetection.IsSuccessful)
         {
-            return 2; // Credential issues
+            return CREDENTIAL_ERROR_EXIT_CODE; // Credential issues
         }
 
         if (!result.StagingDeployment.IsSuccessful)
         {
-            return 3; // Staging deployment issues
+            return STAGING_DEPLOYMENT_ERROR_EXIT_CODE; // Staging deployment issues
         }
 
         if (!result.TestSuiteExecution.IsOverallSuccess)
         {
-            return 4; // Test failures
+            return TEST_FAILURE_EXIT_CODE; // Test failures
         }
 
         if (!result.ProductionGate.PerformanceValidation.IsSuccessful)
         {
-            return 5; // Performance issues
+            return PERFORMANCE_ERROR_EXIT_CODE; // Performance issues
         }
 
         if (!result.ProductionGate.SecurityValidation.IsSuccessful)
         {
-            return 6; // Security issues
+            return SECURITY_ERROR_EXIT_CODE; // Security issues
         }
 
         if (!result.AutoRemediation.OverallSuccess)
         {
-            return 7; // Auto-remediation issues
+            return AUTO_REMEDIATION_ERROR_EXIT_CODE; // Auto-remediation issues
         }
 
         if (!result.ProductionGate.IsProductionReady)
         {
-            return 8; // Production gate failure
+            return PRODUCTION_GATE_ERROR_EXIT_CODE; // Production gate failure
         }
 
-        return 1; // General error (fallback)
+        return GENERAL_ERROR_EXIT_CODE; // General error (fallback)
     }
 }
