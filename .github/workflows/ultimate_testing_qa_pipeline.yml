@@ -42,13 +42,8 @@ name: "🔍✅ ULTIMATE Testing & Quality Assurance Pipeline (Mega-System)"
           - infrastructure
           - dependencies
           - all
-  workflow_run:
-    workflows: [
-      "📊🔄 ULTIMATE Data Collection Pipeline (Mega-System)",
-      "🤖📊 ULTIMATE ML/RL Training Pipeline (Mega-System)",
-      "📊🎯 ULTIMATE Options Flow Pipeline (Mega-System)"
-    ]
-    types: [completed]
+  # REMOVED workflow_run trigger to prevent double sessions with cloud_bot_mechanic.yml
+  # Testing should be scheduled/manual only, not auto-triggered on workflow completion
 
 permissions:
   contents: write
