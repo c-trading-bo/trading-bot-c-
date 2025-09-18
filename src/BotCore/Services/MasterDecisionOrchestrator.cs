@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using BotCore.Services;
+using BotCore.Bandits;
 using TradingBot.Abstractions;
 using System.Text.Json;
 
@@ -43,6 +44,9 @@ public class MasterDecisionOrchestrator : BackgroundService
     private readonly EnhancedTradingBrainIntegration? _enhancedBrain;
     private readonly BotCore.Brain.UnifiedTradingBrain _unifiedBrain;
     
+    // Extended Neural UCB for parameter bundle selection
+    private readonly NeuralUcbExtended? _neuralUcbExtended;
+    
     // Configuration and monitoring
     private readonly MasterOrchestratorConfig _config;
     private readonly ContinuousLearningManager _learningManager;
@@ -73,6 +77,9 @@ public class MasterDecisionOrchestrator : BackgroundService
         // Try to get optional enhanced services
         _enhancedBrain = serviceProvider.GetService<EnhancedTradingBrainIntegration>();
         
+        // Try to get Neural UCB Extended for parameter bundle selection
+        _neuralUcbExtended = serviceProvider.GetService<NeuralUcbExtended>();
+        
         // Initialize configuration
         _config = serviceProvider.GetService<IOptions<MasterOrchestratorConfig>>()?.Value ?? new MasterOrchestratorConfig();
         
@@ -83,8 +90,8 @@ public class MasterDecisionOrchestrator : BackgroundService
         _rolloverManager = new ContractRolloverManager(logger, serviceProvider);
         
         _logger.LogInformation("🎯 [MASTER-ORCHESTRATOR] Initialized - Always-learning trading system ready");
-        _logger.LogInformation("🧠 [MASTER-ORCHESTRATOR] Enhanced Brain: {Enhanced}, Service Router: True, Unified Brain: True", 
-            _enhancedBrain != null);
+        _logger.LogInformation("🧠 [MASTER-ORCHESTRATOR] Enhanced Brain: {Enhanced}, Service Router: True, Unified Brain: True, Neural UCB Extended: {Extended}", 
+            _enhancedBrain != null, _neuralUcbExtended != null);
     }
     
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -218,6 +225,11 @@ public class MasterDecisionOrchestrator : BackgroundService
     /// <summary>
     /// MAIN DECISION METHOD - Used by trading orchestrator
     /// This is the ONE method that all trading decisions flow through
+    /// 
+    /// Enhanced with bundle-based parameter selection:
+    /// - Uses Neural UCB Extended to select optimal strategy-parameter combinations
+    /// - Replaces hardcoded MaxPositionMultiplier and confidenceThreshold with learned values
+    /// - Enables continuous adaptation of trading parameters
     /// </summary>
     public async Task<UnifiedTradingDecision> MakeUnifiedDecisionAsync(
         string symbol,
@@ -231,8 +243,38 @@ public class MasterDecisionOrchestrator : BackgroundService
         {
             _logger.LogDebug("🎯 [MASTER-DECISION] Making unified decision for {Symbol}", symbol);
             
-            // Route through unified decision system
-            var decision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false);
+            // PHASE 1: Get parameter bundle selection from Neural UCB Extended
+            BundleSelection? bundleSelection = null;
+            if (_neuralUcbExtended != null)
+            {
+                try
+                {
+                    bundleSelection = await _neuralUcbExtended.SelectBundleAsync(marketContext, cancellationToken)
+                        .ConfigureAwait(false);
+                    
+                    _logger.LogInformation("🎯 [BUNDLE-SELECTION] Selected: {BundleId} " +
+                                         "strategy={Strategy} mult={Mult:F1}x thr={Thr:F2}",
+                        bundleSelection.Bundle.BundleId, bundleSelection.Bundle.Strategy,
+                        bundleSelection.Bundle.Mult, bundleSelection.Bundle.Thr);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "⚠️ [BUNDLE-SELECTION] Failed to select bundle, using fallback");
+                }
+            }
+            
+            // PHASE 2: Apply bundle parameters to market context
+            var enhancedMarketContext = ApplyBundleParameters(marketContext, bundleSelection);
+            
+            // PHASE 3: Route through unified decision system with enhanced context
+            var decision = await _unifiedRouter.RouteDecisionAsync(symbol, enhancedMarketContext, cancellationToken)
+                .ConfigureAwait(false);
+            
+            // PHASE 4: Apply bundle configuration to decision
+            if (bundleSelection != null)
+            {
+                decision = ApplyBundleToDecision(decision, bundleSelection);
+            }
             
             // Ensure decision ID is set
             if (string.IsNullOrEmpty(decision.DecisionId))
@@ -240,11 +282,12 @@ public class MasterDecisionOrchestrator : BackgroundService
                 decision.DecisionId = decisionId;
             }
             
-            // Track decision for learning
-            await TrackDecisionForLearningAsync(decision, marketContext, cancellationToken).ConfigureAwait(false);
+            // Track decision for learning (including bundle performance)
+            await TrackDecisionForLearningAsync(decision, enhancedMarketContext, bundleSelection, cancellationToken)
+                .ConfigureAwait(false);
             
-            // Log the decision
-            LogDecision(decision, startTime);
+            // Log the enhanced decision
+            LogEnhancedDecision(decision, bundleSelection, startTime);
             
             return decision;
         }
@@ -298,6 +341,9 @@ public class MasterDecisionOrchestrator : BackgroundService
             
             // Update performance tracking
             await UpdatePerformanceTrackingAsync(decisionId, decisionSource, realizedPnL, wasCorrect, cancellationToken).ConfigureAwait(false);
+            
+            // Update bundle performance if this was a bundle-enhanced decision
+            await UpdateBundlePerformanceAsync(decisionId, realizedPnL, wasCorrect, metadata, cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("✅ [MASTER-FEEDBACK] Outcome recorded and queued for learning");
         }
@@ -355,6 +401,285 @@ public class MasterDecisionOrchestrator : BackgroundService
             throw;
         }
     }
+    
+    #region Bundle Integration Methods
+    
+    /// <summary>
+    /// Apply bundle parameters to market context
+    /// This replaces hardcoded values with learned parameter selections
+    /// </summary>
+    private MarketContext ApplyBundleParameters(MarketContext marketContext, BundleSelection? bundleSelection)
+    {
+        if (bundleSelection == null)
+        {
+            return marketContext; // Return unchanged if no bundle selection
+        }
+        
+        // Create enhanced market context with bundle parameters
+        var enhancedContext = new MarketContext
+        {
+            Symbol = marketContext.Symbol,
+            Timestamp = marketContext.Timestamp,
+            Price = marketContext.Price,
+            Volume = marketContext.Volume,
+            Bid = marketContext.Bid,
+            Ask = marketContext.Ask,
+            CurrentRegime = marketContext.CurrentRegime,
+            Regime = marketContext.Regime,
+            ModelConfidence = marketContext.ModelConfidence,
+            PrimaryBias = marketContext.PrimaryBias,
+            IsFomcDay = marketContext.IsFomcDay,
+            IsCpiDay = marketContext.IsCpiDay,
+            NewsIntensity = marketContext.NewsIntensity,
+            SignalStrength = marketContext.SignalStrength,
+            ConfidenceLevel = (double)bundleSelection.Bundle.Thr // Apply learned confidence threshold
+        };
+        
+        // Copy technical indicators
+        foreach (var indicator in marketContext.TechnicalIndicators)
+        {
+            enhancedContext.TechnicalIndicators[indicator.Key] = indicator.Value;
+        }
+        
+        // Add bundle-specific technical indicators
+        enhancedContext.TechnicalIndicators["bundle_multiplier"] = (double)bundleSelection.Bundle.Mult;
+        enhancedContext.TechnicalIndicators["bundle_threshold"] = (double)bundleSelection.Bundle.Thr;
+        enhancedContext.TechnicalIndicators["bundle_ucb_value"] = (double)bundleSelection.UcbValue;
+        enhancedContext.TechnicalIndicators["bundle_prediction"] = (double)bundleSelection.Prediction;
+        
+        return enhancedContext;
+    }
+    
+    /// <summary>
+    /// Apply bundle configuration to trading decision
+    /// This ensures the decision uses learned parameters instead of hardcoded values
+    /// </summary>
+    private UnifiedTradingDecision ApplyBundleToDecision(UnifiedTradingDecision decision, BundleSelection bundleSelection)
+    {
+        // Apply bundle multiplier to position size
+        var enhancedQuantity = decision.Quantity * bundleSelection.Bundle.Mult;
+        
+        // Apply bundle confidence requirements
+        var bundleAdjustedConfidence = Math.Max(decision.Confidence, bundleSelection.Bundle.Thr);
+        
+        // Create enhanced decision
+        var enhancedDecision = new UnifiedTradingDecision
+        {
+            DecisionId = decision.DecisionId,
+            Symbol = decision.Symbol,
+            Action = decision.Action,
+            Confidence = bundleAdjustedConfidence,
+            Quantity = enhancedQuantity,
+            Strategy = bundleSelection.Bundle.Strategy, // Use bundle strategy
+            DecisionSource = $"{decision.DecisionSource}+Bundle",
+            Reasoning = new Dictionary<string, object>(decision.Reasoning)
+            {
+                ["bundle_id"] = bundleSelection.Bundle.BundleId,
+                ["bundle_strategy"] = bundleSelection.Bundle.Strategy,
+                ["bundle_multiplier"] = bundleSelection.Bundle.Mult,
+                ["bundle_threshold"] = bundleSelection.Bundle.Thr,
+                ["original_quantity"] = decision.Quantity,
+                ["enhanced_quantity"] = enhancedQuantity,
+                ["bundle_selection_reason"] = bundleSelection.SelectionReason
+            },
+            Timestamp = decision.Timestamp,
+            ProcessingTimeMs = decision.ProcessingTimeMs
+        };
+        
+        return enhancedDecision;
+    }
+    
+    /// <summary>
+    /// Enhanced tracking that includes bundle performance
+    /// </summary>
+    private async Task TrackDecisionForLearningAsync(
+        UnifiedTradingDecision decision,
+        MarketContext marketContext,
+        BundleSelection? bundleSelection,
+        CancellationToken cancellationToken)
+    {
+        // Standard tracking
+        var trackingInfo = new DecisionTrackingInfo
+        {
+            DecisionId = decision.DecisionId,
+            Symbol = decision.Symbol,
+            Action = decision.Action,
+            Confidence = decision.Confidence,
+            Strategy = decision.Strategy,
+            DecisionSource = decision.DecisionSource,
+            MarketContext = marketContext,
+            Timestamp = decision.Timestamp
+        };
+        
+        await _learningManager.TrackDecisionAsync(trackingInfo, cancellationToken).ConfigureAwait(false);
+        
+        // Enhanced tracking with bundle information
+        if (bundleSelection != null)
+        {
+            var enhancedTrackingInfo = new BundleDecisionTrackingInfo
+            {
+                DecisionId = decision.DecisionId,
+                BundleId = bundleSelection.Bundle.BundleId,
+                BundleSelection = bundleSelection,
+                StandardTracking = trackingInfo
+            };
+            
+            await TrackBundleDecisionAsync(enhancedTrackingInfo, cancellationToken).ConfigureAwait(false);
+        }
+    }
+    
+    /// <summary>
+    /// Track bundle-specific decision information
+    /// </summary>
+    private async Task TrackBundleDecisionAsync(BundleDecisionTrackingInfo trackingInfo, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Store bundle decision tracking for future learning
+            var bundleTrackingPath = Path.Combine("data", "bundle_decisions.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(bundleTrackingPath)!);
+            
+            var trackingData = new
+            {
+                Timestamp = DateTime.UtcNow,
+                TrackingInfo = trackingInfo
+            };
+            
+            var json = JsonSerializer.Serialize(trackingData);
+            await File.AppendAllTextAsync(bundleTrackingPath, json + Environment.NewLine, cancellationToken)
+                .ConfigureAwait(false);
+            
+            _logger.LogDebug("📊 [BUNDLE-TRACKING] Tracked bundle decision: {BundleId}", trackingInfo.BundleId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [BUNDLE-TRACKING] Failed to track bundle decision");
+        }
+    }
+    
+    /// <summary>
+    /// Enhanced logging that includes bundle information
+    /// </summary>
+    private void LogEnhancedDecision(UnifiedTradingDecision decision, BundleSelection? bundleSelection, DateTime startTime)
+    {
+        var processingTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        
+        if (bundleSelection != null)
+        {
+            _logger.LogInformation("🎯 [ENHANCED-DECISION] Decision: {Action} {Symbol} " +
+                                 "confidence={Confidence:P1} source={Source} strategy={Strategy} " +
+                                 "bundle={BundleId} mult={Mult:F1}x thr={Thr:F2} time={Time:F0}ms",
+                decision.Action, decision.Symbol, decision.Confidence, 
+                decision.DecisionSource, decision.Strategy, bundleSelection.Bundle.BundleId,
+                bundleSelection.Bundle.Mult, bundleSelection.Bundle.Thr, processingTime);
+        }
+        else
+        {
+            _logger.LogInformation("🎯 [STANDARD-DECISION] Decision: {Action} {Symbol} " +
+                                 "confidence={Confidence:P1} source={Source} strategy={Strategy} time={Time:F0}ms",
+                decision.Action, decision.Symbol, decision.Confidence, 
+                decision.DecisionSource, decision.Strategy, processingTime);
+        }
+    }
+    
+    /// <summary>
+    /// Update bundle performance based on trading outcome
+    /// This enables continuous learning of optimal parameter combinations
+    /// </summary>
+    private async Task UpdateBundlePerformanceAsync(
+        string decisionId,
+        decimal realizedPnL,
+        bool wasCorrect,
+        Dictionary<string, object> metadata,
+        CancellationToken cancellationToken)
+    {
+        if (_neuralUcbExtended == null)
+            return;
+            
+        try
+        {
+            // Check if this decision used a bundle (look for bundle metadata)
+            if (metadata.TryGetValue("bundle_id", out var bundleIdObj) && bundleIdObj is string bundleId)
+            {
+                // Create reward signal from trading outcome
+                var reward = CalculateBundleReward(realizedPnL, wasCorrect, metadata);
+                
+                // Create a simple market context for the update (we could store the original context if needed)
+                var marketContext = CreateMarketContextFromMetadata(metadata);
+                
+                // Update bundle performance in Neural UCB Extended
+                await _neuralUcbExtended.UpdateBundlePerformanceAsync(
+                    bundleId, marketContext, reward, metadata, cancellationToken).ConfigureAwait(false);
+                
+                _logger.LogInformation("📊 [BUNDLE-FEEDBACK] Updated bundle {BundleId} with reward {Reward:F3} " +
+                                     "from PnL {PnL:C2} correct={Correct}",
+                    bundleId, reward, realizedPnL, wasCorrect);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ [BUNDLE-FEEDBACK] Failed to update bundle performance");
+        }
+    }
+    
+    /// <summary>
+    /// Calculate reward signal for bundle learning
+    /// Converts trading outcomes to ML reward signals
+    /// </summary>
+    private static decimal CalculateBundleReward(decimal realizedPnL, bool wasCorrect, Dictionary<string, object> metadata)
+    {
+        // Base reward from P&L (normalized to -1 to +1 range)
+        var pnlReward = Math.Max(-1m, Math.Min(1m, realizedPnL / 100m)); // Assume $100 normalizes to 1.0
+        
+        // Accuracy bonus/penalty
+        var accuracyReward = wasCorrect ? 0.2m : -0.2m;
+        
+        // Time-based reward (faster profits are better)
+        var timeReward = 0m;
+        if (metadata.TryGetValue("hold_time", out var holdTimeObj) && holdTimeObj is TimeSpan holdTime)
+        {
+            // Reward shorter holding periods for profitable trades
+            if (realizedPnL > 0)
+            {
+                timeReward = Math.Max(-0.1m, Math.Min(0.1m, (decimal)(1.0 - holdTime.TotalHours / 24.0) * 0.1m));
+            }
+        }
+        
+        var totalReward = pnlReward + accuracyReward + timeReward;
+        return Math.Max(-1m, Math.Min(1m, totalReward)); // Clamp to [-1, 1] range
+    }
+    
+    /// <summary>
+    /// Create a basic market context from metadata for bundle updates
+    /// </summary>
+    private static MarketContext CreateMarketContextFromMetadata(Dictionary<string, object> metadata)
+    {
+        var context = new MarketContext();
+        
+        // Extract basic market data from metadata if available
+        if (metadata.TryGetValue("symbol", out var symbolObj) && symbolObj is string symbol)
+            context.Symbol = symbol;
+            
+        if (metadata.TryGetValue("price", out var priceObj) && priceObj is double price)
+            context.Price = price;
+            
+        if (metadata.TryGetValue("volume", out var volumeObj) && volumeObj is double volume)
+            context.Volume = volume;
+            
+        // Add technical indicators from metadata
+        foreach (var kvp in metadata.Where(m => m.Key.StartsWith("tech_")))
+        {
+            if (kvp.Value is double techValue)
+            {
+                var indicatorName = kvp.Key.Substring(5); // Remove "tech_" prefix
+                context.TechnicalIndicators[indicatorName] = techValue;
+            }
+        }
+        
+        return context;
+    }
+    
+    #endregion
     
     #region Private Implementation Methods
     
@@ -699,6 +1024,17 @@ public class OverallStats
     public decimal TotalPnL { get; set; }
     public decimal OverallWinRate { get; set; }
     public int ActiveSources { get; set; }
+}
+
+/// <summary>
+/// Enhanced tracking info that includes bundle selection data
+/// </summary>
+public class BundleDecisionTrackingInfo
+{
+    public string DecisionId { get; set; } = string.Empty;
+    public string BundleId { get; set; } = string.Empty;
+    public BundleSelection BundleSelection { get; set; } = new();
+    public DecisionTrackingInfo StandardTracking { get; set; } = new();
 }
 
 #endregion
