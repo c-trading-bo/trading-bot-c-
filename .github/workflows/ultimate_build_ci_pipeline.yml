@@ -1,10 +1,9 @@
 name: "🔨⚡ ULTIMATE Build & CI Pipeline (Mega-System)"
 
 "on":
-  push:
-    branches: [main, master]
   pull_request:
-    branches: [main, master]  # PRIMARY handler for PR builds (dotnet.yml excluded to prevent duplicates)
+    types: [opened, synchronize, reopened]
+    branches: [main, master]  # PRIMARY handler for PR builds - removed conflicting push trigger
   schedule:
     - cron: '0 2 * * 6'
 
@@ -56,11 +55,56 @@ env:
   SOLUTION_FILE: 'TopstepX.Bot.sln'
 
 jobs:
-  # Step 0: Session Deduplication - MUST run first before any premium is consumed
+  # Step 0a: GitHub-native duplicate run detection - Prevents workflow double-firing
+  duplicate-run-check:
+    name: "🚫 Duplicate Run Detection"
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    
+    steps:
+      - name: "🚫 Check for duplicate workflow runs"
+        id: skip_check
+        run: |
+          echo "🚫 Checking for duplicate workflow runs..."
+          
+          # Check if this is a duplicate run using GitHub CLI
+          if command -v gh &> /dev/null; then
+            echo "📋 Checking for concurrent runs of this workflow..."
+            
+            # Count in-progress runs for this workflow and branch
+            CONCURRENT_RUNS=$(gh run list \
+              --workflow "${{ github.workflow }}" \
+              --branch "${{ github.head_ref || github.ref_name }}" \
+              --status in_progress \
+              --json databaseId \
+              --jq 'length' 2>/dev/null || echo "0")
+            
+            echo "📊 Concurrent runs detected: $CONCURRENT_RUNS"
+            
+            if [ "$CONCURRENT_RUNS" -gt 1 ]; then
+              echo "🚫 DUPLICATE RUN DETECTED - Multiple instances of this workflow are running"
+              echo "⚡ Exiting early to prevent premium waste"
+              echo "should_skip=true" >> $GITHUB_OUTPUT
+            else
+              echo "✅ No duplicate runs detected - proceeding"
+              echo "should_skip=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️  GitHub CLI not available, skipping duplicate check"
+            echo "should_skip=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Step 0b: Session Deduplication - MUST run after duplicate-run-check
   session-deduplication:
     name: "🚫 Session Deduplication Check"
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    needs: duplicate-run-check
+    if: needs.duplicate-run-check.outputs.should_skip != 'true'
     outputs:
       skip_execution: ${{ steps.dedup_check.outputs.skip_execution }}
       session_key: ${{ steps.dedup_check.outputs.session_key }}
@@ -118,8 +162,8 @@ jobs:
     name: "Ultimate Build & CI System"
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: session-deduplication
-    if: needs.session-deduplication.outputs.skip_execution != 'true'
+    needs: [duplicate-run-check, session-deduplication]
+    if: needs.duplicate-run-check.outputs.should_skip != 'true' && needs.session-deduplication.outputs.skip_execution != 'true'
     
     steps:
       - name: "📥 Checkout Repository"
