@@ -36,7 +36,7 @@ public static class AlgorithmFactory
     /// </summary>
     private static IRLAlgorithm CreateSACAlgorithm(ILogger logger, AlgorithmConfig config)
     {
-        var sacConfig = new SACConfig
+        var sacConfig = new Models.SacConfig
         {
             StateDimension = config.StateDimension,
             ActionDimension = config.ActionDimension,

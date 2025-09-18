@@ -25,7 +25,7 @@ internal static class NeuralNetworkConstants
 public class SoftActorCritic
 {
     private readonly ILogger<SoftActorCritic> _logger;
-    private readonly SACConfig _config;
+    private readonly Models.SacConfig _config;
     
     // Neural networks
     private readonly ActorNetwork _actor;
@@ -43,7 +43,7 @@ public class SoftActorCritic
     private double _averageReward = 0.0;
     private double _entropy = 0.0;
     
-    public SoftActorCritic(ILogger<SoftActorCritic> logger, SACConfig config)
+    public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
         _logger = logger;
         _config = config;
@@ -323,9 +323,9 @@ public class SoftActorCritic
     /// <summary>
     /// Get current training statistics
     /// </summary>
-    public Models.SACStatistics GetStatistics()
+    public Models.SacStatistics GetStatistics()
     {
-        return new Models.SACStatistics
+        return new Models.SacStatistics
         {
             TotalSteps = _totalSteps,
             AverageReward = _averageReward,
