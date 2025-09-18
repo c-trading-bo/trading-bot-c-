@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-09-18T09:28:15.882255",
+  "timestamp": "2025-09-18T12:47:44.187114",
   "market_session": "extended",
-  "total_futures_articles": 0,
+  "total_futures_articles": 1,
   "ES": {
     "sentiment": 0.0,
     "articles": [],
@@ -11,12 +11,28 @@
     "unique_keywords": []
   },
   "NQ": {
-    "sentiment": 0.0,
-    "articles": [],
+    "sentiment": 0.22499999999999998,
+    "articles": [
+      {
+        "title": "Nasdaq Futures Jump 1% as Stocks Rally After Fed: Markets Wrap",
+        "sentiment": 0.22499999999999998,
+        "textblob_score": 0.375,
+        "futures_keyword_score": 0,
+        "source": "bloomberg_futures",
+        "published": "Wed, 17 Sep 2025 22:52:58 GMT",
+        "keywords_matched": [
+          "Nasdaq futures"
+        ]
+      }
+    ],
     "signal": "NEUTRAL",
-    "keywords_found": [],
-    "article_count": 0,
-    "unique_keywords": []
+    "keywords_found": [
+      "Nasdaq futures"
+    ],
+    "article_count": 1,
+    "unique_keywords": [
+      "Nasdaq futures"
+    ]
   },
   "analysis_type": "futures_deep_dive"
 }
