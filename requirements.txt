@@ -2,11 +2,16 @@
 # Install with: pip install -r requirements.txt
 
 # Main SDK requirement as specified in problem statement
-project-x-py[all]>=1.0.0
+project-x-py[all]>=3.5.0
 
-# Additional dependencies for production use
+# Additional dependencies for production use (many included with SDK but explicit for clarity)
 asyncio-throttle>=1.0.0
 aiohttp>=3.8.0
 websockets>=11.0.0
 pydantic>=2.0.0
 python-dateutil>=2.8.0
+httpx>=0.27.0
+orjson>=3.11.0
+polars>=1.31.0
+rich>=14.1.0
+signalrcore>=0.9.5

@@ -688,13 +688,6 @@ public class PolicyNetwork
         _secureRandom.GetBytes(bytes);
         return (double)BitConverter.ToUInt32(bytes, 0) / uint.MaxValue;
     }
-    
-    private static int GenerateSecureRandomInt(int maxValue)
-    {
-        var bytes = new byte[4];
-        _secureRandom.GetBytes(bytes);
-        return (int)(BitConverter.ToUInt32(bytes, 0) % (uint)maxValue);
-    }
 }
 
 #endregion

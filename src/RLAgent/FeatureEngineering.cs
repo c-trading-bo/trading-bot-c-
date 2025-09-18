@@ -37,8 +37,17 @@ public class FeatureEngineering : IDisposable
             TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
 
         // Daily feature importance reporting timer
-        _dailyReportTimer = new Timer(async (state) => await GenerateDailyFeatureReportAsync(state), null, 
-            TimeSpan.FromDays(1), TimeSpan.FromDays(1));
+        _dailyReportTimer = new Timer(async (state) => 
+        {
+            try
+            {
+                await GenerateDailyFeatureReportAsync(state);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[FEATURE_ENG] Error in daily feature report");
+            }
+        }, null, TimeSpan.FromDays(1), TimeSpan.FromDays(1));
 
         _logger.LogInformation("[FEATURE_ENG] Initialized with {ProfileCount} regime profiles and streaming aggregation", 
             _config.RegimeProfiles.Count);
