@@ -16,6 +16,8 @@ internal static class ReportingConstants
     public const double MINIMUM_TEST_PASS_RATE = 0.9;
     public const int MAXIMUM_NETWORK_LATENCY_MS = 5000;
     public const int MINIMUM_SECURITY_SCORE = 80;
+    public const double PERCENTAGE_SCALE_FACTOR = 100.0;
+    public const double PRODUCTION_READINESS_THRESHOLD = 0.85;
 }
 
 /// <summary>
@@ -639,8 +641,8 @@ public class ComprehensiveReport
             Math.Max(0, 100 - (TechnicalDebtAnalysis.TodoItems.Count * 5)) // Penalty for technical debt items
         };
 
-        OverallHealthScore = scores.Average() / 100.0;
-        IsProductionReady = OverallHealthScore >= 0.85 && 
+        OverallHealthScore = scores.Average() / ReportingConstants.PERCENTAGE_SCALE_FACTOR;
+        IsProductionReady = OverallHealthScore >= ReportingConstants.PRODUCTION_READINESS_THRESHOLD && 
                            TestResultsAnalysis.IsOverallSuccess &&
                            SystemHealthStatus.OverallHealthy;
     }

@@ -17,6 +17,7 @@ namespace BotCore.Services;
 internal static class TopstepXServiceConstants
 {
     public const int RECONNECTION_DELAY_MS = 1000;
+    public const int MAX_RETRY_ATTEMPTS = 5;
 }
 
 /// <summary>
@@ -756,7 +757,7 @@ public class ExponentialBackoffRetryPolicy : IRetryPolicy
     public TimeSpan? NextRetryDelay(RetryContext retryContext)
     {
         // Max 5 retries with exponential backoff
-        if (retryContext.PreviousRetryCount >= 5)
+        if (retryContext.PreviousRetryCount >= TopstepXServiceConstants.MAX_RETRY_ATTEMPTS)
             return null; // Stop retrying after max attempts
 
         var delay = TimeSpan.FromSeconds(Math.Pow(2, retryContext.PreviousRetryCount));

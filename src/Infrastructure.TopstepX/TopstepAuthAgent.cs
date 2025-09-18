@@ -8,6 +8,14 @@ using TradingBot.Abstractions;
 
 namespace Infrastructure.TopstepX;
 
+/// <summary>
+/// Production constants for TopstepX authentication
+/// </summary>
+internal static class TopstepAuthConstants
+{
+    public const int BASE64_PADDING_BLOCK_SIZE = 4;
+}
+
 public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
     {
         private readonly Func<CancellationToken, Task<string>> _fetchJwt;
@@ -95,7 +103,7 @@ public sealed class CachedTopstepAuth : ITopstepAuth, IDisposable
         private static byte[] Base64UrlDecode(string s)
         {
             s = s.Replace('-', '+').Replace('_', '/');
-            switch (s.Length % 4) { case 2: s += "=="; break; case 3: s += "="; break; }
+            switch (s.Length % TopstepAuthConstants.BASE64_PADDING_BLOCK_SIZE) { case 2: s += "=="; break; case 3: s += "="; break; }
             return Convert.FromBase64String(s);
         }
 
