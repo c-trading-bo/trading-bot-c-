@@ -68,14 +68,14 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         try
         {
             // Get challenger decision from InferenceBrain (using unified type)
-            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken);
+            var challengerDecision = await _inferenceBrain.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Convert UnifiedTradingBrain to unified decision format
-            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
+            var brainDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var championDecision = ConvertBrainDecisionToUnifiedDecision(brainDecision, context, "UnifiedTradingBrain");
             
             // Track decision comparison for statistical analysis
-            await TrackUnifiedDecisionComparisonAsync(championDecision, challengerDecision, context);
+            await TrackUnifiedDecisionComparisonAsync(championDecision, challengerDecision, context).ConfigureAwait(false);
             
             // Use primary brain's decision (UnifiedTradingBrain by default, InferenceBrain if promoted)
             var primaryDecision = _useInferenceBrainPrimary ? challengerDecision : championDecision;
@@ -90,7 +90,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             // Check for promotion opportunity (every hour)
             if (DateTime.UtcNow - _lastPromotionCheck > TimeSpan.FromHours(1))
             {
-                _ = Task.Run(async () => await CheckPromotionOpportunityAsync(), cancellationToken);
+                _ = Task.Run(async () => await CheckPromotionOpportunityAsync(), cancellationToken).ConfigureAwait(false);
                 _lastPromotionCheck = DateTime.UtcNow;
             }
             
@@ -108,7 +108,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             _logger.LogError(ex, "[ADAPTER] Error in decision making, falling back to UnifiedTradingBrain");
             
             // Fallback to UnifiedTradingBrain on any error
-            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken);
+            var fallbackDecision = await GetUnifiedBrainDecisionAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             return ConvertBrainDecisionToUnifiedDecision(fallbackDecision, context, "UnifiedTradingBrain-Fallback");
         }
     }
@@ -150,7 +150,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         
         var riskEngine = new RiskEngine();
         
-        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken);
+        return await _unifiedBrain.MakeIntelligentDecisionAsync(symbol, env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -304,7 +304,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task TrackUnifiedDecisionComparisonAsync(UnifiedTradingDecision championDecision, UnifiedTradingDecision challengerDecision, TradingContext context)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var comparison = new UnifiedDecisionComparison
         {
@@ -344,7 +344,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task TrackDecisionComparisonAsync(AbstractionsTradingDecision championDecision, AbstractionsTradingDecision challengerDecision, TradingContext context)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var comparison = new DecisionComparison
         {
@@ -372,7 +372,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
         }
 
         // Record decision for shadow testing comparison
-        await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision);
+        await _shadowTester.RecordDecisionAsync(challengerDecision.Reasoning.GetValueOrDefault("Algorithm", "InferenceBrain").ToString()!, context, challengerDecision).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -391,7 +391,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     private async Task CheckPromotionOpportunityAsync()
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -399,7 +399,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 return;
 
             // Get shadow test results for promotion evaluation
-            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24));
+            var shadowResults = await _shadowTester.GetRecentResultsAsync("InferenceBrain", TimeSpan.FromHours(24)).ConfigureAwait(false).ConfigureAwait(false);
             
             if (shadowResults.Count < 50) // Need sufficient shadow test data
                 return;
@@ -430,7 +430,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> PromoteToChallengerAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -454,7 +454,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
     /// </summary>
     public async Task<bool> RollbackToChampionAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {

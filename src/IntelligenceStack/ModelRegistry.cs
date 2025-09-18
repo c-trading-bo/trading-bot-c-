@@ -62,7 +62,7 @@ public class ModelRegistry : IModelRegistry
             string modelId;
             if (version == "latest")
             {
-                modelId = await FindLatestModelAsync(familyName, cancellationToken);
+                modelId = await FindLatestModelAsync(familyName, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(modelId))
                 {
                     throw new FileNotFoundException($"No models found for family: {familyName}");
@@ -79,7 +79,7 @@ public class ModelRegistry : IModelRegistry
                 throw new FileNotFoundException($"Model metadata not found: {modelId}");
             }
 
-            var metadataContent = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+            var metadataContent = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var model = JsonSerializer.Deserialize<ModelArtifact>(metadataContent);
             
             if (model == null)
@@ -91,7 +91,7 @@ public class ModelRegistry : IModelRegistry
             var artifactPath = Path.Combine(_basePath, "artifacts", $"{modelId}.dat");
             if (File.Exists(artifactPath))
             {
-                model.ModelData = await File.ReadAllBytesAsync(artifactPath, cancellationToken);
+                model.ModelData = await File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             }
 
             // Verify checksum
@@ -147,11 +147,11 @@ public class ModelRegistry : IModelRegistry
             {
                 WriteIndented = true
             });
-            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken);
+            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Save model artifact
             var artifactPath = Path.Combine(_basePath, "artifacts", $"{modelId}.dat");
-            await File.WriteAllBytesAsync(artifactPath, registration.ModelData, cancellationToken);
+            await File.WriteAllBytesAsync(artifactPath, registration.ModelData, cancellationToken).ConfigureAwait(false);
 
             // Update cache
             lock (_lock)
@@ -166,7 +166,7 @@ public class ModelRegistry : IModelRegistry
             // Check for automatic promotion
             if (ShouldAutoPromote(model))
             {
-                await PromoteModelAsync(modelId, _defaultCriteria, cancellationToken);
+                await PromoteModelAsync(modelId, _defaultCriteria, cancellationToken).ConfigureAwait(false);
             }
 
             return model;
@@ -189,7 +189,7 @@ public class ModelRegistry : IModelRegistry
                 return false;
             }
 
-            var model = await GetModelByIdAsync(modelId, cancellationToken);
+            var model = await GetModelByIdAsync(modelId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             if (model == null)
             {
                 _logger.LogWarning("[REGISTRY] Model not found for promotion: {ModelId}", modelId);
@@ -225,7 +225,7 @@ public class ModelRegistry : IModelRegistry
             {
                 WriteIndented = true
             });
-            await File.WriteAllTextAsync(promotedPath, json, cancellationToken);
+            await File.WriteAllTextAsync(promotedPath, json, cancellationToken).ConfigureAwait(false);
 
             _lastPromotion = DateTime.UtcNow;
 
@@ -243,7 +243,7 @@ public class ModelRegistry : IModelRegistry
     {
         try
         {
-            var model = await GetModelByIdAsync(modelId, cancellationToken);
+            var model = await GetModelByIdAsync(modelId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             return model?.Metrics ?? new ModelMetrics();
         }
         catch (Exception ex)
@@ -261,7 +261,7 @@ public class ModelRegistry : IModelRegistry
             return null;
         }
 
-        var content = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+        var content = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         return JsonSerializer.Deserialize<ModelArtifact>(content);
     }
 
@@ -283,7 +283,7 @@ public class ModelRegistry : IModelRegistry
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file, cancellationToken);
+                var content = await File.ReadAllTextAsync(file, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var model = JsonSerializer.Deserialize<ModelArtifact>(content);
                 
                 if (model != null && (latestModel == null || model.CreatedAt > latestModel.CreatedAt))

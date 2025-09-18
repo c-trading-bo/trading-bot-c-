@@ -93,7 +93,7 @@ namespace UnifiedOrchestrator.Services
                 }
 
                 // Simulate ONNX model loading (in a real implementation, this would use Microsoft.ML.OnnxRuntime)
-                await Task.Delay(100, cancellationToken); // Simulate loading time
+                await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate loading time
 
                 // For testing purposes, reject models with very small file sizes (dummy files)
                 if (fileInfo.Length < 1000)
@@ -156,7 +156,7 @@ namespace UnifiedOrchestrator.Services
                     _logger.LogInformation("Unloaded model {ModelName}", modelName);
                     
                     // Simulate cleanup time
-                    await Task.Delay(10, cancellationToken);
+                    await Task.Delay(10, cancellationToken).ConfigureAwait(false);
                     return true;
                 }
                 else
@@ -216,7 +216,7 @@ namespace UnifiedOrchestrator.Services
                     try
                     {
                         // Real ONNX model inference instead of simulation
-                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken);
+                        var modelPrediction = await RunRealModelInferenceAsync(model.ModelName, model.ModelPath, inputs, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                         predictions.Add(modelPrediction);
                         modelsUsed.Add(model.ModelName);
                     }
@@ -311,7 +311,7 @@ namespace UnifiedOrchestrator.Services
             {
                 // In a production environment, this would use Microsoft.ML.OnnxRuntime
                 // For now, implementing a realistic inference simulation that could be real data
-                await Task.Delay(Random.Shared.Next(5, 25), cancellationToken); // Realistic inference latency
+                await Task.Delay(Random.Shared.Next(5, 25), cancellationToken).ConfigureAwait(false); // Realistic inference latency
                 
                 _logger.LogDebug("Running ONNX inference for model {ModelName} with {InputCount} inputs", modelName, inputs.Count);
 

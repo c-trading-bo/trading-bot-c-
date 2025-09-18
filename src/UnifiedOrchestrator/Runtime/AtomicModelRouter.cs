@@ -141,7 +141,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
     public async Task<bool> InitializeAsync(T championModel, ModelVersion championVersion, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[{Algorithm}] Initializing with champion model version {VersionId}", _algorithm, championVersion.VersionId);
-        return await SwapAsync(championModel, championVersion, cancellationToken);
+        return await SwapAsync(championModel, championVersion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -217,7 +217,7 @@ public class ModelRouterFactory : IModelRouterFactory
             {
                 if (kvp.Value is IModelRouter<object> router)
                 {
-                    var stats = await router.GetStatsAsync();
+                    var stats = await router.GetStatsAsync().ConfigureAwait(false).ConfigureAwait(false);
                     health[kvp.Key] = stats.IsHealthy;
                 }
                 else

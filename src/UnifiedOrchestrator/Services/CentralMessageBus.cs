@@ -60,7 +60,7 @@ public class CentralMessageBus : ICentralMessageBus
                 }
             });
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         _logger.LogDebug("Published message to topic: {Topic}", topic);
@@ -99,7 +99,7 @@ public class CentralMessageBus : ICentralMessageBus
     public async Task<TradingDecision> RequestTradingDecisionAsync(TradingSignal signal, CancellationToken cancellationToken = default)
     {
         // Simulate decision making process
-        await Task.Delay(50, cancellationToken);
+        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
         
         // Convert signal direction to trading action and side
         var (action, side, quantity) = ConvertSignalToDecision(signal);

@@ -54,7 +54,7 @@ public class UnifiedDecisionLogger
             var jsonLine = JsonSerializer.Serialize(decision, _jsonOptions);
             
             // Write to file (append mode)
-            await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine);
+            await File.AppendAllTextAsync(_logFilePath, jsonLine + Environment.NewLine).ConfigureAwait(false);
             
             // Also log to console for immediate visibility
             _logger.LogInformation("[UNIFIED_DECISION] {Symbol} {Strategy} {Regime}: P_final={PFinal:F3} size={Size} action={Action}",

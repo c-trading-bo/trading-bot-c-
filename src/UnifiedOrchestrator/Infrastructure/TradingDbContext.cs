@@ -117,10 +117,10 @@ public class TradingDbContext : DbContext, ITradingDbContext
         try
         {
             _logger.LogInformation("[DATABASE] Testing database connection...");
-            await Database.EnsureCreatedAsync();
+            await Database.EnsureCreatedAsync().ConfigureAwait(false);
             
             // Test a simple query
-            var tradeCount = await Trades.CountAsync();
+            var tradeCount = await Trades.CountAsync().ConfigureAwait(false).ConfigureAwait(false);
             _logger.LogInformation("[DATABASE] Connection successful. Trade count: {TradeCount}", tradeCount);
         }
         catch (Exception ex)
@@ -132,7 +132,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SaveTradeAsync(TradeRecord trade)
     {
-        using var transaction = await Database.BeginTransactionAsync();
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
         try
         {
             var entity = new TradeEntity
@@ -149,15 +149,15 @@ public class TradingDbContext : DbContext, ITradingDbContext
             };
 
             Trades.Add(entity);
-            await SaveChangesAsync();
-            await transaction.CommitAsync();
+            await SaveChangesAsync().ConfigureAwait(false);
+            await transaction.CommitAsync().ConfigureAwait(false);
 
             _logger.LogInformation("[DATABASE] Trade saved: {TradeId} {Symbol} {Side} {Quantity}@{Price}", 
                 trade.Id, trade.Symbol, trade.Side, trade.Quantity, trade.Price);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync().ConfigureAwait(false);
             _logger.LogError(ex, "[DATABASE] Failed to save trade: {TradeId}", trade.Id);
             throw;
         }
@@ -165,11 +165,11 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SavePositionAsync(PositionRecord position)
     {
-        using var transaction = await Database.BeginTransactionAsync();
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
         try
         {
             var existing = await Positions
-                .FirstOrDefaultAsync(p => p.AccountId == position.AccountId && p.Symbol == position.Symbol);
+                .FirstOrDefaultAsync(p => p.AccountId == position.AccountId && p.Symbol == position.Symbol).ConfigureAwait(false).ConfigureAwait(false);
 
             if (existing != null)
             {
@@ -193,15 +193,15 @@ public class TradingDbContext : DbContext, ITradingDbContext
                 Positions.Add(entity);
             }
 
-            await SaveChangesAsync();
-            await transaction.CommitAsync();
+            await SaveChangesAsync().ConfigureAwait(false);
+            await transaction.CommitAsync().ConfigureAwait(false);
 
             _logger.LogInformation("[DATABASE] Position saved: {AccountId} {Symbol} Qty:{Quantity} Avg:{AveragePrice}", 
                 position.AccountId, position.Symbol, position.Quantity, position.AveragePrice);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync().ConfigureAwait(false);
             _logger.LogError(ex, "[DATABASE] Failed to save position: {AccountId} {Symbol}", position.AccountId, position.Symbol);
             throw;
         }
@@ -214,7 +214,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
             var entities = await Trades
                 .Where(t => t.Timestamp >= from && t.Timestamp <= to)
                 .OrderByDescending(t => t.Timestamp)
-                .ToListAsync();
+                .ToListAsync().ConfigureAwait(false).ConfigureAwait(false);
 
             return entities.Select(e => new TradeRecord
             {
@@ -238,10 +238,10 @@ public class TradingDbContext : DbContext, ITradingDbContext
 
     public async Task SaveOrderAsync(OrderRecord order)
     {
-        using var transaction = await Database.BeginTransactionAsync();
+        using var transaction = await Database.BeginTransactionAsync().ConfigureAwait(false).ConfigureAwait(false);
         try
         {
-            var existing = await Orders.FirstOrDefaultAsync(o => o.OrderId == order.OrderId);
+            var existing = await Orders.FirstOrDefaultAsync(o => o.OrderId == order.OrderId).ConfigureAwait(false).ConfigureAwait(false);
 
             if (existing != null)
             {
@@ -270,15 +270,15 @@ public class TradingDbContext : DbContext, ITradingDbContext
                 Orders.Add(entity);
             }
 
-            await SaveChangesAsync();
-            await transaction.CommitAsync();
+            await SaveChangesAsync().ConfigureAwait(false);
+            await transaction.CommitAsync().ConfigureAwait(false);
 
             _logger.LogInformation("[DATABASE] Order saved: {OrderId} {Symbol} {Side} {Quantity}@{Price} Status:{Status}", 
                 order.OrderId, order.Symbol, order.Side, order.Quantity, order.Price, order.Status);
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync().ConfigureAwait(false);
             _logger.LogError(ex, "[DATABASE] Failed to save order: {OrderId}", order.OrderId);
             throw;
         }
@@ -301,7 +301,7 @@ public class TradingDbContext : DbContext, ITradingDbContext
             };
 
             RiskEvents.Add(entity);
-            await SaveChangesAsync();
+            await SaveChangesAsync().ConfigureAwait(false);
 
             _logger.LogInformation("[DATABASE] Risk event saved: {EventType} {Severity} {Symbol}", 
                 riskEvent.EventType, riskEvent.Severity, riskEvent.Symbol);

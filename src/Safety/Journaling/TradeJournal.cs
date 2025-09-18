@@ -62,7 +62,7 @@ public class TradeJournal : ITradeJournal
             return existing;
         });
 
-        await WriteJournalEntryAsync(entry, "DECISION");
+        await WriteJournalEntryAsync(entry, "DECISION").ConfigureAwait(false);
         _logger.LogInformation("[TRADE_JOURNAL] Decision logged: {TradeId} {Symbol} {Side} {Quantity} [CorrelationId: {CorrelationId}]",
             entry.TradeId, decisionEvent.Symbol, decisionEvent.Side, decisionEvent.Quantity, entry.CorrelationId);
     }
@@ -75,7 +75,7 @@ public class TradeJournal : ITradeJournal
             entry.Status = TradeJournalStatus.OrderPlaced;
             entry.UpdatedAt = DateTime.UtcNow;
 
-            await WriteJournalEntryAsync(entry, "ORDER");
+            await WriteJournalEntryAsync(entry, "ORDER").ConfigureAwait(false);
             _logger.LogInformation("[TRADE_JOURNAL] Order logged: {TradeId} {OrderId} {Status} [CorrelationId: {CorrelationId}]",
                 entry.TradeId, orderEvent.OrderId, orderEvent.Status, entry.CorrelationId);
         }
@@ -102,7 +102,7 @@ public class TradeJournal : ITradeJournal
                 entry.Status = TradeJournalStatus.FullyFilled;
             }
 
-            await WriteJournalEntryAsync(entry, "FILL");
+            await WriteJournalEntryAsync(entry, "FILL").ConfigureAwait(false);
             _logger.LogInformation("[TRADE_JOURNAL] Fill logged: {TradeId} {FillId} {FilledQuantity}@{FillPrice} [CorrelationId: {CorrelationId}]",
                 entry.TradeId, fillEvent.FillId, fillEvent.FilledQuantity, fillEvent.FillPrice, entry.CorrelationId);
         }
@@ -122,7 +122,7 @@ public class TradeJournal : ITradeJournal
             entry.CompletedAt = DateTime.UtcNow;
             entry.UpdatedAt = DateTime.UtcNow;
 
-            await WriteJournalEntryAsync(entry, "OUTCOME");
+            await WriteJournalEntryAsync(entry, "OUTCOME").ConfigureAwait(false);
             _logger.LogInformation("[TRADE_JOURNAL] Outcome logged: {TradeId} {PnL} {Outcome} [CorrelationId: {CorrelationId}]",
                 entry.TradeId, outcomeEvent.RealizedPnL, outcomeEvent.OutcomeType, entry.CorrelationId);
 
@@ -152,7 +152,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines)
@@ -190,7 +190,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines.Reverse()) // Search newest entries first
@@ -222,7 +222,7 @@ public class TradeJournal : ITradeJournal
         {
             try
             {
-                var content = await File.ReadAllTextAsync(file);
+                var content = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
                 var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
                 
                 foreach (var line in lines)
@@ -269,7 +269,7 @@ public class TradeJournal : ITradeJournal
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task WriteJournalEntryAsync(TradeJournalEntry entry, string eventType)
@@ -298,7 +298,7 @@ public class TradeJournal : ITradeJournal
             File.AppendAllText(filePath, journalLine + Environment.NewLine);
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private string CalculateHash(string input)

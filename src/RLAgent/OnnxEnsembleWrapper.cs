@@ -88,7 +88,7 @@ public class OnnxEnsembleWrapper : IDisposable
             };
 
             // Validate model inputs/outputs
-            await ValidateModelAsync(modelSession);
+            await ValidateModelAsync(modelSession).ConfigureAwait(false);
 
             _modelSessions.TryAdd(modelName, modelSession);
             _logger.LogInformation("[RL-ENSEMBLE] Model loaded: {ModelName} with confidence {Confidence:F2}", modelName, confidence);
@@ -109,7 +109,7 @@ public class OnnxEnsembleWrapper : IDisposable
         try
         {
             // Brief yield for async context
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
             
             if (_modelSessions.TryRemove(modelName, out var modelSession))
             {
@@ -160,11 +160,11 @@ public class OnnxEnsembleWrapper : IDisposable
         // Submit to queue
         if (!await _inferenceWriter.WaitToWriteAsync(cancellationToken))
         {
-            throw new InvalidOperationException("Inference queue is closed");
+            throw new InvalidOperationException("Inference queue is closed").ConfigureAwait(false);
         }
 
-        await _inferenceWriter.WriteAsync(request, cancellationToken);
-        return await tcs.Task;
+        await _inferenceWriter.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+        return await tcs.Task.ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -197,18 +197,18 @@ public class OnnxEnsembleWrapper : IDisposable
                 batch.Clear();
 
                 // Collect batch
-                await CollectBatchAsync(batch);
+                await CollectBatchAsync(batch).ConfigureAwait(false);
 
                 if (batch.Count > 0)
                 {
-                    await _batchSemaphore.WaitAsync(_cancellationTokenSource.Token);
+                    await _batchSemaphore.WaitAsync(_cancellationTokenSource.Token).ConfigureAwait(false);
                     
                     // Process batch on background thread
                     _ = Task.Run(async () =>
                     {
                         try
                         {
-                            await ProcessBatchAsync(batch.ToList());
+                            await ProcessBatchAsync(batch.ToList()).ConfigureAwait(false);
                         }
                         finally
                         {
@@ -244,7 +244,7 @@ public class OnnxEnsembleWrapper : IDisposable
                 {
                     while (_inferenceQueue.Reader.TryRead(out var request) && batch.Count < _options.MaxBatchSize)
                     {
-                        batch.Add(request);
+                        batch.Add(request).ConfigureAwait(false);
                     }
                 }
             }
@@ -267,7 +267,7 @@ public class OnnxEnsembleWrapper : IDisposable
 
             foreach (var group in featureGroups)
             {
-                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray());
+                var predictions = await RunEnsembleInferenceAsync(group.Select(r => r.Features).ToArray()).ConfigureAwait(false).ConfigureAwait(false);
                 
                 for (int i = 0; i < group.Count; i++)
                 {
@@ -327,7 +327,7 @@ public class OnnxEnsembleWrapper : IDisposable
         {
             try
             {
-                var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures);
+                var modelPredictions = await RunModelInferenceAsync(modelSession, batchFeatures).ConfigureAwait(false).ConfigureAwait(false);
                 
                 for (int i = 0; i < batchSize; i++)
                 {
@@ -343,7 +343,7 @@ public class OnnxEnsembleWrapper : IDisposable
             }
         }).ToArray();
 
-        await Task.WhenAll(modelTasks);
+        await Task.WhenAll(modelTasks).ConfigureAwait(false);
 
         // Compute ensemble results
         for (int i = 0; i < batchSize; i++)
@@ -357,7 +357,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private async Task<ModelPrediction[]> RunModelInferenceAsync(ModelSession modelSession, float[][] batchFeatures)
     {
         // Brief yield for async context in CPU-intensive operation
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var batchSize = batchFeatures.Length;
         var featureCount = batchFeatures[0].Length;
@@ -450,7 +450,7 @@ public class OnnxEnsembleWrapper : IDisposable
     private async Task ValidateModelAsync(ModelSession modelSession)
     {
         // Brief yield for async context
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         try
         {

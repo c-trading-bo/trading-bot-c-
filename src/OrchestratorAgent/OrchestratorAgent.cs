@@ -397,7 +397,7 @@ namespace OrchestratorAgent
             using (var connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
                 connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-                await _conn.StartAsync(connectCts.Token);
+                await _conn.StartAsync(connectCts.Token).ConfigureAwait(false);
             }
             if (_conn.State != HubConnectionState.Connected)
                 throw new InvalidOperationException("UserHub failed to connect.");
@@ -412,10 +412,10 @@ namespace OrchestratorAgent
             // Only subscribe if connection is active
             if (_conn.State == HubConnectionState.Connected)
             {
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct);
-                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeAccounts", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeOrders", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribePositions", accountId, token), ct).ConfigureAwait(false);
+                await ReliableInvokeAsync(_conn, (conn, token) => conn.InvokeAsync("SubscribeTrades", accountId, token), ct).ConfigureAwait(false);
                 _log.LogInformation("[UserHub] subscribed for account {AccountId}", SecurityHelpers.MaskAccountId(accountId));
             }
         }
@@ -429,7 +429,7 @@ namespace OrchestratorAgent
 
                 if (conn.State == HubConnectionState.Connected)
                 {
-                    try { await call(conn, ct); return; }
+                    try { await call(conn, ct).ConfigureAwait(false); return; }
                     catch (Exception ex) { _log.LogWarning(ex, $"Invoke attempt {attempt} failed: {ex.Message}"); }
                 }
                 else
@@ -437,7 +437,7 @@ namespace OrchestratorAgent
                     _log.LogWarning($"Connection state is {conn.State}, waiting before retry...");
                 }
 
-                await Task.Delay(delay, ct);
+                await Task.Delay(delay, ct).ConfigureAwait(false);
                 delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 5000));
             }
             throw new InvalidOperationException("UserHub invoke could not complete after multiple retries.");
@@ -523,7 +523,7 @@ namespace OrchestratorAgent
         {
             if (_conn is not null)
             {
-                try { await _conn.DisposeAsync(); } catch { }
+                try { await _conn.DisposeAsync().ConfigureAwait(false); } catch { }
             }
         }
     }

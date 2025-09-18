@@ -58,7 +58,7 @@ public class ExecutionAnalyzer
                 symbol, strategy, slippagePercent / 100, fillQuality.Quality);
 
             // Save to execution quality log
-            await SaveExecutionMetricsAsync(fillQuality);
+            await SaveExecutionMetricsAsync(fillQuality).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -93,7 +93,7 @@ public class ExecutionAnalyzer
                 symbol, zoneType, zoneLevel, successful, pnlPercent / 100);
 
             // Update zone feedback data
-            await UpdateZoneFeedbackAsync(symbol, zoneLevel, zoneType, successful);
+            await UpdateZoneFeedbackAsync(symbol, zoneLevel, zoneType, successful).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -126,7 +126,7 @@ public class ExecutionAnalyzer
             _logger.LogInformation("[PATTERN_OUTCOME] {Symbol} {PatternType} success={Successful} conf={Confidence:P1}",
                 symbol, patternType, successful, confidence);
 
-            await SavePatternOutcomeAsync(outcome);
+            await SavePatternOutcomeAsync(outcome).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -147,7 +147,7 @@ public class ExecutionAnalyzer
             if (!File.Exists(metricsFile))
                 return null;
 
-            var json = await File.ReadAllTextAsync(metricsFile);
+            var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false).ConfigureAwait(false);
             return JsonSerializer.Deserialize<ExecutionMetrics>(json, _jsonOptions);
         }
         catch (Exception ex)
@@ -168,7 +168,7 @@ public class ExecutionAnalyzer
             var metrics = new List<object>();
             if (File.Exists(metricsFile))
             {
-                var json = await File.ReadAllTextAsync(metricsFile);
+                var json = await File.ReadAllTextAsync(metricsFile).ConfigureAwait(false).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) metrics = existing;
             }
@@ -176,7 +176,7 @@ public class ExecutionAnalyzer
             metrics.Add(fillQuality);
 
             await File.WriteAllTextAsync(metricsFile,
-                JsonSerializer.Serialize(metrics, _jsonOptions));
+                JsonSerializer.Serialize(metrics, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -195,7 +195,7 @@ public class ExecutionAnalyzer
             var feedback = new Dictionary<string, object>();
             if (File.Exists(feedbackFile))
             {
-                var json = await File.ReadAllTextAsync(feedbackFile);
+                var json = await File.ReadAllTextAsync(feedbackFile).ConfigureAwait(false).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<Dictionary<string, object>>(json);
                 if (existing != null) feedback = existing;
             }
@@ -225,7 +225,7 @@ public class ExecutionAnalyzer
             };
 
             await File.WriteAllTextAsync(feedbackFile,
-                JsonSerializer.Serialize(feedback, _jsonOptions));
+                JsonSerializer.Serialize(feedback, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -243,7 +243,7 @@ public class ExecutionAnalyzer
             var outcomes = new List<object>();
             if (File.Exists(outcomeFile))
             {
-                var json = await File.ReadAllTextAsync(outcomeFile);
+                var json = await File.ReadAllTextAsync(outcomeFile).ConfigureAwait(false).ConfigureAwait(false);
                 var existing = JsonSerializer.Deserialize<List<object>>(json);
                 if (existing != null) outcomes = existing;
             }
@@ -251,7 +251,7 @@ public class ExecutionAnalyzer
             outcomes.Add(outcome);
 
             await File.WriteAllTextAsync(outcomeFile,
-                JsonSerializer.Serialize(outcomes, _jsonOptions));
+                JsonSerializer.Serialize(outcomes, _jsonOptions)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

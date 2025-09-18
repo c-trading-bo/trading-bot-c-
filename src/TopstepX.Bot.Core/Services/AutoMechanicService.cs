@@ -36,7 +36,7 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Start the mechanic process
-                await StartMechanicProcess(stoppingToken);
+                await StartMechanicProcess(stoppingToken).ConfigureAwait(false);
 
                 // Start status monitoring for dashboard
                 StartStatusMonitoring();
@@ -44,7 +44,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("✅ Auto Bot Mechanic Service started successfully");
 
                 // Keep running until cancellation
-                await Task.Delay(Timeout.Infinite, stoppingToken);
+                await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -147,7 +147,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 if (File.Exists(_statusPath))
                 {
-                    var statusJson = await File.ReadAllTextAsync(_statusPath);
+                    var statusJson = await File.ReadAllTextAsync(_statusPath).ConfigureAwait(false).ConfigureAwait(false);
                     return JsonConvert.DeserializeObject(statusJson) ?? new { status = "unknown" };
                 }
             }
@@ -169,7 +169,7 @@ namespace TopstepX.Bot.Core.Services
                 var triggerFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Intelligence", "mechanic", "database", "trigger_scan.json");
                 var trigger = new { action = "full_scan", timestamp = DateTime.UtcNow };
                 
-                await File.WriteAllTextAsync(triggerFile, JsonConvert.SerializeObject(trigger, Formatting.Indented));
+                await File.WriteAllTextAsync(triggerFile, JsonConvert.SerializeObject(trigger, Formatting.Indented)).ConfigureAwait(false);
                 
                 _logger.LogInformation("🔍 Triggered full bot scan");
                 return true;
@@ -192,7 +192,7 @@ namespace TopstepX.Bot.Core.Services
                 try
                 {
                     _mechanicProcess.Kill();
-                    await _mechanicProcess.WaitForExitAsync(cancellationToken);
+                    await _mechanicProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -204,7 +204,7 @@ namespace TopstepX.Bot.Core.Services
                 }
             }
 
-            await base.StopAsync(cancellationToken);
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("✅ Auto Bot Mechanic Service stopped");
         }
     }

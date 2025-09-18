@@ -72,7 +72,7 @@ namespace BotCore.Services
                 };
 
                 // Generate validation windows
-                var windows = await GenerateValidationWindowsAsync(request.StartDate, request.EndDate);
+                var windows = await GenerateValidationWindowsAsync(request.StartDate, request.EndDate).ConfigureAwait(false).ConfigureAwait(false);
                 result.TotalWindows = windows.Count;
 
                 _logger.LogInformation("[WALK-FORWARD] Generated {WindowCount} validation windows", windows.Count);
@@ -90,20 +90,20 @@ namespace BotCore.Services
                 }
 
                 // Wait for all validations to complete
-                var windowResults = await Task.WhenAll(validationTasks);
+                var windowResults = await Task.WhenAll(validationTasks).ConfigureAwait(false).ConfigureAwait(false);
                 result.WindowResults = windowResults.ToList();
 
                 // Calculate aggregate metrics
                 CalculateAggregateMetrics(result);
 
                 // Validate overall performance
-                result.PassesThresholds = await ValidateOverallPerformanceAsync(result);
+                result.PassesThresholds = await ValidateOverallPerformanceAsync(result).ConfigureAwait(false).ConfigureAwait(false);
 
                 result.ValidationCompleted = DateTime.UtcNow;
                 result.ValidationDuration = result.ValidationCompleted - result.ValidationStarted;
 
                 // Log comprehensive results
-                await LogValidationResultsAsync(result);
+                await LogValidationResultsAsync(result).ConfigureAwait(false);
 
                 _logger.LogInformation("[WALK-FORWARD] Completed walk-forward validation for {Strategy}: {PassedWindows}/{TotalWindows} windows passed, Overall: {Pass}",
                     request.StrategyName, result.PassedWindows, result.TotalWindows, result.PassesThresholds ? "PASS" : "FAIL");
@@ -198,7 +198,7 @@ namespace BotCore.Services
                 // 3. Calculate performance metrics
                 
                 // Generate realistic performance metrics based on window characteristics
-                var performance = await SimulateModelPerformance(modelPath, window, cancellationToken);
+                var performance = await SimulateModelPerformance(modelPath, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
                 _logger.LogDebug("[MODEL-VALIDATION] Model validation completed for window {WindowIndex}: Sharpe={Sharpe:F2}, Drawdown={Drawdown:F2}%",
                     window.WindowIndex, performance.SharpeRatio, performance.MaxDrawdown * 100);
@@ -267,10 +267,10 @@ namespace BotCore.Services
                 // Save detailed results to file
                 var resultJson = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
                 var resultPath = Path.Combine("./validation_results", $"walk_forward_{result.StrategyName}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
-                await File.WriteAllTextAsync(resultPath, resultJson);
+                await File.WriteAllTextAsync(resultPath, resultJson).ConfigureAwait(false);
 
                 // Update history
-                await UpdateValidationHistoryAsync(result);
+                await UpdateValidationHistoryAsync(result).ConfigureAwait(false);
 
                 _logger.LogInformation("[WALK-FORWARD-RESULTS] Detailed results saved to {ResultPath}", resultPath);
             }
@@ -290,7 +290,7 @@ namespace BotCore.Services
                 if (!File.Exists(_validationHistoryPath))
                     return new List<WalkForwardResult>();
 
-                var historyJson = await File.ReadAllTextAsync(_validationHistoryPath);
+                var historyJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false).ConfigureAwait(false);
                 var allHistory = JsonSerializer.Deserialize<List<WalkForwardResult>>(historyJson) ?? new List<WalkForwardResult>();
 
                 return allHistory
@@ -316,7 +316,7 @@ namespace BotCore.Services
             SemaphoreSlim semaphore, 
             CancellationToken cancellationToken)
         {
-            await semaphore.WaitAsync(cancellationToken);
+            await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
             
             try
             {
@@ -330,15 +330,15 @@ namespace BotCore.Services
                 };
 
                 // Step 1: Train model with window-specific seed
-                var modelPath = await TrainModelForWindowAsync(request, window, cancellationToken);
+                var modelPath = await TrainModelForWindowAsync(request, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 windowResult.ModelPath = modelPath;
 
                 // Step 2: Validate model performance
-                var performance = await ValidateModelAsync(modelPath, window, cancellationToken);
+                var performance = await ValidateModelAsync(modelPath, window, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 windowResult.Performance = performance;
 
                 // Step 3: Check if performance meets thresholds
-                windowResult.PassesThresholds = await MeetsPerformanceThresholdsAsync(performance);
+                windowResult.PassesThresholds = await MeetsPerformanceThresholdsAsync(performance).ConfigureAwait(false).ConfigureAwait(false);
 
                 windowResult.ProcessingCompleted = DateTime.UtcNow;
                 windowResult.ProcessingDuration = windowResult.ProcessingCompleted - windowResult.ProcessingStarted;
@@ -396,7 +396,7 @@ namespace BotCore.Services
                 };
 
                 var metadataJson = JsonSerializer.Serialize(modelMetadata, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(modelPath, metadataJson, cancellationToken);
+                await File.WriteAllTextAsync(modelPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
                 // Verify model version to ensure uniqueness
                 var metadata = new ModelMetadata
@@ -406,7 +406,7 @@ namespace BotCore.Services
                     CreatedAt = DateTime.UtcNow
                 };
 
-                await _modelVersionService.VerifyModelVersionAsync(modelPath, metadata);
+                await _modelVersionService.VerifyModelVersionAsync(modelPath, metadata).ConfigureAwait(false);
 
                 _logger.LogTrace("[MODEL-TRAINING] Trained model for window {WindowIndex} with seed {Seed}: {ModelPath}",
                     window.WindowIndex, window.RandomSeed, modelPath);
@@ -554,7 +554,7 @@ namespace BotCore.Services
                 
                 if (File.Exists(_validationHistoryPath))
                 {
-                    var existingJson = await File.ReadAllTextAsync(_validationHistoryPath);
+                    var existingJson = await File.ReadAllTextAsync(_validationHistoryPath).ConfigureAwait(false).ConfigureAwait(false);
                     history = JsonSerializer.Deserialize<List<WalkForwardResult>>(existingJson) ?? new List<WalkForwardResult>();
                 }
 
@@ -567,7 +567,7 @@ namespace BotCore.Services
                 }
 
                 var historyJson = JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(_validationHistoryPath, historyJson);
+                await File.WriteAllTextAsync(_validationHistoryPath, historyJson).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

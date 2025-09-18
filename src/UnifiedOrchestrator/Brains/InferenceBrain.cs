@@ -81,7 +81,7 @@ public class InferenceBrain : IInferenceBrain
             // Ensure all models are ready
             if (!await IsReadyAsync(cancellationToken))
             {
-                riskWarnings.Add("One or more champion models not ready");
+                riskWarnings.Add("One or more champion models not ready").ConfigureAwait(false);
                 return CreateFallbackDecision(context, stopwatch.Elapsed, riskWarnings);
             }
 
@@ -107,23 +107,23 @@ public class InferenceBrain : IInferenceBrain
             // PPO Decision (if available)
             if (ppoModel != null && ppoVersion != null)
             {
-                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken);
+                decisions["PPO"] = await MakePPODecision(ppoModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             }
             
             // UCB Decision (if available)
             if (ucbModel != null && ucbVersion != null)
             {
-                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken);
+                decisions["UCB"] = await MakeUCBDecision(ucbModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             }
             
             // LSTM Decision (if available)
             if (lstmModel != null && lstmVersion != null)
             {
-                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken);
+                decisions["LSTM"] = await MakeLSTMDecision(lstmModel, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             }
 
             // Ensemble decision making
-            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken);
+            var finalDecision = await EnsembleDecisions(decisions, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Build complete trading decision with full attribution
             var tradingDecision = new TradingDecision
@@ -212,7 +212,7 @@ public class InferenceBrain : IInferenceBrain
             ["PPO"] = _ppoRouter.CurrentVersion,
             ["UCB"] = _ucbRouter.CurrentVersion,
             ["LSTM"] = _lstmRouter.CurrentVersion
-        });
+        }).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -220,9 +220,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<bool> IsReadyAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         // At least one algorithm must be ready
         return ppoStats.IsHealthy || ucbStats.IsHealthy || lstmStats.IsHealthy;
@@ -233,9 +233,9 @@ public class InferenceBrain : IInferenceBrain
     /// </summary>
     public async Task<InferenceStats> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken);
-        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken);
-        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken);
+        var ppoStats = await _ppoRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var ucbStats = await _ucbRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var lstmStats = await _lstmRouter.GetStatsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         return new InferenceStats
         {
@@ -303,7 +303,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken); // Simulate inference time
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false); // Simulate inference time
             
             // Real PPO (Proximal Policy Optimization) trading algorithm implementation
             var features = ExtractMarketFeatures(context);
@@ -369,7 +369,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             // Real UCB (Upper Confidence Bound) multi-armed bandit algorithm implementation
             var features = ExtractMarketFeatures(context);
@@ -431,7 +431,7 @@ public class InferenceBrain : IInferenceBrain
     {
         try
         {
-            await Task.Delay(1, cancellationToken);
+            await Task.Delay(1, cancellationToken).ConfigureAwait(false);
             
             // Real LSTM (Long Short-Term Memory) neural network implementation
             var sequenceFeatures = ExtractSequenceFeatures(context);
@@ -490,7 +490,7 @@ public class InferenceBrain : IInferenceBrain
 
     private async Task<EnsembleDecision> EnsembleDecisions(Dictionary<string, AlgorithmDecision> decisions, TradingContext context, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (decisions.Count == 0)
         {

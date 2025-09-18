@@ -610,7 +610,7 @@ public class SlippageLatencyModel : ISlippageLatencyModel, IHostedService
         {
             _ = Task.Run(async () =>
             {
-                var metrics = await GetCurrentLatencyMetricsAsync();
+                var metrics = await GetCurrentLatencyMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (metrics.IsUnderStress)
                 {

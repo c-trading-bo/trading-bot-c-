@@ -55,16 +55,16 @@ public class FeatureDemonstrationService : BackgroundService
         _logger.LogInformation("🎯 [FEATURE_DEMO] Starting feature demonstration service...");
         
         // Wait a bit for system to initialize
-        await Task.Delay(5000, stoppingToken);
+        await Task.Delay(5000, stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await DemonstrateAllFeaturesAsync(stoppingToken);
+                await DemonstrateAllFeaturesAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Run demonstration every 2 minutes
-                await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -73,7 +73,7 @@ public class FeatureDemonstrationService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[FEATURE_DEMO] Error in demonstration loop");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -87,16 +87,16 @@ public class FeatureDemonstrationService : BackgroundService
         _logger.LogInformation("🎯 [FEATURE_DEMO] =======================================================");
 
         // 1. Demonstrate Workflow Scheduling Logic
-        await DemonstrateWorkflowSchedulingAsync(cancellationToken);
+        await DemonstrateWorkflowSchedulingAsync(cancellationToken).ConfigureAwait(false);
         
         // 2. Demonstrate Orchestration Stats  
-        await DemonstrateOrchestrationStatsAsync(cancellationToken);
+        await DemonstrateOrchestrationStatsAsync(cancellationToken).ConfigureAwait(false);
         
         // 3. Demonstrate Python Integration
-        await DemonstratePythonIntegrationAsync(cancellationToken);
+        await DemonstratePythonIntegrationAsync(cancellationToken).ConfigureAwait(false);
         
         // 4. Demonstrate ONNX Model Loading
-        await DemonstrateOnnxModelLoadingAsync(cancellationToken);
+        await DemonstrateOnnxModelLoadingAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("🎯 [FEATURE_DEMO] All four features demonstrated successfully!");
     }
@@ -125,7 +125,7 @@ public class FeatureDemonstrationService : BackgroundService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task DemonstrateOrchestrationStatsAsync(CancellationToken cancellationToken)
@@ -142,19 +142,19 @@ public class FeatureDemonstrationService : BackgroundService
 
         foreach (var workflow in testWorkflows)
         {
-            await _unifiedOrchestrator.RegisterWorkflowAsync(workflow, cancellationToken);
+            await _unifiedOrchestrator.RegisterWorkflowAsync(workflow, cancellationToken).ConfigureAwait(false);
         }
 
         // Execute one workflow to show active count
         _ = Task.Run(async () =>
         {
-            await _unifiedOrchestrator.ExecuteWorkflowAsync("demo_workflow_1", null, cancellationToken);
+            await _unifiedOrchestrator.ExecuteWorkflowAsync("demo_workflow_1", null, cancellationToken).ConfigureAwait(false);
         }, cancellationToken);
 
-        await Task.Delay(100, cancellationToken); // Let execution start
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Let execution start
 
         // Get real orchestrator status
-        var status = await _unifiedOrchestrator.GetStatusAsync();
+        var status = await _unifiedOrchestrator.GetStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
         
         _logger.LogInformation("📊 [FEATURE_DEMO] Active workflows: {ActiveWorkflows}", status.ActiveWorkflows);
         _logger.LogInformation("📊 [FEATURE_DEMO] Total workflows: {TotalWorkflows}", status.TotalWorkflows);
@@ -176,7 +176,7 @@ public class FeatureDemonstrationService : BackgroundService
             {
                 // Test actual Python model call
                 var testInput = "{\"symbol\": \"ES\", \"side\": \"BUY\", \"signal\": \"bullish_momentum\"}";
-                var decision = await _decisionServiceClient.GetDecisionAsync(testInput, cancellationToken);
+                var decision = await _decisionServiceClient.GetDecisionAsync(testInput, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 _logger.LogInformation("🐍 [FEATURE_DEMO] Python model decision result: {Decision}", decision);
                 _logger.LogInformation("🐍 [FEATURE_DEMO] Python process invoked successfully!");
@@ -215,7 +215,7 @@ public class FeatureDemonstrationService : BackgroundService
                     try
                     {
                         // Try to load the model (this will use fallback if ONNX packages are missing)
-                        var session = await _onnxModelLoader.LoadModelAsync(modelPath, validateInference: false);
+                        var session = await _onnxModelLoader.LoadModelAsync(modelPath, validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
                         
                         if (session != null)
                         {
@@ -246,6 +246,6 @@ public class FeatureDemonstrationService : BackgroundService
             _logger.LogInformation("🧠 [FEATURE_DEMO] Model loading disabled in configuration");
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }

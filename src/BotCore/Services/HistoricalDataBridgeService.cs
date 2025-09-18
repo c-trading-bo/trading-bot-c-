@@ -81,7 +81,7 @@ namespace BotCore.Services
                     _logger.LogDebug("[HISTORICAL-BRIDGE] Seeding contract: {ContractId}", contractId);
 
                     // Get recent historical bars - FIXED: Request sufficient bars for trading strategies (not just seeding)
-                    var historicalBars = await GetRecentHistoricalBarsAsync(contractId, Math.Max(_config.MinSeededBars + 2, 200));
+                    var historicalBars = await GetRecentHistoricalBarsAsync(contractId, Math.Max(_config.MinSeededBars + 2, 200)).ConfigureAwait(false).ConfigureAwait(false);
                     
                     if (historicalBars.Any())
                     {
@@ -126,7 +126,7 @@ namespace BotCore.Services
             try
             {
                 // PRIMARY: Try SDK adapter for historical data
-                var sdkAdapterBars = await TryGetSdkAdapterBarsAsync(contractId, barCount);
+                var sdkAdapterBars = await TryGetSdkAdapterBarsAsync(contractId, barCount).ConfigureAwait(false).ConfigureAwait(false);
                 if (sdkAdapterBars.Any())
                 {
                     _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from SDK adapter for {ContractId}", 
@@ -135,7 +135,7 @@ namespace BotCore.Services
                 }
 
                 // FALLBACK 1: Try TopstepX historical API
-                var topstepXBars = await TryGetTopstepXBarsAsync(contractId, barCount);
+                var topstepXBars = await TryGetTopstepXBarsAsync(contractId, barCount).ConfigureAwait(false).ConfigureAwait(false);
                 if (topstepXBars.Any())
                 {
                     _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from TopstepX API for {ContractId}", 
@@ -144,7 +144,7 @@ namespace BotCore.Services
                 }
 
                 // FALLBACK 2: Use correlation manager's data sources
-                var correlationBars = await TryGetCorrelationManagerBarsAsync(contractId, barCount);
+                var correlationBars = await TryGetCorrelationManagerBarsAsync(contractId, barCount).ConfigureAwait(false).ConfigureAwait(false);
                 if (correlationBars.Any())
                 {
                     _logger.LogDebug("[HISTORICAL-BRIDGE] Retrieved {BarCount} bars from correlation manager for {ContractId}", 
@@ -173,7 +173,7 @@ namespace BotCore.Services
         {
             try
             {
-                var bars = await GetRecentHistoricalBarsAsync(contractId, 5);
+                var bars = await GetRecentHistoricalBarsAsync(contractId, 5).ConfigureAwait(false).ConfigureAwait(false);
                 if (!bars.Any()) return false;
 
                 var mostRecentBar = bars.OrderByDescending(b => b.Ts).First();
@@ -229,9 +229,9 @@ namespace BotCore.Services
                     return new List<BotCore.Models.Bar>();
                 }
 
-                var output = await process.StandardOutput.ReadToEndAsync();
-                var error = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode != 0)
                 {
@@ -323,17 +323,17 @@ namespace BotCore.Services
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwt);
                 
                 // Make API call
-                var response = await _httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody);
+                var response = await _httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
                     _logger.LogWarning("[HISTORICAL-BRIDGE] TopstepX History API failed: {StatusCode} - {Error}", 
                         response.StatusCode, errorContent);
                     return new List<BotCore.Models.Bar>();
                 }
                 
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogDebug("[HISTORICAL-BRIDGE] TopstepX History API response length: {Length} characters", responseContent.Length);
                 
                 // Debug: Log first 500 characters of response
@@ -368,7 +368,7 @@ namespace BotCore.Services
             {
                 // This would integrate with other data sources through correlation manager
                 // For now, return empty - could be extended with additional data sources
-                await Task.CompletedTask;
+                await Task.CompletedTask.ConfigureAwait(false);
                 return new List<BotCore.Models.Bar>();
             }
             catch (Exception ex)

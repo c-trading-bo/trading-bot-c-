@@ -51,7 +51,7 @@ namespace OrchestratorAgent
             Console.WriteLine("⚠️  This system has been replaced by the enhanced multi-brain system.");
             Console.WriteLine("⚠️  Running this could conflict with your production trading bot.");
             
-            await Task.Delay(3000);
+            await Task.Delay(3000).ConfigureAwait(false);
             return;
         }
     }

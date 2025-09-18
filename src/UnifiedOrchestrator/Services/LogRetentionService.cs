@@ -41,23 +41,23 @@ public class LogRetentionService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
-            "Log retention service started");
+            "Log retention service started").ConfigureAwait(false);
             
         // Perform initial cleanup
-        await PerformCleanupAsync();
+        await PerformCleanupAsync().ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
-            "Log retention service stopped");
+            "Log retention service stopped").ConfigureAwait(false);
             
         _cleanupTimer?.Dispose();
     }
 
     private async void PerformCleanup(object? state)
     {
-        await PerformCleanupAsync();
+        await PerformCleanupAsync().ConfigureAwait(false);
     }
 
     private async Task PerformCleanupAsync()
@@ -70,7 +70,7 @@ public class LogRetentionService : IHostedService
             }
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
-                "Starting log cleanup process");
+                "Starting log cleanup process").ConfigureAwait(false);
 
             var totalFilesRemoved = 0;
             var totalSizeFreed = 0L;
@@ -78,26 +78,26 @@ public class LogRetentionService : IHostedService
             // Clean up trading logs (30 days retention)
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "trading"), 
-                _options.LogRetentionDays);
+                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
 
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "system"), 
-                _options.LogRetentionDays);
+                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
 
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "ml"), 
-                _options.LogRetentionDays);
+                _options.LogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
 
             // Clean up debug logs (7 days retention)
             totalFilesRemoved += await CleanupDirectory(
                 Path.Combine(_options.LogDirectory, "market"), 
-                _options.DebugLogRetentionDays);
+                _options.DebugLogRetentionDays).ConfigureAwait(false).ConfigureAwait(false);
 
             // Clean up critical alerts older than 90 days
             var criticalAlertsPath = Path.Combine(_options.LogDirectory, "critical_alerts.txt");
             if (File.Exists(criticalAlertsPath))
             {
-                await CleanupCriticalAlerts(criticalAlertsPath);
+                await CleanupCriticalAlerts(criticalAlertsPath).ConfigureAwait(false);
             }
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
@@ -105,13 +105,13 @@ public class LogRetentionService : IHostedService
                 {
                     filesRemoved = totalFilesRemoved,
                     sizeFreeBytes = totalSizeFreed
-                });
+                }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during log cleanup");
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "LogRetention", 
-                $"Log cleanup failed: {ex.Message}");
+                $"Log cleanup failed: {ex.Message}").ConfigureAwait(false);
         }
     }
 
@@ -144,7 +144,7 @@ public class LogRetentionService : IHostedService
         if (removedCount > 0)
         {
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
-                $"Cleaned up {removedCount} files from {directoryPath}");
+                $"Cleaned up {removedCount} files from {directoryPath}").ConfigureAwait(false);
         }
 
         return removedCount;
@@ -154,7 +154,7 @@ public class LogRetentionService : IHostedService
     {
         try
         {
-            var lines = await File.ReadAllLinesAsync(alertsPath);
+            var lines = await File.ReadAllLinesAsync(alertsPath).ConfigureAwait(false).ConfigureAwait(false);
             var cutoffDate = DateTime.UtcNow.AddDays(-90);
             
             var filteredLines = lines.Where(line =>
@@ -180,10 +180,10 @@ public class LogRetentionService : IHostedService
 
             if (filteredLines.Length < lines.Length)
             {
-                await File.WriteAllLinesAsync(alertsPath, filteredLines);
+                await File.WriteAllLinesAsync(alertsPath, filteredLines).ConfigureAwait(false);
                 
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "LogRetention", 
-                    $"Cleaned up {lines.Length - filteredLines.Length} old critical alerts");
+                    $"Cleaned up {lines.Length - filteredLines.Length} old critical alerts").ConfigureAwait(false);
             }
         }
         catch (Exception ex)

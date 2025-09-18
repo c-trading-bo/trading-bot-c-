@@ -101,11 +101,11 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            await Task.Yield(); // Ensure async behavior
+            await Task.Yield().ConfigureAwait(false); // Ensure async behavior
             
             // In production, this would fetch from TopstepX API or data provider
             // For now, return synthetic data based on current market structure
-            var currentPrice = await GetCurrentPriceAsync(symbol);
+            var currentPrice = await GetCurrentPriceAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             
             return new ZoneData
             {
@@ -135,7 +135,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) 
                 throw new InvalidOperationException($"No zone data available for {symbol}");
 
@@ -167,7 +167,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) 
                 throw new InvalidOperationException($"No zone data available for {symbol}");
 
@@ -199,7 +199,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) 
                 throw new InvalidOperationException($"No zone data available for {symbol}");
 
@@ -239,7 +239,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) 
                 throw new InvalidOperationException($"No zone data available for {symbol}");
 
@@ -279,11 +279,11 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) return baseSize;
 
             // Calculate risk based on zone proximity
-            var stopLevel = await GetOptimalStopLevelAsync(symbol, entryPrice, isLong);
+            var stopLevel = await GetOptimalStopLevelAsync(symbol, entryPrice, isLong).ConfigureAwait(false).ConfigureAwait(false);
             var riskPerContract = Math.Abs(entryPrice - stopLevel);
 
             // Adjust position size based on risk
@@ -306,7 +306,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            var zones = await GetLatestZonesAsync(symbol);
+            var zones = await GetLatestZonesAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
             if (zones == null) return false;
 
             var allZones = zones.SupplyZones.Concat(zones.DemandZones);
@@ -331,7 +331,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            _currentZones ??= await GetLatestZonesAsync("ES");
+            _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
             
             if (_currentZones == null)
                 throw new InvalidOperationException("No zone data available");
@@ -364,7 +364,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            _currentZones ??= await GetLatestZonesAsync("ES");
+            _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
             
             if (_currentZones == null) return "No zones available";
 
@@ -400,13 +400,13 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            _currentZones ??= await GetLatestZonesAsync("ES");
+            _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
             
             if (_currentZones == null)
                 throw new InvalidOperationException("No zone data available");
 
             var isLong = direction.ToLower() == "long";
-            return await GetOptimalStopLevelAsync("ES", entryPrice, isLong);
+            return await GetOptimalStopLevelAsync("ES", entryPrice, isLong).ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -419,13 +419,13 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            _currentZones ??= await GetLatestZonesAsync("ES");
+            _currentZones ??= await GetLatestZonesAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
             
             if (_currentZones == null)
                 throw new InvalidOperationException("No zone data available");
 
             var isLong = direction.ToLower() == "long";
-            return await GetOptimalTargetLevelAsync("ES", entryPrice, isLong);
+            return await GetOptimalTargetLevelAsync("ES", entryPrice, isLong).ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -438,7 +438,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     {
         try
         {
-            await Task.Yield(); // Ensure async behavior
+            await Task.Yield().ConfigureAwait(false); // Ensure async behavior
             
             _logger.LogInformation("[ZONE-SERVICE] Zone interaction recorded: Price={Price}, Outcome={Outcome}", 
                 price, outcome);
@@ -456,7 +456,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     // ISupplyDemandService implementation
     public async Task<ZoneData> LoadZonesAsync()
     {
-        var zones = await GetLatestZonesAsync("ES");
+        var zones = await GetLatestZonesAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
         return zones ?? throw new InvalidOperationException("Failed to load zone data");
     }
 
@@ -478,7 +478,7 @@ public class ZoneService : IZoneService, ISupplyDemandService
     // Helper methods
     private async Task<decimal> GetCurrentPriceAsync(string symbol)
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         // In production, fetch from TopstepX or data provider
         return symbol switch
         {

@@ -48,13 +48,13 @@ public class StreamingFeatureEngineering : IDisposable
             var aggregator = _aggregators.GetOrAdd(symbol, _ => new StreamingAggregator(symbol, _logger));
 
             // Update aggregator with new data
-            await aggregator.UpdateAsync(data, cancellationToken);
+            await aggregator.UpdateAsync(data, cancellationToken).ConfigureAwait(false);
 
             // Calculate streaming features
-            var features = await CalculateStreamingFeaturesAsync(aggregator, data, cancellationToken);
+            var features = await CalculateStreamingFeaturesAsync(aggregator, data, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
             // Cache features for future use
-            await CacheFeaturesAsync(symbol, timestamp, features, cancellationToken);
+            await CacheFeaturesAsync(symbol, timestamp, features, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("Processed market data for {Symbol}: {FeatureCount} features calculated", 
                 symbol, features.Count);
@@ -75,7 +75,7 @@ public class StreamingFeatureEngineering : IDisposable
     {
         try
         {
-            await Task.Yield(); // Ensure async behavior
+            await Task.Yield().ConfigureAwait(false); // Ensure async behavior
             
             if (!_featureCaches.TryGetValue(symbol, out var cache))
             {
@@ -150,9 +150,9 @@ public class StreamingFeatureEngineering : IDisposable
         features["ema_26"] = aggregator.GetEMA(26);
 
         // Volatility features
-        features["volatility_10"] = await aggregator.GetVolatilityAsync(10, cancellationToken);
-        features["volatility_20"] = await aggregator.GetVolatilityAsync(20, cancellationToken);
-        features["atr_14"] = await aggregator.GetATRAsync(14, cancellationToken);
+        features["volatility_10"] = await aggregator.GetVolatilityAsync(10, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        features["volatility_20"] = await aggregator.GetVolatilityAsync(20, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        features["atr_14"] = await aggregator.GetATRAsync(14, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         // Price ratios and differences
         if (features["sma_20"] > 0)
@@ -165,21 +165,21 @@ public class StreamingFeatureEngineering : IDisposable
         }
 
         // Momentum features
-        features["rsi_14"] = await aggregator.GetRSIAsync(14, cancellationToken);
+        features["rsi_14"] = await aggregator.GetRSIAsync(14, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         features["macd"] = features["ema_12"] - features["ema_26"];
-        features["macd_signal"] = await aggregator.GetMACDSignalAsync(cancellationToken);
+        features["macd_signal"] = await aggregator.GetMACDSignalAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         // Volume features
-        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(20, cancellationToken);
+        features["volume_sma_20"] = await aggregator.GetVolumeSMAAsync(20, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         if (features["volume_sma_20"] > 0)
         {
             features["volume_ratio"] = features["volume"] / features["volume_sma_20"];
         }
 
         // Returns and changes
-        features["returns_1"] = await aggregator.GetReturnsAsync(1, cancellationToken);
-        features["returns_5"] = await aggregator.GetReturnsAsync(5, cancellationToken);
-        features["returns_20"] = await aggregator.GetReturnsAsync(20, cancellationToken);
+        features["returns_1"] = await aggregator.GetReturnsAsync(1, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        features["returns_5"] = await aggregator.GetReturnsAsync(5, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        features["returns_20"] = await aggregator.GetReturnsAsync(20, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         return features;
     }
@@ -192,7 +192,7 @@ public class StreamingFeatureEngineering : IDisposable
         try
         {
             var cache = _featureCaches.GetOrAdd(symbol, _ => new FeatureCache(symbol, _maxCacheSize));
-            await Task.Run(() => cache.AddFeatures(timestamp, features), cancellationToken);
+            await Task.Run(() => cache.AddFeatures(timestamp, features), cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -342,7 +342,7 @@ public class StreamingAggregator
     public async Task<double> GetMACDSignalAsync(CancellationToken cancellationToken)
     {
         // Make this a proper async operation instead of Task.FromResult
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         lock (_lock)
         {
@@ -387,7 +387,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
+                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false).ConfigureAwait(false);
                 if (data.Count < 2) return 0.0;
 
                 var trueRanges = new List<double>();
@@ -417,7 +417,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
+                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false).ConfigureAwait(false);
                 if (data.Count < period + 1) return 50.0; // Neutral RSI
 
                 var gains = new List<double>();
@@ -447,7 +447,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period).ToList();
+                var data = _dataWindow.TakeLast(period).ToList().ConfigureAwait(false).ConfigureAwait(false);
                 return data.Count > 0 ? data.Average(d => d.Volume) : 0.0;
             }
         }, cancellationToken);
@@ -459,7 +459,7 @@ public class StreamingAggregator
         {
             lock (_lock)
             {
-                var data = _dataWindow.TakeLast(period + 1).ToList();
+                var data = _dataWindow.TakeLast(period + 1).ToList().ConfigureAwait(false).ConfigureAwait(false);
                 if (data.Count < period + 1) return 0.0;
 
                 var currentPrice = data.Last().Close;

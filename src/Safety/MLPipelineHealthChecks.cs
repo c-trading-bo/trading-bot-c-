@@ -31,7 +31,7 @@ public class MLPipelineHealthChecks : IHealthCheck
     public async Task<HealthCheckResult> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         var results = new List<(string Component, bool IsHealthy, string Message)>();
-        await Task.Delay(1, cancellationToken); // Satisfy async requirement
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false); // Satisfy async requirement
 
         try
         {

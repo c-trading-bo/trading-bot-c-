@@ -30,7 +30,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
         ContextVector context,
         CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {
@@ -82,7 +82,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
         decimal reward,
         CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {
@@ -104,7 +104,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
     /// </summary>
     public async Task<Dictionary<string, ArmStatistics>> GetArmStatisticsAsync(CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {
@@ -127,7 +127,7 @@ public class LinUcbBandit : IFunctionApproximationBandit
     /// </summary>
     public async Task<FeatureImportanceReport> AnalyzeFeatureImportanceAsync(CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {

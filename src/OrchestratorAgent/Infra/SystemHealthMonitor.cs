@@ -28,7 +28,7 @@ public class SystemHealthMonitor
         InitializeHealthChecks();
 
         // Initialize self-healing engine
-        _ = Task.Run(async () => await _selfHealingEngine.InitializeAsync());
+        _ = Task.Run(async () => await _selfHealingEngine.InitializeAsync()).ConfigureAwait(false);
 
         // Run health checks every 60 seconds
         _healthCheckTimer = new Timer(RunHealthChecks, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
@@ -42,7 +42,7 @@ public class SystemHealthMonitor
         InitializeLegacyHealthChecks();
 
         // Discover new health checks automatically
-        await DiscoverAndRegisterHealthChecks();
+        await DiscoverAndRegisterHealthChecks().ConfigureAwait(false);
 
         _logger.LogInformation("[HEALTH] System health monitoring started - checking {Count} features", _healthChecks.Count);
     }
@@ -169,7 +169,7 @@ public class SystemHealthMonitor
         try
         {
             // Discover health checks that implement IHealthCheck interface
-            var discoveredChecks = await _discovery.DiscoverHealthChecksAsync();
+            var discoveredChecks = await _discovery.DiscoverHealthChecksAsync().ConfigureAwait(false).ConfigureAwait(false);
 
             foreach (var healthCheck in discoveredChecks)
             {
@@ -209,7 +209,7 @@ public class SystemHealthMonitor
             _logger.LogInformation("[HEALTH] Discovered and registered {Count} health checks + Universal Auto-Discovery Monitor", discoveredChecks.Count);
 
             // Check for unmonitored features
-            var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync();
+            var unmonitored = await _discovery.ScanForUnmonitoredFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
             if (unmonitored.Count > 0)
             {
                 _logger.LogWarning("[HEALTH] Found {Count} potentially unmonitored features (will be auto-monitored by Universal Discovery): {Features}",
@@ -226,7 +226,7 @@ public class SystemHealthMonitor
     {
         try
         {
-            var result = await healthCheck.ExecuteAsync();
+            var result = await healthCheck.ExecuteAsync().ConfigureAwait(false).ConfigureAwait(false);
 
             var status = result.Status switch
             {
@@ -248,7 +248,7 @@ public class SystemHealthMonitor
     {
         try
         {
-            var healingAttempted = await _selfHealingEngine.AttemptHealingAsync(healthCheckName, failedResult);
+            var healingAttempted = await _selfHealingEngine.AttemptHealingAsync(healthCheckName, failedResult).ConfigureAwait(false).ConfigureAwait(false);
             if (healingAttempted)
             {
                 _logger.LogInformation("[SELF-HEAL] Initiated self-healing for failed health check: {HealthCheck}", healthCheckName);
@@ -294,7 +294,7 @@ public class SystemHealthMonitor
                         {
                             Status = Infra.HealthStatus.Failed,
                             Message = result.Message
-                        }));
+                        })).ConfigureAwait(false);
                     }
                     else if (check.CriticalLevel == HealthLevel.Critical && result.Status == HealthStatus.Warning)
                     {

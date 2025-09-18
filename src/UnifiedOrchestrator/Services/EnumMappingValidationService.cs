@@ -69,7 +69,7 @@ public class EnumMappingValidationService
                         var mockBrainDecision = CreateMockBrainDecision(direction, multiplier);
                         
                         // Test through the adapter
-                        var result = await _brainAdapter.DecideAsync(testContext, cancellationToken);
+                        var result = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                         
                         testCase.ExpectedAction = DetermineExpectedAction(direction, multiplier);
                         testCase.ActualAction = result.Action.ToString();
@@ -92,7 +92,7 @@ public class EnumMappingValidationService
             }
 
             // Test edge cases and invalid values
-            await TestEdgeCasesAsync(report, cancellationToken);
+            await TestEdgeCasesAsync(report, cancellationToken).ConfigureAwait(false);
 
             report.TotalTests = report.TestResults.Count;
             report.PassedTests = report.TestResults.Count(t => t.TestPassed);
@@ -171,7 +171,7 @@ public class EnumMappingValidationService
                     Timestamp = DateTime.UtcNow
                 };
 
-                var result = await _brainAdapter.DecideAsync(testContext, cancellationToken);
+                var result = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // For edge cases, we expect the system to handle gracefully (not crash)
                 testCase.ActualAction = result.Action.ToString();

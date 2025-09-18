@@ -48,12 +48,12 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
 
     public async Task<bool> IsKillSwitchActiveAsync()
     {
-        return await Task.FromResult(_isActive);
+        return await Task.FromResult(_isActive).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     public async Task StartWatchingAsync()
     {
-        await StartWatchingAsync(CancellationToken.None);
+        await StartWatchingAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     public async Task StartWatchingAsync(CancellationToken cancellationToken = default)
@@ -75,7 +75,7 @@ public class KillSwitchWatcher : TradingBot.Abstractions.IKillSwitchWatcher, IDi
             // Keep monitoring until cancellation requested
             while (!cancellationToken.IsCancellationRequested && !_isActive)
             {
-                await Task.Delay(1000, cancellationToken);
+                await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
                 
                 // Double-check file existence every second (backup to file watcher)
                 if (File.Exists(_config.KillFile) && !_isActive)

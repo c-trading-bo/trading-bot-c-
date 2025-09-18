@@ -58,7 +58,7 @@ public static class AuthenticationServiceExtensions
                     
                     try
                     {
-                        return await authAgent.GetJwtAsync(username, apiKey, cancellationToken);
+                        return await authAgent.GetJwtAsync(username, apiKey, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {

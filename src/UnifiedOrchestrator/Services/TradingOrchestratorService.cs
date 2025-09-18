@@ -99,17 +99,17 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         _logger.LogInformation("🚀 [TRADING-ORCHESTRATOR] Starting always-learning trading system...");
         
         // Initialize all AI systems
-        await InitializeAllSystemsAsync(stoppingToken);
+        await InitializeAllSystemsAsync(stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 // NEW: Main trading orchestration with always-learning system
-                await ProcessAlwaysLearningTradingAsync(stoppingToken);
+                await ProcessAlwaysLearningTradingAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Wait before next iteration
-                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -118,7 +118,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ [TRADING-ORCHESTRATOR] Error in always-learning trading loop");
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -142,12 +142,12 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             }
             
             // Initialize traditional brain systems
-            await InitializeTradingBrainAsync(cancellationToken);
+            await InitializeTradingBrainAsync(cancellationToken).ConfigureAwait(false);
             
             // Initialize enhanced brain if available
             if (_enhancedBrain != null)
             {
-                await _enhancedBrain.InitializeAsync(cancellationToken);
+                await _enhancedBrain.InitializeAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("✅ [SYSTEM-INIT] Enhanced Trading Brain Integration initialized");
             }
             
@@ -165,7 +165,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         try
         {
             _logger.LogInformation("🧠 [BRAIN-INIT] Initializing UnifiedTradingBrain with ML/RL models...");
-            await _tradingBrain.InitializeAsync(cancellationToken);
+            await _tradingBrain.InitializeAsync(cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("✅ [BRAIN-INIT] UnifiedTradingBrain initialized successfully");
         }
         catch (Exception ex)
@@ -182,10 +182,10 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         try
         {
             // Create enhanced market context with real data
-            var marketContext = await CreateEnhancedMarketContextAsync(cancellationToken);
+            var marketContext = await CreateEnhancedMarketContextAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Get unified trading decision (NEVER HOLD)
-            var decision = await GetUnifiedTradingDecisionAsync(marketContext, cancellationToken);
+            var decision = await GetUnifiedTradingDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (decision != null)
             {
@@ -195,10 +195,10 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                     decision.Confidence, decision.Strategy);
                 
                 // Execute the trading decision
-                var executionResult = await ExecuteUnifiedTradeAsync(decision, cancellationToken);
+                var executionResult = await ExecuteUnifiedTradeAsync(decision, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // Submit outcome for continuous learning
-                await SubmitTradingOutcomeAsync(decision, executionResult, cancellationToken);
+                await SubmitTradingOutcomeAsync(decision, executionResult, cancellationToken).ConfigureAwait(false);
                 
                 _decisionsToday++;
                 if (executionResult.Success)
@@ -237,7 +237,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 try
                 {
                     // Call master orchestrator with conversion
-                    var botCoreDecision = await CallMasterOrchestratorAsync(marketContext, cancellationToken);
+                    var botCoreDecision = await CallMasterOrchestratorAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     
                     if (botCoreDecision != null)
                     {
@@ -266,11 +266,11 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Priority 2: Enhanced Brain Integration (Multi-model ensemble)
             if (_enhancedBrain != null)
             {
-                return await GetEnhancedBrainDecisionAsync(marketContext, cancellationToken);
+                return await GetEnhancedBrainDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             }
             
             // Priority 3: Unified Trading Brain (Neural UCB + CVaR-PPO)
-            return await GetUnifiedBrainDecisionAsync(marketContext, cancellationToken);
+            return await GetUnifiedBrainDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -300,7 +300,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             var availableStrategies = new List<string> { "S2", "S3", "S6", "S11" };
             
             var enhancedDecision = await _enhancedBrain!.MakeEnhancedDecisionAsync(
-                "ES", enhancedContext, availableStrategies, cancellationToken);
+                "ES", enhancedContext, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (enhancedDecision?.EnhancementApplied == true)
             {
@@ -357,11 +357,11 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             };
             
             var levels = CreateLevelsFromContext(marketContext);
-            var bars = await CreateRealBarsFromContextAsync(marketContext, cancellationToken);
+            var bars = await CreateRealBarsFromContextAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var risk = CreateRiskEngine();
             
             var brainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                "ES", env, levels, bars, risk, cancellationToken);
+                "ES", env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Convert to unified decision format
             var action = brainDecision.PriceDirection switch
@@ -415,7 +415,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Ensure TopstepX SDK adapter is initialized and connected
             if (!_topstepXAdapter.IsConnected)
             {
-                var initResult = await _topstepXAdapter.InitializeAsync(cancellationToken);
+                var initResult = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (!initResult)
                 {
                     throw new InvalidOperationException($"TopstepX SDK adapter failed to initialize for {decision.Symbol}. Cannot execute real trades.");
@@ -426,7 +426,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 decision.Action, decision.Symbol, decision.Quantity);
             
             // Get current price for entry through SDK
-            var currentPrice = await _topstepXAdapter.GetPriceAsync(decision.Symbol, cancellationToken);
+            var currentPrice = await _topstepXAdapter.GetPriceAsync(decision.Symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Calculate stop loss and take profit based on strategy (ES/MNQ tick rules)
             var tickSize = decision.Symbol == "ES" ? 0.25m : 0.25m; // Both ES and MNQ use 0.25 tick size
@@ -448,7 +448,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 orderSize, 
                 stopLoss, 
                 takeProfit, 
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (orderResult.Success)
             {
@@ -535,7 +535,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                     holdTime,
                     decision.DecisionSource,
                     outcomeMetadata,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             // Fallback to direct brain learning
             else if (decision.DecisionSource == "UnifiedBrain")
@@ -546,7 +546,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                     executionResult.PnL,
                     executionResult.Success,
                     holdTime,
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
             
             _logger.LogInformation("📚 [LEARNING-FEEDBACK] Outcome submitted for learning: {DecisionId} " +
@@ -569,16 +569,16 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Ensure TopstepX SDK adapter is connected
             if (!_topstepXAdapter.IsConnected)
             {
-                await _topstepXAdapter.InitializeAsync(cancellationToken);
+                await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false);
             }
             
             _logger.LogDebug("📊 [MARKET-CONTEXT] Fetching real market context from TopstepX SDK");
             
             // Get real-time price data for ES through SDK
-            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken);
+            var esPrice = await _topstepXAdapter.GetPriceAsync("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Get health metrics from SDK
-            var healthData = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+            var healthData = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var systemHealthy = healthData.HealthScore >= 80;
             
             _logger.LogInformation("📊 [MARKET-CONTEXT] ES price: ${Price:F2}, SDK health: {Health}%", 
@@ -591,7 +591,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 Volume = systemHealthy ? 1000.0 : 0.0, // Use health as volume proxy when SDK connected
                 Timestamp = DateTime.UtcNow,
                 TechnicalIndicators = await CalculateRealTechnicalIndicators("ES", cancellationToken)
-            };
+            }.ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -637,7 +637,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(context.Symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(context.Symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     // Convert real market data to bars
@@ -713,10 +713,10 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 decision.DecisionId, decision.Action, decision.Confidence);
             
             // Legacy implementation for backwards compatibility
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             
             // After trade execution, push telemetry to cloud
-            await PushTradeTelemetryAsync(decision, success: true, cancellationToken);
+            await PushTradeTelemetryAsync(decision, success: true, cancellationToken).ConfigureAwait(false);
             
             return true;
         }
@@ -725,7 +725,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             _logger.LogError(ex, "❌ [LEGACY-EXECUTION] Failed to execute trade");
             
             // Push failure telemetry
-            await PushTradeTelemetryAsync(decision, success: false, cancellationToken);
+            await PushTradeTelemetryAsync(decision, success: false, cancellationToken).ConfigureAwait(false);
             
             return false;
         }
@@ -756,7 +756,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             };
 
             // Actual telemetry push implementation
-            await Task.Delay(10, cancellationToken); // Simulate network call
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate network call
             _logger.LogInformation("[TELEMETRY] Trade decision pushed: {DecisionId} Success: {Success}", 
                 decision.DecisionId, success);
                 
@@ -764,7 +764,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             var evidenceFile = Path.Combine("/tmp/feature-evidence/runtime-logs", 
                 $"trade-telemetry-{DateTime.UtcNow:yyyyMMdd-HHmmss-fff}.json");
             var telemetryJson = System.Text.Json.JsonSerializer.Serialize(telemetryData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(evidenceFile, telemetryJson, cancellationToken);
+            await File.WriteAllTextAsync(evidenceFile, telemetryJson, cancellationToken).ConfigureAwait(false);
             
             _logger.LogDebug("Trade telemetry prepared for cloud push: {DecisionId} {Action} Success={Success}", 
                 decision.DecisionId, decision.Action, success);
@@ -804,7 +804,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 "risk_management" => await RiskManagementActionAsync(context, cancellationToken),
                 "microstructure_analysis" => await MicrostructureAnalysisActionAsync(context, cancellationToken),
                 _ => new WorkflowExecutionResult { Success = false, ErrorMessage = $"Unsupported action: {action}" }
-            };
+            }.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -818,14 +818,14 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[TRADING] Connecting to TopstepX API and hubs...");
-        await Task.Delay(100, cancellationToken); // Simulate connection
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate connection
         _logger.LogInformation("[TRADING] Connected to TopstepX successfully");
     }
 
     public async Task DisconnectAsync()
     {
         _logger.LogInformation("[TRADING] Disconnecting from TopstepX...");
-        await Task.Delay(100); // Simulate disconnection
+        await Task.Delay(100).ConfigureAwait(false); // Simulate disconnection
         _logger.LogInformation("[TRADING] Disconnected from TopstepX");
     }
 
@@ -842,7 +842,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 
                 // Create market context for enhanced decision making
                 // Create real market context from TopstepX data sources
-                var realMarketContext = await CreateRealMarketContextForEnhancedBrain("ES", cancellationToken);
+                var realMarketContext = await CreateRealMarketContextForEnhancedBrain("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var marketContext = new Dictionary<string, object>
                 {
                     ["symbol"] = realMarketContext.Symbol,
@@ -857,7 +857,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 
                 // Get enhanced decision that combines ML/RL/Cloud predictions
                 var enhancedDecision = await _enhancedBrain.MakeEnhancedDecisionAsync(
-                    "ES", marketContext, availableStrategies, cancellationToken);
+                    "ES", marketContext, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 _logger.LogInformation("🚀 Enhanced Decision: Strategy={Strategy} Confidence={Confidence:P1} " +
                                      "Size={Size:F2} Enhancement={Enhancement} Timing={Timing}", 
@@ -874,7 +874,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 
                 // Convert enhanced decision to trading decision and execute
                 var tradingDecision = ConvertEnhancedToTradingDecision(enhancedDecision);
-                await ExecuteTradeAsync(tradingDecision, cancellationToken);
+                await ExecuteTradeAsync(tradingDecision, cancellationToken).ConfigureAwait(false);
                 
                 // Submit outcome for feedback learning (simulated for demo)
                 _logger.LogDebug("📊 Feedback learning integration ready for real trade outcomes");
@@ -886,34 +886,34 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                 
                 // FAIL FAST: No synthetic environment data allowed
                 // Create real market environment data for the brain from actual data sources
-                var env = await CreateRealEnvironmentAsync("ES", cancellationToken);
-                var levels = await CreateRealLevelsAsync("ES", cancellationToken);
-                var bars = await GetRealBarsAsync("ES", 10, cancellationToken);
+                var env = await CreateRealEnvironmentAsync("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var levels = await CreateRealLevelsAsync("ES", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var bars = await GetRealBarsAsync("ES", 10, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var riskEngine = CreateRiskEngineFromRealConfig();
                 
                 // Get intelligent decision from the brain
                 var brainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                    "ES", env, levels, bars, riskEngine, cancellationToken);
+                    "ES", env, levels, bars, riskEngine, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 _logger.LogInformation("🧠 Brain Decision: Strategy={Strategy} Confidence={Confidence:P1} Direction={Direction}", 
                     brainDecision.RecommendedStrategy, brainDecision.StrategyConfidence, brainDecision.PriceDirection);
                 
                 // Convert brain decision to trading decision and execute
                 var tradingDecision = ConvertBrainToTradingDecision(brainDecision);
-                await ExecuteTradeAsync(tradingDecision, cancellationToken);
+                await ExecuteTradeAsync(tradingDecision, cancellationToken).ConfigureAwait(false);
             }
             else
             {
                 // Fallback to Intelligence Orchestrator if brain is not initialized
                 _logger.LogInformation("🤖 Using Intelligence Orchestrator for ML/RL decision...");
                 
-                var marketContext = await CreateMarketContextFromWorkflowAsync(context, cancellationToken);
-                var mlDecision = await _intelligenceOrchestrator.MakeDecisionAsync(marketContext, cancellationToken);
+                var marketContext = await CreateMarketContextFromWorkflowAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+                var mlDecision = await _intelligenceOrchestrator.MakeDecisionAsync(marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 _logger.LogInformation("🤖 ML Decision: {Action} Confidence={Confidence:P1}", 
                     mlDecision.Action, mlDecision.Confidence);
                 
-                await ExecuteTradeAsync(mlDecision, cancellationToken);
+                await ExecuteTradeAsync(mlDecision, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -922,50 +922,50 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             
             // Fallback to basic trading logic
             _logger.LogInformation("⚠️ Falling back to basic trading logic...");
-            await Task.Delay(100, cancellationToken); // Simulate basic trading
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate basic trading
         }
     }
 
     public async Task ManagePortfolioRiskAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[TRADING] Managing portfolio risk...");
-        await Task.Delay(100, cancellationToken); // Simulate risk management
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate risk management
     }
 
     public async Task AnalyzeMicrostructureAsync(WorkflowExecutionContext context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("[TRADING] Analyzing market microstructure...");
-        await Task.Delay(100, cancellationToken); // Simulate analysis
+        await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate analysis
     }
 
     // Helper methods for workflow actions
     private async Task<WorkflowExecutionResult> ExecuteTradeActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await ExecuteESNQTradingAsync(context, cancellationToken);
+        await ExecuteESNQTradingAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Trade execution completed" } };
     }
 
     private async Task<WorkflowExecutionResult> ConnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await ConnectAsync(cancellationToken);
+        await ConnectAsync(cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Connected to TopstepX" } };
     }
 
     private async Task<WorkflowExecutionResult> DisconnectActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await DisconnectAsync();
+        await DisconnectAsync().ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Disconnected from TopstepX" } };
     }
 
     private async Task<WorkflowExecutionResult> RiskManagementActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await ManagePortfolioRiskAsync(context, cancellationToken);
+        await ManagePortfolioRiskAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Risk management completed" } };
     }
 
     private async Task<WorkflowExecutionResult> MicrostructureAnalysisActionAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
     {
-        await AnalyzeMicrostructureAsync(context, cancellationToken);
+        await AnalyzeMicrostructureAsync(context, cancellationToken).ConfigureAwait(false);
         return new WorkflowExecutionResult { Success = true, Results = new() { ["message"] = "Microstructure analysis completed" } };
     }
 
@@ -983,7 +983,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     var price = (double)currentPrice;
@@ -996,7 +996,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                         Volume = volume,
                         Timestamp = DateTime.UtcNow,
                         TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken)
-                    };
+                    }.ConfigureAwait(false).ConfigureAwait(false);
                 }
             }
             
@@ -1017,7 +1017,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             var symbol = context.GetVariable("symbol")?.ToString() ?? "ES";
             
             // Use the existing real market context creation method
-            var realContext = await CreateRealMarketContextForEnhancedBrain(symbol, cancellationToken);
+            var realContext = await CreateRealMarketContextForEnhancedBrain(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             _logger.LogDebug("📊 [WORKFLOW-CONTEXT] Created real market context for {Symbol} from workflow", symbol);
             return realContext;
@@ -1057,7 +1057,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     // Extract available technical indicators from TopstepX
@@ -1177,7 +1177,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     var price = (double)currentPrice;
@@ -1190,7 +1190,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
                         Volume = volume,
                         Timestamp = DateTime.UtcNow,
                         TechnicalIndicators = await CalculateRealTechnicalIndicators(symbol, cancellationToken)
-                    };
+                    }.ConfigureAwait(false).ConfigureAwait(false);
                 }
             }
             
@@ -1214,7 +1214,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     // Extract ATR and volume Z-score from real market data
@@ -1260,7 +1260,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     var currentPriceDecimal = currentPrice;
@@ -1303,7 +1303,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
             // Using injected _topstepXAdapter instead of ITopstepXClient
             if (_topstepXAdapter.IsConnected)
             {
-                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken);
+                var marketData = await topstepXClient.GetMarketDataAsync(symbol, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (true) // SDK always returns valid data
                 {
                     var bars = new List<Bar>();
@@ -1467,7 +1467,7 @@ public class TradingOrchestratorService : BackgroundService, ITradingOrchestrato
         try
         {
             // Call the BotCore.Services.MasterDecisionOrchestrator directly - no conversion needed
-            var decision = await _masterOrchestrator!.MakeUnifiedDecisionAsync("ES", localMarketContext, cancellationToken);
+            var decision = await _masterOrchestrator!.MakeUnifiedDecisionAsync("ES", localMarketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Convert the returned BotCore.Services.UnifiedTradingDecision to our local UnifiedTradingDecision type
             return decision != null ? new UnifiedTradingDecision

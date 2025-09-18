@@ -75,7 +75,7 @@ public class MLMemoryManager : IMLMemoryManager
         GC.RegisterForFullGCNotification(10, 10);
         _ = Task.Run(StartGCMonitoring);
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -99,12 +99,12 @@ public class MLMemoryManager : IMLMemoryManager
         }
         
         // Check memory before loading
-        await EnsureMemoryAvailableAsync();
+        await EnsureMemoryAvailableAsync().ConfigureAwait(false);
         
         try
         {
             // Load real ONNX model using OnnxModelLoader
-            var model = await LoadModelFromDiskAsync<T>(modelPath);
+            var model = await LoadModelFromDiskAsync<T>(modelPath).ConfigureAwait(false).ConfigureAwait(false);
             
             if (model == null)
             {
@@ -143,7 +143,7 @@ public class MLMemoryManager : IMLMemoryManager
             }
             
             // Cleanup old versions
-            await CleanupOldVersionsAsync(modelId);
+            await CleanupOldVersionsAsync(modelId).ConfigureAwait(false);
             
             _logger.LogInformation("[ML-Memory] Loaded model: {ModelId} v{Version} ({MemoryMB:F1}MB)", 
                 modelId, version, modelVersion.MemoryFootprint / 1024.0 / 1024.0);
@@ -173,7 +173,7 @@ public class MLMemoryManager : IMLMemoryManager
             }
 
             // Load ONNX model using professional OnnxModelLoader with validation
-            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
+            var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
             
             if (session == null)
             {
@@ -207,7 +207,7 @@ public class MLMemoryManager : IMLMemoryManager
                 currentMemory / 1024.0 / 1024.0);
                 
             // Intelligent cleanup based on usage patterns
-            await PerformIntelligentCleanupAsync();
+            await PerformIntelligentCleanupAsync().ConfigureAwait(false);
             
             // Wait for memory pressure to reduce naturally
             var maxWaitTime = TimeSpan.FromSeconds(10);
@@ -219,7 +219,7 @@ public class MLMemoryManager : IMLMemoryManager
                 if (currentMemory <= MAX_MEMORY_BYTES * 0.75)
                     break;
                     
-                await Task.Delay(500);
+                await Task.Delay(500).ConfigureAwait(false);
             }
             
             // Only as last resort, suggest collection to runtime
@@ -227,7 +227,7 @@ public class MLMemoryManager : IMLMemoryManager
             {
                 _logger.LogCritical("[ML-Memory] Memory critically high, suggesting collection to runtime");
                 GC.Collect(0, GCCollectionMode.Optimized, false); // Gentle suggestion only
-                await Task.Delay(1000); // Give runtime time to respond
+                await Task.Delay(1000).ConfigureAwait(false); // Give runtime time to respond
                 
                 currentMemory = GC.GetTotalMemory(false);
                 if (currentMemory > MAX_MEMORY_BYTES * 0.95)
@@ -244,7 +244,7 @@ public class MLMemoryManager : IMLMemoryManager
     /// </summary>
     private async Task PerformIntelligentCleanupAsync()
     {
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         // Remove models that haven't been used recently and have low usage counts
         var candidatesForRemoval = _activeModels.Values
@@ -314,7 +314,7 @@ public class MLMemoryManager : IMLMemoryManager
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void CollectGarbage(object? state)
@@ -475,7 +475,7 @@ public class MLMemoryManager : IMLMemoryManager
         
         _logger.LogInformation("[ML-Memory] Emergency cleanup completed - freed ~{FreedMB}MB from {ModelCount} models", 
             totalFreed / 1024 / 1024, modelsToUnload.Count);
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void StartGCMonitoring()
@@ -498,7 +498,7 @@ public class MLMemoryManager : IMLMemoryManager
                         _logger.LogDebug("[ML-Memory] Full GC completed");
                     }
                     
-                    await Task.Delay(1000); // Brief pause
+                    await Task.Delay(1000).ConfigureAwait(false); // Brief pause
                 }
             }
             catch (Exception ex)

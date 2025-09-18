@@ -62,7 +62,7 @@ namespace BotCore.Services
         {
             try
             {
-                var correlation = await CalculateES_NQ_CorrelationAsync();
+                var correlation = await CalculateES_NQ_CorrelationAsync().ConfigureAwait(false).ConfigureAwait(false);
                 var filter = new SignalFilter { Allow = true };
 
                 // CRITICAL: ES/NQ divergence detection
@@ -92,7 +92,7 @@ namespace BotCore.Services
                 else if (correlation.Correlation5Min > 0.9) // Highly correlated
                 {
                     // Don't take opposing positions
-                    var otherPosition = await GetCurrentPositionAsync(GetOther(instrument));
+                    var otherPosition = await GetCurrentPositionAsync(GetOther(instrument)).ConfigureAwait(false).ConfigureAwait(false);
                     if (otherPosition != null && OppositeDirection(signal, otherPosition))
                     {
                         filter.Allow = false;
@@ -111,15 +111,15 @@ namespace BotCore.Services
 
         public async Task<CorrelationData> GetCorrelationDataAsync()
         {
-            return await CalculateES_NQ_CorrelationAsync();
+            return await CalculateES_NQ_CorrelationAsync().ConfigureAwait(false).ConfigureAwait(false);
         }
 
         private async Task<CorrelationData> CalculateES_NQ_CorrelationAsync()
         {
             try
             {
-                var esData = await GetRecentBarsAsync("ES", 252);
-                var nqData = await GetRecentBarsAsync("NQ", 252);
+                var esData = await GetRecentBarsAsync("ES", 252).ConfigureAwait(false).ConfigureAwait(false);
+                var nqData = await GetRecentBarsAsync("NQ", 252).ConfigureAwait(false).ConfigureAwait(false);
 
                 var correlation = new CorrelationData
                 {
@@ -166,7 +166,7 @@ namespace BotCore.Services
             try
             {
                 // Integration point: Connect to your existing market data infrastructure
-                var realBars = await GetRealMarketBarsAsync(symbol, count);
+                var realBars = await GetRealMarketBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (realBars?.Count > 0)
                 {
                     return realBars.Select(b => b.Close).ToList();
@@ -207,7 +207,7 @@ namespace BotCore.Services
                 // Connect to existing market data systems in production order:
                 
                 // 1. Try TopstepX historical bar API first (most reliable for live trading)
-                var topstepBars = await TryGetTopstepXBarsAsync(symbol, count);
+                var topstepBars = await TryGetTopstepXBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (topstepBars != null && topstepBars.Count > 0)
                 {
                     _logger.LogDebug("[CORRELATION] Retrieved {Count} bars from TopstepX for {Symbol}", topstepBars.Count, symbol);
@@ -215,7 +215,7 @@ namespace BotCore.Services
                 }
 
                 // 2. Try RedundantDataFeedManager (your existing data infrastructure)
-                var redundantBars = await TryGetRedundantDataFeedBarsAsync(symbol, count);
+                var redundantBars = await TryGetRedundantDataFeedBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (redundantBars != null && redundantBars.Count > 0)
                 {
                     _logger.LogDebug("[CORRELATION] Retrieved {Count} bars from RedundantDataFeed for {Symbol}", redundantBars.Count, symbol);
@@ -223,7 +223,7 @@ namespace BotCore.Services
                 }
 
                 // 3. Try cached bar data (fastest fallback)
-                var cachedBars = await TryGetCachedBarsAsync(symbol, count);
+                var cachedBars = await TryGetCachedBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (cachedBars != null && cachedBars.Count > 0)
                 {
                     _logger.LogDebug("[CORRELATION] Retrieved {Count} cached bars for {Symbol}", cachedBars.Count, symbol);
@@ -231,7 +231,7 @@ namespace BotCore.Services
                 }
 
                 // 4. Try MarketDataService if available
-                var marketDataBars = await TryGetMarketDataServiceBarsAsync(symbol, count);
+                var marketDataBars = await TryGetMarketDataServiceBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (marketDataBars != null && marketDataBars.Count > 0)
                 {
                     _logger.LogDebug("[CORRELATION] Retrieved {Count} bars from MarketDataService for {Symbol}", marketDataBars.Count, symbol);
@@ -253,7 +253,7 @@ namespace BotCore.Services
             try
             {
                 // REAL TOPSTEPX HISTORICAL DATA: Use native /api/History/retrieveBars
-                var topstepBars = await FetchTopstepXHistoricalBarsAsync(symbol, count);
+                var topstepBars = await FetchTopstepXHistoricalBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                 if (topstepBars != null && topstepBars.Count > 0)
                 {
                     _logger.LogInformation("[CORRELATION] Retrieved {Count} REAL TopstepX historical bars for {Symbol}", topstepBars.Count, symbol);
@@ -278,12 +278,12 @@ namespace BotCore.Services
                 /*
                 if (_marketData is IRedundantDataFeedManager redundantFeed)
                 {
-                    var bars = await redundantFeed.GetRecentBarsAsync(symbol, count);
+                    var bars = await redundantFeed.GetRecentBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                     return bars?.ToList();
                 }
                 */
                 
-                await Task.Delay(3); // Simulate feed check
+                await Task.Delay(3).ConfigureAwait(false); // Simulate feed check
                 return null; // Return null when redundant feed not available
             }
             catch (Exception ex)
@@ -302,12 +302,12 @@ namespace BotCore.Services
                 /*
                 if (_marketData is ICachedBarProvider barCache)
                 {
-                    var bars = await barCache.GetCachedBarsAsync(symbol, count);
+                    var bars = await barCache.GetCachedBarsAsync(symbol, count).ConfigureAwait(false).ConfigureAwait(false);
                     return bars?.ToList();
                 }
                 */
                 
-                await Task.Delay(2); // Simulate cache lookup
+                await Task.Delay(2).ConfigureAwait(false); // Simulate cache lookup
                 return null; // Return null when cache not available
             }
             catch (Exception ex)
@@ -330,13 +330,13 @@ namespace BotCore.Services
                     /*
                     if (_marketData is IHistoricalDataProvider historicalProvider)
                     {
-                        var bars = await historicalProvider.GetHistoricalBarsAsync(symbol, count, TimeSpan.FromMinutes(1));
+                        var bars = await historicalProvider.GetHistoricalBarsAsync(symbol, count, TimeSpan.FromMinutes(1)).ConfigureAwait(false).ConfigureAwait(false);
                         return bars?.ToList();
                     }
                     */
                 }
                 
-                await Task.Delay(3); // Simulate service call
+                await Task.Delay(3).ConfigureAwait(false); // Simulate service call
                 return null; // Return null when service doesn't support historical data
             }
             catch (Exception ex)
@@ -395,17 +395,17 @@ namespace BotCore.Services
                     symbol, contractId, startTime, endTime);
                 
                 // Make API call
-                var response = await httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody);
+                var response = await httpClient.PostAsJsonAsync("https://api.topstepx.com/api/History/retrieveBars", requestBody).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
                     _logger.LogWarning("[CORRELATION] TopstepX History API failed: {StatusCode} - {Error}", 
                         response.StatusCode, errorContent);
                     return null;
                 }
                 
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogDebug("[CORRELATION] TopstepX History API response length: {Length} characters", responseContent.Length);
                 
                 // Parse response to Bar objects
@@ -835,7 +835,7 @@ namespace BotCore.Services
         {
             // This would interface with your position service
             // For now, return null (no position)
-            await Task.Delay(1);
+            await Task.Delay(1).ConfigureAwait(false);
             return null;
         }
 

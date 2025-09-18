@@ -65,10 +65,10 @@ namespace OrchestratorAgent
                 try
                 {
                     Step("Order test: placing far-away limit then canceling (expect Canceled event)…");
-                    await OrderSmokeTester.RunAsync(http, tokenProvider, accountId, _primaryCid, _log, CancellationToken.None);
+                    await OrderSmokeTester.RunAsync(http, tokenProvider, accountId, _primaryCid, _log, CancellationToken.None).ConfigureAwait(false);
                     // Wait up to 3s for canceled event
                     using var waitCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                    try { await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, waitCts.Token)); } catch { }
+                    try { await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, waitCts.Token)).ConfigureAwait(false); } catch { }
                     return tcs.Task.IsCompleted && tcs.Task.Result;
                 }
                 finally
@@ -105,7 +105,7 @@ namespace OrchestratorAgent
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(timeout);
-            try { await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token)); } catch { }
+            try { await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token)).ConfigureAwait(false); } catch { }
 
             try { _marketHub.Remove("GatewayQuote"); } catch { }
             try { _marketHub.Remove("GatewayTrade"); } catch { }
@@ -121,7 +121,7 @@ namespace OrchestratorAgent
             if (_orderTest != null)
             {
                 Step("Running order stream test (place + cancel)…");
-                var ok = await _orderTest();
+                var ok = await _orderTest().ConfigureAwait(false).ConfigureAwait(false);
                 if (!ok)
                 {
                     StepFail("Order stream did not emit expected Canceled event");

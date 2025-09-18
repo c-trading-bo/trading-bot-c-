@@ -102,7 +102,7 @@ namespace BotCore.Services
                 }
 
                 var expirationDate = CalculateExpirationDate(baseSymbol, monthCode, year);
-                var isActive = await IsContractActiveAsync(contractSymbol);
+                var isActive = await IsContractActiveAsync(contractSymbol).ConfigureAwait(false).ConfigureAwait(false);
                 var daysToExpiration = (expirationDate - DateTime.UtcNow).Days;
 
                 return new ContractInfo
@@ -240,7 +240,7 @@ namespace BotCore.Services
                         // Only include contracts that haven't expired and are within 12 months
                         if (expirationDate > currentDate && expirationDate <= currentDate.AddMonths(12))
                         {
-                            var contractInfo = await GetContractInfoAsync(contractSymbol);
+                            var contractInfo = await GetContractInfoAsync(contractSymbol).ConfigureAwait(false).ConfigureAwait(false);
                             activeContracts.Add(contractInfo);
                         }
                     }
@@ -278,8 +278,8 @@ namespace BotCore.Services
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    await CheckRolloverRequirementsAsync();
-                    await Task.Delay(TimeSpan.FromHours(4), cancellationToken); // Check every 4 hours
+                    await CheckRolloverRequirementsAsync().ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromHours(4), cancellationToken).ConfigureAwait(false); // Check every 4 hours
                 }
             }
             catch (OperationCanceledException)
@@ -486,12 +486,12 @@ namespace BotCore.Services
 
                 foreach (var baseSymbol in baseSymbols)
                 {
-                    var frontMonth = await GetCurrentFrontMonthContractAsync(baseSymbol);
-                    var shouldRollover = await ShouldRolloverAsync(frontMonth);
+                    var frontMonth = await GetCurrentFrontMonthContractAsync(baseSymbol).ConfigureAwait(false).ConfigureAwait(false);
+                    var shouldRollover = await ShouldRolloverAsync(frontMonth).ConfigureAwait(false).ConfigureAwait(false);
 
                     if (shouldRollover)
                     {
-                        var nextContract = await GetNextContractAsync(frontMonth);
+                        var nextContract = await GetNextContractAsync(frontMonth).ConfigureAwait(false).ConfigureAwait(false);
                         _logger.LogWarning("[CONTRACT-MONITOR] ⚠️ Rollover required: {BaseSymbol} from {Current} to {Next}",
                             baseSymbol, frontMonth, nextContract);
 

@@ -40,19 +40,19 @@ public class ComprehensiveValidationDemoService : BackgroundService
         try
         {
             // Wait for system to initialize
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken).ConfigureAwait(false);
             
             // Phase 1: Data Integration Verification
-            await DemonstrateDataIntegrationAsync(stoppingToken);
+            await DemonstrateDataIntegrationAsync(stoppingToken).ConfigureAwait(false);
             
             // Phase 2: Runtime Validation Proof
-            await DemonstrateRuntimeValidationAsync(stoppingToken);
+            await DemonstrateRuntimeValidationAsync(stoppingToken).ConfigureAwait(false);
             
             // Phase 3: Rollback Drill Evidence
-            await DemonstrateRollbackDrillAsync(stoppingToken);
+            await DemonstrateRollbackDrillAsync(stoppingToken).ConfigureAwait(false);
             
             // Phase 4: Brain Adapter Functionality
-            await DemonstrateBrainAdapterAsync(stoppingToken);
+            await DemonstrateBrainAdapterAsync(stoppingToken).ConfigureAwait(false);
             
             _logger.LogWarning("✅ [VALIDATION-DEMO] Comprehensive validation demonstration completed successfully");
             
@@ -60,7 +60,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
             while (!stoppingToken.IsCancellationRequested)
             {
                 ShowOngoingStatus(stoppingToken);
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -81,7 +81,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
         _logger.LogWarning("🔗 [DATA-INTEGRATION-DEMO] Demonstrating unified data integration");
         
         // Wait for data integration to initialize
-        await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(3), stoppingToken).ConfigureAwait(false);
         
         // Get and display integration status
         var status = _dataIntegrationService.GetIntegrationStatus();
@@ -118,7 +118,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
         try
         {
             // Generate demonstration validation report with realistic metrics
-            var validationReport = await _validationService.GenerateDemoValidationReportAsync(stoppingToken);
+            var validationReport = await _validationService.GenerateDemoValidationReportAsync(stoppingToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Display comprehensive validation results
             _logger.LogWarning("📊 [VALIDATION-DEMO] Validation Report Generated - ID: {ValidationId}", validationReport.ValidationId);
@@ -217,7 +217,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
         try
         {
             // Execute quick rollback drill for demonstration
-            var drillResult = await _rollbackDrillService.ExecuteQuickDrillAsync(stoppingToken);
+            var drillResult = await _rollbackDrillService.ExecuteQuickDrillAsync(stoppingToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Display rollback drill results
             _logger.LogWarning("🔄 [ROLLBACK-DEMO] Rollback Drill Completed - ID: {DrillId}", drillResult.DrillId);
@@ -276,7 +276,7 @@ public class ComprehensiveValidationDemoService : BackgroundService
     /// </summary>
     private async Task DemonstrateBrainAdapterAsync(CancellationToken stoppingToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         _logger.LogWarning("🧠 [BRAIN-ADAPTER-DEMO] Demonstrating UnifiedTradingBrain parity via adapter");
         

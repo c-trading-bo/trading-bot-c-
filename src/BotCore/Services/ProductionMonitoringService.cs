@@ -32,11 +32,11 @@ public class ProductionMonitoringService : IHealthCheck
             var healthChecks = new List<(string Name, bool IsHealthy, string Message)>();
 
             // Check model health
-            var modelHealth = await CheckModelHealthAsync(cancellationToken);
+            var modelHealth = await CheckModelHealthAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             healthChecks.Add(("Models", modelHealth.IsHealthy, modelHealth.Message));
 
             // Check GitHub API connectivity
-            var githubHealth = await CheckGitHubConnectivityAsync(cancellationToken);
+            var githubHealth = await CheckGitHubConnectivityAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             healthChecks.Add(("GitHub", githubHealth.IsHealthy, githubHealth.Message));
 
             // Check system resources
@@ -264,7 +264,7 @@ public class ProductionMonitoringService : IHealthCheck
             httpClient.Timeout = TimeSpan.FromSeconds(10);
             httpClient.DefaultRequestHeaders.Add("User-Agent", "TradingBot-HealthCheck");
             
-            var response = await httpClient.GetAsync("https://api.github.com/", cancellationToken);
+            var response = await httpClient.GetAsync("https://api.github.com/", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             return response.IsSuccessStatusCode 
                 ? (true, "GitHub API accessible") 
                 : (false, $"GitHub API returned {response.StatusCode}");

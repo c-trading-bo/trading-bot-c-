@@ -144,7 +144,7 @@ public class DecisionServiceClient
         
         try
         {
-            var response = await _httpClient.GetAsync("/health", cancellationToken);
+            var response = await _httpClient.GetAsync("/health", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -160,7 +160,7 @@ public class DecisionServiceClient
             // Try Python model first if enabled
             if (_pythonOptions.Enabled)
             {
-                var pythonResult = await CallPythonModelAsync(input, cancellationToken);
+                var pythonResult = await CallPythonModelAsync(input, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (!string.IsNullOrWhiteSpace(pythonResult))
                 {
                     _logger?.LogInformation("[DECISION_SERVICE] Python model decision: {Decision}", pythonResult);
@@ -169,7 +169,7 @@ public class DecisionServiceClient
             }
             
             // Fallback to built-in decision logic
-            await Task.Delay(100, cancellationToken); // Simulate processing time
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate processing time
             
             // Parse input and make conservative decision
             if (string.IsNullOrWhiteSpace(input))
@@ -242,10 +242,10 @@ public class DecisionServiceClient
                 return null;
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var error = await process.StandardError.ReadToEndAsync(cancellationToken);
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var error = await process.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {

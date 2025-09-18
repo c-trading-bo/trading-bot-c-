@@ -128,7 +128,7 @@ namespace TopstepX.Bot.Core.Services
                     component, exception.GetType().Name, exception.Message, severity, errorId);
                 
                 // Write to error log file
-                await WriteErrorToFileAsync(component, exception, severity, errorId, additionalData);
+                await WriteErrorToFileAsync(component, exception, severity, errorId, additionalData).ConfigureAwait(false);
                 
                 // Update component health
                 UpdateComponentHealth(component, HealthStatus.Warning, exception.Message);
@@ -136,7 +136,7 @@ namespace TopstepX.Bot.Core.Services
                 // Check if this is a critical error that requires immediate attention
                 if (severity >= ErrorSeverity.Critical)
                 {
-                    await HandleCriticalErrorAsync(component, exception, errorId);
+                    await HandleCriticalErrorAsync(component, exception, errorId).ConfigureAwait(false);
                 }
                 
                 // Clean up old error records (keep last 24 hours)
@@ -177,7 +177,7 @@ namespace TopstepX.Bot.Core.Services
                 var fileName = $"error_{DateTime.UtcNow:yyyyMMdd}_{errorId}.json";
                 var filePath = Path.Combine(_errorLogPath, fileName);
                 
-                await File.WriteAllTextAsync(filePath, json);
+                await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -224,7 +224,7 @@ namespace TopstepX.Bot.Core.Services
                     {exception.StackTrace}
                     """;
                     
-                await File.WriteAllTextAsync(alertPath, alertContent);
+                await File.WriteAllTextAsync(alertPath, alertContent).ConfigureAwait(false);
                 
                 _logger.LogInformation("📋 Critical alert file created: {AlertPath}", alertPath);
             }

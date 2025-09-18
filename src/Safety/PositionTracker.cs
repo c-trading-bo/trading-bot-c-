@@ -98,7 +98,7 @@ namespace OrchestratorAgent.Infra
         {
             try
             {
-                var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
+                var resp = await api.PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false).ConfigureAwait(false);
                 var list = resp?.positions ?? [];
                 foreach (var p in list)
                 {

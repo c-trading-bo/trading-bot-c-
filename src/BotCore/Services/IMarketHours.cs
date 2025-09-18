@@ -21,13 +21,13 @@ public class BasicMarketHours : IMarketHours
 {
     public async Task<bool> IsMarketOpenAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return IsMarketOpen();
     }
     
     public async Task<string> GetCurrentMarketSessionAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var easternTime = GetEasternTime();
         var timeOfDay = easternTime.TimeOfDay;

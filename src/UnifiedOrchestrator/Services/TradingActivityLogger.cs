@@ -48,7 +48,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.SIGNAL, TradingLogLevel.INFO, 
-            "SIGNAL_GENERATED", signalData, customTag);
+            "SIGNAL_GENERATED", signalData, customTag).ConfigureAwait(false);
 
         // Also log to console with structured format
         _logger.LogInformation("📡 SIGNAL: {SignalMessage}", signalMessage);
@@ -76,7 +76,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, 
-            "ORDER_PLACED", orderData, customTag);
+            "ORDER_PLACED", orderData, customTag).ConfigureAwait(false);
 
         _logger.LogInformation("📋 ORDER: {OrderMessage}", orderMessage);
     }
@@ -100,7 +100,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ORDER, TradingLogLevel.INFO, 
-            "ORDER_STATUS_CHANGE", statusData, orderId);
+            "ORDER_STATUS_CHANGE", statusData, orderId).ConfigureAwait(false);
 
         var logLevel = status == "Rejected" || status == "Cancelled" ? LogLevel.Warning : LogLevel.Information;
         _logger.Log(logLevel, "📋 ORDER STATUS: {StatusMessage}", statusMessage);
@@ -125,7 +125,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, 
-            "TRADE_FILLED", tradeData, orderId);
+            "TRADE_FILLED", tradeData, orderId).ConfigureAwait(false);
 
         _logger.LogInformation("💰 TRADE: {TradeMessage}", tradeMessage);
     }
@@ -147,7 +147,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.RISK, TradingLogLevel.INFO, 
-            "POSITION_CHANGE", positionData);
+            "POSITION_CHANGE", positionData).ConfigureAwait(false);
 
         var pnlIcon = unrealizedPnL >= 0 ? "📈" : "📉";
         _logger.LogInformation("{Icon} POSITION: {Symbol} size={PositionSize} avgPrice={AvgPrice:0.00} PnL={PnL:0.00}", 
@@ -172,7 +172,7 @@ public class TradingActivityLogger
 
         var level = passed ? TradingLogLevel.DEBUG : TradingLogLevel.WARN;
         await _tradingLogger.LogEventAsync(TradingLogCategory.RISK, level, 
-            "RISK_CHECK", riskData);
+            "RISK_CHECK", riskData).ConfigureAwait(false);
 
         if (!passed)
         {
@@ -195,7 +195,7 @@ public class TradingActivityLogger
         };
 
         await _tradingLogger.LogEventAsync(TradingLogCategory.ERROR, TradingLogLevel.ERROR, 
-            "KILL_SWITCH_ACTIVATED", killSwitchData);
+            "KILL_SWITCH_ACTIVATED", killSwitchData).ConfigureAwait(false);
 
         _logger.LogError("🛑 KILL SWITCH ACTIVATED: {Reason} (triggered by {TriggeredBy})", reason, triggeredBy);
     }

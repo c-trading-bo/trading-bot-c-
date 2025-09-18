@@ -69,38 +69,38 @@ public class ProductionDemonstrationRunner
         {
             // 1. UnifiedTradingBrain Integration Proof
             _logger.LogWarning("✅ [DEMO-STEP-1] Testing UnifiedTradingBrain integration...");
-            await DemonstrateUnifiedTradingBrainIntegrationAsync(demoId, cancellationToken);
+            await DemonstrateUnifiedTradingBrainIntegrationAsync(demoId, cancellationToken).ConfigureAwait(false);
 
             // 2. Statistical Validation with Real Data
             _logger.LogWarning("✅ [DEMO-STEP-2] Running statistical validation with p < 0.05 testing...");
-            await DemonstrateStatisticalValidationAsync(demoId, cancellationToken);
+            await DemonstrateStatisticalValidationAsync(demoId, cancellationToken).ConfigureAwait(false);
 
             // 3. Rollback Drill with Performance Metrics
             _logger.LogWarning("✅ [DEMO-STEP-3] Executing rollback drill under load...");
-            await DemonstrateRollbackDrillAsync(demoId, cancellationToken);
+            await DemonstrateRollbackDrillAsync(demoId, cancellationToken).ConfigureAwait(false);
 
             // 4. Safe Window Enforcement
             _logger.LogWarning("✅ [DEMO-STEP-4] Testing safe window enforcement...");
-            await DemonstrateSafeWindowEnforcementAsync(demoId, cancellationToken);
+            await DemonstrateSafeWindowEnforcementAsync(demoId, cancellationToken).ConfigureAwait(false);
 
             // 5. Data Integration Status
             _logger.LogWarning("✅ [DEMO-STEP-5] Validating data integration...");
-            await DemonstrateDataIntegrationAsync(demoId, cancellationToken);
+            await DemonstrateDataIntegrationAsync(demoId, cancellationToken).ConfigureAwait(false);
 
             // 6. Enum Mapping Coverage Validation (REQUESTED IN PR REVIEW)
             _logger.LogWarning("✅ [DEMO-STEP-6] Testing ConvertPriceDirectionToTradingAction() enum mapping coverage...");
-            var enumValidationReport = await _enumValidation.ValidateEnumMappingCoverageAsync(cancellationToken);
-            await SaveArtifactAsync($"{demoId}-enum-mapping-coverage.json", enumValidationReport);
+            var enumValidationReport = await _enumValidation.ValidateEnumMappingCoverageAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await SaveArtifactAsync($"{demoId}-enum-mapping-coverage.json", enumValidationReport).ConfigureAwait(false);
 
             // 7. ValidationReport → PromotionTestReport Regression Tests (REQUESTED IN PR REVIEW)
             _logger.LogWarning("✅ [DEMO-STEP-7] Running ValidationReport → PromotionTestReport regression tests...");
-            var regressionReport = await _regressionService.RunRegressionTestsAsync(cancellationToken);
-            await SaveArtifactAsync($"{demoId}-regression-test-report.json", regressionReport);
+            var regressionReport = await _regressionService.RunRegressionTestsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await SaveArtifactAsync($"{demoId}-regression-test-report.json", regressionReport).ConfigureAwait(false);
 
             // 8. Complete Production Readiness Report
             _logger.LogWarning("✅ [DEMO-STEP-8] Generating comprehensive production readiness report...");
-            var productionReport = await _validationService.RunCompleteValidationAsync(cancellationToken);
-            await SaveArtifactAsync($"{demoId}-complete-production-report.json", productionReport);
+            var productionReport = await _validationService.RunCompleteValidationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            await SaveArtifactAsync($"{demoId}-complete-production-report.json", productionReport).ConfigureAwait(false);
 
             result.EndTime = DateTime.UtcNow;
             result.Duration = result.EndTime - result.StartTime;
@@ -108,7 +108,7 @@ public class ProductionDemonstrationRunner
             result.ArtifactsPath = _outputDirectory;
 
             // Save final demonstration summary
-            await SaveArtifactAsync($"{demoId}-demonstration-summary.json", result);
+            await SaveArtifactAsync($"{demoId}-demonstration-summary.json", result).ConfigureAwait(false);
 
             _logger.LogWarning("🎉 [PRODUCTION-DEMO] Complete! Duration: {Duration}", result.Duration);
             _logger.LogWarning("📊 [PRODUCTION-DEMO] All artifacts saved to: {Path}", _outputDirectory);
@@ -144,7 +144,7 @@ public class ProductionDemonstrationRunner
         for (int i = 0; i < 5; i++)
         {
             testContext.CurrentPrice += (decimal)(new Random().NextDouble() - 0.5) * 2;
-            var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
+            var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             decisions.Add(new
             {
@@ -158,7 +158,7 @@ public class ProductionDemonstrationRunner
                 AgreementRate = decision.Reasoning.GetValueOrDefault("AgreementRate", "0")
             });
 
-            await Task.Delay(200, cancellationToken);
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
         }
 
         var integrationProof = new
@@ -170,7 +170,7 @@ public class ProductionDemonstrationRunner
             Conclusion = "UnifiedTradingBrain confirmed as primary decision maker with InferenceBrain running as shadow challenger"
         };
 
-        await SaveArtifactAsync($"{demoId}-brain-integration-proof.json", integrationProof);
+        await SaveArtifactAsync($"{demoId}-brain-integration-proof.json", integrationProof).ConfigureAwait(false);
         _logger.LogInformation("📋 [BRAIN-INTEGRATION] Saved integration proof with {Count} decisions", decisions.Count);
     }
 
@@ -184,7 +184,7 @@ public class ProductionDemonstrationRunner
             "UnifiedTradingBrain", 
             "InferenceBrain", 
             TimeSpan.FromHours(1), 
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         var statisticalProof = new
         {
@@ -213,7 +213,7 @@ public class ProductionDemonstrationRunner
             Conclusion = "Challenger shows statistically significant improvement with p < 0.05 and meets all CVaR/DD limits"
         };
 
-        await SaveArtifactAsync($"{demoId}-statistical-validation-proof.json", statisticalProof);
+        await SaveArtifactAsync($"{demoId}-statistical-validation-proof.json", statisticalProof).ConfigureAwait(false);
         _logger.LogInformation("📊 [STATISTICAL-VALIDATION] Saved validation report with p-value: {PValue:F6}", 
             statisticalProof.StatisticalSignificance.PValue);
     }
@@ -230,7 +230,7 @@ public class ProductionDemonstrationRunner
             ExpectedRollbackTimeMs = 100
         };
 
-        var rollbackResult = await _rollbackService.ExecuteRollbackDrillAsync(rollbackConfig, cancellationToken);
+        var rollbackResult = await _rollbackService.ExecuteRollbackDrillAsync(rollbackConfig, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         var rollbackProof = new
         {
@@ -256,7 +256,7 @@ public class ProductionDemonstrationRunner
                 "⚠️ Rollback exceeded 100ms threshold"
         };
 
-        await SaveArtifactAsync($"{demoId}-rollback-drill-proof.json", rollbackProof);
+        await SaveArtifactAsync($"{demoId}-rollback-drill-proof.json", rollbackProof).ConfigureAwait(false);
         _logger.LogInformation("⚡ [ROLLBACK-DRILL] Completed in {Time}ms - Target: <100ms", rollbackResult.RollbackTimeMs);
     }
 
@@ -306,7 +306,7 @@ public class ProductionDemonstrationRunner
             Conclusion = "Safe window detection working correctly - promotions deferred outside CME-aligned windows"
         };
 
-        await SaveArtifactAsync($"{demoId}-safe-window-proof.json", safeWindowProof);
+        await SaveArtifactAsync($"{demoId}-safe-window-proof.json", safeWindowProof).ConfigureAwait(false);
         _logger.LogInformation("🕐 [SAFE-WINDOW] Tested {Count} time windows with proper enforcement", safeWindowTests.Count);
     }
 
@@ -315,8 +315,8 @@ public class ProductionDemonstrationRunner
     /// </summary>
     private async Task DemonstrateDataIntegrationAsync(string demoId, CancellationToken cancellationToken)
     {
-        var historicalStatus = await _dataIntegration.GetHistoricalDataStatusAsync();
-        var liveStatus = await _dataIntegration.GetLiveDataStatusAsync();
+        var historicalStatus = await _dataIntegration.GetHistoricalDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
+        var liveStatus = await _dataIntegration.GetLiveDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
 
         var dataIntegrationProof = new
         {
@@ -347,7 +347,7 @@ public class ProductionDemonstrationRunner
             Conclusion = "Both historical and live data integrated into unified pipeline as requested"
         };
 
-        await SaveArtifactAsync($"{demoId}-data-integration-proof.json", dataIntegrationProof);
+        await SaveArtifactAsync($"{demoId}-data-integration-proof.json", dataIntegrationProof).ConfigureAwait(false);
         _logger.LogInformation("📡 [DATA-INTEGRATION] Historical: {Hist}, Live: {Live}, Unified: {Unified}", 
             historicalStatus.IsConnected, liveStatus.IsConnected, 
             historicalStatus.IsConnected && liveStatus.IsConnected);
@@ -366,7 +366,7 @@ public class ProductionDemonstrationRunner
     {
         var filePath = Path.Combine(_outputDirectory, filename);
         var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(filePath, json);
+        await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
         _logger.LogDebug("💾 [ARTIFACTS] Saved: {FilePath}", filePath);
     }
 }

@@ -63,7 +63,7 @@ namespace BotCore
 
             try
             {
-                await UploadTrainingDataToCloudAsync();
+                await UploadTrainingDataToCloudAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -107,17 +107,17 @@ namespace BotCore
                 // Convert and upload feature files  
                 foreach (var file in featureFiles)
                 {
-                    await ConvertAndUploadJsonlFileAsync(file, "features");
+                    await ConvertAndUploadJsonlFileAsync(file, "features").ConfigureAwait(false);
                 }
 
                 // Convert and upload outcome files
                 foreach (var file in outcomeFiles)
                 {
-                    await ConvertAndUploadJsonlFileAsync(file, "outcomes");
+                    await ConvertAndUploadJsonlFileAsync(file, "outcomes").ConfigureAwait(false);
                 }
 
                 // Clean up old JSONL files after successful upload (keep last 3 days)
-                await CleanupOldFilesAsync();
+                await CleanupOldFilesAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -142,10 +142,10 @@ namespace BotCore
                 var s3Key = $"logs/{parquetFileName}";
 
                 // Convert JSONL to parquet format
-                await ConvertJsonlToParquetAsync(jsonlPath, tempParquetPath);
+                await ConvertJsonlToParquetAsync(jsonlPath, tempParquetPath).ConfigureAwait(false);
 
                 // Upload to S3 using AWS CLI (since AWS SDK would add dependencies)
-                var success = await UploadToS3Async(tempParquetPath, s3Key);
+                var success = await UploadToS3Async(tempParquetPath, s3Key).ConfigureAwait(false).ConfigureAwait(false);
 
                 if (success)
                 {
@@ -197,7 +197,7 @@ namespace BotCore
             // In a full implementation, you'd use a proper parquet library
             var csvPath = parquetPath.Replace(".parquet", ".csv");
 
-            var lines = await File.ReadAllLinesAsync(jsonlPath);
+            var lines = await File.ReadAllLinesAsync(jsonlPath).ConfigureAwait(false).ConfigureAwait(false);
             if (lines.Length == 0) return;
 
             // Parse first line to get column headers
@@ -238,7 +238,7 @@ namespace BotCore
                 }
             }
 
-            await File.WriteAllLinesAsync(csvPath, csvLines);
+            await File.WriteAllLinesAsync(csvPath, csvLines).ConfigureAwait(false);
 
             // For now, just rename CSV to parquet (cloud pipeline can handle CSV files)
             // In production, you'd use Apache Arrow or similar for true parquet conversion
@@ -267,9 +267,9 @@ namespace BotCore
                 using var process = System.Diagnostics.Process.Start(processInfo);
                 if (process == null) return false;
 
-                var output = await process.StandardOutput.ReadToEndAsync();
-                var error = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode == 0)
                 {

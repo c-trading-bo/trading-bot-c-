@@ -59,23 +59,23 @@ public class EnsembleMetaLearner
         try
         {
             // Detect current regime
-            var regimeState = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken);
+            var regimeState = await _regimeDetector.DetectCurrentRegimeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Check for regime transition
-            var transition = await CheckRegimeTransitionAsync(regimeState, cancellationToken);
+            var transition = await CheckRegimeTransitionAsync(regimeState, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Get predictions from all active models
-            var modelPredictions = await GetModelPredictionsAsync(context, cancellationToken);
+            var modelPredictions = await GetModelPredictionsAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Blend predictions based on current regime
             var prediction = await BlendPredictionsAsync(
                 modelPredictions, 
                 regimeState.Type, 
                 transition,
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
             // Update online learning with prediction feedback
-            await UpdateOnlineLearningAsync(regimeState.Type, prediction, cancellationToken);
+            await UpdateOnlineLearningAsync(regimeState.Type, prediction, cancellationToken).ConfigureAwait(false);
 
             return prediction;
         }
@@ -105,10 +105,10 @@ public class EnsembleMetaLearner
             _logger.LogInformation("[ENSEMBLE] Training blend head for regime: {Regime} with {Count} examples", 
                 regime, examples.Count());
 
-            await head.TrainAsync(examples, cancellationToken);
+            await head.TrainAsync(examples, cancellationToken).ConfigureAwait(false);
             
             // Save updated state
-            await SaveStateAsync(cancellationToken);
+            await SaveStateAsync(cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("[ENSEMBLE] Completed training for regime: {Regime}", regime);
         }
@@ -129,11 +129,11 @@ public class EnsembleMetaLearner
         try
         {
             // Update online learning system
-            await _onlineLearning.AdaptToPerformanceAsync(modelId, performance, cancellationToken);
+            await _onlineLearning.AdaptToPerformanceAsync(modelId, performance, cancellationToken).ConfigureAwait(false);
 
             // Update regime-specific weights based on performance
             var regimeTypeStr = _currentRegime.ToString();
-            var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeTypeStr, cancellationToken);
+            var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeTypeStr, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Adjust model weight based on performance
             var performanceScore = CalculatePerformanceScore(performance);
@@ -144,7 +144,7 @@ public class EnsembleMetaLearner
                 currentWeights[modelId] = Math.Max(0.1, Math.Min(2.0, currentWeight + adjustment));
             }
 
-            await _onlineLearning.UpdateWeightsAsync(regimeTypeStr, currentWeights, cancellationToken);
+            await _onlineLearning.UpdateWeightsAsync(regimeTypeStr, currentWeights, cancellationToken).ConfigureAwait(false);
 
             _logger.LogDebug("[ENSEMBLE] Updated feedback for model: {ModelId} in regime: {Regime}", 
                 modelId, _currentRegime);
@@ -216,7 +216,7 @@ public class EnsembleMetaLearner
             if (currentState.Type != _currentRegime)
             {
                 _logger.LogInformation("[ENSEMBLE] Regime transition detected: {From} -> {To}", 
-                    _currentRegime, currentState.Type);
+                    _currentRegime, currentState.Type).ConfigureAwait(false).ConfigureAwait(false);
 
                 _previousRegime = _currentRegime;
                 _currentRegime = currentState.Type;
@@ -246,7 +246,7 @@ public class EnsembleMetaLearner
         {
             if (_inTransition)
             {
-                var transitionDuration = DateTime.UtcNow - _lastTransitionTime;
+                var transitionDuration = DateTime.UtcNow - _lastTransitionTime.ConfigureAwait(false).ConfigureAwait(false);
                 var maxDuration = TimeSpan.FromSeconds(_config.MetaPerRegime.TransitionBlendSeconds);
                 
                 if (transitionDuration >= maxDuration)
@@ -272,7 +272,7 @@ public class EnsembleMetaLearner
         {
             try
             {
-                var prediction = await GetModelPredictionAsync(model, context, cancellationToken);
+                var prediction = await GetModelPredictionAsync(model, context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 predictions[modelId] = prediction;
             }
             catch (Exception ex)
@@ -293,21 +293,21 @@ public class EnsembleMetaLearner
         var predictionTask = Task.Run(async () =>
         {
             // Step 1: Load model and preprocessing pipeline asynchronously
-            await Task.Delay(10, cancellationToken); // Simulate model loading time
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate model loading time
             
             // Step 2: Feature extraction and normalization
-            var features = await ProcessFeaturesAsync(context, cancellationToken);
+            var features = await ProcessFeaturesAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 3: Model inference
-            var rawPrediction = await RunModelInferenceAsync(features, cancellationToken);
+            var rawPrediction = await RunModelInferenceAsync(features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 4: Post-processing and calibration
-            var calibratedPrediction = await CalibrateModelOutputAsync(rawPrediction, cancellationToken);
+            var calibratedPrediction = await CalibrateModelOutputAsync(rawPrediction, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             return calibratedPrediction;
         }, cancellationToken);
 
-        var prediction = await predictionTask;
+        var prediction = await predictionTask.ConfigureAwait(false).ConfigureAwait(false);
         
         return new ModelPrediction
         {
@@ -328,7 +328,7 @@ public class EnsembleMetaLearner
         return await Task.Run(() =>
         {
             // Feature engineering based on model requirements
-            var features = new Dictionary<string, double>(context.TechnicalIndicators);
+            var features = new Dictionary<string, double>(context.TechnicalIndicators).ConfigureAwait(false).ConfigureAwait(false);
             
             // Add derived features
             features["price_momentum"] = context.Price / features.GetValueOrDefault("sma_20", context.Price) - 1.0;
@@ -346,7 +346,7 @@ public class EnsembleMetaLearner
         {
             // Production model inference logic would go here
             // For now, implement sophisticated heuristic based on features
-            var momentum = features.GetValueOrDefault("price_momentum", 0.0);
+            var momentum = features.GetValueOrDefault("price_momentum", 0.0).ConfigureAwait(false).ConfigureAwait(false);
             var volatility = features.GetValueOrDefault("volatility_regime", 1.0);
             var rsi = features.GetValueOrDefault("rsi", 50.0);
             
@@ -365,7 +365,7 @@ public class EnsembleMetaLearner
         return await Task.Run(() =>
         {
             // Apply model-specific calibration
-            var (confidence, direction) = rawPrediction;
+            var (confidence, direction) = rawPrediction.ConfigureAwait(false).ConfigureAwait(false);
             
             // Calibration based on historical performance
             var calibrationFactor = 0.85; // Based on model's historical accuracy
@@ -381,13 +381,13 @@ public class EnsembleMetaLearner
         RegimeTransition? transition,
         CancellationToken cancellationToken)
     {
-        var weights = await _onlineLearning.GetCurrentWeightsAsync(currentRegime.ToString(), cancellationToken);
+        var weights = await _onlineLearning.GetCurrentWeightsAsync(currentRegime.ToString(), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         // Handle transition blending
         if (transition != null && _inTransition)
         {
             var transitionWeight = CalculateTransitionWeight(transition);
-            var previousWeights = await _onlineLearning.GetCurrentWeightsAsync(_previousRegime.ToString(), cancellationToken);
+            var previousWeights = await _onlineLearning.GetCurrentWeightsAsync(_previousRegime.ToString(), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             weights = BlendWeights(previousWeights, weights, transitionWeight);
         }
@@ -477,7 +477,7 @@ public class EnsembleMetaLearner
     {
         // Update weights based on prediction confidence
         var regimeStr = regime.ToString();
-        var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeStr, cancellationToken);
+        var currentWeights = await _onlineLearning.GetCurrentWeightsAsync(regimeStr, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         // Boost weights for high-confidence predictions
         if (prediction.Confidence > 0.7)
@@ -487,7 +487,7 @@ public class EnsembleMetaLearner
                 currentWeights[key] *= 1.01; // Small boost
             }
             
-            await _onlineLearning.UpdateWeightsAsync(regimeStr, currentWeights, cancellationToken);
+            await _onlineLearning.UpdateWeightsAsync(regimeStr, currentWeights, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -535,7 +535,7 @@ public class EnsembleMetaLearner
 
             var stateFile = Path.Combine(_statePath, "ensemble_state.json");
             var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(stateFile, json, cancellationToken);
+            await File.WriteAllTextAsync(stateFile, json, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -553,7 +553,7 @@ public class EnsembleMetaLearner
                 return;
             }
 
-            var content = await File.ReadAllTextAsync(stateFile, cancellationToken);
+            var content = await File.ReadAllTextAsync(stateFile, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<EnsembleState>(content);
             
             if (state != null)
@@ -609,14 +609,14 @@ public class RegimeBlendHead
         await Task.Run(async () =>
         {
             // Simulate training data preprocessing
-            await Task.Delay(10, cancellationToken);
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false);
             
             // Perform validation score calculation asynchronously
             var validationExamples = exampleList.TakeLast(Math.Min(100, exampleList.Count / 5));
-            LastValidationScore = await CalculateValidationScoreAsync(validationExamples, cancellationToken);
+            LastValidationScore = await CalculateValidationScoreAsync(validationExamples, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Simulate model parameter updates
-            await Task.Delay(5, cancellationToken);
+            await Task.Delay(5, cancellationToken).ConfigureAwait(false);
             
         }, cancellationToken);
         
@@ -648,13 +648,13 @@ public class RegimeBlendHead
     private static async Task<double> CalculateValidationScoreAsync(IEnumerable<TrainingExample> examples, CancellationToken cancellationToken)
     {
         // Perform validation calculation asynchronously
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var exampleList = examples.ToList();
         if (exampleList.Count == 0) return 0.0;
         
         // Simulate async validation processing
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var correctPredictions = exampleList.Count(e => 
             (e.PredictedDirection > 0 && e.ActualOutcome > 0) ||

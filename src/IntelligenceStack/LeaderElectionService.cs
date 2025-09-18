@@ -63,7 +63,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 lock (_lock)
                 {
-                    _isLeader = true;
+                    _isLeader = true.ConfigureAwait(false);
                 }
                 
                 StartRenewalTimer();
@@ -80,7 +80,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 {
                     lock (_lock)
                     {
-                        _isLeader = true;
+                        _isLeader = true.ConfigureAwait(false);
                     }
                     
                     StartRenewalTimer();
@@ -104,7 +104,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
     public async Task ReleaseLeadershipAsync(CancellationToken cancellationToken = default)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         try
         {
@@ -141,7 +141,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
 
     public async Task<bool> IsLeaderAsync(CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure proper async execution
+        await Task.Yield().ConfigureAwait(false); // Ensure proper async execution
         
         if (!_config.Enabled)
         {
@@ -171,7 +171,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             // Update the lock file with new timestamp
             if (await TryCreateLockFileAsync(lockData, cancellationToken))
             {
-                _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId);
+                _logger.LogDebug("[LEADER] Leadership renewed by node: {NodeId}", _nodeId).ConfigureAwait(false);
                 return true;
             }
             else
@@ -213,7 +213,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             
             // Use atomic write operation
             var tempPath = _lockPath + ".tmp";
-            await File.WriteAllTextAsync(tempPath, json, cancellationToken);
+            await File.WriteAllTextAsync(tempPath, json, cancellationToken).ConfigureAwait(false);
             
             // Atomic move (as atomic as possible on the file system)
             File.Move(tempPath, _lockPath, overwrite: true);
@@ -236,7 +236,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
                 return true; // No existing lock
             }
 
-            var content = await File.ReadAllTextAsync(_lockPath, cancellationToken);
+            var content = await File.ReadAllTextAsync(_lockPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var existingLock = JsonSerializer.Deserialize<LeaderLockData>(content);
             
             if (existingLock == null)
@@ -287,7 +287,7 @@ public class LeaderElectionService : ILeaderElectionService, IDisposable
             {
                 try
                 {
-                    await RenewLeadershipAsync(CancellationToken.None);
+                    await RenewLeadershipAsync(CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -399,7 +399,7 @@ public class QuarantineManager : IQuarantineManager
                         ModelId = modelId,
                         State = HealthState.Healthy,
                         BlendWeight = 1.0
-                    };
+                    }.ConfigureAwait(false).ConfigureAwait(false);
                     _modelStatus[modelId] = status;
                 }
 
@@ -419,7 +419,7 @@ public class QuarantineManager : IQuarantineManager
                 {
                     if (!_modelStatus.TryGetValue(modelId, out var status))
                     {
-                        status = new QuarantineStatus { ModelId = modelId };
+                        status = new QuarantineStatus { ModelId = modelId }.ConfigureAwait(false);
                         _modelStatus[modelId] = status;
                     }
 
@@ -450,7 +450,7 @@ public class QuarantineManager : IQuarantineManager
                 {
                     if (!_modelStatus.TryGetValue(modelId, out var status))
                     {
-                        return false;
+                        return false.ConfigureAwait(false).ConfigureAwait(false);
                     }
 
                     if (status.State != HealthState.Quarantine)
@@ -492,7 +492,7 @@ public class QuarantineManager : IQuarantineManager
                 return _modelStatus
                     .Where(kvp => kvp.Value.State == HealthState.Quarantine)
                     .Select(kvp => kvp.Key)
-                    .ToList();
+                    .ToList().ConfigureAwait(false).ConfigureAwait(false);
             }
         }, cancellationToken);
     }
@@ -523,7 +523,7 @@ public class QuarantineManager : IQuarantineManager
             // Check for health state changes outside the lock
             if (historyToEvaluate != null)
             {
-                await EvaluateModelHealthAsync(modelId, historyToEvaluate, cancellationToken);
+                await EvaluateModelHealthAsync(modelId, historyToEvaluate, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -557,7 +557,7 @@ public class QuarantineManager : IQuarantineManager
             
             if (previousState != HealthState.Quarantine)
             {
-                await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken);
+                await QuarantineModelAsync(modelId, QuarantineReason.BrierDeltaTooHigh, cancellationToken).ConfigureAwait(false);
             }
         }
         else if (avgBrierScore > 0.25 + _config.DegradeBrierDelta || avgLatency > _config.LatencyP99Ms * _config.LatencyDegradeMultiplier)

@@ -132,7 +132,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
         // If no environment token and we're not already refreshing, try to refresh
         if (!_isRefreshing)
         {
-            await RefreshTokenAsync();
+            await RefreshTokenAsync().ConfigureAwait(false);
         }
 
         // Return whatever we have (could be null if refresh failed)
@@ -145,11 +145,11 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
     {
         if (_isRefreshing) return;
 
-        await _refreshLock.WaitAsync();
+        await _refreshLock.WaitAsync().ConfigureAwait(false);
         try
         {
             _isRefreshing = true;
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Starting token refresh");
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Starting token refresh").ConfigureAwait(false);
 
             // Always check environment variable first as AutoTopstepXLoginService updates it
             var envToken = Environment.GetEnvironmentVariable("TOPSTEPX_JWT");
@@ -159,7 +159,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 _tokenExpiry = DateTime.UtcNow.AddHours(1);
                 
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
-                    "Token refreshed from environment variable");
+                    "Token refreshed from environment variable").ConfigureAwait(false);
                 
                 TokenRefreshed?.Invoke(_currentToken);
                 return;
@@ -172,7 +172,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 _tokenExpiry = DateTime.UtcNow.AddHours(1);
                 
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
-                    "Token refreshed from AutoTopstepXLoginService");
+                    "Token refreshed from AutoTopstepXLoginService").ConfigureAwait(false);
                 
                 TokenRefreshed?.Invoke(_currentToken);
                 return;
@@ -185,7 +185,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                 _tokenExpiry = DateTime.UtcNow.AddHours(1);
                 
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "TokenProvider", 
-                    "Using environment token as fallback");
+                    "Using environment token as fallback").ConfigureAwait(false);
                 
                 TokenRefreshed?.Invoke(_currentToken);
                 return;
@@ -195,14 +195,14 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
             if (!IsTokenValid)
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "TokenProvider", 
-                    "No valid token found, attempting to trigger authentication via AutoTopstepXLoginService");
+                    "No valid token found, attempting to trigger authentication via AutoTopstepXLoginService").ConfigureAwait(false);
                 
                 // Force authentication attempt if AutoTopstepXLoginService is available
                 if (_autoLoginService != null && !_autoLoginService.IsAuthenticated)
                 {
                     // The AutoTopstepXLoginService should handle authentication in its background service
                     // Just wait a bit and check again
-                    await Task.Delay(2000);
+                    await Task.Delay(2000).ConfigureAwait(false);
                     
                     if (!string.IsNullOrEmpty(_autoLoginService.JwtToken))
                     {
@@ -211,7 +211,7 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
                         Environment.SetEnvironmentVariable("TOPSTEPX_JWT", _currentToken);
                         
                         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", 
-                            "Token obtained after authentication attempt");
+                            "Token obtained after authentication attempt").ConfigureAwait(false);
                         
                         TokenRefreshed?.Invoke(_currentToken);
                     }
@@ -219,13 +219,13 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
             }
 
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "TokenProvider", 
-                "Failed to refresh token - no valid source available");
+                "Failed to refresh token - no valid source available").ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error refreshing JWT token");
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "TokenProvider", 
-                $"Token refresh failed: {ex.Message}");
+                $"Token refresh failed: {ex.Message}").ConfigureAwait(false);
         }
         finally
         {
@@ -236,21 +236,21 @@ public class CentralizedTokenProvider : ITokenProvider, IHostedService
 
     private async void RefreshTimerCallback(object? state)
     {
-        await RefreshTokenAsync();
+        await RefreshTokenAsync().ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider started");
-        await RefreshTokenAsync();
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider started").ConfigureAwait(false);
+        await RefreshTokenAsync().ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
-        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider stopped");
+        await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TokenProvider", "Centralized token provider stopped").ConfigureAwait(false);
         if (_refreshTimer != null)
         {
-            await _refreshTimer.DisposeAsync();
+            await _refreshTimer.DisposeAsync().ConfigureAwait(false);
         }
         _refreshLock.Dispose();
     }

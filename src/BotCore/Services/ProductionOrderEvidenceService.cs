@@ -91,7 +91,7 @@ public class ProductionOrderEvidenceService
             _logger.LogCritical("🔴 [ORDER-EVIDENCE] GUARDRAIL VIOLATION: Cannot claim fill without proper evidence");
         }
 
-        await Task.CompletedTask; // Ensure async pattern
+        await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern
         return result;
     }
 

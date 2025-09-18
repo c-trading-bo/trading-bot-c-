@@ -10,11 +10,11 @@ namespace OrchestratorAgent.Legacy
         {
             for (var a = 1; a <= maxAttempts; a++)
             {
-                await WaitUntilConnected(hub, ct);
-                try { await call(); return true; }
+                await WaitUntilConnected(hub, ct).ConfigureAwait(false);
+                try { await call().ConfigureAwait(false); return true; }
                 catch (InvalidOperationException ioe) when (ioe.Message.Contains("not active"))
                 {
-                    await Task.Delay(150 * a, ct); // backoff
+                    await Task.Delay(150 * a, ct).ConfigureAwait(false); // backoff
                     continue;
                 }
             }
@@ -29,9 +29,9 @@ namespace OrchestratorAgent.Legacy
                 ct.ThrowIfCancellationRequested();
                 if (hub.State == HubConnectionState.Disconnected)
                 {
-                    try { await hub.StartAsync(ct); } catch { /* let autoreconnect handle */ }
+                    try { await hub.StartAsync(ct).ConfigureAwait(false); } catch { /* let autoreconnect handle */ }
                 }
-                await Task.Delay(120, ct);
+                await Task.Delay(120, ct).ConfigureAwait(false);
             }
         }
     }

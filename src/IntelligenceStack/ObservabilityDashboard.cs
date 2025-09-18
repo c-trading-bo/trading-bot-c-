@@ -75,7 +75,7 @@ public class ObservabilityDashboard : IDisposable
                 SLOBudget = await GetSLOBudgetAsync(cancellationToken),
                 RLAdvisorStatus = await GetRLAdvisorDashboardAsync(cancellationToken),
                 MamlStatus = await GetMamlStatusAsync(cancellationToken)
-            };
+            }.ConfigureAwait(false).ConfigureAwait(false);
 
             return dashboardData;
         }
@@ -92,7 +92,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<GoldenSignals> GetGoldenSignalsAsync(CancellationToken cancellationToken)
     {
         // Perform brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var sloStatus = _sloMonitor.GetCurrentSloStatus();
         var ensembleStatus = _ensemble.GetCurrentStatus();
@@ -135,7 +135,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<RegimeTimeline> GetRegimeTimelineAsync(CancellationToken cancellationToken)
     {
         // Perform brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
@@ -176,7 +176,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<EnsembleWeightsDashboard> GetEnsembleWeightsAsync(CancellationToken cancellationToken)
     {
         // Perform brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var ensembleStatus = _ensemble.GetCurrentStatus();
         
@@ -210,7 +210,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<ConfidenceDistribution> GetConfidenceDistributionAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var recentConfidences = GetRecentMetrics("prediction_confidence")
             .TakeLast(1000)
@@ -236,7 +236,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<SlippageVsSpread> GetSlippageVsSpreadAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         return new SlippageVsSpread
         {
@@ -255,7 +255,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<DrawdownForecast> GetDrawdownForecastAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         return new DrawdownForecast
         {
@@ -274,7 +274,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<SafetyEventsDashboard> GetSafetyEventsAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var recentEvents = GetRecentMetrics("safety_events")
             .TakeLast(50)
@@ -305,7 +305,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<ModelHealthDashboard> GetModelHealthDashboardAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var healthReport = _quarantine.GetHealthReport();
         
@@ -347,7 +347,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<SloBudgetDashboard> GetSLOBudgetAsync(CancellationToken cancellationToken)
     {
         // Brief async operation for proper async pattern
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         var sloStatus = _sloMonitor.GetCurrentSloStatus();
         
@@ -383,11 +383,11 @@ public class ObservabilityDashboard : IDisposable
     private async Task<RLAdvisorDashboard> GetRLAdvisorDashboardAsync(CancellationToken cancellationToken)
     {
         // Get RL advisor status asynchronously to avoid blocking dashboard generation
-        var rlStatus = await Task.Run(() => _rlAdvisor.GetCurrentStatus(), cancellationToken);
+        var rlStatus = await Task.Run(() => _rlAdvisor.GetCurrentStatus(), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         // Retrieve recent metrics asynchronously from persistent storage
         var recentMetricsTask = Task.Run(() => GetRecentMetrics("rl_decisions"), cancellationToken);
-        var recentMetrics = await recentMetricsTask;
+        var recentMetrics = await recentMetricsTask.ConfigureAwait(false).ConfigureAwait(false);
         
         return new RLAdvisorDashboard
         {
@@ -424,7 +424,7 @@ public class ObservabilityDashboard : IDisposable
     private async Task<MamlStatusDashboard> GetMamlStatusAsync(CancellationToken cancellationToken)
     {
         // Get MAML status asynchronously to enable concurrent dashboard data collection
-        var mamlStatus = await Task.Run(() => _maml.GetCurrentStatus(), cancellationToken);
+        var mamlStatus = await Task.Run(() => _maml.GetCurrentStatus(), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         // Process regime state data asynchronously to avoid blocking UI
         var regimeStatesTask = Task.Run(() => 
@@ -440,7 +440,7 @@ public class ObservabilityDashboard : IDisposable
                 }
             ), cancellationToken);
         
-        var regimeAdaptations = await regimeStatesTask;
+        var regimeAdaptations = await regimeStatesTask.ConfigureAwait(false).ConfigureAwait(false);
         
         return new MamlStatusDashboard
         {
@@ -465,8 +465,8 @@ public class ObservabilityDashboard : IDisposable
     {
         try
         {
-            await CollectMetricsAsync();
-            await GenerateDashboardFilesAsync();
+            await CollectMetricsAsync().ConfigureAwait(false);
+            await GenerateDashboardFilesAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -484,9 +484,9 @@ public class ObservabilityDashboard : IDisposable
         var healthReportTask = Task.Run(() => _quarantine.GetHealthReport());
         
         // Await all metrics collection tasks concurrently
-        var ensembleStatus = await ensembleStatusTask;
-        var sloStatus = await sloStatusTask;
-        var healthReport = await healthReportTask;
+        var ensembleStatus = await ensembleStatusTask.ConfigureAwait(false).ConfigureAwait(false);
+        var sloStatus = await sloStatusTask.ConfigureAwait(false).ConfigureAwait(false);
+        var healthReport = await healthReportTask.ConfigureAwait(false).ConfigureAwait(false);
         
         // Record metrics asynchronously to avoid blocking subsequent collections
         var recordingTasks = new[]
@@ -504,17 +504,17 @@ public class ObservabilityDashboard : IDisposable
         };
         
         // Ensure all metrics are recorded before method completion
-        await Task.WhenAll(recordingTasks);
+        await Task.WhenAll(recordingTasks).ConfigureAwait(false);
     }
 
     private async Task GenerateDashboardFilesAsync()
     {
-        var dashboardData = await GetDashboardDataAsync();
+        var dashboardData = await GetDashboardDataAsync().ConfigureAwait(false).ConfigureAwait(false);
         
         // Generate JSON data files for dashboard
         var dataFile = Path.Combine(_dashboardPath, "data", "dashboard_data.json");
         var json = JsonSerializer.Serialize(dashboardData, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(dataFile, json);
+        await File.WriteAllTextAsync(dataFile, json).ConfigureAwait(false);
         
         // Generate summary metrics file
         var summaryFile = Path.Combine(_dashboardPath, "data", "summary.json");
@@ -530,7 +530,7 @@ public class ObservabilityDashboard : IDisposable
         };
         
         var summaryJson = JsonSerializer.Serialize(summary, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(summaryFile, summaryJson);
+        await File.WriteAllTextAsync(summaryFile, summaryJson).ConfigureAwait(false);
     }
 
     private void RecordMetric(string name, double value, DateTime timestamp, Dictionary<string, string>? tags = null)

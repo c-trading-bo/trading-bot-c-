@@ -208,7 +208,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("🚀 Trading System Integration Service starting...");
                 
                 // Initialize all components
-                await InitializeComponentsAsync(stoppingToken);
+                await InitializeComponentsAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Setup SignalR connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
@@ -216,7 +216,7 @@ namespace TopstepX.Bot.Core.Services
                 
                 try
                 {
-                    await SetupTopstepXAdapterAsync(combinedCts.Token);
+                    await SetupTopstepXAdapterAsync(combinedCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
                 {
@@ -227,10 +227,10 @@ namespace TopstepX.Bot.Core.Services
                 SetupEventHandlers();
                 
                 // Initialize enhanced market data flow and historical seeding - NEW
-                await InitializeProductionReadinessAsync(stoppingToken);
+                await InitializeProductionReadinessAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Perform initial system checks
-                await PerformSystemReadinessChecksAsync();
+                await PerformSystemReadinessChecksAsync().ConfigureAwait(false);
                 
                 _logger.LogInformation("✅ Trading System Integration Service ready");
                 _isSystemReady = true;
@@ -246,8 +246,8 @@ namespace TopstepX.Bot.Core.Services
                 // Main service loop
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    await MonitorSystemHealthAsync();
-                    await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                    await MonitorSystemHealthAsync().ConfigureAwait(false);
+                    await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -256,12 +256,12 @@ namespace TopstepX.Bot.Core.Services
             }
             catch (Exception ex)
             {
-                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical);
+                await _errorMonitoring.LogErrorAsync("TradingSystemIntegration", ex, ErrorHandlingMonitoringSystem.ErrorSeverity.Critical).ConfigureAwait(false);
                 _logger.LogCritical(ex, "❌ CRITICAL: Trading System Integration Service failed");
             }
             finally
             {
-                await CleanupAsync();
+                await CleanupAsync().ConfigureAwait(false);
             }
         }
 
@@ -401,11 +401,11 @@ namespace TopstepX.Bot.Core.Services
                 var json = JsonSerializer.Serialize(orderPayload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync("/api/Order/place", content, cancellationToken);
+                var response = await _httpClient.PostAsync("/api/Order/place", content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     var orderResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
                     
                     var orderId = orderResponse.TryGetProperty("orderId", out var orderIdElement) 
@@ -420,7 +420,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 else
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     _logger.LogWarning("[ORDER] API rejection: {StatusCode} - {Content}", response.StatusCode, errorContent);
                     return OrderResult.Failed($"API Error: {response.StatusCode} - {errorContent}");
                 }
@@ -476,14 +476,14 @@ namespace TopstepX.Bot.Core.Services
             {
                 // Check preconditions
                 if (!await PerformTradingPrechecksAsync())
-                    return;
+                    return.ConfigureAwait(false);
 
                 // Get symbols to evaluate using initialized contracts (filters out micro contracts)
                 var symbols = _chosenContracts;
                 
                 foreach (var symbol in symbols)
                 {
-                    await EvaluateSymbolStrategiesAsync(symbol);
+                    await EvaluateSymbolStrategiesAsync(symbol).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -519,7 +519,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // PHASE 1: Feature Engineering - Transform raw market data into ML-ready features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // PHASE 2: Time-Optimized Strategy Selection - Use existing optimization
                 // Note: Simplifying to use available methods
@@ -540,7 +540,7 @@ namespace TopstepX.Bot.Core.Services
                 
                 // PHASE 5: ML/RL BRAIN ENHANCEMENT - Use UnifiedTradingBrain for intelligent decisions
                 var brainDecision = await _unifiedTradingBrain.MakeIntelligentDecisionAsync(
-                    symbol, env, levels, bars, _riskEngine, cancellationToken: default);
+                    symbol, env, levels, bars, _riskEngine, cancellationToken: default).ConfigureAwait(false).ConfigureAwait(false);
                 var mlEnhancedCandidates = brainDecision.EnhancedCandidates;
                 
                 _logger.LogInformation("[ML/RL-BRAIN] 🧠 Brain Decision: Strategy={Strategy} ({Confidence:P1}), Direction={Direction} ({Probability:P1}), Size={SizeMultiplier:F2}x",
@@ -562,7 +562,7 @@ namespace TopstepX.Bot.Core.Services
                 // PHASE 8: Process validated signals for order placement
                 foreach (var signal in aggregatedSignals.Where(s => s.Score > 0.6m && s.Size > 0))
                 {
-                    await ProcessMlRlEnhancedSignalAsync(signal, featureVector);
+                    await ProcessMlRlEnhancedSignalAsync(signal, featureVector).ConfigureAwait(false);
                 }
                 
                 // Update active signals cache for continuous monitoring
@@ -605,7 +605,7 @@ namespace TopstepX.Bot.Core.Services
                     "ML-Enhanced", // strategy name
                     TradingBot.RLAgent.RegimeType.Trend, // default regime
                     mlMarketData, 
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false).ConfigureAwait(false);
 
                 _logger.LogDebug("[ML/RL-FEATURES] Generated feature vector for {Symbol} with {FeatureCount} features", 
                     symbol, featureVector?.Features.Length ?? 0);
@@ -770,7 +770,7 @@ namespace TopstepX.Bot.Core.Services
                     rMultiple, orderRequest.CustomTag, signal.Score);
 
                 // Place order through existing system
-                await PlaceOrderAsync(orderRequest);
+                await PlaceOrderAsync(orderRequest).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -803,7 +803,7 @@ namespace TopstepX.Bot.Core.Services
                 };
 
                 // Place the order
-                var result = await PlaceOrderAsync(orderRequest);
+                var result = await PlaceOrderAsync(orderRequest).ConfigureAwait(false).ConfigureAwait(false);
                 
                 _logger.LogInformation("[STRATEGY] Strategy {StrategyId} signal executed: {Symbol} {Side} Qty={Qty} Entry={Entry} Stop={Stop} Target={Target} Result={Success}",
                     candidate.strategy_id, candidate.symbol, candidate.side, candidate.qty, 
@@ -1116,7 +1116,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 try
                 {
-                    await EvaluateTradeOpportunitiesAsync();
+                    await EvaluateTradeOpportunitiesAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -1163,7 +1163,7 @@ namespace TopstepX.Bot.Core.Services
                     Interlocked.Increment(ref _barsSeen);
 
                     // ML/RL ENHANCEMENT: Real-time feature processing and strategy triggering
-                    _ = Task.Run(async () => await ProcessRealTimeMarketDataAsync(symbol, marketData));
+                    _ = Task.Run(async () => await ProcessRealTimeMarketDataAsync(symbol, marketData)).ConfigureAwait(false);
 
                     _logger.LogDebug("[ML/RL-MARKET_DATA] {Symbol}: Bid={Bid} Ask={Ask} Last={Last} BarsSeen={BarsSeen}",
                         symbol, Px.F2(marketData.BidPrice), Px.F2(marketData.AskPrice), 
@@ -1199,7 +1199,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate real-time features
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1220,11 +1220,11 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogDebug("[ML/RL-REALTIME] Would update streaming features for {Symbol}", symbol);
 
                 // Check if conditions are met for immediate strategy evaluation
-                var shouldEvaluate = await ShouldTriggerImmediateEvaluationAsync(symbol, featureVector);
+                var shouldEvaluate = await ShouldTriggerImmediateEvaluationAsync(symbol, featureVector).ConfigureAwait(false).ConfigureAwait(false);
                 if (shouldEvaluate)
                 {
                     _logger.LogInformation("[ML/RL-REALTIME] Triggering immediate strategy evaluation for {Symbol} due to market conditions", symbol);
-                    await EvaluateSymbolStrategiesAsync(symbol);
+                    await EvaluateSymbolStrategiesAsync(symbol).ConfigureAwait(false);
                 }
 
                 _lastFeatureUpdate[symbol] = DateTime.UtcNow;
@@ -1350,13 +1350,13 @@ namespace TopstepX.Bot.Core.Services
                         _config.AccountId, orderId, Px.F2(price), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
 
                     // Update position tracker - fix parameter types
-                    await _positionTracker.ProcessFillAsync(orderId, symbol, price, (int)quantity);
+                    await _positionTracker.ProcessFillAsync(orderId, symbol, price, (int)quantity).ConfigureAwait(false);
                     
                     // ML/RL ENHANCEMENT: Update ML models with fill execution data
-                    await UpdateMlRlSystemWithFillAsync(orderId, symbol, price, quantity, side);
+                    await UpdateMlRlSystemWithFillAsync(orderId, symbol, price, quantity, side).ConfigureAwait(false);
                     
                     // ML/RL ENHANCEMENT: Trigger position management strategies
-                    await ProcessPostFillPositionManagementAsync(symbol, price, quantity, side);
+                    await ProcessPostFillPositionManagementAsync(symbol, price, quantity, side).ConfigureAwait(false);
                     
                     _logger.LogInformation("✅ [ML/RL-FILL] Position and ML/RL state updated for {Symbol}: {Quantity} @ {Price}", symbol, quantity, Px.F2(price));
                 }
@@ -1488,7 +1488,7 @@ namespace TopstepX.Bot.Core.Services
                     return;
 
                 // Generate features for position management decision
-                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars);
+                var featureVector = await GenerateEnhancedFeaturesAsync(symbol, marketData, bars).ConfigureAwait(false).ConfigureAwait(false);
                 if (featureVector == null)
                     return;
 
@@ -1511,7 +1511,7 @@ namespace TopstepX.Bot.Core.Services
                 // Process any immediate position management actions (stops, targets, scaling)
                 foreach (var signal in positionSignals.Where(s => s.Score > 0.7m))
                 {
-                    await ProcessPositionManagementSignalAsync(signal, featureVector);
+                    await ProcessPositionManagementSignalAsync(signal, featureVector).ConfigureAwait(false);
                 }
 
                 _logger.LogInformation("[ML/RL-POSITION-MGMT] Processed post-fill position management for {Symbol}, generated {SignalCount} position management signals", 
@@ -1534,17 +1534,17 @@ namespace TopstepX.Bot.Core.Services
                 if (signal.StrategyId.Contains("STOP"))
                 {
                     // Update stop loss using ML-optimized levels
-                    await UpdateStopLossAsync(signal, featureVector);
+                    await UpdateStopLossAsync(signal, featureVector).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("TARGET"))
                 {
                     // Update take profit using ML-optimized levels
-                    await UpdateTakeProfitAsync(signal, featureVector);
+                    await UpdateTakeProfitAsync(signal, featureVector).ConfigureAwait(false);
                 }
                 else if (signal.StrategyId.Contains("SCALE"))
                 {
                     // Handle position scaling (add/reduce) using ML risk management
-                    await ProcessPositionScalingAsync(signal, featureVector);
+                    await ProcessPositionScalingAsync(signal, featureVector).ConfigureAwait(false);
                 }
 
                 _logger.LogDebug("[ML/RL-POS-MGMT-SIGNAL] Processed position management signal for {Symbol}: {Strategy}", 
@@ -1734,14 +1734,14 @@ namespace TopstepX.Bot.Core.Services
             try
             {
                 // Initialize the TopstepX adapter service
-                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken);
+                var initialized = await _topstepXAdapter.InitializeAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (initialized)
                 {
                     _logger.LogInformation("✅ TopstepX adapter initialized successfully");
                     
                     // Check adapter health
-                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken);
+                    var healthScore = await _topstepXAdapter.GetHealthScoreAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     _logger.LogInformation("📊 TopstepX adapter health: {HealthScore}% - Status: {Status}", 
                         healthScore.HealthScore, healthScore.Status);
                 }
@@ -1822,12 +1822,12 @@ namespace TopstepX.Bot.Core.Services
             
             if (_userHubConnection != null)
             {
-                await _userHubConnection.DisposeAsync();
+                await _userHubConnection.DisposeAsync().ConfigureAwait(false);
             }
             
             if (_marketHubConnection != null)
             {
-                await _marketHubConnection.DisposeAsync();
+                await _marketHubConnection.DisposeAsync().ConfigureAwait(false);
             }
             
             _orderConfirmation?.Dispose();
@@ -1847,7 +1847,7 @@ namespace TopstepX.Bot.Core.Services
                 _logger.LogInformation("[PROD-READY] Initializing production readiness components...");
 
                 // Step 1: Initialize enhanced market data flow
-                var marketFlowSuccess = await _marketDataFlow.InitializeDataFlowAsync();
+                var marketFlowSuccess = await _marketDataFlow.InitializeDataFlowAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (marketFlowSuccess)
                 {
                     _logger.LogInformation("[PROD-READY] ✅ Enhanced market data flow initialized");
@@ -1858,7 +1858,7 @@ namespace TopstepX.Bot.Core.Services
                 }
 
                 // Step 2: Seed with historical data  
-                var seedingSuccess = await _historicalBridge.SeedTradingSystemAsync(_readinessConfig.SeedingContracts);
+                var seedingSuccess = await _historicalBridge.SeedTradingSystemAsync(_readinessConfig.SeedingContracts).ConfigureAwait(false).ConfigureAwait(false);
                 if (seedingSuccess)
                 {
                     _seededBars = _readinessConfig.MinSeededBars; // Assume successful seeding

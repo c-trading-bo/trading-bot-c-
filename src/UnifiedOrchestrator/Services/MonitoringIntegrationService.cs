@@ -38,7 +38,7 @@ public class MonitoringIntegrationService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "MonitoringService", 
-            $"Starting monitoring endpoints on port {_port}");
+            $"Starting monitoring endpoints on port {_port}").ConfigureAwait(false);
 
         var builder = WebApplication.CreateBuilder();
         builder.Services.AddSingleton(_tradingLogger);
@@ -52,21 +52,21 @@ public class MonitoringIntegrationService : IHostedService
         // Configure endpoints
         ConfigureEndpoints();
 
-        await _app.StartAsync(cancellationToken);
+        await _app.StartAsync(cancellationToken).ConfigureAwait(false);
         
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "MonitoringService", 
-            $"Monitoring endpoints available at http://localhost:{_port}");
+            $"Monitoring endpoints available at http://localhost:{_port}").ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "MonitoringService", 
-            "Monitoring service stopping");
+            "Monitoring service stopping").ConfigureAwait(false);
             
         if (_app != null)
         {
-            await _app.StopAsync(cancellationToken);
-            await _app.DisposeAsync();
+            await _app.StopAsync(cancellationToken).ConfigureAwait(false);
+            await _app.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -77,7 +77,7 @@ public class MonitoringIntegrationService : IHostedService
         // Health check endpoint
         _app.MapGet("/health", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync();
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
             return Results.Ok(new
             {
                 status = "healthy",
@@ -89,7 +89,7 @@ public class MonitoringIntegrationService : IHostedService
         // Prometheus metrics endpoint
         _app.MapGet("/metrics", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync();
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
             var metricsData = metrics.GetMetrics();
             
             // Convert to Prometheus format
@@ -116,21 +116,21 @@ public class MonitoringIntegrationService : IHostedService
                 category = parsedCategory;
             }
 
-            var entries = await _tradingLogger.GetRecentEntriesAsync(count, category);
+            var entries = await _tradingLogger.GetRecentEntriesAsync(count, category).ConfigureAwait(false).ConfigureAwait(false);
             return Results.Ok(entries);
         });
 
         // Performance metrics endpoint
         _app.MapGet("/metrics/performance", async () =>
         {
-            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync();
+            var metrics = await ((TradingLogger)_tradingLogger).GetPerformanceMetricsAsync().ConfigureAwait(false).ConfigureAwait(false);
             return Results.Ok(metrics.GetMetrics());
         });
 
         // Force flush endpoint (for debugging)
         _app.MapPost("/logs/flush", async () =>
         {
-            await _tradingLogger.FlushAsync();
+            await _tradingLogger.FlushAsync().ConfigureAwait(false);
             return Results.Ok(new { status = "flushed", timestamp = DateTime.UtcNow });
         });
     }

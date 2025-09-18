@@ -80,7 +80,7 @@ namespace SupervisorAgent
             while (!ct.IsCancellationRequested)
             {
                 _status.Heartbeat();
-                await Task.Delay(1000, ct);
+                await Task.Delay(1000, ct).ConfigureAwait(false);
             }
         }
     }

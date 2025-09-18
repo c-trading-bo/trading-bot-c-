@@ -114,7 +114,7 @@ public class StrategyPerformanceAnalyzer
         }
         
         // Generate insights outside the lock
-        await GenerateStrategyInsightsAsync(strategy, cancellationToken);
+        await GenerateStrategyInsightsAsync(strategy, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -122,7 +122,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<decimal> GetStrategyScoreAsync(string strategy, AnalyzerMarketRegime regime, TimeSpan currentTime, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_analysisLock)
         {
@@ -165,7 +165,7 @@ public class StrategyPerformanceAnalyzer
         
         foreach (var strategy in strategies)
         {
-            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken);
+            var score = await GetStrategyScoreAsync(strategy, regime, currentTime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Apply volatility adjustments
             score = ApplyVolatilityAdjustment(strategy, score, volatility);
@@ -195,7 +195,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<List<StrategyAlert>> DetectPerformanceIssuesAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var alerts = new List<StrategyAlert>();
         
@@ -275,7 +275,7 @@ public class StrategyPerformanceAnalyzer
     /// </summary>
     public async Task<List<StrategyOptimization>> GetOptimizationRecommendationsAsync(string strategy, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var recommendations = new List<StrategyOptimization>();
         
@@ -518,7 +518,7 @@ public class StrategyPerformanceAnalyzer
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private decimal GetRegimeSpecificScore(string strategy, AnalyzerMarketRegime regime)

@@ -141,9 +141,9 @@ namespace OrchestratorAgent
                     string orderId = t.GetProperty("OrderId")?.GetValue(upd)?.ToString() ?? string.Empty;
                     var age = (TimeSpan?)(t.GetProperty("Age")?.GetValue(upd)) ?? TimeSpan.Zero;
                     if (!isParent || filled <= 0) return;
-                    await router.UpsertBracketsAsync(orderId, filled, ct);
+                    await router.UpsertBracketsAsync(orderId, filled, ct).ConfigureAwait(false);
                     if (remaining > 0 && age > TimeSpan.FromSeconds(5))
-                        await router.ConvertRemainderToLimitOrCancelAsync(upd, ct);
+                        await router.ConvertRemainderToLimitOrCancelAsync(upd, ct).ConfigureAwait(false);
 
                     // Wire OnlineLearningSystem into live trading loop
                     if (_onlineLearningSystem != null && filled > 0)
@@ -180,7 +180,7 @@ namespace OrchestratorAgent
                                 };
 
                                 // Update online learning model with trade data
-                                await _onlineLearningSystem.UpdateModelAsync(tradeRecord, ct);
+                                await _onlineLearningSystem.UpdateModelAsync(tradeRecord, ct).ConfigureAwait(false);
                                 
                                 // Log completion
                                 _log.LogDebug("[ONLINE_LEARNING] Online learning system updated successfully for order: {OrderId}", orderId);
@@ -221,14 +221,14 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(20), ct);
-                        var newToken = await auth.ValidateAsync(ct);
+                        await Task.Delay(TimeSpan.FromMinutes(20), ct).ConfigureAwait(false);
+                        var newToken = await auth.ValidateAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
                         if (string.IsNullOrWhiteSpace(newToken))
                         {
                             var u = Environment.GetEnvironmentVariable("TOPSTEPX_USERNAME");
                             var k = Environment.GetEnvironmentVariable("TOPSTEPX_API_KEY");
                             if (!string.IsNullOrWhiteSpace(u) && !string.IsNullOrWhiteSpace(k))
-                                newToken = await auth.GetJwtAsync(u!, k!, ct);
+                                newToken = await auth.GetJwtAsync(u!, k!, ct).ConfigureAwait(false).ConfigureAwait(false);
                         }
                         if (!string.IsNullOrWhiteSpace(newToken))
                         {
@@ -246,7 +246,7 @@ namespace OrchestratorAgent
             // Rebuild state on boot: seed de-dupe cache from open positions
             try
             {
-                var open = await router.QueryOpenPositionsAsync(_accountId, ct);
+                var open = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
                 foreach (var p in open)
                 {
                     try
@@ -293,8 +293,8 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        var (Sig, ContractId) = await _routeChan.Reader.ReadAsync(ct);
-                        await Retry(() => router.RouteAsync(Sig, ContractId, ct), ct);
+                        var (Sig, ContractId) = await _routeChan.Reader.ReadAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
+                        await Retry(() => router.RouteAsync(Sig, ContractId, ct), ct).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception ex) { _log.LogWarning(ex, "[Supervisor] Route consumer error"); }
@@ -320,7 +320,7 @@ namespace OrchestratorAgent
                             try { _ = _notifier.Warn($"Reconnect storm: {_reconnects.Count} in last 5m"); } catch { }
                         }
                         if (rebuildOnReconnect)
-                            await router.EnsureBracketsAsync(_accountId, ct);
+                            await router.EnsureBracketsAsync(_accountId, ct).ConfigureAwait(false);
                     });
                     var del = Delegate.CreateDelegate(evt.EventHandlerType!, handler.Target!, handler.Method);
                     evt.AddEventHandler(_marketHub, del);
@@ -333,10 +333,10 @@ namespace OrchestratorAgent
                 var delays = new[] { 250, 500, 1000, 2000, 4000, 8000 };
                 foreach (var d in delays)
                 {
-                    try { await op(); return; }
-                    catch when (!ct.IsCancellationRequested) { await Task.Delay(d, ct); }
+                    try { await op().ConfigureAwait(false); return; }
+                    catch when (!ct.IsCancellationRequested) { await Task.Delay(d, ct).ConfigureAwait(false); }
                 }
-                await op(); // final throw
+                await op().ConfigureAwait(false); // final throw
             }
 
             static void TrimWindow(System.Collections.Concurrent.ConcurrentQueue<DateTime> q, TimeSpan window)
@@ -369,7 +369,7 @@ namespace OrchestratorAgent
                                 Timestamp = DateTime.UnixEpoch.AddMilliseconds(bar.Ts)
                             };
                             
-                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick);
+                            var features = await _featureEngineering.ProcessStreamingTickAsync(tick).ConfigureAwait(false).ConfigureAwait(false);
                             _log.LogTrace("[ML_PIPELINE] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}, FeatureCount={FeatureCount}", 
                                 tick.Symbol, tick.Price, tick.Volume, features?.GetType().GetProperties().Length ?? 0);
                         }
@@ -399,7 +399,7 @@ namespace OrchestratorAgent
                     string contractId;
                     if (_contractService != null)
                     {
-                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol;
+                        contractId = await _contractService.ResolveContractAsync(symbol, CancellationToken.None) ?? symbol.ConfigureAwait(false).ConfigureAwait(false);
                     }
                     else
                     {
@@ -423,7 +423,7 @@ namespace OrchestratorAgent
                                 var path = $"/marketdata/bars?symbol={symbol}&tf=1m&since={sinceUnixMs}&until={untilUnixMs}";
                                 var missing = _http is not null
                                     ? await _http.GetFromJsonAsync<List<BotCore.Models.Bar>>(path, cancellationToken: CancellationToken.None)
-                                    : null;
+                                    : null.ConfigureAwait(false);
                                 if (missing is { Count: > 0 })
                                 {
                                     var merged = list.Concat(missing.Where(b => b.Ts > sinceUnixMs))
@@ -477,7 +477,7 @@ namespace OrchestratorAgent
                             decimal? net = null!;
                             try
                             {
-                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct);
+                                var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/accounts/{_accountId}/pnl?scope=today", cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
                                 if (j.ValueKind == System.Text.Json.JsonValueKind.Object && j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
                             }
                             catch { }
@@ -485,7 +485,7 @@ namespace OrchestratorAgent
                             {
                                 try
                                 {
-                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", cancellationToken: ct);
+                                    var j = await _http.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
                                     if (j.ValueKind == System.Text.Json.JsonValueKind.Object)
                                     {
                                         if (j.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
@@ -631,7 +631,7 @@ namespace OrchestratorAgent
                                 // Get cloud/offline prediction via IntelligenceOrchestrator.GetLatestPredictionAsync
                                 if (_intelligenceOrchestrator != null)
                                 {
-                                    var prediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol);
+                                    var prediction = await _intelligenceOrchestrator.GetLatestPredictionAsync(s.Symbol).ConfigureAwait(false).ConfigureAwait(false);
                                     P_cloud = prediction.Confidence;
                                     _log.LogDebug("[ML_GATE] Cloud prediction for {Symbol}: confidence={Confidence}", s.Symbol, P_cloud);
                                 }
@@ -647,7 +647,7 @@ namespace OrchestratorAgent
                                     try
                                     {
                                         // Try to get online prediction from intelligence orchestrator
-                                        var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId);
+                                        var onlinePrediction = await _intelligenceOrchestrator.GetOnlinePredictionAsync(s.Symbol, s.StrategyId).ConfigureAwait(false).ConfigureAwait(false);
                                         P_online = onlinePrediction?.Confidence ?? 0.7;
                                         _log.LogDebug("[ML_GATE] Online prediction for {Symbol} {Strategy}: confidence={Confidence}", s.Symbol, s.StrategyId, P_online);
                                     }
@@ -713,7 +713,7 @@ namespace OrchestratorAgent
                                 {
                                     await _decisionLogger.LogTradingDecisionAsync(
                                         s.Symbol, s.StrategyId, P_cloud, P_online, P_final, 
-                                        mlGatesPassed, s.Size, mlGatesPassed ? "ALLOW" : "BLOCK", cid);
+                                        mlGatesPassed, s.Size, mlGatesPassed ? "ALLOW" : "BLOCK", cid).ConfigureAwait(false);
                                 }
                                 
                                 if (!mlGatesPassed)
@@ -780,11 +780,11 @@ namespace OrchestratorAgent
                     {
                         await Retry(async () =>
                         {
-                            var pos = await router.QueryOpenPositionsAsync(_accountId, ct);
-                            var ord = await router.QueryOpenOrdersAsync(_accountId, ct);
+                            var pos = await router.QueryOpenPositionsAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
+                            var ord = await router.QueryOpenOrdersAsync(_accountId, ct).ConfigureAwait(false).ConfigureAwait(false);
                             _status.Set("broker.positions.count", pos?.Count ?? 0);
                             _status.Set("broker.orders.count", ord?.Count ?? 0);
-                            await router.EnsureBracketsAsync(_accountId, ct);
+                            await router.EnsureBracketsAsync(_accountId, ct).ConfigureAwait(false);
                         }, ct);
                     }
                     catch { }
@@ -811,7 +811,7 @@ namespace OrchestratorAgent
                         catch { }
                     }
 
-                    try { await Task.Delay(5000, ct); } catch { }
+                    try { await Task.Delay(5000, ct).ConfigureAwait(false); } catch { }
                 }
             }, ct);
 
@@ -827,7 +827,7 @@ namespace OrchestratorAgent
                             if (kv.Value < cutoff) _recentRoutes.TryRemove(kv.Key, out _);
                     }
                     catch { }
-                    try { await Task.Delay(60000, ct); } catch { }
+                    try { await Task.Delay(60000, ct).ConfigureAwait(false); } catch { }
                 }
             }, ct);
 
@@ -858,7 +858,7 @@ namespace OrchestratorAgent
                 var flatten = Environment.GetEnvironmentVariable("PANIC_FLATTEN");
                 if (flatten == "1")
                 {
-                    await router.FlattenAllAsync(_accountId, ct);
+                    await router.FlattenAllAsync(_accountId, ct).ConfigureAwait(false);
                     Environment.SetEnvironmentVariable("PANIC_FLATTEN", "0");
                     _status.Set("flatten", "true");
                     _log.LogError("PANIC_FLATTEN toggled: positions flattened");
@@ -867,7 +867,7 @@ namespace OrchestratorAgent
                 var kill = Environment.GetEnvironmentVariable("KILL_SWITCH");
                 if (kill == "1")
                 {
-                    await router.CancelAllOpenAsync(_accountId, ct);
+                    await router.CancelAllOpenAsync(_accountId, ct).ConfigureAwait(false);
                     _status.Set("kill", "true");
                     _log.LogError("KILL_SWITCH active: cancelled all open orders and exiting supervisor loop.");
                     return;
@@ -878,7 +878,7 @@ namespace OrchestratorAgent
                 {
                     try
                     {
-                        var verificationResult = await _verifier.VerifyTodayAsync(ct);
+                        var verificationResult = await _verifier.VerifyTodayAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
                         _lastVerify = DateTime.UtcNow;
                         
                         if (verificationResult != null)
@@ -904,7 +904,7 @@ namespace OrchestratorAgent
                             {
                                 _log.LogError("Trade verification failed: {ErrorMessage}", verificationResult.ErrorMessage);
                                 // Operator alerting for trade verification failures
-                                await NotifyOperatorAsync($"Trade verification failed: {verificationResult.ErrorMessage}");
+                                await NotifyOperatorAsync($"Trade verification failed: {verificationResult.ErrorMessage}").ConfigureAwait(false);
                             }
                         }
                     }
@@ -945,7 +945,7 @@ namespace OrchestratorAgent
                 }
 
                 _status.Heartbeat();
-                await Task.Delay(1000, ct);
+                await Task.Delay(1000, ct).ConfigureAwait(false);
             }
         }
 
@@ -992,7 +992,7 @@ namespace OrchestratorAgent
                 
                 // In production, this would integrate with alerting systems like PagerDuty, Slack, etc.
                 // For now, ensure critical logs are captured for operator review
-                await Task.Delay(1); // Prevent async warning
+                await Task.Delay(1).ConfigureAwait(false); // Prevent async warning
             }
             catch (Exception ex)
             {

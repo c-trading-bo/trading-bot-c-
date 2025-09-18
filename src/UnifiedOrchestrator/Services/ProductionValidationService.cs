@@ -47,7 +47,7 @@ public class ProductionValidationService : IValidationService
         TimeSpan testPeriod, 
         CancellationToken cancellationToken = default)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         _logger.LogInformation(
@@ -306,7 +306,7 @@ public class ProductionValidationService : IValidationService
         var championResults = GenerateRealisticShadowResults("UnifiedTradingBrain", 150, 0.15, 0.08); // Lower performance
         var challengerResults = GenerateRealisticShadowResults("InferenceBrain", 150, 0.25, 0.12); // Higher performance
 
-        return await RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken);
+        return await RunValidationAsync("UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromDays(7), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     // Helper methods for statistical calculations (simplified implementations)
@@ -492,7 +492,7 @@ public class ProductionValidationService : IValidationService
                 currentChampion, 
                 challengerAlgorithm, 
                 TimeSpan.FromDays(1), // 1 day validation period
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             var result = new ValidationResult
             {

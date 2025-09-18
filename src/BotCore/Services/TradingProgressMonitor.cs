@@ -109,7 +109,7 @@ namespace BotCore.Services
                 // Log significant trades with structured data (fire and forget)
                 if (Math.Abs(result.PnL) > 100 || metrics.TotalTrades % 10 == 0)
                 {
-                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot));
+                    _ = Task.Run(async () => await LogProgressAsync(metricsSnapshot)).ConfigureAwait(false);
                 }
             }
         }
@@ -162,7 +162,7 @@ namespace BotCore.Services
 
             if (_tradingLogger != null)
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Progress Report", progressData);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Progress Report", progressData).ConfigureAwait(false);
             }
         }
 
@@ -187,7 +187,7 @@ namespace BotCore.Services
 
             if (_tradingLogger != null)
             {
-                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Strategy Progress", progressData);
+                await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "TradingProgressMonitor", "Strategy Progress", progressData).ConfigureAwait(false);
             }
         }
 

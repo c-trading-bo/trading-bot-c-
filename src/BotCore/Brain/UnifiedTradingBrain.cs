@@ -158,18 +158,18 @@ namespace BotCore.Brain
 
                 // Load LSTM for price prediction - use your real trained model
                 _lstmPricePredictor = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl_model.onnx", "v1");
+                    "models/rl_model.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
                 
                 // CVaR-PPO is already injected and initialized via DI container
                 _logger.LogInformation("✅ [CVAR-PPO] Using direct injection from DI container");
                 
                 // Load meta classifier for market regime - use your test CVaR model
                 _metaClassifier = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl/test_cvar_ppo.onnx", "v1");
+                    "models/rl/test_cvar_ppo.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
                 
                 // Load market regime detector - use your main RL model as backup
                 _marketRegimeDetector = await _memoryManager.LoadModelAsync<object>(
-                    "models/rl_model.onnx", "v1");
+                    "models/rl_model.onnx", "v1").ConfigureAwait(false).ConfigureAwait(false);
 
                 IsInitialized = true;
                 _logger.LogInformation("✅ [UNIFIED-BRAIN] All models loaded successfully - Brain is ONLINE with production CVaR-PPO");
@@ -205,20 +205,20 @@ namespace BotCore.Brain
                 _marketContexts[symbol] = context;
                 
                 // 2. DETECT MARKET REGIME using Meta Classifier
-                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken);
+                var marketRegime = await DetectMarketRegimeAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // 3. SELECT OPTIMAL STRATEGY using Neural UCB
-                var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken);
+                var optimalStrategy = await SelectOptimalStrategyAsync(context, marketRegime, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // 4. PREDICT PRICE MOVEMENT using LSTM
-                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken);
+                var priceDirection = await PredictPriceDirectionAsync(context, bars, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // 5. OPTIMIZE POSITION SIZE using RL
-                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken);
+                var optimalSize = await OptimizePositionSizeAsync(context, optimalStrategy, priceDirection, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // 6. GENERATE ENHANCED CANDIDATES using brain intelligence
                 var enhancedCandidates = await GenerateEnhancedCandidatesAsync(
-                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken);
+                    symbol, env, levels, bars, risk, optimalStrategy, priceDirection, optimalSize, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 var decision = new BrainDecision
                 {
@@ -286,10 +286,10 @@ namespace BotCore.Brain
                     var reward = CalculateReward(pnl, wasCorrect, holdTime);
                     var contextVector = CreateContextVector(context);
                     
-                    await _strategySelector.UpdateArmAsync(strategy, contextVector, reward, cancellationToken);
+                    await _strategySelector.UpdateArmAsync(strategy, contextVector, reward, cancellationToken).ConfigureAwait(false);
                     
                     // 🚀 MULTI-STRATEGY LEARNING: Update ALL strategies with this market condition
-                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, pnl, cancellationToken);
+                    await UpdateAllStrategiesFromOutcomeAsync(context, strategy, reward, wasCorrect, pnl, cancellationToken).ConfigureAwait(false);
                 }
 
                 // Update performance tracking for the specific strategy
@@ -367,7 +367,7 @@ namespace BotCore.Brain
                         strategy, executedStrategy, context, reward, wasCorrect);
                     
                     // Update strategy knowledge even if it wasn't executed
-                    await _strategySelector.UpdateArmAsync(strategy, contextVector, crossLearningReward, cancellationToken);
+                    await _strategySelector.UpdateArmAsync(strategy, contextVector, crossLearningReward, cancellationToken).ConfigureAwait(false);
                     
                     // Update strategy-specific learning patterns
                     UpdateStrategyOptimalConditions(strategy, context, crossLearningReward > 0.5m);
@@ -488,7 +488,7 @@ namespace BotCore.Brain
                 var availableStrategies = GetAvailableStrategies(context.TimeOfDay, regime);
                 var contextVector = CreateContextVector(context);
                 
-                var selection = await _strategySelector.SelectArmAsync(availableStrategies, contextVector, cancellationToken);
+                var selection = await _strategySelector.SelectArmAsync(availableStrategies, contextVector, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 return new StrategySelection
                 {
@@ -653,7 +653,7 @@ namespace BotCore.Brain
                 context.Volatility,
                 context.VolumeRatio,
                 context.TrendStrength
-            }) : 0.5m;
+            }) : 0.5m.ConfigureAwait(false);
             
             var confidenceMultiplier = modelConfidence;
 
@@ -699,7 +699,7 @@ namespace BotCore.Brain
                     var state = CreateCVaRStateVector(context, strategy, prediction);
                     
                     // Get action from trained CVaR-PPO model
-                    var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken);
+                    var actionResult = await _cvarPPO.GetActionAsync(state, deterministic: false, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     
                     // Convert CVaR-PPO action to contract sizing
                     var cvarContracts = ConvertCVaRActionToContracts(actionResult, contracts, context);
@@ -729,7 +729,7 @@ namespace BotCore.Brain
                     (decimal)strategy.Confidence,
                     (decimal)prediction.Probability,
                     new List<Bar>()
-                );
+                ).ConfigureAwait(false).ConfigureAwait(false);
                 
                 contracts = (int)(contracts * Math.Clamp(rlMultiplier, 0.5m, 1.5m));
                 _logger.LogDebug("📊 [LEGACY-RL] Using fallback RL multiplier: {Multiplier:F2}", rlMultiplier);
@@ -1125,7 +1125,7 @@ namespace BotCore.Brain
                 UpdateOptimalConditionsFromPerformance(performanceAnalysis);
                 
                 // Cross-pollinate successful patterns between strategies
-                await CrossPollinateStrategyPatternsAsync(cancellationToken);
+                await CrossPollinateStrategyPatternsAsync(cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("✅ [UNIFIED-LEARNING] Completed unified learning update");
             }
@@ -1196,7 +1196,7 @@ namespace BotCore.Brain
         
         private async Task CrossPollinateStrategyPatternsAsync(CancellationToken cancellationToken)
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             
             // Find the best performing strategy
             var bestStrategy = PrimaryStrategies
@@ -1463,15 +1463,15 @@ namespace BotCore.Brain
                 Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
                 
                 await File.WriteAllTextAsync(dataPath, JsonSerializer.Serialize(unifiedTrainingData, 
-                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken).ConfigureAwait(false);
                 await File.WriteAllTextAsync(perfPath, JsonSerializer.Serialize(strategyPerformanceData, 
-                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+                    new JsonSerializerOptions { WriteIndented = true }), cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("✅ [UNIFIED-RETRAIN] Training data exported: {Count} decisions, {StrategyCount} strategies", 
                     unifiedTrainingData.Count(), _strategyPerformance.Count);
                 
                 // Here you could trigger enhanced Python training scripts that understand multi-strategy learning
-                // await RunUnifiedPythonTrainingAsync(dataPath, perfPath, cancellationToken);
+                // await RunUnifiedPythonTrainingAsync(dataPath, perfPath, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

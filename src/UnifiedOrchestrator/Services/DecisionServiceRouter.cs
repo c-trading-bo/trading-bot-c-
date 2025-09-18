@@ -65,12 +65,12 @@ public class DecisionServiceRouter
             _logger.LogDebug("🔄 [DECISION-SERVICE-ROUTER] Routing integrated decision for {Symbol}", symbol);
             
             // Step 1: Check Python decision service health
-            await CheckPythonServiceHealthAsync(cancellationToken);
+            await CheckPythonServiceHealthAsync(cancellationToken).ConfigureAwait(false);
             
             // Step 2: Try Python decision service if healthy
             if (_pythonServiceHealthy && _options.Enabled)
             {
-                var pythonDecision = await TryPythonDecisionServiceAsync(symbol, marketContext, cancellationToken);
+                var pythonDecision = await TryPythonDecisionServiceAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (pythonDecision != null)
                 {
                     pythonDecision.DecisionSource = "PythonDecisionService";
@@ -86,7 +86,7 @@ public class DecisionServiceRouter
             _logger.LogDebug("🔄 [DECISION-SERVICE-ROUTER] Python service unavailable, using C# unified router");
             
             // No conversion needed - both are BotCore.Services.MarketContext
-            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
+            var csharpDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             csharpDecision.DecisionSource = $"CSharp_{csharpDecision.DecisionSource}";
             
             // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision
@@ -109,7 +109,7 @@ public class DecisionServiceRouter
             _logger.LogError(ex, "❌ [DECISION-SERVICE-ROUTER] Error in integrated routing for {Symbol}", symbol);
             
             // Ultimate fallback to C# system
-            var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken);
+            var fallbackDecision = await _unifiedRouter.RouteDecisionAsync(symbol, marketContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Convert from BotCore.Services.UnifiedTradingDecision to local UnifiedTradingDecision  
             return new UnifiedTradingDecision
@@ -147,7 +147,7 @@ public class DecisionServiceRouter
             }
             
             var healthUrl = $"{_options.BaseUrl}/health";
-            var response = await _httpClient.GetAsync(healthUrl, cancellationToken);
+            var response = await _httpClient.GetAsync(healthUrl, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             _pythonServiceHealthy = response.IsSuccessStatusCode;
             _lastHealthCheck = DateTime.UtcNow;
@@ -194,7 +194,7 @@ public class DecisionServiceRouter
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             
             var decisionUrl = $"{_options.BaseUrl}/decision";
-            var response = await _httpClient.PostAsync(decisionUrl, content, cancellationToken);
+            var response = await _httpClient.PostAsync(decisionUrl, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -202,7 +202,7 @@ public class DecisionServiceRouter
                 return null;
             }
             
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var pythonResponse = JsonSerializer.Deserialize<PythonDecisionResponse>(responseJson);
             
             if (pythonResponse == null)
@@ -295,12 +295,12 @@ public class DecisionServiceRouter
         try
         {
             // Always submit to C# system
-            await _unifiedRouter.SubmitTradingOutcomeAsync(decisionId, realizedPnL, wasCorrect, holdTime, cancellationToken);
+            await _unifiedRouter.SubmitTradingOutcomeAsync(decisionId, realizedPnL, wasCorrect, holdTime, cancellationToken).ConfigureAwait(false);
             
             // Submit to Python service if it was the decision source
             if (decisionSource.StartsWith("Python") && _pythonServiceHealthy && _options.Enabled)
             {
-                await SubmitOutcomeToPythonServiceAsync(decisionId, realizedPnL, wasCorrect, holdTime, cancellationToken);
+                await SubmitOutcomeToPythonServiceAsync(decisionId, realizedPnL, wasCorrect, holdTime, cancellationToken).ConfigureAwait(false);
             }
             
             _logger.LogInformation("📈 [INTEGRATED-FEEDBACK] Outcome submitted to both systems: {DecisionId}", decisionId);
@@ -336,7 +336,7 @@ public class DecisionServiceRouter
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             
             var outcomeUrl = $"{_options.BaseUrl}/outcome";
-            var response = await _httpClient.PostAsync(outcomeUrl, content, cancellationToken);
+            var response = await _httpClient.PostAsync(outcomeUrl, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (response.IsSuccessStatusCode)
             {

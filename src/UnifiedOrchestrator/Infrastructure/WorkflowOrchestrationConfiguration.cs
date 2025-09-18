@@ -33,7 +33,7 @@ public static class WorkflowOrchestrationConfiguration
         var orchestrationManager = serviceProvider.GetService<IWorkflowOrchestrationManager>();
         if (orchestrationManager != null)
         {
-            await orchestrationManager.InitializeAsync();
+            await orchestrationManager.InitializeAsync().ConfigureAwait(false);
             logger.LogInformation("[Workflow-Config] Workflow orchestration manager initialized");
         }
         

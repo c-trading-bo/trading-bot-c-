@@ -95,7 +95,7 @@ public class BatchedOnnxInferenceService : IDisposable
         };
 
         // Add to queue for batched processing
-        await _requestQueue.Writer.WriteAsync(request, cancellationToken);
+        await _requestQueue.Writer.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 
         // Wait for result with timeout
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -103,7 +103,7 @@ public class BatchedOnnxInferenceService : IDisposable
 
         try
         {
-            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token);
+            return await request.CompletionSource.Task.WaitAsync(timeoutCts.Token).ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -133,7 +133,7 @@ public class BatchedOnnxInferenceService : IDisposable
 
             foreach (var group in modelGroups)
             {
-                await ProcessModelBatchAsync(group.Key, group.ToList());
+                await ProcessModelBatchAsync(group.Key, group.ToList()).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -150,7 +150,7 @@ public class BatchedOnnxInferenceService : IDisposable
         try
         {
             // Load model if not already loaded
-            var session = await _modelLoader.LoadModelAsync(modelPath);
+            var session = await _modelLoader.LoadModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
             if (session == null)
             {
                 _logger.LogError("Failed to load model for batch inference: {ModelPath}", modelPath);
@@ -165,7 +165,7 @@ public class BatchedOnnxInferenceService : IDisposable
             for (int i = 0; i < requests.Count; i += batchSize)
             {
                 var batchRequests = requests.Skip(i).Take(batchSize).ToList();
-                await ProcessSingleBatchAsync(session, batchRequests);
+                await ProcessSingleBatchAsync(session, batchRequests).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -205,7 +205,7 @@ public class BatchedOnnxInferenceService : IDisposable
             };
 
             // Run inference
-            var outputs = await Task.Run(() => session.Run(inputs));
+            var outputs = await Task.Run(() => session.Run(inputs)).ConfigureAwait(false).ConfigureAwait(false);
             var outputTensor = outputs.First().AsTensor<float>();
 
             // Extract results and complete requests

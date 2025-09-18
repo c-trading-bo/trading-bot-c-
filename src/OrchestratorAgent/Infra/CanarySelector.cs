@@ -57,7 +57,7 @@ public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> ge
             while (!_cts.IsCancellationRequested)
             {
                 try { EvaluateOnce(); } catch (Exception ex) { _log.LogWarning(ex, "[Canary] evaluate"); }
-                try { await Task.Delay(TimeSpan.FromMinutes(5), _cts.Token); }
+                try { await Task.Delay(TimeSpan.FromMinutes(5), _cts.Token).ConfigureAwait(false); }
                 catch (OperationCanceledException) { /* normal on shutdown */ }
                 catch (Exception)
                 {
@@ -369,8 +369,8 @@ public sealed class CanarySelector(ILogger log, Func<string, HashSet<string>> ge
 
     public async ValueTask DisposeAsync()
     {
-        try { await _cts.CancelAsync(); } catch { }
-        try { if (_loop != null) await _loop; } catch { }
+        try { await _cts.CancelAsync().ConfigureAwait(false); } catch { }
+        try { if (_loop != null) await _loop.ConfigureAwait(false); } catch { }
         _cts.Dispose();
     }
 

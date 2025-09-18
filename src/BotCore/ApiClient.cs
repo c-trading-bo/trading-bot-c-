@@ -32,11 +32,11 @@ namespace BotCore
         public async Task<string> ResolveContractIdAsync(string root, CancellationToken ct = default)
         {
             // 1) Try AVAILABLE (eval = live:false)
-            var id = await TryResolveViaAvailableAsync(root, live: false, ct);
-            id ??= await TryResolveViaAvailableAsync(root, live: true, ct); // safety fallback
+            var id = await TryResolveViaAvailableAsync(root, live: false, ct).ConfigureAwait(false).ConfigureAwait(false);
+            id ??= await TryResolveViaAvailableAsync(root, live: true, ct).ConfigureAwait(false).ConfigureAwait(false); // safety fallback
 
             // 2) Fallback to SEARCH if still nothing
-            id ??= await TryResolveViaSearchAsync(root, live: false, ct) ?? await TryResolveViaSearchAsync(root, live: true, ct);
+            id ??= await TryResolveViaSearchAsync(root, live: false, ct) ?? await TryResolveViaSearchAsync(root, live: true, ct).ConfigureAwait(false).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(id))
                 throw new InvalidOperationException($"No contractId found for symbol: {root}");
@@ -63,8 +63,8 @@ namespace BotCore
             SymbolRootToSymbolId.TryGetValue(root, out var wantedSymbolId);
             try
             {
-                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/available"), new AvailableReq(live), ct);
-                var body = await resp.Content.ReadAsStringAsync(ct);
+                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/available"), new AvailableReq(live), ct).ConfigureAwait(false).ConfigureAwait(false);
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                 {
                     _log.LogWarning("Contract available {Status} (live={Live}): {Body}", (int)resp.StatusCode, live, body);
@@ -106,8 +106,8 @@ namespace BotCore
         {
             try
             {
-                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/search"), new SearchReq(searchText, live), ct);
-                var body = await resp.Content.ReadAsStringAsync(ct);
+                using var resp = await _http.PostAsJsonAsync(U("/api/Contract/search"), new SearchReq(searchText, live), ct).ConfigureAwait(false).ConfigureAwait(false);
+                var body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
                 if (!resp.IsSuccessStatusCode)
                 {
                     _log.LogWarning("Contract search {Status} (q='{Q}', live={Live}): {Body}", (int)resp.StatusCode, searchText, live, body);
@@ -140,11 +140,11 @@ namespace BotCore
             {
                 try
                 {
-                    using var resp = await _http.PostAsJsonAsync(U("/api/Order/place"), req, ct);
+                    using var resp = await _http.PostAsJsonAsync(U("/api/Order/place"), req, ct).ConfigureAwait(false).ConfigureAwait(false);
                     
                     if (resp.IsSuccessStatusCode)
                     {
-                        var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+                        var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
                         // Extract orderId from json (field name per docs)
                         return json.TryGetProperty("orderId", out var id) ? id.GetString() : null;
                     }
@@ -152,7 +152,7 @@ namespace BotCore
                     {
                         _log.LogWarning("[APICLIENT] PlaceOrder attempt {Attempt}/{Max} failed: HTTP {StatusCode}, retrying...", 
                             attempt, maxRetries, (int)resp.StatusCode);
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
                         continue;
                     }
                     else
@@ -165,7 +165,7 @@ namespace BotCore
                 {
                     _log.LogWarning(ex, "[APICLIENT] PlaceOrder HTTP request failed on attempt {Attempt}/{Max}, retrying...", 
                         attempt, maxRetries);
-                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct);
+                    await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)), ct).ConfigureAwait(false);
                 }
             }
 
@@ -176,42 +176,42 @@ namespace BotCore
         // Search for orders via REST
         public async Task<JsonElement> SearchOrdersAsync(object body, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U("/api/Order/search"), body, ct);
+            using var resp = await _http.PostAsJsonAsync(U("/api/Order/search"), body, ct).ConfigureAwait(false).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
             return json;
         }
 
         // Search for trades via REST
         public async Task<JsonElement> SearchTradesAsync(object body, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U("/api/Trade/search"), body, ct);
+            using var resp = await _http.PostAsJsonAsync(U("/api/Trade/search"), body, ct).ConfigureAwait(false).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
-            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct);
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
             return json;
         }
 
         // Generic GET helper
         public async Task<T?> GetAsync<T>(string relativePath, CancellationToken ct)
         {
-            using var resp = await _http.GetAsync(U(relativePath), ct);
+            using var resp = await _http.GetAsync(U(relativePath), ct).ConfigureAwait(false).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
-            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
         }
 
         // Generic POST helper without response body
         public async Task PostAsync(string relativePath, object body, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct);
+            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct).ConfigureAwait(false).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
         }
 
         // Generic POST helper with typed response
         public async Task<T?> PostAsync<T>(string relativePath, object body, CancellationToken ct)
         {
-            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct);
+            using var resp = await _http.PostAsJsonAsync(U(relativePath), body, ct).ConfigureAwait(false).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
-            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
+            return await resp.Content.ReadFromJsonAsync<T>(cancellationToken: ct).ConfigureAwait(false).ConfigureAwait(false);
         }
 
         // Positions helpers (correct POST endpoints)
@@ -221,7 +221,7 @@ namespace BotCore
         // New wrapper-aware method (preferred)
         public async Task<List<Position>> GetOpenPositionsAsync(long accountId, CancellationToken ct)
         {
-            var resp = await PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct);
+            var resp = await PostAsync<SearchOpenPositionsResponse>("/api/Position/searchOpen", new { accountId }, ct).ConfigureAwait(false).ConfigureAwait(false);
             return resp?.positions ?? [];
         }
 

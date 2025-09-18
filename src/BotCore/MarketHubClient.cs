@@ -58,7 +58,7 @@ namespace BotCore
         public async Task StartAsync(string contractId, CancellationToken ct = default)
         {
             // Back-compat: route to the overload using the same token for both start and lifetime
-            await StartAsync(contractId, ct, ct);
+            await StartAsync(contractId, ct, ct).ConfigureAwait(false);
         }
 
         public async Task StartAsync(string contractId, CancellationToken startToken, CancellationToken appLifetime)
@@ -66,13 +66,13 @@ namespace BotCore
             _contractId = contractId ?? throw new ArgumentNullException(nameof(contractId));
             if (_conn is not null) throw new InvalidOperationException("MarketHubClient already started.");
 
-            _conn = await BuildMarketHubAsync();
+            _conn = await BuildMarketHubAsync().ConfigureAwait(false).ConfigureAwait(false);
             AttachLifecycleHandlers(appLifetime);
-            await _conn.StartAsync(startToken);
+            await _conn.StartAsync(startToken).ConfigureAwait(false);
 
             _log.LogInformation("MarketHub connected. State={State}", _conn.State);
-            await Task.Delay(200, appLifetime);
-            await SubscribeIfConnectedAsync(CancellationToken.None);
+            await Task.Delay(200, appLifetime).ConfigureAwait(false);
+            await SubscribeIfConnectedAsync(CancellationToken.None).ConfigureAwait(false);
         }
 
         private async Task SubscribeIfConnectedAsync(CancellationToken ct)
@@ -80,7 +80,7 @@ namespace BotCore
             if (_conn is null || string.IsNullOrWhiteSpace(_contractId)) return;
             if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId}", _contractId); return; }
 
-            await _subLock.WaitAsync(ct);
+            await _subLock.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 if (_subscribed) { _log.LogDebug("[MarketHub] Already subscribed to {ContractId} (post-lock)", _contractId); return; }
@@ -89,7 +89,7 @@ namespace BotCore
                 var t0 = DateTime.UtcNow;
                 while (_conn!.State != HubConnectionState.Connected && DateTime.UtcNow - t0 < TimeSpan.FromSeconds(10))
                 {
-                    await Task.Delay(100, ct);
+                    await Task.Delay(100, ct).ConfigureAwait(false);
                 }
                 if (_conn.State != HubConnectionState.Connected)
                 {
@@ -104,7 +104,7 @@ namespace BotCore
                 {
                     try
                     {
-                        await _conn!.InvokeAsync(method, cid, ct);
+                        await _conn!.InvokeAsync(method, cid, ct).ConfigureAwait(false);
                         _log.LogInformation("[MarketHub] {Method}({Cid}) OK", method, cid);
                         anySucceeded = true;
                     }
@@ -114,9 +114,9 @@ namespace BotCore
                     }
                 }
 
-                await Call("SubscribeContractQuotes", _contractId);
-                await Call("SubscribeContractTrades", _contractId);
-                await Call("SubscribeContractMarketDepth", _contractId);
+                await Call("SubscribeContractQuotes", _contractId).ConfigureAwait(false);
+                await Call("SubscribeContractTrades", _contractId).ConfigureAwait(false);
+                await Call("SubscribeContractMarketDepth", _contractId).ConfigureAwait(false);
 
                 _subscribed = anySucceeded;
                 if (!anySucceeded)
@@ -150,7 +150,7 @@ namespace BotCore
                 url = $"{rtcBase}/hubs/market";
             }
             string? jwt;
-            try { jwt = await _getJwtAsync(); } catch { jwt = null; }
+            try { jwt = await _getJwtAsync().ConfigureAwait(false).ConfigureAwait(false); } catch { jwt = null; }
             // Suppress noisy repeats of the same URL/JWT log
             var nowLog = DateTime.UtcNow;
             if (nowLog - _lastRebuiltInfoUtc >= _rebuiltInfoInterval)
@@ -340,7 +340,7 @@ namespace BotCore
                 {
                     _log.LogInformation("MARKET_HUB_RECONNECTED: {ReconnectedData}", System.Text.Json.JsonSerializer.Serialize(reconnectedData));
                 }
-                await SubscribeIfConnectedAsync(CancellationToken.None);
+                await SubscribeIfConnectedAsync(CancellationToken.None).ConfigureAwait(false);
             };
 
             _conn.Closed += async ex =>
@@ -364,15 +364,15 @@ namespace BotCore
                 {
                     try
                     {
-                        await Task.Delay(delay, appCt);
-                        try { if (_conn is not null) await _conn.DisposeAsync(); } catch { }
-                        _conn = await BuildMarketHubAsync();
+                        await Task.Delay(delay, appCt).ConfigureAwait(false);
+                        try { if (_conn is not null) await _conn.DisposeAsync().ConfigureAwait(false); } catch { }
+                        _conn = await BuildMarketHubAsync().ConfigureAwait(false).ConfigureAwait(false);
                         AttachLifecycleHandlers(appCt);
                         using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(appCt);
                         connectCts.CancelAfter(TimeSpan.FromSeconds(15));
-                        await _conn.StartAsync(connectCts.Token);
-                        await Task.Delay(200, appCt);
-                        await SubscribeIfConnectedAsync(CancellationToken.None);
+                        await _conn.StartAsync(connectCts.Token).ConfigureAwait(false);
+                        await Task.Delay(200, appCt).ConfigureAwait(false);
+                        await SubscribeIfConnectedAsync(CancellationToken.None).ConfigureAwait(false);
                         if (!Concise())
                         {
                             var now2 = DateTime.UtcNow;
@@ -412,7 +412,7 @@ namespace BotCore
         {
             if (_conn is not null)
             {
-                try { await _conn.DisposeAsync(); }
+                try { await _conn.DisposeAsync().ConfigureAwait(false); }
                 catch (Exception ex)
                 {
                     _log.LogDebug(ex, "[MarketHub] DisposeAsync swallowed exception.");

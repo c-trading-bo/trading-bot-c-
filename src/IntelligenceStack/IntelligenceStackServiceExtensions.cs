@@ -250,7 +250,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return result;
     }
 
@@ -280,7 +280,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             var regimeDetector = _serviceProvider.GetService<IRegimeDetector>();
             if (regimeDetector != null)
             {
-                var regime = await regimeDetector.DetectCurrentRegimeAsync();
+                var regime = await regimeDetector.DetectCurrentRegimeAsync().ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogInformation("🔬 [RUNTIME-PROOF] RegimeDetector.DetectCurrentRegimeAsync() -> Type: {RegimeType}, Confidence: {Confidence:F2}", 
                     regime.Type, regime.Confidence);
             }
@@ -289,7 +289,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
             if (featureStore != null)
             {
                 // Get features for a test symbol to prove it's working
-                var features = await featureStore.GetFeaturesAsync("ES", DateTime.UtcNow.AddHours(-1), DateTime.UtcNow);
+                var features = await featureStore.GetFeaturesAsync("ES", DateTime.UtcNow.AddHours(-1), DateTime.UtcNow).ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogInformation("🔬 [RUNTIME-PROOF] FeatureStore.GetFeaturesAsync() -> Features for {Symbol}: {FeatureCount} features", 
                     features.Symbol, features.Features.Count);
             }
@@ -300,7 +300,7 @@ public class IntelligenceStackVerificationService : IIntelligenceStackVerificati
                 // Get a model to prove it's working
                 try
                 {
-                    var model = await modelRegistry.GetModelAsync("test");
+                    var model = await modelRegistry.GetModelAsync("test").ConfigureAwait(false).ConfigureAwait(false);
                     _logger.LogInformation("🔬 [RUNTIME-PROOF] ModelRegistry.GetModelAsync() -> Model ID: {ModelId}, Version: {Version}", 
                         model.Id, model.Version);
                 }

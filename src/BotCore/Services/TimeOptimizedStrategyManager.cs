@@ -106,8 +106,8 @@ namespace BotCore.Services
                 : 1.0;
 
             // ML Enhancement: Get market regime using real ONNX model inference
-            var regime = await GetMarketRegimeAsync(instrument, data, bars);
-            var mlAdjustment = await GetMLAdjustmentAsync(regime.Name, session, instrument);
+            var regime = await GetMarketRegimeAsync(instrument, data, bars).ConfigureAwait(false).ConfigureAwait(false);
+            var mlAdjustment = await GetMLAdjustmentAsync(regime.Name, session, instrument).ConfigureAwait(false).ConfigureAwait(false);
 
             // Evaluate each strategy
             var signals = new List<BotCore.Models.Signal>();
@@ -205,10 +205,10 @@ namespace BotCore.Services
                 // Use existing ONNX model for regime classification
                 if (_onnxLoader != null)
                 {
-                    var session = await _onnxLoader.LoadModelAsync("models/regime_detector.onnx", validateInference: false);
+                    var session = await _onnxLoader.LoadModelAsync("models/regime_detector.onnx", validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
                     if (session != null)
                     {
-                        var regimePrediction = await RunRegimeInferenceAsync(session, features);
+                        var regimePrediction = await RunRegimeInferenceAsync(session, features).ConfigureAwait(false).ConfigureAwait(false);
                         return ClassifyRegime(regimePrediction, features);
                     }
                 }
@@ -920,7 +920,7 @@ namespace BotCore.Services
                     "(regime={RegimeAdj:F2}, session={SessionAdj:F2}, instrument={InstrumentAdj:F2})",
                     instrument, regime, totalAdjustment, regimeAdjustment, sessionAdjustment, instrumentAdjustment);
                 
-                await Task.CompletedTask; // Keep async for future ML model integration
+                await Task.CompletedTask.ConfigureAwait(false); // Keep async for future ML model integration
                 return totalAdjustment;
             }
             catch (Exception ex)

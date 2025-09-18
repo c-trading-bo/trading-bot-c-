@@ -46,7 +46,7 @@ namespace BotCore
             var tradeId = signalData.Id ?? $"trade_{_tradeCounter}_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
 
             // Collect comprehensive features at trade time
-            var features = await GetCurrentMarketFeaturesAsync(signalData);
+            var features = await GetCurrentMarketFeaturesAsync(signalData).ConfigureAwait(false).ConfigureAwait(false);
 
             var tradeData = new TradeData
             {
@@ -70,7 +70,7 @@ namespace BotCore
             _currentSession.Add(tradeData);
 
             // Save immediately for real-time collection
-            await SaveTradeDataAsync(tradeData);
+            await SaveTradeDataAsync(tradeData).ConfigureAwait(false);
 
             _logger.LogInformation("[EnhancedTrainingData] Recorded trade #{TradeCounter} - {Strategy} {Action} @ {Price}",
                 _tradeCounter, tradeData.StrategyUsed, tradeData.Action, tradeData.Price);
@@ -93,7 +93,7 @@ namespace BotCore
                 trade.MaxDrawdown = outcomeData.MaxDrawdown;
 
                 // Save as complete training sample
-                await SaveCompleteTradeAsync(trade);
+                await SaveCompleteTradeAsync(trade).ConfigureAwait(false);
 
                 _logger.LogInformation("[EnhancedTrainingData] Updated trade {TradeId}: {Result} (R={RMultiple:F2})",
                     tradeId, trade.Result, trade.RMultiple);
@@ -110,7 +110,7 @@ namespace BotCore
             if (!File.Exists(completedFile))
                 return 0;
 
-            var lines = await File.ReadAllLinesAsync(completedFile);
+            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false).ConfigureAwait(false);
             return lines.Length;
         }
 
@@ -124,7 +124,7 @@ namespace BotCore
                 return null;
             }
 
-            var lines = await File.ReadAllLinesAsync(completedFile);
+            var lines = await File.ReadAllLinesAsync(completedFile).ConfigureAwait(false).ConfigureAwait(false);
 
             if (lines.Length < minSamples)
             {
@@ -157,7 +157,7 @@ namespace BotCore
             if (csvData.Count > 1) // Header + data
             {
                 var exportFile = Path.Combine(_liveDataPath, $"training_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
-                await File.WriteAllLinesAsync(exportFile, csvData);
+                await File.WriteAllLinesAsync(exportFile, csvData).ConfigureAwait(false);
 
                 _logger.LogInformation("[EnhancedTrainingData] Exported {SampleCount} training samples to {ExportFile}",
                     csvData.Count - 1, exportFile);
@@ -194,7 +194,7 @@ namespace BotCore
             var filename = Path.Combine(_liveDataPath, $"live_trades_{dateStr}.jsonl");
 
             var json = JsonSerializer.Serialize(tradeData);
-            await File.AppendAllTextAsync(filename, json + Environment.NewLine);
+            await File.AppendAllTextAsync(filename, json + Environment.NewLine).ConfigureAwait(false);
         }
 
         private async Task SaveCompleteTradeAsync(TradeData tradeData)
@@ -202,12 +202,12 @@ namespace BotCore
             // Save to completed trades file
             var completedFile = Path.Combine(_liveDataPath, "completed_trades.jsonl");
             var json = JsonSerializer.Serialize(tradeData);
-            await File.AppendAllTextAsync(completedFile, json + Environment.NewLine);
+            await File.AppendAllTextAsync(completedFile, json + Environment.NewLine).ConfigureAwait(false);
 
             // Also save to strategy-specific file
             var strategy = tradeData.StrategyUsed?.ToLowerInvariant() ?? "unknown";
             var strategyFile = Path.Combine(_liveDataPath, $"completed_{strategy}_trades.jsonl");
-            await File.AppendAllTextAsync(strategyFile, json + Environment.NewLine);
+            await File.AppendAllTextAsync(strategyFile, json + Environment.NewLine).ConfigureAwait(false);
 
             _logger.LogDebug("[EnhancedTrainingData] Saved complete training sample: {Result} for {Strategy}",
                 tradeData.Result, tradeData.StrategyUsed);

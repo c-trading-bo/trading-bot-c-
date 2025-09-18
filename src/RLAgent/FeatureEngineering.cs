@@ -69,22 +69,22 @@ public class FeatureEngineering : IDisposable
             var featureNames = new List<string>();
             
             // Price features
-            await AddPriceFeatures(features, featureNames, featureKey, currentData, profile);
+            await AddPriceFeatures(features, featureNames, featureKey, currentData, profile).ConfigureAwait(false);
             
             // Volume features
-            await AddVolumeFeatures(features, featureNames, featureKey, currentData, profile);
+            await AddVolumeFeatures(features, featureNames, featureKey, currentData, profile).ConfigureAwait(false);
             
             // Technical indicator features
-            await AddTechnicalFeatures(features, featureNames, featureKey, currentData, profile);
+            await AddTechnicalFeatures(features, featureNames, featureKey, currentData, profile).ConfigureAwait(false);
             
             // Microstructure features (requirement: bid-ask spread, z-score, order-flow, tick-run)
-            await AddMicrostructureFeatures(features, featureNames, featureKey, currentData, profile);
+            await AddMicrostructureFeatures(features, featureNames, featureKey, currentData, profile).ConfigureAwait(false);
             
             // Regime features
-            await AddRegimeFeatures(features, featureNames, regime);
+            await AddRegimeFeatures(features, featureNames, regime).ConfigureAwait(false);
             
             // Time-based features
-            await AddTimeFeatures(features, featureNames, currentData);
+            await AddTimeFeatures(features, featureNames, currentData).ConfigureAwait(false);
             
             // Apply null/NaN policy
             var cleanedFeatures = ApplyNullNaNPolicy(features, featureNames, state);
@@ -168,7 +168,7 @@ public class FeatureEngineering : IDisposable
         {
             var aggregator = _streamingAggregators.GetOrAdd(tick.Symbol, 
                 _ => new StreamingSymbolAggregator(tick.Symbol, _config));
-            var features = await aggregator.ProcessTickAsync(tick, cancellationToken);
+            var features = await aggregator.ProcessTickAsync(tick, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             _logger.LogTrace("[FEATURE_ENG] Processed streaming tick for {Symbol}: Price={Price}, Volume={Volume}", 
                 tick.Symbol, tick.Price, tick.Volume);
@@ -270,7 +270,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -311,7 +311,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var buffer = GetMarketDataBuffer(featureKey);
         
@@ -349,7 +349,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -383,7 +383,7 @@ public class FeatureEngineering : IDisposable
         RegimeProfile profile)
     {
         // Brief yield to allow task scheduling for CPU-intensive calculations
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var buffer = GetMarketDataBuffer(featureKey);
 
@@ -431,7 +431,7 @@ public class FeatureEngineering : IDisposable
         RegimeType regime)
     {
         // Brief yield to allow task scheduling for feature calculations
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         // One-hot encoding for regime
         features.AddRange(new[]
@@ -455,7 +455,7 @@ public class FeatureEngineering : IDisposable
         MarketData currentData)
     {
         // Brief yield to allow task scheduling
-        await Task.Yield();
+        await Task.Yield().ConfigureAwait(false);
         
         var timestamp = currentData.Timestamp;
         
@@ -795,7 +795,7 @@ public class FeatureEngineering : IDisposable
         {
             try
             {
-                await GenerateDailyFeatureReportAsync(state);
+                await GenerateDailyFeatureReportAsync(state).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -832,7 +832,7 @@ public class FeatureEngineering : IDisposable
             var reportJson = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
             var reportPath = Path.Combine("reports", $"feature_importance_{DateTime.UtcNow:yyyyMMdd}.json");
             Directory.CreateDirectory(Path.GetDirectoryName(reportPath)!);
-            await File.WriteAllTextAsync(reportPath, reportJson);
+            await File.WriteAllTextAsync(reportPath, reportJson).ConfigureAwait(false);
             
             _logger.LogInformation("[FEATURE_ENG] Daily feature importance report saved: {ReportPath}", reportPath);
         }
@@ -1050,7 +1050,7 @@ public class StreamingSymbolAggregator : IDisposable
 
     public async Task<StreamingFeatures> ProcessTickAsync(MarketTick tick, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Make it async
+        await Task.Yield().ConfigureAwait(false); // Make it async
 
         lock (_lock)
         {

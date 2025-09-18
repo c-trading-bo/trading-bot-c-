@@ -72,11 +72,11 @@ namespace BotCore.Services
                 }
 
                 // Calculate model hash
-                result.ModelHash = await CalculateModelHashAsync(modelPath);
+                result.ModelHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
                 metadata.ModelHash = result.ModelHash;
 
                 // Load version registry
-                var registry = await LoadVersionRegistryAsync();
+                var registry = await LoadVersionRegistryAsync().ConfigureAwait(false).ConfigureAwait(false);
 
                 // Check if this is a duplicate model
                 var existingVersion = registry.Versions.FirstOrDefault(v => v.ModelHash == result.ModelHash);
@@ -96,7 +96,7 @@ namespace BotCore.Services
                 metadata.Version = result.Version;
 
                 // Validate model integrity
-                result.IntegrityValid = await ValidateModelIntegrityAsync(modelPath);
+                result.IntegrityValid = await ValidateModelIntegrityAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
                 if (!result.IntegrityValid)
                 {
                     result.ValidationErrors.Add("Model integrity validation failed");
@@ -105,7 +105,7 @@ namespace BotCore.Services
                 // Compare with previous versions if required
                 if (_config.RequireVersionDifference && registry.Versions.Any())
                 {
-                    var isSignificantlyDifferent = await ValidateSignificantDifferenceAsync(modelPath, registry);
+                    var isSignificantlyDifferent = await ValidateSignificantDifferenceAsync(modelPath, registry).ConfigureAwait(false).ConfigureAwait(false);
                     if (!isSignificantlyDifferent)
                     {
                         result.IsValid = false;
@@ -136,14 +136,14 @@ namespace BotCore.Services
                     // Backup model if configured
                     if (_config.ModelRegistry.AutoBackupModels)
                     {
-                        await BackupModelAsync(modelPath, result.Version);
+                        await BackupModelAsync(modelPath, result.Version).ConfigureAwait(false);
                     }
 
                     // Clean old versions if needed
-                    await CleanOldVersionsAsync(registry);
+                    await CleanOldVersionsAsync(registry).ConfigureAwait(false);
 
                     // Save updated registry
-                    await SaveVersionRegistryAsync(registry);
+                    await SaveVersionRegistryAsync(registry).ConfigureAwait(false);
 
                     _logger.LogInformation("[MODEL-VERSION] ✅ Model version verified successfully: {Version} (Hash: {Hash})",
                         result.Version, result.ModelHash[..8]);
@@ -181,8 +181,8 @@ namespace BotCore.Services
                     return false;
                 }
 
-                var hash1 = await CalculateModelHashAsync(modelPath1);
-                var hash2 = await CalculateModelHashAsync(modelPath2);
+                var hash1 = await CalculateModelHashAsync(modelPath1).ConfigureAwait(false).ConfigureAwait(false);
+                var hash2 = await CalculateModelHashAsync(modelPath2).ConfigureAwait(false).ConfigureAwait(false);
 
                 var areIdentical = hash1 == hash2;
                 
@@ -214,7 +214,7 @@ namespace BotCore.Services
                 var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
                 var logPath = Path.Combine(_config.ModelRegistry.BaseDirectory, $"training_metadata_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
                 
-                await File.WriteAllTextAsync(logPath, metadataJson);
+                await File.WriteAllTextAsync(logPath, metadataJson).ConfigureAwait(false);
                 
                 _logger.LogInformation("[TRAINING-METADATA] Training metadata logged: Strategy={Strategy}, Seed={Seed}, Duration={Duration}",
                     metadata.StrategyName, metadata.RandomSeed, metadata.TrainingDuration);
@@ -288,7 +288,7 @@ namespace BotCore.Services
 
                 using var sourceStream = File.OpenRead(modelPath);
                 using var destStream = File.Create(backupPath);
-                await sourceStream.CopyToAsync(destStream);
+                await sourceStream.CopyToAsync(destStream).ConfigureAwait(false);
                 
                 _logger.LogInformation("[MODEL-BACKUP] Model backed up: {BackupPath}", backupPath);
             }
@@ -328,7 +328,7 @@ namespace BotCore.Services
         {
             using var sha256 = SHA256.Create();
             using var stream = File.OpenRead(modelPath);
-            var hash = await Task.Run(() => sha256.ComputeHash(stream));
+            var hash = await Task.Run(() => sha256.ComputeHash(stream)).ConfigureAwait(false).ConfigureAwait(false);
             return Convert.ToHexString(hash);
         }
 
@@ -349,7 +349,7 @@ namespace BotCore.Services
             {
                 // For now, we'll use hash comparison as a proxy for weight differences
                 // In a more sophisticated implementation, you could load model weights and compare numerically
-                var currentHash = await CalculateModelHashAsync(modelPath);
+                var currentHash = await CalculateModelHashAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // Check if any recent versions have the same hash
                 var recentVersions = registry.Versions
@@ -386,7 +386,7 @@ namespace BotCore.Services
                     return new ModelVersionRegistry();
                 }
 
-                var json = await File.ReadAllTextAsync(_versionRegistryPath);
+                var json = await File.ReadAllTextAsync(_versionRegistryPath).ConfigureAwait(false).ConfigureAwait(false);
                 return JsonSerializer.Deserialize<ModelVersionRegistry>(json) ?? new ModelVersionRegistry();
             }
             catch (Exception ex)
@@ -404,7 +404,7 @@ namespace BotCore.Services
             try
             {
                 var json = JsonSerializer.Serialize(registry, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(_versionRegistryPath, json);
+                await File.WriteAllTextAsync(_versionRegistryPath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

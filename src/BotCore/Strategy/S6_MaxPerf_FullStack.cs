@@ -513,7 +513,7 @@ namespace TopstepX.S6
         {
             var r = _ch.Reader;
             while (await r.WaitToReadAsync(ct))
-                while (r.TryRead(out var ev)) onEvent(ev);
+                while (r.TryRead(out var ev)) onEvent(ev).ConfigureAwait(false);
         }
     }
 }

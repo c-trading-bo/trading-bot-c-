@@ -25,8 +25,8 @@ public static class ContractEntitlementProbe
         
         try 
         {
-            using var resp = await http.GetAsync(url);
-            var body = await resp.Content.ReadAsStringAsync();
+            using var resp = await http.GetAsync(url).ConfigureAwait(false).ConfigureAwait(false);
+            var body = await resp.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
             
             if (!resp.IsSuccessStatusCode) 
             {

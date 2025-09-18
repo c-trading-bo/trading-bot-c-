@@ -37,7 +37,7 @@ public sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<strin
                 var next = new DateTime(now.Year, now.Month, now.Day, hourUtc, 0, 0, DateTimeKind.Utc);
                 if (now > next) next = next.AddDays(1);
                 var delay = next - now;
-                try { await Task.Delay(delay, CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, _ct).Token); } catch { }
+                try { await Task.Delay(delay, CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, _ct).Token).ConfigureAwait(false); } catch { }
                 if (_cts.IsCancellationRequested || _ct.IsCancellationRequested) break;
 
                 try
@@ -49,10 +49,10 @@ public sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<strin
                         var end = DateTime.UtcNow;
                         var start = end - wnd;
                         // S2/S3/S6/S11 — each is best-effort; errors do not abort the loop
-                        try { await TuningRunner.RunS2Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S2 {Root}", root); }
-                        try { await TuningRunner.RunS3Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S3 {Root}", root); }
-                        try { await TuningRunner.RunS6Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S6 {Root}", root); }
-                        try { await TuningRunner.RunS11Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S11 {Root}", root); }
+                        try { await TuningRunner.RunS2Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token).ConfigureAwait(false); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S2 {Root}", root); }
+                        try { await TuningRunner.RunS3Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token).ConfigureAwait(false); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S3 {Root}", root); }
+                        try { await TuningRunner.RunS6Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token).ConfigureAwait(false); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S6 {Root}", root); }
+                        try { await TuningRunner.RunS11Async(_http, _getJwt, cid, root, start, end, _log, _cts.Token).ConfigureAwait(false); } catch (Exception ex) { _log.LogWarning(ex, "[Retune] S11 {Root}", root); }
                     }
                 }
                 catch (Exception ex)
@@ -65,8 +65,8 @@ public sealed class NightlyRetuner(ILogger log, HttpClient http, Func<Task<strin
 
     public async ValueTask DisposeAsync()
     {
-        try { await _cts.CancelAsync(); } catch { }
-        try { if (_loop != null) await _loop; } catch { }
+        try { await _cts.CancelAsync().ConfigureAwait(false); } catch { }
+        try { if (_loop != null) await _loop.ConfigureAwait(false); } catch { }
         _cts.Dispose();
     }
 }

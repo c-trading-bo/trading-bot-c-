@@ -87,7 +87,7 @@ namespace TopstepX.Bot.Intelligence
                     };
                 }
                 
-                var json = await File.ReadAllTextAsync(knowledgeFile);
+                var json = await File.ReadAllTextAsync(knowledgeFile).ConfigureAwait(false).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<JsonElement>(json);
                 
                 var lastScan = data.TryGetProperty("last_scan", out var scanElement) ? scanElement : new JsonElement();

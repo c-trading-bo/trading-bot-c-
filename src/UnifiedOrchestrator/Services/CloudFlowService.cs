@@ -69,7 +69,7 @@ namespace UnifiedOrchestrator.Services
 
                 _logger.LogDebug("Pushing trade record {TradeId} to cloud endpoint", tradeRecord.TradeId);
                 
-                var response = await _httpClient.PostAsync(_options.CloudEndpoint, content, cancellationToken);
+                var response = await _httpClient.PostAsync(_options.CloudEndpoint, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {

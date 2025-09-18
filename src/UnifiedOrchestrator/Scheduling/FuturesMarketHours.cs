@@ -48,7 +48,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<bool> IsInSafePromotionWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var dayOfWeek = etNow.DayOfWeek;
@@ -95,7 +95,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<bool> IsInIntensiveTrainingWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var dayOfWeek = etNow.DayOfWeek;
@@ -131,7 +131,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<bool> IsInBackgroundTrainingWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var dayOfWeek = etNow.DayOfWeek;
@@ -163,9 +163,9 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<TrainingIntensity> GetRecommendedTrainingIntensityAsync(CancellationToken cancellationToken = default)
     {
-        var isIntensive = await IsInIntensiveTrainingWindowAsync(cancellationToken);
-        var isBackground = await IsInBackgroundTrainingWindowAsync(cancellationToken);
-        var isMarketOpen = await IsMarketOpenAsync(cancellationToken);
+        var isIntensive = await IsInIntensiveTrainingWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var isBackground = await IsInBackgroundTrainingWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var isMarketOpen = await IsMarketOpenAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
         if (isIntensive)
         {
@@ -206,7 +206,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<DateTime?> GetNextTrainingWindowAsync(string trainingType = "INTENSIVE", CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         
@@ -215,7 +215,7 @@ public class FuturesMarketHours : IMarketHoursService
             "INTENSIVE" => await GetNextIntensiveTrainingWindowAsync(etNow, cancellationToken),
             "BACKGROUND" => await GetNextBackgroundTrainingWindowAsync(etNow, cancellationToken),
             _ => await GetNextSafeWindowAsync(cancellationToken)
-        };
+        }.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -223,7 +223,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<DateTime?> GetNextSafeWindowAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var currentDate = etNow.Date;
@@ -232,7 +232,7 @@ public class FuturesMarketHours : IMarketHoursService
         // Check if we're already in a safe window
         if (await IsInSafePromotionWindowAsync(cancellationToken))
         {
-            return etNow; // Already in safe window
+            return etNow.ConfigureAwait(false); // Already in safe window
         }
 
         // Try to find next safe window today
@@ -314,7 +314,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<bool> IsMarketOpenAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var dayOfWeek = etNow.DayOfWeek;
@@ -337,7 +337,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<string> GetCurrentMarketSessionAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var etNow = GetEasternTime();
         var dayOfWeek = etNow.DayOfWeek;
@@ -371,7 +371,7 @@ public class FuturesMarketHours : IMarketHoursService
     /// </summary>
     public async Task<bool> IsTradingDayAsync(DateTime date, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var dayOfWeek = date.DayOfWeek;
         
@@ -567,7 +567,7 @@ public class FuturesMarketHours : IMarketHoursService
 
     private async Task<DateTime?> GetNextIntensiveTrainingWindowAsync(DateTime etNow, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var currentDate = etNow.Date;
         var timeOfDay = etNow.TimeOfDay;
@@ -595,7 +595,7 @@ public class FuturesMarketHours : IMarketHoursService
 
     private async Task<DateTime?> GetNextBackgroundTrainingWindowAsync(DateTime etNow, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var currentDate = etNow.Date;
         var timeOfDay = etNow.TimeOfDay;
@@ -603,7 +603,7 @@ public class FuturesMarketHours : IMarketHoursService
         // If currently in background window, return now
         if (await IsInBackgroundTrainingWindowAsync(cancellationToken))
         {
-            return ConvertFromEasternTime(etNow);
+            return ConvertFromEasternTime(etNow).ConfigureAwait(false);
         }
 
         // Check if background window is later today

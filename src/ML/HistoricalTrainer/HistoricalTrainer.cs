@@ -65,23 +65,23 @@ public class HistoricalTrainer
             _logger.LogInformation("[HISTORICAL_TRAINER] Starting historical training: {Config}", JsonSerializer.Serialize(config));
 
             // 1. Load historical data
-            var historicalBars = await LoadHistoricalDataAsync(config.Symbols, config.StartDate, config.EndDate, cancellationToken);
+            var historicalBars = await LoadHistoricalDataAsync(config.Symbols, config.StartDate, config.EndDate, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             _logger.LogInformation("[HISTORICAL_TRAINER] Loaded {BarCount} historical bars for {SymbolCount} symbols", 
                 historicalBars.Sum(kvp => kvp.Value.Count), historicalBars.Count);
 
             // 2. Build dataset with features and labels
-            var dataset = await _datasetBuilder.BuildDatasetAsync(historicalBars, config, cancellationToken);
+            var dataset = await _datasetBuilder.BuildDatasetAsync(historicalBars, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             _logger.LogInformation("[HISTORICAL_TRAINER] Built dataset with {SampleCount} samples and {FeatureCount} features", 
                 dataset.Samples.Count, dataset.FeatureCount);
 
             // 3. Perform walk-forward training
-            var walkForwardResults = await _walkForwardTrainer.TrainWalkForwardAsync(dataset, config, cancellationToken);
+            var walkForwardResults = await _walkForwardTrainer.TrainWalkForwardAsync(dataset, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             _logger.LogInformation("[HISTORICAL_TRAINER] Walk-forward training completed: {FoldCount} folds, Avg AUC: {AvgAuc:F4}", 
                 walkForwardResults.FoldResults.Count, walkForwardResults.AverageAuc);
 
             // 4. Select best model and deploy to registry
             var bestModel = SelectBestModel(walkForwardResults);
-            var deployedModel = await _registryWriter.DeployModelAsync(bestModel, config, cancellationToken);
+            var deployedModel = await _registryWriter.DeployModelAsync(bestModel, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             _logger.LogInformation("[HISTORICAL_TRAINER] Best model deployed: {ModelId}, AUC: {Auc:F4}, Path: {ModelPath}", 
                 deployedModel.ModelId, deployedModel.Metrics.AUC, deployedModel.ModelPath);
@@ -132,7 +132,7 @@ public class HistoricalTrainer
             try
             {
                 // PRIMARY: Try to get historical data via SDK adapter
-                var sdkBars = await TryGetHistoricalDataViaSdkAsync(symbol, startDate, endDate, cancellationToken);
+                var sdkBars = await TryGetHistoricalDataViaSdkAsync(symbol, startDate, endDate, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (sdkBars.Any())
                 {
                     // Convert BotCore.Models.Bar to the Bar type used by ML trainer
@@ -160,7 +160,7 @@ public class HistoricalTrainer
                     continue;
                 }
 
-                var content = await File.ReadAllTextAsync(symbolPath, cancellationToken);
+                var content = await File.ReadAllTextAsync(symbolPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var allBars = JsonSerializer.Deserialize<List<Bar>>(content) ?? new List<Bar>();
                 
                 // Filter by date range
@@ -222,9 +222,9 @@ public class HistoricalTrainer
                 return new List<BotCore.Models.Bar>();
             }
 
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+            await process.WaitForExitAsync().ConfigureAwait(false);
 
             if (process.ExitCode != 0)
             {
@@ -341,7 +341,7 @@ public class HistoricalDatasetBuilder
             {
                 try
                 {
-                    var sample = await BuildSampleAsync(symbol, bars, i, config, cancellationToken);
+                    var sample = await BuildSampleAsync(symbol, bars, i, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     if (sample != null)
                     {
                         samples.Add(sample);
@@ -525,7 +525,7 @@ public class HistoricalWalkForwardTrainer
                 }
 
                 // Train model
-                var trainedModel = await TrainModelAsync(trainSamples, testSamples, config, cancellationToken);
+                var trainedModel = await TrainModelAsync(trainSamples, testSamples, config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (trainedModel != null)
                 {
                     trainedModel.FoldNumber = fold + 1;
@@ -596,7 +596,7 @@ public class HistoricalWalkForwardTrainer
                 TrainingSampleCount = trainSamples.Count,
                 TestSampleCount = testSamples.Count,
                 TrainedAt = DateTime.UtcNow
-            };
+            }.ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -656,7 +656,7 @@ public class HistoricalRegistryWriter
             var deploymentPath = Path.Combine(_modelsOutputPath, $"{modelId}.zip");
             
             // Copy model to deployment location
-            await File.WriteAllBytesAsync(deploymentPath, trainedModel.ModelData, cancellationToken);
+            await File.WriteAllBytesAsync(deploymentPath, trainedModel.ModelData, cancellationToken).ConfigureAwait(false);
 
             // Create model metadata
             var modelMetadata = new ModelMetadata
@@ -676,7 +676,7 @@ public class HistoricalRegistryWriter
             // Save metadata
             var metadataPath = Path.Combine(_modelsOutputPath, $"{modelId}_metadata.json");
             var metadataJson = JsonSerializer.Serialize(modelMetadata, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken);
+            await File.WriteAllTextAsync(metadataPath, metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Create latest model symlink/copy
             var latestModelPath = Path.Combine(_modelsOutputPath, "latest_model.zip");

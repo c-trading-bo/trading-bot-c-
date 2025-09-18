@@ -27,7 +27,7 @@ namespace OrchestratorAgent.Realtime
 
         public async ValueTask DisposeAsync()
         {
-            if (_writer != null) { await _writer.FlushAsync(); _writer.Dispose(); }
+            if (_writer != null) { await _writer.FlushAsync().ConfigureAwait(false); _writer.Dispose(); }
         }
     }
 }

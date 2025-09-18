@@ -72,7 +72,7 @@ namespace OrchestratorAgent
             var latMs = EnvInt("PAPER_LATENCY_MS", 150);
             _ = Task.Run(async () =>
             {
-                try { await Task.Delay(latMs, ct); } catch { }
+                try { await Task.Delay(latMs, ct).ConfigureAwait(false); } catch { }
                 TryFillPending(sym, pend);
             }, ct);
 

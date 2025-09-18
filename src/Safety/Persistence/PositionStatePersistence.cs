@@ -216,7 +216,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
                 _logger.LogError("[PERSISTENCE] Position state integrity check failed - hash mismatch");
                 
                 // Try to load from backup
-                var backupSnapshot = await TryLoadFromBackupAsync();
+                var backupSnapshot = await TryLoadFromBackupAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (backupSnapshot != null)
                 {
                     _logger.LogInformation("[PERSISTENCE] Loaded position state from backup");
@@ -299,7 +299,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             var sessionFile = Path.Combine(_sessionDirectory, $"session_{sessionId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var json = JsonSerializer.Serialize(summary, _jsonOptions);
             
-            await File.WriteAllTextAsync(sessionFile, json);
+            await File.WriteAllTextAsync(sessionFile, json).ConfigureAwait(false);
             
             _logger.LogInformation("[PERSISTENCE] Session archived: {SessionId}, PnL={PnL:C}, Duration={Duration}",
                 sessionId, summary.TotalPnL, summary.Duration);
@@ -324,7 +324,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false).ConfigureAwait(false);
                     var session = JsonSerializer.Deserialize<SessionSummary>(json, _jsonOptions);
                     if (session != null)
                     {
@@ -377,7 +377,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             };
             
             var manifestJson = JsonSerializer.Serialize(manifest, _jsonOptions);
-            await File.WriteAllTextAsync(Path.Combine(backupPath, "manifest.json"), manifestJson);
+            await File.WriteAllTextAsync(Path.Combine(backupPath, "manifest.json"), manifestJson).ConfigureAwait(false);
             
             _logger.LogInformation("[PERSISTENCE] Backup created: {BackupName}", backupName);
         }
@@ -391,7 +391,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
     {
         try
         {
-            var snapshot = await LoadPositionStateAsync();
+            var snapshot = await LoadPositionStateAsync().ConfigureAwait(false).ConfigureAwait(false);
             if (snapshot == null)
             {
                 return true; // No state to validate
@@ -436,7 +436,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(backupFile);
+                    var json = await File.ReadAllTextAsync(backupFile).ConfigureAwait(false).ConfigureAwait(false);
                     var snapshot = JsonSerializer.Deserialize<PositionStateSnapshot>(json, _jsonOptions);
                     
                     if (snapshot != null && CalculateHashCode(snapshot) == snapshot.HashCode)

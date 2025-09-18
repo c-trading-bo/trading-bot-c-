@@ -34,10 +34,10 @@ public class ProductionReadinessStartupService : IHostedService
     {
         _logger.LogInformation("🚀 [STARTUP-VERIFICATION] Starting comprehensive production readiness verification...");
         
-        await LogConfigurationProofAsync();
-        await LogServiceRegistrationProofAsync();
-        await LogRuntimeBehaviorProofAsync();
-        await LogApiClientProofAsync();
+        await LogConfigurationProofAsync().ConfigureAwait(false);
+        await LogServiceRegistrationProofAsync().ConfigureAwait(false);
+        await LogRuntimeBehaviorProofAsync().ConfigureAwait(false);
+        await LogApiClientProofAsync().ConfigureAwait(false);
         
         _logger.LogInformation("✅ [STARTUP-VERIFICATION] Production readiness verification completed successfully");
     }
@@ -94,7 +94,7 @@ public class ProductionReadinessStartupService : IHostedService
         _logger.LogInformation("✅ [CONFIG-PROOF] TOPSTEPX_API_KEY from environment: {HasApiKey}", hasApiKey);
         _logger.LogInformation("✅ [CONFIG-PROOF] TOPSTEPX_USERNAME from environment: {HasUsername}", hasUsername);
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -116,7 +116,7 @@ public class ProductionReadinessStartupService : IHostedService
                 verificationService.LogServiceRegistrations();
                 
                 // Perform full verification
-                var result = await verificationService.VerifyProductionReadinessAsync();
+                var result = await verificationService.VerifyProductionReadinessAsync().ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (result.IsProductionReady)
                 {
@@ -132,7 +132,7 @@ public class ProductionReadinessStartupService : IHostedService
                 }
 
                 // Provide runtime proof of service behavior
-                await verificationService.LogRuntimeProofAsync();
+                await verificationService.LogRuntimeProofAsync().ConfigureAwait(false);
             }
             else
             {
@@ -178,7 +178,7 @@ public class ProductionReadinessStartupService : IHostedService
                 _logger.LogInformation("✅ [RUNTIME-PROOF] Database context registered: {ContextType}", dbContext.GetType().Name);
                 
                 // Test database connectivity
-                await dbContext.TestConnectionAsync();
+                await dbContext.TestConnectionAsync().ConfigureAwait(false);
                 _logger.LogInformation("✅ [RUNTIME-PROOF] Database connection test PASSED");
             }
             else
@@ -231,6 +231,6 @@ public class ProductionReadinessStartupService : IHostedService
             _logger.LogError(ex, "❌ [API-PROOF] Error during API client verification");
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }

@@ -129,7 +129,7 @@ namespace TopstepX.Bot.Core.Services
                     symbol, fillQuantity, fillPrice, position.NetQuantity);
                 
                 // Check risk limits (outside lock)
-                await CheckRiskLimitsAsync(position);
+                await CheckRiskLimitsAsync(position).ConfigureAwait(false);
                 
                 // Fire position update event
                 PositionUpdated?.Invoke(this, new PositionUpdateEventArgs { Position = position });
@@ -206,7 +206,7 @@ namespace TopstepX.Bot.Core.Services
             }
             
             // Check overall account risk
-            await CheckAccountRiskAsync();
+            await CheckAccountRiskAsync().ConfigureAwait(false);
         }
         
         private Task CheckRiskLimitsAsync(Position position)

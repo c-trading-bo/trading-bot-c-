@@ -242,7 +242,7 @@ public class SacAlgorithmWrapper : IRLAlgorithm
 
     public async Task<ITrainingResult> TrainAsync()
     {
-        var result = await _sac.TrainAsync();
+        var result = await _sac.TrainAsync().ConfigureAwait(false).ConfigureAwait(false);
         return new SacTrainingResultWrapper(result);
     }
 
@@ -277,7 +277,7 @@ public class MetaLearningAlgorithmWrapper : IRLAlgorithm
 
     public async Task<ITrainingResult> TrainAsync()
     {
-        var result = await _metaLearner.MetaTrainAsync();
+        var result = await _metaLearner.MetaTrainAsync().ConfigureAwait(false).ConfigureAwait(false);
         return new MetaTrainingResultWrapper(result);
     }
 
@@ -302,7 +302,7 @@ public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 
     public async Task<double[]> SelectActionAsync(double[] state, bool isTraining = true)
     {
-        var actionResult = await _cvarPpo.GetActionAsync(state, deterministic: !isTraining);
+        var actionResult = await _cvarPpo.GetActionAsync(state, deterministic: !isTraining).ConfigureAwait(false).ConfigureAwait(false);
         return new[] { (double)actionResult.Action };
     }
 
@@ -325,7 +325,7 @@ public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 
     public async Task<ITrainingResult> TrainAsync()
     {
-        var result = await _cvarPpo.TrainAsync();
+        var result = await _cvarPpo.TrainAsync().ConfigureAwait(false).ConfigureAwait(false);
         return new CVaRppoTrainingResultWrapper(result);
     }
 

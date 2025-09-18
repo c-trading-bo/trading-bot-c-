@@ -149,7 +149,7 @@ public class MetaLearner
                     continue;
                 
                 // Fast adaptation on support set
-                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet);
+                var adaptedPolicy = await AdaptToTaskFastAsync(supportSet).ConfigureAwait(false).ConfigureAwait(false);
                 
                 // Evaluate on query set
                 var queryLoss = EvaluateOnQuerySet(adaptedPolicy, querySet);

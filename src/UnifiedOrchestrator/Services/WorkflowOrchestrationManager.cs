@@ -38,7 +38,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
             }
             
             // Implementation would execute the workflow
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
             
             return new WorkflowResult
             {
@@ -70,7 +70,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
             
             _workflows[workflow.Id] = workflow;
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -101,7 +101,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
     public async Task InitializeAsync()
     {
         _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Initializing workflow orchestration manager...");
-        await Task.Delay(100); // Simulate initialization
+        await Task.Delay(100).ConfigureAwait(false); // Simulate initialization
         _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Workflow orchestration manager initialized");
     }
 
@@ -112,7 +112,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
             _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Requesting execution for workflow: {WorkflowName}", workflowName);
             
             // Execute the workflow action
-            await action();
+            await action().ConfigureAwait(false);
             
             _logger.LogInformation("[WORKFLOW_ORCHESTRATION] Workflow executed successfully: {WorkflowName}", workflowName);
             return true;
@@ -127,7 +127,7 @@ public class WorkflowOrchestrationManager : IWorkflowOrchestrationManager
     public async Task<ConflictResolution> ResolveConflictsAsync()
     {
         _logger.LogDebug("[WORKFLOW_ORCHESTRATION] Resolving workflow conflicts...");
-        await Task.Delay(50); // Simulate conflict resolution
+        await Task.Delay(50).ConfigureAwait(false); // Simulate conflict resolution
         return new ConflictResolution { IsResolved = true, ConflictCount = 0 };
     }
 

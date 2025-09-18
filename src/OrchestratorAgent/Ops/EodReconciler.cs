@@ -39,7 +39,7 @@ namespace OrchestratorAgent.Ops
                         decimal? net = null, gross = null, fees = null!;
                         try
                         {
-                            var pnl = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct);
+                            var pnl = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
                             if (pnl.ValueKind == JsonValueKind.Object)
                             {
                                 if (pnl.TryGetProperty("net", out var n) && n.TryGetDecimal(out var nd)) net = nd;
@@ -49,16 +49,16 @@ namespace OrchestratorAgent.Ops
                         }
                         catch { }
                         var rec = new { utc = DateTime.UtcNow, local = nowLocal, Net = net, Gross = gross, Fees = fees };
-                        await File.AppendAllTextAsync(_journalPath, JsonSerializer.Serialize(rec) + Environment.NewLine, ct);
+                        await File.AppendAllTextAsync(_journalPath, JsonSerializer.Serialize(rec) + Environment.NewLine, ct).ConfigureAwait(false);
 
-                        if (resetCounters != null) await resetCounters();
+                        if (resetCounters != null) await resetCounters().ConfigureAwait(false);
                         lastRunDateLocal = nowLocal.Date;
                     }
                 }
                 catch (OperationCanceledException) { }
                 catch { }
 
-                try { await Task.Delay(TimeSpan.FromSeconds(20), ct); } catch { }
+                try { await Task.Delay(TimeSpan.FromSeconds(20), ct).ConfigureAwait(false); } catch { }
             }
         }
 

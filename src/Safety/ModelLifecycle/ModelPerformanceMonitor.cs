@@ -55,14 +55,14 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
         // Check for degradation if we have enough data
         if (_predictionHistory[modelHash].Count >= _options.MinPredictionsForDegradationCheck)
         {
-            var alert = await CheckForDegradationAsync(modelHash, cancellationToken);
+            var alert = await CheckForDegradationAsync(modelHash, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             if (alert != null)
             {
                 _logger.LogWarning("Model degradation detected: {Description}", alert.Description);
                 
                 if (alert.SeverityScore >= _options.AutoRollbackThreshold)
                 {
-                    await TriggerSafeRollbackIfNeededAsync(modelHash, cancellationToken);
+                    await TriggerSafeRollbackIfNeededAsync(modelHash, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -104,7 +104,7 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
 
     public async Task<ModelDegradationAlert?> CheckForDegradationAsync(string modelHash, CancellationToken cancellationToken = default)
     {
-        var currentReport = await GetPerformanceReportAsync(modelHash, _options.DegradationLookbackPeriod, cancellationToken);
+        var currentReport = await GetPerformanceReportAsync(modelHash, _options.DegradationLookbackPeriod, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         if (currentReport.TotalPredictions < _options.MinPredictionsForDegradationCheck)
         {
@@ -112,7 +112,7 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
         }
         
         // Compare against baseline performance from model metadata
-        var modelMetadata = await _versionManager.LoadModelAsync(modelHash, cancellationToken);
+        var modelMetadata = await _versionManager.LoadModelAsync(modelHash, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         if (modelMetadata?.Performance == null)
         {
             return null;
@@ -154,11 +154,11 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
 
     public async Task<bool> TriggerSafeRollbackIfNeededAsync(string currentModelHash, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // Find the previous rollback candidate
-            var models = await _versionManager.ListModelsAsync(cancellationToken);
+            var models = await _versionManager.ListModelsAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var rollbackCandidate = models
                 .Where(m => m.Status == "rollback")
                 .OrderByDescending(m => m.CreatedAt)
@@ -171,11 +171,11 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
             }
             
             // Compare performance
-            var comparison = await CompareModelsAsync(rollbackCandidate.Hash, currentModelHash, cancellationToken);
+            var comparison = await CompareModelsAsync(rollbackCandidate.Hash, currentModelHash, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (comparison.ShouldRollback)
             {
-                await _versionManager.SetActiveModelAsync(rollbackCandidate.Hash, false, cancellationToken);
+                await _versionManager.SetActiveModelAsync(rollbackCandidate.Hash, false, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogWarning("Triggered automatic rollback from {CurrentModel} to {RollbackModel} due to performance degradation", 
                     currentModelHash, rollbackCandidate.Hash);
@@ -193,8 +193,8 @@ public class ModelPerformanceMonitor : IModelPerformanceMonitor
 
     public async Task<ModelComparisonReport> CompareModelsAsync(string baselineHash, string candidateHash, CancellationToken cancellationToken = default)
     {
-        var baselineReport = await GetPerformanceReportAsync(baselineHash, _options.ComparisonPeriod, cancellationToken);
-        var candidateReport = await GetPerformanceReportAsync(candidateHash, _options.ComparisonPeriod, cancellationToken);
+        var baselineReport = await GetPerformanceReportAsync(baselineHash, _options.ComparisonPeriod, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        var candidateReport = await GetPerformanceReportAsync(candidateHash, _options.ComparisonPeriod, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         var comparisons = new Dictionary<string, ModelMetricComparison>
         {

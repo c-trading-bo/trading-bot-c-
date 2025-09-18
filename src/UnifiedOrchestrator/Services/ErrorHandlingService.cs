@@ -80,13 +80,13 @@ public class ErrorHandlingService : IHostedService
                 fileSystemAvailable = _fileSystemAvailable,
                 eventLogAvailable = _eventLogAvailable,
                 platform = RuntimeInformation.OSDescription
-            });
+            }).ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "ErrorHandler", 
-            "Error handling service stopped");
+            "Error handling service stopped").ConfigureAwait(false);
             
         _circuitBreakerTimer?.Dispose();
         _eventLog?.Dispose();
@@ -109,7 +109,7 @@ public class ErrorHandlingService : IHostedService
         try
         {
             // Try primary logging first
-            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, component, message, errorData);
+            await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, component, message, errorData).ConfigureAwait(false);
             
             // Reset error counter on success
             lock (_lockObject)
@@ -210,7 +210,7 @@ public class ErrorHandlingService : IHostedService
             
             try
             {
-                await File.WriteAllTextAsync(testPath, DateTime.UtcNow.ToString());
+                await File.WriteAllTextAsync(testPath, DateTime.UtcNow.ToString()).ConfigureAwait(false);
                 File.Delete(testPath);
                 
                 // File system is working - reset circuit breaker

@@ -33,7 +33,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         string session,
         CancellationToken ct = default)
     {
-        await Task.CompletedTask; // For async compatibility
+        await Task.CompletedTask.ConfigureAwait(false); // For async compatibility
 
         lock (_lock)
         {
@@ -79,7 +79,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         bool wasSuccessful,
         CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {
@@ -124,7 +124,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
         string session,
         CancellationToken ct = default)
     {
-        var estimate = await GetPriorAsync(strategy, config, regime, session, ct);
+        var estimate = await GetPriorAsync(strategy, config, regime, session, ct).ConfigureAwait(false).ConfigureAwait(false);
 
         // Sample from Beta distribution with shrinkage
         var alpha = estimate.EffectiveSampleSize * estimate.Mean;
@@ -138,7 +138,7 @@ public class EnhancedBayesianPriors : IBayesianPriors
     /// </summary>
     public async Task<Dictionary<string, BayesianEstimate>> GetAllPriorsAsync(CancellationToken ct = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
 
         lock (_lock)
         {

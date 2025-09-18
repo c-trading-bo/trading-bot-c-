@@ -108,7 +108,7 @@ namespace BotCore
             _hub.Reconnected += async id =>
             {
                 _log.LogInformation("UserHub RE reconnected. State={State} | ConnectionId={Id}", _hub.State, id);
-                try { await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log); }
+                try { await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log).ConfigureAwait(false); }
                 catch (Exception ex) { _log.LogWarning(ex, "UserHub SubscribeAllAsync failed after Reconnected"); }
             };
 
@@ -129,11 +129,11 @@ namespace BotCore
             //     return Task.CompletedTask;
             // };
 
-            await _hub.StartAsync(ct);
+            await _hub.StartAsync(ct).ConfigureAwait(false);
             _log.LogInformation("UserHub connected. State={State}", _hub.State);
             StatusSet("user.state", _hub.ConnectionId ?? string.Empty);
-            await Task.Delay(250, ct); // ensure server is ready before subscribing
-            await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log);
+            await Task.Delay(250, ct).ConfigureAwait(false); // ensure server is ready before subscribing
+            await SubscribeAllAsync(_hub, _accountId, CancellationToken.None, _log).ConfigureAwait(false);
         }
 
         private static Task SubscribeAllAsync(HubConnection hub, long accountId, CancellationToken ct, ILogger log)
@@ -141,10 +141,10 @@ namespace BotCore
             return HubSafe.InvokeWhenConnected(hub, async () =>
             {
                 log?.LogInformation("[UserHub] subscribing …");
-                await hub.InvokeAsync("SubscribeAccounts", cancellationToken: ct);
-                await hub.InvokeAsync("SubscribeOrders", accountId, cancellationToken: ct);
-                await hub.InvokeAsync("SubscribePositions", accountId, cancellationToken: ct);
-                await hub.InvokeAsync("SubscribeTrades", accountId, cancellationToken: ct);
+                await hub.InvokeAsync("SubscribeAccounts", cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribeOrders", accountId, cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribePositions", accountId, cancellationToken: ct).ConfigureAwait(false);
+                await hub.InvokeAsync("SubscribeTrades", accountId, cancellationToken: ct).ConfigureAwait(false);
             }, log, ct, maxAttempts: 10, waitMs: 500);
         }
 
@@ -375,7 +375,7 @@ namespace BotCore
         {
             if (_hub != null)
             {
-                await _hub.DisposeAsync();
+                await _hub.DisposeAsync().ConfigureAwait(false);
             }
         }
     }

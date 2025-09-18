@@ -114,7 +114,7 @@ public class AutonomousPerformanceTracker
         }
         
         // Record learning insights outside the lock
-        await RecordLearningInsightAsync(trade, cancellationToken);
+        await RecordLearningInsightAsync(trade, cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -122,7 +122,7 @@ public class AutonomousPerformanceTracker
     /// </summary>
     public async Task UpdateMetricsAsync(AutonomousTradeOutcome[] recentTrades, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_trackingLock)
         {
@@ -251,7 +251,7 @@ public class AutonomousPerformanceTracker
         }
         
         // Generate insights outside the lock
-        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken);
+        var tradingInsights = await GenerateTradingInsightsAsync(todayTrades, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         lock (_trackingLock)
         {
@@ -494,7 +494,7 @@ public class AutonomousPerformanceTracker
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private decimal GetRecentStrategyPerformance(string strategy, TimeSpan period)
@@ -591,7 +591,7 @@ public class AutonomousPerformanceTracker
             }
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         return insights;
     }
     

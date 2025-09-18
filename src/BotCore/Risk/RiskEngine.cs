@@ -20,12 +20,12 @@ namespace BotCore.Risk
 
         public async Task InitializeAsync(decimal startingBalance)
         {
-            await _drawdownProtection.InitializeDrawdownProtection(startingBalance);
+            await _drawdownProtection.InitializeDrawdownProtection(startingBalance).ConfigureAwait(false);
         }
 
         public async Task UpdateBalanceAsync(decimal currentBalance, Trade? lastTrade = null)
         {
-            await _drawdownProtection.UpdateBalance(currentBalance, lastTrade);
+            await _drawdownProtection.UpdateBalance(currentBalance, lastTrade).ConfigureAwait(false);
         }
 
         public static decimal ComputeRisk(decimal entry, decimal stop, decimal target, bool isLong)
@@ -184,7 +184,7 @@ namespace BotCore.Risk
                     Description = "Close all positions and halt",
                     Action = async () => await EmergencyCloseAll()
                 }
-            });
+            }).ConfigureAwait(false);
         }
         
         public Task InitializeDrawdownProtection(decimal startingBalance)
@@ -236,7 +236,7 @@ namespace BotCore.Risk
                 tracker.LossSequence.Add(lastTrade.PnL);
                 
                 // Exponential backoff on losing streak
-                await ApplyLosingStreakProtection();
+                await ApplyLosingStreakProtection().ConfigureAwait(false);
             }
             else if (lastTrade != null && lastTrade.PnL > 0)
             {
@@ -245,10 +245,10 @@ namespace BotCore.Risk
             }
             
             // Check drawdown levels and take action
-            await CheckDrawdownLevels(tracker);
+            await CheckDrawdownLevels(tracker).ConfigureAwait(false);
             
             // Psychological threshold check
-            await CheckPsychologicalThresholds(currentBalance);
+            await CheckPsychologicalThresholds(currentBalance).ConfigureAwait(false);
         }
         
         private async Task CheckDrawdownLevels(DrawdownTracker tracker)
@@ -259,7 +259,7 @@ namespace BotCore.Risk
                 {
                     LogCritical($"DRAWDOWN TRIGGER: {action.Description} at ${tracker.DrawdownAmount:F2}");
                     
-                    await action.Action();
+                    await action.Action().ConfigureAwait(false);
                     
                     // Send alert
                     await SendDrawdownAlert(new DrawdownAlert
@@ -269,7 +269,7 @@ namespace BotCore.Risk
                         DrawdownPercent = tracker.DrawdownPercent,
                         Action = action.Description,
                         Timestamp = DateTime.UtcNow
-                    });
+                    }).ConfigureAwait(false);
                     
                     // Don't trigger multiple actions at once
                     break;
@@ -292,12 +292,12 @@ namespace BotCore.Risk
             {
                 if (protection.Reduction == 0)
                 {
-                    await HaltTrading($"Losing streak protection: {_consecutiveLosses} consecutive losses");
+                    await HaltTrading($"Losing streak protection: {_consecutiveLosses} consecutive losses").ConfigureAwait(false);
                 }
                 else
                 {
-                    await ReducePositionSize(protection.Reduction);
-                    await EnforceCooldownPeriod(protection.Cooldown);
+                    await ReducePositionSize(protection.Reduction).ConfigureAwait(false);
+                    await EnforceCooldownPeriod(protection.Cooldown).ConfigureAwait(false);
                 }
                 
                 LogWarning($"Losing streak protection applied: {_consecutiveLosses} losses, {protection.Reduction:P0} size, {protection.Cooldown.TotalMinutes}min cooldown");
@@ -316,7 +316,7 @@ namespace BotCore.Risk
                 if (dailyPnL <= -1500)
                 {
                     // Take a break
-                    await EnforceCooldownPeriod(TimeSpan.FromHours(2));
+                    await EnforceCooldownPeriod(TimeSpan.FromHours(2)).ConfigureAwait(false);
                     LogCritical("Enforcing 2-hour break after $1500 loss");
                 }
             }
@@ -325,7 +325,7 @@ namespace BotCore.Risk
             if (dailyPnL >= 1000)
             {
                 // Switch to capital preservation mode
-                await EnableProfitProtection(dailyPnL);
+                await EnableProfitProtection(dailyPnL).ConfigureAwait(false);
                 
                 if (dailyPnL >= 2000)
                 {
@@ -384,7 +384,7 @@ namespace BotCore.Risk
         private async Task EmergencyCloseAll()
         {
             LogCritical("EMERGENCY: Closing all positions due to maximum drawdown");
-            await HaltTrading("Maximum drawdown reached");
+            await HaltTrading("Maximum drawdown reached").ConfigureAwait(false);
         }
 
         private Task HaltTrading(string reason)

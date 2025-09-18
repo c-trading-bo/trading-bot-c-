@@ -108,7 +108,7 @@ public class RedundantDataFeedManager : IDisposable
         {
             try
             {
-                var connected = await feed.ConnectAsync();
+                var connected = await feed.ConnectAsync().ConfigureAwait(false).ConfigureAwait(false);
                 _feedHealth[feed.FeedName] = new DataFeedHealth
                 {
                     FeedName = feed.FeedName,
@@ -136,7 +136,7 @@ public class RedundantDataFeedManager : IDisposable
         _healthCheckTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(10));
         _consistencyCheckTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public void AddDataFeed(IDataFeed dataFeed)
@@ -159,7 +159,7 @@ public class RedundantDataFeedManager : IDisposable
         {
             try
             {
-                data = await _primaryFeed.GetMarketDataAsync(symbol);
+                data = await _primaryFeed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
                 if (ValidateMarketData(data))
                 {
                     return data;
@@ -168,7 +168,7 @@ public class RedundantDataFeedManager : IDisposable
             catch (Exception ex)
             {
                 lastError = ex;
-                await HandleFeedFailureAsync(_primaryFeed, ex);
+                await HandleFeedFailureAsync(_primaryFeed, ex).ConfigureAwait(false);
             }
         }
 
@@ -181,7 +181,7 @@ public class RedundantDataFeedManager : IDisposable
                 {
                     _logger.LogWarning("[DataFeed] Failing over to {FeedName} for {Symbol}", feed.FeedName, symbol);
 
-                    data = await feed.GetMarketDataAsync(symbol);
+                    data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
                     if (ValidateMarketData(data))
                     {
                         // Switch primary feed
@@ -194,7 +194,7 @@ public class RedundantDataFeedManager : IDisposable
                 catch (Exception ex)
                 {
                     lastError = ex;
-                    await HandleFeedFailureAsync(feed, ex);
+                    await HandleFeedFailureAsync(feed, ex).ConfigureAwait(false);
                 }
             }
         }
@@ -226,7 +226,7 @@ public class RedundantDataFeedManager : IDisposable
                 feed.FeedName, health.ErrorCount);
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private void OnDataReceived(object? sender, MarketData data)
@@ -257,7 +257,7 @@ public class RedundantDataFeedManager : IDisposable
     {
         if (sender is IDataFeed feed)
         {
-            _ = Task.Run(async () => await HandleFeedFailureAsync(feed, ex));
+            _ = Task.Run(async () => await HandleFeedFailureAsync(feed, ex)).ConfigureAwait(false);
         }
     }
 
@@ -274,7 +274,7 @@ public class RedundantDataFeedManager : IDisposable
                     try
                     {
                         // Test feed with ping
-                        var testData = await feed.GetMarketDataAsync("ES");
+                        var testData = await feed.GetMarketDataAsync("ES").ConfigureAwait(false).ConfigureAwait(false);
                         var latency = (DateTime.UtcNow - startTime).TotalMilliseconds;
                         
                         if (_feedHealth.TryGetValue(feed.FeedName, out var health))
@@ -325,7 +325,7 @@ public class RedundantDataFeedManager : IDisposable
                 
                 foreach (var symbol in symbols)
                 {
-                    await CheckSymbolConsistencyAsync(symbol);
+                    await CheckSymbolConsistencyAsync(symbol).ConfigureAwait(false);
                 }
             }
             catch (Exception ex)
@@ -362,7 +362,7 @@ public class RedundantDataFeedManager : IDisposable
                 try
                 {
                     var startTime = DateTime.UtcNow;
-                    var data = await feed.GetMarketDataAsync(symbol);
+                    var data = await feed.GetMarketDataAsync(symbol).ConfigureAwait(false).ConfigureAwait(false);
                     var responseTime = DateTime.UtcNow - startTime;
 
                     if (data != null && ValidateMarketData(data))
@@ -387,7 +387,7 @@ public class RedundantDataFeedManager : IDisposable
                 }
             });
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
 
             // Analyze consistency if we have enough data
             if (consistency.FeedData.Count >= 2)
@@ -397,7 +397,7 @@ public class RedundantDataFeedManager : IDisposable
                 // Take action on inconsistencies
                 if (!consistency.IsConsistent)
                 {
-                    await HandleDataInconsistencyAsync(consistency);
+                    await HandleDataInconsistencyAsync(consistency).ConfigureAwait(false);
                 }
                 
                 // Log periodic status
@@ -514,7 +514,7 @@ public class RedundantDataFeedManager : IDisposable
             };
 
             // Store alert (implement based on your alerting system)
-            await StoreConsistencyAlertAsync(alert);
+            await StoreConsistencyAlertAsync(alert).ConfigureAwait(false);
 
             // If deviation is severe, trigger failover
             if (consistency.PriceDeviation > 0.01m) // 1% deviation
@@ -523,7 +523,7 @@ public class RedundantDataFeedManager : IDisposable
                     consistency.Symbol, consistency.PriceDeviation);
                 
                 // Consider switching primary feed or halting trading
-                await ConsiderFeedFailoverAsync(consistency);
+                await ConsiderFeedFailoverAsync(consistency).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -567,7 +567,7 @@ public class RedundantDataFeedManager : IDisposable
             _logger.LogWarning("[DataConsistency] ALERT: {Alert}", System.Text.Json.JsonSerializer.Serialize(alert));
             
             // Implement storage for consistency alerts
-            await StoreConsistencyAlert(alert);
+            await StoreConsistencyAlert(alert).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -585,7 +585,7 @@ public class RedundantDataFeedManager : IDisposable
             
             var alertFile = Path.Combine(alertsDir, $"alert_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
             var json = System.Text.Json.JsonSerializer.Serialize(alert, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(alertFile, json);
+            await File.WriteAllTextAsync(alertFile, json).ConfigureAwait(false);
             
             _logger.LogDebug("[DataConsistency] Alert stored to {AlertFile}", alertFile);
         }
@@ -619,7 +619,7 @@ public class RedundantDataFeedManager : IDisposable
                 }
             }
             
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -709,13 +709,13 @@ public class TopstepXDataFeed : IDataFeed
 
     public async Task<bool> ConnectAsync()
     {
-        await Task.Delay(100); // Simulate connection
+        await Task.Delay(100).ConfigureAwait(false); // Simulate connection
         return true;
     }
 
     public async Task<MarketData?> GetMarketDataAsync(string symbol)
     {
-        await Task.Delay(50); // Simulate network delay
+        await Task.Delay(50).ConfigureAwait(false); // Simulate network delay
         
         return new MarketData
         {
@@ -731,7 +731,7 @@ public class TopstepXDataFeed : IDataFeed
 
     public async Task<OrderBook?> GetOrderBookAsync(string symbol)
     {
-        await Task.Delay(50);
+        await Task.Delay(50).ConfigureAwait(false);
         return new OrderBook { Symbol = symbol, Timestamp = DateTime.UtcNow };
     }
 }
@@ -749,13 +749,13 @@ public class BackupDataFeed : IDataFeed
 
     public async Task<bool> ConnectAsync()
     {
-        await Task.Delay(200); // Simulate slower connection
+        await Task.Delay(200).ConfigureAwait(false); // Simulate slower connection
         return true;
     }
 
     public async Task<MarketData?> GetMarketDataAsync(string symbol)
     {
-        await Task.Delay(100); // Simulate slower response
+        await Task.Delay(100).ConfigureAwait(false); // Simulate slower response
         
         return new MarketData
         {
@@ -771,7 +771,7 @@ public class BackupDataFeed : IDataFeed
 
     public async Task<OrderBook?> GetOrderBookAsync(string symbol)
     {
-        await Task.Delay(100);
+        await Task.Delay(100).ConfigureAwait(false);
         return new OrderBook { Symbol = symbol, Timestamp = DateTime.UtcNow };
     }
 }

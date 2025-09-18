@@ -86,7 +86,7 @@ namespace BotCore.ML
                 try
                 {
                     var version = GetModelVersion(modelPath);
-                    return await _memoryManager.LoadModelAsync<T>(modelPath, version);
+                    return await _memoryManager.LoadModelAsync<T>(modelPath, version).ConfigureAwait(false).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -95,7 +95,7 @@ namespace BotCore.ML
             }
             
             // Fallback to direct loading
-            return await LoadModelDirectAsync<T>(modelPath);
+            return await LoadModelDirectAsync<T>(modelPath).ConfigureAwait(false).ConfigureAwait(false);
         }
         
         /// <summary>
@@ -116,7 +116,7 @@ namespace BotCore.ML
                 // Use real ONNX loader if available, otherwise fall back to direct loading
                 if (_onnxLoader != null)
                 {
-                    var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true);
+                    var session = await _onnxLoader.LoadModelAsync(modelPath, validateInference: true).ConfigureAwait(false).ConfigureAwait(false);
                     if (session == null)
                     {
                         _logger.LogError("[ML-Manager] Failed to load ONNX model: {ModelPath}", modelPath);
@@ -192,8 +192,7 @@ namespace BotCore.ML
                 {
                     try
                     {
-                        // Load model asynchronously with proper await
-                        var session = await _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false);
+                        // Load model asynchronously with proper await var session = await _onnxLoader.LoadModelAsync(_rlSizerPath, validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
                         if (session != null)
                         {
                             // Create simple feature array for the model
@@ -259,7 +258,7 @@ namespace BotCore.ML
                     try
                     {
                         // Load meta-classifier model asynchronously
-                        var session = await _onnxLoader.LoadModelAsync(_metaClassifierPath, validateInference: false);
+                        var session = await _onnxLoader.LoadModelAsync(_metaClassifierPath, validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
                         if (session != null)
                         {
                             // Create feature array for classification
@@ -333,7 +332,7 @@ namespace BotCore.ML
                     try
                     {
                         // Load execution quality model asynchronously
-                        var session = await _onnxLoader.LoadModelAsync(_execQualityPath, validateInference: false);
+                        var session = await _onnxLoader.LoadModelAsync(_execQualityPath, validateInference: false).ConfigureAwait(false).ConfigureAwait(false);
                         if (session != null)
                         {
                             // Create feature array for quality prediction

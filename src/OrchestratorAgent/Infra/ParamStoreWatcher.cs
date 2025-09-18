@@ -51,7 +51,7 @@ public sealed class ParamStoreWatcher : IAsyncDisposable
         {
             try
             {
-                await Task.Delay(500, _cts.Token); // small debounce for atomic writes
+                await Task.Delay(500, _cts.Token).ConfigureAwait(false); // small debounce for atomic writes
                 ApplyFromPathSafe(e.FullPath);
             }
             catch { }
@@ -112,6 +112,6 @@ public sealed class ParamStoreWatcher : IAsyncDisposable
         _fsw.Renamed -= OnFsEvent;
         _fsw.Dispose();
         _cts.Cancel();
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }

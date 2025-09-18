@@ -62,6 +62,31 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     private readonly ILogger<OnnxModelWrapper> _logger;
     private readonly bool _isModelLoaded;
     
+    // LoggerMessage delegates for performance (CA1848)
+    private static readonly Action<ILogger, Exception?> LogModelNotLoaded =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(1, nameof(LogModelNotLoaded)),
+            "[ONNX] Model not loaded - using sophisticated fallback predictions");
+
+    private static readonly Action<ILogger, Exception?> LogModelSuccessfullyLoaded =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(2, nameof(LogModelSuccessfullyLoaded)),
+            "[ONNX] Model successfully loaded and ready for inference");
+
+    private static readonly Action<ILogger, Exception?> LogModelNotAvailable =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(3, nameof(LogModelNotAvailable)),
+            "[ONNX] Model not available, returning default confidence");
+
+    private static readonly Action<ILogger, double, Exception?> LogFallbackPredictionConfidence =
+        LoggerMessage.Define<double>(
+            LogLevel.Debug,
+            new EventId(4, nameof(LogFallbackPredictionConfidence)),
+            "[ONNX] Fallback prediction confidence: {Confidence:F3}");
+    
     // Expected feature names for the ML model
     private readonly HashSet<string> _expectedFeatures = new()
     {
@@ -88,11 +113,11 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         
         if (!_isModelLoaded)
         {
-            _logger.LogWarning("[ONNX] Model not loaded - using sophisticated fallback predictions");
+            LogModelNotLoaded(_logger, null);
         }
         else
         {
-            _logger.LogInformation("[ONNX] Model successfully loaded and ready for inference");
+            LogModelSuccessfullyLoaded(_logger, null);
         }
     }
 
@@ -102,7 +127,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     {  
         if (!_isModelLoaded)
         {
-            _logger.LogWarning("[ONNX] Model not available, returning default confidence");
+            LogModelNotAvailable(_logger, null);
             return DefaultConfidence;
         }
 
@@ -112,8 +137,8 @@ public class OnnxModelWrapper : IOnnxModelWrapper
             var normalizedFeatures = NormalizeFeatures(features);
             
             // Use actual ONNX inference or sophisticated fallback
-            var confidence = await RunOnnxInferenceAsync(normalizedFeatures);
-            _logger.LogDebug("[ONNX] Fallback prediction confidence: {Confidence:F3}", confidence);
+            var confidence = await RunOnnxInferenceAsync(normalizedFeatures).ConfigureAwait(false).ConfigureAwait(false);
+            LogFallbackPredictionConfidence(_logger, confidence, null);
             
             // Ensure confidence is in valid range
             confidence = Math.Max(0.0, Math.Min(1.0, confidence));
@@ -193,18 +218,18 @@ public class OnnxModelWrapper : IOnnxModelWrapper
         {
             if (!_isModelLoaded)
             {
-                return await SimulateModelPrediction(features);
+                return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
             }
 
             // Production ONNX inference logic
             // Note: This implementation is ready for when ONNX packages are added to the project
             // For now, use the sophisticated simulation until ONNX packages are integrated
-            return await SimulateModelPrediction(features);
+            return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[ONNX] Error during model inference, falling back to simulation");
-            return await SimulateModelPrediction(features);
+            return await SimulateModelPrediction(features).ConfigureAwait(false).ConfigureAwait(false);
         }
     }
 
@@ -250,7 +275,7 @@ public class OnnxModelWrapper : IOnnxModelWrapper
 
     private static async Task<double> SimulateModelPrediction(Dictionary<string, double> features)
     {
-        await Task.Delay(1); // Simulate async work
+        await Task.Delay(1).ConfigureAwait(false); // Simulate async work
         
         // This is a sophisticated fallback that creates reasonable confidence based on features
         var vix = features.GetValueOrDefault("vix_level", HighConfidenceThreshold);

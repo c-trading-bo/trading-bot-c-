@@ -39,7 +39,7 @@ namespace OrchestratorAgent.Intelligence
                 }
 
                 // Start the auto-launcher
-                await StartMechanicAsync();
+                await StartMechanicAsync().ConfigureAwait(false);
 
                 _logger.LogInformation("✅ Local Bot Mechanic started successfully");
                 _logger.LogInformation("📊 Dashboard: http://localhost:5051/mechanic/dashboard");
@@ -58,8 +58,8 @@ namespace OrchestratorAgent.Intelligence
             try
             {
                 // Stop processes gracefully
-                await StopProcessAsync(_mechanicProcess, "Bot Mechanic");
-                await StopProcessAsync(_dashboardProcess, "Dashboard");
+                await StopProcessAsync(_mechanicProcess, "Bot Mechanic").ConfigureAwait(false);
+                await StopProcessAsync(_dashboardProcess, "Dashboard").ConfigureAwait(false);
 
                 _logger.LogInformation("✅ Local Bot Mechanic stopped");
             }
@@ -139,7 +139,7 @@ namespace OrchestratorAgent.Intelligence
                 _mechanicProcess.BeginErrorReadLine();
 
                 // Give it time to start
-                await Task.Delay(3000);
+                await Task.Delay(3000).ConfigureAwait(false);
 
                 if (_mechanicProcess.HasExited)
                 {
@@ -171,7 +171,7 @@ namespace OrchestratorAgent.Intelligence
                 {
                     // Force kill if needed
                     process.Kill();
-                    await process.WaitForExitAsync();
+                    await process.WaitForExitAsync().ConfigureAwait(false);
                 }
 
                 _logger.LogInformation($"✅ {processName} stopped");
@@ -192,7 +192,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(5);
                 
-                var response = await client.GetStringAsync("http://localhost:5051/mechanic/health");
+                var response = await client.GetStringAsync("http://localhost:5051/mechanic/health").ConfigureAwait(false).ConfigureAwait(false);
                 return response;
             }
             catch (Exception ex)
@@ -212,7 +212,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/scan");
+                var response = await client.GetAsync("http://localhost:5051/mechanic/scan").ConfigureAwait(false).ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -232,7 +232,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/fix");
+                var response = await client.GetAsync("http://localhost:5051/mechanic/fix").ConfigureAwait(false).ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
@@ -252,10 +252,10 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
                 
-                var response = await client.GetAsync("http://localhost:5051/mechanic/ultimate-metrics");
+                var response = await client.GetAsync("http://localhost:5051/mechanic/ultimate-metrics").ConfigureAwait(false).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadAsStringAsync();
+                    return await response.Content.ReadAsStringAsync().ConfigureAwait(false).ConfigureAwait(false);
                 }
                 return null;
             }
@@ -276,7 +276,7 @@ namespace OrchestratorAgent.Intelligence
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromMinutes(5); // Longer timeout for preparation
                 
-                var response = await client.PostAsync("http://localhost:5051/mechanic/prepare-workflows", null);
+                var response = await client.PostAsync("http://localhost:5051/mechanic/prepare-workflows", null).ConfigureAwait(false).ConfigureAwait(false);
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)

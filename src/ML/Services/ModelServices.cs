@@ -67,11 +67,11 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
     
     public async Task<bool> RegisterModelAsync(string modelName, string version, string modelPath, ModelMetrics metrics)
     {
-        await _registryLock.WaitAsync();
+        await _registryLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Step 1: Validate model integrity and security
-            var validationResult = await _validationService.ValidateModelAsync(modelPath);
+            var validationResult = await _validationService.ValidateModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 _logger.LogError("[MODEL-REGISTRY] Model validation failed for {ModelName} v{Version}: {Reason}",
@@ -80,7 +80,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             }
             
             // Step 2: Security scan
-            var securityResult = await _securityService.ScanModelAsync(modelPath);
+            var securityResult = await _securityService.ScanModelAsync(modelPath).ConfigureAwait(false).ConfigureAwait(false);
             if (!securityResult.IsSecure)
             {
                 _logger.LogError("[MODEL-REGISTRY] Security scan failed for {ModelName} v{Version}: {Issues}",
@@ -90,7 +90,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             
             // Step 3: Acquire distributed lock for atomic registration
             var lockKey = $"model_registry:{modelName}";
-            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30));
+            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false).ConfigureAwait(false);
             if (!distributedLock.IsAcquired)
             {
                 _logger.LogWarning("[MODEL-REGISTRY] Failed to acquire distributed lock for {ModelName}", modelName);
@@ -102,7 +102,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             File.Copy(modelPath, stagingPath);
             
             // Step 5: Performance baseline test
-            var baselineResult = await _performanceTracker.RunBaselineTestAsync(stagingPath, metrics);
+            var baselineResult = await _performanceTracker.RunBaselineTestAsync(stagingPath, metrics).ConfigureAwait(false).ConfigureAwait(false);
             if (!baselineResult.PassedBaseline)
             {
                 _logger.LogWarning("[MODEL-REGISTRY] Model {ModelName} v{Version} failed baseline performance test",
@@ -115,7 +115,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             var existingPath = GetModelPath(modelName, version);
             if (existingPath != null)
             {
-                await _backupService.CreateBackupAsync(existingPath, modelName, version);
+                await _backupService.CreateBackupAsync(existingPath, modelName, version).ConfigureAwait(false);
             }
             
             // Step 7: Move to production location
@@ -137,9 +137,9 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
                 Status = ModelStatus.Active,
                 LastAccessTime = DateTime.UtcNow,
                 AccessCount = 0
-            };
+            }.ConfigureAwait(false).ConfigureAwait(false);
             
-            await UpdateDatabaseRegistryAsync(registryEntry);
+            await UpdateDatabaseRegistryAsync(registryEntry).ConfigureAwait(false);
             _modelCache[GetModelKey(modelName, version)] = registryEntry;
             
             // Step 9: Log structured registration event
@@ -301,11 +301,11 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
     
     public async Task<bool> DeleteModelAsync(string modelName, string? version = null)
     {
-        await _registryLock.WaitAsync();
+        await _registryLock.WaitAsync().ConfigureAwait(false);
         try
         {
             var lockKey = $"model_registry:{modelName}";
-            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30));
+            using var distributedLock = await _distributedLock.AcquireLockAsync(lockKey, TimeSpan.FromSeconds(30)).ConfigureAwait(false).ConfigureAwait(false);
             
             if (!distributedLock.IsAcquired)
             {
@@ -317,7 +317,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             var modelPath = GetModelPath(modelName, version);
             if (modelPath != null && File.Exists(modelPath))
             {
-                await _backupService.CreateBackupAsync(modelPath, modelName, version ?? "latest", "pre_deletion");
+                await _backupService.CreateBackupAsync(modelPath, modelName, version ?? "latest", "pre_deletion").ConfigureAwait(false);
                 
                 // Archive the model instead of hard delete
                 var archivePath = Path.Combine(_modelsPath, "archive", Path.GetFileName(modelPath));
@@ -325,7 +325,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
             }
             
             // Update database
-            await MarkModelAsDeletedInDatabase(modelName, version);
+            await MarkModelAsDeletedInDatabase(modelName, version).ConfigureAwait(false);
             
             // Remove from cache
             var modelKey = GetModelKey(modelName, version ?? "latest");
@@ -356,7 +356,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
         var entry = GetModelFromDatabase(modelName, version);
         if (entry == null) return new ModelAnalytics { ModelName = modelName, Version = version ?? "latest" };
         
-        var performanceHistory = await _performanceTracker.GetPerformanceHistoryAsync(modelName, version);
+        var performanceHistory = await _performanceTracker.GetPerformanceHistoryAsync(modelName, version).ConfigureAwait(false).ConfigureAwait(false);
         
         return new ModelAnalytics
         {
@@ -391,7 +391,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
     private async Task UpdateDatabaseRegistryAsync(ModelRegistryEntry entry)
     {
         // Placeholder for database update - in production would use proper ORM/SQL
-        await Task.Delay(10); // Simulate database write
+        await Task.Delay(10).ConfigureAwait(false); // Simulate database write
     }
     
     private ModelRegistryEntry? GetModelFromDatabase(string modelName, string? version)
@@ -415,7 +415,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
     private async Task MarkModelAsDeletedInDatabase(string modelName, string? version)
     {
         // Placeholder for database update - in production would use proper ORM/SQL
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
     }
     
     private void SynchronizeModels(object? state)
@@ -436,7 +436,7 @@ public class EnterpriseModelRegistry : IModelRegistry, IAsyncDisposable
     {
         _synchronizationTimer?.Dispose();
         _registryLock?.Dispose();
-        await (_distributedLock?.DisposeAsync() ?? ValueTask.CompletedTask);
+        await (_distributedLock?.DisposeAsync() ?? ValueTask.CompletedTask).ConfigureAwait(false);
         
         _logger.LogInformation("[MODEL-REGISTRY] Enterprise model registry disposed");
     }
@@ -523,14 +523,14 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         try
         {
             // Step 1: Get relevant feature names from index
-            var relevantFeatures = await _indexService.GetFeaturesInTimeRangeAsync(startDate, endDate);
+            var relevantFeatures = await _indexService.GetFeaturesInTimeRangeAsync(startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 2: Parallel feature retrieval with caching
             var retrievalTasks = relevantFeatures.Select(async featureName =>
             {
                 try
                 {
-                    var data = await GetFeatureDataAsync(featureName, startDate, endDate);
+                    var data = await GetFeatureDataAsync(featureName, startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
                     return (featureName, data);
                 }
                 catch (Exception ex)
@@ -541,7 +541,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 }
             });
             
-            var retrievedFeatures = await Task.WhenAll(retrievalTasks);
+            var retrievedFeatures = await Task.WhenAll(retrievalTasks).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 3: Assemble results
             foreach (var (featureName, data) in retrievedFeatures)
@@ -572,11 +572,11 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     
     public async Task<bool> StoreFeaturesAsync(string featureName, DateTime timestamp, double[] values)
     {
-        await _storageLock.WaitAsync();
+        await _storageLock.WaitAsync().ConfigureAwait(false);
         try
         {
             // Step 1: Validate feature data
-            var validationResult = await _validator.ValidateAsync(featureName, values, timestamp);
+            var validationResult = await _validator.ValidateAsync(featureName, values, timestamp).ConfigureAwait(false).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 _logger.LogWarning("[FEATURE-STORE] Feature validation failed for {FeatureName}: {Reason}",
@@ -585,13 +585,13 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             }
             
             // Step 2: Check/update schema
-            var schema = await EnsureFeatureSchemaAsync(featureName, values);
+            var schema = await EnsureFeatureSchemaAsync(featureName, values).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 3: Store in appropriate format (compressed vs raw)
             var shouldCompress = timestamp < DateTime.UtcNow.AddDays(-CompressionThresholdDays);
             var storageResult = shouldCompress 
                 ? await StoreCompressedFeatureAsync(featureName, timestamp, values, schema)
-                : await StoreRawFeatureAsync(featureName, timestamp, values, schema);
+                : await StoreRawFeatureAsync(featureName, timestamp, values, schema).ConfigureAwait(false);
             
             if (!storageResult)
             {
@@ -599,16 +599,16 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             }
             
             // Step 4: Update cache
-            await UpdateFeatureCacheAsync(featureName, timestamp, values);
+            await UpdateFeatureCacheAsync(featureName, timestamp, values).ConfigureAwait(false);
             
             // Step 5: Update index
-            await _indexService.IndexFeatureAsync(featureName, timestamp, values.Length);
+            await _indexService.IndexFeatureAsync(featureName, timestamp, values.Length).ConfigureAwait(false);
             
             // Step 6: Track lineage
-            await _lineageTracker.RecordFeatureCreationAsync(featureName, timestamp, values.Length);
+            await _lineageTracker.RecordFeatureCreationAsync(featureName, timestamp, values.Length).ConfigureAwait(false);
             
             // Step 7: Stream to real-time consumers
-            await _streamingManager.PublishFeatureAsync(featureName, timestamp, values);
+            await _streamingManager.PublishFeatureAsync(featureName, timestamp, values).ConfigureAwait(false);
             
             _logger.LogDebug("[FEATURE-STORE] Stored feature {FeatureName} with {ValueCount} values at {Timestamp}",
                 featureName, values.Length, timestamp);
@@ -636,7 +636,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         try
         {
             // Get from multiple sources for completeness
-            var indexFeatures = await _indexService.GetAllFeatureNamesAsync();
+            var indexFeatures = await _indexService.GetAllFeatureNamesAsync().ConfigureAwait(false).ConfigureAwait(false);
             var schemaFeatures = _schemaRegistry.Keys.ToArray();
             var cacheFeatures = _featureCache.Keys.ToArray();
             
@@ -670,13 +670,13 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         
         try
         {
-            var features = await GetAvailableFeaturesAsync();
+            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
             
             var latestTasks = features.Select(async featureName =>
             {
                 try
                 {
-                    var data = await GetLatestFeatureDataAsync(featureName, count);
+                    var data = await GetLatestFeatureDataAsync(featureName, count).ConfigureAwait(false).ConfigureAwait(false);
                     return (featureName, data);
                 }
                 catch (Exception ex)
@@ -687,7 +687,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 }
             });
             
-            var latestFeatures = await Task.WhenAll(latestTasks);
+            var latestFeatures = await Task.WhenAll(latestTasks).ConfigureAwait(false).ConfigureAwait(false);
             
             foreach (var (featureName, data) in latestFeatures)
             {
@@ -713,10 +713,10 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     {
         try
         {
-            var features = await GetAvailableFeaturesAsync();
-            var totalStorageSize = await CalculateStorageSizeAsync();
+            var features = await GetAvailableFeaturesAsync().ConfigureAwait(false).ConfigureAwait(false);
+            var totalStorageSize = await CalculateStorageSizeAsync().ConfigureAwait(false).ConfigureAwait(false);
             var cacheMetrics = CalculateCacheMetrics();
-            var compressionRatio = await CalculateCompressionRatioAsync();
+            var compressionRatio = await CalculateCompressionRatioAsync().ConfigureAwait(false).ConfigureAwait(false);
             
             return new FeatureStoreAnalytics
             {
@@ -728,7 +728,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
                 MemoryUsageMB = cacheMetrics.MemoryUsageMB,
                 LastCompressionRun = _lastCompressionRun,
                 IndexHealth = await _indexService.GetHealthScoreAsync()
-            };
+            }.ConfigureAwait(false).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -749,10 +749,10 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         }
         
         // Load from storage
-        var data = await LoadFeatureFromStorageAsync(featureName, startDate, endDate);
+        var data = await LoadFeatureFromStorageAsync(featureName, startDate, endDate).ConfigureAwait(false).ConfigureAwait(false);
         
         // Cache the result
-        await CacheFeatureDataAsync(cacheKey, data);
+        await CacheFeatureDataAsync(cacheKey, data).ConfigureAwait(false);
         
         return data;
     }
@@ -766,8 +766,8 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             return cachedData.Values;
         }
         
-        var data = await LoadLatestFeatureFromStorageAsync(featureName, count);
-        await CacheFeatureDataAsync(cacheKey, data);
+        var data = await LoadLatestFeatureFromStorageAsync(featureName, count).ConfigureAwait(false).ConfigureAwait(false);
+        await CacheFeatureDataAsync(cacheKey, data).ConfigureAwait(false);
         
         return data;
     }
@@ -781,7 +781,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
             try
             {
                 _logger.LogDebug("[FEATURE-STORE] Starting compression cycle");
-                await _compressionService.RunCompressionAsync(_storageDirectory);
+                await _compressionService.RunCompressionAsync(_storageDirectory).ConfigureAwait(false);
                 _lastCompressionRun = DateTime.UtcNow;
                 _logger.LogInformation("[FEATURE-STORE] Compression cycle completed");
             }
@@ -813,43 +813,43 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     private void LoadFeatureIndex() { /* Load from disk */ }
     private async Task<FeatureSchema> EnsureFeatureSchemaAsync(string featureName, double[] values) 
     { 
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
         return new FeatureSchema { Name = featureName, ValueCount = values.Length }; 
     }
     private async Task<bool> StoreCompressedFeatureAsync(string featureName, DateTime timestamp, double[] values, FeatureSchema schema) 
     { 
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
         return true; 
     }
     private async Task<bool> StoreRawFeatureAsync(string featureName, DateTime timestamp, double[] values, FeatureSchema schema) 
     { 
-        await Task.Delay(5);
+        await Task.Delay(5).ConfigureAwait(false);
         return true; 
     }
     private async Task UpdateFeatureCacheAsync(string featureName, DateTime timestamp, double[] values) 
     { 
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
     }
     private async Task<double[]> LoadFeatureFromStorageAsync(string featureName, DateTime startDate, DateTime endDate) 
     { 
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
         return new double[100]; 
     }
     private async Task<double[]> LoadLatestFeatureFromStorageAsync(string featureName, int count) 
     { 
-        await Task.Delay(5);
+        await Task.Delay(5).ConfigureAwait(false);
         return new double[count]; 
     }
     private async Task CacheFeatureDataAsync(string cacheKey, double[] data) 
     { 
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
         _featureCache[cacheKey] = new CachedFeatureData { Values = data, CachedAt = DateTime.UtcNow };
     }
     private void UpdateAccessOrder(string cacheKey) { /* Update LRU order */ }
     private void EvictLeastRecentlyUsedItems() { /* Evict LRU cache items */ }
     private async Task<long> CalculateStorageSizeAsync() 
     { 
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
         return 1024 * 1024; 
     }
     private CacheMetrics CalculateCacheMetrics() 
@@ -858,7 +858,7 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
     }
     private async Task<double> CalculateCompressionRatioAsync() 
     { 
-        await Task.Delay(1);
+        await Task.Delay(1).ConfigureAwait(false);
         return 0.65; 
     }
     
@@ -868,8 +868,8 @@ public class EnterpriseFeatureStore : IFeatureStore, IAsyncDisposable
         _cacheEvictionTimer?.Dispose();
         _storageLock?.Dispose();
         
-        await (_compressionService?.DisposeAsync() ?? ValueTask.CompletedTask);
-        await (_streamingManager?.DisposeAsync() ?? ValueTask.CompletedTask);
+        await (_compressionService?.DisposeAsync() ?? ValueTask.CompletedTask).ConfigureAwait(false);
+        await (_streamingManager?.DisposeAsync() ?? ValueTask.CompletedTask).ConfigureAwait(false);
         
         _logger.LogInformation("[FEATURE-STORE] Enterprise feature store disposed");
     }
@@ -983,12 +983,12 @@ public class ModelPerformanceTracker
     public ModelPerformanceTracker(ILogger logger) => _logger = logger;
     public async Task<BaselineResult> RunBaselineTestAsync(string modelPath, ModelMetrics metrics) 
     { 
-        await Task.Delay(100);
+        await Task.Delay(100).ConfigureAwait(false);
         return new BaselineResult { PassedBaseline = true, PerformanceScore = 0.85 }; 
     }
     public async Task<List<PerformanceMetric>> GetPerformanceHistoryAsync(string modelName, string? version) 
     { 
-        await Task.Delay(50);
+        await Task.Delay(50).ConfigureAwait(false);
         return new List<PerformanceMetric>(); 
     }
 }
@@ -999,7 +999,7 @@ public class ModelValidationService
     public ModelValidationService(ILogger logger) => _logger = logger;
     public async Task<ValidationResult> ValidateModelAsync(string modelPath) 
     { 
-        await Task.Delay(200);
+        await Task.Delay(200).ConfigureAwait(false);
         return new ValidationResult { IsValid = true, ValidationScore = 0.95 }; 
     }
 }
@@ -1010,12 +1010,12 @@ public class ModelSecurityService
     public ModelSecurityService(ILogger logger) => _logger = logger;
     public async Task<SecurityResult> ScanModelAsync(string modelPath) 
     { 
-        await Task.Delay(150);
+        await Task.Delay(150).ConfigureAwait(false);
         return new SecurityResult { IsSecure = true, SecurityScore = 0.9 }; 
     }
     public async Task<string> ComputeFileHashAsync(string filePath) 
     { 
-        await Task.Delay(50);
+        await Task.Delay(50).ConfigureAwait(false);
         return "sha256hash"; 
     }
 }
@@ -1027,7 +1027,7 @@ public class ModelBackupService
     public ModelBackupService(ILogger logger, string basePath) { _logger = logger; _basePath = basePath; }
     public async Task CreateBackupAsync(string filePath, string modelName, string version, string? reason = null) 
     { 
-        await Task.Delay(100);
+        await Task.Delay(100).ConfigureAwait(false);
     }
 }
 
@@ -1037,10 +1037,10 @@ public class DistributedLockManager : IAsyncDisposable
     public DistributedLockManager(ILogger logger) => _logger = logger;
     public async Task<DistributedLock> AcquireLockAsync(string key, TimeSpan timeout) 
     { 
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
         return new DistributedLock { IsAcquired = true }; 
     }
-    public async ValueTask DisposeAsync() => await Task.CompletedTask;
+    public async ValueTask DisposeAsync() => await Task.CompletedTask.ConfigureAwait(false);
 }
 
 public class DistributedLock : IDisposable
@@ -1054,8 +1054,8 @@ public class FeatureCompressionService : IAsyncDisposable
 {
     private readonly ILogger _logger;
     public FeatureCompressionService(ILogger logger) => _logger = logger;
-    public async Task RunCompressionAsync(string storageDirectory) => await Task.Delay(1000);
-    public async ValueTask DisposeAsync() => await Task.CompletedTask;
+    public async Task RunCompressionAsync(string storageDirectory) => await Task.Delay(1000).ConfigureAwait(false);
+    public async ValueTask DisposeAsync() => await Task.CompletedTask.ConfigureAwait(false);
 }
 
 public class FeatureIndexService
@@ -1065,18 +1065,18 @@ public class FeatureIndexService
     public FeatureIndexService(ILogger logger, string indexPath) { _logger = logger; _indexPath = indexPath; }
     public async Task<List<string>> GetFeaturesInTimeRangeAsync(DateTime start, DateTime end) 
     { 
-        await Task.Delay(50);
+        await Task.Delay(50).ConfigureAwait(false);
         return new List<string>(); 
     }
-    public async Task IndexFeatureAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(10);
+    public async Task IndexFeatureAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(10).ConfigureAwait(false);
     public async Task<string[]> GetAllFeatureNamesAsync() 
     { 
-        await Task.Delay(20);
+        await Task.Delay(20).ConfigureAwait(false);
         return Array.Empty<string>(); 
     }
     public async Task<double> GetHealthScoreAsync() 
     { 
-        await Task.Delay(10);
+        await Task.Delay(10).ConfigureAwait(false);
         return 0.95; 
     }
 }
@@ -1086,7 +1086,7 @@ public class FeatureLineageTracker
     private readonly ILogger _logger;
     private readonly string _storageDirectory;
     public FeatureLineageTracker(ILogger logger, string storageDirectory) { _logger = logger; _storageDirectory = storageDirectory; }
-    public async Task RecordFeatureCreationAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(5);
+    public async Task RecordFeatureCreationAsync(string featureName, DateTime timestamp, int valueCount) => await Task.Delay(5).ConfigureAwait(false);
 }
 
 public class FeatureValidator
@@ -1095,7 +1095,7 @@ public class FeatureValidator
     public FeatureValidator(ILogger logger) => _logger = logger;
     public async Task<ValidationResult> ValidateAsync(string featureName, double[] values, DateTime timestamp) 
     { 
-        await Task.Delay(5);
+        await Task.Delay(5).ConfigureAwait(false);
         return new ValidationResult { IsValid = true }; 
     }
 }
@@ -1104,6 +1104,6 @@ public class StreamingFeatureManager : IAsyncDisposable
 {
     private readonly ILogger _logger;
     public StreamingFeatureManager(ILogger logger) => _logger = logger;
-    public async Task PublishFeatureAsync(string featureName, DateTime timestamp, double[] values) => await Task.Delay(2);
-    public async ValueTask DisposeAsync() => await Task.CompletedTask;
+    public async Task PublishFeatureAsync(string featureName, DateTime timestamp, double[] values) => await Task.Delay(2).ConfigureAwait(false);
+    public async ValueTask DisposeAsync() => await Task.CompletedTask.ConfigureAwait(false);
 }

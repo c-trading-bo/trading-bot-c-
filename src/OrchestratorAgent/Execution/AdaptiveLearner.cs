@@ -96,7 +96,7 @@ public static class AdaptiveLearner
         {
             log.LogWarning(ex, "[Learn] AdaptiveLearner failed");
         }
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private static void ProposeS2(string root, int trades, decimal wr, decimal net, decimal dd, ILogger log)

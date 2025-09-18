@@ -49,7 +49,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
     {
         try
         {
-            await Task.Delay(1, ct); // Satisfy async requirement
+            await Task.Delay(1, ct).ConfigureAwait(false); // Satisfy async requirement
             // Prepare features for ONNX model
             var features = PrepareFeatures(signal, marketContext);
 
@@ -92,7 +92,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
         _calibration.AddPrediction(predictedProb, actualOutcome);
 
         // Update threshold based on calibration if needed
-        var metrics = await GetCalibrationMetricsAsync(ct);
+        var metrics = await GetCalibrationMetricsAsync(ct).ConfigureAwait(false).ConfigureAwait(false);
         if (metrics.TotalPredictions > 100 && !metrics.IsWellCalibrated)
         {
             // Adjust threshold if model is poorly calibrated
@@ -106,7 +106,7 @@ public class OnnxMetaLabeler : IMetaLabeler, IDisposable
 
     public async Task<CalibrationMetrics> GetCalibrationMetricsAsync(CancellationToken ct = default)
     {
-        return await Task.FromResult(_calibration.GetMetrics());
+        return await Task.FromResult(_calibration.GetMetrics()).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     private static float[] PrepareFeatures(TradeSignalContext signal, MarketContext marketContext)

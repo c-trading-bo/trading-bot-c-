@@ -48,7 +48,7 @@ namespace TopstepX.Bot.Intelligence
                     _logger.LogWarning($"Trading signals data is {age.TotalMinutes:F1} minutes old. Consider refreshing cloud data.");
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(signalsFile);
+                var jsonContent = await File.ReadAllTextAsync(signalsFile).ConfigureAwait(false).ConfigureAwait(false);
                 var signals = JsonSerializer.Deserialize<MarketSignals>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -79,7 +79,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(optionsFile);
+                var jsonContent = await File.ReadAllTextAsync(optionsFile).ConfigureAwait(false).ConfigureAwait(false);
                 var optionsData = JsonSerializer.Deserialize<OptionsFlowData>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -110,7 +110,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(macroFile);
+                var jsonContent = await File.ReadAllTextAsync(macroFile).ConfigureAwait(false).ConfigureAwait(false);
                 var macroData = JsonSerializer.Deserialize<MacroData>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -141,7 +141,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(cotFile);
+                var jsonContent = await File.ReadAllTextAsync(cotFile).ConfigureAwait(false).ConfigureAwait(false);
                 var cotData = JsonSerializer.Deserialize<COTAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -172,7 +172,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(congressFile);
+                var jsonContent = await File.ReadAllTextAsync(congressFile).ConfigureAwait(false).ConfigureAwait(false);
                 var congressData = JsonSerializer.Deserialize<CongressionalAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -203,7 +203,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(socialFile);
+                var jsonContent = await File.ReadAllTextAsync(socialFile).ConfigureAwait(false).ConfigureAwait(false);
                 var socialData = JsonSerializer.Deserialize<SocialAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -234,7 +234,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(intermarketFile);
+                var jsonContent = await File.ReadAllTextAsync(intermarketFile).ConfigureAwait(false).ConfigureAwait(false);
                 var intermarketData = JsonSerializer.Deserialize<IntermarketAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -265,7 +265,7 @@ namespace TopstepX.Bot.Intelligence
                     return null;
                 }
                 
-                var jsonContent = await File.ReadAllTextAsync(opexFile);
+                var jsonContent = await File.ReadAllTextAsync(opexFile).ConfigureAwait(false).ConfigureAwait(false);
                 var opexData = JsonSerializer.Deserialize<OPEXAnalysis>(jsonContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -333,7 +333,7 @@ namespace TopstepX.Bot.Intelligence
                 }
                 
                 // Additional health checks
-                var signals = await GetLatestMarketSignalsAsync();
+                var signals = await GetLatestMarketSignalsAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (signals?.DataAvailability?.Options == false && 
                     signals?.DataAvailability?.Macro == false && 
                     signals?.DataAvailability?.News == false)
@@ -387,7 +387,7 @@ namespace TopstepX.Bot.Intelligence
             
             try
             {
-                var signals = await GetLatestMarketSignalsAsync();
+                var signals = await GetLatestMarketSignalsAsync().ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (signals == null)
                 {

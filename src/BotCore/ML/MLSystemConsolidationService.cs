@@ -50,7 +50,7 @@ public sealed class MLSystemConsolidationService
 
         if (File.Exists(enhancedMLFile))
         {
-            var content = await File.ReadAllTextAsync(enhancedMLFile);
+            var content = await File.ReadAllTextAsync(enhancedMLFile).ConfigureAwait(false).ConfigureAwait(false);
             
             if (content.Contains("public class MLMemoryManager"))
             {
@@ -81,7 +81,7 @@ public sealed class MLSystemConsolidationService
         }
 
         // Check for other potential duplicates
-        await AnalyzeMLDirectoriesAsync(plan);
+        await AnalyzeMLDirectoriesAsync(plan).ConfigureAwait(false);
 
         _logger.LogInformation("[ML-Consolidation] Analysis complete - {DuplicatesFound} duplicates found, {ActionsPlanned} actions planned",
             plan.DuplicatesFound, _consolidationActions.Count);
@@ -127,7 +127,7 @@ public sealed class MLSystemConsolidationService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public sealed class MLSystemConsolidationService
         {
             try
             {
-                await ExecuteActionAsync(action, dryRun);
+                await ExecuteActionAsync(action, dryRun).ConfigureAwait(false);
                 result.ActionsCompleted++;
             }
             catch (Exception ex)
@@ -182,15 +182,15 @@ public sealed class MLSystemConsolidationService
         switch (action.Action)
         {
             case "Remove Duplicate MLMemoryManager":
-                await RemoveDuplicateMLMemoryManagerAsync(action);
+                await RemoveDuplicateMLMemoryManagerAsync(action).ConfigureAwait(false);
                 break;
 
             case "Analyze ML Model Managers":
-                await AnalyzeMLModelManagersAsync(action);
+                await AnalyzeMLModelManagersAsync(action).ConfigureAwait(false);
                 break;
 
             case "Analyze File Conflict":
-                await AnalyzeFileConflictAsync(action);
+                await AnalyzeFileConflictAsync(action).ConfigureAwait(false);
                 break;
 
             default:
@@ -209,11 +209,11 @@ public sealed class MLSystemConsolidationService
             return;
         }
 
-        var content = await File.ReadAllTextAsync(action.SourcePath);
+        var content = await File.ReadAllTextAsync(action.SourcePath).ConfigureAwait(false).ConfigureAwait(false);
         
         // Create backup
         var backupPath = action.SourcePath + ".backup." + DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        await File.WriteAllTextAsync(backupPath, content);
+        await File.WriteAllTextAsync(backupPath, content).ConfigureAwait(false);
         _logger.LogInformation("[ML-Consolidation] Created backup: {BackupPath}", backupPath);
 
         // Remove the MLMemoryManager class from Enhanced/MLRLSystem.cs
@@ -252,7 +252,7 @@ public sealed class MLSystemConsolidationService
 
         // Write the cleaned content
         var cleanedContent = string.Join('\n', lines);
-        await File.WriteAllTextAsync(action.SourcePath, cleanedContent);
+        await File.WriteAllTextAsync(action.SourcePath, cleanedContent).ConfigureAwait(false);
 
         action.Status = ConsolidationStatus.Completed;
         _logger.LogInformation("[ML-Consolidation] Successfully removed duplicate MLMemoryManager from {SourcePath}", action.SourcePath);
@@ -264,7 +264,7 @@ public sealed class MLSystemConsolidationService
         // For now, just log the analysis
         _logger.LogInformation("[ML-Consolidation] Analyzing ML model managers in {SourcePath}", action.SourcePath);
         action.Status = ConsolidationStatus.Completed;
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task AnalyzeFileConflictAsync(ConsolidationAction action)
@@ -273,7 +273,7 @@ public sealed class MLSystemConsolidationService
         _logger.LogInformation("[ML-Consolidation] Analyzing file conflict: {SourcePath} vs {TargetPath}", 
             action.SourcePath, action.TargetPath);
         action.Status = ConsolidationStatus.Completed;
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -281,7 +281,7 @@ public sealed class MLSystemConsolidationService
     /// </summary>
     public async Task<string> GenerateConsolidationReportAsync()
     {
-        var plan = await AnalyzeDuplicateSystemsAsync();
+        var plan = await AnalyzeDuplicateSystemsAsync().ConfigureAwait(false).ConfigureAwait(false);
         
         var report = $@"
 === ML System Consolidation Report ===

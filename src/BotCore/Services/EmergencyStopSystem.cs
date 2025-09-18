@@ -47,7 +47,7 @@ namespace TopstepX.Bot.Core.Services
                 // Keep monitoring until cancellation
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    await Task.Delay(1000, stoppingToken);
+                    await Task.Delay(1000, stoppingToken).ConfigureAwait(false);
                     
                     // Periodic check in case file watcher fails
                     if (!_isEmergencyStop)
@@ -179,7 +179,7 @@ namespace TopstepX.Bot.Core.Services
                 }
                 
                 // Wait a moment
-                await Task.Delay(1000);
+                await Task.Delay(1000).ConfigureAwait(false);
                 
                 // Reset state
                 _isEmergencyStop = false;

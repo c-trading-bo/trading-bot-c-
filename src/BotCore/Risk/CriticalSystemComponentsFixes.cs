@@ -37,7 +37,7 @@ namespace BotCore.Risk
                 MonitorPerformanceMetricsAsync(stoppingToken)
             };
 
-            await Task.WhenAll(tasks);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
 
         private async Task MonitorSystemHealthAsync(CancellationToken cancellationToken)
@@ -49,11 +49,11 @@ namespace BotCore.Risk
                 try
                 {
                     // Real system health monitoring logic
-                    await CheckSystemResourcesAsync(cancellationToken);
-                    await CheckDatabaseConnectivityAsync(cancellationToken);
-                    await CheckApiEndpointsAsync(cancellationToken);
+                    await CheckSystemResourcesAsync(cancellationToken).ConfigureAwait(false);
+                    await CheckDatabaseConnectivityAsync(cancellationToken).ConfigureAwait(false);
+                    await CheckApiEndpointsAsync(cancellationToken).ConfigureAwait(false);
 
-                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -63,7 +63,7 @@ namespace BotCore.Risk
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[CRITICAL-SYSTEM] Error in system health monitoring");
-                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -85,10 +85,10 @@ namespace BotCore.Risk
                         _logger.LogWarning("[CRITICAL-SYSTEM] High memory usage detected: {MemoryUsageGB:F2}GB", memoryUsageGB);
                         
                         // Trigger intelligent cleanup instead of forced GC
-                        await PerformIntelligentMemoryCleanupAsync(cancellationToken);
+                        await PerformIntelligentMemoryCleanupAsync(cancellationToken).ConfigureAwait(false);
                     }
 
-                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -98,7 +98,7 @@ namespace BotCore.Risk
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[CRITICAL-SYSTEM] Error in memory pressure monitoring");
-                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken);
+                    await Task.Delay(TimeSpan.FromMinutes(1), cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -112,13 +112,13 @@ namespace BotCore.Risk
                 try
                 {
                     // Real performance monitoring logic
-                    var cpuUsage = await GetCpuUsageAsync(cancellationToken);
+                    var cpuUsage = await GetCpuUsageAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     var threadPoolInfo = GetThreadPoolInfo();
                     
                     _logger.LogDebug("[CRITICAL-SYSTEM] Performance metrics - CPU: {CpuUsage:F2}%, Thread Pool: {WorkerThreads}/{CompletionPortThreads}",
                         cpuUsage, threadPoolInfo.WorkerThreads, threadPoolInfo.CompletionPortThreads);
 
-                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -128,14 +128,14 @@ namespace BotCore.Risk
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "[CRITICAL-SYSTEM] Error in performance metrics monitoring");
-                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
                 }
             }
         }
 
         private async Task CheckSystemResourcesAsync(CancellationToken cancellationToken)
         {
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
             
             var memoryUsage = GC.GetTotalMemory(false);
             var gen0Collections = GC.CollectionCount(0);
@@ -150,7 +150,7 @@ namespace BotCore.Risk
         {
             try
             {
-                await Task.Yield();
+                await Task.Yield().ConfigureAwait(false);
                 // Real database connectivity check would go here
                 _logger.LogDebug("[CRITICAL-SYSTEM] Database connectivity check passed");
             }
@@ -165,7 +165,7 @@ namespace BotCore.Risk
         {
             try
             {
-                await Task.Yield();
+                await Task.Yield().ConfigureAwait(false);
                 // Real API endpoint health check would go here
                 _logger.LogDebug("[CRITICAL-SYSTEM] API endpoints health check passed");
             }
@@ -178,7 +178,7 @@ namespace BotCore.Risk
 
         private async Task PerformIntelligentMemoryCleanupAsync(CancellationToken cancellationToken)
         {
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
             
             // Intelligent cleanup instead of forced GC
             _logger.LogInformation("[CRITICAL-SYSTEM] Performing intelligent memory cleanup");
@@ -194,7 +194,7 @@ namespace BotCore.Risk
 
         private async Task<double> GetCpuUsageAsync(CancellationToken cancellationToken)
         {
-            await Task.Yield();
+            await Task.Yield().ConfigureAwait(false);
             // Real CPU usage calculation would go here
             return 15.0; // Placeholder value
         }
@@ -209,7 +209,7 @@ namespace BotCore.Risk
         {
             _logger.LogInformation("[CRITICAL-SYSTEM] Stopping critical system monitoring");
             _cancellationTokenSource.Cancel();
-            await base.StopAsync(cancellationToken);
+            await base.StopAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public override void Dispose()

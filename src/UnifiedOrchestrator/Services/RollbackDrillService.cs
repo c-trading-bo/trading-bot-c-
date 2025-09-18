@@ -63,23 +63,23 @@ public class RollbackDrillService : IRollbackDrillService
         {
             // Phase 1: Establish baseline with champion
             _logger.LogInformation("[ROLLBACK-DRILL] Phase 1: Establishing champion baseline");
-            await EstablishBaseline(result, cancellationToken);
+            await EstablishBaseline(result, cancellationToken).ConfigureAwait(false);
 
             // Phase 2: Promote challenger
             _logger.LogInformation("[ROLLBACK-DRILL] Phase 2: Promoting challenger");
-            await PromoteChallenger(result, cancellationToken);
+            await PromoteChallenger(result, cancellationToken).ConfigureAwait(false);
 
             // Phase 3: Generate high load on challenger
             _logger.LogInformation("[ROLLBACK-DRILL] Phase 3: Generating load on challenger");
-            await GenerateLoad(result, config, cancellationToken);
+            await GenerateLoad(result, config, cancellationToken).ConfigureAwait(false);
 
             // Phase 4: Execute rollback under load
             _logger.LogInformation("[ROLLBACK-DRILL] Phase 4: Executing rollback under load");
-            await ExecuteRollbackUnderLoad(result, cancellationToken);
+            await ExecuteRollbackUnderLoad(result, cancellationToken).ConfigureAwait(false);
 
             // Phase 5: Verify rollback success and stability
             _logger.LogInformation("[ROLLBACK-DRILL] Phase 5: Verifying rollback success");
-            await VerifyRollbackSuccess(result, cancellationToken);
+            await VerifyRollbackSuccess(result, cancellationToken).ConfigureAwait(false);
 
             result.Success = true;
             result.EndTime = DateTime.UtcNow;
@@ -119,7 +119,7 @@ public class RollbackDrillService : IRollbackDrillService
             EnableContextPreservation = true
         };
 
-        return await ExecuteRollbackDrillAsync(config, cancellationToken);
+        return await ExecuteRollbackDrillAsync(config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -131,20 +131,20 @@ public class RollbackDrillService : IRollbackDrillService
         var decisions = new List<(DateTime, AbstractionsTradingDecision, double)>();
 
         // Ensure we're on champion
-        await _brainAdapter.RollbackToChampionAsync(cancellationToken);
+        await _brainAdapter.RollbackToChampionAsync(cancellationToken).ConfigureAwait(false);
         
         // Generate baseline decisions
         for (int i = 0; i < 20; i++)
         {
             var context = CreateTestTradingContext(i);
             var decisionStart = DateTime.UtcNow;
-            var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
+            var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var decisionTime = (DateTime.UtcNow - decisionStart).TotalMilliseconds;
             
             decisions.Add((DateTime.UtcNow, ConvertToAbstractionsDecision(decision), decisionTime));
             
             if (cancellationToken.IsCancellationRequested) break;
-            await Task.Delay(50, cancellationToken); // 20 decisions per second
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // 20 decisions per second
         }
 
         result.Events.Add(new RollbackEvent
@@ -168,7 +168,7 @@ public class RollbackDrillService : IRollbackDrillService
         var promotionStopwatch = Stopwatch.StartNew();
 
         // Execute promotion
-        var promoted = await _brainAdapter.PromoteToChallengerAsync(cancellationToken);
+        var promoted = await _brainAdapter.PromoteToChallengerAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         
         var promotionTime = promotionStopwatch.Elapsed.TotalMilliseconds;
 
@@ -211,7 +211,7 @@ public class RollbackDrillService : IRollbackDrillService
         }
 
         // Wait for load generation to complete
-        await Task.WhenAll(tasks);
+        await Task.WhenAll(tasks).ConfigureAwait(false);
 
         var loadDuration = (DateTime.UtcNow - loadStart).TotalMilliseconds;
         var totalDecisions = decisions.Count;
@@ -248,14 +248,14 @@ public class RollbackDrillService : IRollbackDrillService
         try
         {
             // Execute rollback under load
-            var rollbackSuccess = await _brainAdapter.RollbackToChampionAsync(cancellationToken);
+            var rollbackSuccess = await _brainAdapter.RollbackToChampionAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var rollbackTime = rollbackStopwatch.Elapsed.TotalMilliseconds;
 
             // Stop background load
             loadCancellation.Cancel();
             
             // Wait for background load to complete
-            try { await backgroundLoadTask; } catch { /* Expected cancellation */ }
+            try { await backgroundLoadTask.ConfigureAwait(false); } catch { /* Expected cancellation */ }
 
             result.Events.Add(new RollbackEvent
             {
@@ -300,7 +300,7 @@ public class RollbackDrillService : IRollbackDrillService
         {
             var context = CreateTestTradingContext(i + 1000);
             var decisionStart = DateTime.UtcNow;
-            var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
+            var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             var decisionTime = (DateTime.UtcNow - decisionStart).TotalMilliseconds;
             
             postRollbackDecisions.Add((DateTime.UtcNow, ConvertToAbstractionsDecision(decision), decisionTime));
@@ -313,7 +313,7 @@ public class RollbackDrillService : IRollbackDrillService
             }
             
             if (cancellationToken.IsCancellationRequested) break;
-            await Task.Delay(100, cancellationToken);
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false);
         }
 
         var avgPostRollbackLatency = postRollbackDecisions.Average(d => d.Item3);
@@ -351,13 +351,13 @@ public class RollbackDrillService : IRollbackDrillService
             {
                 var context = CreateTestTradingContext(workerId * 10000 + decisionCounter);
                 var start = DateTime.UtcNow;
-                var decision = await _brainAdapter.DecideAsync(context, cancellationToken);
+                var decision = await _brainAdapter.DecideAsync(context, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var latency = (DateTime.UtcNow - start).TotalMilliseconds;
                 
                 decisions.Add((start, latency, true));
                 decisionCounter++;
                 
-                await Task.Delay(delayMs, cancellationToken);
+                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {

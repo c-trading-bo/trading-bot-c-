@@ -67,7 +67,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
             "GET",
             requestUri,
             cancellationToken
-        ).ConfigureAwait(false);
+        ).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     public async Task<HttpResponseMessage> PostAsync(string requestUri, HttpContent? content, CancellationToken cancellationToken = default)
@@ -78,13 +78,13 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
             "POST",
             requestUri,
             cancellationToken
-        ).ConfigureAwait(false);
+        ).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     public async Task<T?> GetJsonAsync<T>(string requestUri, CancellationToken cancellationToken = default) where T : class
     {
-        var response = await GetAsync(requestUri, cancellationToken).ConfigureAwait(false);
-        return await DeserializeResponseAsync<T>(response, cancellationToken).ConfigureAwait(false);
+        var response = await GetAsync(requestUri, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await DeserializeResponseAsync<T>(response, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     public async Task<T?> PostJsonAsync<T>(string requestUri, object? content, CancellationToken cancellationToken = default) where T : class
@@ -96,8 +96,8 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
             httpContent = new StringContent(json, Encoding.UTF8, "application/json");
         }
 
-        var response = await PostAsync(requestUri, httpContent, cancellationToken).ConfigureAwait(false);
-        return await DeserializeResponseAsync<T>(response, cancellationToken).ConfigureAwait(false);
+        var response = await PostAsync(requestUri, httpContent, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+        return await DeserializeResponseAsync<T>(response, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
         try
         {
             await _authService.EnsureFreshTokenAsync(cancellationToken).ConfigureAwait(false);
-            var (jwt, _) = await _authService.GetFreshJwtAsync(cancellationToken).ConfigureAwait(false);
+            var (jwt, _) = await _authService.GetFreshJwtAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (!string.IsNullOrEmpty(jwt))
             {
@@ -144,7 +144,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
     /// </summary>
     private async Task SetAuthHeaderFromEnvironmentAsync()
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var token = GetAuthToken();
         if (!string.IsNullOrEmpty(token))
@@ -169,7 +169,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
         {
             try
             {
-                var response = await operation().ConfigureAwait(false);
+                var response = await operation().ConfigureAwait(false).ConfigureAwait(false);
 
                 // Only retry on 5xx server errors or 408 timeout
                 if (ShouldRetry(response.StatusCode) && attempt < maxRetries)
@@ -283,7 +283,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
         {
             if (!response.IsSuccessStatusCode)
             {
-                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogError("HTTP request failed: {StatusCode} {ReasonPhrase} - {Content}", 
                     response.StatusCode, response.ReasonPhrase, RedactSensitiveInfo(errorContent));
                 
@@ -299,7 +299,7 @@ public class TopstepXHttpClient : ITopstepXHttpClient, IDisposable
                 };
             }
 
-            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (string.IsNullOrEmpty(json))
             {

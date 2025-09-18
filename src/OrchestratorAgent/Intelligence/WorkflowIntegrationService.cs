@@ -49,7 +49,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(intelligencePath);
+                var jsonContent = await File.ReadAllTextAsync(intelligencePath).ConfigureAwait(false).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<MarketIntelligence>(jsonContent);
                 
                 _logger.LogInformation("Loaded market intelligence: Regime={Regime}, Confidence={Confidence}, Bias={Bias}", 
@@ -78,7 +78,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(correlationPath);
+                var jsonContent = await File.ReadAllTextAsync(correlationPath).ConfigureAwait(false).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<CorrelationData>(jsonContent);
                 
                 _logger.LogDebug("Loaded correlation data with {Count} instrument correlations", 
@@ -107,7 +107,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(zonePath);
+                var jsonContent = await File.ReadAllTextAsync(zonePath).ConfigureAwait(false).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<ZoneAnalysis>(jsonContent);
                 
                 _logger.LogDebug("Loaded zone analysis for {Symbol}: {SupplyCount} supply, {DemandCount} demand zones", 
@@ -136,7 +136,7 @@ namespace OrchestratorAgent.Intelligence
                     return null;
                 }
 
-                var jsonContent = await File.ReadAllTextAsync(sentimentPath);
+                var jsonContent = await File.ReadAllTextAsync(sentimentPath).ConfigureAwait(false).ConfigureAwait(false);
                 var data = JsonSerializer.Deserialize<SentimentData>(jsonContent);
                 
                 _logger.LogDebug("Loaded sentiment data: Score={Score}, Sources={Sources}", 
@@ -178,7 +178,7 @@ namespace OrchestratorAgent.Intelligence
                 var jsonPayload = JsonSerializer.Serialize(payload);
                 var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync(url, content, cancellationToken);
+                var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -212,9 +212,9 @@ namespace OrchestratorAgent.Intelligence
                     timestamp = DateTimeOffset.UtcNow.ToString("O")
                 };
 
-                await TriggerWorkflowAsync("update-market-intelligence.yml", inputs, cancellationToken);
-                await TriggerWorkflowAsync("analyze-correlations.yml", inputs, cancellationToken);
-                await TriggerWorkflowAsync("update-zones.yml", inputs, cancellationToken);
+                await TriggerWorkflowAsync("update-market-intelligence.yml", inputs, cancellationToken).ConfigureAwait(false);
+                await TriggerWorkflowAsync("analyze-correlations.yml", inputs, cancellationToken).ConfigureAwait(false);
+                await TriggerWorkflowAsync("update-zones.yml", inputs, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

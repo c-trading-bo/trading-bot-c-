@@ -72,6 +72,42 @@ namespace TradingBot.Infrastructure.Alerts
                 new EventId(7, nameof(LogEmailAlertFailed)),
                 "[ALERT] Failed to send email alert for: {AlertType}");
 
+        private static readonly Action<ILogger, bool, bool, bool, Exception?> LogEmailConfigurationMissing =
+            LoggerMessage.Define<bool, bool, bool>(
+                LogLevel.Warning,
+                new EventId(8, nameof(LogEmailConfigurationMissing)),
+                "[ALERT] Email configuration missing - SMTP: {Smtp}, From: {From}, To: {To}");
+
+        private static readonly Action<ILogger, string, Exception?> LogEmailSentSuccessfully =
+            LoggerMessage.Define<string>(
+                LogLevel.Information,
+                new EventId(9, nameof(LogEmailSentSuccessfully)),
+                "[ALERT] Email sent successfully - Subject: {Subject}");
+
+        private static readonly Action<ILogger, string, Exception?> LogFailedToSendEmail =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(10, nameof(LogFailedToSendEmail)),
+                "[ALERT] Failed to send email - Subject: {Subject}");
+
+        private static readonly Action<ILogger, Exception?> LogSlackWebhookNotConfigured =
+            LoggerMessage.Define(
+                LogLevel.Warning,
+                new EventId(11, nameof(LogSlackWebhookNotConfigured)),
+                "[ALERT] Slack webhook not configured");
+
+        private static readonly Action<ILogger, AlertSeverity, Exception?> LogSlackMessageSentSuccessfully =
+            LoggerMessage.Define<AlertSeverity>(
+                LogLevel.Information,
+                new EventId(12, nameof(LogSlackMessageSentSuccessfully)),
+                "[ALERT] Slack message sent successfully - Severity: {Severity}");
+
+        private static readonly Action<ILogger, string, Exception?> LogFailedToSendSlackMessage =
+            LoggerMessage.Define<string>(
+                LogLevel.Error,
+                new EventId(13, nameof(LogFailedToSendSlackMessage)),
+                "[ALERT] Failed to send Slack message - Message: {Message}");
+
         public AlertService(ILogger<AlertService> logger, HttpClient httpClient)
         {
             _logger = logger;
@@ -94,8 +130,7 @@ namespace TradingBot.Infrastructure.Alerts
         {
             if (string.IsNullOrEmpty(_smtpServer) || string.IsNullOrEmpty(_emailFrom) || string.IsNullOrEmpty(_emailTo))
             {
-                _logger.LogWarning("[ALERT] Email configuration missing - SMTP: {Smtp}, From: {From}, To: {To}",
-                    !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_emailFrom), !string.IsNullOrEmpty(_emailTo));
+                LogEmailConfigurationMissing(_logger, !string.IsNullOrEmpty(_smtpServer), !string.IsNullOrEmpty(_emailFrom), !string.IsNullOrEmpty(_emailTo), null);
                 return;
             }
 
@@ -119,12 +154,12 @@ namespace TradingBot.Infrastructure.Alerts
                     IsBodyHtml = false
                 };
 
-                await smtpClient.SendMailAsync(message);
-                _logger.LogInformation("[ALERT] Email sent successfully - Subject: {Subject}", subject);
+                await smtpClient.SendMailAsync(message).ConfigureAwait(false);
+                LogEmailSentSuccessfully(_logger, subject, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send email - Subject: {Subject}", subject);
+                LogFailedToSendEmail(_logger, subject, ex);
                 throw new InvalidOperationException($"Failed to send email alert with subject '{subject}': {ex.Message}", ex);
             }
         }
@@ -133,7 +168,7 @@ namespace TradingBot.Infrastructure.Alerts
         {
             if (string.IsNullOrEmpty(_slackWebhook))
             {
-                _logger.LogWarning("[ALERT] Slack webhook not configured");
+                LogSlackWebhookNotConfigured(_logger, null);
                 return;
             }
 
@@ -165,14 +200,14 @@ namespace TradingBot.Infrastructure.Alerts
                 var json = JsonSerializer.Serialize(payload);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
-                var response = await _httpClient.PostAsync(_slackWebhook, content);
+                var response = await _httpClient.PostAsync(_slackWebhook, content).ConfigureAwait(false).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 
-                _logger.LogInformation("[ALERT] Slack message sent successfully - Severity: {Severity}", severity);
+                LogSlackMessageSentSuccessfully(_logger, severity, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[ALERT] Failed to send Slack message - Message: {Message}", message);
+                LogFailedToSendSlackMessage(_logger, message, ex);
                 throw new InvalidOperationException($"Failed to send Slack alert message: {ex.Message}", ex);
             }
         }
@@ -195,8 +230,8 @@ namespace TradingBot.Infrastructure.Alerts
             var subject = $"Model Health Alert: {modelName}";
             var body = $"Model: {modelName}\nIssue: {healthIssue}\nMetrics:\n{metricsText}";
             
-            await SendEmailAsync(subject, body, AlertSeverity.Warning);
-            await SendSlackAsync($"⚠️ **Model Health Alert**\nModel: `{modelName}`\nIssue: {healthIssue}", AlertSeverity.Warning);
+            await SendEmailAsync(subject, body, AlertSeverity.Warning).ConfigureAwait(false);
+            await SendSlackAsync($"⚠️ **Model Health Alert**\nModel: `{modelName}`\nIssue: {healthIssue}", AlertSeverity.Warning).ConfigureAwait(false);
         }
 
         public async Task SendLatencyAlertAsync(string component, double latencyMs, double thresholdMs)
@@ -204,8 +239,8 @@ namespace TradingBot.Infrastructure.Alerts
             var subject = $"Latency Alert: {component}";
             var body = $"Component: {component}\nLatency: {latencyMs:F2}ms\nThreshold: {thresholdMs:F2}ms\nExcess: {latencyMs - thresholdMs:F2}ms";
             
-            await SendEmailAsync(subject, body, AlertSeverity.Warning);
-            await SendSlackAsync($"🐌 **Latency Alert**\nComponent: `{component}`\nLatency: {latencyMs:F2}ms (threshold: {thresholdMs:F2}ms)", AlertSeverity.Warning);
+            await SendEmailAsync(subject, body, AlertSeverity.Warning).ConfigureAwait(false);
+            await SendSlackAsync($"🐌 **Latency Alert**\nComponent: `{component}`\nLatency: {latencyMs:F2}ms (threshold: {thresholdMs:F2}ms)", AlertSeverity.Warning).ConfigureAwait(false);
         }
 
         public async Task SendDeploymentAlertAsync(string deploymentEvent, string modelName, bool isSuccess)
@@ -217,8 +252,8 @@ namespace TradingBot.Infrastructure.Alerts
             var subject = $"Deployment {status}: {deploymentEvent}";
             var body = $"Event: {deploymentEvent}\nModel: {modelName}\nStatus: {status}";
             
-            await SendEmailAsync(subject, body, severity);
-            await SendSlackAsync($"{emoji} **Deployment Alert**\nEvent: {deploymentEvent}\nModel: `{modelName}`\nStatus: {status}", severity);
+            await SendEmailAsync(subject, body, severity).ConfigureAwait(false);
+            await SendSlackAsync($"{emoji} **Deployment Alert**\nEvent: {deploymentEvent}\nModel: `{modelName}`\nStatus: {status}", severity).ConfigureAwait(false);
         }
 
         private static string GetSeverityEmoji(AlertSeverity severity) => severity switch

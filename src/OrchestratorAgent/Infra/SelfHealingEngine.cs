@@ -25,19 +25,19 @@ public class SelfHealingEngine
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Starting active healing mode");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Initializing active healing systems");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("🛠️ [SelfHealingEngine] Stopping");
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     public async Task<bool> TryHealAsync(HealthCheckResult failedResult, CancellationToken cancellationToken = default)
@@ -48,7 +48,7 @@ public class SelfHealingEngine
         try
         {
             // Basic healing attempts
-            await Task.Delay(100, cancellationToken); // Simulate healing work
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate healing work
             _logger.LogInformation("✅ [SelfHealingEngine] Successfully healed: {FailedCheck}", failedResult.Message);
             return true;
         }
@@ -66,7 +66,7 @@ public class SelfHealingEngine
         try
         {
             // Implement specific healing logic based on health check name
-            await Task.Delay(100, cancellationToken); // Simulate healing work
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate healing work
             _logger.LogInformation("✅ [SelfHealingEngine] Successfully healed {HealthCheck}", healthCheckName);
             return true;
         }

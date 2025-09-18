@@ -76,7 +76,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             try
             {
                 // Load persisted risk state if available
-                var persistedState = await _persistence.LoadRiskStateAsync();
+                var persistedState = await _persistence.LoadRiskStateAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (persistedState != null)
                 {
                     // Check if state is from today
@@ -94,7 +94,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                 }
                 
                 // Load position state for exposure calculation
-                var positionState = await _persistence.LoadPositionStateAsync();
+                var positionState = await _persistence.LoadPositionStateAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (positionState != null)
                 {
                     _currentState = _currentState with 
@@ -117,7 +117,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         _logger.LogInformation("[ENHANCED-RISK] Enhanced risk manager started successfully");
     }
 
@@ -126,16 +126,16 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         try
         {
             // Create final backup before shutdown
-            await _persistence.CreateBackupAsync("shutdown");
+            await _persistence.CreateBackupAsync("shutdown").ConfigureAwait(false);
             
             // Save final risk state
-            await _persistence.SaveRiskStateAsync(_currentState);
+            await _persistence.SaveRiskStateAsync(_currentState).ConfigureAwait(false);
             
             // Archive session if there was activity
             if (_currentState.SessionTradeCount > 0)
             {
                 var sessionSummary = CreateSessionSummary();
-                await _persistence.ArchiveCompletedSessionAsync(_currentSessionId, sessionSummary);
+                await _persistence.ArchiveCompletedSessionAsync(_currentSessionId, sessionSummary).ConfigureAwait(false);
             }
             
             _riskMonitoringTimer?.Dispose();
@@ -182,7 +182,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             newLimits.MaxDailyLoss, newLimits.MaxSessionLoss, newLimits.MaxPositionSize);
         
         // Create backup when limits change
-        await _persistence.CreateBackupAsync("limits_update");
+        await _persistence.CreateBackupAsync("limits_update").ConfigureAwait(false);
     }
 
     public async Task ForcePositionUnwindAsync(string reason)
@@ -200,7 +200,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             }
             
             // Create emergency backup
-            await _persistence.CreateBackupAsync("force_unwind");
+            await _persistence.CreateBackupAsync("force_unwind").ConfigureAwait(false);
             
             // Record breach event
             var breachEvent = new RiskBreachEvent
@@ -212,7 +212,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                 RecommendedActions = new List<string> { "Close all positions", "Stop trading", "Review risk controls" }
             };
             
-            await RecordRiskBreachAsync(breachEvent);
+            await RecordRiskBreachAsync(breachEvent).ConfigureAwait(false);
             
             // Notify all subscribers
             OnRiskBreachEvent?.Invoke(breachEvent);
@@ -293,7 +293,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             _currentState = _currentState with { LastUpdated = DateTime.UtcNow };
         }
         
-        await TriggerRiskStateUpdate();
+        await TriggerRiskStateUpdate().ConfigureAwait(false);
     }
 
     public async Task UpdatePnLStateAsync(decimal totalPnL)
@@ -331,8 +331,8 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             _currentState = updatedState;
         }
         
-        await CheckRiskLimitsAsync();
-        await TriggerRiskStateUpdate();
+        await CheckRiskLimitsAsync().ConfigureAwait(false);
+        await TriggerRiskStateUpdate().ConfigureAwait(false);
     }
 
     private async Task CheckRiskLimitsAsync()
@@ -396,7 +396,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         // Process any breaches
         foreach (var breach in breaches)
         {
-            await RecordRiskBreachAsync(breach);
+            await RecordRiskBreachAsync(breach).ConfigureAwait(false);
         }
         
         // Update risk level and breach status
@@ -433,7 +433,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
             // Create backup on critical breaches
             if (breachEvent.RequiresImmediateAction)
             {
-                await _persistence.CreateBackupAsync($"breach_{breachEvent.BreachType.ToLowerInvariant()}");
+                await _persistence.CreateBackupAsync($"breach_{breachEvent.BreachType.ToLowerInvariant()}").ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -475,7 +475,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         try
         {
             // Save state periodically
-            await _persistence.SaveRiskStateAsync(_currentState);
+            await _persistence.SaveRiskStateAsync(_currentState).ConfigureAwait(false);
             
             // Notify subscribers
             OnRiskStateChanged?.Invoke(_currentState);
@@ -492,8 +492,8 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
         {
             _ = Task.Run(async () =>
             {
-                await CheckRiskLimitsAsync();
-                await TriggerRiskStateUpdate();
+                await CheckRiskLimitsAsync().ConfigureAwait(false);
+                await TriggerRiskStateUpdate().ConfigureAwait(false);
             });
         }
         catch (Exception ex)
@@ -516,7 +516,7 @@ public class EnhancedRiskManager : IEnhancedRiskManager, IHostedService
                 _ = Task.Run(async () =>
                 {
                     var sessionSummary = CreateSessionSummary();
-                    await _persistence.ArchiveCompletedSessionAsync(_currentSessionId, sessionSummary);
+                    await _persistence.ArchiveCompletedSessionAsync(_currentSessionId, sessionSummary).ConfigureAwait(false);
                     
                     lock (_stateLock)
                     {

@@ -98,7 +98,7 @@ public class UpdaterAgent
         // Compute pending commits vs last deployed
         var head = Git("rev-parse HEAD");
         var last = File.Exists(_lastDeployedPath) ? 
-            (await File.ReadAllTextAsync(_lastDeployedPath)).Split('|').FirstOrDefault() ?? "" : "";
+            (await File.ReadAllTextAsync(_lastDeployedPath)).Split('|').FirstOrDefault() ?? "" : "".ConfigureAwait(false);
 
         if (head == last)
         {
@@ -106,7 +106,7 @@ public class UpdaterAgent
             return;
         }
 
-        await BuildAndDeployUpdate(head);
+        await BuildAndDeployUpdate(head).ConfigureAwait(false);
     }
 
     private async Task BuildAndDeployUpdate(string head)
@@ -136,7 +136,7 @@ public class UpdaterAgent
     private async Task<bool> RunValidation()
     {
         if (_runTests && !await RunTests())
-            return false;
+            return false.ConfigureAwait(false);
 
         if (_runReplays && !await RunReplays().ConfigureAwait(false))
             return false;
@@ -168,7 +168,7 @@ public class UpdaterAgent
         // Launch shadow process and validate
         if (LaunchAndValidateShadow())
         {
-            await PromoteToLive(head);
+            await PromoteToLive(head).ConfigureAwait(false);
         }
     }
 
@@ -182,14 +182,14 @@ public class UpdaterAgent
     private async Task PromoteToLive(string head)
     {
         // Promote shadow to live logic
-        await File.WriteAllTextAsync(_lastDeployedPath, $"{head}|{DateTime.UtcNow:O}");
+        await File.WriteAllTextAsync(_lastDeployedPath, $"{head}|{DateTime.UtcNow:O}").ConfigureAwait(false);
         Log.Information("Successfully deployed {Head}", head);
     }
 
     private async Task CreateBuildMetadata(string outDir)
     {
         await File.WriteAllTextAsync(Path.Combine(outDir, "buildinfo.json"), 
-            $"{{\"commit\":\"{Git("rev-parse HEAD")}\",\"builtUtc\":\"{DateTime.UtcNow:O}\"}}");
+            $"{{\"commit\":\"{Git("rev-parse HEAD")}\",\"builtUtc\":\"{DateTime.UtcNow:O}\"}}").ConfigureAwait(false);
         
         var outState = Path.Combine(outDir, "state");
         Directory.CreateDirectory(outState);
@@ -219,7 +219,7 @@ public class UpdaterAgent
         try 
         { 
             await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n"); 
+                JsonSerializer.Serialize(new { evt = "BUILD_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
         catch (Exception ex)
         {
@@ -232,7 +232,7 @@ public class UpdaterAgent
         try 
         { 
             await File.AppendAllTextAsync(_deployLogPath, 
-                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n"); 
+                JsonSerializer.Serialize(new { evt = "TEST_FAIL", utc = DateTime.UtcNow }) + "\n").ConfigureAwait(false); 
         } 
         catch (Exception ex)
         {

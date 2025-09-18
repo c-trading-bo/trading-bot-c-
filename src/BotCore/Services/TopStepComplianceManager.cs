@@ -55,7 +55,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task<bool> CanTradeAsync(decimal currentPnL, decimal accountBalance, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_stateLock)
         {
@@ -152,7 +152,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task RecordTradeResultAsync(string symbol, decimal pnl, DateTime tradeTime, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         lock (_stateLock)
         {
@@ -188,7 +188,7 @@ public class TopStepComplianceManager
         }
         
         // Check for compliance violations outside the lock
-        await CheckComplianceViolationsAsync(cancellationToken);
+        await CheckComplianceViolationsAsync(cancellationToken).ConfigureAwait(false);
     }
     
     /// <summary>
@@ -253,7 +253,7 @@ public class TopStepComplianceManager
     /// </summary>
     public async Task<ComplianceReport> GenerateComplianceReportAsync(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var status = GetComplianceStatus();
         var profitTarget = GetProfitTarget();
@@ -325,7 +325,7 @@ public class TopStepComplianceManager
                 _currentDrawdown);
         }
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
     
     private int GetMinimumTradingDays()

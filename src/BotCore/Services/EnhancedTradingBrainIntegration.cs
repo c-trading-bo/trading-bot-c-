@@ -69,7 +69,7 @@ public class EnhancedTradingBrainIntegration
             var risk = CreateSampleRisk();
             
             var originalBrainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                symbol, env, levels, bars, risk, cancellationToken);
+                symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (!_isEnhancementActive)
             {
@@ -91,17 +91,17 @@ public class EnhancedTradingBrainIntegration
             
             // Get ensemble strategy prediction
             var strategyPrediction = await _ensembleService.GetStrategySelectionPredictionAsync(
-                contextVector, availableStrategies, cancellationToken);
+                contextVector, availableStrategies, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Get ensemble price direction prediction
             var pricePrediction = await _ensembleService.GetPriceDirectionPredictionAsync(
-                marketFeatures, cancellationToken);
+                marketFeatures, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Get ensemble CVaR action
             var convertedDecision = ConvertBrainToTradingDecision(originalBrainDecision);
             var state = CreateStateVector(marketContext, convertedDecision);
             var ensembleAction = await _ensembleService.GetEnsembleActionAsync(
-                state, true, cancellationToken);
+                state, true, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Step 3: Enhance the original decision using ensemble insights
             var enhancedDecision = EnhanceDecision(
@@ -133,7 +133,7 @@ public class EnhancedTradingBrainIntegration
                 var risk = CreateSampleRisk();
                 
                 var originalBrainDecision = await _tradingBrain.MakeIntelligentDecisionAsync(
-                    symbol, env, levels, bars, risk, cancellationToken);
+                    symbol, env, levels, bars, risk, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 return new EnhancedTradingDecision
                 {
@@ -456,10 +456,10 @@ public class EnhancedTradingBrainIntegration
             _logger.LogInformation("🧠 [ENHANCED-BRAIN] Initializing enhanced trading brain integration");
             
             // Trigger initial cloud model synchronization
-            await _cloudSync.SynchronizeModelsAsync(cancellationToken);
+            await _cloudSync.SynchronizeModelsAsync(cancellationToken).ConfigureAwait(false);
             
             // Load default models into ensemble
-            await LoadDefaultModels(cancellationToken);
+            await LoadDefaultModels(cancellationToken).ConfigureAwait(false);
             
             _logger.LogInformation("🧠 [ENHANCED-BRAIN] Enhanced trading brain integration initialized successfully");
         }
@@ -484,7 +484,7 @@ public class EnhancedTradingBrainIntegration
             var cvarPPO = _serviceProvider.GetService<CVaRPPO>();
             if (cvarPPO != null)
             {
-                await _ensembleService.LoadModelAsync("cvar_ppo_default", "", ModelSource.Local, 1.0, cancellationToken);
+                await _ensembleService.LoadModelAsync("cvar_ppo_default", "", ModelSource.Local, 1.0, cancellationToken).ConfigureAwait(false);
                 _logger.LogInformation("🧠 [ENHANCED-BRAIN] Loaded CVaR-PPO model into ensemble");
             }
             
@@ -496,7 +496,7 @@ public class EnhancedTradingBrainIntegration
                 foreach (var onnxFile in onnxFiles)
                 {
                     var modelName = Path.GetFileNameWithoutExtension(onnxFile);
-                    await _ensembleService.LoadModelAsync(modelName, onnxFile, ModelSource.Local, 0.8, cancellationToken);
+                    await _ensembleService.LoadModelAsync(modelName, onnxFile, ModelSource.Local, 0.8, cancellationToken).ConfigureAwait(false);
                     _logger.LogDebug("🧠 [ENHANCED-BRAIN] Loaded local model: {ModelName}", modelName);
                 }
             }

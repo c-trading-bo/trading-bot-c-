@@ -167,7 +167,7 @@ public class CVaRPPO : IDisposable
                 _currentEpisode, result.TotalLoss, result.PolicyLoss, result.ValueLoss, result.CVaRLoss, result.AverageReward);
 
             // Save checkpoint if performance improved
-            await SaveCheckpointIfImproved(result, cancellationToken);
+            await SaveCheckpointIfImproved(result, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -292,9 +292,9 @@ public class CVaRPPO : IDisposable
             Directory.CreateDirectory(modelPath);
 
             // Save networks
-            await _policyNetwork.SaveAsync(Path.Combine(modelPath, "policy.json"), cancellationToken);
-            await _valueNetwork.SaveAsync(Path.Combine(modelPath, "value.json"), cancellationToken);
-            await _cvarNetwork.SaveAsync(Path.Combine(modelPath, "cvar.json"), cancellationToken);
+            await _policyNetwork.SaveAsync(Path.Combine(modelPath, "policy.json"), cancellationToken).ConfigureAwait(false);
+            await _valueNetwork.SaveAsync(Path.Combine(modelPath, "value.json"), cancellationToken).ConfigureAwait(false);
+            await _cvarNetwork.SaveAsync(Path.Combine(modelPath, "cvar.json"), cancellationToken).ConfigureAwait(false);
 
             // Save metadata
             var metadata = new ModelMetadata
@@ -314,7 +314,7 @@ public class CVaRPPO : IDisposable
             };
 
             var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(modelPath, "metadata.json"), metadataJson, cancellationToken).ConfigureAwait(false);
 
             // Create checkpoint record
             var checkpoint = new ModelCheckpoint
@@ -364,15 +364,15 @@ public class CVaRPPO : IDisposable
                 return false;
             }
 
-            await _policyNetwork.LoadAsync(policyPath, cancellationToken);
-            await _valueNetwork.LoadAsync(valuePath, cancellationToken);
-            await _cvarNetwork.LoadAsync(cvarPath, cancellationToken);
+            await _policyNetwork.LoadAsync(policyPath, cancellationToken).ConfigureAwait(false);
+            await _valueNetwork.LoadAsync(valuePath, cancellationToken).ConfigureAwait(false);
+            await _cvarNetwork.LoadAsync(cvarPath, cancellationToken).ConfigureAwait(false);
 
             // Load metadata if available
             var metadataPath = Path.Combine(modelPath, "metadata.json");
             if (File.Exists(metadataPath))
             {
-                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken);
+                var metadataJson = await File.ReadAllTextAsync(metadataPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 var metadata = JsonSerializer.Deserialize<ModelMetadata>(metadataJson);
                 
                 if (metadata != null)
@@ -599,7 +599,7 @@ public class CVaRPPO : IDisposable
         
         if (shouldSave)
         {
-            await SaveModelAsync(null, cancellationToken);
+            await SaveModelAsync(null, cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("[CVAR_PPO] Checkpoint saved due to performance improvement");
         }
     }

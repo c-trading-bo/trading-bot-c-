@@ -55,7 +55,7 @@ public class EnsembleModelService
             {
                 try
                 {
-                    var prediction = await GetModelPredictionAsync(modelId, modelInfo, features, cancellationToken);
+                    var prediction = await GetModelPredictionAsync(modelId, modelInfo, features, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     predictions.Add(prediction);
                     totalWeight += modelInfo.Weight;
                 }
@@ -136,7 +136,7 @@ public class EnsembleModelService
         try
         {
             // Production-ready implementation that returns conservative predictions
-            await Task.Delay(10, cancellationToken); // Simulate realistic inference time
+            await Task.Delay(10, cancellationToken).ConfigureAwait(false); // Simulate realistic inference time
             
             // In production, this would load and run actual ONNX models
             // For safety, we return neutral/conservative predictions

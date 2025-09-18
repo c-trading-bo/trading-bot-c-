@@ -56,7 +56,7 @@ namespace OrchestratorAgent.Health
                 }
                 else
                 {
-                    contractId = await _api.ResolveContractIdAsync(rootSymbol, ct);
+                    contractId = await _api.ResolveContractIdAsync(rootSymbol, ct).ConfigureAwait(false).ConfigureAwait(false);
                     try { (_status.Contracts ??= [])[rootSymbol] = contractId; } catch { }
                 }
             }
@@ -95,7 +95,7 @@ namespace OrchestratorAgent.Health
             decimal? netPnl = null!;
             try
             {
-                var pnlA = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct);
+                var pnlA = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/pnl?scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
                 if (pnlA.ValueKind != JsonValueKind.Undefined)
                 {
                     if (pnlA.TryGetProperty("net", out var netProp) && netProp.TryGetDecimal(out var net)) netPnl = net;
@@ -106,7 +106,7 @@ namespace OrchestratorAgent.Health
             {
                 try
                 {
-                    var pnlB = await _api.GetAsync<JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", ct);
+                    var pnlB = await _api.GetAsync<JsonElement>($"/api/Account/pnl?accountId={_accountId}&scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
                     if (pnlB.ValueKind != JsonValueKind.Undefined)
                     {
                         if (pnlB.TryGetProperty("net", out var netProp) && netProp.TryGetDecimal(out var net)) netPnl = net;
@@ -127,7 +127,7 @@ namespace OrchestratorAgent.Health
             int? tradesCount = null!;
             try
             {
-                var trades = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/trades?scope=today", ct);
+                var trades = await _api.GetAsync<JsonElement>($"/accounts/{_accountId}/trades?scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
                 if (trades.ValueKind == JsonValueKind.Array) tradesCount = trades.GetArrayLength();
             }
             catch { }
@@ -135,7 +135,7 @@ namespace OrchestratorAgent.Health
             {
                 try
                 {
-                    var trades = await _api.GetAsync<JsonElement>($"/api/Order/search?accountId={_accountId}&status=FILLED&scope=today", ct);
+                    var trades = await _api.GetAsync<JsonElement>($"/api/Order/search?accountId={_accountId}&status=FILLED&scope=today", ct).ConfigureAwait(false).ConfigureAwait(false);
                     if (trades.ValueKind == JsonValueKind.Array) tradesCount = trades.GetArrayLength();
                 }
                 catch { }
@@ -146,7 +146,7 @@ namespace OrchestratorAgent.Health
             // 5) Rollover sanity – best-effort endpoint
             try
             {
-                var fm = await _api.GetAsync<JsonElement>($"/contracts/resolve_front?symbol={rootSymbol}", ct);
+                var fm = await _api.GetAsync<JsonElement>($"/contracts/resolve_front?symbol={rootSymbol}", ct).ConfigureAwait(false).ConfigureAwait(false);
                 if (fm.ValueKind == JsonValueKind.Object)
                 {
                     bool expSoon = fm.TryGetProperty("isExpiringSoon", out var e) && e.GetBoolean();

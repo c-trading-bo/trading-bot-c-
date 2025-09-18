@@ -81,7 +81,7 @@ public class SoftActorCritic
     {
         try
         {
-            await Task.CompletedTask; // Ensure async pattern compliance
+            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
             
             var action = _actor.SampleAction(state, isTraining);
             
@@ -133,7 +133,7 @@ public class SoftActorCritic
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
-            await Task.CompletedTask; // Ensure async pattern compliance
+            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
             return new Models.SacTrainingResult
             {
                 Success = false,
@@ -143,7 +143,7 @@ public class SoftActorCritic
 
         try
         {
-            await Task.CompletedTask; // Ensure async pattern compliance
+            await Task.CompletedTask.ConfigureAwait(false); // Ensure async pattern compliance
             
             var batchSize = Math.Min(_config.BatchSize, _replayBuffer.Count);
             var batch = _replayBuffer.SampleBatch(batchSize);

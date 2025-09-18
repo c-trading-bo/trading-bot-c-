@@ -331,7 +331,7 @@ public class PartialFillHandler : IPartialFillHandler, IHostedService
             
             foreach (var order in staleOrders)
             {
-                await TimeoutOrderAsync(order, "STALE_ORDER_TIMEOUT");
+                await TimeoutOrderAsync(order, "STALE_ORDER_TIMEOUT").ConfigureAwait(false);
             }
             
             if (staleOrders.Count > 0)
@@ -443,7 +443,7 @@ public class PartialFillHandler : IPartialFillHandler, IHostedService
             {
                 try
                 {
-                    await ReconcileOrderStatesAsync();
+                    await ReconcileOrderStatesAsync().ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -473,7 +473,7 @@ public class PartialFillHandler : IPartialFillHandler, IHostedService
             {
                 // Check with broker for actual order status
                 // This is a simplified version - in production, you'd query the actual broker API
-                await ValidateOrderConsistency(order);
+                await ValidateOrderConsistency(order).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

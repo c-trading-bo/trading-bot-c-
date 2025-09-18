@@ -98,7 +98,7 @@ namespace BotCore.Services
 
         public async Task<ReadinessValidationResult> ValidateReadinessAsync()
         {
-            await Task.CompletedTask; // For async interface compatibility
+            await Task.CompletedTask.ConfigureAwait(false); // For async interface compatibility
 
             lock (_lockObject)
             {

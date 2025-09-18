@@ -52,7 +52,7 @@ public class RealTradingMetricsService : BackgroundService
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
                 // Main service loop - metrics are pushed via timer
             }
         }
@@ -154,7 +154,7 @@ public class RealTradingMetricsService : BackgroundService
             }
 
             // Push real metrics to cloud
-            await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics);
+            await _intelligenceOrchestrator.PushServiceMetricsAsync(metrics).ConfigureAwait(false);
             
             _lastMetricsPush = DateTime.UtcNow;
             

@@ -73,16 +73,16 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         {
             // 1. UnifiedTradingBrain Integration Validation
             _logger.LogInformation("[VALIDATION-1] Testing UnifiedTradingBrain integration...");
-            var brainIntegrationResult = await ValidateUnifiedTradingBrainIntegrationAsync(cancellationToken);
+            var brainIntegrationResult = await ValidateUnifiedTradingBrainIntegrationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["UnifiedTradingBrainIntegration"] = brainIntegrationResult;
-            await SaveArtifactAsync($"{reportId}-brain-integration.json", brainIntegrationResult);
+            await SaveArtifactAsync($"{reportId}-brain-integration.json", brainIntegrationResult).ConfigureAwait(false);
 
             // 2. Runtime Validation Gates with Statistical Proof
             _logger.LogInformation("[VALIDATION-2] Running shadow tests with statistical analysis...");
             var validationReport = await _validationService.RunValidationAsync(
-                "UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromHours(1), cancellationToken);
+                "UnifiedTradingBrain", "InferenceBrain", TimeSpan.FromHours(1), cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["StatisticalValidation"] = validationReport;
-            await SaveArtifactAsync($"{reportId}-validation-report.json", validationReport);
+            await SaveArtifactAsync($"{reportId}-validation-report.json", validationReport).ConfigureAwait(false);
 
             // 3. Rollback Drill Evidence
             _logger.LogInformation("[VALIDATION-3] Executing rollback drill under load...");
@@ -92,34 +92,34 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
                     LoadLevel = LoadLevel.High, 
                     TestDurationSeconds = 30,
                     ExpectedRollbackTimeMs = 100
-                }, cancellationToken);
+                }, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["RollbackDrill"] = rollbackResult;
-            await SaveArtifactAsync($"{reportId}-rollback-drill.json", rollbackResult);
+            await SaveArtifactAsync($"{reportId}-rollback-drill.json", rollbackResult).ConfigureAwait(false);
 
             // 4. Safe Window Enforcement Proof
             _logger.LogInformation("[VALIDATION-4] Testing safe window enforcement...");
-            var safeWindowResult = await ValidateSafeWindowEnforcementAsync(cancellationToken);
+            var safeWindowResult = await ValidateSafeWindowEnforcementAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["SafeWindowEnforcement"] = safeWindowResult;
-            await SaveArtifactAsync($"{reportId}-safe-window.json", safeWindowResult);
+            await SaveArtifactAsync($"{reportId}-safe-window.json", safeWindowResult).ConfigureAwait(false);
 
             // 5. Data Integration Validation
             _logger.LogInformation("[VALIDATION-5] Validating data integration...");
-            var dataIntegrationResult = await ValidateDataIntegrationAsync(cancellationToken);
+            var dataIntegrationResult = await ValidateDataIntegrationAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["DataIntegration"] = dataIntegrationResult;
-            await SaveArtifactAsync($"{reportId}-data-integration.json", dataIntegrationResult);
+            await SaveArtifactAsync($"{reportId}-data-integration.json", dataIntegrationResult).ConfigureAwait(false);
 
             // 6. Acceptance Criteria Verification (AC1-AC10)
             _logger.LogInformation("[VALIDATION-6] Verifying acceptance criteria AC1-AC10...");
-            var acceptanceCriteriaResult = await VerifyAcceptanceCriteriaAsync(cancellationToken);
+            var acceptanceCriteriaResult = await VerifyAcceptanceCriteriaAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             report.TestResults["AcceptanceCriteria"] = acceptanceCriteriaResult;
-            await SaveArtifactAsync($"{reportId}-acceptance-criteria.json", acceptanceCriteriaResult);
+            await SaveArtifactAsync($"{reportId}-acceptance-criteria.json", acceptanceCriteriaResult).ConfigureAwait(false);
 
             report.EndTime = DateTime.UtcNow;
             report.Duration = report.EndTime - report.StartTime;
             report.Success = true;
 
             // Save comprehensive report
-            await SaveArtifactAsync($"{reportId}-complete-report.json", report);
+            await SaveArtifactAsync($"{reportId}-complete-report.json", report).ConfigureAwait(false);
 
             _logger.LogInformation("[PRODUCTION-VALIDATION] Validation complete - Duration: {Duration}, Artifacts: {ArtifactsPath}", 
                 report.Duration, _artifactsDirectory);
@@ -151,7 +151,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         };
 
         // Test 1: Verify UnifiedTradingBrain is primary
-        var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
+        var decision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
         result.IsPrimaryDecisionMaker = decision.Reasoning.ContainsKey("Algorithm") && 
                                        decision.Reasoning["Algorithm"].ToString() == "UnifiedTradingBrain";
 
@@ -163,9 +163,9 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         var decisions = new List<TradingBot.Abstractions.TradingDecision>();
         for (int i = 0; i < 10; i++)
         {
-            var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken);
+            var testDecision = await _brainAdapter.DecideAsync(testContext, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             decisions.Add(ConvertToAbstractionsDecision(testDecision));
-            await Task.Delay(100, cancellationToken); // Small delay between decisions
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Small delay between decisions
         }
 
         result.ConsistencyRate = decisions.Count(d => d.Reasoning.GetValueOrDefault("Algorithm")?.ToString() == "UnifiedTradingBrain") / (double)decisions.Count;
@@ -211,7 +211,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         foreach (var testTime in testTimes)
         {
             var isMarketOpen = _marketHours.IsMarketOpen(testTime, "ES");
-            var isSafeWindow = await IsSafePromotionWindowAsync(testTime);
+            var isSafeWindow = await IsSafePromotionWindowAsync(testTime).ConfigureAwait(false).ConfigureAwait(false);
             
             var test = new SafeWindowTest
             {
@@ -262,7 +262,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         // Check historical data connection
         try
         {
-            var historicalStatus = await _dataIntegrationService.GetHistoricalDataStatusAsync();
+            var historicalStatus = await _dataIntegrationService.GetHistoricalDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
             result.HistoricalDataStatus = new DataSourceStatus
             {
                 IsConnected = historicalStatus.IsConnected,
@@ -281,7 +281,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
         // Check live TopStep data connection
         try
         {
-            var liveStatus = await _dataIntegrationService.GetLiveDataStatusAsync();
+            var liveStatus = await _dataIntegrationService.GetLiveDataStatusAsync().ConfigureAwait(false).ConfigureAwait(false);
             result.LiveDataStatus = new DataSourceStatus
             {
                 IsConnected = liveStatus.IsConnected,
@@ -320,7 +320,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     /// </summary>
     private async Task<AcceptanceCriteriaResult> VerifyAcceptanceCriteriaAsync(CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         var result = new AcceptanceCriteriaResult
         {
@@ -451,10 +451,10 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     
     private async Task<bool> IsSafePromotionWindowAsync(DateTime time)
     {
-        await Task.CompletedTask; // Add await for async compliance
+        await Task.CompletedTask.ConfigureAwait(false); // Add await for async compliance
         
         // Safe windows: market open, low volatility periods, when positions are flat
-        var isMarketOpen = _marketHours.IsMarketOpen(time, "ES");
+        var isMarketOpen = _marketHours.IsMarketOpen(time, "ES").ConfigureAwait(false);
         var isLowVolatilityPeriod = time.Hour is >= 11 and <= 13; // Lunch period
         var arePositionsFlat = true; // Would check actual positions in production
         
@@ -477,7 +477,7 @@ public class ProductionReadinessValidationService : IProductionReadinessValidati
     {
         var filePath = Path.Combine(_artifactsDirectory, filename);
         var json = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(filePath, json);
+        await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
         _logger.LogDebug("[ARTIFACTS] Saved: {FilePath}", filePath);
     }
 }

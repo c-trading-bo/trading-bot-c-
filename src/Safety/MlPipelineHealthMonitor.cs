@@ -54,7 +54,7 @@ namespace BotCore.Infra
         {
             try
             {
-                await PerformHealthCheckAsync();
+                await PerformHealthCheckAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -77,7 +77,7 @@ namespace BotCore.Infra
             CheckTrainingActivity(issues, warnings);
 
             // Check GitHub Actions pipeline
-            await CheckGitHubPipelineAsync(issues, warnings);
+            await CheckGitHubPipelineAsync(issues, warnings).ConfigureAwait(false);
 
             // Check file system health
             CheckFileSystemHealth(issues, warnings);
@@ -90,7 +90,7 @@ namespace BotCore.Infra
                     issues.Count, string.Join("; ", issues));
 
                 // Attempt automatic recovery for known issues
-                await AttemptAutomaticRecoveryAsync(issues);
+                await AttemptAutomaticRecoveryAsync(issues).ConfigureAwait(false);
             }
             else if (warnings.Any())
             {
@@ -222,7 +222,7 @@ namespace BotCore.Infra
                 }
 
                 // Check GitHub Actions status via GitHub API integration or local indicators
-                await CheckGitHubActionsStatus(warnings);
+                await CheckGitHubActionsStatus(warnings).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -235,7 +235,7 @@ namespace BotCore.Infra
             try
             {
                 // Simulate GitHub Actions API check
-                await Task.Delay(50);
+                await Task.Delay(50).ConfigureAwait(false);
                 
                 // Check for workflow status indicators (files, environment variables, etc.)
                 var githubToken = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
@@ -309,7 +309,7 @@ namespace BotCore.Infra
                     else if (issue.Contains("corrupted"))
                     {
                         _log.LogInformation("[ML-Health] Attempting to restore model from backup...");
-                        await RestoreModelFromBackupAsync();
+                        await RestoreModelFromBackupAsync().ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)

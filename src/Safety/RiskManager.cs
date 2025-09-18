@@ -76,7 +76,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
             riskAssessment.Warnings.Add("Approaching maximum daily loss limit");
         }
 
-        return await Task.FromResult(riskAssessment);
+        return await Task.FromResult(riskAssessment).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     private decimal CalculateRiskScore(TradingBot.Abstractions.TradingDecision decision)
@@ -320,7 +320,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
                     _config.MaxPositionSize
                 );
                 
-                await HandleRiskBreachAsync(breach);
+                await HandleRiskBreachAsync(breach).ConfigureAwait(false);
                 return false;
             }
 
@@ -358,7 +358,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
                     _config.MaxPositionSize
                 );
                 
-                await HandleRiskBreachAsync(breach);
+                await HandleRiskBreachAsync(breach).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -396,7 +396,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
                     _config.MaxDailyLoss
                 );
                 
-                await HandleRiskBreachAsync(breach);
+                await HandleRiskBreachAsync(breach).ConfigureAwait(false);
             }
 
             // Check drawdown limit
@@ -409,7 +409,7 @@ public class RiskManager : TradingBot.Abstractions.IRiskManager
                     _config.DrawdownLimit
                 );
                 
-                await HandleRiskBreachAsync(breach);
+                await HandleRiskBreachAsync(breach).ConfigureAwait(false);
             }
 
             _logger.LogDebug("[RISK] Updated P&L: {PnL}, Peak: {Peak}, Drawdown: {DD}", 

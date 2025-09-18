@@ -71,7 +71,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
                     
                     // Send telemetry to cloud endpoint
-                    var response = await _httpClient.PostAsync($"{cloudEndpoint}/api/telemetry", content, cancellationToken);
+                    var response = await _httpClient.PostAsync($"{cloudEndpoint}/api/telemetry", content, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     
                     if (response.IsSuccessStatusCode)
                     {
@@ -106,7 +106,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
                     if (delay > maxDelay) delay = maxDelay;
                     
                     _logger.LogDebug("Retrying telemetry push after {Delay}ms", delay.TotalMilliseconds);
-                    await Task.Delay(delay, cancellationToken);
+                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
                 }
             }
             
@@ -132,7 +132,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             }
             
             // Simulate actual cloud metrics call with realistic latency
-            await Task.Delay(50, cancellationToken); // Real network call simulation
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // Real network call simulation
             
             // Generate evidence for feature verification
             var metricsData = new CloudMetrics
@@ -146,7 +146,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             var evidenceFile = Path.Combine("/tmp/feature-evidence/runtime-logs", 
                 $"cloud-metrics-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json");
             var json = System.Text.Json.JsonSerializer.Serialize(metricsData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(evidenceFile, json, cancellationToken);
+            await File.WriteAllTextAsync(evidenceFile, json, cancellationToken).ConfigureAwait(false);
             
             return metricsData;
         }
@@ -172,7 +172,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
                 trade.Symbol, trade.Side, trade.Quantity);
             
             // Implementation would sync trade data to cloud
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             
             return true;
         }
@@ -191,7 +191,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             _logger.LogInformation("[CLOUD] Syncing cloud data for trading...");
             
             // Implementation would sync data from GitHub workflows
-            await Task.Delay(100, cancellationToken); // Simulate cloud sync
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Simulate cloud sync
             
             _logger.LogInformation("[CLOUD] Cloud data sync completed successfully");
         }
@@ -209,7 +209,7 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             _logger.LogDebug("[CLOUD] Getting trading recommendation for {Symbol}", symbol);
             
             // Implementation would get recommendation from cloud intelligence
-            await Task.Delay(50, cancellationToken); // Simulate cloud query
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false); // Simulate cloud query
             
             return new CloudTradingRecommendation
             {

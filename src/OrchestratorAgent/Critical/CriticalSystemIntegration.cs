@@ -50,7 +50,7 @@ namespace OrchestratorAgent.Critical
                     Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
                         .CreateLogger<ExecutionVerificationSystem>()
                 );
-                await _executionVerificationSystem.InitializeVerificationSystem();
+                await _executionVerificationSystem.InitializeVerificationSystem().ConfigureAwait(false);
                 _logger.LogInformation("[CriticalSystem] ExecutionVerificationSystem initialized");
 
                 // Initialize Disaster Recovery System
@@ -58,7 +58,7 @@ namespace OrchestratorAgent.Critical
                     Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
                         .CreateLogger<DisasterRecoverySystem>()
                 );
-                await _disasterRecoverySystem.InitializeRecoverySystem();
+                await _disasterRecoverySystem.InitializeRecoverySystem().ConfigureAwait(false);
                 _logger.LogInformation("[CriticalSystem] DisasterRecoverySystem initialized");
 
                 // Initialize Correlation Protection System
@@ -66,7 +66,7 @@ namespace OrchestratorAgent.Critical
                     Microsoft.Extensions.Logging.LoggerFactory.Create(builder => builder.AddConsole())
                         .CreateLogger<CorrelationProtectionSystem>()
                 );
-                await _correlationProtectionSystem.InitializeCorrelationMonitor();
+                await _correlationProtectionSystem.InitializeCorrelationMonitor().ConfigureAwait(false);
                 _logger.LogInformation("[CriticalSystem] CorrelationProtectionSystem initialized");
 
                 _isInitialized = true;
@@ -95,7 +95,7 @@ namespace OrchestratorAgent.Critical
                 // 1. Check correlation protection
                 if (_correlationProtectionSystem != null)
                 {
-                    var correlationOk = await _correlationProtectionSystem.ValidateNewPosition(symbol, quantity, direction);
+                    var correlationOk = await _correlationProtectionSystem.ValidateNewPosition(symbol, quantity, direction).ConfigureAwait(false).ConfigureAwait(false);
                     if (!correlationOk)
                     {
                         _logger.LogWarning("[CriticalSystem] Order rejected by correlation protection: {Symbol} {Qty} {Direction}", 
@@ -149,7 +149,7 @@ namespace OrchestratorAgent.Critical
         {
             if (_executionVerificationSystem != null)
             {
-                return await _executionVerificationSystem.VerifyExecution(orderId, expectedQuantity, maxSlippage);
+                return await _executionVerificationSystem.VerifyExecution(orderId, expectedQuantity, maxSlippage).ConfigureAwait(false).ConfigureAwait(false);
             }
             return false;
         }

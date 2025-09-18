@@ -71,26 +71,26 @@ public class TrainingBrain : ITrainingBrain
             _logger.LogInformation("Starting training job {JobId} for algorithm {Algorithm}", jobId, algorithm);
             
             // Validate training configuration
-            await ValidateTrainingConfigAsync(config, cancellationToken);
+            await ValidateTrainingConfigAsync(config, cancellationToken).ConfigureAwait(false);
             
             job.Status = "RUNNING";
             job.CurrentStage = "DATA_PREPARATION";
             
             // Stage 1: Data Preparation (20% progress)
-            await PrepareTrainingDataAsync(job, cancellationToken);
+            await PrepareTrainingDataAsync(job, cancellationToken).ConfigureAwait(false);
             job.Progress = 0.2m;
             
             job.CurrentStage = "MODEL_TRAINING";
             
             // Stage 2: Model Training (60% progress)
-            var modelPath = await TrainModelAsync(job, cancellationToken);
+            var modelPath = await TrainModelAsync(job, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             job.Progress = 0.8m;
             
             job.CurrentStage = "ARTIFACT_CREATION";
             
             // Stage 3: Export to artifact (20% progress)
             var metadata = CreateTrainingMetadata(job);
-            var modelVersion = await ExportModelAsync(algorithm, modelPath, metadata, cancellationToken);
+            var modelVersion = await ExportModelAsync(algorithm, modelPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             job.Progress = 1.0m;
             
             job.Status = "COMPLETED";
@@ -152,16 +152,16 @@ public class TrainingBrain : ITrainingBrain
             var artifactFileName = $"{algorithm}_{versionId}.{GetArtifactExtension(modelType)}";
             var artifactPath = Path.Combine(_stagingPath, artifactFileName);
             
-            var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken);
+            var finalArtifactPath = await artifactBuilder.BuildArtifactAsync(modelPath, artifactPath, metadata, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Validate artifact
             if (!await artifactBuilder.ValidateArtifactAsync(finalArtifactPath, cancellationToken))
             {
-                throw new InvalidOperationException($"Artifact validation failed for {finalArtifactPath}");
+                throw new InvalidOperationException($"Artifact validation failed for {finalArtifactPath}").ConfigureAwait(false);
             }
 
             // Get artifact metadata
-            var artifactMetadata = await artifactBuilder.GetArtifactMetadataAsync(finalArtifactPath, cancellationToken);
+            var artifactMetadata = await artifactBuilder.GetArtifactMetadataAsync(finalArtifactPath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Create model version
             var modelVersion = new ModelVersion
@@ -202,7 +202,7 @@ public class TrainingBrain : ITrainingBrain
             };
 
             // Register in model registry
-            var registeredVersionId = await _modelRegistry.RegisterModelAsync(modelVersion, cancellationToken);
+            var registeredVersionId = await _modelRegistry.RegisterModelAsync(modelVersion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             modelVersion.VersionId = registeredVersionId;
             
             _logger.LogInformation("Exported model {Algorithm} version {VersionId} to artifact {ArtifactPath}", 
@@ -222,7 +222,7 @@ public class TrainingBrain : ITrainingBrain
     /// </summary>
     public async Task<TrainingStatus> GetTrainingStatusAsync(string jobId, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (!_activeJobs.TryGetValue(jobId, out var job))
         {
@@ -252,7 +252,7 @@ public class TrainingBrain : ITrainingBrain
     /// </summary>
     public async Task<bool> CancelTrainingAsync(string jobId, CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (!_activeJobs.TryGetValue(jobId, out var job))
         {
@@ -276,7 +276,7 @@ public class TrainingBrain : ITrainingBrain
 
     private async Task ValidateTrainingConfigAsync(TrainingConfig config, CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         if (string.IsNullOrEmpty(config.Algorithm))
         {
@@ -303,11 +303,11 @@ public class TrainingBrain : ITrainingBrain
     private async Task PrepareTrainingDataAsync(TrainingJob job, CancellationToken cancellationToken)
     {
         // Simulate data preparation
-        await Task.Delay(1000, cancellationToken);
+        await Task.Delay(1000, cancellationToken).ConfigureAwait(false);
         
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Preparing training data from {job.Config.DataStartTime} to {job.Config.DataEndTime}");
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Data source: {job.Config.DataSource}");
-        job.StageData["data_samples"] = await CountActualDataSamples(job.Config, cancellationToken);
+        job.StageData["data_samples"] = await CountActualDataSamples(job.Config, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
     }
 
     private async Task<string> TrainModelAsync(TrainingJob job, CancellationToken cancellationToken)
@@ -324,7 +324,7 @@ public class TrainingBrain : ITrainingBrain
             }
 
             // Simulate training time
-            await Task.Delay(50, cancellationToken);
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             
             var epochProgress = (decimal)epoch / epochs;
             job.Progress = 0.2m + (epochProgress * 0.6m); // 20% base + 60% training progress
@@ -337,7 +337,7 @@ public class TrainingBrain : ITrainingBrain
 
         // Create a realistic ONNX model file with proper structure
         var modelBytes = CreateOnnxModelBytes();
-        await File.WriteAllBytesAsync(modelPath, modelBytes, cancellationToken);
+        await File.WriteAllBytesAsync(modelPath, modelBytes, cancellationToken).ConfigureAwait(false);
         
         job.Logs.Add($"[{DateTime.UtcNow:HH:mm:ss}] Training completed - Model saved to {modelPath}");
         return modelPath;

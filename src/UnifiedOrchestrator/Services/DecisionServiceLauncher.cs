@@ -30,7 +30,7 @@ public class DecisionServiceLauncher : IHostedService
             // 3. Wait for service to be ready (health check)
             // 4. Register service for monitoring
             
-            await Task.Delay(100); // Simulate service startup time
+            await Task.Delay(100).ConfigureAwait(false); // Simulate service startup time
             IsRunning = true;
             
             _logger.LogInformation("[DECISION_SERVICE] Decision service launched successfully");
@@ -63,7 +63,7 @@ public class DecisionServiceLauncher : IHostedService
             // 3. Stop service process/container
             // 4. Clean up resources and monitoring
             
-            await Task.Delay(50); // Simulate graceful shutdown
+            await Task.Delay(50).ConfigureAwait(false); // Simulate graceful shutdown
             IsRunning = false;
             
             _logger.LogInformation("[DECISION_SERVICE] Decision service stopped successfully");

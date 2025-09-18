@@ -40,7 +40,7 @@ public class EnhancedAuthenticationService : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
-            "Enhanced authentication service started");
+            "Enhanced authentication service started").ConfigureAwait(false);
 
         // Log credential discovery
         var credentialDiscovery = _credentialManager.DiscoverAllCredentialSources();
@@ -53,22 +53,22 @@ public class EnhancedAuthenticationService : IHostedService
                 hasFileCredentials = credentialDiscovery.HasFileCredentials,
                 hasAnyCredentials = credentialDiscovery.HasAnyCredentials,
                 recommendedSource = credentialDiscovery.RecommendedSource
-            });
+            }).ConfigureAwait(false);
 
         if (!credentialDiscovery.HasAnyCredentials)
         {
             await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "AuthService", 
-                "No TopstepX credentials found - authentication will fail");
+                "No TopstepX credentials found - authentication will fail").ConfigureAwait(false);
         }
 
         // Attempt initial authentication
-        await AttemptAuthenticationAsync();
+        await AttemptAuthenticationAsync().ConfigureAwait(false);
     }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
-            "Enhanced authentication service stopped");
+            "Enhanced authentication service stopped").ConfigureAwait(false);
     }
 
     private async Task AttemptAuthenticationAsync()
@@ -76,16 +76,16 @@ public class EnhancedAuthenticationService : IHostedService
         try
         {
             await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
-                "Starting authentication attempt");
+                "Starting authentication attempt").ConfigureAwait(false);
 
             var startTime = DateTime.UtcNow;
             
             // Try to get account information to verify authentication
-            var token = await _tokenProvider.GetTokenAsync();
+            var token = await _tokenProvider.GetTokenAsync().ConfigureAwait(false).ConfigureAwait(false);
             if (string.IsNullOrEmpty(token))
             {
                 await _tradingLogger.LogSystemAsync(TradingLogLevel.ERROR, "AuthService", 
-                    "Authentication failed - no valid JWT token available");
+                    "Authentication failed - no valid JWT token available").ConfigureAwait(false);
                 return;
             }
 
@@ -97,10 +97,10 @@ public class EnhancedAuthenticationService : IHostedService
                     durationMs = authDuration.TotalMilliseconds,
                     tokenLength = token.Length,
                     hasToken = !string.IsNullOrEmpty(token)
-                });
+                }).ConfigureAwait(false);
 
             // Log JWT token timing information (without logging the actual token)
-            await LogJwtTokenInfo(token);
+            await LogJwtTokenInfo(token).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -109,7 +109,7 @@ public class EnhancedAuthenticationService : IHostedService
                 {
                     exceptionType = ex.GetType().Name,
                     stackTrace = ex.StackTrace
-                });
+                }).ConfigureAwait(false);
         }
     }
 
@@ -146,12 +146,12 @@ public class EnhancedAuthenticationService : IHostedService
                                 expiresAt = expiration.ToString("yyyy-MM-dd HH:mm:ss UTC"),
                                 timeToExpiryMinutes = Math.Round(timeToExpiry.TotalMinutes, 1),
                                 isExpiringSoon = timeToExpiry.TotalMinutes < 30
-                            });
+                            }).ConfigureAwait(false);
 
                         if (timeToExpiry.TotalMinutes < 30)
                         {
                             await _tradingLogger.LogSystemAsync(TradingLogLevel.WARN, "AuthService", 
-                                "JWT token expiring soon - refresh recommended");
+                                "JWT token expiring soon - refresh recommended").ConfigureAwait(false);
                         }
                     }
                 }
@@ -170,6 +170,6 @@ public class EnhancedAuthenticationService : IHostedService
             {
                 tokenLength = newToken.Length,
                 refreshTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")
-            });
+            }).ConfigureAwait(false);
     }
 }

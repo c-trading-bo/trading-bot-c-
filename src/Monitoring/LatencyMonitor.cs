@@ -72,7 +72,7 @@ namespace TradingBot.Monitoring
                     if (_consecutiveDecisionViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Decision Processing", latencyMs, _decisionLatencyThreshold));
+                            "Decision Processing", latencyMs, _decisionLatencyThreshold)).ConfigureAwait(false);
                         _consecutiveDecisionViolations = 0; // Reset to avoid spam
                     }
                 }
@@ -108,7 +108,7 @@ namespace TradingBot.Monitoring
                     if (_consecutiveOrderViolations >= _consecutiveThresholdCount)
                     {
                         _ = Task.Run(async () => await _alertService.SendLatencyAlertAsync(
-                            "Order Processing", latencyMs, _orderLatencyThreshold));
+                            "Order Processing", latencyMs, _orderLatencyThreshold)).ConfigureAwait(false);
                         _consecutiveOrderViolations = 0; // Reset to avoid spam
                     }
                 }

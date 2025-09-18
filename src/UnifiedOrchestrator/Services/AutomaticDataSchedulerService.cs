@@ -32,16 +32,16 @@ public class AutomaticDataSchedulerService : BackgroundService
         _logger.LogInformation("[AUTO-SCHEDULER] Starting automatic data scheduler service");
         
         // Wait for system initialization
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await CheckAndRunScheduledTasks(stoppingToken);
+                await CheckAndRunScheduledTasks(stoppingToken).ConfigureAwait(false);
                 
                 // Check every minute for scheduling needs
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -50,7 +50,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[AUTO-SCHEDULER] Error in scheduler loop");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken).ConfigureAwait(false);
             }
         }
         
@@ -68,19 +68,19 @@ public class AutomaticDataSchedulerService : BackgroundService
         // Check if we should run historical data processing
         if (ShouldRunHistoricalDataProcessing(currentTime))
         {
-            await TriggerHistoricalDataProcessing(cancellationToken);
+            await TriggerHistoricalDataProcessing(cancellationToken).ConfigureAwait(false);
         }
         
         // Check if we should start live data processing
         if (ShouldStartLiveDataProcessing(currentTime))
         {
-            await EnsureLiveDataProcessingActive(cancellationToken);
+            await EnsureLiveDataProcessingActive(cancellationToken).ConfigureAwait(false);
         }
         
         // Check for market closure cleanup
         if (IsAfterMarketClosure(currentTime))
         {
-            await RunPostMarketTasks(cancellationToken);
+            await RunPostMarketTasks(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -257,7 +257,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             if (dataIntegrationService != null)
             {
                 _logger.LogInformation("[AUTO-SCHEDULER] Verifying unified data integration for historical processing");
-                var isHistoricalConnected = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken);
+                var isHistoricalConnected = await dataIntegrationService.CheckHistoricalDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogInformation("[AUTO-SCHEDULER] Historical data connection status: {Status}", 
                     isHistoricalConnected ? "Connected" : "Disconnected");
             }
@@ -286,7 +286,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             var dataIntegrationService = scope.ServiceProvider.GetService<UnifiedDataIntegrationService>();
             if (dataIntegrationService != null)
             {
-                var isLiveConnected = await dataIntegrationService.CheckLiveDataAsync(cancellationToken);
+                var isLiveConnected = await dataIntegrationService.CheckLiveDataAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 if (!isLiveConnected)
                 {
                     _logger.LogWarning("[AUTO-SCHEDULER] ⚠️ Live data not connected during market hours - this may indicate a connection issue");
@@ -328,7 +328,7 @@ public class AutomaticDataSchedulerService : BackgroundService
             // - Data cleanup
             // - Report generation
             
-            await Task.Delay(100, cancellationToken); // Placeholder
+            await Task.Delay(100, cancellationToken).ConfigureAwait(false); // Placeholder
             
             _logger.LogInformation("[AUTO-SCHEDULER] ✅ Post-market tasks completed");
         }

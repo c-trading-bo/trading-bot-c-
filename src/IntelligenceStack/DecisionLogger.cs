@@ -51,7 +51,7 @@ public class DecisionLogger : IDecisionLogger
             var logEntry = CreateDecisionLogEntry(decision);
 
             // Write to daily file
-            await WriteToFileAsync(logEntry, cancellationToken);
+            await WriteToFileAsync(logEntry, cancellationToken).ConfigureAwait(false);
 
             // Also log to structured logger for real-time monitoring
             _logger.LogInformation("[DECISION] {DecisionJson}", 
@@ -84,7 +84,7 @@ public class DecisionLogger : IDecisionLogger
 
                 if (File.Exists(filePath))
                 {
-                    var lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+                    var lines = await File.ReadAllLinesAsync(filePath, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                     
                     foreach (var line in lines)
                     {
@@ -185,7 +185,7 @@ public class DecisionLogger : IDecisionLogger
         });
 
         // Append to daily file
-        await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken);
+        await File.AppendAllTextAsync(filePath, json + Environment.NewLine, cancellationToken).ConfigureAwait(false);
     }
 
     private static string GenerateDecisionId()
@@ -243,13 +243,13 @@ public class DriftMonitor
         try
         {
             // Load baseline asynchronously from persistent storage
-            var baseline = await LoadBaselineAsync(modelId, cancellationToken);
+            var baseline = await LoadBaselineAsync(modelId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (baseline == null)
             {
                 // Create and persist initial baseline asynchronously
                 baseline = CreateBaseline(features);
-                await SaveBaselineAsync(modelId, baseline, cancellationToken);
+                await SaveBaselineAsync(modelId, baseline, cancellationToken).ConfigureAwait(false);
                 
                 return new DriftDetectionResult { HasDrift = false, Message = "Baseline established" };
             }
@@ -283,7 +283,7 @@ public class DriftMonitor
                     modelId, psi, _config.PsiWarn, _config.PsiBlock);
                 
                 // Asynchronously log drift event for analysis
-                await LogDriftEventAsync(modelId, result, cancellationToken);
+                await LogDriftEventAsync(modelId, result, cancellationToken).ConfigureAwait(false);
             }
 
             return result;
@@ -338,7 +338,7 @@ public class DriftMonitor
         }
 
         // Simulate async file I/O - in production this would load from database/file system
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         // For now, return null indicating no persisted baseline exists
         return null;
@@ -353,7 +353,7 @@ public class DriftMonitor
         _baselines[modelId] = baseline;
         
         // Simulate async file I/O - in production this would save to database/file system
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         _logger.LogDebug("[DRIFT] Baseline saved for model {ModelId}", modelId);
     }
@@ -364,7 +364,7 @@ public class DriftMonitor
     private async Task LogDriftEventAsync(string modelId, DriftDetectionResult result, CancellationToken cancellationToken)
     {
         // Simulate async logging to analytics system
-        await Task.Delay(1, cancellationToken);
+        await Task.Delay(1, cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("[DRIFT-EVENT] ModelId={ModelId}, PSI={PSI:F3}, Block={Block}", 
             modelId, result.PSI, result.ShouldBlock);

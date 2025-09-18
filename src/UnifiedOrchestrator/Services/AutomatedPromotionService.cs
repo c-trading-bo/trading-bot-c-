@@ -58,31 +58,31 @@ public class AutomatedPromotionService : BackgroundService
         _logger.LogInformation("[AUTO-PROMOTION] Starting automated promotion service");
         
         // Wait for system initialization
-        await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+        await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken).ConfigureAwait(false);
         
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 // Check for promotion opportunities
-                await CheckPromotionOpportunitiesAsync(stoppingToken);
+                await CheckPromotionOpportunitiesAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Execute scheduled promotions
-                await ExecuteScheduledPromotionsAsync(stoppingToken);
+                await ExecuteScheduledPromotionsAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Monitor active rollouts
-                await MonitorActiveRolloutsAsync(stoppingToken);
+                await MonitorActiveRolloutsAsync(stoppingToken).ConfigureAwait(false);
                 
                 // Perform health checks
                 PerformHealthChecks(stoppingToken);
                 
                 // Wait before next cycle
-                await Task.Delay(_promotionCheckInterval, stoppingToken);
+                await Task.Delay(_promotionCheckInterval, stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[AUTO-PROMOTION] Error in automated promotion service");
-                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken).ConfigureAwait(false);
             }
         }
     }
@@ -101,7 +101,7 @@ public class AutomatedPromotionService : BackgroundService
             {
                 if (cancellationToken.IsCancellationRequested) break;
                 
-                await CheckAlgorithmPromotionOpportunityAsync(algorithm, cancellationToken);
+                await CheckAlgorithmPromotionOpportunityAsync(algorithm, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -124,8 +124,8 @@ public class AutomatedPromotionService : BackgroundService
             }
 
             // Get current champion and potential challengers
-            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken);
-            var allModels = await _modelRegistry.GetModelsAsync(algorithm, cancellationToken);
+            var champion = await _modelRegistry.GetChampionAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
+            var allModels = await _modelRegistry.GetModelsAsync(algorithm, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             // Find validated but not promoted models as potential challengers
             var challengers = allModels
@@ -140,11 +140,11 @@ public class AutomatedPromotionService : BackgroundService
                 
                 // Validate challenger against champion
                 var validationResult = await _validationService.ValidateChallengerAsync(
-                    challenger.VersionId, cancellationToken);
+                    challenger.VersionId, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
                 
                 if (validationResult.Outcome == ValidationOutcome.Passed)
                 {
-                    await SchedulePromotionAsync(algorithm, challenger.VersionId, validationResult.Report, cancellationToken);
+                    await SchedulePromotionAsync(algorithm, challenger.VersionId, validationResult.Report, cancellationToken).ConfigureAwait(false);
                     break; // Only schedule one promotion per algorithm at a time
                 }
             }
@@ -167,7 +167,7 @@ public class AutomatedPromotionService : BackgroundService
         try
         {
             // Get next safe promotion window
-            var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken);
+            var nextSafeWindow = await _marketHours.GetNextSafeWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             if (nextSafeWindow == null)
             {
                 _logger.LogWarning("[AUTO-PROMOTION] No safe window available for {Algorithm} promotion", algorithm);
@@ -215,7 +215,7 @@ public class AutomatedPromotionService : BackgroundService
             {
                 if (cancellationToken.IsCancellationRequested) break;
                 
-                await ExecutePromotionAsync(promotion, cancellationToken);
+                await ExecutePromotionAsync(promotion, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -235,7 +235,7 @@ public class AutomatedPromotionService : BackgroundService
                 promotion.Algorithm, promotion.ChallengerVersionId);
 
             // Safety checks before promotion
-            var safetyPassed = await PerformSafetyChecksAsync(promotion, cancellationToken);
+            var safetyPassed = await PerformSafetyChecksAsync(promotion, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             if (!safetyPassed)
             {
                 promotion.Status = "FAILED_SAFETY_CHECKS";
@@ -261,7 +261,7 @@ public class AutomatedPromotionService : BackgroundService
                 promotion.Algorithm, 
                 promotion.ChallengerVersionId, 
                 $"Automated gradual rollout - Step 1 ({_initialPositionSizeLimit:P0} position limit)",
-                cancellationToken);
+                cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
             if (promotionSuccess)
             {
@@ -303,7 +303,7 @@ public class AutomatedPromotionService : BackgroundService
             {
                 if (cancellationToken.IsCancellationRequested) break;
                 
-                await MonitorRolloutAsync(rollout, cancellationToken);
+                await MonitorRolloutAsync(rollout, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -329,33 +329,33 @@ public class AutomatedPromotionService : BackgroundService
             }
 
             // Collect health metrics for current step
-            var healthMetric = await CollectRolloutHealthMetricAsync(rollout, cancellationToken);
+            var healthMetric = await CollectRolloutHealthMetricAsync(rollout, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             rollout.HealthMetrics.Add(healthMetric);
 
             // Check if rollout is healthy
-            var isHealthy = await AssessRolloutHealthAsync(rollout, healthMetric, cancellationToken);
+            var isHealthy = await AssessRolloutHealthAsync(rollout, healthMetric, cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             
             if (!isHealthy)
             {
                 // Rollback due to health issues
-                await RollbackPromotionAsync(rollout, "Health check failed", cancellationToken);
+                await RollbackPromotionAsync(rollout, "Health check failed", cancellationToken).ConfigureAwait(false);
                 return;
             }
 
             // Progress to next step or complete rollout
             if (rollout.StepNumber < rollout.MaxSteps)
             {
-                await ProgressRolloutToNextStepAsync(rollout, cancellationToken);
+                await ProgressRolloutToNextStepAsync(rollout, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                await CompleteRolloutAsync(rollout, cancellationToken);
+                await CompleteRolloutAsync(rollout, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[AUTO-PROMOTION] Failed to monitor rollout for {Algorithm}", rollout.Algorithm);
-            await RollbackPromotionAsync(rollout, $"Monitoring error: {ex.Message}", cancellationToken);
+            await RollbackPromotionAsync(rollout, $"Monitoring error: {ex.Message}", cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -364,7 +364,7 @@ public class AutomatedPromotionService : BackgroundService
     /// </summary>
     private async Task ProgressRolloutToNextStepAsync(GradualRolloutState rollout, CancellationToken cancellationToken)
     {
-        await Task.Yield(); // Ensure async behavior
+        await Task.Yield().ConfigureAwait(false); // Ensure async behavior
         
         try
         {
@@ -408,7 +408,7 @@ public class AutomatedPromotionService : BackgroundService
             _logger.LogError(ex, "[AUTO-PROMOTION] Failed to complete rollout for {Algorithm}", rollout.Algorithm);
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -422,7 +422,7 @@ public class AutomatedPromotionService : BackgroundService
                 rollout.Algorithm, reason);
 
             var rollbackSuccess = await _promotionService.RollbackToPreviousAsync(
-                rollout.Algorithm, $"Automated rollback: {reason}", cancellationToken);
+                rollout.Algorithm, $"Automated rollback: {reason}", cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
 
             rollout.Status = rollbackSuccess ? "ROLLED_BACK" : "ROLLBACK_FAILED";
             rollout.CompletedAt = DateTime.UtcNow;
@@ -457,7 +457,7 @@ public class AutomatedPromotionService : BackgroundService
         try
         {
             // Check 1: Market is in safe window
-            var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken);
+            var isInSafeWindow = await _marketHours.IsInSafePromotionWindowAsync(cancellationToken).ConfigureAwait(false).ConfigureAwait(false);
             if (!isInSafeWindow)
             {
                 _logger.LogWarning("[AUTO-PROMOTION] Safety check failed: not in safe promotion window");
@@ -504,7 +504,7 @@ public class AutomatedPromotionService : BackgroundService
         GradualRolloutState rollout, 
         CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         // In production, this would collect real metrics from the trading system
         var random = new Random();
@@ -535,7 +535,7 @@ public class AutomatedPromotionService : BackgroundService
         RolloutHealthMetric metric, 
         CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
         
         var issues = new List<string>();
 

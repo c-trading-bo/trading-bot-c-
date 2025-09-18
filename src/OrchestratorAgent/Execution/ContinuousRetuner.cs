@@ -40,18 +40,18 @@ public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<st
                     {
                         var live = (Environment.GetEnvironmentVariable("LIVE_ORDERS") ?? "0").Trim().ToLowerInvariant() is "1" or "true" or "yes";
                         if (live) { _log.LogDebug("[Retune] Live mode — skipping continuous retune"); }
-                        else await RunOnceAsync();
+                        else await RunOnceAsync().ConfigureAwait(false);
                     }
                     else
                     {
-                        await RunOnceAsync();
+                        await RunOnceAsync().ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
                 {
                     _log.LogWarning(ex, "[Retune] Continuous loop error");
                 }
-                try { await Task.Delay(_interval, CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, _ct).Token); } catch { }
+                try { await Task.Delay(_interval, CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, _ct).Token).ConfigureAwait(false); } catch { }
             }
         }, _cts.Token);
     }
@@ -71,17 +71,17 @@ public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<st
             _log.LogInformation("[Retune] Continuous retune window: {Since:yyyy-MM-dd} -> {Until:yyyy-MM-dd}", since, until);
 
             // Ensure JWT if allowed
-            try { var tok = await _getJwt(); if (!string.IsNullOrWhiteSpace(tok)) { /* HttpClient header set upstream */ } } catch { }
+            try { var tok = await _getJwt().ConfigureAwait(false).ConfigureAwait(false); if (!string.IsNullOrWhiteSpace(tok)) { /* HttpClient header set upstream */ } } catch { }
 
             var results = new System.Collections.Generic.List<object>();
             foreach (var root in _roots)
             {
                 if (!_contractIdsByRoot.TryGetValue(root, out var cid) || string.IsNullOrWhiteSpace(cid))
                 { _log.LogWarning("[Retune] Missing contractId for {Root}", root); continue; }
-                results.Add(RunOne(root, "S2", async () => await TuningRunner.RunS2Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token)));
-                results.Add(RunOne(root, "S3", async () => await TuningRunner.RunS3Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token)));
-                results.Add(RunOne(root, "S6", async () => await TuningRunner.RunS6Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token)));
-                results.Add(RunOne(root, "S11", async () => await TuningRunner.RunS11Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token)));
+                results.Add(RunOne(root, "S2", async () => await TuningRunner.RunS2Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token))).ConfigureAwait(false);
+                results.Add(RunOne(root, "S3", async () => await TuningRunner.RunS3Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token))).ConfigureAwait(false);
+                results.Add(RunOne(root, "S6", async () => await TuningRunner.RunS6Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token))).ConfigureAwait(false);
+                results.Add(RunOne(root, "S11", async () => await TuningRunner.RunS11Async(_http, _getJwt, cid, root, since, until, _log, _cts.Token))).ConfigureAwait(false);
             }
 
             // Persist status for dashboard
@@ -117,8 +117,8 @@ public sealed class ContinuousRetuner(ILogger log, HttpClient http, Func<Task<st
 
     public async ValueTask DisposeAsync()
     {
-        try { await _cts.CancelAsync(); } catch { }
-        try { if (_loop != null) await _loop; } catch { }
+        try { await _cts.CancelAsync().ConfigureAwait(false); } catch { }
+        try { if (_loop != null) await _loop.ConfigureAwait(false); } catch { }
         _cts.Dispose();
     }
 }

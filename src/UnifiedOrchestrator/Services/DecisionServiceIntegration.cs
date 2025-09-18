@@ -23,7 +23,7 @@ public class DecisionServiceIntegration : IHostedService
         {
             // Production-ready integration logic
             // Check if decision service is available
-            await Task.Delay(100); // Simulate connection time
+            await Task.Delay(100).ConfigureAwait(false); // Simulate connection time
             
             // In production, this would:
             // 1. Verify decision service endpoint is responsive
@@ -62,7 +62,7 @@ public class DecisionServiceIntegration : IHostedService
             // 3. Clean up resources
             // 4. Stop health monitoring
             
-            await Task.Delay(50); // Simulate graceful shutdown
+            await Task.Delay(50).ConfigureAwait(false); // Simulate graceful shutdown
             IsConnected = false;
             
             _logger.LogInformation("[DECISION_INTEGRATION] Decision service integration disconnected");

@@ -109,14 +109,14 @@ namespace BotCore
         private async Task RunTrainingPipelineAsync()
         {
             // Step 1: Export training data
-            var csvFile = await ExportTrainingDataAsync().ConfigureAwait(false);
+            var csvFile = await ExportTrainingDataAsync().ConfigureAwait(false).ConfigureAwait(false);
             if (string.IsNullOrEmpty(csvFile))
             {
                 throw new InvalidOperationException("Failed to export training data");
             }
 
             // Step 2: Train new model via Python
-            var modelFile = await TrainModelAsync(csvFile).ConfigureAwait(false);
+            var modelFile = await TrainModelAsync(csvFile).ConfigureAwait(false).ConfigureAwait(false);
             if (string.IsNullOrEmpty(modelFile))
             {
                 throw new InvalidOperationException("Failed to train new model");
@@ -149,7 +149,7 @@ namespace BotCore
                 {
                     try
                     {
-                        var strategyData = await MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate);
+                        var strategyData = await MultiStrategyRlCollector.ExportStrategyData(_log, strategy, startDate).ConfigureAwait(false).ConfigureAwait(false);
                         if (!string.IsNullOrEmpty(strategyData))
                         {
                             hasData = true;
@@ -220,9 +220,9 @@ namespace BotCore
                     throw new InvalidOperationException("Failed to start Python training process");
                 }
 
-                var output = await process.StandardOutput.ReadToEndAsync();
-                var error = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
+                var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                var error = await process.StandardError.ReadToEndAsync().ConfigureAwait(false).ConfigureAwait(false);
+                await process.WaitForExitAsync().ConfigureAwait(false);
 
                 if (process.ExitCode == 0 && File.Exists(modelPath))
                 {

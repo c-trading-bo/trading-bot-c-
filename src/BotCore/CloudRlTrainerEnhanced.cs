@@ -70,13 +70,13 @@ namespace BotCore
             try
             {
                 // Download manifest
-                var manifest = await DownloadManifestAsync();
+                var manifest = await DownloadManifestAsync().ConfigureAwait(false).ConfigureAwait(false);
                 if (manifest == null) return;
 
                 // Check if we have this version already
                 var currentVersionFile = Path.Combine(_modelDir, "current_version.txt");
                 var currentVersion = File.Exists(currentVersionFile) ?
-                    await File.ReadAllTextAsync(currentVersionFile) : "";
+                    await File.ReadAllTextAsync(currentVersionFile) : "".ConfigureAwait(false);
 
                 if (manifest.Version == currentVersion.Trim())
                 {
@@ -87,10 +87,10 @@ namespace BotCore
                 _log.LogInformation("[CloudRlTrainerEnhanced] 🚀 New model version available: {Version}", manifest.Version);
 
                 // Download new models
-                await DownloadModelsFromManifest(manifest);
+                await DownloadModelsFromManifest(manifest).ConfigureAwait(false);
 
                 // Update version file
-                await File.WriteAllTextAsync(currentVersionFile, manifest.Version);
+                await File.WriteAllTextAsync(currentVersionFile, manifest.Version).ConfigureAwait(false);
 
                 _log.LogInformation("[CloudRlTrainerEnhanced] ✅ Updated to version {Version} with {Samples} training samples",
                     manifest.Version, manifest.TrainingSamples);
@@ -106,7 +106,7 @@ namespace BotCore
             try
             {
                 // Download manifest
-                var manifestJson = await _http.GetStringAsync(_manifestUrl);
+                var manifestJson = await _http.GetStringAsync(_manifestUrl).ConfigureAwait(false).ConfigureAwait(false);
                 var manifest = JsonSerializer.Deserialize<EnhancedModelManifest>(manifestJson, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -172,7 +172,7 @@ namespace BotCore
                 downloadTasks.Add(DownloadModelAsync(modelType, modelInfo));
             }
 
-            await Task.WhenAll(downloadTasks);
+            await Task.WhenAll(downloadTasks).ConfigureAwait(false);
         }
 
         private async Task DownloadModelAsync(string modelType, EnhancedModelInfo modelInfo)
@@ -185,15 +185,15 @@ namespace BotCore
                 _log.LogDebug("[CloudRlTrainerEnhanced] Downloading {ModelType} model from {Url}", modelType, modelInfo.Url);
 
                 // Download to temp file
-                using var response = await _http.GetAsync(modelInfo.Url);
+                using var response = await _http.GetAsync(modelInfo.Url).ConfigureAwait(false).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 await using var fileStream = File.Create(tempPath);
-                await response.Content.CopyToAsync(fileStream);
-                await fileStream.FlushAsync();
+                await response.Content.CopyToAsync(fileStream).ConfigureAwait(false);
+                await fileStream.FlushAsync().ConfigureAwait(false);
 
                 // Verify checksum
-                var actualChecksum = await ComputeFileChecksumAsync(tempPath);
+                var actualChecksum = await ComputeFileChecksumAsync(tempPath).ConfigureAwait(false).ConfigureAwait(false);
                 if (!string.Equals(actualChecksum, modelInfo.Checksum, StringComparison.OrdinalIgnoreCase))
                 {
                     _log.LogError("[CloudRlTrainerEnhanced] Checksum mismatch for {ModelType}: expected {Expected}, got {Actual}",
@@ -231,7 +231,7 @@ namespace BotCore
         {
             using var sha256 = SHA256.Create();
             await using var fileStream = File.OpenRead(filePath);
-            var hashBytes = await sha256.ComputeHashAsync(fileStream);
+            var hashBytes = await sha256.ComputeHashAsync(fileStream).ConfigureAwait(false).ConfigureAwait(false);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 

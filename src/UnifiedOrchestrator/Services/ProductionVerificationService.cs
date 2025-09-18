@@ -38,11 +38,11 @@ public class ProductionVerificationService : IHostedService
     {
         _logger.LogInformation("🔍 [PRODUCTION-VERIFICATION] Starting comprehensive production readiness verification...");
         
-        await VerifyServiceRegistrationsAsync();
-        await VerifyConfigurationSecurityAsync();
-        await VerifyDatabaseConnectionsAsync();
-        await VerifyApiClientsAsync();
-        await VerifyObservabilityStackAsync();
+        await VerifyServiceRegistrationsAsync().ConfigureAwait(false);
+        await VerifyConfigurationSecurityAsync().ConfigureAwait(false);
+        await VerifyDatabaseConnectionsAsync().ConfigureAwait(false);
+        await VerifyApiClientsAsync().ConfigureAwait(false);
+        await VerifyObservabilityStackAsync().ConfigureAwait(false);
         
         _logger.LogInformation("✅ [PRODUCTION-VERIFICATION] All production verification checks completed successfully");
     }
@@ -107,7 +107,7 @@ public class ProductionVerificationService : IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -187,7 +187,7 @@ public class ProductionVerificationService : IHostedService
             }
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -204,14 +204,14 @@ public class ProductionVerificationService : IHostedService
             if (dbContext == null)
             {
                 _logger.LogWarning("⚠️ [DATABASE-VERIFICATION] No database context registered - implementing production database layer");
-                await ImplementProductionDatabaseLayerAsync();
+                await ImplementProductionDatabaseLayerAsync().ConfigureAwait(false);
             }
             else
             {
                 _logger.LogInformation("✅ [DATABASE-VERIFICATION] Database context registered: {ContextType}", dbContext.GetType().Name);
                 
                 // Test database connectivity
-                await dbContext.TestConnectionAsync();
+                await dbContext.TestConnectionAsync().ConfigureAwait(false);
                 _logger.LogInformation("✅ [DATABASE-VERIFICATION] Database connection successful");
             }
         }
@@ -237,7 +237,7 @@ public class ProductionVerificationService : IHostedService
                 _logger.LogInformation("✅ [API-VERIFICATION] TopstepX Client: {ClientType}", clientType);
 
                 // Verify client has proper error handling (not returning null)
-                await VerifyClientErrorHandlingAsync(topstepClient);
+                await VerifyClientErrorHandlingAsync(topstepClient).ConfigureAwait(false);
             }
             else
             {
@@ -263,7 +263,7 @@ public class ProductionVerificationService : IHostedService
             var healthCheckService = _serviceProvider.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
             if (healthCheckService != null)
             {
-                var healthResult = await healthCheckService.CheckHealthAsync();
+                var healthResult = await healthCheckService.CheckHealthAsync().ConfigureAwait(false).ConfigureAwait(false);
                 _logger.LogInformation("✅ [OBSERVABILITY-VERIFICATION] Health checks: {Status} ({CheckCount} checks)", 
                     healthResult.Status, healthResult.Entries.Count);
             }
@@ -311,7 +311,7 @@ public class ProductionVerificationService : IHostedService
         // For now, log that it needs to be implemented
         _logger.LogWarning("⚠️ [DATABASE-IMPLEMENTATION] Production database layer needs to be implemented with Entity Framework Core");
         
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -334,7 +334,7 @@ public class ProductionVerificationService : IHostedService
             _logger.LogError(ex, "❌ [CLIENT-VERIFICATION] Client error handling verification failed");
         }
 
-        await Task.CompletedTask;
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 }
 

@@ -174,7 +174,7 @@ namespace TradingBot.Monitoring
                 await _alertService.SendModelHealthAlertAsync(
                     "Feature Parity Check", 
                     $"Feature parity check failed: {details}",
-                    new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow });
+                    new { FailedFeatures = failedFeatures, Timestamp = DateTime.UtcNow }).ConfigureAwait(false);
                 
                 return false;
             }
@@ -185,7 +185,7 @@ namespace TradingBot.Monitoring
         private void CheckModelHealthCallback(object? state)
         {
             // Fire and forget - don't await to avoid blocking timer
-            _ = Task.Run(async () => await CheckModelHealthAsync());
+            _ = Task.Run(async () => await CheckModelHealthAsync()).ConfigureAwait(false);
         }
 
         private async Task CheckModelHealthAsync()
@@ -197,7 +197,7 @@ namespace TradingBot.Monitoring
                 if (!health.IsHealthy)
                 {
                     var issues = string.Join("; ", health.HealthIssues);
-                    await _alertService.SendModelHealthAlertAsync("Model Health", issues, health);
+                    await _alertService.SendModelHealthAlertAsync("Model Health", issues, health).ConfigureAwait(false);
                     
                     _logger.LogWarning("[MODEL_HEALTH] Health issues detected: {Issues}", issues);
                 }
