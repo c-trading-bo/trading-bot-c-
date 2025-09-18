@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System;
 using TradingBot.RLAgent.Algorithms;
+using TradingBot.RLAgent.Models;
 
 namespace TradingBot.RLAgent;
 
@@ -35,7 +36,7 @@ public static class AlgorithmFactory
     /// </summary>
     private static IRLAlgorithm CreateSACAlgorithm(ILogger logger, AlgorithmConfig config)
     {
-        var sacConfig = new SACConfig
+        var sacConfig = new Models.SacConfig
         {
             StateDimension = config.StateDimension,
             ActionDimension = config.ActionDimension,
@@ -339,9 +340,9 @@ public class CVaRppoAlgorithmWrapper : IRLAlgorithm
 
 public class SacTrainingResultWrapper : ITrainingResult
 {
-    private readonly SacTrainingResult _result;
+    private readonly Models.SacTrainingResult _result;
 
-    public SacTrainingResultWrapper(SacTrainingResult result)
+    public SacTrainingResultWrapper(Models.SacTrainingResult result)
     {
         _result = result;
     }

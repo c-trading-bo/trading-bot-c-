@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 using TradingBot.RLAgent.Algorithms;
+using TradingBot.RLAgent.Models;
 
 namespace TradingBot.RLAgent;
 
@@ -18,28 +19,6 @@ public class PositionSizing
     private const double LOW_VOL_REGIME_CLIP = 0.7;
     private const double HIGH_VOL_REGIME_CLIP = 0.3;
     private const double VOLATILITY_REGIME_CLIP = 0.4;
-    
-    // Symbol-specific position constants
-    private const double ES_SYMBOL_CAP = 0.25;
-    private const double NQ_SYMBOL_CAP = 0.25;
-    private const int ES_MAX_CONTRACTS = 15;
-    private const int NQ_MAX_CONTRACTS = 12;
-    
-    // General position sizing constants
-    private const double DEFAULT_POSITION_FRACTION = 0.5;
-    private const double MIN_POSITION_FRACTION = 0.1;
-    private const double DOUBLE_FACTOR = 2.0;
-    
-    // SAC algorithm constants
-    private const double SAC_CONFIDENCE_THRESHOLD = 0.5;
-    private const double SAC_ADJUSTMENT_FACTOR = 0.5;
-    private const double SAC_RANDOM_EXPLORATION = 0.1;
-    private const double SAC_DEFAULT_FALLBACK = 0.4;
-    private const double SAC_BASE_TREND = 0.8;
-    private const double SAC_BASE_RANGE = 0.5;
-    private const double SAC_BASE_LOW_VOL = 0.7;
-    private const double SAC_BASE_HIGH_VOL = 0.3;
-    private const double SAC_BASE_VOLATILITY = 0.3;
     
     #endregion
     

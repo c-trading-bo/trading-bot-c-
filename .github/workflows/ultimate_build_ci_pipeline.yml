@@ -4,7 +4,7 @@ name: "🔨⚡ ULTIMATE Build & CI Pipeline (Mega-System)"
   push:
     branches: [main, master]
   pull_request:
-    branches: [main, master]
+    branches: [main, master]  # PRIMARY handler for PR builds (dotnet.yml excluded to prevent duplicates)
   schedule:
     - cron: '0 2 * * 6'
 
@@ -68,12 +68,54 @@ jobs:
           fetch-depth: 0  # Full history for better analysis
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: "🚫 Session Deduplication Check"
+        id: session_check
+        run: |
+          echo "🚫 Checking for duplicate sessions to prevent premium waste..."
+          
+          # Ensure session deduplicator script exists
+          if [ -f ".github/scripts/session_deduplicator.py" ]; then
+            python .github/scripts/session_deduplicator.py check \
+              "${{ github.event_name }}" \
+              "ultimate_build_ci_pipeline" \
+              "${{ github.sha }}" \
+              "${{ github.run_id }}"
+          else
+            echo "Session deduplicator not found, proceeding with build"
+            echo "skip_execution=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "🚫 Skip Duplicate Session"
+        if: steps.session_check.outputs.skip_execution == 'true'
+        run: |
+          echo "🚫 ============================================"
+          echo "🚫 DUPLICATE SESSION DETECTED - STOPPING"
+          echo "=============================================="
+          echo "✅ Premium session saved by preventing duplicate execution"
+          echo "🔍 Reason: ${{ steps.session_check.outputs.reason }}"
+          echo "⚡ This workflow will exit early to prevent waste"
+          exit 0
+
+      - name: "📝 Register Session"
+        if: steps.session_check.outputs.skip_execution != 'true'
+        run: |
+          if [ -f ".github/scripts/session_deduplicator.py" ]; then
+            python .github/scripts/session_deduplicator.py register \
+              "${{ steps.session_check.outputs.session_key }}" \
+              "${{ github.event_name }}" \
+              "ultimate_build_ci_pipeline" \
+              "${{ github.run_id }}" \
+              "${{ github.sha }}"
+          fi
+
       - name: "⚙️ Setup .NET Environment"
+        if: steps.session_check.outputs.skip_execution != 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: "📊 Build Environment Analysis"
+        if: steps.session_check.outputs.skip_execution != 'true'
         id: analysis
         run: |
           echo "skip=false" >> $GITHUB_OUTPUT
@@ -107,6 +149,7 @@ jobs:
           echo "🔍 Code Analysis: ${{ env.CODE_ANALYSIS }}"
 
       - name: "🔄 Restore Dependencies (Enhanced)"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           echo "🔄 Restoring .NET dependencies..."
           
@@ -127,6 +170,7 @@ jobs:
           echo "✅ Dependencies restored successfully"
 
       - name: "🔨 Build Solution (Comprehensive)"
+        if: steps.session_check.outputs.skip_execution != 'true'
         run: |
           echo "🔨 Building .NET solution..."
           
@@ -778,3 +822,25 @@ jobs:
           echo ""
           echo "📊 Build & Deployment Pipeline Complete"
           echo "=============================================="
+
+      - name: "🧹 Session Cleanup"
+        if: always()
+        run: |
+          echo "🧹 Cleaning up session to prevent future duplicates..."
+          
+          # Clean up session using deduplicator script
+          if [ -f ".github/scripts/session_deduplicator.py" ]; then
+            python .github/scripts/session_deduplicator.py cleanup "${{ steps.session_check.outputs.session_key }}"
+            
+            # Create audit entry
+            python .github/scripts/session_deduplicator.py audit \
+              "${{ steps.session_check.outputs.session_key }}" \
+              "${{ github.event_name }}" \
+              "ultimate_build_ci_pipeline" \
+              "${{ github.run_id }}" \
+              "${{ github.sha }}" \
+              "$([ "${{ steps.session_check.outputs.skip_execution }}" = "true" ] && echo "false" || echo "true")" \
+              "${{ job.status }}"
+          fi
+          
+          echo "✅ Session cleanup complete"

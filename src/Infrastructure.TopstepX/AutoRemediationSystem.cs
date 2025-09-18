@@ -372,8 +372,8 @@ public class AutoRemediationSystem
                 action.Success = true;
                 action.Result = $"Memory optimization completed, freed {freedMB}MB";
                 action.Details.Add("Used memory pressure monitoring without forced collection");
-                action.Details.Add($"Memory before: {memoryBefore / (1024 * 1024)}MB");
-                action.Details.Add($"Memory after: {memoryAfter / (1024 * 1024)}MB");
+                action.Details.Add($"Memory before: {memoryBefore / (AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT)}MB");
+                action.Details.Add($"Memory after: {memoryAfter / (AutoRemediationConstants.MEMORY_KB_UNIT * AutoRemediationConstants.MEMORY_KB_UNIT)}MB");
                 action.Details.Add("Applied selective component cleanup");
             }
             catch (Exception ex)

@@ -5,8 +5,18 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Threading;
 using TradingBot.RLAgent.Algorithms;
+using TradingBot.RLAgent.Models;
 
 namespace TradingBot.RLAgent.Algorithms;
+
+/// <summary>
+/// Neural network initialization constants for SAC algorithm
+/// </summary>
+internal static class NeuralNetworkConstants
+{
+    public const double WEIGHT_INIT_RANGE = 2.0;
+    public const double XAVIER_FACTOR = 2.0;
+}
 
 /// <summary>
 /// Soft Actor-Critic (SAC) algorithm implementation for continuous control
@@ -15,7 +25,7 @@ namespace TradingBot.RLAgent.Algorithms;
 public class SoftActorCritic
 {
     private readonly ILogger<SoftActorCritic> _logger;
-    private readonly SACConfig _config;
+    private readonly Models.SacConfig _config;
     
     // Neural networks
     private readonly ActorNetwork _actor;
@@ -33,7 +43,7 @@ public class SoftActorCritic
     private double _averageReward = 0.0;
     private double _entropy = 0.0;
     
-    public SoftActorCritic(ILogger<SoftActorCritic> logger, SACConfig config)
+    public SoftActorCritic(ILogger<SoftActorCritic> logger, Models.SacConfig config)
     {
         _logger = logger;
         _config = config;
@@ -116,12 +126,12 @@ public class SoftActorCritic
     /// <summary>
     /// Train the SAC agent using experience replay
     /// </summary>
-    public async Task<SacTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
+    public async Task<Models.SacTrainingResult> TrainAsync(CancellationToken cancellationToken = default)
     {
         if (_replayBuffer.Count < _config.MinBufferSize)
         {
             await Task.CompletedTask; // Ensure async pattern compliance
-            return new SacTrainingResult
+            return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = $"Insufficient experience: {_replayBuffer.Count} < {_config.MinBufferSize}"
@@ -156,7 +166,7 @@ public class SoftActorCritic
             // Soft update target networks
             SoftUpdateTargetNetworks();
             
-            var result = new SacTrainingResult
+            var result = new Models.SacTrainingResult
             {
                 Success = true,
                 ActorLoss = actorLoss,
@@ -177,7 +187,7 @@ public class SoftActorCritic
         catch (Exception ex)
         {
             _logger.LogError(ex, "[SAC] Training failed");
-            return new SacTrainingResult
+            return new Models.SacTrainingResult
             {
                 Success = false,
                 Message = ex.Message
@@ -313,9 +323,9 @@ public class SoftActorCritic
     /// <summary>
     /// Get current training statistics
     /// </summary>
-    public SACStatistics GetStatistics()
+    public Models.SacStatistics GetStatistics()
     {
-        return new SACStatistics
+        return new Models.SacStatistics
         {
             TotalSteps = _totalSteps,
             AverageReward = _averageReward,
@@ -485,7 +495,7 @@ public class ActorNetwork : IDisposable
     private void InitializeWeights()
     {
         // Xavier initialization
-        var scale = Math.Sqrt(2.0 / _inputDim);
+        var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
         _weightsInput = new double[_inputDim, _hiddenDim];
         _biasHidden = new double[_hiddenDim];
@@ -496,16 +506,16 @@ public class ActorNetwork : IDisposable
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
-        scale = Math.Sqrt(2.0 / _hiddenDim);
+        scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }
@@ -632,7 +642,7 @@ public class CriticNetwork
     private void InitializeWeights()
     {
         // Xavier initialization
-        var scale = Math.Sqrt(2.0 / _inputDim);
+        var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
         _weightsInput = new double[_inputDim, _hiddenDim];
         _biasHidden = new double[_hiddenDim];
@@ -643,16 +653,16 @@ public class CriticNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
-        scale = Math.Sqrt(2.0 / _hiddenDim);
+        scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }
@@ -770,7 +780,7 @@ public class ValueNetwork
     private void InitializeWeights()
     {
         // Xavier initialization
-        var scale = Math.Sqrt(2.0 / _inputDim);
+        var scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _inputDim);
         
         _weightsInput = new double[_inputDim, _hiddenDim];
         _biasHidden = new double[_hiddenDim];
@@ -781,16 +791,16 @@ public class ValueNetwork
         {
             for (int j = 0; j < _hiddenDim; j++)
             {
-                _weightsInput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsInput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
         
-        scale = Math.Sqrt(2.0 / _hiddenDim);
+        scale = Math.Sqrt(NeuralNetworkConstants.XAVIER_FACTOR / _hiddenDim);
         for (int i = 0; i < _hiddenDim; i++)
         {
             for (int j = 0; j < _outputDim; j++)
             {
-                _weightsOutput[i, j] = (GetRandomDouble() * 2 - 1) * scale;
+                _weightsOutput[i, j] = (GetRandomDouble() * NeuralNetworkConstants.WEIGHT_INIT_RANGE - 1) * scale;
             }
         }
     }

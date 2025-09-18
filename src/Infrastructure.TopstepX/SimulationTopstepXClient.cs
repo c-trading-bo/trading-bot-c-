@@ -226,7 +226,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
                 Symbol = "ES",
                 Side = "BUY",
                 Quantity = 1,
-                Price = 4125.25m,
+                Price = SimulationConstants.ES_BASE_PRICE,
                 Timestamp = DateTime.UtcNow
             });
         });

@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using TradingBot.Abstractions;
 
-namespace TradingBot.RLAgent.Algorithms;
+namespace TradingBot.RLAgent.Models;
 
 /// <summary>
 /// Configuration for Soft Actor-Critic algorithm
 /// </summary>
-public class SACConfig
+public class SacConfig
 {
     public int StateDimension { get; set; } = 10;
     public int ActionDimension { get; set; } = 3;
@@ -97,7 +97,7 @@ public class SacState
 public class SacTrainingResult
 {
     public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
+    public string Message { get; set; }
     public int EpisodesCompleted { get; set; }
     public double AverageReward { get; set; }
     public double ActorLoss { get; set; }
@@ -129,7 +129,7 @@ public class SacTrainingResult
 /// <summary>
 /// Statistics for SAC algorithm performance
 /// </summary>
-public class SACStatistics
+public class SacStatistics
 {
     public int TotalEpisodes { get; set; }
     public int TotalSteps { get; set; }
@@ -148,7 +148,7 @@ public class SACStatistics
     public Dictionary<string, double> NetworkLosses { get; set; } = new();
     public List<double> RewardHistory { get; set; } = new();
     
-    public SACStatistics()
+    public SacStatistics()
     {
         LastUpdateTime = DateTime.UtcNow;
         NetworkLosses = new Dictionary<string, double>
