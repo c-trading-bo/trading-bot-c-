@@ -304,7 +304,7 @@ public class UpdaterAgent
 
     private string Git(string args)
     {
-        var p = new Process();
+        using var p = new Process();
         p.StartInfo.FileName = "git";
         p.StartInfo.Arguments = args;
         p.StartInfo.WorkingDirectory = _repoPath;

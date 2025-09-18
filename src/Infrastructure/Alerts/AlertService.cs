@@ -148,10 +148,10 @@ namespace TradingBot.Infrastructure.Alerts
                 smtpClient.EnableSsl = _useTls;
                 smtpClient.DeliveryMethod = SmtpDeliveryMethod.Network;
 
-                var message = new MailMessage(_emailFrom, _emailTo)
+                using var message = new MailMessage(_emailFrom, _emailTo)
                 {
                     Subject = $"[{severity.ToString().ToUpperInvariant()}] {subject}",
-                    Body = $"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC\n\n{body}",
+                    Body = $"Timestamp: {DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)} UTC\n\n{body}",
                     IsBodyHtml = false
                 };
 
@@ -199,7 +199,7 @@ namespace TradingBot.Infrastructure.Alerts
                 };
 
                 var json = JsonSerializer.Serialize(payload);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                using var content = new StringContent(json, Encoding.UTF8, "application/json");
                 
                 var response = await _httpClient.PostAsync(_slackWebhook, content).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();

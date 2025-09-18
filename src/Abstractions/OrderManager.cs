@@ -39,6 +39,9 @@ namespace TradingBot.Abstractions
 
         public OrderManager(ILogger<OrderManager> logger, IEnumerable<IBrokerAdapter> brokerAdapters)
         {
+            ArgumentNullException.ThrowIfNull(logger);
+            ArgumentNullException.ThrowIfNull(brokerAdapters);
+            
             _logger = logger;
             _brokerAdapters = new Dictionary<string, IBrokerAdapter>();
             

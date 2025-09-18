@@ -154,7 +154,9 @@ public class OnnxModelWrapper : IOnnxModelWrapper
     public bool IsModelAvailable => _isModelLoaded;
 
     public async Task<double> PredictConfidenceAsync(Dictionary<string, double> features)
-    {  
+    {
+        ArgumentNullException.ThrowIfNull(features);
+        
         if (!_isModelLoaded)
         {
             LogModelNotAvailable(_logger, null);

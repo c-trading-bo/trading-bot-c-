@@ -24,7 +24,7 @@ namespace TopstepX.Bot.Authentication
         public async Task<string> GetJwtAsync(string username, string apiKey, CancellationToken ct)
         {
             // IMPORTANT: /api/Auth/loginKey (exact path)
-            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/loginKey")
             {
                 // Use property names exactly as docs show: userName, apiKey
                 Content = new StringContent(
@@ -45,7 +45,7 @@ namespace TopstepX.Bot.Authentication
 
         public async Task<string?> ValidateAsync(CancellationToken ct)
         {
-            var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
+            using var req = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/validate");
             using var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode) return null;
 
@@ -63,6 +63,8 @@ namespace TopstepX.Bot.Extensions
     {
         public static async Task<HttpRequestMessage> CloneAsync(this HttpRequestMessage req)
         {
+            ArgumentNullException.ThrowIfNull(req);
+            
             var clone = new HttpRequestMessage(req.Method, req.RequestUri);
             // Copy headers
             foreach (var h in req.Headers)
