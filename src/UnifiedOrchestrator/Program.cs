@@ -503,13 +503,14 @@ Stack Trace:
         // REAL SOPHISTICATED ORCHESTRATORS - PRODUCTION IMPLEMENTATIONS
         // ================================================================================
         
+        // Register TopstepX Python SDK adapter service for production trading FIRST (dependency for TradingOrchestratorService)
+        services.Configure<TopstepXConfiguration>(configuration.GetSection("TopstepX"));
+        services.AddSingleton<ITopstepXAdapterService, TopstepXAdapterService>();
+        
         // Register REAL sophisticated orchestrators (NO DUPLICATES)
         services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
         services.AddSingleton<TradingBot.Abstractions.IIntelligenceOrchestrator, IntelligenceOrchestratorService>();  
         services.AddSingleton<TradingBot.Abstractions.IDataOrchestrator, DataOrchestratorService>();
-        
-        // Register TopstepX Python SDK adapter service for production trading
-        services.AddSingleton<ITopstepXAdapterService, TopstepXAdapterService>();
         
         // Register TopstepX integration test service (runs when RUN_TOPSTEPX_TESTS=true)
         services.AddHostedService<TopstepXIntegrationTestService>();
@@ -1041,7 +1042,7 @@ Stack Trace:
         services.AddSingleton<BotCore.ModelUpdaterService>();
         
         // Register advanced orchestrator services that will be coordinated by MasterOrchestrator
-        services.AddSingleton<TradingOrchestratorService>();
+        // NOTE: TradingOrchestratorService already registered above with interface 
         services.AddSingleton<IntelligenceOrchestratorService>();
         services.AddSingleton<DataOrchestratorService>();
         services.AddSingleton<WorkflowSchedulerService>();
@@ -1076,7 +1077,8 @@ Stack Trace:
         if (hasCredentials)
         {
             // Register distributed orchestrators for sophisticated trading system
-            services.AddSingleton<TradingBot.Abstractions.ITradingOrchestrator, TradingOrchestratorService>();
+            // NOTE: TradingOrchestratorService already registered above with TopstepXAdapterService injection
+            Console.WriteLine("📈 TopstepX credentials detected - sophisticated trading system will be used");
         }
         
         // Register distributed orchestrator components for sophisticated system
