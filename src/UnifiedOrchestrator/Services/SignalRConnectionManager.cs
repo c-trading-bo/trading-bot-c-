@@ -116,10 +116,8 @@ public class SignalRConnectionManager : ISignalRConnectionManager, IHostedServic
     public event Action<object>? OnContractQuotesReceived;
     public event Action<object>? OnGatewayUserOrderReceived;
     public event Action<object>? OnGatewayUserTradeReceived;
-#pragma warning disable CS0067 // The event is never used
     public event Action<object>? OnFillUpdateReceived;
     public event Action<object>? OnOrderUpdateReceived;
-#pragma warning restore CS0067 // The event is never used
 
     public SignalRConnectionManager(
         ILogger<SignalRConnectionManager> logger,

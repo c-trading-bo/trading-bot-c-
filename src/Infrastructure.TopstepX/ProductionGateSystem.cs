@@ -234,9 +234,7 @@ public class ProductionGateSystem
     }
 
     // AsyncFixer false positive: This method legitimately awaits _autoRemediation.ExecuteAutoRemediationAsync
-#pragma warning disable AsyncFixer01 // The method does not need to use async/await
     private async Task<AutoRemediationResult> ExecuteAutoRemediation(TestSuiteResult testResults)
-#pragma warning restore AsyncFixer01
     {
         // Generate a basic comprehensive report for auto-remediation
         var basicReport = new ComprehensiveReport

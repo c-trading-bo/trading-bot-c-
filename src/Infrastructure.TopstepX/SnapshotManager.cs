@@ -300,9 +300,7 @@ public class SnapshotManager : ISnapshotManager
                 }
                 // Analyzer false positive: hadPosition && hasPosition is valid logic when iterating over union of keys
                 // Some symbols exist in both dictionaries (continuing positions), some only in one or the other
-#pragma warning disable S2589 // Change this condition so that it does not always evaluate to 'True'
                 else if (hadPosition && hasPosition && (prevPos!.Quantity != currPos!.Quantity || prevPos.AveragePrice != currPos.AveragePrice))
-#pragma warning restore S2589
                 {
                     changes.Add($"Position changed: {symbol} {prevPos.Quantity} → {currPos.Quantity} shares");
                 }
@@ -327,9 +325,7 @@ public class SnapshotManager : ISnapshotManager
                 }
                 // Analyzer false positive: hadOrder && hasOrder is valid logic when iterating over union of keys
                 // Some orders exist in both dictionaries (continuing orders), some only in one or the other
-#pragma warning disable S2589 // Change this condition so that it does not always evaluate to 'True'
                 else if (hadOrder && hasOrder && prevOrder!.Status != currOrder!.Status)
-#pragma warning restore S2589
                 {
                     changes.Add($"Order status changed: {orderId} {prevOrder.Status} → {currOrder.Status}");
                 }

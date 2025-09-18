@@ -5,8 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
 
-#pragma warning disable CS0067 // Event is never used - mock events for interface compliance
-
 namespace TradingBot.Infrastructure.TopstepX;
 
 /// <summary>
@@ -449,9 +447,7 @@ public class SimulationTopstepXClient : ITopstepXClient, IDisposable
                 OnMarketDataUpdate?.Invoke(new MarketData
                 {
                     Symbol = symbol,
-#pragma warning disable SCS0005 // Weak random generator acceptable for mock data
                     Close = (double)(SimulationConstants.ES_BASE_PRICE + (decimal)(new Random().NextDouble() - SimulationConstants.RANDOM_OFFSET_MULTIPLIER) * SimulationConstants.RANDOM_RANGE_MULTIPLIER),
-#pragma warning restore SCS0005
                     Bid = (double)SimulationConstants.ES_BID_PRICE,
                     Ask = (double)SimulationConstants.ES_ASK_PRICE,
                     Volume = SimulationConstants.SIMULATION_VOLUME,
