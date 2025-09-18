@@ -321,29 +321,6 @@ public class UpdaterService
         }
     }
 
-    private static int Run(string exe, string args, string? cwd = null, IDictionary<string, string?>? env = null)
-    {
-        var p = new Process();
-        p.StartInfo.FileName = exe;
-        p.StartInfo.Arguments = args;
-        p.StartInfo.WorkingDirectory = cwd ?? Environment.CurrentDirectory;
-        p.StartInfo.UseShellExecute = false;
-        p.StartInfo.RedirectStandardOutput = true;
-        p.StartInfo.RedirectStandardError = true;
-        if (env != null)
-        {
-            foreach (var kv in env)
-                p.StartInfo.Environment[kv.Key] = kv.Value ?? string.Empty;
-        }
-        p.OutputDataReceived += (_, e) => { if (e.Data != null) Console.WriteLine(e.Data); };
-        p.ErrorDataReceived += (_, e) => { if (e.Data != null) Console.Error.WriteLine(e.Data); };
-        p.Start();
-        p.BeginOutputReadLine();
-        p.BeginErrorReadLine();
-        p.WaitForExit();
-        return p.ExitCode;
-    }
-
     private static async Task<int> RunAsync(string exe, string args, string? cwd = null, IDictionary<string, string?>? env = null)
     {
         var p = new Process();

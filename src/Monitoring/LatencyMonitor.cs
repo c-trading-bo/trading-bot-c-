@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,13 @@ namespace TradingBot.Monitoring
         private const double P95Percentile = 0.95;
         private const double P99Percentile = 0.99;
         
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, double, double, int, Exception?> LogMonitorStarted =
+            LoggerMessage.Define<double, double, int>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogMonitorStarted)),
+                "[LATENCY] Monitor started - Decision threshold: {DecThreshold}ms, Order threshold: {OrderThreshold}ms, Consecutive: {Consecutive}");
+        
         private readonly ILogger<LatencyMonitor> _logger;
         private readonly IAlertService _alertService;
         private readonly double _decisionLatencyThreshold;
@@ -39,12 +47,11 @@ namespace TradingBot.Monitoring
             _alertService = alertService;
             
             // Load thresholds from configuration
-            _decisionLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_DECISION_LATENCY_THRESHOLD_MS") ?? "5000");
-            _orderLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_ORDER_LATENCY_THRESHOLD_MS") ?? "2000");
-            _consecutiveThresholdCount = int.Parse(Environment.GetEnvironmentVariable("ALERT_CONSECUTIVE_THRESHOLD_COUNT") ?? "3");
+            _decisionLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_DECISION_LATENCY_THRESHOLD_MS") ?? "5000", CultureInfo.InvariantCulture);
+            _orderLatencyThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_ORDER_LATENCY_THRESHOLD_MS") ?? "2000", CultureInfo.InvariantCulture);
+            _consecutiveThresholdCount = int.Parse(Environment.GetEnvironmentVariable("ALERT_CONSECUTIVE_THRESHOLD_COUNT") ?? "3", CultureInfo.InvariantCulture);
             
-            _logger.LogInformation("[LATENCY] Monitor started - Decision threshold: {DecThreshold}ms, Order threshold: {OrderThreshold}ms, Consecutive: {Consecutive}",
-                _decisionLatencyThreshold, _orderLatencyThreshold, _consecutiveThresholdCount);
+            LogMonitorStarted(_logger, _decisionLatencyThreshold, _orderLatencyThreshold, _consecutiveThresholdCount, null);
         }
 
         public void RecordDecisionLatency(double latencyMs, string? context = null)

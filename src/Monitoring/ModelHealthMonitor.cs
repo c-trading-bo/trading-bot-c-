@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,13 @@ namespace TradingBot.Monitoring
         private const int MinFeatureSampleSize = 30;
         private const double FeatureDriftThreshold = 0.2; // 20% change threshold
         
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, double, double, Exception?> LogMonitorStarted =
+            LoggerMessage.Define<double, double>(
+                LogLevel.Information,
+                new EventId(1, nameof(LogMonitorStarted)),
+                "[MODEL_HEALTH] Monitor started - Confidence drift threshold: {ConfThreshold}, Brier threshold: {BrierThreshold}");
+        
         private readonly ILogger<ModelHealthMonitor> _logger;
         private readonly IAlertService _alertService;
         private readonly double _confidenceDriftThreshold;
@@ -42,14 +50,13 @@ namespace TradingBot.Monitoring
             _alertService = alertService;
             
             // Load thresholds from configuration
-            _confidenceDriftThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_CONFIDENCE_DRIFT_THRESHOLD") ?? "0.15");
-            _brierScoreThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_BRIER_SCORE_THRESHOLD") ?? "0.3");
+            _confidenceDriftThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_CONFIDENCE_DRIFT_THRESHOLD") ?? "0.15", CultureInfo.InvariantCulture);
+            _brierScoreThreshold = double.Parse(Environment.GetEnvironmentVariable("ALERT_BRIER_SCORE_THRESHOLD") ?? "0.3", CultureInfo.InvariantCulture);
             
             // Monitor model health every 5 minutes
             _monitoringTimer = new Timer(CheckModelHealthCallback, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
             
-            _logger.LogInformation("[MODEL_HEALTH] Monitor started - Confidence drift threshold: {ConfThreshold}, Brier threshold: {BrierThreshold}",
-                _confidenceDriftThreshold, _brierScoreThreshold);
+            LogMonitorStarted(_logger, _confidenceDriftThreshold, _brierScoreThreshold, null);
         }
 
         public void RecordPrediction(double confidence, double actualOutcome, Dictionary<string, double>? features = null)

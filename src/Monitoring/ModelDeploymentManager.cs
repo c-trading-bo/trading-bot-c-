@@ -18,6 +18,13 @@ namespace TradingBot.Monitoring
         private const int CanaryRolloutDelayMs = 500;
         private const int RollbackDelayMs = 800;
         
+        // LoggerMessage delegates for performance (CA1848)
+        private static readonly Action<ILogger, Exception?> LogManagerInitialized =
+            LoggerMessage.Define(
+                LogLevel.Information,
+                new EventId(1, nameof(LogManagerInitialized)),
+                "[DEPLOYMENT] ModelDeploymentManager initialized");
+        
         private readonly ILogger<ModelDeploymentManager> _logger;
         private readonly IAlertService _alertService;
         private readonly Dictionary<string, ModelDeployment> _activeDeployments = new();
@@ -28,7 +35,7 @@ namespace TradingBot.Monitoring
             _logger = logger;
             _alertService = alertService;
             
-            _logger.LogInformation("[DEPLOYMENT] ModelDeploymentManager initialized");
+            LogManagerInitialized(_logger, null);
         }
 
         public async Task<bool> PromoteModelToProductionAsync(string modelName, string modelVersion, 

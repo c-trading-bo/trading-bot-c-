@@ -128,6 +128,13 @@ public class TradingConfiguration
     [Required]
     [Range(1.0, 3.0)]
     public double RewardRiskRatioThreshold { get; set; } = 1.5;
+
+    /// <summary>
+    /// Minimum confidence for model fallback scenarios
+    /// Replaces hardcoded 0.1 value
+    /// </summary>
+    [Range(0.01, 0.5)]
+    public double? MinimumConfidence { get; set; } = 0.1;
 }
 
 /// <summary>
