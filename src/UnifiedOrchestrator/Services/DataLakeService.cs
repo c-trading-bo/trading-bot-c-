@@ -95,7 +95,7 @@ namespace UnifiedOrchestrator.Services
             try
             {
                 var featuresJson = JsonSerializer.Serialize(features);
-                var timestampString = timestamp.ToString("O");
+                var timestampString = timestamp.ToString("O", CultureInfo.InvariantCulture);
 
                 // Check for drift if enabled
                 if (_options.AlertOnDrift)
@@ -161,10 +161,11 @@ namespace UnifiedOrchestrator.Services
 
                     var command = new SQLiteCommand(selectSql, _connection);
                     command.Parameters.AddWithValue("@featureSetName", featureSetName);
-                    command.Parameters.AddWithValue("@startTime", startTime.ToString("O"));
-                    command.Parameters.AddWithValue("@endTime", endTime.ToString("O"));
+                    command.Parameters.AddWithValue("@startTime", startTime.ToString("O", CultureInfo.InvariantCulture));
+                    command.Parameters.AddWithValue("@endTime", endTime.ToString("O", CultureInfo.InvariantCulture));
 
                     using var reader = command.ExecuteReader();
+using System.Globalization;
                     while (reader.Read())
                     {
                         var featuresJson = reader.GetString(1); // features column

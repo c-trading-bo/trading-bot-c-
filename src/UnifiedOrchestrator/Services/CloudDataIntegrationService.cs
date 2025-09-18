@@ -50,7 +50,8 @@ public class CloudDataIntegrationService : ICloudDataIntegration
             }
             
             // Implement retry/backoff logic using configurable parameters
-            var maxRetries = 3; // Could be made configurable via NetworkConfig.Retry.MaxAttempts
+            var maxRetries = 3;
+using System.Globalization; // Could be made configurable via NetworkConfig.Retry.MaxAttempts
             var initialDelay = TimeSpan.FromMilliseconds(250);
             var maxDelay = TimeSpan.FromSeconds(30);
             

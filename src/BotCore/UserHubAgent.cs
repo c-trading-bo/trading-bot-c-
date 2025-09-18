@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http.Connections;
 using BotCore.Models;
+using System.Globalization;
 
 namespace BotCore
 {
@@ -229,7 +230,7 @@ namespace BotCore
                     var quantity = TryGet(data, "quantity") ?? TryGet(data, "qty") ?? "0";
                     var accountIdStr = TryGet(data, "accountId") ?? "unknown";
                     var customTag = TryGet(data, "customTag") ?? TryGet(data, "tag") ?? "unknown";
-                    var timestamp = TryGet(data, "timestamp") ?? TryGet(data, "time") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                    var timestamp = TryGet(data, "timestamp") ?? TryGet(data, "time") ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
                     
                     // Parse and format fillPrice to ensure 2 decimals
                     if (decimal.TryParse(fillPrice, out var fillPriceDecimal))

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using TradingBot.Abstractions;
 // Legacy removed: using Infrastructure.TopstepX;
 using TopstepX.Bot.Authentication;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -143,7 +144,7 @@ public class EnhancedAuthenticationService : IHostedService
                         await _tradingLogger.LogSystemAsync(TradingLogLevel.INFO, "AuthService", 
                             "JWT token timing analysis", new
                             {
-                                expiresAt = expiration.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                                expiresAt = expiration.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
                                 timeToExpiryMinutes = Math.Round(timeToExpiry.TotalMinutes, 1),
                                 isExpiringSoon = timeToExpiry.TotalMinutes < 30
                             }).ConfigureAwait(false);
@@ -169,7 +170,7 @@ public class EnhancedAuthenticationService : IHostedService
             "JWT token refreshed successfully", new
             {
                 tokenLength = newToken.Length,
-                refreshTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")
+                refreshTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture)
             }).ConfigureAwait(false);
     }
 }

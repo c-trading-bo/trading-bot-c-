@@ -389,7 +389,7 @@ public class LineageTrackingSystem
         // Calculate hash of current configuration for reproducibility
         var configData = new
         {
-            timestamp = DateTime.UtcNow.ToString("yyyyMMdd"),
+            timestamp = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             version = "1.0.0",
             components = new[] { "ensemble", "quarantine", "maml", "rl_advisor" }
         };
@@ -475,11 +475,12 @@ public class LineageTrackingSystem
             symbol = decision.Symbol,
             timeframe = decision.Timeframe,
             features_hash = decision.FeaturesHash,
-            timestamp = decision.Timestamp.ToString("yyyyMMddHHmm") // Minute-level granularity
+            timestamp = decision.Timestamp.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture) // Minute-level granularity
         };
         
         var inputJson = JsonSerializer.Serialize(inputData);
         using var sha = SHA256.Create();
+using System.Globalization;
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(inputJson));
         return Convert.ToHexString(hash)[..16];
     }

@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -38,11 +39,11 @@ public class TradingActivityLogger
             symbol,
             direction,
             quantity = 1,
-            entry = entry.ToString("0.00"),
-            stop = stop.ToString("0.00"),
-            target = target.ToString("0.00"),
-            rMultiple = rMultiple.ToString("0.00"),
-            confidence = confidence.ToString("0.00"),
+            entry = entry.ToString("0.00", CultureInfo.InvariantCulture),
+            stop = stop.ToString("0.00", CultureInfo.InvariantCulture),
+            target = target.ToString("0.00", CultureInfo.InvariantCulture),
+            rMultiple = rMultiple.ToString("0.00", CultureInfo.InvariantCulture),
+            confidence = confidence.ToString("0.00", CultureInfo.InvariantCulture),
             customTag,
             context
         };
@@ -69,7 +70,7 @@ public class TradingActivityLogger
             symbol,
             side,
             quantity,
-            price = price.ToString("0.00"),
+            price = price.ToString("0.00", CultureInfo.InvariantCulture),
             customTag,
             status = "New",
             orderDetails
@@ -118,9 +119,9 @@ public class TradingActivityLogger
         {
             accountId,
             orderId,
-            fillPrice = fillPrice.ToString("0.00"),
+            fillPrice = fillPrice.ToString("0.00", CultureInfo.InvariantCulture),
             quantity,
-            fillTime = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+            fillTime = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
             fillDetails
         };
 
@@ -141,8 +142,8 @@ public class TradingActivityLogger
             accountId,
             symbol,
             positionSize,
-            averagePrice = averagePrice.ToString("0.00"),
-            unrealizedPnL = unrealizedPnL.ToString("0.00"),
+            averagePrice = averagePrice.ToString("0.00", CultureInfo.InvariantCulture),
+            unrealizedPnL = unrealizedPnL.ToString("0.00", CultureInfo.InvariantCulture),
             positionDetails
         };
 
@@ -164,8 +165,8 @@ public class TradingActivityLogger
         {
             riskType,
             passed,
-            currentValue = currentValue.ToString("0.00"),
-            limit = limit.ToString("0.00"),
+            currentValue = currentValue.ToString("0.00", CultureInfo.InvariantCulture),
+            limit = limit.ToString("0.00", CultureInfo.InvariantCulture),
             utilizationPercent = Math.Round((currentValue / limit) * 100, 2),
             riskDetails
         };
@@ -190,7 +191,7 @@ public class TradingActivityLogger
         {
             reason,
             triggeredBy,
-            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
             details
         };
 

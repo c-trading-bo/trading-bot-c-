@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -172,7 +173,7 @@ public class TopStepComplianceManager
                 _tradingDaysCompleted++;
                 
                 _logger.LogInformation("📅 [TOPSTEP-COMPLIANCE] New trading day: {Date}, Days completed: {Days}",
-                    tradeTime.Date.ToString("yyyy-MM-dd"), _tradingDaysCompleted);
+                    tradeTime.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), _tradingDaysCompleted);
             }
             
             _todayPnL += pnl;
@@ -285,7 +286,7 @@ public class TopStepComplianceManager
             _tradingDaysCompleted++;
             
             _logger.LogInformation("📅 [TOPSTEP-COMPLIANCE] Daily reset: {Date}, Trading days: {Days}",
-                today.ToString("yyyy-MM-dd"), _tradingDaysCompleted);
+                today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), _tradingDaysCompleted);
         }
         
         _todayPnL = currentPnL;

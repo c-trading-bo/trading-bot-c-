@@ -254,6 +254,7 @@ namespace OrchestratorAgent.ML
 
                 // Run inference
                 using var results = _session.Run(inputs);
+using System.Globalization;
 
                 // Extract logits (policy output)
                 DenseTensor<float>? logits = null!;
@@ -283,7 +284,7 @@ namespace OrchestratorAgent.ML
                 recommendedSize = Math.Max(0.1, Math.Min(recommendedSize, 3.0));
 
                 _logger.LogDebug("[RlSizer] Recommended size: {Size:F2} (action {Index}, logits: [{Logits}])",
-                    recommendedSize, actionIndex, string.Join(", ", logitsArray.Select(x => x.ToString("F3"))));
+                    recommendedSize, actionIndex, string.Join(", ", logitsArray.Select(x => x.ToString("F3", CultureInfo.InvariantCulture))));
 
                 return recommendedSize;
             }

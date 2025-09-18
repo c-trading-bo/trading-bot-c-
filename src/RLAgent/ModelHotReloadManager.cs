@@ -200,6 +200,7 @@ public class ModelHotReloadManager : IDisposable
             // Generate deterministic but varied features
             // Use cryptographically secure random for all values in production trading system
             using var rng = RandomNumberGenerator.Create();
+using System.Globalization;
             
             for (int j = 0; j < features.Length; j++)
             {
@@ -237,7 +238,7 @@ public class ModelHotReloadManager : IDisposable
             var registryPath = Path.Combine(_options.WatchDirectory, "model_registry.json");
             var registry = new Dictionary<string, object>
             {
-                ["last_reload"] = DateTime.UtcNow.ToString("O"),
+                ["last_reload"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 ["active_model"] = modelName,
                 ["source_file"] = fileName,
                 ["reload_count"] = GetReloadCount() + 1

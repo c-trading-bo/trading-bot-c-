@@ -213,6 +213,7 @@ namespace TopstepX.Bot.Core.Services
                 // Setup SignalR connections with timeout
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
                 using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, timeoutCts.Token);
+using System.Globalization;
                 
                 try
                 {
@@ -654,7 +655,7 @@ namespace TopstepX.Bot.Core.Services
         /// </summary>
         private string GenerateCustomTag(Signal signal)
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
             var strategyPrefix = !string.IsNullOrEmpty(signal.StrategyId) ? signal.StrategyId : "SIG";
             return $"{strategyPrefix}-{timestamp}-{signal.Symbol}";
         }
@@ -1347,7 +1348,7 @@ namespace TopstepX.Bot.Core.Services
 
                     // Log fill confirmation per instructions
                     _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time}",
-                        _config.AccountId, orderId, Px.F2(price), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+                        _config.AccountId, orderId, Px.F2(price), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
 
                     // Update position tracker - fix parameter types
                     await _positionTracker.ProcessFillAsync(orderId, symbol, price, (int)quantity).ConfigureAwait(false);
@@ -1415,7 +1416,7 @@ namespace TopstepX.Bot.Core.Services
 
                     // Log trade execution per instructions
                     _logger.LogInformation("[TRADE] account={AccountId} orderId={OrderId} fillPrice={FillPrice} qty={Quantity} time={Time}",
-                        _config.AccountId, orderId, Px.F2(fillPrice), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+                        _config.AccountId, orderId, Px.F2(fillPrice), quantity, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
                 }
             }
             catch (Exception ex)

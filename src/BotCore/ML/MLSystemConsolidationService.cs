@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace BotCore.ML;
 
@@ -212,7 +213,7 @@ public sealed class MLSystemConsolidationService
         var content = await File.ReadAllTextAsync(action.SourcePath).ConfigureAwait(false);
         
         // Create backup
-        var backupPath = action.SourcePath + ".backup." + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var backupPath = action.SourcePath + ".backup." + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
         await File.WriteAllTextAsync(backupPath, content).ConfigureAwait(false);
         _logger.LogInformation("[ML-Consolidation] Created backup: {BackupPath}", backupPath);
 

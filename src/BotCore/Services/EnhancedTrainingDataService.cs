@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace BotCore
 {
@@ -190,7 +191,7 @@ namespace BotCore
 
         private async Task SaveTradeDataAsync(TradeData tradeData)
         {
-            var dateStr = DateTime.UtcNow.ToString("yyyyMMdd");
+            var dateStr = DateTime.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
             var filename = Path.Combine(_liveDataPath, $"live_trades_{dateStr}.jsonl");
 
             var json = JsonSerializer.Serialize(tradeData);
@@ -296,12 +297,12 @@ namespace BotCore
         {
             var values = new List<string>
             {
-                trade.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"),
+                trade.Timestamp.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
                 trade.Symbol ?? "ES",
                 trade.Session ?? "RTH",
                 trade.Regime ?? "Range",
                 trade.RMultiple?.ToString("F4") ?? "0",
-                trade.SlipTicks.ToString("F2")
+                trade.SlipTicks.ToString("F2", CultureInfo.InvariantCulture)
             };
 
             // Add first 20 features

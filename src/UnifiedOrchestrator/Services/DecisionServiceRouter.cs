@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Net.Http;
 using BotCore.Services;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -185,7 +186,7 @@ public class DecisionServiceRouter
                 symbol = symbol,
                 price = marketContext.Price,
                 volume = marketContext.Volume,
-                timestamp = marketContext.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"),
+                timestamp = marketContext.Timestamp.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture),
                 technical_indicators = marketContext.TechnicalIndicators,
                 request_id = Guid.NewGuid().ToString()
             };
@@ -329,7 +330,7 @@ public class DecisionServiceRouter
                 realized_pnl = (double)realizedPnL,
                 was_correct = wasCorrect,
                 hold_time_minutes = holdTime.TotalMinutes,
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
             };
             
             var json = JsonSerializer.Serialize(outcomePayload);

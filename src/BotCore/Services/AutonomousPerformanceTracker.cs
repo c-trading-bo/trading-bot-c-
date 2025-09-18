@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -478,7 +479,7 @@ public class AutonomousPerformanceTracker
             MarketConditions = new Dictionary<string, object>
             {
                 ["Regime"] = trade.MarketRegime.ToString(),
-                ["EntryTime"] = trade.EntryTime.ToString("HH:mm"),
+                ["EntryTime"] = trade.EntryTime.ToString("HH:mm", CultureInfo.InvariantCulture),
                 ["Direction"] = trade.Direction
             }
         };

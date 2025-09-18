@@ -1092,6 +1092,7 @@ public sealed class OnnxModelLoader : IDisposable
     {
         using var sha256 = SHA256.Create();
         using var fileStream = File.OpenRead(filePath);
+using System.Globalization;
         var hashBytes = await Task.Run(() => sha256.ComputeHash(fileStream), cancellationToken).ConfigureAwait(false);
         return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
@@ -1185,7 +1186,7 @@ public sealed class OnnxModelLoader : IDisposable
             
             // Send reload signal to Python SAC agent via file system signal
             var reloadSignalFile = Path.Combine(Path.GetDirectoryName(sacFile) ?? "", ".sac_reload_signal");
-            await File.WriteAllTextAsync(reloadSignalFile, DateTime.UtcNow.ToString("O")).ConfigureAwait(false);
+            await File.WriteAllTextAsync(reloadSignalFile, DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)).ConfigureAwait(false);
             
             _logger.LogInformation("[SAC_RELOAD] Reload signal sent for SAC model");
         }

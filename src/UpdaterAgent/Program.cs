@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security;
 using Microsoft.Extensions.Configuration;
 using Serilog;
+using System.Globalization;
 
 namespace UpdaterAgent;
 
@@ -40,7 +41,7 @@ public class UpdaterAgent
             .AddEnvironmentVariables()
             .Build();
 
-        Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateLogger();
+        Log.Logger = new LoggerConfiguration().WriteTo.Console(formatProvider: CultureInfo.InvariantCulture).CreateLogger();
 
         _repoPath = cfg["Updater:RepoPath"] ?? Environment.CurrentDirectory;
         string projRel = cfg["Updater:Project"] ?? "src\\OrchestratorAgent\\OrchestratorAgent.csproj";

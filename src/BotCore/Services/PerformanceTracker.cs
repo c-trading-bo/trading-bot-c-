@@ -48,8 +48,8 @@ public class PerformanceTracker
                 Side = trade.Side, // "BUY" or "SELL"
 
                 // Timing
-                EntryTime = trade.EntryTime.ToString("O"),
-                ExitTime = trade.ExitTime.ToString("O"),
+                EntryTime = trade.EntryTime.ToString("O", CultureInfo.InvariantCulture),
+                ExitTime = trade.ExitTime.ToString("O", CultureInfo.InvariantCulture),
                 DurationMinutes = (int)duration.TotalMinutes,
                 DurationHours = Math.Round(duration.TotalHours, 2),
 
@@ -82,7 +82,7 @@ public class PerformanceTracker
                 MaxAdverseExcursion = trade.MaxAdverseExcursion,
 
                 // Timestamp
-                LoggedAt = DateTime.UtcNow.ToString("O")
+                LoggedAt = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)
             };
 
             _logger.LogInformation("[TRADE_LOG] {Symbol} {Strategy} {Side} pnl={PnLPercent:P2} R={RMultiple:F1} dur={DurationMinutes}m reason={ExitReason}",
@@ -208,6 +208,7 @@ public class PerformanceTracker
 
             // Use CloudDataUploader service for professional upload
             using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+using System.Globalization;
             var cloudLogger = loggerFactory.CreateLogger<CloudDataUploader>();
             var cloudUploader = new CloudDataUploader(cloudLogger);
             var uploadSuccess = await cloudUploader.UploadTradeDataAsync(cloudTradeData).ConfigureAwait(false);
@@ -469,7 +470,7 @@ public class PerformanceTracker
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var logFile = Path.Combine(_tradesPath, $"trades_{today}.json");
 
             var trades = new List<object>();

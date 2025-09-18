@@ -836,6 +836,7 @@ namespace TradingBot.Critical
             const string sql = @"INSERT INTO UnknownPositions (Timestamp, Symbol, Quantity, Source) 
                                VALUES (@Timestamp, @Symbol, @Quantity, @Source)";
             using var cmd = new SQLiteCommand(sql, _database);
+using System.Globalization;
             cmd.Parameters.AddWithValue("@Timestamp", DateTime.UtcNow);
             cmd.Parameters.AddWithValue("@Symbol", brokerPos.Symbol);
             cmd.Parameters.AddWithValue("@Quantity", brokerPos.Quantity);
@@ -1188,7 +1189,7 @@ namespace TradingBot.Critical
                 var crashDir = Path.Combine(Environment.CurrentDirectory, "crash_dumps");
                 Directory.CreateDirectory(crashDir);
 
-                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 var dumpFile = Path.Combine(crashDir, $"crash_{timestamp}.json");
 
                 var crashData = new

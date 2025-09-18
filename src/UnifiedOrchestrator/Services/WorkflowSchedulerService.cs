@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -215,8 +216,8 @@ public class WorkflowSchedulerService : BackgroundService, IWorkflowScheduler
                 var nextExecutionET = TimeZoneInfo.ConvertTimeFromUtc(nextExecution.Value, targetTimeZoneInfo);
                 
                 _logger.LogDebug("[SCHEDULER] Next execution for {WorkflowId}: {NextExecutionUTC} UTC ({NextExecutionET} ET) (using schedule: {Schedule})", 
-                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss"), 
-                    nextExecutionET.ToString("yyyy-MM-dd HH:mm:ss"), activeSchedule);
+                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), 
+                    nextExecutionET.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture), activeSchedule);
                 return nextExecution.Value;
             }
 

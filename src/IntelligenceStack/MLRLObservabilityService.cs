@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.IntelligenceStack;
 
@@ -280,7 +281,7 @@ public class MlrlObservabilityService : IDisposable
             var metricsDir = "data/metrics";
             System.IO.Directory.CreateDirectory(metricsDir);
             
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = System.IO.Path.Combine(metricsDir, $"ml_rl_metrics_{timestamp}.json");
             
             var allMetrics = new Dictionary<string, object>();

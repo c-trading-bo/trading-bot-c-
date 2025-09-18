@@ -350,7 +350,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
     {
         try
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var backupName = $"full_backup_{timestamp}_{reason}";
             var backupPath = Path.Combine(_backupDirectory, backupName);
             
@@ -420,6 +420,7 @@ public class FilePositionStatePersistence : IPositionStatePersistence
                        $"{snapshot.OpenPositions.Count}|{snapshot.PendingOrders.Count}";
         
         using var sha256 = System.Security.Cryptography.SHA256.Create();
+using System.Globalization;
         var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(hashInput));
         return Convert.ToHexString(hashBytes);
     }

@@ -317,7 +317,7 @@ public class ModelRegistry : IModelRegistry
 
     private string GenerateModelId(string familyName)
     {
-        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
         return $"{familyName}_{timestamp}";
     }
 
@@ -351,6 +351,7 @@ public class ModelRegistry : IModelRegistry
     private string CalculateRuntimeSignature(byte[] modelData)
     {
         using var sha = SHA256.Create();
+using System.Globalization;
         var hash = sha.ComputeHash(modelData);
         return Convert.ToBase64String(hash)[..16];
     }

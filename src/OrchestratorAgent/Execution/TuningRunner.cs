@@ -1011,8 +1011,8 @@ public static class TuningRunner
         {
             contractId,
             live = false,
-            startTime = utcStart.ToString("o"),
-            endTime = utcEnd.ToString("o"),
+            startTime = utcStart.ToString("o", CultureInfo.InvariantCulture),
+            endTime = utcEnd.ToString("o", CultureInfo.InvariantCulture),
             unit = 2,        // Minute
             unitNumber = 1,
             limit = 20000,
@@ -1022,6 +1022,7 @@ public static class TuningRunner
         resp.EnsureSuccessStatusCode();
         var text = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         using var doc = JsonDocument.Parse(text);
+using System.Globalization;
         var arr = doc.RootElement.GetProperty("bars");
         var list = new List<Bar>(arr.GetArrayLength());
         foreach (var x in arr.EnumerateArray())

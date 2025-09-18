@@ -11,6 +11,7 @@ using BotCore.Brain;
 using BotCore.Models;
 using BotCore.Risk;
 using BotCore.Strategy;
+using System.Globalization;
 using MarketBar = BotCore.Market.Bar; // Alias to resolve ambiguity
 using AbstractionsTradingDecision = TradingBot.Abstractions.TradingDecision; // Alias for clarity
 using UnifiedTradingDecision = TradingBot.UnifiedOrchestrator.Interfaces.TradingDecision; // Alias for UnifiedOrchestrator type
@@ -84,8 +85,8 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             // Add adapter metadata to reasoning dictionary
             primaryDecision.Reasoning["AdapterMode"] = _useInferenceBrainPrimary ? "InferenceBrain-Primary" : "UnifiedTradingBrain-Primary";
             primaryDecision.Reasoning["ShadowBrainUsed"] = _useInferenceBrainPrimary ? "UnifiedTradingBrain" : "InferenceBrain";
-            primaryDecision.Reasoning["AgreementRate"] = _agreementRate.ToString("F4");
-            primaryDecision.Reasoning["ProcessingTimeMs"] = stopwatch.Elapsed.TotalMilliseconds.ToString("F2");
+            primaryDecision.Reasoning["AgreementRate"] = _agreementRate.ToString("F4", CultureInfo.InvariantCulture);
+            primaryDecision.Reasoning["ProcessingTimeMs"] = stopwatch.Elapsed.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture);
             
             // Check for promotion opportunity (every hour)
             if (DateTime.UtcNow - _lastPromotionCheck > TimeSpan.FromHours(1))
@@ -99,7 +100,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 _useInferenceBrainPrimary ? "InferenceBrain" : "UnifiedTradingBrain",
                 primaryDecision.Action,
                 (_agreementRate * 100).ToString("F1"),
-                stopwatch.Elapsed.TotalMilliseconds.ToString("F1"));
+                stopwatch.Elapsed.TotalMilliseconds.ToString("F1", CultureInfo.InvariantCulture));
                 
             return primaryDecision;
         }
@@ -174,12 +175,12 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             Reasoning = new Dictionary<string, object>
             {
                 ["Algorithm"] = algorithmName,
-                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["Strategy"] = brainDecision.RecommendedStrategy,
-                ["StrategyConfidence"] = brainDecision.StrategyConfidence.ToString("F4"),
+                ["StrategyConfidence"] = brainDecision.StrategyConfidence.ToString("F4", CultureInfo.InvariantCulture),
                 ["RiskAssessment"] = brainDecision.RiskAssessment,
                 ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
-                ["PriceProbability"] = brainDecision.PriceProbability.ToString("F4"),
+                ["PriceProbability"] = brainDecision.PriceProbability.ToString("F4", CultureInfo.InvariantCulture),
                 ["MarketRegime"] = brainDecision.MarketRegime.ToString()
             }
         };
@@ -234,7 +235,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
                 ["PPOVersionId"] = interfaceDecision.PPOVersionId,
                 ["UCBVersionId"] = interfaceDecision.UCBVersionId,
                 ["LSTMVersionId"] = interfaceDecision.LSTMVersionId,
-                ["ProcessingTimeMs"] = interfaceDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = interfaceDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["PassedRiskChecks"] = interfaceDecision.PassedRiskChecks.ToString(),
                 ["RiskWarnings"] = string.Join("; ", interfaceDecision.RiskWarnings),
                 ["AlgorithmVersions"] = interfaceDecision.AlgorithmVersions,
@@ -286,7 +287,7 @@ public class TradingBrainAdapter : ITradingBrainAdapter
             DecisionMetadata = new Dictionary<string, object>
             {
                 ["Algorithm"] = algorithmName,
-                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2"),
+                ["ProcessingTimeMs"] = brainDecision.ProcessingTimeMs.ToString("F2", CultureInfo.InvariantCulture),
                 ["MarketRegime"] = brainDecision.MarketRegime.ToString(),
                 ["PriceDirection"] = brainDecision.PriceDirection.ToString(),
                 ["RiskAssessment"] = brainDecision.RiskAssessment,

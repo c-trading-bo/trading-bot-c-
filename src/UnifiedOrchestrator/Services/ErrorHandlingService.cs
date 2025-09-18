@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -103,7 +104,7 @@ public class ErrorHandlingService : IHostedService
             message,
             exception = exception?.Message,
             exceptionType = exception?.GetType().Name,
-            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC")
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture)
         };
 
         try

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using TradingBot.Abstractions;
+using System.Globalization;
 
 namespace OrchestratorAgent.Execution
 {
@@ -83,17 +84,17 @@ namespace OrchestratorAgent.Execution
 
                 // Apply to environment variables
                 Environment.SetEnvironmentVariable("ORCH_UPDATE_COOLDOWN_BARS", parameters.OrchUpdateCooldownBars.ToString());
-                Environment.SetEnvironmentVariable("ORCH_STICKINESS", parameters.OrchStickiness.ToString("F3"));
-                Environment.SetEnvironmentVariable("CANARY_RATIO", parameters.CanaryRatio.ToString("F3"));
-                Environment.SetEnvironmentVariable("CANARY_PVALUE_MAX", parameters.CanaryPValueMax.ToString("F3"));
-                Environment.SetEnvironmentVariable("CVAR_LEVEL", parameters.CvarLevel.ToString("F3"));
-                Environment.SetEnvironmentVariable("CVAR_TARGET_R", parameters.CvarTargetR.ToString("F3"));
-                Environment.SetEnvironmentVariable("BANDIT_WEIGHT_FLOOR", parameters.WeightFloor.ToString("F3"));
-                Environment.SetEnvironmentVariable("BANDIT_EXPLORATION_RATE", parameters.ExplorationRate.ToString("F3"));
-                Environment.SetEnvironmentVariable("MAX_POSITION_MULTIPLIER", parameters.MaxPositionMultiplier.ToString("F1"));
-                Environment.SetEnvironmentVariable("NEWS_CONFIDENCE_THRESHOLD", parameters.NewsConfidenceThreshold.ToString("F2"));
-                Environment.SetEnvironmentVariable("META_LABELING_THRESHOLD", parameters.MetaLabelingThreshold.ToString("F2"));
-                Environment.SetEnvironmentVariable("DRIFT_THRESHOLD", parameters.DriftDetectionThreshold.ToString("F1"));
+                Environment.SetEnvironmentVariable("ORCH_STICKINESS", parameters.OrchStickiness.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("CANARY_RATIO", parameters.CanaryRatio.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("CANARY_PVALUE_MAX", parameters.CanaryPValueMax.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("CVAR_LEVEL", parameters.CvarLevel.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("CVAR_TARGET_R", parameters.CvarTargetR.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("BANDIT_WEIGHT_FLOOR", parameters.WeightFloor.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("BANDIT_EXPLORATION_RATE", parameters.ExplorationRate.ToString("F3", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("MAX_POSITION_MULTIPLIER", parameters.MaxPositionMultiplier.ToString("F1", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("NEWS_CONFIDENCE_THRESHOLD", parameters.NewsConfidenceThreshold.ToString("F2", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("META_LABELING_THRESHOLD", parameters.MetaLabelingThreshold.ToString("F2", CultureInfo.InvariantCulture));
+                Environment.SetEnvironmentVariable("DRIFT_THRESHOLD", parameters.DriftDetectionThreshold.ToString("F1", CultureInfo.InvariantCulture));
 
                 // Save to config file
                 SaveParametersToFile(parameters, configPath);

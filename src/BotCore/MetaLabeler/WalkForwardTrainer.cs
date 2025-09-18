@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -287,6 +286,7 @@ public class WalkForwardTrainer
 
             // Run sophisticated ONNX inference
             using var results = session.Run(inputs);
+using System.Globalization;
             var output = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0.5f;
             
             // Apply sigmoid activation for probability output
@@ -497,6 +497,6 @@ public class DateTimeJsonConverter : System.Text.Json.Serialization.JsonConverte
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
     {
-        writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+        writer.WriteStringValue(value.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture));
     }
 }

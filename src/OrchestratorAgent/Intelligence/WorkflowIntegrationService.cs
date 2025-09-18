@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace OrchestratorAgent.Intelligence
 {
@@ -209,7 +210,7 @@ namespace OrchestratorAgent.Intelligence
                 {
                     symbol = symbol,
                     current_price = currentPrice.ToString(),
-                    timestamp = DateTimeOffset.UtcNow.ToString("O")
+                    timestamp = DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture)
                 };
 
                 await TriggerWorkflowAsync("update-market-intelligence.yml", inputs, cancellationToken).ConfigureAwait(false);

@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -79,6 +78,7 @@ public static class StrategyIds
         
         // Generate SHA256 hash and take first 8 characters
         using var sha256 = SHA256.Create();
+using System.Globalization;
         var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(configJson));
         var fullHash = Convert.ToHexString(hashBytes);
         

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -411,7 +412,7 @@ public class TradingFeedbackService : BackgroundService
     {
         try
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = Path.Combine(_feedbackDataPath, $"feedback_{timestamp}.json");
             
             var data = new
@@ -439,7 +440,7 @@ public class TradingFeedbackService : BackgroundService
     {
         try
         {
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var filePath = Path.Combine(_feedbackDataPath, $"performance_issues_{timestamp}.json");
             
             var data = new

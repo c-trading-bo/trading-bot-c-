@@ -75,7 +75,7 @@ public class SystemHealthMonitoringService : IHostedService
                 processorCount = Environment.ProcessorCount,
                 workingSet = _currentProcess.WorkingSet64,
                 initialMemory = memoryInfo,
-                startTime = _currentProcess.StartTime.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                startTime = _currentProcess.StartTime.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
                 processId = _currentProcess.Id
             };
 
@@ -94,7 +94,7 @@ public class SystemHealthMonitoringService : IHostedService
         {
             var healthData = new
             {
-                timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+                timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture),
                 services = await CheckServiceHealth(),
                 connections = await CheckConnectionHealth(),
                 memory = await CheckMemoryHealth(),
@@ -233,6 +233,7 @@ public class SystemHealthMonitoringService : IHostedService
         {
             // Quick health check to TopstepX API
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+using System.Globalization;
             var response = await httpClient.GetAsync("https://api.topstepx.com/health").ConfigureAwait(false);
             
             return new 

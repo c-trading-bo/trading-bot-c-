@@ -9,6 +9,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -117,7 +118,7 @@ public class FeatureDemonstrationService : BackgroundService
             {
                 var timeUntil = nextExecution.Value - DateTime.UtcNow;
                 _logger.LogInformation("📅 [FEATURE_DEMO] Workflow '{WorkflowId}' next run: {NextRun} (in {TimeUntil})", 
-                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss UTC"), timeUntil);
+                    workflowId, nextExecution.Value.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture), timeUntil);
             }
             else
             {

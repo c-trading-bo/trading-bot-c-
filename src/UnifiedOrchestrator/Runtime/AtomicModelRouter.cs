@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Runtime;
 
@@ -89,7 +90,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
                     Metadata = new Dictionary<string, object>
                     {
                         ["PreviousVersionId"] = previousVersion,
-                        ["SwapTimestamp"] = swapStartTime.ToString("O"),
+                        ["SwapTimestamp"] = swapStartTime.ToString("O", CultureInfo.InvariantCulture),
                         ["ModelType"] = newVersion.ModelType,
                         ["SchemaVersion"] = newVersion.SchemaVersion
                     }
@@ -120,7 +121,7 @@ public class AtomicModelRouter<T> : IModelRouter<T> where T : class
                     Metadata = _stats.Metadata.ToDictionary(k => k.Key, v => v.Value)
                 };
                 _stats.Metadata["LastError"] = ex.Message;
-                _stats.Metadata["LastErrorTime"] = DateTime.UtcNow.ToString("O");
+                _stats.Metadata["LastErrorTime"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
             }
             
             return Task.FromResult(false);

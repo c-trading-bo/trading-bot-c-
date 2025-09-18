@@ -114,8 +114,8 @@ public class Verifier : IVerifier
 
         try
         {
-            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
             
             var requestUri = $"/api/Order/search?from={fromParam}&to={toParam}";
             
@@ -172,8 +172,8 @@ public class Verifier : IVerifier
 
         try
         {
-            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+            var fromParam = fromUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
+            var toParam = toUtc.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture);
             
             var requestUri = $"/api/Trade/search?from={fromParam}&to={toParam}";
             
@@ -191,6 +191,7 @@ public class Verifier : IVerifier
                 .ConfigureAwait(false);
 
             using var document = JsonDocument.Parse(json);
+using System.Globalization;
             
             if (document.RootElement.TryGetProperty("trades", out var tradesElement))
             {
@@ -251,7 +252,7 @@ public class Verifier : IVerifier
             timestamp = result.Timestamp,
             component = "verifier", 
             operation = "verify_today",
-            date = result.Date.ToString("yyyy-MM-dd"),
+            date = result.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             success = result.Success,
             orders_total = result.OrdersByStatus.Values.Sum(),
             orders_by_status = result.OrdersByStatus,

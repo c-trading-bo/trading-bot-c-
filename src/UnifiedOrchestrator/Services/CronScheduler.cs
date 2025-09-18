@@ -1,6 +1,6 @@
 using System;
-using System.Globalization;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Services;
 
@@ -238,7 +238,7 @@ public static class CronScheduler
     /// </summary>
     public static bool IsMarketHoliday(DateTime date, List<string> holidays)
     {
-        var dateStr = date.ToString("yyyy-MM-dd");
+        var dateStr = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         return holidays.Contains(dateStr);
     }
 }

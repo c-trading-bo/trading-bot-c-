@@ -279,5 +279,6 @@ public record ExecutionStatistics
     public decimal SlippagePredictionError { get; init; }
     public decimal FillRate { get; init; }
     public decimal CostSavingsBps { get; init; } // vs always using market orders
-    public Dictionary<OrderType, decimal> CostByOrderType { get; init; } = new();
+    public Dictionary<OrderType, decimal> CostByOrderType { get;
+using System.Globalization; init; } = new();
 }

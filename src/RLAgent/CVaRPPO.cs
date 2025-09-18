@@ -286,7 +286,7 @@ public class CVaRPPO : IDisposable
         try
         {
             var version = customVersion ?? GenerateNextVersion();
-            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var modelPath = Path.Combine(_modelBasePath, $"cvar_ppo_v{version}_{timestamp}");
             
             Directory.CreateDirectory(modelPath);
@@ -917,6 +917,7 @@ public class ValueNetwork : IDisposable
     private void InitializeWeights()
     {
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+using System.Globalization;
         
         _weights1 = new double[_stateSize, _hiddenSize];
         _bias1 = new double[_hiddenSize];

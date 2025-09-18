@@ -149,7 +149,7 @@ namespace BotCore.ML
                 if (File.Exists(modelPath))
                 {
                     var lastWrite = File.GetLastWriteTime(modelPath);
-                    return lastWrite.ToString("yyyyMMdd-HHmmss");
+                    return lastWrite.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
                 }
             }
             catch
@@ -346,6 +346,7 @@ namespace BotCore.ML
 
                             // Run real ML quality prediction
                             using var results = session.Run(inputs);
+using System.Globalization;
                             var mlQualityScore = results.FirstOrDefault()?.AsEnumerable<float>()?.FirstOrDefault() ?? 0.8f;
                             
                             decimal finalScore = Math.Clamp((decimal)mlQualityScore, 0.1m, 1.0m);

@@ -14,6 +14,7 @@ using BotCore.Services;
 using TradingBot.Abstractions;
 // Legacy removed: using TradingBot.Infrastructure.TopstepX;
 using TradingBot.UnifiedOrchestrator.Services;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -813,7 +814,7 @@ public class AutonomousDecisionEngine : BackgroundService
         var report = await _performanceTracker.GenerateDailyReportAsync(cancellationToken).ConfigureAwait(false);
         
         _logger.LogInformation("📈 [DAILY-REPORT] {Date} | P&L: ${PnL:F2} | Trades: {Trades} | Win Rate: {WinRate:P} | Best Strategy: {Strategy}",
-            DateTime.Today.ToString("yyyy-MM-dd"),
+            DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             report.DailyPnL,
             report.TotalTrades,
             report.WinRate,

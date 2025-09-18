@@ -137,6 +137,7 @@ namespace TradingBot.Infrastructure.Alerts
             try
             {
                 using var smtpClient = new SmtpClient(_smtpServer, _smtpPort);
+using System.Globalization;
                 
                 // Configure SMTP authentication if credentials provided
                 if (!string.IsNullOrEmpty(_smtpUsername) && !string.IsNullOrEmpty(_smtpPassword))
@@ -188,7 +189,7 @@ namespace TradingBot.Infrastructure.Alerts
                             fields = new[]
                             {
                                 new { title = "Severity", value = severity.ToString(), @short = true },
-                                new { title = "Timestamp", value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"), @short = true },
+                                new { title = "Timestamp", value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC", CultureInfo.InvariantCulture), @short = true },
                                 new { title = "Message", value = message, @short = false }
                             },
                             footer = "Trading Bot Alert System",

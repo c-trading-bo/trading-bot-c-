@@ -3,7 +3,6 @@
 // Role: Standalone orchestration logic for strategy and agent coordination.
 // Integration: Manages bot lifecycle and agent interactions.
 // PURPOSE: Evaluation-account policy configuration and simple session window helpers.
-using System.Globalization;
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.Connections;
@@ -476,6 +475,7 @@ namespace OrchestratorAgent
                 
                 // Parse the JSON payload
                 using var doc = JsonDocument.Parse(jsonString);
+using System.Globalization;
                 var root = doc.RootElement;
 
                 // Look for 'exp' claim (expiration time as Unix timestamp)

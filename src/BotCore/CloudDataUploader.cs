@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using System.Globalization;
 
 namespace BotCore
 {
@@ -265,6 +264,7 @@ namespace BotCore
                 };
 
                 using var process = System.Diagnostics.Process.Start(processInfo);
+using System.Globalization;
                 if (process == null) return false;
 
                 var output = await process.StandardOutput.ReadToEndAsync().ConfigureAwait(false);

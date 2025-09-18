@@ -1080,7 +1080,8 @@ public class SystemHealthMonitor
             foreach (var pos in testPositions)
             {
                 // Calculate P&L using the same logic as the bot
-                var pointValue = pos.symbol == "ES" ? 50m : 20m; // ES = $50/point, NQ = $20/point
+                var pointValue = pos.symbol == "ES" ? 50m : 20m;
+using System.Globalization; // ES = $50/point, NQ = $20/point
                 var priceChange = pos.currentPrice - pos.avgPrice;
                 var calculatedPnL = pos.qty * priceChange * pointValue;
 

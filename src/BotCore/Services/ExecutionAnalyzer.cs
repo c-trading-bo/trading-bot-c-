@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BotCore.Models;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace BotCore.Services;
 
@@ -43,7 +44,7 @@ public class ExecutionAnalyzer
             {
                 Symbol = symbol,
                 Strategy = strategy,
-                Timestamp = timestamp.ToString("O"),
+                Timestamp = timestamp.ToString("O", CultureInfo.InvariantCulture),
                 EntryPrice = entryPrice,
                 FillPrice = fillPrice,
                 Quantity = quantity,
@@ -81,7 +82,7 @@ public class ExecutionAnalyzer
                 Symbol = symbol,
                 ZoneLevel = Math.Round(zoneLevel, 2),
                 ZoneType = zoneType, // "supply" or "demand"
-                TestTime = DateTime.UtcNow.ToString("O"),
+                TestTime = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 Successful = successful,
                 EntryPrice = Math.Round(entryPrice, 2),
                 ExitPrice = Math.Round(exitPrice, 2),
@@ -113,7 +114,7 @@ public class ExecutionAnalyzer
             {
                 Symbol = symbol,
                 PatternType = patternType,
-                Timestamp = DateTime.UtcNow.ToString("O"),
+                Timestamp = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
                 Successful = successful,
                 Confidence = Math.Round(confidence, 3),
                 Details = details,
@@ -141,7 +142,7 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var metricsFile = Path.Combine(_feedbackPath, $"execution_metrics_{today}.json");
 
             if (!File.Exists(metricsFile))
@@ -161,7 +162,7 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var metricsFile = Path.Combine(_feedbackPath, $"execution_metrics_{today}.json");
 
             // Load existing metrics or create new
@@ -221,7 +222,7 @@ public class ExecutionAnalyzer
                 success_count = newSuccessCount,
                 test_count = newTestCount,
                 success_rate = Math.Round(newSuccessRate, 3),
-                last_test = DateTime.UtcNow.ToString("O")
+                last_test = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)
             };
 
             await File.WriteAllTextAsync(feedbackFile,
@@ -237,7 +238,7 @@ public class ExecutionAnalyzer
     {
         try
         {
-            var today = DateTime.Today.ToString("yyyy-MM-dd");
+            var today = DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             var outcomeFile = Path.Combine(_feedbackPath, $"pattern_outcomes_{today}.json");
 
             var outcomes = new List<object>();

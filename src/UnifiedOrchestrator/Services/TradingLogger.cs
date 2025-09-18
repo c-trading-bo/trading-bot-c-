@@ -98,10 +98,10 @@ public class TradingLogger : ITradingLogger, IDisposable
             side,
             symbol,
             qty = quantity,
-            entry = entry.ToString("0.00"),
-            stop = stop.ToString("0.00"),
-            t1 = target.ToString("0.00"),
-            rMultiple = rMultiple.ToString("0.00"),
+            entry = entry.ToString("0.00", CultureInfo.InvariantCulture),
+            stop = stop.ToString("0.00", CultureInfo.InvariantCulture),
+            t1 = target.ToString("0.00", CultureInfo.InvariantCulture),
+            rMultiple = rMultiple.ToString("0.00", CultureInfo.InvariantCulture),
             tag = customTag,
             orderId
         };
@@ -115,9 +115,9 @@ public class TradingLogger : ITradingLogger, IDisposable
         {
             account = accountId,
             orderId,
-            fillPrice = fillPrice.ToString("0.00"),
+            fillPrice = fillPrice.ToString("0.00", CultureInfo.InvariantCulture),
             qty = quantity,
-            time = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            time = fillTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)
         };
 
         await LogEventAsync(TradingLogCategory.FILL, TradingLogLevel.INFO, "TRADE_FILLED", tradeData, orderId).ConfigureAwait(false);
@@ -331,7 +331,7 @@ public class TradingLogger : ITradingLogger, IDisposable
 
     private string GetLogFilePath(TradingLogCategory category)
     {
-        var date = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var date = DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         var subdirectory = GetSubdirectoryForCategory(category);
         var fileName = $"{category.ToString().ToLower()}_{date}.ndjson";
         return Path.Combine(_options.LogDirectory, subdirectory, fileName);
@@ -358,7 +358,7 @@ public class TradingLogger : ITradingLogger, IDisposable
     {
         if (!File.Exists(filePath)) return;
         
-        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss");
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
         var rotatedPath = filePath.Replace(".ndjson", $"_{timestamp}.ndjson");
         
         // Move current file
@@ -392,6 +392,7 @@ public class TradingLogger : ITradingLogger, IDisposable
         using var originalStream = File.OpenRead(filePath);
         using var compressedStream = File.Create(compressedPath);
         using var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress);
+using System.Globalization;
         
         await originalStream.CopyToAsync(gzipStream).ConfigureAwait(false);
     }

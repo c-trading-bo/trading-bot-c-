@@ -383,8 +383,8 @@ namespace BotCore.Services
                 {
                     contractId = contractId,
                     live = false, // Use simulation data for consistency
-                    startTime = startTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                    endTime = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    startTime = startTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
+                    endTime = endTime.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
                     unit = 2, // Minutes
                     unitNumber = 1, // 1-minute bars
                     limit = Math.Max(count, 5000), // Get more than requested to ensure we have enough
@@ -451,6 +451,7 @@ namespace BotCore.Services
             try
             {
                 using var document = System.Text.Json.JsonDocument.Parse(responseContent);
+using System.Globalization;
                 var root = document.RootElement;
                 
                 // Check for success field

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using TradingBot.UnifiedOrchestrator.Interfaces;
 using TradingBot.UnifiedOrchestrator.Models;
+using System.Globalization;
 
 namespace TradingBot.UnifiedOrchestrator.Brains;
 
@@ -349,8 +350,8 @@ public class TrainingBrain : ITrainingBrain
         {
             TrainingStartTime = job.StartTime,
             TrainingEndTime = job.EndTime ?? DateTime.UtcNow,
-            DataRangeStart = job.Config.DataStartTime.ToString("O"),
-            DataRangeEnd = job.Config.DataEndTime.ToString("O"),
+            DataRangeStart = job.Config.DataStartTime.ToString("O", CultureInfo.InvariantCulture),
+            DataRangeEnd = job.Config.DataEndTime.ToString("O", CultureInfo.InvariantCulture),
             DataSamples = (int)job.StageData.GetValueOrDefault("data_samples", 0),
             GitSha = GetCurrentGitSha(),
             CreatedBy = Environment.UserName,
@@ -370,7 +371,7 @@ public class TrainingBrain : ITrainingBrain
         {
             model_type = "trading_strategy",
             version = "1.0",
-            created_at = DateTime.UtcNow.ToString("O"),
+            created_at = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture),
             input_features = new[] { "price", "volume", "volatility", "momentum" },
             output_actions = new[] { "buy", "sell", "hold" },
             model_weights = modelWeights,

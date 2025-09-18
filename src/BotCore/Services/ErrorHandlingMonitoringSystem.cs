@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace TopstepX.Bot.Core.Services
 {
@@ -161,7 +162,7 @@ namespace TopstepX.Bot.Core.Services
             {
                 var errorLogEntry = new
                 {
-                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                    Timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture),
                     ErrorId = errorId,
                     Component = component,
                     Severity = severity.ToString(),
