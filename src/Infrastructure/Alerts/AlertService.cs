@@ -137,7 +137,6 @@ namespace TradingBot.Infrastructure.Alerts
             try
             {
                 using var smtpClient = new SmtpClient(_smtpServer, _smtpPort);
-using System.Globalization;
                 
                 // Configure SMTP authentication if credentials provided
                 if (!string.IsNullOrEmpty(_smtpUsername) && !string.IsNullOrEmpty(_smtpPassword))

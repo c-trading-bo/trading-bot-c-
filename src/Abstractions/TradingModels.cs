@@ -455,9 +455,22 @@ public class WorkflowSchedule
                 
             return GetWeekdaySchedule(et);
         }
-        catch
+        catch (TimeZoneNotFoundException ex)
         {
-            // Fallback to regular schedule on any timezone conversion errors
+            // Fallback to regular schedule on timezone not found
+            System.Diagnostics.Debug.WriteLine($"Timezone not found: {ex.Message}");
+            return Regular ?? Global;
+        }
+        catch (InvalidTimeZoneException ex)
+        {
+            // Fallback to regular schedule on invalid timezone
+            System.Diagnostics.Debug.WriteLine($"Invalid timezone: {ex.Message}");
+            return Regular ?? Global;
+        }
+        catch (Exception ex) when (ex is ArgumentException or FormatException)
+        {
+            // Fallback to regular schedule on argument/format errors
+            System.Diagnostics.Debug.WriteLine($"DateTime conversion error: {ex.Message}");
             return Regular ?? Global;
         }
     }

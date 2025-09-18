@@ -191,7 +191,6 @@ public class Verifier : IVerifier
                 .ConfigureAwait(false);
 
             using var document = JsonDocument.Parse(json);
-using System.Globalization;
             
             if (document.RootElement.TryGetProperty("trades", out var tradesElement))
             {

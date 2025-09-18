@@ -83,7 +83,17 @@ namespace TradingBot.Abstractions
                             return true;
                         }
                     }
-                    catch (Exception ex)
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger.LogDebug(ex, "[OrderManager] Invalid operation during cancel via {Broker} for order {OrderId}", 
+                            adapter.BrokerName, orderId);
+                    }
+                    catch (TimeoutException ex)
+                    {
+                        _logger.LogDebug(ex, "[OrderManager] Timeout during cancel via {Broker} for order {OrderId}", 
+                            adapter.BrokerName, orderId);
+                    }
+                    catch (Exception ex) when (!ex.IsFatal())
                     {
                         _logger.LogDebug(ex, "[OrderManager] Cancel attempt failed via {Broker} for order {OrderId}", 
                             adapter.BrokerName, orderId);
@@ -120,7 +130,19 @@ namespace TradingBot.Abstractions
                 
                 return result;
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
+            {
+                _logger.LogError(ex, "[OrderManager] ❌ Invalid argument cancelling order {OrderId} via {Broker}: {Reason}", 
+                    orderId, brokerName, reason);
+                return false;
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(ex, "[OrderManager] ❌ Invalid operation cancelling order {OrderId} via {Broker}: {Reason}", 
+                    orderId, brokerName, reason);
+                return false;
+            }
+            catch (Exception ex) when (!ex.IsFatal())
             {
                 _logger.LogError(ex, "[OrderManager] ❌ Exception cancelling order {OrderId} via {Broker}: {Reason}", 
                     orderId, brokerName, reason);
